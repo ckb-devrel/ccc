@@ -18,7 +18,8 @@
     "@ckb-ccc/uni-sat": "0.0.15",
     "@ckb-ccc/utxo-global": "0.0.15",
     "@ckb-ccc/xverse": "0.0.14",
-    "@ckb-ccc/spore": "0.0.12-alpha.1"
+    "@ckb-ccc/spore": "0.0.12-alpha.1",
+    "@ckb-ccc/examples": "0.0.1"
   },
   "changesets": [
     "angry-taxis-swim",
@@ -29,6 +30,7 @@
     "nasty-frogs-wonder",
     "proud-jars-vanish",
     "selfish-eggs-attack",
-    "tall-mangos-kneel"
+    "tall-mangos-kneel",
+    "tidy-poets-divide"
   ]
 }

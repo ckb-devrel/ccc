@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 0.1.0-alpha.5
+
+### Patch Changes
+
+- [`50f2ce0`](https://github.com/ckb-devrel/ccc/commit/50f2ce08e74cb3fbeae926267d42e28b426fd7f4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): missing mol types
+
 ## 0.1.0-alpha.4
 
 ### Minor Changes

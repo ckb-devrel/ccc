@@ -1,5 +1,20 @@
 # @ckb-ccc/ccc
 
+## 0.0.16-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [[`50f2ce0`](https://github.com/ckb-devrel/ccc/commit/50f2ce08e74cb3fbeae926267d42e28b426fd7f4)]:
+  - @ckb-ccc/core@0.1.0-alpha.5
+  - @ckb-ccc/eip6963@0.0.16-alpha.5
+  - @ckb-ccc/joy-id@0.0.16-alpha.5
+  - @ckb-ccc/nip07@0.0.16-alpha.5
+  - @ckb-ccc/okx@0.0.16-alpha.5
+  - @ckb-ccc/rei@0.0.16-alpha.5
+  - @ckb-ccc/uni-sat@0.0.16-alpha.5
+  - @ckb-ccc/utxo-global@0.0.16-alpha.5
+  - @ckb-ccc/xverse@0.0.15-alpha.6
+
 ## 0.0.16-alpha.5
 
 ### Patch Changes

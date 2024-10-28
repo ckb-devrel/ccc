@@ -1,5 +1,12 @@
 # @ckb-ccc/uni-sat
 
+## 0.0.16-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [[`50f2ce0`](https://github.com/ckb-devrel/ccc/commit/50f2ce08e74cb3fbeae926267d42e28b426fd7f4)]:
+  - @ckb-ccc/core@0.1.0-alpha.5
+
 ## 0.0.16-alpha.4
 
 ### Patch Changes

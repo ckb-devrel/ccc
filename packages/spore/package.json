@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/spore",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Spore protocol",
   "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
