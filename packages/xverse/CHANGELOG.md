@@ -1,5 +1,11 @@
 # @ckb-ccc/xverse
 
+## 0.0.15-alpha.7
+
+### Patch Changes
+
+- [#85](https://github.com/ckb-devrel/ccc/pull/85) [`91832b1`](https://github.com/ckb-devrel/ccc/commit/91832b103c5d7a1272060639f77754a1c731a753) Thanks [@yixyxiu](https://github.com/yixyxiu)! - fixed: To resolve module not found compilation errors in the CRA app.
+
 ## 0.0.15-alpha.6
 
 ### Patch Changes

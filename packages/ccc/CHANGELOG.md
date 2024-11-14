@@ -1,5 +1,12 @@
 # @ckb-ccc/ccc
 
+## 0.0.16-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [[`91832b1`](https://github.com/ckb-devrel/ccc/commit/91832b103c5d7a1272060639f77754a1c731a753)]:
+  - @ckb-ccc/xverse@0.0.15-alpha.7
+
 ## 0.0.16-alpha.6
 
 ### Patch Changes
