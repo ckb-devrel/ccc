@@ -77,8 +77,8 @@ export class Dialog extends LitElement {
 
     .close svg,
     .back svg {
-      width: 0.8rem;
-      height: 0.8rem;
+      width: 1rem;
+      height:1rem;
       opacity: 0;
       transition: opacity 0.15s ease-in-out;
     }
