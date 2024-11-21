@@ -19,8 +19,8 @@ export class Dialog extends LitElement {
         <div
           class="back ${this.canBack != null ? "active" : ""}"
           @click=${() => {
-        this.dispatchEvent(new Event("back"));
-      }}
+            this.dispatchEvent(new Event("back"));
+          }}
         >
           ${LEFT_SVG}
         </div>
@@ -28,8 +28,8 @@ export class Dialog extends LitElement {
         <span
           class="close active"
           @click=${() => {
-        this.dispatchEvent(new CloseEvent());
-      }}
+            this.dispatchEvent(new CloseEvent());
+          }}
         >
           ${CLOSE_SVG}
         </span>
@@ -74,15 +74,15 @@ export class Dialog extends LitElement {
       padding-bottom: 1rem;
       border-bottom: 1px solid var(--divider);
     }
-    .close
+    .close,
     .back {
-      padding:0.2rem 0.4rem;
+      padding: 0.2rem 0.4rem;
       cursor: pointer;
     }
     .close svg,
     .back svg {
       width: 0.8rem;
-      height:0.8rem;
+      height: 0.8rem;
       opacity: 0;
       transition: opacity 0.15s ease-in-out;
     }
