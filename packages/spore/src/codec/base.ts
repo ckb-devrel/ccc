@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { molecule } from "@ckb-lumos/codec";
+import { molecule } from "@ckb-ccc/codec";
 
 /**
  * The codec for packing/unpacking UTF-8 raw strings.

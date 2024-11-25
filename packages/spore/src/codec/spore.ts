@@ -1,6 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { blockchain } from "@ckb-lumos/base";
-import { molecule } from "@ckb-lumos/codec";
+import { blockchain, molecule } from "@ckb-ccc/codec";
 import { RawString } from "./base.js";
 
 export const MolSporeData = molecule.table(

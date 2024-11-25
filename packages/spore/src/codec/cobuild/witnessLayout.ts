@@ -1,5 +1,4 @@
-import { blockchain } from "@ckb-lumos/base";
-import { molecule } from "@ckb-lumos/codec";
+import { blockchain, molecule } from "@ckb-ccc/codec";
 import { Message } from "./buildingPacket.js";
 
 export const SighashAll = molecule.table(
