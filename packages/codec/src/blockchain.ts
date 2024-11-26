@@ -5,11 +5,12 @@ import {
   createFixedBytesCodec,
   PackParam,
   UnpackResult,
-  number,
-  molecule,
-  bytes,
-} from "../src";
-import { BytesCodec, FixedBytesCodec } from "../src/base";
+  BytesCodec,
+  FixedBytesCodec,
+} from "./base";
+import { bytify, hexify } from "./bytes";
+import { byteVecOf, option, table, vector, struct } from "./molecule";
+import { Uint8, Uint32LE, Uint64LE, Uint128LE } from "./number";
 import { ccc } from "@ckb-ccc/core";
 
 function asHexadecimal(
@@ -21,18 +22,15 @@ function asHexadecimal(
   };
 }
 
-const Uint8 = asHexadecimal(number.Uint8);
-const Uint32LE = asHexadecimal(number.Uint32LE);
-const Uint64LE = asHexadecimal(number.Uint64LE);
-const Uint128LE = asHexadecimal(number.Uint128LE);
-
-const { byteVecOf, option, table, vector, struct } = molecule;
-const { bytify, hexify } = bytes;
+const HexUint8 = asHexadecimal(Uint8);
+const HexUint32LE = asHexadecimal(Uint32LE);
+const HexUint64LE = asHexadecimal(Uint64LE);
+const HexUint128LE = asHexadecimal(Uint128LE);
 
 type TransactionCodecType = PackParam<typeof BaseTransaction>;
 type TransactionUnpackResultType = UnpackResult<typeof BaseTransaction>;
 type RawTransactionUnpackResultType = UnpackResult<typeof RawTransaction>;
-type HeaderCodecType = PackParam<typeof BaseHeader>;
+// type HeaderCodecType = PackParam<typeof BaseHeader>;
 type HeaderUnpackResultType = UnpackResult<typeof BaseHeader>;
 type RawHeaderUnpackResultType = UnpackResult<typeof RawHeader>;
 
@@ -132,15 +130,15 @@ export const HashType = createFixedBytesCodec<ccc.HashTypeLike>({
   byteLength: 1,
   pack: (type) => {
     // prettier-ignore
-    if (type === "type") return number.Uint8.pack(0b0000000_1);
+    if (type === "type") return Uint8.pack(0b0000000_1);
     // prettier-ignore
-    if (type === "data") return number.Uint8.pack(0b0000000_0);
-    if (type === "data1") return number.Uint8.pack(0b0000001_0);
-    if (type === "data2") return number.Uint8.pack(0b0000010_0);
+    if (type === "data") return Uint8.pack(0b0000000_0);
+    if (type === "data1") return Uint8.pack(0b0000001_0);
+    if (type === "data2") return Uint8.pack(0b0000010_0);
     throw new Error(`Invalid hash type: ${type}`);
   },
   unpack: (buf) => {
-    const hashTypeBuf = number.Uint8.unpack(buf);
+    const hashTypeBuf = Uint8.unpack(buf);
     if (hashTypeBuf === 0b0000000_1) return "type";
     if (hashTypeBuf === 0b0000000_0) return "data";
     if (hashTypeBuf === 0b0000001_0) return "data1";
@@ -152,12 +150,12 @@ export const HashType = createFixedBytesCodec<ccc.HashTypeLike>({
 export const DepType = createFixedBytesCodec<ccc.DepTypeLike>({
   byteLength: 1,
   pack: (type) => {
-    if (type === "code") return Uint8.pack(0);
-    if (type === "depGroup") return Uint8.pack(1);
+    if (type === "code") return HexUint8.pack(0);
+    if (type === "depGroup") return HexUint8.pack(1);
     throw new Error(`Invalid dep type: ${type}`);
   },
   unpack: (buf) => {
-    const depTypeBuf = number.Uint8.unpack(buf);
+    const depTypeBuf = Uint8.unpack(buf);
     if (depTypeBuf === 0) return "code";
     if (depTypeBuf === 1) return "depGroup";
     throw new Error(`Invalid dep type: ${depTypeBuf}`);
@@ -178,14 +176,14 @@ export const ScriptOpt = option(Script);
 export const OutPoint = struct(
   {
     txHash: Byte32,
-    index: Uint32LE,
+    index: HexUint32LE,
   },
   ["txHash", "index"]
 );
 
 export const CellInput = struct(
   {
-    since: Uint64LE,
+    since: HexUint64LE,
     previousOutput: OutPoint,
   },
   ["since", "previousOutput"]
@@ -195,7 +193,7 @@ export const CellInputVec = vector(CellInput);
 
 export const CellOutput = table(
   {
-    capacity: Uint64LE,
+    capacity: HexUint64LE,
     lock: Script,
     type: ScriptOpt,
   },
@@ -216,7 +214,7 @@ export const CellDepVec = vector(CellDep);
 
 export const RawTransaction = table(
   {
-    version: Uint32LE,
+    version: HexUint32LE,
     cellDeps: CellDepVec,
     headerDeps: Byte32Vec,
     inputs: CellInputVec,
@@ -244,11 +242,11 @@ export const TransactionVec = vector(Transaction);
 
 export const RawHeader = struct(
   {
-    version: Uint32LE,
-    compactTarget: Uint32LE,
-    timestamp: Uint64LE,
-    number: Uint64LE,
-    epoch: Uint64LE,
+    version: HexUint32LE,
+    compactTarget: HexUint32LE,
+    timestamp: HexUint64LE,
+    number: HexUint64LE,
+    epoch: HexUint64LE,
     parentHash: Byte32,
     transactionsRoot: Byte32,
     proposalsHash: Byte32,
@@ -272,7 +270,7 @@ export const RawHeader = struct(
 export const BaseHeader = struct(
   {
     raw: RawHeader,
-    nonce: Uint128LE,
+    nonce: HexUint128LE,
   },
   ["raw", "nonce"]
 );

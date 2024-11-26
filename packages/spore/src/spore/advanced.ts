@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { UnpackResult } from "@ckb-lumos/codec";
+import { UnpackResult } from "@ckb-ccc/codec";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeData } from "../codec/index.js";

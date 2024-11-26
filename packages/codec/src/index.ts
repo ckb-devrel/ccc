@@ -6,6 +6,7 @@ export type {
   BytesLike,
   BytesCodec,
   AnyCodec,
+  FixedBytesCodec,
 } from "./base";
 export { createBytesCodec, createFixedBytesCodec, isFixedCodec } from "./base";
 export { ObjectLayoutCodec, OptionLayoutCodec } from "./molecule";

@@ -37,7 +37,7 @@ function createUintNumberCodec(
 }
 
 const createUintBICodec = (byteLength: number, littleEndian = false) => {
-  const max = ccc.numFrom(1) << BigInt(byteLength) * BigInt(8) - BigInt(1);
+  const max = (ccc.numFrom(1) << (BigInt(byteLength) * BigInt(8))) - BigInt(1);
 
   return createFixedBytesCodec<BI, BIish>({
     byteLength,

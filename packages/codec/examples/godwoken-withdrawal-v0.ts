@@ -1,4 +1,4 @@
-import { BI, molecule, number } from "../src";
+import { molecule, number } from "../src";
 import { Byte32 } from "../src/blockchain";
 
 const { struct } = molecule;
@@ -66,8 +66,8 @@ const RawWithdrawalRequest = struct(
 function main() {
   const buf = RawWithdrawalRequest.pack({
     nonce: 1,
-    capacity: BI.from(10000),
-    amount: BI.from(1000),
+    capacity: 10000,
+    amount: 1000,
     sudt_script_hash:
       "0x1234567812345678123456781234567812345678123456781234567812345678",
     account_script_hash:
@@ -76,11 +76,11 @@ function main() {
       "0x1234567812345678123456781234567812345678123456781234567812345678",
     payment_lock_hash:
       "0x1234567812345678123456781234567812345678123456781234567812345678",
-    sell_amount: BI.from(1000),
-    sell_capacity: BI.from(100),
+    sell_amount: 1000,
+    sell_capacity: 100,
     fee: {
       sudt_id: 1,
-      amount: BI.from(1000),
+      amount: 1000,
     },
   });
 
