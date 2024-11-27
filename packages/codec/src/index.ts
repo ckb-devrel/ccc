@@ -13,4 +13,5 @@ export * as blockchain from "./blockchain";
 export * as bytes from "./bytes";
 export * from "./high-order";
 export { ObjectLayoutCodec, OptionLayoutCodec } from "./molecule";
+export * as molecule from "./molecule";
 export * as number from "./number";
