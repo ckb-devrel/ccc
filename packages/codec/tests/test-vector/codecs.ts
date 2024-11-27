@@ -1,14 +1,14 @@
-import { FixedBytesCodec } from "./../../src/base";
 import { Uint8 } from "../../src/number";
+import { FixedBytesCodec } from "./../../src/base";
 import {
   testArray,
+  TestBytesCodec,
+  TestMetadata,
   testOption,
   testStruct,
   testTable,
   testUnion,
   testVector,
-  TestBytesCodec,
-  TestMetadata,
 } from "./testUtility";
 
 export const byte: FixedBytesCodec & { testMetadata: TestMetadata } = {
@@ -87,7 +87,7 @@ export const StructA = testStruct(
     f3: Byte2,
     f4: Byte2,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructB {
 //     f1: byte,
@@ -102,7 +102,7 @@ export const StructB = testStruct(
     f3: Byte2,
     f4: Byte3,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 
 // struct StructC {
@@ -118,7 +118,7 @@ export const StructC = testStruct(
     f3: Byte2,
     f4: Byte4,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructD {
 //     f1: byte,
@@ -133,7 +133,7 @@ export const StructD = testStruct(
     f3: Byte2,
     f4: Byte5,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructE {
 //     f1: byte,
@@ -148,7 +148,7 @@ export const StructE = testStruct(
     f3: byte,
     f4: Byte2,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructF {
 //     f1: byte,
@@ -161,7 +161,7 @@ export const StructF = testStruct(
     f2: Byte3,
     f3: byte,
   },
-  ["f1", "f2", "f3"]
+  ["f1", "f2", "f3"],
 );
 // struct StructG {
 //     f1: Byte3,
@@ -176,7 +176,7 @@ export const StructG = testStruct(
     f3: Byte2,
     f4: Word2,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructH {
 //     f1: Byte3,
@@ -191,7 +191,7 @@ export const StructH = testStruct(
     f3: Byte2,
     f4: Byte4,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // struct StructI {
 //     f1: Byte3,
@@ -202,7 +202,7 @@ export const StructI = testStruct(
     f1: Byte3,
     f2: byte,
   },
-  ["f1", "f2"]
+  ["f1", "f2"],
 );
 // struct StructJ {
 //     f1: Byte6,
@@ -213,7 +213,7 @@ export const StructJ = testStruct(
     f1: Byte6,
     f2: byte,
   },
-  ["f1", "f2"]
+  ["f1", "f2"],
 );
 
 // array StructIx3 [StructI; 3];
@@ -228,7 +228,7 @@ export const StructO = testStruct(
     f1: StructIx3,
     f2: byte,
   },
-  ["f1", "f2"]
+  ["f1", "f2"],
 );
 // struct StructP {
 //     f1: StructJ,
@@ -239,7 +239,7 @@ export const StructP = testStruct(
     f1: StructJ,
     f2: byte,
   },
-  ["f1", "f2"]
+  ["f1", "f2"],
 );
 
 // vector Bytes <byte>;
@@ -274,7 +274,7 @@ export const Table1 = testTable(
   {
     f1: byte,
   },
-  ["f1"]
+  ["f1"],
 );
 // table Table2 {
 //     f1: byte,
@@ -285,7 +285,7 @@ export const Table2 = testTable(
     f1: byte,
     f2: Word2,
   },
-  ["f1", "f2"]
+  ["f1", "f2"],
 );
 // table Table3 {
 //     f1: byte,
@@ -298,7 +298,7 @@ export const Table3 = testTable(
     f2: Word2,
     f3: StructA,
   },
-  ["f1", "f2", "f3"]
+  ["f1", "f2", "f3"],
 );
 // table Table4 {
 //     f1: byte,
@@ -313,7 +313,7 @@ export const Table4 = testTable(
     f3: StructA,
     f4: Bytes,
   },
-  ["f1", "f2", "f3", "f4"]
+  ["f1", "f2", "f3", "f4"],
 );
 // table Table5 {
 //     f1: byte,
@@ -330,7 +330,7 @@ export const Table5 = testTable(
     f4: Bytes,
     f5: BytesVec,
   },
-  ["f1", "f2", "f3", "f4", "f5"]
+  ["f1", "f2", "f3", "f4", "f5"],
 );
 // table Table6 {
 //     f1: byte,
@@ -349,7 +349,7 @@ export const Table6 = testTable(
     f5: BytesVec,
     f6: Table5,
   },
-  ["f1", "f2", "f3", "f4", "f5", "f6"]
+  ["f1", "f2", "f3", "f4", "f5", "f6"],
 );
 
 // option ByteOpt (byte);
@@ -405,7 +405,16 @@ export const UnionA = testUnion(
     Table6,
     Table6Opt,
   },
-  ["byte", "Word", "StructA", "Bytes", "Words", "Table0", "Table6", "Table6Opt"]
+  [
+    "byte",
+    "Word",
+    "StructA",
+    "Bytes",
+    "Words",
+    "Table0",
+    "Table6",
+    "Table6Opt",
+  ],
 );
 // table TableA {
 //     f1: Word2,
@@ -428,7 +437,7 @@ export const TableA = testTable(
     f7: UnionA,
     f8: byte,
   },
-  ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"]
+  ["f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"],
 );
 // table AllInOne {
 //     f0: byte,
@@ -658,7 +667,7 @@ export const AllInOne = testTable(
     "f71",
     "f72",
     "f73",
-  ]
+  ],
 );
 
 export const codecs: Record<string, TestBytesCodec> = {

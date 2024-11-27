@@ -1,8 +1,8 @@
-export { byteOf, byteArrayOf, byteVecOf } from "./helper";
-export { table, array, option, struct, vector, union } from "./layout";
+export { byteArrayOf, byteOf, byteVecOf } from "./helper";
+export { array, option, struct, table, union, vector } from "./layout";
 export type {
-  ObjectLayoutCodec,
   ArrayLayoutCodec,
+  ObjectLayoutCodec,
   OptionLayoutCodec,
   UnionLayoutCodec,
 } from "./layout";

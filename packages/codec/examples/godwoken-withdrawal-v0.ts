@@ -33,7 +33,7 @@ const Fee = struct(
     sudt_id: Uint32,
     amount: Uint128,
   },
-  ["sudt_id", "amount"]
+  ["sudt_id", "amount"],
 );
 
 const RawWithdrawalRequest = struct(
@@ -60,7 +60,7 @@ const RawWithdrawalRequest = struct(
     "owner_lock_hash",
     "payment_lock_hash",
     "fee",
-  ]
+  ],
 );
 
 function main() {

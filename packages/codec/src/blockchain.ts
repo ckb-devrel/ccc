@@ -1,20 +1,22 @@
+import { ccc } from "@ckb-ccc/core";
 import {
   AnyCodec,
+  BytesCodec,
   BytesLike,
   createBytesCodec,
   createFixedBytesCodec,
+  FixedBytesCodec,
   PackParam,
   UnpackResult,
-  BytesCodec,
-  FixedBytesCodec,
 } from "./base";
 import { bytify, hexify } from "./bytes";
-import { byteVecOf, option, table, vector, struct } from "./molecule";
-import { Uint8, Uint32LE, Uint64LE, Uint128LE } from "./number";
-import { ccc } from "@ckb-ccc/core";
+import { byteVecOf, option, struct, table, vector } from "./molecule";
+import { Uint128LE, Uint32LE, Uint64LE, Uint8 } from "./number";
 
 function asHexadecimal(
-  codec: FixedBytesCodec<ccc.Num, ccc.NumLike> | FixedBytesCodec<number, ccc.NumLike>
+  codec:
+    | FixedBytesCodec<ccc.Num, ccc.NumLike>
+    | FixedBytesCodec<number, ccc.NumLike>,
 ): FixedBytesCodec<string, ccc.NumLike> {
   return {
     ...codec,
@@ -35,7 +37,7 @@ type HeaderUnpackResultType = UnpackResult<typeof BaseHeader>;
 type RawHeaderUnpackResultType = UnpackResult<typeof RawHeader>;
 
 export function createFixedHexBytesCodec(
-  byteLength: number
+  byteLength: number,
 ): FixedBytesCodec<string, BytesLike> {
   return createFixedBytesCodec({
     byteLength,
@@ -66,7 +68,7 @@ export const Byte32Vec = vector(Byte32);
 export function WitnessArgsOf<
   LockCodec extends AnyCodec,
   InputTypeCodec extends AnyCodec,
-  OutputTypeCodec extends AnyCodec
+  OutputTypeCodec extends AnyCodec,
 >(payload: {
   lock: LockCodec;
   inputType: InputTypeCodec;
@@ -89,7 +91,7 @@ export function WitnessArgsOf<
       inputType: option(byteVecOf(payload.inputType)),
       outputType: option(byteVecOf(payload.outputType)),
     },
-    ["lock", "inputType", "outputType"]
+    ["lock", "inputType", "outputType"],
   );
 }
 
@@ -168,7 +170,7 @@ export const Script = table(
     hashType: HashType,
     args: Bytes,
   },
-  ["codeHash", "hashType", "args"]
+  ["codeHash", "hashType", "args"],
 );
 
 export const ScriptOpt = option(Script);
@@ -178,7 +180,7 @@ export const OutPoint = struct(
     txHash: Byte32,
     index: HexUint32LE,
   },
-  ["txHash", "index"]
+  ["txHash", "index"],
 );
 
 export const CellInput = struct(
@@ -186,7 +188,7 @@ export const CellInput = struct(
     since: HexUint64LE,
     previousOutput: OutPoint,
   },
-  ["since", "previousOutput"]
+  ["since", "previousOutput"],
 );
 
 export const CellInputVec = vector(CellInput);
@@ -197,7 +199,7 @@ export const CellOutput = table(
     lock: Script,
     type: ScriptOpt,
   },
-  ["capacity", "lock", "type"]
+  ["capacity", "lock", "type"],
 );
 
 export const CellOutputVec = vector(CellOutput);
@@ -207,7 +209,7 @@ export const CellDep = struct(
     outPoint: OutPoint,
     depType: DepType,
   },
-  ["outPoint", "depType"]
+  ["outPoint", "depType"],
 );
 
 export const CellDepVec = vector(CellDep);
@@ -221,7 +223,7 @@ export const RawTransaction = table(
     outputs: CellOutputVec,
     outputsData: BytesVec,
   },
-  ["version", "cellDeps", "headerDeps", "inputs", "outputs", "outputsData"]
+  ["version", "cellDeps", "headerDeps", "inputs", "outputs", "outputsData"],
 );
 
 const BaseTransaction = table(
@@ -229,7 +231,7 @@ const BaseTransaction = table(
     raw: RawTransaction,
     witnesses: BytesVec,
   },
-  ["raw", "witnesses"]
+  ["raw", "witnesses"],
 );
 
 export const Transaction = createBytesCodec({
@@ -264,7 +266,7 @@ export const RawHeader = struct(
     "proposalsHash",
     "extraHash",
     "dao",
-  ]
+  ],
 );
 
 export const BaseHeader = struct(
@@ -272,7 +274,7 @@ export const BaseHeader = struct(
     raw: RawHeader,
     nonce: HexUint128LE,
   },
-  ["raw", "nonce"]
+  ["raw", "nonce"],
 );
 
 // export const Header = createBytesCodec({
@@ -321,7 +323,7 @@ export const CellbaseWitness = table(
     lock: Script,
     message: Bytes,
   },
-  ["lock", "message"]
+  ["lock", "message"],
 );
 
 // TODO make an enhancer for number codecs
@@ -355,7 +357,7 @@ export const CellbaseWitness = table(
  * @returns TransactionCodecType
  */
 export function transformTransactionCodecType(
-  data: ccc.Transaction
+  data: ccc.Transaction,
 ): TransactionCodecType {
   return {
     raw: {
@@ -371,7 +373,7 @@ export function transformTransactionCodecType(
 }
 
 export function deTransformTransactionCodecType(
-  data: TransactionUnpackResultType
+  data: TransactionUnpackResultType,
 ): RawTransactionUnpackResultType & { witnesses: string[] } {
   return {
     cellDeps: data.raw.cellDeps.map((cellDep) => {
@@ -425,7 +427,7 @@ export function deTransformTransactionCodecType(
 // }
 
 export function deTransformHeaderCodecType(
-  data: HeaderUnpackResultType
+  data: HeaderUnpackResultType,
 ): RawHeaderUnpackResultType & { nonce: string; hash: string } {
   return {
     timestamp: data.raw.timestamp,

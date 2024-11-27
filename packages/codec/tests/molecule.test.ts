@@ -1,4 +1,9 @@
+import test, { ExecutionContext } from "ava";
 import escapeStringRegexp from "escape-string-regexp";
+import { Bytes, createFixedHexBytesCodec } from "../src/blockchain";
+import { bytify } from "../src/bytes";
+import { CodecExecuteError } from "../src/error";
+import { byteOf } from "../src/molecule";
 import {
   array,
   dynvec,
@@ -9,12 +14,7 @@ import {
   union,
   vector,
 } from "../src/molecule/layout";
-import { Bytes, createFixedHexBytesCodec } from "../src/blockchain";
-import { bytify } from "../src/bytes";
-import test, { ExecutionContext } from "ava";
 import { Uint16, Uint16BE, Uint32, Uint32LE, Uint8 } from "../src/number";
-import { byteOf } from "../src/molecule";
-import { CodecExecuteError } from "../src/error";
 
 test("test layout-array", (t) => {
   const codec = array(Uint8, 4);
@@ -33,7 +33,7 @@ test("test layout-struct", (t) => {
       key2: array(Uint8, 2),
       key3: array(Uint8, 3),
     },
-    ["key1", "key2", "key3"]
+    ["key1", "key2", "key3"],
   );
 
   const buffer = bytify([0x0, 0x1, 0x2, 0x3, 0x4, 0x5]);
@@ -65,7 +65,7 @@ test("test layout-table", (t) => {
       key4: array(Uint8, 3),
       key5: fixvec(Uint8),
     },
-    ["key1", "key2", "key3", "key4", "key5"]
+    ["key1", "key2", "key3", "key4", "key5"],
   );
   // prettier-ignore
   const buffer = bytify([
@@ -97,7 +97,7 @@ test("test layout-table", (t) => {
   t.deepEqual(codec.pack(unpacked), buffer);
   t.throws(() => codec.unpack(bytify([0x00, 0x00, 0x00, 0x00])));
   t.truthy(
-    JSON.stringify(codec.unpack(bytify([0x04, 0x00, 0x00, 0x00]))) === "{}"
+    JSON.stringify(codec.unpack(bytify([0x04, 0x00, 0x00, 0x00]))) === "{}",
   );
 
   t.throws(() => {
@@ -162,7 +162,7 @@ test("test layout-union", (t) => {
       BytesVec: dynvec(fixvec(Uint8)),
       BytesVecOpt: option(dynvec(fixvec(Uint8))),
     },
-    ["Byte3", "Bytes", "BytesVec", "BytesVecOpt"]
+    ["Byte3", "Bytes", "BytesVec", "BytesVecOpt"],
   );
   // prettier-ignore
   const buffer = bytify([
@@ -196,7 +196,7 @@ test("test layout-union", (t) => {
 test("test union with custom id", (t) => {
   const codec = union(
     { key1: Uint8, key2: Uint32LE },
-    { key1: 0xaa, key2: 0xbb }
+    { key1: 0xaa, key2: 0xbb },
   );
 
   // prettier-ignore
@@ -260,7 +260,7 @@ test("test fixed hex bytes", (t) => {
 const expectThrowCodecError = (
   t: ExecutionContext<any>,
   fn: () => any,
-  message: string
+  message: string,
 ) => {
   t.throws(fn, {
     instanceOf: CodecExecuteError,
@@ -273,7 +273,7 @@ test("test simple array codec error", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack([0x1, 0xfff, 0x3]),
-    `Expect type Uint8 at input[1] but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input[1] but got error: Value must be between 0 and 255, but got`,
   );
 });
 
@@ -286,19 +286,19 @@ test("test simple struct error", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack({ f1: 0x114514, f2: 0x0, f3: 0x0 }),
-    `Expect type Uint8 at input.f1 but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.f1 but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ f1: 0x0, f2: 0x114514, f3: 0x0 }),
-    `Expect type Uint16LE at input.f2 but got error: Value must be between 0 and 65535, but got`
+    `Expect type Uint16LE at input.f2 but got error: Value must be between 0 and 65535, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ f1: 0x0, f2: 0x0, f3: 0x1145141919810 }),
-    `Expect type Uint32LE at input.f3 but got error: Value must be between 0 and 4294967295, but got`
+    `Expect type Uint32LE at input.f3 but got error: Value must be between 0 and 4294967295, but got`,
   );
 });
 
@@ -307,7 +307,7 @@ test("test simple fixedvec", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack([0x1, 0x2, 0x1145141919810]),
-    `Expect type Uint16LE at input[2] but got error: Value must be between 0 and 65535, but got`
+    `Expect type Uint16LE at input[2] but got error: Value must be between 0 and 65535, but got`,
   );
 });
 
@@ -316,7 +316,7 @@ test("test simple dynvec", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack([[0x1, 0x2, 0x1145141919810]]),
-    `Expect type Uint16BE at input[0][2] but got error: Value must be between 0 and 65535, but got`
+    `Expect type Uint16BE at input[0][2] but got error: Value must be between 0 and 65535, but got`,
   );
 });
 
@@ -325,12 +325,12 @@ test("simple table", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack({ f1: 0x1, f2: 0xffff, f3: 0x1 }),
-    `Expect type Uint8 at input.f2 but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.f2 but got error: Value must be between 0 and 255, but got`,
   );
   expectThrowCodecError(
     t,
     () => codec.pack({ f1: 0x1, f2: 0x2, f3: 0x2333 }),
-    `Expect type Uint8 at input.f3 but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.f3 but got error: Value must be between 0 and 255, but got`,
   );
 });
 
@@ -339,7 +339,7 @@ test("Simple option", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack(0x23333),
-    `Expect type Uint8 at input? but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input? but got error: Value must be between 0 and 255, but got`,
   );
 });
 
@@ -353,7 +353,7 @@ test("nested type", (t) => {
       dynVec: dynvec(dynvec(Uint8)),
       option: option(Uint8),
     },
-    ["byteField", "arrayField", "structField", "fixedVec", "dynVec", "option"]
+    ["byteField", "arrayField", "structField", "fixedVec", "dynVec", "option"],
   );
 
   const validInput: Parameters<(typeof codec)["pack"]>[0] = {
@@ -371,37 +371,37 @@ test("nested type", (t) => {
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, byteField: 0x2333 }),
-    `Expect type Uint8 at input.byteField but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.byteField but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, arrayField: [0x1, 0x2, 0x2333] }),
-    `Expect type Uint8 at input.arrayField[2] but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.arrayField[2] but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, structField: { f1: 0x1, f2: 0x2333 } }),
-    `Expect type Uint8 at input.structField.f2 but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.structField.f2 but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, fixedVec: [0x1, 0x2, 0x2333] }),
-    `Expect type Uint8 at input.fixedVec[2] but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.fixedVec[2] but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, dynVec: [[0x1, 0x2, 0x2333]] }),
-    `Expect type Uint8 at input.dynVec[0][2] but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.dynVec[0][2] but got error: Value must be between 0 and 255, but got`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack({ ...validInput, option: 0x2333 }),
-    `Expect type Uint8 at input.option? but got error: Value must be between 0 and 255, but got`
+    `Expect type Uint8 at input.option? but got error: Value must be between 0 and 255, but got`,
   );
 });
 
@@ -410,17 +410,17 @@ test("nested error in wrong union type", (t) => {
     union({ Bytes3: array(Uint8, 3), Bytes4: array(Uint8, 3) }, [
       "Bytes3",
       "Bytes4",
-    ])
+    ]),
   );
   expectThrowCodecError(
     t,
     () => codec.pack([{ type: "Bytes2" as any, value: [0x1, 0x2, 0x3] }]),
-    `Expect type Union(Bytes3 | Bytes4) at input[0] but got error: Unknown union type: Bytes2`
+    `Expect type Union(Bytes3 | Bytes4) at input[0] but got error: Unknown union type: Bytes2`,
   );
 
   expectThrowCodecError(
     t,
     () => codec.pack([{ type: 114514 as any, value: [0x1, 0x2, 0x3] }]),
-    `Expect type Union(Bytes3 | Bytes4) at input[0] but got error: Invalid type in union, type must be a string`
+    `Expect type Union(Bytes3 | Bytes4) at input[0] but got error: Invalid type in union, type must be a string`,
   );
 });

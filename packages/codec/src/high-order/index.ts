@@ -1,8 +1,8 @@
 export {
-  enhancePack,
   createArrayCodec,
-  createObjectCodec,
   createNullableCodec,
+  createObjectCodec,
+  enhancePack,
 } from "./nested";
 
-export type { ObjectCodec, ArrayCodec, NullableCodec } from "./nested";
+export type { ArrayCodec, NullableCodec, ObjectCodec } from "./nested";

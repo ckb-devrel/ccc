@@ -29,7 +29,7 @@ const UDTInfo /*: Codec */ = struct(
     totalSupply: Uint128,
     decimals: Uint8,
   },
-  ["totalSupply", "decimals"]
+  ["totalSupply", "decimals"],
 );
 
 // 2. usage
@@ -94,7 +94,7 @@ struct RGB {
 ```ts
 const RGB = struct(
   { r: Uint8, g: Uint8, b: Uint8 },
-  ["r", "g", "b"] // order of the keys needs to be consistent with the schema
+  ["r", "g", "b"], // order of the keys needs to be consistent with the schema
 );
 
 const { r, g, b } = RGB.unpack(buffer);
@@ -200,7 +200,7 @@ const { struct } = molecule;
 
 const RGB = struct(
   { r: Uint8, g: Uint8, b: Uint8 },
-  ["r", "g", "b"] // order of the keys needs to be consistent with the schema
+  ["r", "g", "b"], // order of the keys needs to be consistent with the schema
 );
 
 // We don't need to repeat the definition like this

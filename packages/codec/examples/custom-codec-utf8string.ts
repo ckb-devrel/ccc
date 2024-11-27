@@ -1,4 +1,4 @@
-import { molecule, bytes } from "../src";
+import { bytes, molecule } from "../src";
 
 const UTF8String = molecule.byteVecOf<string>({
   pack: (str) => new TextEncoder().encode(str),

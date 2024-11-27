@@ -1,3 +1,5 @@
+import { BytesCodec, FixedBytesCodec } from "../../src/base";
+import { bytify } from "../../src/bytes";
 import {
   array,
   option,
@@ -6,11 +8,9 @@ import {
   union,
   vector,
 } from "../../src/molecule";
-import { BytesCodec, FixedBytesCodec } from "../../src/base";
-import { bytify } from "../../src/bytes";
 
-import yaml from "js-yaml";
 import fs from "fs";
+import yaml from "js-yaml";
 
 type ArrayTestMetadata = {
   type: "array";
@@ -44,7 +44,7 @@ export type FixedTestBytesCodec = FixedBytesCodec & {
 
 export const testArray = (
   itemCodec: FixedBytesCodec,
-  itemCount: number
+  itemCount: number,
 ): FixedTestBytesCodec => {
   const codec = array(itemCodec, itemCount);
   return {
@@ -59,7 +59,7 @@ export const testArray = (
 const testObject = (
   name: "struct" | "table" | "union",
   codec: BytesCodec,
-  shape: Record<string, BytesCodec>
+  shape: Record<string, BytesCodec>,
 ): TestBytesCodec => {
   return {
     testMetadata: {
@@ -71,21 +71,21 @@ const testObject = (
 };
 export const testStruct = (
   shape: Record<string, FixedBytesCodec>,
-  fields: Array<string>
+  fields: Array<string>,
 ) => {
   const codec = struct(shape, fields);
   return testObject("struct", codec, shape) as unknown as FixedTestBytesCodec;
 };
 export const testUnion = (
   shape: Record<string, BytesCodec>,
-  fields: Array<string>
+  fields: Array<string>,
 ) => {
   const codec = union(shape, fields);
   return testObject("union", codec, shape);
 };
 export const testTable = (
   shape: Record<string, BytesCodec>,
-  fields: Array<string>
+  fields: Array<string>,
 ) => {
   const codec = table(shape, fields);
   return testObject("table", codec, shape);
@@ -115,7 +115,7 @@ export function generateDefaultCodecData(codec: any): any {
   const testMetadata = codec.testMetadata;
   if (testMetadata.type === "array") {
     return new Array(testMetadata.itemCount).fill(
-      generateDefaultCodecData(testMetadata.itemCodec)
+      generateDefaultCodecData(testMetadata.itemCodec),
     );
   }
   if (testMetadata.type === "struct" || testMetadata.type === "table") {
@@ -125,7 +125,7 @@ export function generateDefaultCodecData(codec: any): any {
         Object.assign(defaultValue, {
           [field]: generateDefaultCodecData(codec),
         });
-      }
+      },
     );
     return defaultValue;
   }
@@ -150,7 +150,7 @@ export function generateDefaultCodecData(codec: any): any {
 export function fullfillPartialCodecData(
   codec: any,
   data: any,
-  item: any
+  item: any,
 ): any {
   const defaultData = generateDefaultCodecData(codec);
   const testMetadata = codec.testMetadata;
@@ -186,7 +186,7 @@ export function fullfillPartialCodecData(
   }
   if (testMetadata.type === "vector") {
     return (data as Array<string>).map((line) =>
-      testMetadata.itemCodec.unpack(bytify(line))
+      testMetadata.itemCodec.unpack(bytify(line)),
     );
   }
   if (testMetadata.type === "byte") {
@@ -205,7 +205,7 @@ export const loadTests = (path: string): Array<TestCase> => {
   let cases: Array<TestCase> = [];
   try {
     cases = yaml.load(
-      fs.readFileSync(`${process.cwd()}/tests/test-vector/${path}`, "utf8")
+      fs.readFileSync(`${process.cwd()}/tests/test-vector/${path}`, "utf8"),
     );
   } catch (e) {
     console.log(e);
@@ -220,7 +220,7 @@ export const loadTests = (path: string): Array<TestCase> => {
         Object.assign(data as object, {
           [testCaseDataEntry[0]]: (testCaseDataEntry[1] as string).replace(
             /[_/]/gi,
-            ""
+            "",
           ),
         });
       });
@@ -234,7 +234,7 @@ export const loadTests = (path: string): Array<TestCase> => {
         Object.assign(caseItem as object, {
           [testCaseItemEntry[0]]: (testCaseItemEntry[1] as string).replace(
             /[_/]/gi,
-            ""
+            "",
           ),
         });
       });

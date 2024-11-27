@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+
 import { BytesLike } from "./base";
 import { assertHexString, assertUtf8String } from "./utils";
 
@@ -80,7 +83,7 @@ function equalUint8Array(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 const HEX_CACHE = Array.from({ length: 256 }).map((_, i) =>
-  i.toString(16).padStart(2, "0")
+  i.toString(16).padStart(2, "0"),
 );
 /**
  * convert a {@link BytesLike} to an even length hex string prefixed with "0x"

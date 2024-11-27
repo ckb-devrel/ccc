@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import {
   AnyCodec,
   Codec,
@@ -6,8 +10,8 @@ import {
   UnpackParam,
   UnpackResult,
 } from "../base";
-import { trackCodeExecuteError } from "../utils";
 import { CODEC_OPTIONAL_PATH } from "../error";
+import { trackCodeExecuteError } from "../utils";
 
 export interface NullableCodec<C extends AnyCodec = AnyCodec> extends AnyCodec {
   pack(packable?: PackParam<C>): PackResult<C>;
@@ -16,13 +20,13 @@ export interface NullableCodec<C extends AnyCodec = AnyCodec> extends AnyCodec {
 }
 
 export function createNullableCodec<C extends AnyCodec = AnyCodec>(
-  codec: C
+  codec: C,
 ): NullableCodec<C> {
   return {
     pack: (packable) => {
       if (packable == null) return packable;
       return trackCodeExecuteError(CODEC_OPTIONAL_PATH, () =>
-        codec.pack(packable)
+        codec.pack(packable),
       );
     },
     unpack: (unpackable) => {
@@ -57,7 +61,7 @@ export type ObjectCodec<Shape extends ObjectCodecShape = ObjectCodecShape> =
  * ```
  */
 export function createObjectCodec<Shape extends ObjectCodecShape>(
-  codecShape: Shape
+  codecShape: Shape,
 ): ObjectCodec<Shape> {
   const codecEntries = Object.entries(codecShape);
 
@@ -68,7 +72,7 @@ export function createObjectCodec<Shape extends ObjectCodecShape>(
       codecEntries.forEach(([key, itemCodec]) => {
         Object.assign(result, {
           [key]: trackCodeExecuteError(key, () =>
-            itemCodec.pack(packableObj[key])
+            itemCodec.pack(packableObj[key]),
           ),
         });
       });
@@ -98,7 +102,7 @@ export function createArrayCodec<C extends AnyCodec>(codec: C): ArrayCodec<C> {
   return {
     pack: (items) =>
       items.map((item, index) =>
-        trackCodeExecuteError(index, () => codec.pack(item))
+        trackCodeExecuteError(index, () => codec.pack(item)),
       ),
     unpack: (items) => items.map((item) => codec.unpack(item)),
   };
@@ -112,7 +116,7 @@ export function createArrayCodec<C extends AnyCodec>(codec: C): ArrayCodec<C> {
 export function enhancePack<C extends AnyCodec, Packed>(
   codec: C,
   afterCodecPack: (arg: PackResult<C>) => Packed,
-  beforeCodecUnpack: (arg: Packed) => UnpackParam<C>
+  beforeCodecUnpack: (arg: Packed) => UnpackParam<C>,
 ): Codec<Packed, UnpackResult<C>, PackParam<C>> {
   return {
     pack: (packable) => afterCodecPack(codec.pack(packable)),

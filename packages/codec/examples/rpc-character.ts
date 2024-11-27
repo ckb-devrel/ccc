@@ -1,4 +1,4 @@
-import { molecule, number, bytes } from "../src";
+import { bytes, molecule, number } from "../src";
 
 const { byteOf, byteVecOf, option, struct, table, union, vector } = molecule;
 const { Uint32, Uint8 } = number;
@@ -80,7 +80,7 @@ const Sword = struct(
   {
     material: SwordMaterial,
   },
-  ["material"]
+  ["material"],
 );
 
 // struct Gem {
@@ -92,7 +92,7 @@ const Gem = struct(
     color: Uint8,
     shape: Uint8,
   },
-  ["color", "shape"]
+  ["color", "shape"],
 );
 const GemVec = vector(Gem);
 const Wand = table(
@@ -100,7 +100,7 @@ const Wand = table(
     gems: GemVec,
     desc: DescOpt,
   },
-  ["gems", "desc"]
+  ["gems", "desc"],
 );
 
 // table Bow {
@@ -112,7 +112,7 @@ const Bow = table(
     arrow: Uint32,
     desc: DescOpt,
   },
-  ["arrow", "desc"]
+  ["arrow", "desc"],
 );
 
 // union Equip {
@@ -126,7 +126,7 @@ const Equip = union(
     Wand,
     Bow,
   },
-  ["Sword", "Wand", "Bow"]
+  ["Sword", "Wand", "Bow"],
 );
 
 // option EquipOpt (Equip);

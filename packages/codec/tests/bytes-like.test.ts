@@ -1,9 +1,8 @@
+import { randomBytes } from "@noble/hashes/utils";
 import test from "ava";
 import { molecule, number } from "../src";
 import { Byte32 } from "../src/blockchain";
-import { randomBytes } from "@noble/hashes/utils";
-import { equal, concat, hexify } from "../src/bytes";
-import { bytify } from "../src/bytes";
+import { bytify, concat, equal, hexify } from "../src/bytes";
 
 const { struct } = molecule;
 const { Uint32 } = number;

@@ -1,15 +1,20 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+
 // lc for lumos codec
 export const CODEC_OPTIONAL_PATH = "__lc_option__";
 type CodecOptionalPath = typeof CODEC_OPTIONAL_PATH;
 export class CodecBaseParseError extends Error {
-  constructor(message: string, public expectedType: string) {
+  constructor(
+    message: string,
+    public expectedType: string,
+  ) {
     super(message);
   }
 }
 
 const CODEC_EXECUTE_ERROR_NAME = "CodecExecuteError";
 export function isCodecExecuteError(
-  error: unknown
+  error: unknown,
 ): error is CodecExecuteError {
   if (!(error instanceof Error)) return false;
   return error.name === CODEC_EXECUTE_ERROR_NAME;

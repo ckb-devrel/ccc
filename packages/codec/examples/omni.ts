@@ -8,7 +8,7 @@ const OmniLockWitnessLock = table(
     rcIdentity: BytesOpt,
     preimage: BytesOpt,
   },
-  ["signature", "rcIdentity", "preimage"]
+  ["signature", "rcIdentity", "preimage"],
 );
 
 const OmniLockWitness = table(
@@ -17,7 +17,7 @@ const OmniLockWitness = table(
     inputType: BytesOpt,
     outputType: BytesOpt,
   },
-  ["lock", "inputType", "outputType"]
+  ["lock", "inputType", "outputType"],
 );
 
 const packed = OmniLockWitness.pack({

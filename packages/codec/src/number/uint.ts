@@ -1,6 +1,6 @@
+import { ccc } from "@ckb-ccc/core";
 import { createFixedBytesCodec, FixedBytesCodec } from "../base";
 import { CodecBaseParseError } from "../error";
-import { ccc } from "@ckb-ccc/core";
 
 type BI = ccc.Num;
 type BIish = ccc.NumLike;
@@ -9,7 +9,7 @@ function assertNumberRange(
   value: BIish,
   min: BIish,
   max: BIish,
-  typeName: string
+  typeName: string,
 ): void {
   value = ccc.numFrom(value);
   min = ccc.numFrom(min);
@@ -18,14 +18,14 @@ function assertNumberRange(
   if (value < min || value > max) {
     throw new CodecBaseParseError(
       `Value must be between ${min.toString()} and ${max.toString()}, but got ${value.toString()}`,
-      typeName
+      typeName,
     );
   }
 }
 
 function createUintNumberCodec(
   byteLength: number,
-  littleEndian = false
+  littleEndian = false,
 ): FixedBytesCodec<number, BIish> {
   const codec = createUintBICodec(byteLength, littleEndian);
   return {
@@ -51,7 +51,7 @@ const createUintBICodec = (byteLength: number, littleEndian = false) => {
       if (typeof biIsh === "number" && !Number.isSafeInteger(biIsh)) {
         throw new CodecBaseParseError(
           `${biIsh} is not a safe integer`,
-          typeName
+          typeName,
         );
       }
 

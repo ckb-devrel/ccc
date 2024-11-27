@@ -5,8 +5,8 @@ import {
   createObjectCodec,
   enhancePack,
 } from "../src";
-import { bytify } from "../src/bytes";
 import { Codec } from "../src/base";
+import { bytify } from "../src/bytes";
 import { Uint32 } from "../src/number";
 
 // 1 <=> "1"

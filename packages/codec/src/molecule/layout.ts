@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-base-to-string */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 /**
  * |  Type  |                      Header                      |               Body                |
  * |--------+--------------------------------------------------+-----------------------------------|
@@ -20,14 +26,14 @@ import {
   createFixedBytesCodec,
   isFixedCodec,
 } from "../base";
-import { Uint32LE } from "../number";
 import { concat } from "../bytes";
 import { CodecBaseParseError } from "../error";
 import {
-  createObjectCodec,
   createArrayCodec,
   createNullableCodec,
+  createObjectCodec,
 } from "../high-order";
+import { Uint32LE } from "../number";
 
 type NullableKeys<O extends Record<string, unknown>> = {
   [K in keyof O]-?: [O[K] & (undefined | null)] extends [never] ? never : K;
@@ -82,7 +88,7 @@ export type UnionLayoutCodec<T extends Record<string, BytesCodec>> = BytesCodec<
  */
 export function array<T extends FixedBytesCodec>(
   itemCodec: T,
-  itemCount: number
+  itemCount: number,
 ): ArrayLayoutCodec<T> & Fixed {
   const enhancedArrayCodec = createArrayCodec(itemCodec);
   return createFixedBytesCodec({
@@ -115,8 +121,8 @@ function checkShape<T extends object>(shape: T, fields: (keyof T)[]) {
   if (missingFields.length > 0 || missingShape.length > 0) {
     throw new Error(
       `Invalid shape: missing fields ${missingFields.join(
-        ", "
-      )} or shape ${missingShape.join(", ")}`
+        ", ",
+      )} or shape ${missingShape.join(", ")}`,
     );
   }
 }
@@ -129,7 +135,7 @@ function checkShape<T extends object>(shape: T, fields: (keyof T)[]) {
  */
 export function struct<T extends Record<string, FixedBytesCodec>>(
   shape: T,
-  fields: (keyof T)[]
+  fields: (keyof T)[],
 ): ObjectLayoutCodec<T> & Fixed {
   checkShape(shape, fields);
   const objectCodec = createObjectCodec(shape);
@@ -137,7 +143,7 @@ export function struct<T extends Record<string, FixedBytesCodec>>(
     byteLength: fields.reduce((sum, field) => sum + shape[field].byteLength, 0),
     pack(obj) {
       const packed = objectCodec.pack(
-        obj as { [K in keyof T]: PackParam<T[K]> }
+        obj as { [K in keyof T]: PackParam<T[K]> },
       );
       return fields.reduce((result, field) => {
         return concat(result, packed[field]);
@@ -167,7 +173,7 @@ export function struct<T extends Record<string, FixedBytesCodec>>(
  * @param itemCodec fixed-size vector item codec
  */
 export function fixvec<T extends FixedBytesCodec>(
-  itemCodec: T
+  itemCodec: T,
 ): ArrayLayoutCodec<T> {
   return createBytesCodec({
     pack(items) {
@@ -176,13 +182,13 @@ export function fixvec<T extends FixedBytesCodec>(
         Uint32LE.pack(items.length),
         arrayCodec
           .pack(items)
-          .reduce((buf, item) => concat(buf, item), new ArrayBuffer(0))
+          .reduce((buf, item) => concat(buf, item), new ArrayBuffer(0)),
       );
     },
     unpack(buf) {
       if (buf.byteLength < 4) {
         throw new Error(
-          `fixvec: buffer is too short, expected at least 4 bytes, got ${buf.byteLength}`
+          `fixvec: buffer is too short, expected at least 4 bytes, got ${buf.byteLength}`,
         );
       }
       const itemCount = Uint32LE.unpack(buf.slice(0, 4));
@@ -197,7 +203,7 @@ export function fixvec<T extends FixedBytesCodec>(
  * For example, you can create a recursive vector with this.
  */
 export function dynvec<T extends BytesCodec>(
-  itemCodec: T
+  itemCodec: T,
 ): ArrayLayoutCodec<T> {
   return createBytesCodec({
     pack(obj) {
@@ -215,10 +221,10 @@ export function dynvec<T extends BytesCodec>(
           header: new ArrayBuffer(0),
           body: new ArrayBuffer(0),
           offset: 4 + obj.length * 4,
-        }
+        },
       );
       const packedTotalSize = Uint32LE.pack(
-        packed.header.byteLength + packed.body.byteLength + 4
+        packed.header.byteLength + packed.body.byteLength + 4,
       );
       return concat(packedTotalSize, packed.header, packed.body);
     },
@@ -226,7 +232,7 @@ export function dynvec<T extends BytesCodec>(
       const totalSize = Uint32LE.unpack(buf.slice(0, 4));
       if (totalSize !== buf.byteLength) {
         throw new Error(
-          `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`
+          `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`,
         );
       }
       const result: UnpackResult<T>[] = [];
@@ -238,7 +244,7 @@ export function dynvec<T extends BytesCodec>(
         const offsets = new Array(itemCount)
           .fill(1)
           .map((_, index) =>
-            Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4))
+            Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4)),
           );
         offsets.push(totalSize);
         const result: UnpackResult<T>[] = [];
@@ -259,7 +265,7 @@ export function dynvec<T extends BytesCodec>(
  * @param itemCodec
  */
 export function vector<T extends BytesCodec>(
-  itemCodec: T
+  itemCodec: T,
 ): ArrayLayoutCodec<T> {
   if (isFixedCodec(itemCodec)) {
     return fixvec(itemCodec);
@@ -274,7 +280,7 @@ export function vector<T extends BytesCodec>(
  */
 export function table<T extends Record<string, BytesCodec>>(
   shape: T,
-  fields: (keyof T)[]
+  fields: (keyof T)[],
 ): ObjectLayoutCodec<T> {
   checkShape(shape, fields);
   return createBytesCodec({
@@ -282,7 +288,7 @@ export function table<T extends Record<string, BytesCodec>>(
       const headerLength = 4 + fields.length * 4;
       const objectCodec = createObjectCodec(shape);
       const packedObj = objectCodec.pack(
-        obj as { [K in keyof T]: PackParam<T[K]> }
+        obj as { [K in keyof T]: PackParam<T[K]> },
       );
       const packed = fields.reduce(
         (result, field) => {
@@ -298,10 +304,10 @@ export function table<T extends Record<string, BytesCodec>>(
           header: new ArrayBuffer(0),
           body: new ArrayBuffer(0),
           offset: headerLength,
-        }
+        },
       );
       const packedTotalSize = Uint32LE.pack(
-        packed.header.byteLength + packed.body.byteLength + 4
+        packed.header.byteLength + packed.body.byteLength + 4,
       );
       return concat(packedTotalSize, packed.header, packed.body);
     },
@@ -309,7 +315,7 @@ export function table<T extends Record<string, BytesCodec>>(
       const totalSize = Uint32LE.unpack(buf.slice(0, 4));
       if (totalSize !== buf.byteLength) {
         throw new Error(
-          `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`
+          `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`,
         );
       }
       if (totalSize <= 4 || fields.length === 0) {
@@ -318,7 +324,7 @@ export function table<T extends Record<string, BytesCodec>>(
         }>;
       } else {
         const offsets = fields.map((_, index) =>
-          Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4))
+          Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4)),
         );
         offsets.push(totalSize);
         const obj = {};
@@ -353,7 +359,7 @@ export function table<T extends Record<string, BytesCodec>>(
  */
 export function union<T extends Record<string, BytesCodec>>(
   itemCodec: T,
-  fields: (keyof T)[] | Record<keyof T, number>
+  fields: (keyof T)[] | Record<keyof T, number>,
 ): UnionLayoutCodec<T> {
   checkShape(itemCodec, Array.isArray(fields) ? fields : Object.keys(fields));
 
@@ -376,7 +382,7 @@ export function union<T extends Record<string, BytesCodec>>(
       if (typeof type !== "string") {
         throw new CodecBaseParseError(
           `Invalid type in union, type must be a string`,
-          typeName
+          typeName,
         );
       }
 
@@ -387,7 +393,7 @@ export function union<T extends Record<string, BytesCodec>>(
       if (fieldId < 0) {
         throw new CodecBaseParseError(
           `Unknown union type: ${String(obj.type)}`,
-          typeName
+          typeName,
         );
       }
       const packedFieldIndex = Uint32LE.pack(fieldId);
@@ -408,7 +414,7 @@ export function union<T extends Record<string, BytesCodec>>(
 
       if (!type) {
         throw new Error(
-          `Unknown union field id: ${fieldId}, only ${fields} are allowed`
+          `Unknown union field id: ${fieldId}, only ${fields} are allowed`,
         );
       }
 
@@ -425,7 +431,7 @@ export function union<T extends Record<string, BytesCodec>>(
  * @param itemCodec
  */
 export function option<T extends BytesCodec>(
-  itemCodec: T
+  itemCodec: T,
 ): OptionLayoutCodec<T> {
   return createBytesCodec({
     pack(obj?) {

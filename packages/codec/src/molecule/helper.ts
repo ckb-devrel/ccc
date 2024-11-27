@@ -1,19 +1,19 @@
-import { assertBufferLength, assertMinBufferLength } from "../utils";
-import { concat } from "../bytes";
 import {
   BytesCodec,
   createBytesCodec,
   createFixedBytesCodec,
   FixedBytesCodec,
 } from "../base";
+import { concat } from "../bytes";
 import { Uint32LE } from "../number";
+import { assertBufferLength, assertMinBufferLength } from "../utils";
 
 /**
  * a helper function to create custom codec of `array SomeType [byte; n]`
  * @param codec
  */
 export function byteArrayOf<Packed, Packable = Packed>(
-  codec: BytesCodec<Packed, Packable> & { byteLength: number }
+  codec: BytesCodec<Packed, Packable> & { byteLength: number },
 ): FixedBytesCodec<Packed, Packable> {
   const byteLength = codec.byteLength;
   return createFixedBytesCodec({
@@ -28,7 +28,7 @@ export function byteArrayOf<Packed, Packable = Packed>(
  * @param codec
  */
 export function byteOf<Packed, Packable = Packed>(
-  codec: BytesCodec<Packed, Packable>
+  codec: BytesCodec<Packed, Packable>,
 ): FixedBytesCodec<Packed, Packable> {
   return byteArrayOf({ ...codec, byteLength: 1 });
 }
@@ -38,7 +38,7 @@ export function byteOf<Packed, Packable = Packed>(
  * @param codec
  */
 export function byteVecOf<Packed, Packable = Packed>(
-  codec: BytesCodec<Packed, Packable>
+  codec: BytesCodec<Packed, Packable>,
 ): BytesCodec<Packed, Packable> {
   return createBytesCodec({
     pack(unpacked) {

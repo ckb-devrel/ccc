@@ -38,7 +38,7 @@ export function assertHexDecimal(str: string, byteLength?: number): void {
   assertStartsWith0x(str);
   if (str.length === 2) {
     throw new Error(
-      "Invalid hex decimal length, should be at least 1 character, the '0x' is incorrect, should be '0x0'"
+      "Invalid hex decimal length, should be at least 1 character, the '0x' is incorrect, should be '0x0'",
     );
   }
 
@@ -48,7 +48,7 @@ export function assertHexDecimal(str: string, byteLength?: number): void {
     throw new Error(
       `Invalid hex decimal length, should be less than ${byteLength} bytes, got ${
         strLen / 2 - 1
-      } bytes`
+      } bytes`,
     );
   }
 
@@ -79,7 +79,6 @@ export function assertHexString(str: string, byteLength?: number): void {
 export function assertUtf8String(str: string): void {
   for (let i = 0; i < str.length; i++) {
     const c = str.charCodeAt(i);
-    /* eslint-disable @typescript-eslint/no-magic-numbers */
     if (c > 0xff) {
       throw new Error("Invalid UTF-8 raw string!");
     }
@@ -88,22 +87,22 @@ export function assertUtf8String(str: string): void {
 
 export function assertBufferLength(
   buf: { byteLength: number },
-  length: number
+  length: number,
 ): void {
   if (buf.byteLength !== length) {
     throw new Error(
-      `Invalid buffer length: ${buf.byteLength}, should be ${length}`
+      `Invalid buffer length: ${buf.byteLength}, should be ${length}`,
     );
   }
 }
 
 export function assertMinBufferLength(
   buf: { byteLength: number },
-  length: number
+  length: number,
 ): void {
   if (buf.byteLength < length) {
     throw new Error(
-      `Invalid buffer length: ${buf.byteLength}, should be at least ${length}`
+      `Invalid buffer length: ${buf.byteLength}, should be at least ${length}`,
     );
   }
 }
@@ -115,7 +114,7 @@ export function isObjectLike(x: unknown): x is Record<string, unknown> {
 
 export function trackCodeExecuteError<T>(
   path: string | number | symbol,
-  fn: () => T
+  fn: () => T,
 ): T {
   try {
     return fn();

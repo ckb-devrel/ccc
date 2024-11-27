@@ -1,6 +1,6 @@
 import test from "ava";
-import { assertHexDecimal, assertHexString, isObjectLike } from "../src/utils";
 import { bytify } from "../src/bytes";
+import { assertHexDecimal, assertHexString, isObjectLike } from "../src/utils";
 
 test("should assertHexString fail", (t) => {
   t.throws(() => assertHexString("00"));

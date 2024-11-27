@@ -1,7 +1,7 @@
 import test from "ava";
 import { BytesCodec } from "../src/base";
-import { codecs } from "./test-vector/codecs";
 import { bytify } from "../src/bytes";
+import { codecs } from "./test-vector/codecs";
 import {
   fullfillPartialCodecData,
   generateDefaultCodecData,
@@ -36,48 +36,48 @@ test("should generateDefaultCodecData work as expected", (t) => {
   t.deepEqual(generateDefaultCodecData(codecs.Word), new Array(2).fill(0));
   t.deepEqual(
     generateDefaultCodecData(codecs.Word2),
-    new Array(2).fill(new Array(2).fill(0))
+    new Array(2).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word3),
-    new Array(3).fill(new Array(2).fill(0))
+    new Array(3).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word4),
-    new Array(4).fill(new Array(2).fill(0))
+    new Array(4).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word5),
-    new Array(5).fill(new Array(2).fill(0))
+    new Array(5).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word6),
-    new Array(6).fill(new Array(2).fill(0))
+    new Array(6).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word7),
-    new Array(7).fill(new Array(2).fill(0))
+    new Array(7).fill(new Array(2).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Word8),
-    new Array(8).fill(new Array(2).fill(0))
+    new Array(8).fill(new Array(2).fill(0)),
   );
 
   t.deepEqual(
     generateDefaultCodecData(codecs.Byte3x3),
-    new Array(3).fill(new Array(3).fill(0))
+    new Array(3).fill(new Array(3).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Byte5x3),
-    new Array(3).fill(new Array(5).fill(0))
+    new Array(3).fill(new Array(5).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Byte7x3),
-    new Array(3).fill(new Array(7).fill(0))
+    new Array(3).fill(new Array(7).fill(0)),
   );
   t.deepEqual(
     generateDefaultCodecData(codecs.Byte9x3),
-    new Array(3).fill(new Array(9).fill(0))
+    new Array(3).fill(new Array(9).fill(0)),
   );
   // struct StructA {
   //     f1: byte,
@@ -97,7 +97,7 @@ test("should generateDefaultCodecData work as expected", (t) => {
   // }
   t.deepEqual(
     generateDefaultCodecData(codecs.StructIx3),
-    new Array(3).fill({ f1: new Array(3).fill(0), f2: 0 })
+    new Array(3).fill({ f1: new Array(3).fill(0), f2: 0 }),
   );
   // struct StructJ {
   //     f1: Byte6,
