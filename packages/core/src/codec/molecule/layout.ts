@@ -32,7 +32,7 @@ import {
   createArrayCodec,
   createNullableCodec,
   createObjectCodec,
-} from "../high-order/index.js";
+} from "../highOrder.js";
 import { Uint32LE } from "../number.js";
 
 type NullableKeys<O extends Record<string, unknown>> = {
