@@ -13,7 +13,7 @@ import {
   UnpackResult,
 } from "./base.js";
 import { byteVecOf, option, struct, table, vector } from "./molecule/index.js";
-import { Uint128LE, Uint32LE, Uint64LE, Uint8 } from "./number.js";
+import { Uint128LE, Uint32LE, Uint64LE } from "./number.js";
 
 function asHexadecimal(
   codec:

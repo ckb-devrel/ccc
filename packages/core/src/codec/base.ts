@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BytesLike } from "ethers";
 import { Bytes, bytesFrom } from "../bytes/index.js";
 import { assertBufferLength, isObjectLike } from "./utils.js";
 
