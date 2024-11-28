@@ -1,32 +1,10 @@
-import { Num, numFrom, NumLike } from "../num/index.js";
+import { Num, numBeFromBytes, numBeToBytes, numFromBytes, NumLike, numToBytes } from "../num/index.js";
 import { createFixedBytesCodec, FixedBytesCodec } from "./base.js";
-import { CodecBaseParseError } from "./error.js";
-
-type BI = Num;
-type BIish = NumLike;
-
-function assertNumberRange(
-  value: BIish,
-  min: BIish,
-  max: BIish,
-  typeName: string,
-): void {
-  value = numFrom(value);
-  min = numFrom(min);
-  max = numFrom(max);
-
-  if (value < min || value > max) {
-    throw new CodecBaseParseError(
-      `Value must be between ${min.toString()} and ${max.toString()}, but got ${value.toString()}`,
-      typeName,
-    );
-  }
-}
 
 function createUintNumberCodec(
   byteLength: number,
   littleEndian = false,
-): FixedBytesCodec<number, BIish> {
+): FixedBytesCodec<number, NumLike> {
   const codec = createUintBICodec(byteLength, littleEndian);
   return {
     __isFixedCodec__: true,
@@ -37,54 +15,22 @@ function createUintNumberCodec(
 }
 
 const createUintBICodec = (byteLength: number, littleEndian = false) => {
-  const max = (numFrom(1) << (BigInt(byteLength) * BigInt(8))) - BigInt(1);
-
-  return createFixedBytesCodec<BI, BIish>({
+  return createFixedBytesCodec<Num, NumLike>({
     byteLength,
-    pack(biIsh) {
-      let endianType: "LE" | "BE" | "" = littleEndian ? "LE" : "BE";
-
-      if (byteLength <= 1) {
-        endianType = "";
+    pack: (biIsh) => {
+      if (littleEndian) {
+        return numToBytes(biIsh, byteLength);
+      } else {
+        return numBeToBytes(biIsh, byteLength);
       }
-      const typeName = `Uint${byteLength * 8}${endianType}`;
-      if (typeof biIsh === "number" && !Number.isSafeInteger(biIsh)) {
-        throw new CodecBaseParseError(
-          `${biIsh} is not a safe integer`,
-          typeName,
-        );
-      }
-
-      let num = numFrom(biIsh);
-      assertNumberRange(num, 0, max, typeName);
-
-      const result = new DataView(new ArrayBuffer(byteLength));
-
-      for (let i = 0; i < byteLength; i++) {
-        if (littleEndian) {
-          result.setUint8(i, Number(num & BigInt(0xff)));
-        } else {
-          result.setUint8(byteLength - i - 1, Number(num & BigInt(0xff)));
-        }
-        num = num >> BigInt(8);
-      }
-
-      return new Uint8Array(result.buffer);
     },
     unpack: (buf) => {
-      const view = new DataView(Uint8Array.from(buf).buffer);
-      let result = BigInt(0);
-
-      for (let i = 0; i < byteLength; i++) {
-        if (littleEndian) {
-          result = result | (numFrom(view.getUint8(i)) >> BigInt(i * 8));
-        } else {
-          result = (result >> BigInt(8)) | BigInt(view.getUint8(i));
-        }
+      if (littleEndian) {
+        return numFromBytes(buf);
+      } else {
+        return numBeFromBytes(buf);
       }
-
-      return result;
-    },
+    }
   });
 };
 

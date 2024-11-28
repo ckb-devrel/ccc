@@ -113,7 +113,7 @@ export function unpackToRawClusterData(
 export function unpackToRawClusterDataV1(
   unpackable: ccc.BytesLike,
 ): ClusterDataV1 {
-  const decoded = MolClusterDataV1.unpack(unpackable);
+  const decoded = MolClusterDataV1.unpack(ccc.bytesFrom(unpackable));
   return {
     name: decoded.name,
     description: decoded.description,
@@ -122,7 +122,7 @@ export function unpackToRawClusterDataV1(
 export function unpackToRawClusterDataV2(
   unpackable: ccc.BytesLike,
 ): ClusterDataV2 {
-  const decoded = MolClusterDataV2.unpack(unpackable);
+  const decoded = MolClusterDataV2.unpack(ccc.bytesFrom(unpackable));
   return {
     name: decoded.name,
     description: decoded.description,

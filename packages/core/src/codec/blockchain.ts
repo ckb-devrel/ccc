@@ -1,6 +1,6 @@
 import { bytesFrom, BytesLike } from "../bytes/index.js";
-import { HashTypeLike } from "../ckb/script.js";
-import { DepTypeLike, Transaction as TransactionCCC } from "../ckb/transaction.js";
+import { hashTypeFromBytes, HashTypeLike, hashTypeToBytes } from "../ckb/script.js";
+import { depTypeFromBytes, DepTypeLike, depTypeToBytes, Transaction as TransactionCCC } from "../ckb/transaction.js";
 import { hexFrom } from "../hex/index.js";
 import { Num, numFrom, NumLike } from "../num/index.js";
 import {
@@ -26,7 +26,6 @@ function asHexadecimal(
   };
 }
 
-const HexUint8 = asHexadecimal(Uint8);
 const HexUint32LE = asHexadecimal(Uint32LE);
 const HexUint64LE = asHexadecimal(Uint64LE);
 const HexUint128LE = asHexadecimal(Uint128LE);
@@ -132,38 +131,14 @@ export const WitnessArgs = WitnessArgsOf({
  */
 export const HashType = createFixedBytesCodec<HashTypeLike>({
   byteLength: 1,
-  pack: (type) => {
-    // prettier-ignore
-    if (type === "type") return Uint8.pack(0b0000000_1);
-    // prettier-ignore
-    if (type === "data") return Uint8.pack(0b0000000_0);
-    if (type === "data1") return Uint8.pack(0b0000001_0);
-    if (type === "data2") return Uint8.pack(0b0000010_0);
-    throw new Error(`Invalid hash type: ${type}`);
-  },
-  unpack: (buf) => {
-    const hashTypeBuf = Uint8.unpack(buf);
-    if (hashTypeBuf === 0b0000000_1) return "type";
-    if (hashTypeBuf === 0b0000000_0) return "data";
-    if (hashTypeBuf === 0b0000001_0) return "data1";
-    if (hashTypeBuf === 0b0000010_0) return "data2";
-    throw new Error(`Invalid hash type: ${hashTypeBuf}`);
-  },
+  pack: hashTypeToBytes,
+  unpack: hashTypeFromBytes,
 });
 
 export const DepType = createFixedBytesCodec<DepTypeLike>({
   byteLength: 1,
-  pack: (type) => {
-    if (type === "code") return HexUint8.pack(0);
-    if (type === "depGroup") return HexUint8.pack(1);
-    throw new Error(`Invalid dep type: ${type}`);
-  },
-  unpack: (buf) => {
-    const depTypeBuf = Uint8.unpack(buf);
-    if (depTypeBuf === 0) return "code";
-    if (depTypeBuf === 1) return "depGroup";
-    throw new Error(`Invalid dep type: ${depTypeBuf}`);
-  },
+  pack: depTypeToBytes,
+  unpack: depTypeFromBytes,
 });
 
 export const Script = table(

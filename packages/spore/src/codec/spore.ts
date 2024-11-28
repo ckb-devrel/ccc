@@ -25,7 +25,7 @@ export function packRawSporeData(packable: SporeData): Uint8Array {
 }
 
 export function unpackToRawSporeData(unpackable: ccc.BytesLike): SporeData {
-  const unpacked = MolSporeData.unpack(unpackable);
+  const unpacked = MolSporeData.unpack(ccc.bytesFrom(unpackable));
   return {
     contentType: unpacked.contentType,
     content: unpacked.content,

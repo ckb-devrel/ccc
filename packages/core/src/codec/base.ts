@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { bytesFrom, BytesLike } from "../bytes/index.js";
+import { BytesLike } from "ethers";
+import { Bytes, bytesFrom } from "../bytes/index.js";
 import { assertBufferLength, isObjectLike } from "./utils.js";
 
 export interface Codec<
@@ -25,17 +26,10 @@ export type UnpackResult<T extends AnyCodec> =
 export type UnpackParam<T extends AnyCodec> =
   T extends Codec<any, any, any, infer Unpackable> ? Unpackable : never;
 
-export type Uint8ArrayCodec<Unpacked = any, Packable = Unpacked> = Codec<
-  Uint8Array,
+export type BytesCodec<Unpacked = any, Packable = Unpacked> = Codec<
+  Bytes,
   Unpacked,
   Packable
->;
-
-export type BytesCodec<Unpacked = any, Packable = Unpacked> = Codec<
-  Uint8Array,
-  Unpacked,
-  Packable,
-  BytesLike
 >;
 
 /**
@@ -43,7 +37,7 @@ export type BytesCodec<Unpacked = any, Packable = Unpacked> = Codec<
  * @param codec
  */
 export function createBytesCodec<Unpacked, Packable = Unpacked>(
-  codec: Uint8ArrayCodec<Unpacked, Packable>,
+  codec: BytesCodec<Unpacked, Packable>,
 ): BytesCodec<Unpacked, Packable> {
   return {
     pack: (unpacked) => codec.pack(unpacked),
@@ -69,7 +63,7 @@ export function isFixedCodec<T>(
 }
 
 export function createFixedBytesCodec<Unpacked, Packable = Unpacked>(
-  codec: Uint8ArrayCodec<Unpacked, Packable> & { byteLength: number },
+  codec: BytesCodec<Unpacked, Packable> & { byteLength: number },
 ): FixedBytesCodec<Unpacked, Packable> {
   const byteLength = codec.byteLength;
   return {
