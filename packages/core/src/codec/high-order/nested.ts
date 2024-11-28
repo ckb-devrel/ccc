@@ -9,9 +9,9 @@ import {
   PackResult,
   UnpackParam,
   UnpackResult,
-} from "../base";
-import { CODEC_OPTIONAL_PATH } from "../error";
-import { trackCodeExecuteError } from "../utils";
+} from "../base.js";
+import { CODEC_OPTIONAL_PATH } from "../error.js";
+import { trackCodeExecuteError } from "../utils.js";
 
 export interface NullableCodec<C extends AnyCodec = AnyCodec> extends AnyCodec {
   pack(packable?: PackParam<C>): PackResult<C>;

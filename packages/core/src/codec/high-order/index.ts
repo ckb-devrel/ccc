@@ -3,6 +3,6 @@ export {
   createNullableCodec,
   createObjectCodec,
   enhancePack,
-} from "./nested";
+} from "./nested.js";
 
-export type { ArrayCodec, NullableCodec, ObjectCodec } from "./nested";
+export type { ArrayCodec, NullableCodec, ObjectCodec } from "./nested.js";
