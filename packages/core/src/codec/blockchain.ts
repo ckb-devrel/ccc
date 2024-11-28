@@ -1,26 +1,28 @@
-import { ccc } from "@ckb-ccc/core";
+import { bytesFrom, BytesLike } from "../bytes/index.js";
+import { HashTypeLike } from "../ckb/script.js";
+import { DepTypeLike, Transaction as TransactionCCC } from "../ckb/transaction.js";
+import { hexFrom } from "../hex/index.js";
+import { Num, numFrom, NumLike } from "../num/index.js";
 import {
   AnyCodec,
   BytesCodec,
-  BytesLike,
   createBytesCodec,
   createFixedBytesCodec,
   FixedBytesCodec,
   PackParam,
   UnpackResult,
-} from "./base";
-import { bytify, hexify } from "./bytes";
-import { byteVecOf, option, struct, table, vector } from "./molecule";
-import { Uint128LE, Uint32LE, Uint64LE, Uint8 } from "./number";
+} from "./base.js";
+import { byteVecOf, option, struct, table, vector } from "./molecule/index.js";
+import { Uint128LE, Uint32LE, Uint64LE, Uint8 } from "./number.js";
 
 function asHexadecimal(
   codec:
-    | FixedBytesCodec<ccc.Num, ccc.NumLike>
-    | FixedBytesCodec<number, ccc.NumLike>,
-): FixedBytesCodec<string, ccc.NumLike> {
+    | FixedBytesCodec<Num, NumLike>
+    | FixedBytesCodec<number, NumLike>,
+): FixedBytesCodec<string, NumLike> {
   return {
     ...codec,
-    unpack: (value) => ccc.numFrom(codec.unpack(value)).toString(16),
+    unpack: (value) => numFrom(codec.unpack(value)).toString(16),
   };
 }
 
@@ -41,8 +43,8 @@ export function createFixedHexBytesCodec(
 ): FixedBytesCodec<string, BytesLike> {
   return createFixedBytesCodec({
     byteLength,
-    pack: (hex) => bytify(hex),
-    unpack: (buf) => hexify(buf),
+    pack: (hex) => bytesFrom(hex),
+    unpack: (buf) => hexFrom(buf),
   });
 }
 
@@ -57,7 +59,7 @@ export function createFixedHexBytesCodec(
 // export const UnusedOpt = option(Unknown);
 
 // vector Bytes <byte>
-export const Bytes = byteVecOf({ pack: bytify, unpack: hexify });
+export const Bytes = byteVecOf({ pack: bytesFrom, unpack: hexFrom });
 
 export const BytesOpt = option(Bytes);
 export const BytesVec = vector(Bytes);
@@ -96,8 +98,8 @@ export function WitnessArgsOf<
 }
 
 const HexifyCodec = createBytesCodec<string, BytesLike>({
-  pack: bytify,
-  unpack: hexify,
+  pack: bytesFrom,
+  unpack: hexFrom,
 });
 
 /**
@@ -128,7 +130,7 @@ export const WitnessArgs = WitnessArgsOf({
  * Implementation of blockchain.mol
  * https://github.com/nervosnetwork/ckb/blob/5a7efe7a0b720de79ff3761dc6e8424b8d5b22ea/util/types/schemas/blockchain.mol
  */
-export const HashType = createFixedBytesCodec<ccc.HashTypeLike>({
+export const HashType = createFixedBytesCodec<HashTypeLike>({
   byteLength: 1,
   pack: (type) => {
     // prettier-ignore
@@ -149,7 +151,7 @@ export const HashType = createFixedBytesCodec<ccc.HashTypeLike>({
   },
 });
 
-export const DepType = createFixedBytesCodec<ccc.DepTypeLike>({
+export const DepType = createFixedBytesCodec<DepTypeLike>({
   byteLength: 1,
   pack: (type) => {
     if (type === "code") return HexUint8.pack(0);
@@ -235,7 +237,7 @@ const BaseTransaction = table(
 );
 
 export const Transaction = createBytesCodec({
-  pack: (tx: ccc.Transaction) =>
+  pack: (tx: TransactionCCC) =>
     BaseTransaction.pack(transformTransactionCodecType(tx)),
   unpack: (buf) => deTransformTransactionCodecType(BaseTransaction.unpack(buf)),
 });
@@ -357,7 +359,7 @@ export const CellbaseWitness = table(
  * @returns TransactionCodecType
  */
 export function transformTransactionCodecType(
-  data: ccc.Transaction,
+  data: TransactionCCC,
 ): TransactionCodecType {
   return {
     raw: {

@@ -16,6 +16,7 @@
  * | union  | item-type-id                                     | item                              |
  */
 
+import { bytesConcat } from "../../bytes/index.js";
 import {
   BytesCodec,
   Fixed,
@@ -25,15 +26,14 @@ import {
   createBytesCodec,
   createFixedBytesCodec,
   isFixedCodec,
-} from "../base";
-import { concat } from "../bytes";
-import { CodecBaseParseError } from "../error";
+} from "../base.js";
+import { CodecBaseParseError } from "../error.js";
 import {
   createArrayCodec,
   createNullableCodec,
   createObjectCodec,
-} from "../high-order";
-import { Uint32LE } from "../number";
+} from "../high-order/index.js";
+import { Uint32LE } from "../number.js";
 
 type NullableKeys<O extends Record<string, unknown>> = {
   [K in keyof O]-?: [O[K] & (undefined | null)] extends [never] ? never : K;
@@ -95,7 +95,7 @@ export function array<T extends FixedBytesCodec>(
     byteLength: itemCodec.byteLength * itemCount,
     pack(items) {
       const itemsBuf = enhancedArrayCodec.pack(items);
-      return concat(...itemsBuf);
+      return bytesConcat(...itemsBuf);
     },
     unpack(buf) {
       const result: UnpackResult<T>[] = [];
@@ -146,7 +146,7 @@ export function struct<T extends Record<string, FixedBytesCodec>>(
         obj as { [K in keyof T]: PackParam<T[K]> },
       );
       return fields.reduce((result, field) => {
-        return concat(result, packed[field]);
+        return bytesConcat(result, packed[field]);
       }, Uint8Array.from([]));
     },
     unpack(buf) {
@@ -178,11 +178,11 @@ export function fixvec<T extends FixedBytesCodec>(
   return createBytesCodec({
     pack(items) {
       const arrayCodec = createArrayCodec(itemCodec);
-      return concat(
+      return bytesConcat(
         Uint32LE.pack(items.length),
         arrayCodec
           .pack(items)
-          .reduce((buf, item) => concat(buf, item), new ArrayBuffer(0)),
+          .reduce((buf, item) => bytesConcat(buf, item), new ArrayBuffer(0)),
       );
     },
     unpack(buf) {
@@ -212,8 +212,8 @@ export function dynvec<T extends BytesCodec>(
         (result, item) => {
           const packedHeader = Uint32LE.pack(result.offset);
           return {
-            header: concat(result.header, packedHeader),
-            body: concat(result.body, item),
+            header: bytesConcat(result.header, packedHeader),
+            body: bytesConcat(result.body, item),
             offset: result.offset + item.byteLength,
           };
         },
@@ -226,7 +226,7 @@ export function dynvec<T extends BytesCodec>(
       const packedTotalSize = Uint32LE.pack(
         packed.header.byteLength + packed.body.byteLength + 4,
       );
-      return concat(packedTotalSize, packed.header, packed.body);
+      return bytesConcat(packedTotalSize, packed.header, packed.body);
     },
     unpack(buf) {
       const totalSize = Uint32LE.unpack(buf.slice(0, 4));
@@ -295,8 +295,8 @@ export function table<T extends Record<string, BytesCodec>>(
           const packedItem = packedObj[field];
           const packedOffset = Uint32LE.pack(result.offset);
           return {
-            header: concat(result.header, packedOffset),
-            body: concat(result.body, packedItem),
+            header: bytesConcat(result.header, packedOffset),
+            body: bytesConcat(result.body, packedItem),
             offset: result.offset + packedItem.byteLength,
           };
         },
@@ -309,7 +309,7 @@ export function table<T extends Record<string, BytesCodec>>(
       const packedTotalSize = Uint32LE.pack(
         packed.header.byteLength + packed.body.byteLength + 4,
       );
-      return concat(packedTotalSize, packed.header, packed.body);
+      return bytesConcat(packedTotalSize, packed.header, packed.body);
     },
     unpack(buf) {
       const totalSize = Uint32LE.unpack(buf.slice(0, 4));
@@ -398,7 +398,7 @@ export function union<T extends Record<string, BytesCodec>>(
       }
       const packedFieldIndex = Uint32LE.pack(fieldId);
       const packedBody = itemCodec[type].pack(obj.value);
-      return concat(packedFieldIndex, packedBody);
+      return bytesConcat(packedFieldIndex, packedBody);
     },
     unpack(buf) {
       const fieldId = Uint32LE.unpack(buf.slice(0, 4));

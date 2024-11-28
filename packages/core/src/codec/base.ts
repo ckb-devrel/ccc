@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { bytify } from "./bytes";
-import { assertBufferLength, isObjectLike } from "./utils";
+import { bytesFrom, BytesLike } from "../bytes/index.js";
+import { assertBufferLength, isObjectLike } from "./utils.js";
 
 export interface Codec<
   Packed,
@@ -31,8 +31,6 @@ export type Uint8ArrayCodec<Unpacked = any, Packable = Unpacked> = Codec<
   Packable
 >;
 
-export type BytesLike = ArrayLike<number> | ArrayBuffer | string;
-
 export type BytesCodec<Unpacked = any, Packable = Unpacked> = Codec<
   Uint8Array,
   Unpacked,
@@ -49,7 +47,7 @@ export function createBytesCodec<Unpacked, Packable = Unpacked>(
 ): BytesCodec<Unpacked, Packable> {
   return {
     pack: (unpacked) => codec.pack(unpacked),
-    unpack: (bytesLike) => codec.unpack(bytify(bytesLike)),
+    unpack: (bytesLike) => codec.unpack(bytesFrom(bytesLike)),
   };
 }
 

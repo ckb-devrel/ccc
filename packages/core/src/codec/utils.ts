@@ -2,7 +2,7 @@ import {
   CodecBaseParseError,
   CodecExecuteError,
   isCodecExecuteError,
-} from "./error";
+} from "./error.js";
 
 const CHAR_0 = "0".charCodeAt(0); // 48
 const CHAR_9 = "9".charCodeAt(0); // 57
@@ -46,8 +46,7 @@ export function assertHexDecimal(str: string, byteLength?: number): void {
 
   if (typeof byteLength === "number" && strLen > byteLength * 2 + 2) {
     throw new Error(
-      `Invalid hex decimal length, should be less than ${byteLength} bytes, got ${
-        strLen / 2 - 1
+      `Invalid hex decimal length, should be less than ${byteLength} bytes, got ${strLen / 2 - 1
       } bytes`,
     );
   }

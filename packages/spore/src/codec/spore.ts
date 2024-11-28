@@ -1,12 +1,11 @@
 import { ccc } from "@ckb-ccc/core";
-import { blockchain, molecule } from "@ckb-ccc/codec";
 import { RawString } from "./base.js";
 
-export const MolSporeData = molecule.table(
+export const MolSporeData = ccc.codec.table(
   {
     contentType: RawString,
-    content: blockchain.Bytes,
-    clusterId: blockchain.BytesOpt,
+    content: ccc.codec.Bytes,
+    clusterId: ccc.codec.BytesOpt,
   },
   ["contentType", "content", "clusterId"],
 );

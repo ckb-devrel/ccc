@@ -9,3 +9,4 @@ export * from "./keystore/index.js";
 export * from "./num/index.js";
 export * from "./signer/index.js";
 export * from "./utils/index.js";
+export * as codec from "./codec/index.js";

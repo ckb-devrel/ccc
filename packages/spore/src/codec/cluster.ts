@@ -1,19 +1,18 @@
 import { ccc } from "@ckb-ccc/core";
-import { blockchain, molecule } from "@ckb-ccc/codec";
 import { RawString } from "./base.js";
 
-export const MolClusterDataV1 = molecule.table(
+export const MolClusterDataV1 = ccc.codec.table(
   {
     name: RawString,
     description: RawString,
   },
   ["name", "description"],
 );
-export const MolClusterDataV2 = molecule.table(
+export const MolClusterDataV2 = ccc.codec.table(
   {
     name: RawString,
     description: RawString,
-    mutantId: blockchain.BytesOpt,
+    mutantId: ccc.codec.BytesOpt,
   },
   ["name", "description", "mutantId"],
 );

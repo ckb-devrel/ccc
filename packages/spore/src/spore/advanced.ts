@@ -1,5 +1,4 @@
 import { ccc } from "@ckb-ccc/core";
-import { UnpackResult } from "@ckb-ccc/codec";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeData } from "../codec/index.js";
@@ -11,7 +10,7 @@ export async function prepareCluster(
   data: SporeData,
   clusterMode?: "lockProxy" | "clusterCell" | "skip",
   scriptInfoHash?: ccc.HexLike,
-): Promise<UnpackResult<typeof Action> | undefined> {
+): Promise<ccc.codec.UnpackResult<typeof Action> | undefined> {
   // skip if the spore is not belong to a cluster
   if (!data.clusterId || clusterMode === "skip") {
     return;

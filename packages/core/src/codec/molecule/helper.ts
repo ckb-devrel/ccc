@@ -1,12 +1,12 @@
+import { bytesConcat } from "../../bytes/index.js";
 import {
   BytesCodec,
   createBytesCodec,
   createFixedBytesCodec,
   FixedBytesCodec,
-} from "../base";
-import { concat } from "../bytes";
-import { Uint32LE } from "../number";
-import { assertBufferLength, assertMinBufferLength } from "../utils";
+} from "../base.js";
+import { Uint32LE } from "../number.js";
+import { assertBufferLength, assertMinBufferLength } from "../utils.js";
 
 /**
  * a helper function to create custom codec of `array SomeType [byte; n]`
@@ -45,7 +45,7 @@ export function byteVecOf<Packed, Packable = Packed>(
       const payload = codec.pack(unpacked);
       const header = Uint32LE.pack(payload.byteLength);
 
-      return concat(header, payload);
+      return bytesConcat(header, payload);
     },
     unpack(packed) {
       assertMinBufferLength(packed, 4);

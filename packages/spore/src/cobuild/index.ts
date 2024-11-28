@@ -1,5 +1,4 @@
 import { ccc } from "@ckb-ccc/core";
-import { UnpackResult } from "@ckb-ccc/codec";
 import {
   Action,
   ActionVec,
@@ -12,7 +11,7 @@ export function assembleCreateSporeAction(
   sporeOutput: ccc.CellOutputLike,
   sporeData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): UnpackResult<typeof Action> {
+): ccc.codec.UnpackResult<typeof Action> {
   if (!sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -40,7 +39,7 @@ export function assembleTransferSporeAction(
   sporeInput: ccc.CellOutputLike,
   sporeOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): UnpackResult<typeof Action> {
+): ccc.codec.UnpackResult<typeof Action> {
   if (!sporeInput.type || !sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -71,7 +70,7 @@ export function assembleTransferSporeAction(
 export function assembleMeltSporeAction(
   sporeInput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): UnpackResult<typeof Action> {
+): ccc.codec.UnpackResult<typeof Action> {
   if (!sporeInput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -98,7 +97,7 @@ export function assembleCreateClusterAction(
   clusterOutput: ccc.CellOutputLike,
   clusterData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): UnpackResult<typeof Action> {
+): ccc.codec.UnpackResult<typeof Action> {
   if (!clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
@@ -126,7 +125,7 @@ export function assembleTransferClusterAction(
   clusterInput: ccc.CellOutputLike,
   clusterOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): UnpackResult<typeof Action> {
+): ccc.codec.UnpackResult<typeof Action> {
   if (!clusterInput.type || !clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
@@ -156,7 +155,7 @@ export function assembleTransferClusterAction(
 export async function prepareSporeTransaction(
   signer: ccc.Signer,
   txLike: ccc.TransactionLike,
-  actions: UnpackResult<typeof ActionVec>,
+  actions: ccc.codec.UnpackResult<typeof ActionVec>,
 ): Promise<ccc.Transaction> {
   let tx = ccc.Transaction.from(txLike);
 
@@ -172,7 +171,7 @@ export async function prepareSporeTransaction(
 
 export function unpackCommonCobuildProof(
   data: ccc.HexLike,
-): UnpackResult<typeof WitnessLayout> | undefined {
+): ccc.codec.UnpackResult<typeof WitnessLayout> | undefined {
   try {
     return WitnessLayout.unpack(ccc.bytesFrom(data));
   } catch {
@@ -182,7 +181,7 @@ export function unpackCommonCobuildProof(
 
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
-): UnpackResult<typeof ActionVec> {
+): ccc.codec.UnpackResult<typeof ActionVec> {
   if (tx.witnesses.length === 0) {
     return [];
   }
@@ -203,7 +202,7 @@ export function extractCobuildActionsFromTx(
 
 export function injectCobuild(
   tx: ccc.Transaction,
-  actions: UnpackResult<typeof ActionVec>,
+  actions: ccc.codec.UnpackResult<typeof ActionVec>,
 ): void {
   const witnessLayout = ccc.hexFrom(
     WitnessLayout.pack({

@@ -1,37 +1,37 @@
-import { blockchain, molecule, number } from "@ckb-ccc/codec";
 import { RawString } from "../base.js";
+import { codec } from "@ckb-ccc/core";
 
-const Uint32Opt = molecule.option(number.Uint32LE);
+const Uint32Opt = codec.option(codec.Uint32LE);
 
-const Hash = blockchain.Byte32;
+const Hash = codec.Byte32;
 
-export const Action = molecule.table(
+export const Action = codec.table(
   {
     scriptInfoHash: Hash,
     scriptHash: Hash,
-    data: blockchain.Bytes,
+    data: codec.Bytes,
   },
   ["scriptInfoHash", "scriptHash", "data"],
 );
 
-export const ActionVec = molecule.vector(Action);
+export const ActionVec = codec.vector(Action);
 
-export const Message = molecule.table(
+export const Message = codec.table(
   {
     actions: ActionVec,
   },
   ["actions"],
 );
 
-export const ResolvedInputs = molecule.table(
+export const ResolvedInputs = codec.table(
   {
-    outputs: blockchain.CellOutputVec,
-    outputsData: blockchain.BytesVec,
+    outputs: codec.CellOutputVec,
+    outputsData: codec.BytesVec,
   },
   ["outputs", "outputsData"],
 );
 
-export const ScriptInfo = molecule.table(
+export const ScriptInfo = codec.table(
   {
     name: RawString,
     url: RawString,
@@ -42,12 +42,12 @@ export const ScriptInfo = molecule.table(
   ["name", "url", "scriptHash", "schema", "messageType"],
 );
 
-export const ScriptInfoVec = molecule.vector(ScriptInfo);
+export const ScriptInfoVec = codec.vector(ScriptInfo);
 
-export const BuildingPacketV1 = molecule.table(
+export const BuildingPacketV1 = codec.table(
   {
     message: Message,
-    payload: blockchain.Transaction,
+    payload: codec.Transaction,
     resolvedInputs: ResolvedInputs,
     changeOutput: Uint32Opt,
     scriptInfos: ScriptInfoVec,
@@ -63,7 +63,7 @@ export const BuildingPacketV1 = molecule.table(
   ],
 );
 
-export const BuildingPacket = molecule.union(
+export const BuildingPacket = codec.union(
   {
     BuildingPacketV1,
   },

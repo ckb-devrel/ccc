@@ -1,6 +1,0 @@
-{
-  "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["./src/index.ts", "./src/advanced.ts"],
-  "extends": ["../../typedoc.base.json"],
-  "name": "@ckb-ccc spore"
-}

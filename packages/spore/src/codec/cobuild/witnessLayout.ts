@@ -1,16 +1,16 @@
-import { blockchain, molecule } from "@ckb-ccc/codec";
 import { Message } from "./buildingPacket.js";
+import { codec } from "@ckb-ccc/core";
 
-export const SighashAll = molecule.table(
+export const SighashAll = codec.table(
   {
-    seal: blockchain.Bytes,
+    seal: codec.Bytes,
     message: Message,
   },
   ["seal", "message"],
 );
-export const SighashAllOnly = molecule.table(
+export const SighashAllOnly = codec.table(
   {
-    seal: blockchain.Bytes,
+    seal: codec.Bytes,
   },
   ["seal"],
 );
@@ -18,8 +18,8 @@ export const SighashAllOnly = molecule.table(
 /**
  * Otx related are not implemented yet, so just placeholders.
  */
-export const Otx = molecule.table({}, []);
-export const OtxStart = molecule.table({}, []);
+export const Otx = codec.table({}, []);
+export const OtxStart = codec.table({}, []);
 
 export const WitnessLayoutFieldTags = {
   SighashAll: 4278190081,
@@ -28,7 +28,7 @@ export const WitnessLayoutFieldTags = {
   OtxStart: 4278190084,
 } as const;
 
-export const WitnessLayout = molecule.union(
+export const WitnessLayout = codec.union(
   {
     SighashAll,
     SighashAllOnly,
