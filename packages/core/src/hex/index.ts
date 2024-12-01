@@ -26,5 +26,5 @@ export type HexLike = BytesLike;
  * ```
  */
 export function hexFrom(hex: HexLike): Hex {
-  return `0x${bytesTo(bytesFrom(hex), "hex")}`;
+  return `0x${bytesTo(bytesFrom(hex), "hex") || "0"}`;
 }
