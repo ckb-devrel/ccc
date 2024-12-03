@@ -1,5 +1,5 @@
 import { ClientCollectableSearchKeyFilterLike } from "../advancedBarrel.js";
-import { Bytes, BytesLike, bytesConcat, bytesFrom } from "../bytes/index.js";
+import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import { CellDepInfoLike, Client, KnownScript } from "../client/index.js";
 import {
   Zero,
@@ -11,7 +11,6 @@ import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import {
   Num,
   NumLike,
-  numBeToBytes,
   numFrom,
   numFromBytes,
   numToBytes,
@@ -435,12 +434,12 @@ export function epochFrom(epochLike: EpochLike): Epoch {
  * @public
  */
 export function epochFromHex(hex: HexLike): Epoch {
-  const bytes = bytesFrom(hexFrom(hex));
+  const num = numFrom(hexFrom(hex));
 
   return [
-    numFrom(bytes.slice(4, 7)),
-    numFrom(bytes.slice(2, 4)),
-    numFrom(bytes.slice(0, 2)),
+    num & numFrom("0xffffff"),
+    (num >> numFrom(24)) & numFrom("0xffff"),
+    (num >> numFrom(40)) & numFrom("0xffff"),
   ];
 }
 /**
@@ -449,12 +448,10 @@ export function epochFromHex(hex: HexLike): Epoch {
 export function epochToHex(epochLike: EpochLike): Hex {
   const epoch = epochFrom(epochLike);
 
-  return hexFrom(
-    bytesConcat(
-      numBeToBytes(epoch[2], 2),
-      numBeToBytes(epoch[1], 2),
-      numBeToBytes(epoch[0], 3),
-    ),
+  return numToHex(
+    numFrom(epoch[0]) +
+      (numFrom(epoch[1]) << numFrom(24)) +
+      (numFrom(epoch[2]) << numFrom(40)),
   );
 }
 
