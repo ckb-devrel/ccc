@@ -8,8 +8,8 @@ export interface Codec<
   Packable = Unpacked,
   Unpackable = Packed,
 > {
-  pack: (packable: Packable) => Packed;
-  unpack: (unpackable: Unpackable) => Unpacked;
+  encode: (packable: Packable) => Packed;
+  decode: (unpackable: Unpackable) => Unpacked;
 }
 
 export type AnyCodec = Codec<any, any>;
@@ -39,8 +39,8 @@ export function createBytesCodec<Unpacked, Packable = Unpacked>(
   codec: BytesCodec<Unpacked, Packable>,
 ): BytesCodec<Unpacked, Packable> {
   return {
-    pack: (unpacked) => codec.pack(unpacked),
-    unpack: (bytesLike) => codec.unpack(bytesFrom(bytesLike)),
+    encode: (unpacked) => codec.encode(unpacked),
+    decode: (bytesLike) => codec.decode(bytesFrom(bytesLike)),
   };
 }
 
@@ -69,14 +69,14 @@ export function createFixedBytesCodec<Unpacked, Packable = Unpacked>(
     __isFixedCodec__: true,
     byteLength,
     ...createBytesCodec({
-      pack: (u) => {
-        const packed = codec.pack(u);
+      encode: (u) => {
+        const packed = codec.encode(u);
         assertBufferLength(packed, byteLength);
         return packed;
       },
-      unpack: (buf) => {
+      decode: (buf) => {
         assertBufferLength(buf, byteLength);
-        return codec.unpack(buf);
+        return codec.decode(buf);
       },
     }),
   };

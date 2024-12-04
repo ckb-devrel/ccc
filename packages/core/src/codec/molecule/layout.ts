@@ -61,7 +61,7 @@ export type ObjectLayoutCodec<T extends Record<string, BytesCodec>> =
  */
 export interface OptionLayoutCodec<T extends BytesCodec>
   extends BytesCodec<UnpackResult<T> | undefined> {
-  pack: (packable?: PackParam<T>) => Uint8Array;
+  encode: (packable?: PackParam<T>) => Uint8Array;
 }
 
 /**
@@ -93,15 +93,15 @@ export function array<T extends FixedBytesCodec>(
   const enhancedArrayCodec = createArrayCodec(itemCodec);
   return createFixedBytesCodec({
     byteLength: itemCodec.byteLength * itemCount,
-    pack(items) {
-      const itemsBuf = enhancedArrayCodec.pack(items);
+    encode(items) {
+      const itemsBuf = enhancedArrayCodec.encode(items);
       return bytesConcat(...itemsBuf);
     },
-    unpack(buf) {
+    decode(buf) {
       const result: UnpackResult<T>[] = [];
       const itemLength = itemCodec.byteLength;
       for (let offset = 0; offset < buf.byteLength; offset += itemLength) {
-        result.push(itemCodec.unpack(buf.slice(offset, offset + itemLength)));
+        result.push(itemCodec.decode(buf.slice(offset, offset + itemLength)));
       }
       return result;
     },
@@ -141,15 +141,15 @@ export function struct<T extends Record<string, FixedBytesCodec>>(
   const objectCodec = createObjectCodec(shape);
   return createFixedBytesCodec({
     byteLength: fields.reduce((sum, field) => sum + shape[field].byteLength, 0),
-    pack(obj) {
-      const packed = objectCodec.pack(
+    encode(obj) {
+      const packed = objectCodec.encode(
         obj as { [K in keyof T]: PackParam<T[K]> },
       );
       return fields.reduce((result, field) => {
         return bytesConcat(result, packed[field]);
       }, Uint8Array.from([]));
     },
-    unpack(buf) {
+    decode(buf) {
       const result = {} as PartialNullable<{
         [key in keyof T]: UnpackResult<T[key]>;
       }>;
@@ -158,7 +158,7 @@ export function struct<T extends Record<string, FixedBytesCodec>>(
       fields.forEach((field) => {
         const itemCodec = shape[field];
         const itemBuf = buf.slice(offset, offset + itemCodec.byteLength);
-        Object.assign(result, { [field]: itemCodec.unpack(itemBuf) });
+        Object.assign(result, { [field]: itemCodec.decode(itemBuf) });
 
         offset = offset + itemCodec.byteLength;
       });
@@ -176,23 +176,23 @@ export function fixvec<T extends FixedBytesCodec>(
   itemCodec: T,
 ): ArrayLayoutCodec<T> {
   return createBytesCodec({
-    pack(items) {
+    encode(items) {
       const arrayCodec = createArrayCodec(itemCodec);
       return bytesConcat(
-        Uint32LE.pack(items.length),
+        Uint32LE.encode(items.length),
         arrayCodec
-          .pack(items)
+          .encode(items)
           .reduce((buf, item) => bytesConcat(buf, item), new ArrayBuffer(0)),
       );
     },
-    unpack(buf) {
+    decode(buf) {
       if (buf.byteLength < 4) {
         throw new Error(
           `fixvec: buffer is too short, expected at least 4 bytes, got ${buf.byteLength}`,
         );
       }
-      const itemCount = Uint32LE.unpack(buf.slice(0, 4));
-      return array(itemCodec, itemCount).unpack(buf.slice(4));
+      const itemCount = Uint32LE.decode(buf.slice(0, 4));
+      return array(itemCodec, itemCount).decode(buf.slice(4));
     },
   });
 }
@@ -206,11 +206,11 @@ export function dynvec<T extends BytesCodec>(
   itemCodec: T,
 ): ArrayLayoutCodec<T> {
   return createBytesCodec({
-    pack(obj) {
+    encode(obj) {
       const arrayCodec = createArrayCodec(itemCodec);
-      const packed = arrayCodec.pack(obj).reduce(
+      const packed = arrayCodec.encode(obj).reduce(
         (result, item) => {
-          const packedHeader = Uint32LE.pack(result.offset);
+          const packedHeader = Uint32LE.encode(result.offset);
           return {
             header: bytesConcat(result.header, packedHeader),
             body: bytesConcat(result.body, item),
@@ -223,13 +223,13 @@ export function dynvec<T extends BytesCodec>(
           offset: 4 + obj.length * 4,
         },
       );
-      const packedTotalSize = Uint32LE.pack(
+      const packedTotalSize = Uint32LE.encode(
         packed.header.byteLength + packed.body.byteLength + 4,
       );
       return bytesConcat(packedTotalSize, packed.header, packed.body);
     },
-    unpack(buf) {
-      const totalSize = Uint32LE.unpack(buf.slice(0, 4));
+    decode(buf) {
+      const totalSize = Uint32LE.decode(buf.slice(0, 4));
       if (totalSize !== buf.byteLength) {
         throw new Error(
           `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`,
@@ -239,12 +239,12 @@ export function dynvec<T extends BytesCodec>(
       if (totalSize <= 4) {
         return result;
       } else {
-        const offset0 = Uint32LE.unpack(buf.slice(4, 8));
+        const offset0 = Uint32LE.decode(buf.slice(4, 8));
         const itemCount = (offset0 - 4) / 4;
         const offsets = new Array(itemCount)
           .fill(1)
           .map((_, index) =>
-            Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4)),
+            Uint32LE.decode(buf.slice(4 + index * 4, 8 + index * 4)),
           );
         offsets.push(totalSize);
         const result: UnpackResult<T>[] = [];
@@ -252,7 +252,7 @@ export function dynvec<T extends BytesCodec>(
           const start = offsets[index];
           const end = offsets[index + 1];
           const itemBuf = buf.slice(start, end);
-          result.push(itemCodec.unpack(itemBuf));
+          result.push(itemCodec.decode(itemBuf));
         }
         return result;
       }
@@ -284,16 +284,16 @@ export function table<T extends Record<string, BytesCodec>>(
 ): ObjectLayoutCodec<T> {
   checkShape(shape, fields);
   return createBytesCodec({
-    pack(obj) {
+    encode(obj) {
       const headerLength = 4 + fields.length * 4;
       const objectCodec = createObjectCodec(shape);
-      const packedObj = objectCodec.pack(
+      const packedObj = objectCodec.encode(
         obj as { [K in keyof T]: PackParam<T[K]> },
       );
       const packed = fields.reduce(
         (result, field) => {
           const packedItem = packedObj[field];
-          const packedOffset = Uint32LE.pack(result.offset);
+          const packedOffset = Uint32LE.encode(result.offset);
           return {
             header: bytesConcat(result.header, packedOffset),
             body: bytesConcat(result.body, packedItem),
@@ -306,13 +306,13 @@ export function table<T extends Record<string, BytesCodec>>(
           offset: headerLength,
         },
       );
-      const packedTotalSize = Uint32LE.pack(
+      const packedTotalSize = Uint32LE.encode(
         packed.header.byteLength + packed.body.byteLength + 4,
       );
       return bytesConcat(packedTotalSize, packed.header, packed.body);
     },
-    unpack(buf) {
-      const totalSize = Uint32LE.unpack(buf.slice(0, 4));
+    decode(buf) {
+      const totalSize = Uint32LE.decode(buf.slice(0, 4));
       if (totalSize !== buf.byteLength) {
         throw new Error(
           `Invalid buffer size, read from header: ${totalSize}, actual: ${buf.byteLength}`,
@@ -324,7 +324,7 @@ export function table<T extends Record<string, BytesCodec>>(
         }>;
       } else {
         const offsets = fields.map((_, index) =>
-          Uint32LE.unpack(buf.slice(4 + index * 4, 8 + index * 4)),
+          Uint32LE.decode(buf.slice(4 + index * 4, 8 + index * 4)),
         );
         offsets.push(totalSize);
         const obj = {};
@@ -334,7 +334,7 @@ export function table<T extends Record<string, BytesCodec>>(
           const field = fields[index];
           const itemCodec = shape[field];
           const itemBuf = buf.slice(start, end);
-          Object.assign(obj, { [field]: itemCodec.unpack(itemBuf) });
+          Object.assign(obj, { [field]: itemCodec.decode(itemBuf) });
         }
         return obj as PartialNullable<{
           [key in keyof T]: UnpackResult<T[key]>;
@@ -372,7 +372,7 @@ export function union<T extends Record<string, BytesCodec>>(
   }
 
   return createBytesCodec({
-    pack(obj) {
+    encode(obj) {
       const availableFields: (keyof T)[] = Object.keys(itemCodec);
 
       const type = obj.type;
@@ -396,12 +396,12 @@ export function union<T extends Record<string, BytesCodec>>(
           typeName,
         );
       }
-      const packedFieldIndex = Uint32LE.pack(fieldId);
-      const packedBody = itemCodec[type].pack(obj.value);
+      const packedFieldIndex = Uint32LE.encode(fieldId);
+      const packedBody = itemCodec[type].encode(obj.value);
       return bytesConcat(packedFieldIndex, packedBody);
     },
-    unpack(buf) {
-      const fieldId = Uint32LE.unpack(buf.slice(0, 4));
+    decode(buf) {
+      const fieldId = Uint32LE.decode(buf.slice(0, 4));
 
       const type: keyof T | undefined = (() => {
         if (Array.isArray(fields)) {
@@ -418,7 +418,7 @@ export function union<T extends Record<string, BytesCodec>>(
         );
       }
 
-      return { type, value: itemCodec[type].unpack(buf.slice(4)) };
+      return { type, value: itemCodec[type].decode(buf.slice(4)) };
     },
   });
 }
@@ -434,19 +434,19 @@ export function option<T extends BytesCodec>(
   itemCodec: T,
 ): OptionLayoutCodec<T> {
   return createBytesCodec({
-    pack(obj?) {
+    encode(obj?) {
       const nullableCodec = createNullableCodec(itemCodec);
       if (obj !== undefined && obj !== null) {
-        return nullableCodec.pack(obj);
+        return nullableCodec.encode(obj);
       } else {
         return Uint8Array.from([]);
       }
     },
-    unpack(buf) {
+    decode(buf) {
       if (buf.byteLength === 0) {
         return undefined;
       }
-      return itemCodec.unpack(buf);
+      return itemCodec.decode(buf);
     },
   });
 }

@@ -9,22 +9,22 @@ function createUintNumberCodec(
   return {
     __isFixedCodec__: true,
     byteLength,
-    pack: (packable) => codec.pack(packable),
-    unpack: (unpackable) => Number(codec.unpack(unpackable)),
+    encode: (packable) => codec.encode(packable),
+    decode: (unpackable) => Number(codec.decode(unpackable)),
   };
 }
 
 const createUintBICodec = (byteLength: number, littleEndian = false) => {
   return createFixedBytesCodec<Num, NumLike>({
     byteLength,
-    pack: (biIsh) => {
+    encode: (biIsh) => {
       if (littleEndian) {
         return numToBytes(biIsh, byteLength);
       } else {
         return numBeToBytes(biIsh, byteLength);
       }
     },
-    unpack: (buf) => {
+    decode: (buf) => {
       if (littleEndian) {
         return numFromBytes(buf);
       } else {

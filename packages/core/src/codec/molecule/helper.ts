@@ -18,8 +18,8 @@ export function byteArrayOf<Packed, Packable = Packed>(
   const byteLength = codec.byteLength;
   return createFixedBytesCodec({
     byteLength,
-    pack: (packable) => codec.pack(packable),
-    unpack: (buf) => codec.unpack(buf),
+    encode: (packable) => codec.encode(packable),
+    decode: (buf) => codec.decode(buf),
   });
 }
 
@@ -41,17 +41,17 @@ export function byteVecOf<Packed, Packable = Packed>(
   codec: BytesCodec<Packed, Packable>,
 ): BytesCodec<Packed, Packable> {
   return createBytesCodec({
-    pack(unpacked) {
-      const payload = codec.pack(unpacked);
-      const header = Uint32LE.pack(payload.byteLength);
+    encode(unpacked) {
+      const payload = codec.encode(unpacked);
+      const header = Uint32LE.encode(payload.byteLength);
 
       return bytesConcat(header, payload);
     },
-    unpack(packed) {
+    decode(packed) {
       assertMinBufferLength(packed, 4);
-      const header = Uint32LE.unpack(packed.slice(0, 4));
+      const header = Uint32LE.decode(packed.slice(0, 4));
       assertBufferLength(packed.slice(4), header);
-      return codec.unpack(packed.slice(4));
+      return codec.decode(packed.slice(4));
     },
   });
 }

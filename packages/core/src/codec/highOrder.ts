@@ -14,24 +14,24 @@ import { CODEC_OPTIONAL_PATH } from "./error.js";
 import { trackCodeExecuteError } from "./utils.js";
 
 export interface NullableCodec<C extends AnyCodec = AnyCodec> extends AnyCodec {
-  pack(packable?: PackParam<C>): PackResult<C>;
+  encode(packable?: PackParam<C>): PackResult<C>;
 
-  unpack(unpackable?: UnpackParam<C>): UnpackResult<C>;
+  decode(unpackable?: UnpackParam<C>): UnpackResult<C>;
 }
 
 export function createNullableCodec<C extends AnyCodec = AnyCodec>(
   codec: C,
 ): NullableCodec<C> {
   return {
-    pack: (packable) => {
+    encode: (packable) => {
       if (packable == null) return packable;
       return trackCodeExecuteError(CODEC_OPTIONAL_PATH, () =>
-        codec.pack(packable),
+        codec.encode(packable),
       );
     },
-    unpack: (unpackable) => {
+    decode: (unpackable) => {
       if (unpackable == null) return unpackable;
-      return codec.unpack(unpackable);
+      return codec.decode(unpackable);
     },
   };
 }
@@ -66,24 +66,24 @@ export function createObjectCodec<Shape extends ObjectCodecShape>(
   const codecEntries = Object.entries(codecShape);
 
   return {
-    pack: (packableObj) => {
+    encode: (packableObj) => {
       const result = {} as { [key in keyof Shape]: PackResult<Shape[key]> };
 
       codecEntries.forEach(([key, itemCodec]) => {
         Object.assign(result, {
           [key]: trackCodeExecuteError(key, () =>
-            itemCodec.pack(packableObj[key]),
+            itemCodec.encode(packableObj[key]),
           ),
         });
       });
 
       return result;
     },
-    unpack: (unpackableObj) => {
+    decode: (unpackableObj) => {
       const result = {} as { [key in keyof Shape]: UnpackResult<Shape[key]> };
 
       codecEntries.forEach(([key, itemCodec]) => {
-        Object.assign(result, { [key]: itemCodec.unpack(unpackableObj[key]) });
+        Object.assign(result, { [key]: itemCodec.decode(unpackableObj[key]) });
       });
 
       return result;
@@ -100,11 +100,11 @@ export type ArrayCodec<C extends AnyCodec> = Codec<
 
 export function createArrayCodec<C extends AnyCodec>(codec: C): ArrayCodec<C> {
   return {
-    pack: (items) =>
+    encode: (items) =>
       items.map((item, index) =>
-        trackCodeExecuteError(index, () => codec.pack(item)),
+        trackCodeExecuteError(index, () => codec.encode(item)),
       ),
-    unpack: (items) => items.map((item) => codec.unpack(item)),
+    decode: (items) => items.map((item) => codec.decode(item)),
   };
 }
 
@@ -119,7 +119,7 @@ export function enhancePack<C extends AnyCodec, Packed>(
   beforeCodecUnpack: (arg: Packed) => UnpackParam<C>,
 ): Codec<Packed, UnpackResult<C>, PackParam<C>> {
   return {
-    pack: (packable) => afterCodecPack(codec.pack(packable)),
-    unpack: (unpackable) => codec.unpack(beforeCodecUnpack(unpackable)),
+    encode: (packable) => afterCodecPack(codec.encode(packable)),
+    decode: (unpackable) => codec.decode(beforeCodecUnpack(unpackable)),
   };
 }

@@ -22,7 +22,7 @@ function asHexadecimal(
 ): FixedBytesCodec<string, NumLike> {
   return {
     ...codec,
-    unpack: (value) => numFrom(codec.unpack(value)).toString(16),
+    decode: (value) => numFrom(codec.decode(value)).toString(16),
   };
 }
 
@@ -42,8 +42,8 @@ export function createFixedHexBytesCodec(
 ): FixedBytesCodec<string, BytesLike> {
   return createFixedBytesCodec({
     byteLength,
-    pack: (hex) => bytesFrom(hex),
-    unpack: (buf) => hexFrom(buf),
+    encode: (hex) => bytesFrom(hex),
+    decode: (buf) => hexFrom(buf),
   });
 }
 
@@ -58,7 +58,7 @@ export function createFixedHexBytesCodec(
 // export const UnusedOpt = option(Unknown);
 
 // vector Bytes <byte>
-export const Bytes = byteVecOf({ pack: bytesFrom, unpack: hexFrom });
+export const Bytes = byteVecOf({ encode: bytesFrom, decode: hexFrom });
 
 export const BytesOpt = option(Bytes);
 export const BytesVec = vector(Bytes);
@@ -97,8 +97,8 @@ export function WitnessArgsOf<
 }
 
 const HexifyCodec = createBytesCodec<string, BytesLike>({
-  pack: bytesFrom,
-  unpack: hexFrom,
+  encode: bytesFrom,
+  decode: hexFrom,
 });
 
 /**
@@ -131,14 +131,14 @@ export const WitnessArgs = WitnessArgsOf({
  */
 export const HashType = createFixedBytesCodec<HashTypeLike>({
   byteLength: 1,
-  pack: hashTypeToBytes,
-  unpack: hashTypeFromBytes,
+  encode: hashTypeToBytes,
+  decode: hashTypeFromBytes,
 });
 
 export const DepType = createFixedBytesCodec<DepTypeLike>({
   byteLength: 1,
-  pack: depTypeToBytes,
-  unpack: depTypeFromBytes,
+  encode: depTypeToBytes,
+  decode: depTypeFromBytes,
 });
 
 export const Script = table(
@@ -212,9 +212,9 @@ const BaseTransaction = table(
 );
 
 export const Transaction = createBytesCodec({
-  pack: (tx: TransactionCCC) =>
-    BaseTransaction.pack(transformTransactionCodecType(tx)),
-  unpack: (buf) => deTransformTransactionCodecType(BaseTransaction.unpack(buf)),
+  encode: (tx: TransactionCCC) =>
+    BaseTransaction.encode(transformTransactionCodecType(tx)),
+  decode: (buf) => deTransformTransactionCodecType(BaseTransaction.decode(buf)),
 });
 
 export const TransactionVec = vector(Transaction);
