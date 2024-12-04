@@ -371,3 +371,45 @@ export function struct<
     },
   });
 }
+
+/**
+ * The array is a fixed-size type: it has a fixed-size inner type and a fixed length.
+ * The size of an array is the size of inner type times the length.
+ * @param itemCodec the fixed-size array item codec
+ * @param itemCount
+ */
+export function array<Encodable>(
+  itemCodec: Codec<Encodable>,
+  itemCount: number,
+): Codec<Array<Encodable>> {
+  if (itemCodec.byteLength === undefined) {
+    throw new Error("array: itemCodec requires a byte length");
+  }
+  const byteLength = itemCodec.byteLength * itemCount;
+  return fixedBytes({
+    byteLength,
+    encode(items) {
+      const encodedArray = items.map((item) => itemCodec.encode(item));
+      return bytesConcat(...encodedArray);
+    },
+    decode(buffer) {
+      const value = bytesFrom(buffer);
+      if (value.byteLength != byteLength) {
+        throw new Error(
+          `array: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
+        );
+      }
+      const result: Encodable[] = [];
+      for (
+        let offset = 0;
+        offset < value.byteLength;
+        offset += itemCodec.byteLength!
+      ) {
+        result.push(
+          itemCodec.decode(value.slice(offset, offset + itemCodec.byteLength!)),
+        );
+      }
+      return result;
+    },
+  });
+}
