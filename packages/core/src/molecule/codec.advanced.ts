@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import { bytesConcat, bytesFrom, BytesLike } from "../bytes/index.js";
-import { bytes, Codec, EncodableType, fixedBytes } from "./codec.js";
+import { Codec, EncodableType } from "./codec.js";
 import { Uint32LE } from "./predefined.js";
 
 /**
@@ -15,7 +15,7 @@ export function fixedItemVec<Encodable>(
   if (itemCodec.byteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
   }
-  return bytes({
+  return {
     encode(userDefinedItems) {
       const encodedArray = userDefinedItems.map((item) =>
         itemCodec.encode(item),
@@ -51,7 +51,7 @@ export function fixedItemVec<Encodable>(
       }
       return decodedArray;
     },
-  });
+  };
 }
 
 /**
@@ -61,7 +61,7 @@ export function fixedItemVec<Encodable>(
 export function dynItemVec<Encodable>(
   itemCodec: Codec<Encodable>,
 ): Codec<Array<Encodable>> {
-  return bytes({
+  return {
     encode(userDefinedItems) {
       const encodedArray = userDefinedItems.map((item) =>
         itemCodec.encode(item),
@@ -115,7 +115,7 @@ export function dynItemVec<Encodable>(
         return decodedArray;
       }
     },
-  });
+  };
 }
 
 /**
@@ -141,7 +141,7 @@ export function vector<Encodable>(
 export function option<Encodable>(
   innerCodec: Codec<Encodable>,
 ): Codec<Encodable | undefined> {
-  return bytes({
+  return {
     encode(userDefinedOrNull) {
       if (userDefinedOrNull === undefined) {
         return Uint8Array.from([]);
@@ -155,7 +155,7 @@ export function option<Encodable>(
       }
       return innerCodec.decode(buffer);
     },
-  });
+  };
 }
 
 /**
@@ -163,7 +163,7 @@ export function option<Encodable>(
  * @param codec
  */
 export function byteVec<Encodable>(codec: Codec<Encodable>): Codec<Encodable> {
-  return bytes({
+  return {
     encode(userDefined) {
       const payload = bytesFrom(codec.encode(userDefined));
       const byteLength = Uint32LE.encode(BigInt(payload.byteLength));
@@ -184,7 +184,7 @@ export function byteVec<Encodable>(codec: Codec<Encodable>): Codec<Encodable> {
       }
       return codec.decode(value.slice(4));
     },
-  });
+  };
 }
 
 /**
@@ -195,7 +195,7 @@ export function table<
   T extends Record<string, Codec<any>>,
   R extends object = { [key in keyof T]: EncodableType<T[key]> },
 >(codecLayout: T): Codec<R> {
-  return bytes({
+  return {
     encode(object) {
       const keys = Object.keys(codecLayout);
       const objectKeys = Object.keys(object);
@@ -255,7 +255,7 @@ export function table<
       }
       return object as R;
     },
-  });
+  };
 }
 
 /**
@@ -275,7 +275,7 @@ export function union<
   T extends Record<string, Codec<any>>,
   R extends object = { [key in keyof T]?: EncodableType<T[key]> },
 >(codecLayout: T, fields?: Record<keyof T, number>): Codec<R, BytesLike> {
-  return bytes({
+  return {
     encode(object) {
       const keys = Object.keys(codecLayout);
       const objectKey = Object.keys(object)[0];
@@ -325,7 +325,7 @@ export function union<
       Object.assign(object, { [field]: codec.decode(payload) });
       return object as R;
     },
-  });
+  };
 }
 
 /**
@@ -341,7 +341,7 @@ export function struct<
   if (codecArray.find((codec) => codec.byteLength === undefined)) {
     throw new Error("struct: all fields must be fixed-size");
   }
-  return fixedBytes({
+  return {
     byteLength: codecArray.reduce((sum, codec) => sum + codec.byteLength!, 0),
     encode(object) {
       const keys = Object.keys(codecLayout);
@@ -369,7 +369,7 @@ export function struct<
       });
       return object as R;
     },
-  });
+  };
 }
 
 /**
@@ -386,7 +386,7 @@ export function array<Encodable>(
     throw new Error("array: itemCodec requires a byte length");
   }
   const byteLength = itemCodec.byteLength * itemCount;
-  return fixedBytes({
+  return {
     byteLength,
     encode(items) {
       const encodedArray = items.map((item) => itemCodec.encode(item));
@@ -411,5 +411,5 @@ export function array<Encodable>(
       }
       return result;
     },
-  });
+  };
 }
