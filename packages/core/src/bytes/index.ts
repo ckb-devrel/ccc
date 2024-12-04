@@ -118,3 +118,37 @@ export function bytesFrom(
   }
   return new Uint8Array(bytes);
 }
+
+/**
+ * Compares two byte-like values for equality.
+ * @public
+ *
+ * @param a - The first byte-like value to compare.
+ * @param b - The second byte-like value to compare.
+ * @returns A boolean indicating whether the two byte-like values are equal.
+ *
+ * @example
+ * ```typescript
+ * bytesEqual([1], Uint8Array.from([1])) // true
+ * ```
+ */
+export function bytesEqual(a: BytesLike, b: BytesLike): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  const x = bytesFrom(a);
+  const y = bytesFrom(b);
+
+  if (x.length !== y.length) {
+    return false;
+  }
+
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] !== y[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}

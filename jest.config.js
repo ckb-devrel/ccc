@@ -2,8 +2,20 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  setupFiles: ["<rootDir>/.env.js"],
-  moduleNameMapper: {
-    "^(\\.\\.?\\/.+)\\.js$": "$1",
+  testMatch: ["<rootDir>/packages/*/**/*.test.ts"],
+  transform: {
+    "^.+.[jt]s$": [
+      "ts-jest",
+      {
+        tsconfig: "tsconfig.json",
+        useESM: true,
+        isolatedModules: true,
+      },
+    ],
   },
+  extensionsToTreatAsEsm: [".ts"],
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts", "<rootDir>/.env.js"],
 };

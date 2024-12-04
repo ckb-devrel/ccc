@@ -19,5 +19,9 @@ jobs:
         run: pnpm install
       - name: Build
         run: pnpm build:all
+      - name: Test
+        run: |
+          echo 'process.env.PRIVATE_KEY = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";' > .env.js
+          pnpm test:unit
       - name: Lint
         run: pnpm lint
