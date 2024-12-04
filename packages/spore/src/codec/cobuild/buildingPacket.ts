@@ -1,71 +1,41 @@
-import { RawString } from "../base.js";
-import { codec } from "@ckb-ccc/core";
+import { molecule } from "@ckb-ccc/core";
 
-const Uint32Opt = codec.option(codec.Uint32LE);
+export const Action = molecule.table({
+  scriptInfoHash: molecule.Hash,
+  scriptHash: molecule.Hash,
+  data: molecule.Bytes,
+});
 
-const Hash = codec.Byte32;
+export const ActionVec = molecule.vector(Action);
 
-export const Action = codec.table(
-  {
-    scriptInfoHash: Hash,
-    scriptHash: Hash,
-    data: codec.Bytes,
-  },
-  ["scriptInfoHash", "scriptHash", "data"],
-);
+export const Message = molecule.table({
+  actions: ActionVec,
+});
 
-export const ActionVec = codec.vector(Action);
+export const ResolvedInputs = molecule.table({
+  outputs: molecule.CellOutputVec,
+  outputsData: molecule.BytesVec,
+});
 
-export const Message = codec.table(
-  {
-    actions: ActionVec,
-  },
-  ["actions"],
-);
+export const ScriptInfo = molecule.table({
+  name: molecule.String,
+  url: molecule.String,
+  scriptHash: molecule.Hash,
+  schema: molecule.String,
+  messageType: molecule.String,
+});
 
-export const ResolvedInputs = codec.table(
-  {
-    outputs: codec.CellOutputVec,
-    outputsData: codec.BytesVec,
-  },
-  ["outputs", "outputsData"],
-);
+export const ScriptInfoVec = molecule.vector(ScriptInfo);
 
-export const ScriptInfo = codec.table(
-  {
-    name: RawString,
-    url: RawString,
-    scriptHash: Hash,
-    schema: RawString,
-    messageType: RawString,
-  },
-  ["name", "url", "scriptHash", "schema", "messageType"],
-);
+export const BuildingPacketV1 = molecule.table({
+  message: Message,
+  payload: molecule.Transaction,
+  resolvedInputs: ResolvedInputs,
+  changeOutput: molecule.Uint32Opt,
+  scriptInfos: ScriptInfoVec,
+  lockActions: ActionVec,
+});
 
-export const ScriptInfoVec = codec.vector(ScriptInfo);
-
-export const BuildingPacketV1 = codec.table(
-  {
-    message: Message,
-    payload: codec.Transaction,
-    resolvedInputs: ResolvedInputs,
-    changeOutput: Uint32Opt,
-    scriptInfos: ScriptInfoVec,
-    lockActions: ActionVec,
-  },
-  [
-    "message",
-    "payload",
-    "resolvedInputs",
-    "changeOutput",
-    "scriptInfos",
-    "lockActions",
-  ],
-);
-
-export const BuildingPacket = codec.union(
-  {
-    BuildingPacketV1,
-  },
-  ["BuildingPacketV1"],
-);
+export const BuildingPacket = molecule.union({
+  BuildingPacketV1,
+});

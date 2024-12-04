@@ -11,21 +11,19 @@ export function assembleCreateSporeAction(
   sporeOutput: ccc.CellOutputLike,
   sporeData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): ccc.codec.UnpackResult<typeof Action> {
+): ccc.molecule.EncodableType<typeof Action> {
   if (!sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
   const sporeType = ccc.Script.from(sporeOutput.type);
   const sporeTypeHash = sporeType.hash();
-  const actionData = SporeAction.pack({
-    type: "CreateSpore",
-    value: {
+  const actionData = SporeAction.encode({
+    CreateSpore: {
       sporeId: sporeType.args,
-      dataHash: ccc.hashCkb(sporeData),
       to: {
-        type: "Script",
-        value: ccc.Script.from(sporeOutput.lock),
+        Script: ccc.Script.from(sporeOutput.lock),
       },
+      dataHash: ccc.hashCkb(sporeData),
     },
   });
   return {
@@ -39,24 +37,21 @@ export function assembleTransferSporeAction(
   sporeInput: ccc.CellOutputLike,
   sporeOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): ccc.codec.UnpackResult<typeof Action> {
+): ccc.molecule.EncodableType<typeof Action> {
   if (!sporeInput.type || !sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
 
   const sporeType = ccc.Script.from(sporeOutput.type);
   const sporeTypeHash = sporeType.hash();
-  const actionData = SporeAction.pack({
-    type: "TransferSpore",
-    value: {
+  const actionData = SporeAction.encode({
+    TransferSpore: {
       sporeId: sporeType.args,
       from: {
-        type: "Script",
-        value: ccc.Script.from(sporeInput.lock),
+        Script: ccc.Script.from(sporeInput.lock),
       },
       to: {
-        type: "Script",
-        value: ccc.Script.from(sporeOutput.lock),
+        Script: ccc.Script.from(sporeOutput.lock),
       },
     },
   });
@@ -70,19 +65,17 @@ export function assembleTransferSporeAction(
 export function assembleMeltSporeAction(
   sporeInput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): ccc.codec.UnpackResult<typeof Action> {
+): ccc.molecule.EncodableType<typeof Action> {
   if (!sporeInput.type) {
     throw new Error("Spore cell must have a type script");
   }
   const sporeType = ccc.Script.from(sporeInput.type);
   const sporeTypeHash = sporeType.hash();
-  const actionData = SporeAction.pack({
-    type: "MeltSpore",
-    value: {
+  const actionData = SporeAction.encode({
+    MeltSpore: {
       sporeId: sporeType.args,
       from: {
-        type: "Script",
-        value: ccc.Script.from(sporeInput.lock),
+        Script: ccc.Script.from(sporeInput.lock),
       },
     },
   });
@@ -97,21 +90,19 @@ export function assembleCreateClusterAction(
   clusterOutput: ccc.CellOutputLike,
   clusterData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): ccc.codec.UnpackResult<typeof Action> {
+): ccc.molecule.EncodableType<typeof Action> {
   if (!clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
   const clusterType = ccc.Script.from(clusterOutput.type);
   const clusterTypeHash = clusterType.hash();
-  const actionData = SporeAction.pack({
-    type: "CreateCluster",
-    value: {
+  const actionData = SporeAction.encode({
+    CreateCluster: {
       clusterId: clusterType.args,
-      dataHash: ccc.hashCkb(clusterData),
       to: {
-        type: "Script",
-        value: ccc.Script.from(clusterOutput.lock),
+        Script: ccc.Script.from(clusterOutput.lock),
       },
+      dataHash: ccc.hashCkb(clusterData),
     },
   });
   return {
@@ -125,23 +116,20 @@ export function assembleTransferClusterAction(
   clusterInput: ccc.CellOutputLike,
   clusterOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): ccc.codec.UnpackResult<typeof Action> {
+): ccc.molecule.EncodableType<typeof Action> {
   if (!clusterInput.type || !clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
   const clusterType = ccc.Script.from(clusterOutput.type);
   const clusterTypeHash = clusterType.hash();
-  const actionData = SporeAction.pack({
-    type: "TransferCluster",
-    value: {
+  const actionData = SporeAction.encode({
+    TransferCluster: {
       clusterId: clusterType.args,
       from: {
-        type: "Script",
-        value: ccc.Script.from(clusterInput.lock),
+        Script: ccc.Script.from(clusterInput.lock),
       },
       to: {
-        type: "Script",
-        value: ccc.Script.from(clusterOutput.lock),
+        Script: ccc.Script.from(clusterOutput.lock),
       },
     },
   });
@@ -155,7 +143,7 @@ export function assembleTransferClusterAction(
 export async function prepareSporeTransaction(
   signer: ccc.Signer,
   txLike: ccc.TransactionLike,
-  actions: ccc.codec.UnpackResult<typeof ActionVec>,
+  actions: ccc.molecule.EncodableType<typeof ActionVec>,
 ): Promise<ccc.Transaction> {
   let tx = ccc.Transaction.from(txLike);
 
@@ -171,9 +159,9 @@ export async function prepareSporeTransaction(
 
 export function unpackCommonCobuildProof(
   data: ccc.HexLike,
-): ccc.codec.UnpackResult<typeof WitnessLayout> | undefined {
+): ccc.molecule.EncodableType<typeof WitnessLayout> | undefined {
   try {
-    return WitnessLayout.unpack(ccc.bytesFrom(data));
+    return WitnessLayout.decode(ccc.bytesFrom(data));
   } catch {
     return;
   }
@@ -181,7 +169,7 @@ export function unpackCommonCobuildProof(
 
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
-): ccc.codec.UnpackResult<typeof ActionVec> {
+): ccc.molecule.EncodableType<typeof ActionVec> {
   if (tx.witnesses.length === 0) {
     return [];
   }
@@ -191,23 +179,22 @@ export function extractCobuildActionsFromTx(
   if (!witnessLayout) {
     return [];
   }
-  if (witnessLayout.type !== "SighashAll") {
-    throw new Error("Invalid cobuild proof type: " + witnessLayout.type);
+  if (witnessLayout.SighashAll === undefined) {
+    throw new Error("Invalid cobuild proof type: SighashAll");
   }
 
   // Remove existed cobuild witness
   tx.witnesses.pop();
-  return witnessLayout.value.message.actions;
+  return witnessLayout.SighashAll.message.actions;
 }
 
 export function injectCobuild(
   tx: ccc.Transaction,
-  actions: ccc.codec.UnpackResult<typeof ActionVec>,
+  actions: ccc.molecule.EncodableType<typeof ActionVec>,
 ): void {
   const witnessLayout = ccc.hexFrom(
-    WitnessLayout.pack({
-      type: "SighashAll",
-      value: {
+    WitnessLayout.encode({
+      SighashAll: {
         seal: "0x",
         message: {
           actions,

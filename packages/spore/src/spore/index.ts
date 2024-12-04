@@ -5,7 +5,7 @@ import {
   assembleTransferSporeAction,
   prepareSporeTransaction,
 } from "../advanced.js";
-import { SporeData, packRawSporeData } from "../codec/index.js";
+import { SporeDataView, packRawSporeData } from "../codec/index.js";
 import {
   findSingletonCellByArgs,
   injectOneCapacityCell,
@@ -73,7 +73,7 @@ export async function assertSpore(
  */
 export async function createSpore(params: {
   signer: ccc.Signer;
-  data: SporeData;
+  data: SporeDataView;
   to?: ccc.ScriptLike;
   clusterMode?: "lockProxy" | "clusterCell" | "skip";
   tx?: ccc.TransactionLike;

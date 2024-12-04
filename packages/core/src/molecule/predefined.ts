@@ -1,6 +1,6 @@
 import { uint } from "./codec";
 
-export const Uint8 = uint(1);
+export const Uint8 = uint(1, true);
 export const Uint16LE = uint(2, true);
 export const Uint16BE = uint(2);
 export const Uint16 = Uint16LE;
