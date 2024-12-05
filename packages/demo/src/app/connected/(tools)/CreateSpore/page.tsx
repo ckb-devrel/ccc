@@ -9,7 +9,6 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
 import { ccc } from "@ckb-ccc/connector-react";
 import { createSpore } from "@ckb-ccc/spore";
-import { JsonRpcTransformers } from "@ckb-ccc/core/advancedBarrel";
 
 export default function CreateSpore() {
     const { signer, createSender } = useApp();
@@ -19,7 +18,7 @@ export default function CreateSpore() {
     const [clusterId, setClusterId] = useState<string>("");
     const clusterList = [
         {
-            id: '0x055ab38e9dd9536a6b5a902de8176598a759f3f0a7307e90f0e0f0855ebe1fe1',
+            id: ' 0x2e3817f0880af469c657c44fdb4b5bbedad821757df27f9e1f7030b3996ea14b',
             name: 'test'
         },
         {
