@@ -1,37 +1,37 @@
-import { molecule } from "@ckb-ccc/core";
+import { mol } from "@ckb-ccc/core";
 
-export const Address = molecule.union({
-  Script: molecule.Script,
+export const Address = mol.union({
+  Script: mol.Script,
 });
 
 /**
  * Spore
  */
-export const CreateSpore = molecule.table({
-  sporeId: molecule.Hash,
+export const CreateSpore = mol.table({
+  sporeId: mol.Hash,
   to: Address,
-  dataHash: molecule.Hash,
+  dataHash: mol.Hash,
 });
-export const TransferSpore = molecule.table({
-  sporeId: molecule.Hash,
+export const TransferSpore = mol.table({
+  sporeId: mol.Hash,
   from: Address,
   to: Address,
 });
-export const MeltSpore = molecule.table({
-  sporeId: molecule.Hash,
+export const MeltSpore = mol.table({
+  sporeId: mol.Hash,
   from: Address,
 });
 
 /**
  * Cluster
  */
-export const CreateCluster = molecule.table({
-  clusterId: molecule.Hash,
+export const CreateCluster = mol.table({
+  clusterId: mol.Hash,
   to: Address,
-  dataHash: molecule.Hash,
+  dataHash: mol.Hash,
 });
-export const TransferCluster = molecule.table({
-  clusterId: molecule.Hash,
+export const TransferCluster = mol.table({
+  clusterId: mol.Hash,
   from: Address,
   to: Address,
 });
@@ -39,45 +39,45 @@ export const TransferCluster = molecule.table({
 /**
  * ClusterProxy
  */
-export const CreateClusterProxy = molecule.table({
-  clusterId: molecule.Hash,
-  clusterProxyId: molecule.Hash,
+export const CreateClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
   to: Address,
 });
-export const TransferClusterProxy = molecule.table({
-  clusterId: molecule.Hash,
-  clusterProxyId: molecule.Hash,
+export const TransferClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
   from: Address,
   to: Address,
 });
-export const MeltClusterProxy = molecule.table({
-  clusterId: molecule.Hash,
-  clusterProxyId: molecule.Hash,
+export const MeltClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
   from: Address,
 });
 
 /**
  * ClusterAgent
  */
-export const CreateClusterAgent = molecule.table({
-  clusterId: molecule.Hash,
-  clusterProxyId: molecule.Hash,
+export const CreateClusterAgent = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
   to: Address,
 });
-export const TransferClusterAgent = molecule.table({
-  clusterId: molecule.Hash,
+export const TransferClusterAgent = mol.table({
+  clusterId: mol.Hash,
   from: Address,
   to: Address,
 });
-export const MeltClusterAgent = molecule.table({
-  clusterId: molecule.Hash,
+export const MeltClusterAgent = mol.table({
+  clusterId: mol.Hash,
   from: Address,
 });
 
 /**
  * Spore ScriptInfo Actions
  */
-export const SporeAction = molecule.union({
+export const SporeAction = mol.union({
   // Spore
   CreateSpore,
   TransferSpore,

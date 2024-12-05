@@ -1,41 +1,41 @@
-import { molecule } from "@ckb-ccc/core";
+import { mol } from "@ckb-ccc/core";
 
-export const Action = molecule.table({
-  scriptInfoHash: molecule.Hash,
-  scriptHash: molecule.Hash,
-  data: molecule.Bytes,
+export const Action = mol.table({
+  scriptInfoHash: mol.Hash,
+  scriptHash: mol.Hash,
+  data: mol.Bytes,
 });
 
-export const ActionVec = molecule.vector(Action);
+export const ActionVec = mol.vector(Action);
 
-export const Message = molecule.table({
+export const Message = mol.table({
   actions: ActionVec,
 });
 
-export const ResolvedInputs = molecule.table({
-  outputs: molecule.CellOutputVec,
-  outputsData: molecule.BytesVec,
+export const ResolvedInputs = mol.table({
+  outputs: mol.CellOutputVec,
+  outputsData: mol.BytesVec,
 });
 
-export const ScriptInfo = molecule.table({
-  name: molecule.String,
-  url: molecule.String,
-  scriptHash: molecule.Hash,
-  schema: molecule.String,
-  messageType: molecule.String,
+export const ScriptInfo = mol.table({
+  name: mol.String,
+  url: mol.String,
+  scriptHash: mol.Hash,
+  schema: mol.String,
+  messageType: mol.String,
 });
 
-export const ScriptInfoVec = molecule.vector(ScriptInfo);
+export const ScriptInfoVec = mol.vector(ScriptInfo);
 
-export const BuildingPacketV1 = molecule.table({
+export const BuildingPacketV1 = mol.table({
   message: Message,
-  payload: molecule.Transaction,
+  payload: mol.Transaction,
   resolvedInputs: ResolvedInputs,
-  changeOutput: molecule.Uint32Opt,
+  changeOutput: mol.Uint32Opt,
   scriptInfos: ScriptInfoVec,
   lockActions: ActionVec,
 });
 
-export const BuildingPacket = molecule.union({
+export const BuildingPacket = mol.union({
   BuildingPacketV1,
 });

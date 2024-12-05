@@ -17,16 +17,14 @@ export function fixedItemVec<Encodable>(
   }
   return {
     encode(userDefinedItems) {
-      const encodedArray = userDefinedItems.map((item) =>
-        itemCodec.encode(item),
-      );
-      return bytesConcat(
-        Uint32LE.encode(BigInt(userDefinedItems.length)),
-        encodedArray.reduce(
-          (concated, item) => bytesConcat(concated, item),
-          new ArrayBuffer(0),
-        ),
-      );
+      try {
+        return userDefinedItems.reduce(
+          (concated, item) => bytesConcat(concated, itemCodec.encode(item)),
+          Uint32LE.encode(BigInt(userDefinedItems.length)),
+        );
+      } catch (e: any) {
+        throw new Error(`fixedItemVec(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -45,9 +43,13 @@ export function fixedItemVec<Encodable>(
       }
       const decodedArray: Array<Encodable> = [];
       for (let offset = 0; offset < byteLength; offset += itemByteLength) {
-        decodedArray.push(
-          itemCodec.decode(value.slice(offset, offset + itemByteLength)),
-        );
+        try {
+          decodedArray.push(
+            itemCodec.decode(value.slice(offset, offset + itemByteLength)),
+          );
+        } catch (e: any) {
+          throw new Error(`fixedItemVec(${(e as Error).toString()})`);
+        }
       }
       return decodedArray;
     },
@@ -63,28 +65,30 @@ export function dynItemVec<Encodable>(
 ): Codec<Array<Encodable>> {
   return {
     encode(userDefinedItems) {
-      const encodedArray = userDefinedItems.map((item) =>
-        itemCodec.encode(item),
-      );
-      const packed = encodedArray.reduce(
+      const encoded = userDefinedItems.reduce(
         (result, item) => {
-          const packedHeader = Uint32LE.encode(BigInt(result.offset));
-          return {
-            header: bytesConcat(result.header, packedHeader),
-            body: bytesConcat(result.body, item),
-            offset: result.offset + bytesFrom(item).byteLength,
-          };
+          try {
+            const encodedItem = itemCodec.encode(item);
+            const packedHeader = Uint32LE.encode(BigInt(result.offset));
+            return {
+              header: bytesConcat(result.header, packedHeader),
+              body: bytesConcat(result.body, encodedItem),
+              offset: result.offset + bytesFrom(encodedItem).byteLength,
+            };
+          } catch (e: any) {
+            throw new Error(`dynItemVec(${(e as Error).toString()})`);
+          }
         },
         {
-          header: new ArrayBuffer(0),
-          body: new ArrayBuffer(0),
+          header: Uint8Array.from([]),
+          body: Uint8Array.from([]),
           offset: 4 + userDefinedItems.length * 4,
         },
       );
       const packedTotalSize = Uint32LE.encode(
-        BigInt(packed.header.byteLength + packed.body.byteLength + 4),
+        BigInt(encoded.header.byteLength + encoded.body.byteLength + 4),
       );
-      return bytesConcat(packedTotalSize, packed.header, packed.body);
+      return bytesConcat(packedTotalSize, encoded.header, encoded.body);
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -110,7 +114,11 @@ export function dynItemVec<Encodable>(
           const start = Number(offsets[index]);
           const end = Number(offsets[index + 1]);
           const itemBuffer = value.slice(start, end);
-          decodedArray.push(itemCodec.decode(itemBuffer));
+          try {
+            decodedArray.push(itemCodec.decode(itemBuffer));
+          } catch (e: any) {
+            throw new Error(`dynItemVec(${(e as Error).toString()})`);
+          }
         }
         return decodedArray;
       }
@@ -140,20 +148,28 @@ export function vector<Encodable>(
  */
 export function option<Encodable>(
   innerCodec: Codec<Encodable>,
-): Codec<Encodable | undefined> {
+): Codec<Encodable | undefined | null> {
   return {
     encode(userDefinedOrNull) {
-      if (userDefinedOrNull === undefined) {
-        return Uint8Array.from([]);
+      if (!userDefinedOrNull) {
+        return bytesFrom([]);
       }
-      return innerCodec.encode(userDefinedOrNull);
+      try {
+        return innerCodec.encode(userDefinedOrNull);
+      } catch (e: any) {
+        throw new Error(`option(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
       if (value.byteLength === 0) {
         return undefined;
       }
-      return innerCodec.decode(buffer);
+      try {
+        return innerCodec.decode(buffer);
+      } catch (e: any) {
+        throw new Error(`option(${(e as Error).toString()})`);
+      }
     },
   };
 }
@@ -165,9 +181,13 @@ export function option<Encodable>(
 export function byteVec<Encodable>(codec: Codec<Encodable>): Codec<Encodable> {
   return {
     encode(userDefined) {
-      const payload = bytesFrom(codec.encode(userDefined));
-      const byteLength = Uint32LE.encode(BigInt(payload.byteLength));
-      return bytesConcat(byteLength, payload);
+      try {
+        const payload = bytesFrom(codec.encode(userDefined));
+        const byteLength = Uint32LE.encode(BigInt(payload.byteLength));
+        return bytesConcat(byteLength, payload);
+      } catch (e: any) {
+        throw new Error(`byteVec(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -182,7 +202,11 @@ export function byteVec<Encodable>(codec: Codec<Encodable>): Codec<Encodable> {
           `byteVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
-      return codec.decode(value.slice(4));
+      try {
+        return codec.decode(value.slice(4));
+      } catch (e: any) {
+        throw new Error(`byteVec(${(e as Error).toString()})`);
+      }
     },
   };
 }
@@ -205,21 +229,23 @@ export function table<
         );
       }
       const headerLength = 4 + keys.length * 4;
-      const encodedArray = Object.entries(object).map(([key, value]) =>
-        codecLayout[key].encode(value),
-      );
-      const { header, body } = encodedArray.reduce(
-        (result, encodedItem) => {
-          const packedOffset = Uint32LE.encode(BigInt(result.offset));
-          return {
-            header: bytesConcat(result.header, packedOffset),
-            body: bytesConcat(result.body, encodedItem),
-            offset: result.offset + bytesFrom(encodedItem).byteLength,
-          };
+      const { header, body } = Object.entries(object).reduce(
+        (result, [key, value]) => {
+          try {
+            const encodedItem = codecLayout[key].encode(value);
+            const packedOffset = Uint32LE.encode(BigInt(result.offset));
+            return {
+              header: bytesConcat(result.header, packedOffset),
+              body: bytesConcat(result.body, encodedItem),
+              offset: result.offset + bytesFrom(encodedItem).byteLength,
+            };
+          } catch (e: any) {
+            throw new Error(`table(${(e as Error).toString()})`);
+          }
         },
         {
-          header: new ArrayBuffer(0),
-          body: new ArrayBuffer(0),
+          header: Uint8Array.from([]),
+          body: Uint8Array.from([]),
           offset: headerLength,
         },
       );
@@ -251,7 +277,11 @@ export function table<
         const field = keys[i];
         const codec = codecLayout[field];
         const payload = value.slice(start, end);
-        Object.assign(object, { [field]: codec.decode(payload) });
+        try {
+          Object.assign(object, { [field]: codec.decode(payload) });
+        } catch (e: any) {
+          throw new Error(`table(${(e as Error).toString()})`);
+        }
       }
       return object as R;
     },
@@ -291,8 +321,12 @@ export function union<
         throw new Error(`union: invalid field id of ${objectKey}`);
       }
       const header = Uint32LE.encode(BigInt(fieldIndex));
-      const body = codecLayout[objectKey].encode(Object.values(object)[0]);
-      return bytesConcat(header, body);
+      try {
+        const body = codecLayout[objectKey].encode(Object.values(object)[0]);
+        return bytesConcat(header, body);
+      } catch (e: any) {
+        throw new Error(`union(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -322,7 +356,11 @@ export function union<
       const payload = value.slice(4);
       const codec = codecLayout[field];
       const object = {};
-      Object.assign(object, { [field]: codec.decode(payload) });
+      try {
+        Object.assign(object, { [field]: codec.decode(payload) });
+      } catch (e: any) {
+        throw new Error(`union(${(e as Error).toString()})`);
+      }
       return object as R;
     },
   };
@@ -338,7 +376,7 @@ export function struct<
   R extends object = { [key in keyof T]: EncodableType<T[key]> },
 >(codecLayout: T): Codec<R> {
   const codecArray = Object.values(codecLayout);
-  if (codecArray.find((codec) => codec.byteLength === undefined)) {
+  if (codecArray.some((codec) => codec.byteLength === undefined)) {
     throw new Error("struct: all fields must be fixed-size");
   }
   return {
@@ -351,20 +389,26 @@ export function struct<
           `struct: invalid layout fields, expected ${objectKeys.toString()}, but got ${keys.toString()}`,
         );
       }
-      const encodedArray = Object.entries(object).map(([field, value]) =>
-        codecLayout[field].encode(value),
-      );
-      return encodedArray.reduce((result, encoded) => {
-        return bytesConcat(result, encoded);
-      }, Uint8Array.from([]));
+      try {
+        return Object.entries(object).reduce((result, [key, value]) => {
+          const encodedItem = codecLayout[key].encode(value);
+          return bytesConcat(result, encodedItem);
+        }, Uint8Array.from([]));
+      } catch (e: any) {
+        throw new Error(`struct(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
       const object = {};
       let offset = 0;
-      Object.entries(codecLayout).forEach(([field, codec]) => {
+      Object.entries(codecLayout).forEach(([key, codec]) => {
         const payload = value.slice(offset, offset + codec.byteLength!);
-        Object.assign(object, { [field]: codec.decode(payload) });
+        try {
+          Object.assign(object, { [key]: codec.decode(payload) });
+        } catch (e: any) {
+          throw new Error(`struct(${(e as Error).toString()})`);
+        }
         offset = offset + codec.byteLength!;
       });
       return object as R;
@@ -389,8 +433,14 @@ export function array<Encodable>(
   return {
     byteLength,
     encode(items) {
-      const encodedArray = items.map((item) => itemCodec.encode(item));
-      return bytesConcat(...encodedArray);
+      try {
+        return items.reduce(
+          (concated, item) => bytesConcat(concated, itemCodec.encode(item)),
+          Uint8Array.from([]),
+        );
+      } catch (e: any) {
+        throw new Error(`array(${(e as Error).toString()})`);
+      }
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -399,15 +449,21 @@ export function array<Encodable>(
           `array: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
-      const result: Encodable[] = [];
+      const result: Array<Encodable> = [];
       for (
         let offset = 0;
         offset < value.byteLength;
         offset += itemCodec.byteLength!
       ) {
-        result.push(
-          itemCodec.decode(value.slice(offset, offset + itemCodec.byteLength!)),
-        );
+        try {
+          result.push(
+            itemCodec.decode(
+              value.slice(offset, offset + itemCodec.byteLength!),
+            ),
+          );
+        } catch (e: any) {
+          throw new Error(`array(${(e as Error).toString()})`);
+        }
       }
       return result;
     },

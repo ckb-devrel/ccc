@@ -1,13 +1,13 @@
-import { ccc, molecule } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 
 export interface ClusterDataV1View {
   name: string;
   description: string;
 }
 
-export const ClusterDataV1: molecule.Codec<ClusterDataV1View> = molecule.table({
-  name: molecule.String,
-  description: molecule.String,
+export const ClusterDataV1: mol.Codec<ClusterDataV1View> = mol.table({
+  name: mol.String,
+  description: mol.String,
 });
 
 export interface ClusterDataV2View {
@@ -16,10 +16,10 @@ export interface ClusterDataV2View {
   mutantId?: ccc.HexLike;
 }
 
-export const ClusterDataV2: molecule.Codec<ClusterDataV2View> = molecule.table({
-  name: molecule.String,
-  description: molecule.String,
-  mutantId: molecule.BytesOpt,
+export const ClusterDataV2: mol.Codec<ClusterDataV2View> = mol.table({
+  name: mol.String,
+  description: mol.String,
+  mutantId: mol.BytesOpt,
 });
 
 export type ClusterDataView = ClusterDataV2View;

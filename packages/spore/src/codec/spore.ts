@@ -1,4 +1,4 @@
-import { ccc, molecule } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 
 export interface SporeDataView {
   contentType: string;
@@ -6,10 +6,10 @@ export interface SporeDataView {
   clusterId?: ccc.HexLike;
 }
 
-export const SporeData: molecule.Codec<SporeDataView> = molecule.table({
-  contentType: molecule.String,
-  content: molecule.Bytes,
-  clusterId: molecule.BytesOpt,
+export const SporeData: mol.Codec<SporeDataView> = mol.table({
+  contentType: mol.String,
+  content: mol.Bytes,
+  clusterId: mol.BytesOpt,
 });
 
 export function packRawSporeData(packable: SporeDataView): Uint8Array {
