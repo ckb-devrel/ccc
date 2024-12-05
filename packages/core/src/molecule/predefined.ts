@@ -1,11 +1,11 @@
-import { uint } from "./codec";
+import { uint, uintNumber } from "./codec";
 
-export const Uint8 = uint(1, true);
-export const Uint16LE = uint(2, true);
-export const Uint16BE = uint(2);
+export const Uint8 = uintNumber(1, true);
+export const Uint16LE = uintNumber(2, true);
+export const Uint16BE = uintNumber(2);
 export const Uint16 = Uint16LE;
-export const Uint32LE = uint(4, true);
-export const Uint32BE = uint(4);
+export const Uint32LE = uintNumber(4, true);
+export const Uint32BE = uintNumber(4);
 export const Uint32 = Uint32LE;
 export const Uint64LE = uint(8, true);
 export const Uint64BE = uint(8);

@@ -15,6 +15,7 @@ import {
   ScriptLike,
   TransactionLike,
 } from "../barrel.js";
+import { ccc } from "../index.js";
 import { byteVec, option, struct, table, vector } from "./codec.advanced.js";
 import { Codec } from "./codec.js";
 import {
@@ -66,7 +67,7 @@ export const StringVec = vector(String);
 export const StringOpt = option(String);
 
 export const Hash = Byte32;
-export const HashType: Codec<HashTypeLike> = {
+export const HashType: Codec<HashTypeLike, ccc.HashType> = {
   byteLength: 1,
   encode: hashTypeToBytes,
   decode: hashTypeFromBytes,
@@ -95,7 +96,7 @@ export const CellOutput: Codec<CellOutputLike> = table({
 });
 export const CellOutputVec = vector(CellOutput);
 
-export const DepType: Codec<DepTypeLike> = {
+export const DepType: Codec<DepTypeLike, ccc.DepType> = {
   byteLength: 1,
   encode: depTypeToBytes,
   decode: depTypeFromBytes,
