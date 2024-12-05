@@ -4,7 +4,11 @@ import {
   assembleTransferClusterAction,
   prepareSporeTransaction,
 } from "../advanced.js";
-import { ClusterDataView, packRawClusterData } from "../codec/index.js";
+import {
+  ClusterData,
+  ClusterDataView,
+  packRawClusterData,
+} from "../codec/index.js";
 import {
   findSingletonCellByArgs,
   injectOneCapacityCell,
@@ -22,9 +26,9 @@ export async function findCluster(
   scripts?: SporeScriptInfoLike[],
 ): Promise<
   | {
-      cell: ccc.Cell;
-      scriptInfo: SporeScriptInfo;
-    }
+    cell: ccc.Cell;
+    scriptInfo: SporeScriptInfo;
+  }
   | undefined
 > {
   return findSingletonCellByArgs(
@@ -104,12 +108,12 @@ export async function createSporeCluster(params: {
   // generate cobuild action
   const actions = scriptInfo.cobuild
     ? [
-        assembleCreateClusterAction(
-          tx.outputs[tx.outputs.length - 1],
-          packedClusterData,
-          scriptInfoHash,
-        ),
-      ]
+      assembleCreateClusterAction(
+        tx.outputs[tx.outputs.length - 1],
+        packedClusterData,
+        scriptInfoHash,
+      ),
+    ]
     : [];
 
   return {
@@ -166,15 +170,63 @@ export async function transferSporeCluster(params: {
   // generate cobuild action
   const actions = scriptInfo.cobuild
     ? [
-        assembleTransferClusterAction(
-          cluster.cellOutput,
-          tx.outputs[tx.outputs.length - 1],
-          scriptInfoHash,
-        ),
-      ]
+      assembleTransferClusterAction(
+        cluster.cellOutput,
+        tx.outputs[tx.outputs.length - 1],
+        scriptInfoHash,
+      ),
+    ]
     : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
   };
+}
+
+/**
+ * Search on-chain clusters under the signer's control
+ *
+ * @param signer the owner of clusters
+ * @param order the order in creation time of clusters
+ * @param scriptInfos the deployed script infos of clusters
+ */
+export async function* findSporeClustersBySigner(params: {
+  signer: ccc.Signer;
+  order?: "asc" | "desc";
+  scriptInfos?: SporeScriptInfoLike[];
+}): AsyncGenerator<{
+  cluster: ccc.Cell;
+  clusterData: ClusterDataView;
+}> {
+  const { signer, order, scriptInfos } = params;
+  for (const scriptInfo of scriptInfos ??
+    Object.values(getClusterScriptInfos(signer.client))) {
+    if (!scriptInfo) {
+      continue;
+    }
+    for await (const cluster of signer.findCells(
+      {
+        script: {
+          ...scriptInfo,
+          args: [],
+        },
+      },
+      true,
+      order,
+      10,
+      ccc.ScriptSearchMode.Prefix,
+    )) {
+      try {
+        const clusterData = ClusterData.decode(cluster.outputData);
+        yield {
+          cluster,
+          clusterData,
+        };
+      } catch (e: unknown) {
+        throw new Error(
+          `Cluster data decode failed: ${(e as Error).toString()}`,
+        );
+      }
+    }
+  }
 }
