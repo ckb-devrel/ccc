@@ -27,9 +27,9 @@ export async function findCluster(
   scripts?: SporeScriptInfoLike[],
 ): Promise<
   | {
-    cell: ccc.Cell;
-    scriptInfo: SporeScriptInfo;
-  }
+      cell: ccc.Cell;
+      scriptInfo: SporeScriptInfo;
+    }
   | undefined
 > {
   return findSingletonCellByArgs(
@@ -109,12 +109,12 @@ export async function createSporeCluster(params: {
   // generate cobuild action
   const actions = scriptInfo.cobuild
     ? [
-      assembleCreateClusterAction(
-        tx.outputs[tx.outputs.length - 1],
-        packedClusterData,
-        scriptInfoHash,
-      ),
-    ]
+        assembleCreateClusterAction(
+          tx.outputs[tx.outputs.length - 1],
+          packedClusterData,
+          scriptInfoHash,
+        ),
+      ]
     : [];
 
   return {
@@ -171,12 +171,12 @@ export async function transferSporeCluster(params: {
   // generate cobuild action
   const actions = scriptInfo.cobuild
     ? [
-      assembleTransferClusterAction(
-        cluster.cellOutput,
-        tx.outputs[tx.outputs.length - 1],
-        scriptInfoHash,
-      ),
-    ]
+        assembleTransferClusterAction(
+          cluster.cellOutput,
+          tx.outputs[tx.outputs.length - 1],
+          scriptInfoHash,
+        ),
+      ]
     : [];
 
   return {
