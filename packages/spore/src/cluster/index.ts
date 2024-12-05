@@ -6,6 +6,7 @@ import {
 } from "../advanced.js";
 import {
   ClusterData,
+  ClusterDataV1,
   ClusterDataView,
   packRawClusterData,
 } from "../codec/index.js";
@@ -216,17 +217,22 @@ export async function* findSporeClustersBySigner(params: {
       10,
       ccc.ScriptSearchMode.Prefix,
     )) {
+      let clusterData: ClusterDataView;
       try {
-        const clusterData = ClusterData.decode(cluster.outputData);
-        yield {
-          cluster,
-          clusterData,
-        };
-      } catch (e: unknown) {
-        throw new Error(
-          `Cluster data decode failed: ${(e as Error).toString()}`,
-        );
+        clusterData = ClusterData.decode(cluster.outputData);
+      } catch (_) {
+        try {
+          clusterData = ClusterDataV1.decode(cluster.outputData);
+        } catch (e: unknown) {
+          throw new Error(
+            `Cluster data decode failed: ${(e as Error).toString()}`,
+          );
+        }
       }
+      yield {
+        cluster,
+        clusterData,
+      };
     }
   }
 }

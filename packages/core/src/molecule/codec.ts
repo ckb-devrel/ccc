@@ -582,21 +582,11 @@ export function uint(
       }
     },
     decode: (buffer) => {
-      // if (littleEndian) {
-      //   return numFromBytes(buffer);
-      // } else {
-      //   return numBeFromBytes(buffer);
-      // }
-      const view = new DataView(bytesFrom(buffer).buffer);
-      let result = BigInt(0);
-      for (let i = 0; i < byteLength; i++) {
-        if (littleEndian) {
-          result = ((result | BigInt(view.getUint8(i))) << BigInt(i * 8));
-        } else {
-          result = ((result << BigInt(8)) | BigInt(view.getUint8(i)));
-        }
+      if (littleEndian) {
+        return numFromBytes(buffer);
+      } else {
+        return numBeFromBytes(buffer);
       }
-      return result;
     },
   });
 }

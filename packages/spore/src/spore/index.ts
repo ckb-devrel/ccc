@@ -271,10 +271,6 @@ export async function* findSporesBySigner(params: {
       10,
       ccc.ScriptSearchMode.Prefix,
     )) {
-      if (spore.cellOutput.type?.hashType === "type") {
-        continue;
-      }
-      console.log("spore", spore);
       try {
         const sporeData = SporeData.decode(spore.outputData);
         if (!clusterId) {
