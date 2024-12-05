@@ -18,10 +18,12 @@ export function assembleCreateSporeAction(
   const sporeType = ccc.Script.from(sporeOutput.type);
   const sporeTypeHash = sporeType.hash();
   const actionData = SporeAction.encode({
-    CreateSpore: {
+    type: "CreateSpore",
+    value: {
       sporeId: sporeType.args,
       to: {
-        Script: ccc.Script.from(sporeOutput.lock),
+        type: "Script",
+        value: sporeOutput.lock,
       },
       dataHash: ccc.hashCkb(sporeData),
     },
@@ -45,13 +47,16 @@ export function assembleTransferSporeAction(
   const sporeType = ccc.Script.from(sporeOutput.type);
   const sporeTypeHash = sporeType.hash();
   const actionData = SporeAction.encode({
-    TransferSpore: {
+    type: "TransferSpore",
+    value: {
       sporeId: sporeType.args,
       from: {
-        Script: ccc.Script.from(sporeInput.lock),
+        type: "Script",
+        value: sporeInput.lock,
       },
       to: {
-        Script: ccc.Script.from(sporeOutput.lock),
+        type: "Script",
+        value: sporeOutput.lock,
       },
     },
   });
@@ -72,10 +77,12 @@ export function assembleMeltSporeAction(
   const sporeType = ccc.Script.from(sporeInput.type);
   const sporeTypeHash = sporeType.hash();
   const actionData = SporeAction.encode({
-    MeltSpore: {
+    type: "MeltSpore",
+    value: {
       sporeId: sporeType.args,
       from: {
-        Script: ccc.Script.from(sporeInput.lock),
+        type: "Script",
+        value: sporeInput.lock,
       },
     },
   });
@@ -97,10 +104,12 @@ export function assembleCreateClusterAction(
   const clusterType = ccc.Script.from(clusterOutput.type);
   const clusterTypeHash = clusterType.hash();
   const actionData = SporeAction.encode({
-    CreateCluster: {
+    type: "CreateCluster",
+    value: {
       clusterId: clusterType.args,
       to: {
-        Script: ccc.Script.from(clusterOutput.lock),
+        type: "Script",
+        value: clusterOutput.lock,
       },
       dataHash: ccc.hashCkb(clusterData),
     },
@@ -123,13 +132,16 @@ export function assembleTransferClusterAction(
   const clusterType = ccc.Script.from(clusterOutput.type);
   const clusterTypeHash = clusterType.hash();
   const actionData = SporeAction.encode({
-    TransferCluster: {
+    type: "TransferCluster",
+    value: {
       clusterId: clusterType.args,
       from: {
-        Script: ccc.Script.from(clusterInput.lock),
+        type: "Script",
+        value: clusterInput.lock,
       },
       to: {
-        Script: ccc.Script.from(clusterOutput.lock),
+        type: "Script",
+        value: clusterOutput.lock,
       },
     },
   });
@@ -179,13 +191,13 @@ export function extractCobuildActionsFromTx(
   if (!witnessLayout) {
     return [];
   }
-  if (witnessLayout.SighashAll === undefined) {
+  if (witnessLayout.type !== "SighashAll") {
     throw new Error("Invalid cobuild proof type: SighashAll");
   }
 
   // Remove existed cobuild witness
   tx.witnesses.pop();
-  return witnessLayout.SighashAll.message.actions;
+  return witnessLayout.value.message.actions;
 }
 
 export function injectCobuild(
@@ -194,7 +206,8 @@ export function injectCobuild(
 ): void {
   const witnessLayout = ccc.hexFrom(
     WitnessLayout.encode({
-      SighashAll: {
+      type: "SighashAll",
+      value: {
         seal: "0x",
         message: {
           actions,
