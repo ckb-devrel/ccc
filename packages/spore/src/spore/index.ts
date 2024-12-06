@@ -24,9 +24,9 @@ export async function findSpore(
   scripts?: SporeScriptInfoLike[],
 ): Promise<
   | {
-      cell: ccc.Cell;
-      scriptInfo: SporeScriptInfo;
-    }
+    cell: ccc.Cell;
+    scriptInfo: SporeScriptInfo;
+  }
   | undefined
 > {
   return findSingletonCellByArgs(
@@ -180,12 +180,12 @@ export async function transferSpore(params: {
 
   const actions = scriptInfo.cobuild
     ? [
-        assembleTransferSporeAction(
-          sporeCell.cellOutput,
-          tx.outputs[tx.outputs.length - 1],
-          scriptInfoHash,
-        ),
-      ]
+      assembleTransferSporeAction(
+        sporeCell.cellOutput,
+        tx.outputs[tx.outputs.length - 1],
+        scriptInfoHash,
+      ),
+    ]
     : [];
 
   return {
@@ -269,7 +269,6 @@ export async function* findSporesBySigner(params: {
       true,
       order,
       10,
-      ccc.ScriptSearchMode.Prefix,
     )) {
       try {
         const sporeData = SporeData.decode(spore.outputData);

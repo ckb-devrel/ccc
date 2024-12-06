@@ -258,7 +258,7 @@ export function byteVec<Encodable, Decoded>(
         );
       }
       const byteLength = uint32From(value.slice(0, 4));
-      if (byteLength !== value.byteLength) {
+      if (byteLength !== value.byteLength - 4) {
         throw new Error(
           `byteVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
@@ -390,6 +390,7 @@ type UnionDecoded<
     value: DecodedType<T[K]>;
   }
   : never;
+
 /**
  * Union is a dynamic-size type.
  * Serializing a union has two steps:
@@ -427,7 +428,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         const body = codec.encode(value);
         return bytesConcat(header, body);
       } catch (e: unknown) {
-        throw new Error(`union(${e?.toString()})`);
+        throw new Error(`union.(${typeStr})(${e?.toString()})`);
       }
     },
     decode(buffer) {
