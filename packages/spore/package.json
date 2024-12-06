@@ -45,7 +45,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/codec": "workspace:*",
     "@ckb-ccc/core": "workspace:*",
     "axios": "^1.7.7"
   }
