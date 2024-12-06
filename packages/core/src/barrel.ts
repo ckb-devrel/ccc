@@ -6,6 +6,7 @@ export * from "./fixedPoint/index.js";
 export * from "./hasher/index.js";
 export * from "./hex/index.js";
 export * from "./keystore/index.js";
+export * as mol from "./molecule/index.js";
 export * from "./num/index.js";
 export * from "./signer/index.js";
 export * from "./utils/index.js";

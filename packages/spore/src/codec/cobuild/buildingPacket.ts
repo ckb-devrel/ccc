@@ -1,72 +1,41 @@
-import { blockchain } from "@ckb-lumos/base";
-import { molecule, number } from "@ckb-lumos/codec";
-import { RawString } from "../base.js";
+import { mol } from "@ckb-ccc/core";
 
-const Uint32Opt = molecule.option(number.Uint32LE);
+export const Action = mol.table({
+  scriptInfoHash: mol.Hash,
+  scriptHash: mol.Hash,
+  data: mol.Bytes,
+});
 
-const Hash = blockchain.Byte32;
+export const ActionVec = mol.vector(Action);
 
-export const Action = molecule.table(
-  {
-    scriptInfoHash: Hash,
-    scriptHash: Hash,
-    data: blockchain.Bytes,
-  },
-  ["scriptInfoHash", "scriptHash", "data"],
-);
+export const Message = mol.table({
+  actions: ActionVec,
+});
 
-export const ActionVec = molecule.vector(Action);
+export const ResolvedInputs = mol.table({
+  outputs: mol.CellOutputVec,
+  outputsData: mol.BytesVec,
+});
 
-export const Message = molecule.table(
-  {
-    actions: ActionVec,
-  },
-  ["actions"],
-);
+export const ScriptInfo = mol.table({
+  name: mol.String,
+  url: mol.String,
+  scriptHash: mol.Hash,
+  schema: mol.String,
+  messageType: mol.String,
+});
 
-export const ResolvedInputs = molecule.table(
-  {
-    outputs: blockchain.CellOutputVec,
-    outputsData: blockchain.BytesVec,
-  },
-  ["outputs", "outputsData"],
-);
+export const ScriptInfoVec = mol.vector(ScriptInfo);
 
-export const ScriptInfo = molecule.table(
-  {
-    name: RawString,
-    url: RawString,
-    scriptHash: Hash,
-    schema: RawString,
-    messageType: RawString,
-  },
-  ["name", "url", "scriptHash", "schema", "messageType"],
-);
+export const BuildingPacketV1 = mol.table({
+  message: Message,
+  payload: mol.Transaction,
+  resolvedInputs: ResolvedInputs,
+  changeOutput: mol.Uint32Opt,
+  scriptInfos: ScriptInfoVec,
+  lockActions: ActionVec,
+});
 
-export const ScriptInfoVec = molecule.vector(ScriptInfo);
-
-export const BuildingPacketV1 = molecule.table(
-  {
-    message: Message,
-    payload: blockchain.Transaction,
-    resolvedInputs: ResolvedInputs,
-    changeOutput: Uint32Opt,
-    scriptInfos: ScriptInfoVec,
-    lockActions: ActionVec,
-  },
-  [
-    "message",
-    "payload",
-    "resolvedInputs",
-    "changeOutput",
-    "scriptInfos",
-    "lockActions",
-  ],
-);
-
-export const BuildingPacket = molecule.union(
-  {
-    BuildingPacketV1,
-  },
-  ["BuildingPacketV1"],
-);
+export const BuildingPacket = mol.union({
+  BuildingPacketV1,
+});
