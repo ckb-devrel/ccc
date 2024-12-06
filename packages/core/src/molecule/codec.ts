@@ -20,7 +20,7 @@ export class Codec<Encodable, Decoded = Encodable> {
     public readonly encode: (encodable: Encodable) => Bytes,
     public readonly decode: (decodable: BytesLike) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
-  ) { }
+  ) {}
 
   static from<Encodable, Decoded = Encodable>({
     encode,
@@ -276,8 +276,8 @@ export type EncodableRecordOptionalKeys<
   T extends Record<string, CodecLike<any, any>>,
 > = {
   [K in keyof T]: Extract<EncodableType<T[K]>, undefined> extends never
-  ? never
-  : K;
+    ? never
+    : K;
 }[keyof T];
 export type EncodableRecord<T extends Record<string, CodecLike<any, any>>> = {
   [key in keyof Pick<T, EncodableRecordOptionalKeys<T>>]+?: EncodableType<
@@ -291,8 +291,8 @@ export type DecodedRecordOptionalKeys<
   T extends Record<string, CodecLike<any, any>>,
 > = {
   [K in keyof T]: Extract<DecodedType<T[K]>, undefined> extends never
-  ? never
-  : K;
+    ? never
+    : K;
 }[keyof T];
 export type DecodedRecord<T extends Record<string, CodecLike<any, any>>> = {
   [key in keyof Pick<T, DecodedRecordOptionalKeys<T>>]+?: DecodedType<T[key]>;
@@ -377,18 +377,18 @@ type UnionEncodable<
   K extends keyof T = keyof T,
 > = K extends unknown
   ? {
-    type: K;
-    value: EncodableType<T[K]>;
-  }
+      type: K;
+      value: EncodableType<T[K]>;
+    }
   : never;
 type UnionDecoded<
   T extends Record<string, CodecLike<any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
   ? {
-    type: K;
-    value: DecodedType<T[K]>;
-  }
+      type: K;
+      value: DecodedType<T[K]>;
+    }
   : never;
 
 /**

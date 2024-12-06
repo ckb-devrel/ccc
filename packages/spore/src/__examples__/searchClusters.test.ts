@@ -12,7 +12,10 @@ describe("searchClusters [testnet]", () => {
     );
 
     // Search Cluster cells
-    for await (const cluster of findSporeClustersBySigner({ signer, order: "desc" })) {
+    for await (const cluster of findSporeClustersBySigner({
+      signer,
+      order: "desc",
+    })) {
       console.log(cluster);
     }
   }, 60000);

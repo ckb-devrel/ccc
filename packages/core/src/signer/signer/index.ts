@@ -66,7 +66,7 @@ export class Signature {
     public signature: string,
     public identity: string,
     public signType: SignerSignType,
-  ) { }
+  ) {}
 }
 
 /**
@@ -75,7 +75,7 @@ export class Signature {
  * @public
  */
 export abstract class Signer {
-  constructor(protected client_: Client) { }
+  constructor(protected client_: Client) {}
 
   abstract get type(): SignerType;
   abstract get signType(): SignerSignType;
@@ -159,7 +159,7 @@ export abstract class Signer {
    * @returns A function for unregister
    */
   onReplaced(_: () => void): () => void {
-    return () => { };
+    return () => {};
   }
 
   /**
@@ -167,7 +167,7 @@ export abstract class Signer {
    *
    * @returns A promise that resolves when the signer is disconnected.
    */
-  async disconnect(): Promise<void> { }
+  async disconnect(): Promise<void> {}
 
   /**
    * Check if the signer is connected.
@@ -446,7 +446,7 @@ export class SignerInfo {
   constructor(
     public name: string,
     public signer: Signer,
-  ) { }
+  ) {}
 }
 
 /**
