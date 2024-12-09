@@ -1,5 +1,19 @@
 # ckb-ccc
 
+## 0.0.16-alpha.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@0.0.16-alpha.9
+
+## 0.0.16-alpha.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@0.0.16-alpha.8
+
 ## 0.0.16-alpha.7
 
 ### Patch Changes

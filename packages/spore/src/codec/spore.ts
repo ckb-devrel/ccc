@@ -1,36 +1,27 @@
-import { ccc } from "@ckb-ccc/core";
-import { blockchain } from "@ckb-lumos/base";
-import { molecule } from "@ckb-lumos/codec";
-import { RawString } from "./base.js";
+import { ccc, mol } from "@ckb-ccc/core";
 
-export const MolSporeData = molecule.table(
-  {
-    contentType: RawString,
-    content: blockchain.Bytes,
-    clusterId: blockchain.BytesOpt,
-  },
-  ["contentType", "content", "clusterId"],
-);
-
-export interface SporeData {
+export interface SporeDataView {
   contentType: string;
   content: ccc.BytesLike;
   clusterId?: ccc.HexLike;
 }
 
-export function packRawSporeData(packable: SporeData): Uint8Array {
-  return MolSporeData.pack({
-    contentType: packable.contentType,
-    content: packable.content,
-    clusterId: packable.clusterId,
-  });
+export const SporeData: mol.Codec<SporeDataView> = mol.table({
+  contentType: mol.String,
+  content: mol.Bytes,
+  clusterId: mol.BytesOpt,
+});
+
+export function packRawSporeData(packable: SporeDataView): Uint8Array {
+  return ccc.bytesFrom(
+    SporeData.encode({
+      contentType: packable.contentType,
+      content: packable.content,
+      clusterId: packable.clusterId,
+    }),
+  );
 }
 
-export function unpackToRawSporeData(unpackable: ccc.BytesLike): SporeData {
-  const unpacked = MolSporeData.unpack(unpackable);
-  return {
-    contentType: unpacked.contentType,
-    content: unpacked.content,
-    clusterId: ccc.apply(ccc.hexFrom, unpacked.clusterId),
-  };
+export function unpackToRawSporeData(unpackable: ccc.BytesLike): SporeDataView {
+  return SporeData.decode(unpackable);
 }

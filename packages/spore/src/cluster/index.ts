@@ -4,7 +4,12 @@ import {
   assembleTransferClusterAction,
   prepareSporeTransaction,
 } from "../advanced.js";
-import { ClusterData, packRawClusterData } from "../codec/index.js";
+import {
+  ClusterData,
+  ClusterDataV1,
+  ClusterDataView,
+  packRawClusterData,
+} from "../codec/index.js";
 import {
   findSingletonCellByArgs,
   injectOneCapacityCell,
@@ -66,7 +71,7 @@ export async function assertCluster(
  */
 export async function createSporeCluster(params: {
   signer: ccc.Signer;
-  data: ClusterData;
+  data: ClusterDataView;
   to?: ccc.ScriptLike;
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
@@ -177,4 +182,56 @@ export async function transferSporeCluster(params: {
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
   };
+}
+
+/**
+ * Search on-chain clusters under the signer's control
+ *
+ * @param signer the owner of clusters
+ * @param order the order in creation time of clusters
+ * @param scriptInfos the deployed script infos of clusters
+ */
+export async function* findSporeClustersBySigner(params: {
+  signer: ccc.Signer;
+  order?: "asc" | "desc";
+  scriptInfos?: SporeScriptInfoLike[];
+}): AsyncGenerator<{
+  cluster: ccc.Cell;
+  clusterData: ClusterDataView;
+}> {
+  const { signer, order, scriptInfos } = params;
+  for (const scriptInfo of scriptInfos ??
+    Object.values(getClusterScriptInfos(signer.client))) {
+    if (!scriptInfo) {
+      continue;
+    }
+    for await (const cluster of signer.findCells(
+      {
+        script: {
+          ...scriptInfo,
+          args: [],
+        },
+      },
+      true,
+      order,
+      10,
+    )) {
+      let clusterData: ClusterDataView;
+      try {
+        clusterData = ClusterData.decode(cluster.outputData);
+      } catch (_) {
+        try {
+          clusterData = ClusterDataV1.decode(cluster.outputData);
+        } catch (e: unknown) {
+          throw new Error(
+            `Cluster data decode failed: ${(e as Error).toString()}`,
+          );
+        }
+      }
+      yield {
+        cluster,
+        clusterData,
+      };
+    }
+  }
 }

@@ -1,5 +1,19 @@
 # @ckb-ccc/connector-react
 
+## 0.0.17-alpha.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@0.0.17-alpha.10
+
+## 0.0.17-alpha.10
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@0.0.17-alpha.9
+
 ## 0.0.17-alpha.9
 
 ### Patch Changes

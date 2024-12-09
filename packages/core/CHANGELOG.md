@@ -1,5 +1,18 @@
 # @ckb-ccc/core
 
+## 0.1.0-alpha.7
+
+### Patch Changes
+
+- [#88](https://github.com/ckb-devrel/ccc/pull/88) [`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81) Thanks [@ashuralyk](https://github.com/ashuralyk)! - feat: molecule codec
+  feat: spore searcher
+
+## 0.1.0-alpha.6
+
+### Patch Changes
+
+- [#92](https://github.com/ckb-devrel/ccc/pull/92) [`4709384`](https://github.com/ckb-devrel/ccc/commit/4709384e37188991cb937b16f99f47ca82c912b8) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: `epochFromHex` failed if the arg is not 7 bytes
+
 ## 0.1.0-alpha.5
 
 ### Patch Changes

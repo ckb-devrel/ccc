@@ -106,7 +106,28 @@ We have done everything!
 - [Transfer all native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts)
 - [Transfer UDT token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts)
 
-## Installing
+## Quick Start with `create-ccc-app` (Recommended)
+
+To quickly bootstrap a new CCC-based application, you can use our CLI tool `create-ccc-app`:
+
+```bash
+# Using npx
+npx create-ccc-app@latest my-ccc-app
+```
+
+```bash
+# Using yarn
+yarn create ccc-app my-ccc-app
+```
+
+```bash
+# Using pnpm
+pnpm create ccc-app my-ccc-app
+```
+
+Follow the prompts to select your preferred framework template and start building your CCC application.
+
+## Manual Installation
 
 We design CCC for both front-end and back-end developers. You need only one package to fulfil all your needs:
 

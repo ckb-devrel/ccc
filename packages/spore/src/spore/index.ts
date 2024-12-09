@@ -5,7 +5,7 @@ import {
   assembleTransferSporeAction,
   prepareSporeTransaction,
 } from "../advanced.js";
-import { SporeData, packRawSporeData } from "../codec/index.js";
+import { SporeData, SporeDataView, packRawSporeData } from "../codec/index.js";
 import {
   findSingletonCellByArgs,
   injectOneCapacityCell,
@@ -73,7 +73,7 @@ export async function assertSpore(
  */
 export async function createSpore(params: {
   signer: ccc.Signer;
-  data: SporeData;
+  data: SporeDataView;
   to?: ccc.ScriptLike;
   clusterMode?: "lockProxy" | "clusterCell" | "skip";
   tx?: ccc.TransactionLike;
@@ -233,4 +233,60 @@ export async function meltSpore(params: {
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
   };
+}
+
+/**
+ * Search on-chain spores under the signer's control, if cluster provided, filter spores belonging to this cluster
+ *
+ * @param signer the owner of spores
+ * @param order the order in creation time of spores
+ * @param clusterId the cluster that spores belong to
+ * @param scriptInfos the deployed script infos of spores
+ * @returns speific spore cells
+ */
+export async function* findSporesBySigner(params: {
+  signer: ccc.Signer;
+  order?: "asc" | "desc";
+  clusterId?: ccc.HexLike;
+  scriptInfos?: SporeScriptInfoLike[];
+}): AsyncGenerator<{
+  spore: ccc.Cell;
+  sporeData: SporeDataView;
+}> {
+  const { signer, clusterId, scriptInfos, order } = params;
+  for (const scriptInfo of scriptInfos ??
+    Object.values(getSporeScriptInfos(signer.client))) {
+    if (!scriptInfo) {
+      continue;
+    }
+    for await (const spore of signer.findCells(
+      {
+        script: {
+          ...scriptInfo,
+          args: [],
+        },
+      },
+      true,
+      order,
+      10,
+    )) {
+      try {
+        const sporeData = SporeData.decode(spore.outputData);
+        if (!clusterId) {
+          yield {
+            spore,
+            sporeData,
+          };
+        }
+        if (sporeData.clusterId === clusterId) {
+          return {
+            spore,
+            sporeData,
+          };
+        }
+      } catch (e: unknown) {
+        throw new Error(`Spore data decode failed: ${(e as Error).toString()}`);
+      }
+    }
+  }
 }

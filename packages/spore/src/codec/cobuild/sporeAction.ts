@@ -1,153 +1,99 @@
-import { blockchain } from "@ckb-lumos/base";
-import { molecule } from "@ckb-lumos/codec";
+import { mol } from "@ckb-ccc/core";
 
-const Hash = blockchain.Byte32;
-
-export const Address = molecule.union(
-  {
-    Script: blockchain.Script,
-  },
-  ["Script"],
-);
+export const Address = mol.union({
+  Script: mol.Script,
+});
 
 /**
  * Spore
  */
-export const CreateSpore = molecule.table(
-  {
-    sporeId: Hash,
-    to: Address,
-    dataHash: Hash,
-  },
-  ["sporeId", "to", "dataHash"],
-);
-export const TransferSpore = molecule.table(
-  {
-    sporeId: Hash,
-    from: Address,
-    to: Address,
-  },
-  ["sporeId", "from", "to"],
-);
-export const MeltSpore = molecule.table(
-  {
-    sporeId: Hash,
-    from: Address,
-  },
-  ["sporeId", "from"],
-);
+export const CreateSpore = mol.table({
+  sporeId: mol.Hash,
+  to: Address,
+  dataHash: mol.Hash,
+});
+export const TransferSpore = mol.table({
+  sporeId: mol.Hash,
+  from: Address,
+  to: Address,
+});
+export const MeltSpore = mol.table({
+  sporeId: mol.Hash,
+  from: Address,
+});
 
 /**
  * Cluster
  */
-export const CreateCluster = molecule.table(
-  {
-    clusterId: Hash,
-    to: Address,
-    dataHash: Hash,
-  },
-  ["clusterId", "to", "dataHash"],
-);
-export const TransferCluster = molecule.table(
-  {
-    clusterId: Hash,
-    from: Address,
-    to: Address,
-  },
-  ["clusterId", "from", "to"],
-);
+export const CreateCluster = mol.table({
+  clusterId: mol.Hash,
+  to: Address,
+  dataHash: mol.Hash,
+});
+export const TransferCluster = mol.table({
+  clusterId: mol.Hash,
+  from: Address,
+  to: Address,
+});
 
 /**
  * ClusterProxy
  */
-export const CreateClusterProxy = molecule.table(
-  {
-    clusterId: Hash,
-    clusterProxyId: Hash,
-    to: Address,
-  },
-  ["clusterId", "clusterProxyId", "to"],
-);
-export const TransferClusterProxy = molecule.table(
-  {
-    clusterId: Hash,
-    clusterProxyId: Hash,
-    from: Address,
-    to: Address,
-  },
-  ["clusterId", "clusterProxyId", "from", "to"],
-);
-export const MeltClusterProxy = molecule.table(
-  {
-    clusterId: Hash,
-    clusterProxyId: Hash,
-    from: Address,
-  },
-  ["clusterId", "clusterProxyId", "from"],
-);
+export const CreateClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
+  to: Address,
+});
+export const TransferClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
+  from: Address,
+  to: Address,
+});
+export const MeltClusterProxy = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
+  from: Address,
+});
 
 /**
  * ClusterAgent
  */
-export const CreateClusterAgent = molecule.table(
-  {
-    clusterId: Hash,
-    clusterProxyId: Hash,
-    to: Address,
-  },
-  ["clusterId", "clusterProxyId", "to"],
-);
-export const TransferClusterAgent = molecule.table(
-  {
-    clusterId: Hash,
-    from: Address,
-    to: Address,
-  },
-  ["clusterId", "from", "to"],
-);
-export const MeltClusterAgent = molecule.table(
-  {
-    clusterId: Hash,
-    from: Address,
-  },
-  ["clusterId", "from"],
-);
+export const CreateClusterAgent = mol.table({
+  clusterId: mol.Hash,
+  clusterProxyId: mol.Hash,
+  to: Address,
+});
+export const TransferClusterAgent = mol.table({
+  clusterId: mol.Hash,
+  from: Address,
+  to: Address,
+});
+export const MeltClusterAgent = mol.table({
+  clusterId: mol.Hash,
+  from: Address,
+});
 
 /**
  * Spore ScriptInfo Actions
  */
-export const SporeAction = molecule.union(
-  {
-    // Spore
-    CreateSpore,
-    TransferSpore,
-    MeltSpore,
+export const SporeAction = mol.union({
+  // Spore
+  CreateSpore,
+  TransferSpore,
+  MeltSpore,
 
-    // Cluster
-    CreateCluster,
-    TransferCluster,
+  // Cluster
+  CreateCluster,
+  TransferCluster,
 
-    // ClusterProxy
-    CreateClusterProxy,
-    TransferClusterProxy,
-    MeltClusterProxy,
+  // ClusterProxy
+  CreateClusterProxy,
+  TransferClusterProxy,
+  MeltClusterProxy,
 
-    // ClusterAgent
-    CreateClusterAgent,
-    TransferClusterAgent,
-    MeltClusterAgent,
-  },
-  [
-    "CreateSpore",
-    "TransferSpore",
-    "MeltSpore",
-    "CreateCluster",
-    "TransferCluster",
-    "CreateClusterProxy",
-    "TransferClusterProxy",
-    "MeltClusterProxy",
-    "CreateClusterAgent",
-    "TransferClusterAgent",
-    "MeltClusterAgent",
-  ],
-);
+  // ClusterAgent
+  CreateClusterAgent,
+  TransferClusterAgent,
+  MeltClusterAgent,
+});

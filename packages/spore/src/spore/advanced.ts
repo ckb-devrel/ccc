@@ -1,17 +1,16 @@
-import { ccc } from "@ckb-ccc/core";
-import { UnpackResult } from "@ckb-lumos/codec";
+import { ccc, mol } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
-import { Action, SporeData } from "../codec/index.js";
+import { Action, SporeDataView } from "../codec/index.js";
 import { searchOneCellBySigner } from "../helper/index.js";
 
 export async function prepareCluster(
   signer: ccc.Signer,
   tx: ccc.Transaction,
-  data: SporeData,
+  data: SporeDataView,
   clusterMode?: "lockProxy" | "clusterCell" | "skip",
   scriptInfoHash?: ccc.HexLike,
-): Promise<UnpackResult<typeof Action> | undefined> {
+): Promise<mol.EncodableType<typeof Action> | undefined> {
   // skip if the spore is not belong to a cluster
   if (!data.clusterId || clusterMode === "skip") {
     return;

@@ -1,5 +1,19 @@
 # @ckb-ccc/lumos-patches
 
+## 0.0.16-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [[`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81)]:
+  - @ckb-ccc/core@0.1.0-alpha.7
+
+## 0.0.16-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [[`4709384`](https://github.com/ckb-devrel/ccc/commit/4709384e37188991cb937b16f99f47ca82c912b8)]:
+  - @ckb-ccc/core@0.1.0-alpha.6
+
 ## 0.0.16-alpha.5
 
 ### Patch Changes
