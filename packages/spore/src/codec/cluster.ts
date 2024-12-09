@@ -26,6 +26,8 @@ export type ClusterDataView = ClusterDataV2View;
 
 export type ClusterDataVersion = "v1" | "v2";
 
+export const ClusterData = ClusterDataV2;
+
 /**
  * Pack RawClusterData to Uint8Array.
  * Pass an optional "version" field to select a specific packing version.
