@@ -1,5 +1,14 @@
 # @ckb-ccc/spore
 
+## 0.1.0-alpha.5
+
+### Patch Changes
+
+- [#88](https://github.com/ckb-devrel/ccc/pull/88) [`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81) Thanks [@ashuralyk](https://github.com/ashuralyk)! - feat: molecule codec
+  feat: spore searcher
+- Updated dependencies [[`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81)]:
+  - @ckb-ccc/core@0.1.0-alpha.7
+
 ## 0.1.0-alpha.4
 
 ### Patch Changes

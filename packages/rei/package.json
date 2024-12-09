@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/rei",
-  "version": "0.0.16-alpha.6",
+  "version": "0.0.16-alpha.7",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Rei",
   "license": "MIT",
   "private": false,

@@ -1,5 +1,14 @@
 # @ckb-ccc/okx
 
+## 0.0.16-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [[`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81)]:
+  - @ckb-ccc/core@0.1.0-alpha.7
+  - @ckb-ccc/nip07@0.0.16-alpha.7
+  - @ckb-ccc/uni-sat@0.0.16-alpha.7
+
 ## 0.0.16-alpha.6
 
 ### Patch Changes
