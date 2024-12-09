@@ -8,7 +8,7 @@ import { useGetExplorerLink } from "@/src/utils";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { createSporeCluster, dob } from "@ckb-ccc/spore";
-import { ccc } from "@ckb-ccc/core";
+import { ccc } from "@ckb-ccc/connector-react";
 function generateClusterDescriptionUnderDobProtocol(
     client: ccc.Client,
   ): string {
