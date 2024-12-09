@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
 import { useGetExplorerLink } from "@/src/utils";
@@ -8,7 +8,7 @@ import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
 import { ccc } from "@ckb-ccc/connector-react";
-import { createSpore } from "@ckb-ccc/spore";
+import { createSpore,findSporesBySigner} from "@ckb-ccc/spore";
 
 export default function CreateSpore() {
     const { signer, createSender } = useApp();
@@ -66,6 +66,7 @@ export default function CreateSpore() {
             data: {
                 contentType: "text/plain",
                 content: ccc.bytesFrom(dnaText, "utf8"),
+                
             },
         });
         log("sporeId:", id);
@@ -79,6 +80,18 @@ export default function CreateSpore() {
         await signer.client.waitTransaction(txHash);
         log("Transaction committed:", explorerTransaction(txHash));
     }
+    useEffect(()=>{
+      
+            if (!signer) { return }
+            (async () => {
+             // Search Cluster cells
+             console.log(1111)
+             for await (const spore of findSporesBySigner({ signer, order: "desc" })) {
+                console.log(spore);
+              }
+            })()
+       
+    },[signer])
     return (
         <div className="flex w-full flex-col items-stretch">
             <TextInput
@@ -88,7 +101,7 @@ export default function CreateSpore() {
             />
 
             <label className="text-sm">Select a Cluster (optional)</label>
-            <Dropdown
+            {/* <Dropdown
                 options={clusterList.map((cluster, i) => ({
                     name: cluster.id,
                     displayName: cluster.name,
@@ -99,7 +112,7 @@ export default function CreateSpore() {
                     setClusterId(clusterId)
                     log('Use clusterId', clusterId)
                 }}
-            />
+            /> */}
             <ButtonsPanel>
                 <Button
                     className="self-center"
