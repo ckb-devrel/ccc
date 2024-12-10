@@ -4,6 +4,7 @@ import { repeat } from "lit/directives/repeat.js";
 import {
   BTC_SVG,
   CKB_SVG,
+  DOGE_SVG,
   ETH_SVG,
   NOSTR_SVG,
 } from "../../assets/chains/index.js";
@@ -14,6 +15,7 @@ export function signerTypeToIcon(type: ccc.SignerType): string {
     [ccc.SignerType.EVM]: ETH_SVG,
     [ccc.SignerType.CKB]: CKB_SVG,
     [ccc.SignerType.Nostr]: NOSTR_SVG,
+    [ccc.SignerType.Doge]: DOGE_SVG,
   }[type];
 }
 
