@@ -54,7 +54,7 @@ export default function TransferSpore() {
     <div className="flex w-full flex-col items-stretch">
       <TextInput
         label="Address"
-        placeholder="Recevier address"
+        placeholder="Receiver address"
         state={[address, SetAddress]}
       />
  
