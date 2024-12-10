@@ -1,4 +1,5 @@
-import { CellDepLike, CellOutputLike, HexLike, OutPointLike } from "../barrel";
+import { CellDepLike, CellOutputLike, OutPointLike } from "../ckb/index.js";
+import { HexLike } from "../hex/index.js";
 
 export interface LumosTransactionSkeletonType {
   cellDeps: {
