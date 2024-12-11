@@ -72,6 +72,16 @@ export class SignersController {
         signerType: ccc.SignerType.BTC,
         network: "btcTestnet",
       },
+      {
+        addressPrefix: "ckb",
+        signerType: ccc.SignerType.Doge,
+        network: "doge",
+      },
+      {
+        addressPrefix: "ckt",
+        signerType: ccc.SignerType.Doge,
+        network: "dogeTestnet",
+      },
     ];
 
     return {
