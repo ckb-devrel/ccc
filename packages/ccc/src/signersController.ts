@@ -1,9 +1,9 @@
-import { ccc } from "@ckb-ccc/core";
 import { Eip6963 } from "@ckb-ccc/eip6963";
 import { JoyId } from "@ckb-ccc/joy-id";
 import { Nip07 } from "@ckb-ccc/nip07";
 import { Okx } from "@ckb-ccc/okx";
 import { Rei } from "@ckb-ccc/rei";
+import { ccc } from "@ckb-ccc/shell";
 import { UniSat } from "@ckb-ccc/uni-sat";
 import { UtxoGlobal } from "@ckb-ccc/utxo-global";
 import { Xverse } from "@ckb-ccc/xverse";

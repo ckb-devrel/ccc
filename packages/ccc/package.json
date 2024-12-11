@@ -56,7 +56,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/core": "workspace:*",
+    "@ckb-ccc/shell": "workspace:*",
     "@ckb-ccc/eip6963": "workspace:*",
     "@ckb-ccc/joy-id": "workspace:*",
     "@ckb-ccc/nip07": "workspace:*",

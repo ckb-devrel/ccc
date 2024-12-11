@@ -1487,8 +1487,13 @@ export class Transaction extends mol.Entity.Base<
     return addedCount;
   }
 
-  async completeInputsByUdt(from: Signer, type: ScriptLike): Promise<number> {
-    const exceptedBalance = this.getOutputsUdtBalance(type);
+  async completeInputsByUdt(
+    from: Signer,
+    type: ScriptLike,
+    balanceTweak?: NumLike,
+  ): Promise<number> {
+    const exceptedBalance =
+      this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
     const inputsBalance = await this.getInputsUdtBalance(from.client, type);
     if (inputsBalance >= exceptedBalance) {
       return 0;

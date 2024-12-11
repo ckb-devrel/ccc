@@ -48,7 +48,7 @@ For non-developers, you can [try CCC's app now here](https://app.ckbccc.com/) ([
 
 - [Sign and verify any message.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/Sign/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts))
 - [Transfer native CKB token.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/Transfer/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts))
-- [Transfer xUDT token.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/TransferXUdt/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts))
+- [Transfer UDT token.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/TransferUdt/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts))
 - See [Misc: Single-Use-Seals](https://talk.nervos.org/t/en-cn-misc-single-use-seals/8279) to learn how token issuing works in the cell model.
   - [Issue xUDT token with the Single-Use Lock.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtSus/page.tsx>)
   - [Issue xUDT token controlled by a Type ID cell.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtTypeId/page.tsx>)
@@ -131,7 +131,7 @@ Follow the prompts to select your preferred framework template and start buildin
 
 We design CCC for both front-end and back-end developers. You need only one package to fulfil all your needs:
 
-- [NodeJS](https://www.npmjs.com/package/@ckb-ccc/core): `npm install @ckb-ccc/core`
+- [NodeJS](https://www.npmjs.com/package/@ckb-ccc/shell): `npm install @ckb-ccc/shell`
 - [Custom UI](https://www.npmjs.com/package/@ckb-ccc/ccc): `npm install @ckb-ccc/ccc`
 - [Web Component](https://www.npmjs.com/package/@ckb-ccc/connector): `npm install @ckb-ccc/connector`
 - [React](https://www.npmjs.com/package/@ckb-ccc/connector-react) ([Docs](https://docs.ckbccc.com/modules/_ckb_ccc_connector_react.html)): `npm install @ckb-ccc/connector-react`

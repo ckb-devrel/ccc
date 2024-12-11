@@ -1,0 +1,64 @@
+{
+  "name": "@ckb-ccc/shell",
+  "version": "1.0.7",
+  "description": "Backend Shell of CCC - CKBer's Codebase. Common Chains Connector.",
+  "author": "Hanssen0 <hanssen0@hanssen0.com>",
+  "license": "MIT",
+  "private": false,
+  "homepage": "https://github.com/ckb-devrel/ccc",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ckb-devrel/ccc.git"
+  },
+  "sideEffects": false,
+  "main": "dist.commonjs/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
+      "default": "./dist.commonjs/index.js"
+    },
+    "./barrel": {
+      "import": "./dist/barrel.js",
+      "require": "./dist.commonjs/barrel.js",
+      "default": "./dist.commonjs/barrel.js"
+    },
+    "./advancedBarrel": {
+      "import": "./dist/advancedBarrel.js",
+      "require": "./dist.commonjs/advancedBarrel.js",
+      "default": "./dist.commonjs/advancedBarrel.js"
+    },
+    "./advanced": {
+      "import": "./dist/advanced.js",
+      "require": "./dist.commonjs/advanced.js",
+      "default": "./dist.commonjs/advanced.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "lint": "eslint ./src",
+    "format": "prettier --write . && eslint --fix ./src"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.1.1",
+    "copyfiles": "^2.4.1",
+    "eslint": "^9.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^3.2.4",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^7.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@ckb-ccc/core": "workspace:*",
+    "@ckb-ccc/spore": "workspace:*",
+    "@ckb-ccc/udt": "workspace:*",
+    "@ckb-ccc/ssri": "workspace:*"
+  }
+}

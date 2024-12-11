@@ -22,7 +22,7 @@ const TABS: [ReactNode, string, keyof typeof icons, string][] = [
     "Clock",
     "text-amber-500",
   ],
-  ["Transfer xUDT", "/connected/TransferXUdt", "BadgeCent", "text-emerald-500"],
+  ["Transfer UDT", "/connected/TransferUdt", "BadgeCent", "text-emerald-500"],
   ["Issue xUDT (SUS)", "/connected/IssueXUdtSus", "Rss", "text-sky-500"],
   [
     <div className="flex flex-col">

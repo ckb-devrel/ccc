@@ -102,7 +102,10 @@ export class RequestorJsonRpc {
         outTransformer,
       );
     } catch (err: unknown) {
-      await this.onError?.(err);
+      if (!this.onError) {
+        throw err;
+      }
+      await this.onError(err);
     }
   }
 

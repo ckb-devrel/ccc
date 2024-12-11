@@ -1,8 +1,6 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import * as cccLib from "@ckb-ccc/ccc";
-import * as cccSporeLib from "@ckb-ccc/spore";
 import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
-import * as cccSporeAdvancedLib from "@ckb-ccc/spore/advanced";
 import { ReactNode } from "react";
 import ts from "typescript";
 import { vlqDecode } from "./vlq";
@@ -60,8 +58,6 @@ export async function execute(
       "@ckb-ccc/core/advanced": cccAdvancedLib,
       "@ckb-ccc/ccc": cccLib,
       "@ckb-ccc/ccc/advanced": cccAdvancedLib,
-      "@ckb-ccc/spore": cccSporeLib,
-      "@ckb-ccc/spore/advanced": cccSporeAdvancedLib,
       "@ckb-ccc/playground": {
         render: async (tx: ccc.Transaction | unknown) => {
           if (!(tx instanceof ccc.Transaction)) {
