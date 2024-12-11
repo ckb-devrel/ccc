@@ -1,6 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { html } from "lit";
 import { repeat } from "lit/directives/repeat.js";
+import { DOGE_SVG } from "../../assets/chains/doge.svg.js";
 import {
   BTC_SVG,
   CKB_SVG,
@@ -14,6 +15,7 @@ export function signerTypeToIcon(type: ccc.SignerType): string {
     [ccc.SignerType.EVM]: ETH_SVG,
     [ccc.SignerType.CKB]: CKB_SVG,
     [ccc.SignerType.Nostr]: NOSTR_SVG,
+    [ccc.SignerType.Doge]: DOGE_SVG,
   }[type];
 }
 
