@@ -1,4 +1,7 @@
+import { ccc } from "@ckb-ccc/core";
 import { Address } from "../../../core/src/address";
+import { SSRICallParams, ssriUtils } from "../ssri";
+import { UDT } from "./index";
 
 /**
  * Retrieves the balance of the specified address.
@@ -7,7 +10,26 @@ import { Address } from "../../../core/src/address";
  * @throws {Error} Throws an error if the function is not yet implemented.
  * @tag Elevated - This method is elevated with CCC and not available in raw SSRI call.
  */
-export async function getBalanceOf(address: Address): Promise<bigint> {
-  // TODO: implement
-  throw new Error("TODO");
+export async function getBalanceOf(
+  udtContract: UDT,
+  address: Address,
+  params?: SSRICallParams,
+): Promise<number> {
+  ssriUtils.validateSSRIParams(params, { level: "script" });
+  const udtTypeScript = new ccc.Script(
+    params!.script!.code_hash,
+    params!.script!.hash_type,
+    params!.script!.args,
+  );
+
+  let balanceTotal = BigInt(0);
+  for await (const cell of udtContract.server.client.findCellsByLock(
+    address.script,
+    udtTypeScript,
+    true,
+  )) {
+    balanceTotal += ccc.udtBalanceFrom(cell.outputData);
+  }
+
+  return Number(balanceTotal) / 10 ** Number(await udtContract.decimals());
 }

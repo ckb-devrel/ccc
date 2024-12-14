@@ -105,10 +105,9 @@ export class SSRIContractFromTrait<
       const path = Buffer.from(method.name);
 
       try {
-        const result = await this.server.call(
-          path,
-          path,
-          {},
+        const result = await this.callMethod(
+          "",
+          ["0x"],
         );
         return this.deserializeForSSRI(result, method.returnType);
       } catch (error) {
