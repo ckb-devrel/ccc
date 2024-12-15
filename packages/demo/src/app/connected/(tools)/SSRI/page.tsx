@@ -38,7 +38,7 @@ export default function SSRI() {
       index: parseInt(contractOutPointIndex)
     }
 
-    const testUDTContract = new UDT(
+    const testUDTContract = new UDTPausable(
       testSSRIServer,
       testOutPoint
     )
