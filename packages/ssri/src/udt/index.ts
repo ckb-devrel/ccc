@@ -10,9 +10,8 @@ import {
   mol,
   numToBytes
 } from "@ckb-ccc/core";
-import { SSRICallParams, SSRIContract, SSRIServer } from "../ssri";
-import { ssriUtils } from "../ssri/index";
-import { getBalanceOf } from "./udt.advanced";
+import { SSRICallParams, SSRIContract, SSRIServer, ssriUtils } from "../ssri/index.js";
+import { getBalanceOf } from "./udt.advanced.js";
 
 /**
  * Represents a UDT (User Defined Token) contract compliant to SSRI protocol. Use composition style to allow customized combinations of UDT features including UDTExtended, UDTMetadata, UDTPausable.

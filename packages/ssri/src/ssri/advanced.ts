@@ -1,9 +1,11 @@
-import { BytesLike, Script, ScriptLike  } from "@ckb-ccc/core";
 import {
+  BytesLike,
   OutPointLike,
+  Script,
+  ScriptLike,
   TransactionLike,
-} from "../../../core/src/ckb/transaction";
-import { SSRIContract, SSRIServer } from "./index";
+} from "@ckb-ccc/core";
+import { SSRIContract, SSRIServer } from "./index.js";
 export const PLACEHOLDER = 1023;
 
 export interface SSRITraitJSON {
@@ -12,11 +14,11 @@ export interface SSRITraitJSON {
     name: string;
     parameters: Array<{
       name: string;
-      type: keyof SSRIRustTypeMap; 
+      type: keyof SSRIRustTypeMap;
       isOption?: boolean;
       isVec?: boolean;
     }>;
-    returnType: keyof SSRIRustTypeMap; 
+    returnType: keyof SSRIRustTypeMap;
   }>;
 }
 
@@ -65,7 +67,10 @@ export class SSRIContractFromTrait<
     this.initializeMethods();
   }
 
-  registerTypeHandler<K extends keyof SSRITypeHandlers>(type: K, handler: SSRITypeHandlers[K]): void {
+  registerTypeHandler<K extends keyof SSRITypeHandlers>(
+    type: K,
+    handler: SSRITypeHandlers[K],
+  ): void {
     this.typeHandlers[type] = handler;
   }
 
@@ -104,10 +109,7 @@ export class SSRIContractFromTrait<
       const path = Buffer.from(method.name);
 
       try {
-        const result = await this.callMethod(
-          "",
-          ["0x"],
-        );
+        const result = await this.callMethod("", ["0x"]);
         return this.deserializeForSSRI(result, method.returnType);
       } catch (error) {
         throw this.deserializeErrorForSSRI(error);
@@ -128,7 +130,6 @@ export class SSRIContractFromTrait<
 
     return handler.serialize(value);
   }
-
 
   private deserializeForSSRI<T extends keyof SSRIRustTypeMap>(
     result: unknown,
@@ -152,7 +153,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is number {
       throw new Error("TODO");
-    }
+    },
   },
 
   u16: {
@@ -164,7 +165,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is number {
       throw new Error("TODO");
-    }
+    },
   },
 
   u32: {
@@ -176,7 +177,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is number {
       throw new Error("TODO");
-    }
+    },
   },
 
   u64: {
@@ -188,7 +189,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is bigint {
       throw new Error("TODO");
-    }
+    },
   },
 
   u128: {
@@ -200,7 +201,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is bigint {
       throw new Error("TODO");
-    }
+    },
   },
 
   String: {
@@ -212,7 +213,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is string {
       throw new Error("TODO");
-    }
+    },
   },
 
   bool: {
@@ -224,7 +225,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is boolean {
       throw new Error("TODO");
-    }
+    },
   },
 
   Bytes: {
@@ -236,7 +237,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is BytesLike {
       throw new Error("TODO");
-    }
+    },
   },
 
   Script: {
@@ -248,7 +249,7 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is Script {
       throw new Error("TODO");
-    }
+    },
   },
 
   Transaction: {
@@ -260,6 +261,6 @@ export const baseSSRITypeHandlers = {
     },
     validate(value: unknown): value is TransactionLike {
       throw new Error("TODO");
-    }
-  }
+    },
+  },
 } as const;

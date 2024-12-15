@@ -1,6 +1,6 @@
 import { ccc, OutPointLike } from "@ckb-ccc/core";
-import { SSRIServer } from "../ssri";
-import { UDT } from ".";
+import { SSRIServer } from "../ssri/index.js";
+import { UDT } from "./index.js";
 
 
 const testClient = new ccc.ClientPublicTestnet({ url: "wss://testnet.ckb.dev/ws" })

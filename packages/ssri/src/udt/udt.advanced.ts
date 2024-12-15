@@ -1,6 +1,6 @@
 import { ccc, Address } from "@ckb-ccc/core";
-import { SSRICallParams, ssriUtils } from "../ssri";
-import { UDT } from "./index";
+import { SSRICallParams, ssriUtils } from "../ssri/index.js";
+import { UDT } from "./index.js";
 
 /**
  * Retrieves the balance of the specified address.
