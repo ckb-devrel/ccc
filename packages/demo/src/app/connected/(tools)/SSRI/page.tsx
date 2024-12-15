@@ -6,7 +6,7 @@ import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import { UDT, SSRIServer } from "@ckb-ccc/ssri";
+import { UDTPausable, SSRIServer } from "@ckb-ccc/ssri";
 
 export default function SSRI() {
   const { signer, createSender } = useApp();
@@ -18,7 +18,7 @@ export default function SSRI() {
   const [activeTrait, setActiveTrait] = useState<string>("UDT");
   const [activeMethod, setActiveMethod] = useState<string>("");
 
-  const UDTMethods = Object.keys(UDT.prototype).map((method) => ({
+  const UDTMethods = Object.keys(UDTPausable.prototype).map((method) => ({
     name: method,
     displayName: method,
   }

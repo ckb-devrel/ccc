@@ -7,16 +7,11 @@ import {
   Script,
   Transaction,
   TransactionLike,
+  mol,
+  numToBytes
 } from "@ckb-ccc/core";
-import { Uint128 } from "../../../core/src/ckb/molecule.advanced";
-import {
-  BytesVec,
-  String,
-  Transaction as TransactionCodec,
-} from "../../../core/src/molecule";
 import { SSRICallParams, SSRIContract, SSRIServer } from "../ssri";
 import { ssriUtils } from "../ssri/index";
-import { UDTPausable } from "../udtPausable";
 import { getBalanceOf } from "./udt.advanced";
 
 /**
@@ -25,7 +20,6 @@ import { getBalanceOf } from "./udt.advanced";
  * @extends {SSRIContract}
  */
 export class UDT extends SSRIContract {
-  pausable?: UDTPausable;
   cache: Map<string, unknown> = new Map();
 
   /**
@@ -37,12 +31,8 @@ export class UDT extends SSRIContract {
   constructor(
     server: SSRIServer,
     codeOutPoint: OutPointLike,
-    pausable: boolean = false,
   ) {
     super(server, codeOutPoint);
-    if (pausable) {
-      this.pausable = new UDTPausable(this);
-    }
   }
 
   /**
@@ -60,7 +50,7 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.name", [], params);
       this.cache.set("name", rawResult);
     }
-    return String.decode(rawResult);
+    return mol.String.decode(rawResult);
   }
 
   /**
@@ -78,7 +68,7 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.symbol", [], params);
       this.cache.set("symbol", rawResult);
     }
-    return String.decode(rawResult);
+    return mol.String.decode(rawResult);
   }
 
   /**
@@ -146,7 +136,7 @@ export class UDT extends SSRIContract {
       throw new Error("The number of lock scripts and amounts must match");
     }
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(TransactionCodec.encode(tx))
+      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
       : "0x";
     ssriUtils.validateSSRIParams(params, { level: "script" });
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
@@ -161,7 +151,7 @@ export class UDT extends SSRIContract {
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
       { ...params },
     );
-    const rawResultDecoded = TransactionCodec.decode(rawResult);
+    const rawResultDecoded = mol.Transaction.decode(rawResult);
     return { tx: ccc.Transaction.from(rawResultDecoded) };
   }
 
@@ -187,7 +177,7 @@ export class UDT extends SSRIContract {
     }
     ssriUtils.validateSSRIParams(params, { level: "script" });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(TransactionCodec.encode(tx))
+      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
       : "0x";
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
     const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
@@ -201,7 +191,7 @@ export class UDT extends SSRIContract {
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
       { ...params },
     );
-    const rawResultDecoded = TransactionCodec.decode(rawResult);
+    const rawResultDecoded = mol.Transaction.decode(rawResult);
     return ccc.Transaction.from(rawResultDecoded);
   }
 }
@@ -213,7 +203,7 @@ export const udtUtils = {
    * @returns {Uint8Array} Encoded Uint8Array representation of the lock scripts
    */
   encodeLockArray(val: Array<Script>): Uint8Array {
-    return BytesVec.encode([...val.map((lock) => lock.toBytes())]);
+    return mol.BytesVec.encode([...val.map((lock) => lock.toBytes())]);
   },
 
   /**
@@ -233,8 +223,8 @@ export const udtUtils = {
         Math.floor(Number(curr) * 10 ** Number(decimals)),
         16,
       );
-      const amountUint128 = new Uint128(amountBytes);
-      return Array.from(new Uint8Array(amountUint128.raw()));
+      const amountUint128 = mol.Uint128.decode(amountBytes);
+      return Array.from(numToBytes(amountUint128));
     });
 
     // Combine the length bytes with the flattened byte array

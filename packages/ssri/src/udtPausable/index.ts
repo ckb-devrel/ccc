@@ -1,39 +1,20 @@
-import { ccc, Hex, numToBytes, TransactionLike } from "@ckb-ccc/core";
-import {
-  array,
-  BytesVec,
-  option,
-  Script,
-  table,
-  Transaction as TransactionCodec,
-  Uint8,
-  vector,
-} from "../../../core/src/molecule/index.js";
+import { ccc, Hex, numToBytes, TransactionLike, mol } from "@ckb-ccc/core";
 import { SSRICallParams, ssriUtils } from "../ssri/index.js";
-import { UDT } from "../udt/index.js";
+import { UDT } from "../index.js";
 
 /**
  * Represents a pausable functionality for a UDT (User Defined Token).
  * @extends {UDT} in a composition style.
  * @public
  */
-export class UDTPausable {
+export class UDTPausable extends UDT {
   cache: Map<string, unknown> = new Map();
-  private static readonly u832Codec = array(Uint8, 32);
-  private static readonly u832VecCodec = vector(this.u832Codec);
-  private static readonly udtPausableDataCodec = table({
+  private static readonly u832Codec = mol.array(mol.Uint8, 32);
+  private static readonly u832VecCodec = mol.vector(this.u832Codec);
+  private static readonly udtPausableDataCodec = mol.table({
     pause_list: this.u832VecCodec,
-    next_type_script: option(Script),
+    next_type_script: mol.option(mol.Script),
   });
-
-  udt: UDT;
-  /**
-   * Creates an instance of UDTPausable.
-   * @param {UDT} udt - The UDT instance.
-   */
-  constructor(udt: UDT) {
-    this.udt = udt;
-  }
 
   /**
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
@@ -51,14 +32,14 @@ export class UDTPausable {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
     ssriUtils.validateSSRIParams(params, { signer: true, tx: true });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(TransactionCodec.encode(tx))
+      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
       : "0x";
 
     const { script: ownerLock } =
       await params!.signer!.getRecommendedAddressObj();
     if (!params?.cell) {
       const dummy_typeid_script = await ccc.Script.fromKnownScript(
-        this.udt.server.client,
+        this.server.client,
         ccc.KnownScript.TypeId,
         "0x",
       );
@@ -89,12 +70,12 @@ export class UDTPausable {
     const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
       lockHashU832ArrayEncoded,
     );
-    const rawResult = await this.udt.callMethod(
+    const rawResult = await this.callMethod(
       "UDTPausable.pause",
       [txEncodedHex, lockHashU832ArrayEncodedHex],
       { ...params },
     );
-    const pauseTx = TransactionCodec.decode(rawResult);
+    const pauseTx = mol.Transaction.decode(rawResult);
     const cccPauseTx = ssriUtils.recalibrateCapacity(
       ccc.Transaction.from(pauseTx),
     );
@@ -116,7 +97,7 @@ export class UDTPausable {
   ): Promise<TransactionLike> {
     ssriUtils.validateSSRIParams(params, { tx: true });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(TransactionCodec.encode(tx))
+      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
       : "0x";
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
@@ -127,12 +108,12 @@ export class UDTPausable {
     const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
       lockHashU832ArrayEncoded,
     );
-    const rawResult = await this.udt.callMethod(
+    const rawResult = await this.callMethod(
       "UDTPausable.unpause",
       [txEncodedHex, lockHashU832ArrayEncodedHex],
       { ...params },
     );
-    const unPauseTx = TransactionCodec.decode(rawResult);
+    const unPauseTx = mol.Transaction.decode(rawResult);
     const cccPauseTx = ssriUtils.recalibrateCapacity(
       ccc.Transaction.from(unPauseTx),
     );
@@ -157,7 +138,7 @@ export class UDTPausable {
     const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
       lockHashU832ArrayEncoded,
     );
-    const rawResult = await this.udt.callMethod(
+    const rawResult = await this.callMethod(
       "UDTPausable.is_paused",
       [lockHashU832ArrayEncodedHex],
       { ...params },
@@ -185,7 +166,7 @@ export class UDTPausable {
     ) {
       rawResult = this.cache.get("enumeratePaused") as Hex;
     } else {
-      rawResult = await this.udt.callMethod(
+      rawResult = await this.callMethod(
         "UDTPausable.enumerate_paused",
         [
           ssriUtils.encodeHex(numToBytes(offset, 4)),
@@ -195,7 +176,7 @@ export class UDTPausable {
       );
       this.cache.set("enumeratePaused", rawResult);
     }
-    const udtPausableDataInBytesVec = BytesVec.decode(rawResult);
+    const udtPausableDataInBytesVec = mol.BytesVec.decode(rawResult);
     const udtPausableDataArray = [];
     for (const udtPausableDataInBytes of udtPausableDataInBytesVec) {
       const udtPausableData = UDTPausable.udtPausableDataCodec.decode(

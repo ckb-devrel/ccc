@@ -1,5 +1,4 @@
-import { BytesLike } from "../../../core/src/bytes/index";
-import { Script, ScriptLike } from '../../../core/src/ckb/script';
+import { BytesLike, Script, ScriptLike  } from "@ckb-ccc/core";
 import {
   OutPointLike,
   TransactionLike,

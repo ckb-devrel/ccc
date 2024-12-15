@@ -1,5 +1,4 @@
-import { ccc } from "@ckb-ccc/core";
-import { Address } from "../../../core/src/address";
+import { ccc, Address } from "@ckb-ccc/core";
 import { SSRICallParams, ssriUtils } from "../ssri";
 import { UDT } from "./index";
 
