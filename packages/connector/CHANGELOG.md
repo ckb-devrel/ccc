@@ -1,5 +1,24 @@
 # @ckb-ccc/connector
 
+## 0.0.17
+
+### Patch Changes
+
+- [#62](https://github.com/ckb-devrel/ccc/pull/62) [`543c765`](https://github.com/ckb-devrel/ccc/commit/543c76523b3864f2203631762c27b8fc4c942cd7) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): Powered by CCC
+
+- [#69](https://github.com/ckb-devrel/ccc/pull/69) [`8824ff2`](https://github.com/ckb-devrel/ccc/commit/8824ff27af3b76186f1a7d6db8c907cd66f09d6a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Client.waitTransaction
+
+- [#70](https://github.com/ckb-devrel/ccc/pull/70) [`acfc050`](https://github.com/ckb-devrel/ccc/commit/acfc0502cd6beb48b9310dec8411dcd630507366) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): websocket transport
+
+- [#96](https://github.com/ckb-devrel/ccc/pull/96) [`e63a06e`](https://github.com/ckb-devrel/ccc/commit/e63a06ee75ac8595208d216dec88a4228c465e23) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: support doge signer
+
+- [#67](https://github.com/ckb-devrel/ccc/pull/67) [`c092988`](https://github.com/ckb-devrel/ccc/commit/c092988e7765b9ac79498d6bd72a6a2f62859b6f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto fee rate
+
+- [#60](https://github.com/ckb-devrel/ccc/pull/60) [`e904963`](https://github.com/ckb-devrel/ccc/commit/e904963a16f12c410d861eb3ae01b87d68cb3e34) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: support Xverse
+
+- Updated dependencies [[`8824ff2`](https://github.com/ckb-devrel/ccc/commit/8824ff27af3b76186f1a7d6db8c907cd66f09d6a), [`acfc050`](https://github.com/ckb-devrel/ccc/commit/acfc0502cd6beb48b9310dec8411dcd630507366), [`e63a06e`](https://github.com/ckb-devrel/ccc/commit/e63a06ee75ac8595208d216dec88a4228c465e23), [`c092988`](https://github.com/ckb-devrel/ccc/commit/c092988e7765b9ac79498d6bd72a6a2f62859b6f), [`e904963`](https://github.com/ckb-devrel/ccc/commit/e904963a16f12c410d861eb3ae01b87d68cb3e34)]:
+  - @ckb-ccc/ccc@0.0.16
+
 ## 0.0.17-alpha.10
 
 ### Patch Changes

@@ -1,5 +1,30 @@
 # @ckb-ccc/ccc
 
+## 0.0.16
+
+### Patch Changes
+
+- [#69](https://github.com/ckb-devrel/ccc/pull/69) [`8824ff2`](https://github.com/ckb-devrel/ccc/commit/8824ff27af3b76186f1a7d6db8c907cd66f09d6a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Client.waitTransaction
+
+- [#70](https://github.com/ckb-devrel/ccc/pull/70) [`acfc050`](https://github.com/ckb-devrel/ccc/commit/acfc0502cd6beb48b9310dec8411dcd630507366) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): websocket transport
+
+- [#96](https://github.com/ckb-devrel/ccc/pull/96) [`e63a06e`](https://github.com/ckb-devrel/ccc/commit/e63a06ee75ac8595208d216dec88a4228c465e23) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: support doge signer
+
+- [#67](https://github.com/ckb-devrel/ccc/pull/67) [`c092988`](https://github.com/ckb-devrel/ccc/commit/c092988e7765b9ac79498d6bd72a6a2f62859b6f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto fee rate
+
+- [#60](https://github.com/ckb-devrel/ccc/pull/60) [`e904963`](https://github.com/ckb-devrel/ccc/commit/e904963a16f12c410d861eb3ae01b87d68cb3e34) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: support Xverse
+
+- Updated dependencies [[`a3d5359`](https://github.com/ckb-devrel/ccc/commit/a3d53595f6dd11f2f59cdf0086b3d7ce558a2fdd), [`8824ff2`](https://github.com/ckb-devrel/ccc/commit/8824ff27af3b76186f1a7d6db8c907cd66f09d6a), [`f07a506`](https://github.com/ckb-devrel/ccc/commit/f07a506bd6fc27fe659a17d2f7baaeec54716d81), [`f21d7e4`](https://github.com/ckb-devrel/ccc/commit/f21d7e4cf422edab4a836ef6d678b620594fef8d), [`acfc050`](https://github.com/ckb-devrel/ccc/commit/acfc0502cd6beb48b9310dec8411dcd630507366), [`1720d5a`](https://github.com/ckb-devrel/ccc/commit/1720d5a398543f1c6e24763eeaf15d84cd2214bf), [`e63a06e`](https://github.com/ckb-devrel/ccc/commit/e63a06ee75ac8595208d216dec88a4228c465e23), [`91832b1`](https://github.com/ckb-devrel/ccc/commit/91832b103c5d7a1272060639f77754a1c731a753), [`c092988`](https://github.com/ckb-devrel/ccc/commit/c092988e7765b9ac79498d6bd72a6a2f62859b6f), [`e904963`](https://github.com/ckb-devrel/ccc/commit/e904963a16f12c410d861eb3ae01b87d68cb3e34), [`50f2ce0`](https://github.com/ckb-devrel/ccc/commit/50f2ce08e74cb3fbeae926267d42e28b426fd7f4), [`4709384`](https://github.com/ckb-devrel/ccc/commit/4709384e37188991cb937b16f99f47ca82c912b8)]:
+  - @ckb-ccc/core@0.1.0
+  - @ckb-ccc/eip6963@0.0.16
+  - @ckb-ccc/joy-id@0.0.16
+  - @ckb-ccc/nip07@0.0.16
+  - @ckb-ccc/okx@0.0.16
+  - @ckb-ccc/rei@0.0.16
+  - @ckb-ccc/uni-sat@0.0.16
+  - @ckb-ccc/utxo-global@0.0.16
+  - @ckb-ccc/xverse@0.0.15
+
 ## 0.0.16-alpha.9
 
 ### Patch Changes
