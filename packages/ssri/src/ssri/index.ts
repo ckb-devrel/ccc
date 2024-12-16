@@ -78,6 +78,7 @@ export abstract class SSRIContract {
     argsHex: Hex[],
     params?: SSRICallParams,
   ): Promise<Hex> {
+    console.log("Calling method", path, "with args", argsHex);
     const hasher = new HasherCkb();
     const pathHex = hasher.update(Buffer.from(path)).digest().slice(0, 18);
     const payload = {
@@ -100,6 +101,7 @@ export abstract class SSRIContract {
       payload.method = "run_script_level_transaction";
       payload.params = [...payload.params, params.transaction];
     }
+    console.log("Calling method with Payload", payload);
     return await this.server.call(payload);
   }
 

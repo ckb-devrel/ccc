@@ -42,6 +42,7 @@ export class UDT extends SSRIContract {
    * @tag Cache
    */
   async name(params?: SSRICallParams): Promise<string> {
+    console.log("Calling name");
     let rawResult: HexLike;
     if (!params?.noCache && this.cache.has("name")) {
       rawResult = this.cache.get("name") as HexLike;
