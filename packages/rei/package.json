@@ -9,23 +9,28 @@
     "type": "git",
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
+  "sideEffects": false,
   "main": "dist.commonjs/index.js",
   "module": "dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
       "default": "./dist.commonjs/index.js"
     },
     "./barrel": {
       "import": "./dist/barrel.js",
+      "require": "./dist.commonjs/barrel.js",
       "default": "./dist.commonjs/barrel.js"
     },
     "./advanced": {
       "import": "./dist/advanced.js",
+      "require": "./dist.commonjs/advanced.js",
       "default": "./dist.commonjs/advanced.js"
     },
     "./advancedBarrel": {
       "import": "./dist/advancedBarrel.js",
+      "require": "./dist.commonjs/advancedBarrel.js",
       "default": "./dist.commonjs/advancedBarrel.js"
     }
   },
