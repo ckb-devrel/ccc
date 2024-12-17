@@ -1,5 +1,12 @@
 # ckb-ccc
 
+## 0.0.17
+
+### Patch Changes
+
+- Updated dependencies [[`d9affcc`](https://github.com/ckb-devrel/ccc/commit/d9affcc01c7b839b227e4d79bcb66e717577502a)]:
+  - @ckb-ccc/ccc@0.0.17
+
 ## 0.0.16
 
 ### Patch Changes

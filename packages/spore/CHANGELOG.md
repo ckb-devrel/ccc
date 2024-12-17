@@ -1,5 +1,14 @@
 # @ckb-ccc/spore
 
+## 0.1.1
+
+### Patch Changes
+
+- [#101](https://github.com/ckb-devrel/ccc/pull/101) [`d9affcc`](https://github.com/ckb-devrel/ccc/commit/d9affcc01c7b839b227e4d79bcb66e717577502a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: commonjs
+
+- Updated dependencies [[`d9affcc`](https://github.com/ckb-devrel/ccc/commit/d9affcc01c7b839b227e4d79bcb66e717577502a)]:
+  - @ckb-ccc/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

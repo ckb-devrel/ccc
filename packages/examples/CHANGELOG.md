@@ -1,5 +1,12 @@
 # @ckb-ccc/examples
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`d9affcc`](https://github.com/ckb-devrel/ccc/commit/d9affcc01c7b839b227e4d79bcb66e717577502a)]:
+  - @ckb-ccc/ccc@0.0.17
+
 ## 0.0.2
 
 ### Patch Changes
