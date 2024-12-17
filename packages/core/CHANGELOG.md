@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 0.1.2
+
+### Patch Changes
+
+- [#103](https://github.com/ckb-devrel/ccc/pull/103) [`c1cb910`](https://github.com/ckb-devrel/ccc/commit/c1cb91091780c7b33fbbd683ef8edc9f11452ecd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: ccc core commonjs
+
 ## 0.1.1
 
 ### Patch Changes
