@@ -11,7 +11,6 @@
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
   "sideEffects": false,
-  "type": "module",
   "main": "./dist.commonjs/index.js",
   "module": "./dist/index.js",
   "exports": {
