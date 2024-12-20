@@ -103,12 +103,25 @@ export const CellDep: Codec<ckb.CellDepLike, ckb.CellDep> = struct({
 }).map({ outMap: ckb.CellDep.from });
 export const CellDepVec = vector(CellDep);
 
-export const Transaction: Codec<ckb.TransactionLike, ckb.Transaction> = table({
+export const RawTransaction = table({
   version: Uint32,
   cellDeps: CellDepVec,
   headerDeps: Byte32Vec,
   inputs: CellInputVec,
   outputs: CellOutputVec,
   outputsData: BytesVec,
-  witnesses: BytesVec,
 }).map({ outMap: ckb.Transaction.from });
+
+export const Transaction: Codec<ckb.TransactionLike, ckb.Transaction> = table({
+  raw: RawTransaction,
+  witnesses: BytesVec,
+}).map({
+  inMap: (txLike: ckb.TransactionLike) => {
+    const tx = ckb.Transaction.from(txLike);
+    return {
+      raw: tx,
+      witnesses: tx.witnesses,
+    };
+  },
+  outMap: (tx) => ckb.Transaction.from({ ...tx.raw, witnesses: tx.witnesses }),
+});

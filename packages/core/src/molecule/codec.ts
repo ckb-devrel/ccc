@@ -102,7 +102,7 @@ export function fixedItemVec<Encodable, Decoded>(
 
       try {
         const decodedArray: Array<Decoded> = [];
-        for (let offset = 0; offset < byteLength; offset += itemByteLength) {
+        for (let offset = 4; offset < byteLength; offset += itemByteLength) {
           decodedArray.push(
             itemCodec.decode(value.slice(offset, offset + itemByteLength)),
           );
@@ -151,16 +151,20 @@ export function dynItemVec<Encodable, Decoded>(
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
+      if (value.byteLength < 4) {
+        throw new Error(
+          `dynItemVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
+        );
+      }
       const byteLength = uint32From(value.slice(0, 4));
       if (byteLength !== value.byteLength) {
         throw new Error(
           `dynItemVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
-      if (value.byteLength < 4) {
-        throw new Error(
-          `fixedItemVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
-        );
+
+      if (byteLength === 4) {
+        return [];
       }
 
       const offset = uint32From(value.slice(4, 8));
