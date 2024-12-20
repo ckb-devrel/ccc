@@ -6,7 +6,7 @@ import {
   fixedPointFrom,
   fixedPointToString,
 } from "../fixedPoint/index.js";
-import { Hasher, HasherCkb } from "../hasher/index.js";
+import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {
@@ -469,8 +469,8 @@ export type CellInputLike = {
 @mol.codec(
   mol
     .struct({
-      previousOutput: OutPoint,
       since: Since,
+      previousOutput: OutPoint,
     })
     .map<CellInputLike, CellInput>({
       inMap: (encodable) => ({ ...encodable, since: encodable.since ?? 0 }),
@@ -932,6 +932,35 @@ export class Transaction extends mol.Entity.Base<
    */
   rawToBytes(): Bytes {
     return RawTransaction.encode(this);
+  }
+
+  /**
+   * Calculates the hash of the transaction without witnesses. This is the transaction hash in the usual sense.
+   * To calculate the hash of the whole transaction including the witnesses, use transaction.hashFull() instead.
+   *
+   * @returns The hash of the transaction.
+   *
+   * @example
+   * ```typescript
+   * const txHash = transaction.hash();
+   * ```
+   */
+  hash(): Hex {
+    return hashCkb(this.rawToBytes());
+  }
+
+  /**
+   * Calculates the hash of the transaction with witnesses.
+   *
+   * @returns The hash of the transaction with witnesses.
+   *
+   * @example
+   * ```typescript
+   * const txFullHash = transaction.hashFull();
+   * ```
+   */
+  hashFull(): Hex {
+    return hashCkb(this.toBytes());
   }
 
   /**

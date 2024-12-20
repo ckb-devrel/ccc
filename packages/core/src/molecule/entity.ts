@@ -10,37 +10,98 @@ import { Codec } from "./codec.js";
 export abstract class Entity {
   static Base<SubTypeLike, SubType = SubTypeLike>() {
     abstract class Impl {
+      /**
+       * The bytes length of the entity, if it is fixed, otherwise undefined
+       * @public
+       * @static
+       */
       static byteLength?: number;
+      /**
+       * Encode the entity into bytes
+       * @public
+       * @static
+       * @param _ - The entity to encode
+       * @returns The encoded bytes
+       * @throws Will throw an error if the entity is not serializable
+       */
       static encode(_: SubTypeLike): Bytes {
         throw new Error(
           "encode not implemented, use @ccc.mol.codec to decorate your type",
         );
       }
+      /**
+       * Decode the entity from bytes
+       * @public
+       * @static
+       * @param _ - The bytes to decode
+       * @returns The decoded entity
+       * @throws Will throw an error if the entity is not serializable
+       */
       static decode(_: BytesLike): SubType {
         throw new Error(
           "decode not implemented, use @ccc.mol.codec to decorate your type",
         );
       }
 
+      /**
+       * Create an entity from bytes
+       * @public
+       * @static
+       * @param _ - The bytes to create the entity from
+       * @returns The created entity
+       * @throws Will throw an error if the entity is not serializable
+       */
       static fromBytes(_bytes: BytesLike): SubType {
         throw new Error(
           "fromBytes not implemented, use @ccc.mol.codec to decorate your type",
         );
       }
 
+      /**
+       * Create an entity from a serializable object
+       * @public
+       * @static
+       * @param _ - The serializable object to create the entity from
+       * @returns The created entity
+       * @throws Will throw an error if the entity is not serializable
+       */
+      static from(_: SubTypeLike): SubType {
+        throw new Error("from not implemented");
+      }
+
+      /**
+       * Convert the entity to bytes
+       * @public
+       * @returns The bytes representation of the entity
+       */
       toBytes(): Bytes {
         return (this.constructor as typeof Impl).encode(
           this as unknown as SubTypeLike,
         );
       }
 
+      /**
+       * Create a clone of the entity
+       * @public
+       * @returns A clone of the entity
+       */
       clone(): SubType {
         return (this.constructor as typeof Impl).fromBytes(
           this.toBytes(),
         ) as unknown as SubType;
       }
 
+      /**
+       * Check if the entity is equal to another entity
+       * @public
+       * @param other - The other entity to compare with
+       * @returns True if the entities are equal, false otherwise
+       */
       eq(other: SubTypeLike | SubType): boolean {
+        if (this === (other as unknown as this)) {
+          return true;
+        }
+
         return bytesEq(
           this.toBytes(),
           /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any */
@@ -51,6 +112,11 @@ export abstract class Entity {
         );
       }
 
+      /**
+       * Calculate the hash of the entity
+       * @public
+       * @returns The hash of the entity
+       */
       hash(): Hex {
         return hashCkb(this.toBytes());
       }
