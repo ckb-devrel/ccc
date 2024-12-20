@@ -6,8 +6,9 @@ import {
   fixedPointFrom,
   fixedPointToString,
 } from "../fixedPoint/index.js";
-import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
+import { Hasher, HasherCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
+import { mol } from "../molecule/index.js";
 import {
   Num,
   NumLike,
@@ -18,10 +19,15 @@ import {
 } from "../num/index.js";
 import { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
-import * as mol from "./molecule.advanced/index.js";
-import { Script, ScriptLike } from "./script.js";
+import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
 import { LumosTransactionSkeletonType } from "./transactionLumos.js";
+
+export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
+  byteLength: 1,
+  encode: depTypeToBytes,
+  decode: depTypeFromBytes,
+});
 
 /**
  * @public
@@ -112,7 +118,15 @@ export type OutPointLike = {
 /**
  * @public
  */
-export class OutPoint {
+@mol.codec(
+  mol
+    .struct({
+      txHash: mol.Byte32,
+      index: mol.Uint32,
+    })
+    .map({ outMap: (decoded) => OutPoint.from(decoded) }),
+)
+export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
   /**
    * Creates an instance of OutPoint.
    *
@@ -123,20 +137,8 @@ export class OutPoint {
   constructor(
     public txHash: Hex,
     public index: Num,
-  ) {}
-
-  /**
-   * Clone an OutPoint.
-   *
-   * @returns A cloned OutPoint instance.
-   *
-   * @example
-   * ```typescript
-   * const outPoint1 = outPoint0.clone();
-   * ```
-   */
-  clone(): OutPoint {
-    return new OutPoint(this.txHash, this.index);
+  ) {
+    super();
   }
 
   /**
@@ -156,74 +158,6 @@ export class OutPoint {
     }
     return new OutPoint(hexFrom(outPoint.txHash), numFrom(outPoint.index));
   }
-
-  /**
-   * Converts the OutPoint instance to molecule data format.
-   *
-   * @returns An object representing the outpoint in molecule data format.
-   */
-
-  _toMolData() {
-    return {
-      txHash: bytesFrom(this.txHash),
-      index: numToBytes(this.index, 4),
-    };
-  }
-
-  /**
-   * Converts the OutPoint instance to bytes.
-   *
-   * @returns A Uint8Array containing the outpoint bytes.
-   *
-   * @example
-   * ```typescript
-   * const outPointBytes = outPoint.toBytes();
-   * ```
-   */
-
-  toBytes(): Bytes {
-    return bytesFrom(mol.SerializeOutPoint(this._toMolData()));
-  }
-
-  /**
-   * Creates an OutPoint instance from a byte-like value or molecule OutPoint.
-   *
-   * @param bytes - The byte-like value or molecule OutPoint to convert.
-   * @returns An OutPoint instance.
-   *
-   * @example
-   * ```typescript
-   * const outPoint = OutPoint.fromBytes(new Uint8Array([/* outpoint bytes *\/]));
-   * ```
-   */
-
-  static fromBytes(bytes: BytesLike | mol.OutPoint): OutPoint {
-    const view =
-      bytes instanceof mol.OutPoint
-        ? bytes
-        : new mol.OutPoint(bytesFrom(bytes));
-
-    return new OutPoint(
-      hexFrom(view.getTxHash().raw()),
-      numFromBytes(view.getIndex().raw()),
-    );
-  }
-
-  /**
-   * Compares the current OutPoint instance with another OutPointLike object for equality.
-   *
-   * @param val - The OutPointLike object to compare with.
-   * @returns True if the out points are equal, otherwise false.
-   *
-   * @example
-   * ```typescript
-   * const isEqual = outPoint.eq(anotherOutPoint);
-   * ```
-   */
-  eq(val: OutPointLike): boolean {
-    const outPoint = OutPoint.from(val);
-    return this.txHash === outPoint.txHash && this.index === outPoint.index;
-  }
 }
 
 /**
@@ -237,7 +171,16 @@ export type CellOutputLike = {
 /**
  * @public
  */
-export class CellOutput {
+@mol.codec(
+  mol
+    .table({
+      capacity: mol.Uint64,
+      lock: Script,
+      type: ScriptOpt,
+    })
+    .map({ outMap: (decoded) => CellOutput.from(decoded) }),
+)
+export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
   /**
    * Creates an instance of CellOutput.
    *
@@ -250,24 +193,12 @@ export class CellOutput {
     public capacity: Num,
     public lock: Script,
     public type?: Script,
-  ) {}
+  ) {
+    super();
+  }
 
   get occupiedSize(): number {
     return 8 + this.lock.occupiedSize + (this.type?.occupiedSize ?? 0);
-  }
-
-  /**
-   * Clone a CellOutput.
-   *
-   * @returns A cloned CellOutput instance.
-   *
-   * @example
-   * ```typescript
-   * const cellOutput1 = cellOutput0.clone();
-   * ```
-   */
-  clone(): CellOutput {
-    return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
   }
 
   /**
@@ -296,61 +227,8 @@ export class CellOutput {
       apply(Script.from, cellOutput.type),
     );
   }
-
-  /**
-   * Converts the CellOutput instance to molecule data format.
-   *
-   * @returns An object representing the cell output in molecule data format.
-   */
-
-  _toMolData() {
-    return {
-      capacity: numToBytes(this.capacity, 8),
-      lock: this.lock._toMolData(),
-      type: this.type?._toMolData(),
-    };
-  }
-
-  /**
-   * Converts the CellOutput instance to bytes.
-   *
-   * @returns A Uint8Array containing the cell output bytes.
-   *
-   * @example
-   * ```typescript
-   * const cellOutputBytes = cellOutput.toBytes();
-   * ```
-   */
-
-  toBytes(): Bytes {
-    return bytesFrom(mol.SerializeCellOutput(this._toMolData()));
-  }
-
-  /**
-   * Creates a CellOutput instance from a byte-like value or molecule CellOutput.
-   *
-   * @param bytes - The byte-like value or molecule CellOutput to convert.
-   * @returns A CellOutput instance.
-   *
-   * @example
-   * ```typescript
-   * const cellOutput = CellOutput.fromBytes(new Uint8Array([/* cell output bytes *\/]));
-   * ```
-   */
-
-  static fromBytes(bytes: BytesLike | mol.CellOutput): CellOutput {
-    const view =
-      bytes instanceof mol.CellOutput
-        ? bytes
-        : new mol.CellOutput(bytesFrom(bytes));
-
-    return new CellOutput(
-      numFromBytes(view.getCapacity().raw()),
-      Script.fromBytes(view.getLock()),
-      apply(Script.fromBytes, mol.molOptional(view.getType())),
-    );
-  }
 }
+export const CellOutputVec = mol.vector(CellOutput);
 
 /**
  * @public
@@ -468,7 +346,13 @@ export type SinceLike =
 /**
  * @public
  */
-export class Since {
+@mol.codec(
+  mol.Uint64.map<SinceLike, Since>({
+    inMap: (encodable) => Since.from(encodable).toNum(),
+    outMap: (decoded) => Since.from(decoded),
+  }),
+)
+export class Since extends mol.Entity.Base<SinceLike, Since>() {
   /**
    * Creates an instance of Since.
    *
@@ -481,7 +365,9 @@ export class Since {
     public relative: "absolute" | "relative",
     public metric: "blockNumber" | "epoch" | "timestamp",
     public value: Num,
-  ) {}
+  ) {
+    super();
+  }
 
   /**
    * Clone a Since.
@@ -580,7 +466,18 @@ export type CellInputLike = {
 /**
  * @public
  */
-export class CellInput {
+@mol.codec(
+  mol
+    .struct({
+      previousOutput: OutPoint,
+      since: Since,
+    })
+    .map<CellInputLike, CellInput>({
+      inMap: (encodable) => ({ ...encodable, since: encodable.since ?? 0 }),
+      outMap: (decoded) => CellInput.from(decoded),
+    }),
+)
+export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
   /**
    * Creates an instance of CellInput.
    *
@@ -595,25 +492,8 @@ export class CellInput {
     public since: Num,
     public cellOutput?: CellOutput,
     public outputData?: Hex,
-  ) {}
-
-  /**
-   * Clone a CellInput.
-   *
-   * @returns A cloned CellInput instance.
-   *
-   * @example
-   * ```typescript
-   * const cellInput1 = cellInput0.clone();
-   * ```
-   */
-  clone(): CellInput {
-    return new CellInput(
-      this.previousOutput.clone(),
-      this.since,
-      this.cellOutput?.clone(),
-      this.outputData,
-    );
+  ) {
+    super();
   }
 
   /**
@@ -666,59 +546,8 @@ export class CellInput {
     this.cellOutput = cell.cellOutput;
     this.outputData = cell.outputData;
   }
-
-  /**
-   * Converts the CellInput instance to molecule data format.
-   *
-   * @returns An object representing the cell input in molecule data format.
-   */
-
-  _toMolData() {
-    return {
-      previousOutput: this.previousOutput._toMolData(),
-      since: numToBytes(this.since, 8),
-    };
-  }
-
-  /**
-   * Converts the CellInput instance to bytes.
-   *
-   * @returns A Uint8Array containing the cell input bytes.
-   *
-   * @example
-   * ```typescript
-   * const cellInputBytes = cellInput.toBytes();
-   * ```
-   */
-
-  toBytes(): Bytes {
-    return bytesFrom(mol.SerializeCellInput(this._toMolData()));
-  }
-
-  /**
-   * Creates a CellInput instance from a byte-like value or molecule CellInput.
-   *
-   * @param bytes - The byte-like value or molecule CellInput to convert.
-   * @returns A CellInput instance.
-   *
-   * @example
-   * ```typescript
-   * const cellInput = CellInput.fromBytes(new Uint8Array([/* cell input bytes *\/]));
-   * ```
-   */
-
-  static fromBytes(bytes: BytesLike | mol.CellInput): CellInput {
-    const view =
-      bytes instanceof mol.CellInput
-        ? bytes
-        : new mol.CellInput(bytesFrom(bytes));
-
-    return new CellInput(
-      OutPoint.fromBytes(view.getPreviousOutput()),
-      numFromBytes(view.getSince().raw()),
-    );
-  }
 }
+export const CellInputVec = mol.vector(CellInput);
 
 /**
  * @public
@@ -730,7 +559,15 @@ export type CellDepLike = {
 /**
  * @public
  */
-export class CellDep {
+@mol.codec(
+  mol
+    .struct({
+      outPoint: OutPoint,
+      depType: DepTypeCodec,
+    })
+    .map({ outMap: (decoded) => CellDep.from(decoded) }),
+)
+export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
   /**
    * Creates an instance of CellDep.
    *
@@ -741,7 +578,9 @@ export class CellDep {
   constructor(
     public outPoint: OutPoint,
     public depType: DepType,
-  ) {}
+  ) {
+    super();
+  }
 
   /**
    * Clone a CellDep.
@@ -783,75 +622,8 @@ export class CellDep {
       depTypeFrom(cellDep.depType),
     );
   }
-
-  /**
-   * Converts the CellDep instance to molecule data format.
-   *
-   * @returns An object representing the cell dependency in molecule data format.
-   */
-
-  _toMolData() {
-    return {
-      outPoint: this.outPoint._toMolData(),
-      depType: depTypeToBytes(this.depType),
-    };
-  }
-
-  /**
-   * Converts the CellDep instance to bytes.
-   *
-   * @returns A Uint8Array containing the cell dependency bytes.
-   *
-   * @example
-   * ```typescript
-   * const cellDepBytes = cellDep.toBytes();
-   * ```
-   */
-
-  toBytes(): Bytes {
-    return bytesFrom(mol.SerializeCellDep(this._toMolData()));
-  }
-
-  /**
-   * Creates a CellDep instance from a byte-like value or molecule CellDep.
-   *
-   * @param bytes - The byte-like value or molecule CellDep to convert.
-   * @returns A CellDep instance.
-   *
-   * @example
-   * ```typescript
-   * const cellDep = CellDep.fromBytes(new Uint8Array([/* cell dep bytes *\/]));
-   * ```
-   */
-
-  fromBytes(bytes: BytesLike | mol.CellDep): CellDep {
-    const view =
-      bytes instanceof mol.CellDep ? bytes : new mol.CellDep(bytesFrom(bytes));
-
-    return new CellDep(
-      OutPoint.fromBytes(view.getOutPoint()),
-      depTypeFromBytes([view.getDepType()]),
-    );
-  }
-
-  /**
-   * Compares the current CellDep instance with another CellDepLike object for equality.
-   *
-   * @param val - The CellDepLike object to compare with.
-   * @returns True if the cell deps are equal, otherwise false.
-   *
-   * @example
-   * ```typescript
-   * const isEqual = cellDep.eq(anotherCellDep);
-   * ```
-   */
-  eq(val: CellDepLike): boolean {
-    const cellDep = CellDep.from(val);
-    return (
-      this.outPoint.eq(cellDep.outPoint) && this.depType === cellDep.depType
-    );
-  }
 }
+export const CellDepVec = mol.vector(CellDep);
 
 /**
  * @public
@@ -864,7 +636,19 @@ export type WitnessArgsLike = {
 /**
  * @public
  */
-export class WitnessArgs {
+@mol.codec(
+  mol
+    .table({
+      lock: mol.BytesOpt,
+      inputType: mol.BytesOpt,
+      outputType: mol.BytesOpt,
+    })
+    .map({ outMap: (decoded) => WitnessArgs.from(decoded) }),
+)
+export class WitnessArgs extends mol.Entity.Base<
+  WitnessArgsLike,
+  WitnessArgs
+>() {
   /**
    * Creates an instance of WitnessArgs.
    *
@@ -877,7 +661,9 @@ export class WitnessArgs {
     public lock?: Hex,
     public inputType?: Hex,
     public outputType?: Hex,
-  ) {}
+  ) {
+    super();
+  }
 
   /**
    * Creates a WitnessArgs instance from a WitnessArgsLike object.
@@ -906,60 +692,6 @@ export class WitnessArgs {
       apply(hexFrom, witnessArgs.outputType),
     );
   }
-
-  /**
-   * Converts the WitnessArgs instance to molecule data format.
-   *
-   * @returns An object representing the witness arguments in molecule data format.
-   */
-
-  _toMolData() {
-    return {
-      lock: apply(bytesFrom, this.lock),
-      inputType: apply(bytesFrom, this.inputType),
-      outputType: apply(bytesFrom, this.outputType),
-    };
-  }
-
-  /**
-   * Converts the WitnessArgs instance to bytes.
-   *
-   * @returns A Uint8Array containing the witness arguments bytes.
-   *
-   * @example
-   * ```typescript
-   * const witnessArgsBytes = witnessArgs.toBytes();
-   * ```
-   */
-
-  toBytes(): Bytes {
-    return bytesFrom(mol.SerializeWitnessArgs(this._toMolData()));
-  }
-
-  /**
-   * Creates a WitnessArgs instance from a byte-like value or molecule WitnessArgs.
-   *
-   * @param bytes - The byte-like value or molecule WitnessArgs to convert.
-   * @returns A WitnessArgs instance.
-   *
-   * @example
-   * ```typescript
-   * const witnessArgs = WitnessArgs.fromBytes(new Uint8Array([/* witness args bytes *\/]));
-   * ```
-   */
-
-  static fromBytes(bytes: BytesLike | mol.WitnessArgs): WitnessArgs {
-    const view =
-      bytes instanceof mol.WitnessArgs
-        ? bytes
-        : new mol.WitnessArgs(bytesFrom(bytes));
-
-    return new WitnessArgs(
-      apply(hexFrom, mol.molOptional(view.getLock())?.raw()),
-      apply(hexFrom, mol.molOptional(view.getInputType())?.raw()),
-      apply(hexFrom, mol.molOptional(view.getOutputType())?.raw()),
-    );
-  }
 }
 
 /**
@@ -973,6 +705,17 @@ export function udtBalanceFrom(dataLike: BytesLike): Num {
 
   return numFromBytes(data);
 }
+
+export const RawTransaction = mol
+  .table({
+    version: mol.Uint32,
+    cellDeps: CellDepVec,
+    headerDeps: mol.Byte32Vec,
+    inputs: CellInputVec,
+    outputs: CellOutputVec,
+    outputsData: mol.BytesVec,
+  })
+  .map({ outMap: (decoded) => Transaction.from(decoded) });
 
 /**
  * @public
@@ -992,7 +735,27 @@ export type TransactionLike = {
 /**
  * @public
  */
-export class Transaction {
+@mol.codec(
+  mol
+    .table({
+      raw: RawTransaction,
+      witnesses: mol.BytesVec,
+    })
+    .map<TransactionLike, Transaction>({
+      inMap: (txLike) => {
+        const tx = Transaction.from(txLike);
+        return {
+          raw: tx,
+          witnesses: tx.witnesses,
+        };
+      },
+      outMap: (tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses }),
+    }),
+)
+export class Transaction extends mol.Entity.Base<
+  TransactionLike,
+  Transaction
+>() {
   /**
    * Creates an instance of Transaction.
    *
@@ -1013,7 +776,9 @@ export class Transaction {
     public outputs: CellOutput[],
     public outputsData: Hex[],
     public witnesses: Hex[],
-  ) {}
+  ) {
+    super();
+  }
 
   /**
    * Creates a default Transaction instance with empty fields.
@@ -1046,28 +811,6 @@ export class Transaction {
     this.outputs = tx.outputs;
     this.outputsData = tx.outputsData;
     this.witnesses = tx.witnesses;
-  }
-
-  /**
-   * Clone a Transaction.
-   *
-   * @returns A cloned instance
-   *
-   * @example
-   * ```typescript
-   * const tx1 = tx0.clone();
-   * ```
-   */
-  clone(): Transaction {
-    return new Transaction(
-      0n,
-      this.cellDeps.map((c) => c.clone()),
-      [...this.headerDeps],
-      this.inputs.map((i) => i.clone()),
-      this.outputs.map((o) => o.clone()),
-      [...this.outputsData],
-      [...this.witnesses],
-    );
   }
 
   /**
@@ -1188,57 +931,7 @@ export class Transaction {
    * ```
    */
   rawToBytes(): Bytes {
-    return bytesFrom(
-      mol.SerializeRawTransaction({
-        version: numToBytes(this.version, 4),
-        cellDeps: this.cellDeps.map((d) => d._toMolData()),
-        headerDeps: this.headerDeps.map((header) => bytesFrom(header)),
-        inputs: this.inputs.map((i) => i._toMolData()),
-        outputs: this.outputs.map((o) => o._toMolData()),
-        outputsData: this.outputsData.map((header) => bytesFrom(header)),
-      }),
-    );
-  }
-
-  /**
-   * Converts the whole transaction data to bytes.
-   *
-   * @returns A Uint8Array containing the full transaction bytes.
-   *
-   * @example
-   * ```typescript
-   * const txBytes = transaction.toBytes();
-   * ```
-   */
-  toBytes(): Bytes {
-    return bytesFrom(
-      mol.SerializeTransaction({
-        raw: {
-          version: numToBytes(this.version, 4),
-          cellDeps: this.cellDeps.map((d) => d._toMolData()),
-          headerDeps: this.headerDeps.map((header) => bytesFrom(header)),
-          inputs: this.inputs.map((i) => i._toMolData()),
-          outputs: this.outputs.map((o) => o._toMolData()),
-          outputsData: this.outputsData.map((header) => bytesFrom(header)),
-        },
-        witnesses: this.witnesses.map((witness) => bytesFrom(witness)),
-      }),
-    );
-  }
-
-  /**
-   * Calculates the hash of the transaction.
-   *
-   * @returns The hash of the transaction.
-   *
-   * @example
-   * ```typescript
-   * const txHash = transaction.hash();
-   * ```
-   */
-
-  hash(): Hex {
-    return hashCkb(this.rawToBytes());
+    return RawTransaction.encode(this);
   }
 
   /**
