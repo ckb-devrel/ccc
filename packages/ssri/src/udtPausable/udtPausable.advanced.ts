@@ -1,0 +1,1 @@
+export const PAUSABLE_PLACEHOLDER = 0;

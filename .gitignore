@@ -12,3 +12,5 @@ packages/*/dist*
 .env.js
 
 *.DS_Store
+.aider*
+.env
