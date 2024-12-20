@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/spore",
-  "version": "0.1.0-alpha.5",
+  "version": "0.1.2",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Spore protocol",
   "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
@@ -10,15 +10,18 @@
     "type": "git",
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
+  "sideEffects": false,
   "main": "dist.commonjs/index.js",
   "module": "dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
       "default": "./dist.commonjs/index.js"
     },
     "./advanced": {
       "import": "./dist/advanced.js",
+      "require": "./dist.commonjs/advanced.js",
       "default": "./dist.commonjs/advanced.js"
     }
   },

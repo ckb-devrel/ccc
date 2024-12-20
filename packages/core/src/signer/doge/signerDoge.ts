@@ -1,57 +1,50 @@
+import bs58check from "bs58check";
 import { Address } from "../../address/index.js";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { Transaction, TransactionLike, WitnessArgs } from "../../ckb/index.js";
 import { KnownScript } from "../../client/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
-import { btcEcdsaPublicKeyHash } from "./verify.js";
 
 /**
- * An abstract class extending the Signer class for Bitcoin-like signing operations.
- * This class provides methods to get Bitcoin account, public key, and internal address,
+ * An abstract class extending the Signer class for Dogecoin-like signing operations.
+ * This class provides methods to get Doge account, public key, and internal address,
  * as well as signing transactions.
  * @public
  */
-export abstract class SignerBtc extends Signer {
+export abstract class SignerDoge extends Signer {
   get type(): SignerType {
-    return SignerType.BTC;
+    return SignerType.Doge;
   }
 
   get signType(): SignerSignType {
-    return SignerSignType.BtcEcdsa;
+    return SignerSignType.DogeEcdsa;
   }
 
   /**
-   * Gets the Bitcoin account associated with the signer.
+   * Gets the Doge address associated with the signer.
    *
-   * @returns A promise that resolves to a string representing the Bitcoin account.
+   * @returns A promise that resolves to a string representing the Doge account.
    */
-  abstract getBtcAccount(): Promise<string>;
+  abstract getDogeAddress(): Promise<string>;
 
   /**
-   * Gets the Bitcoin public key associated with the signer.
-   *
-   * @returns A promise that resolves to a HexLike value representing the Bitcoin public key.
-   */
-  abstract getBtcPublicKey(): Promise<HexLike>;
-
-  /**
-   * Gets the internal address, which is the Bitcoin account in this case.
+   * Gets the internal address, which is the Doge account in this case.
    *
    * @returns A promise that resolves to a string representing the internal address.
    */
   async getInternalAddress(): Promise<string> {
-    return this.getBtcAccount();
+    return this.getDogeAddress();
   }
 
   /**
-   * Gets the identity, which is the Bitcoin public key in this case.
+   * Gets the identity, which is the Doge address in this case.
    *
    * @returns A promise that resolves to a string representing the identity
    */
   async getIdentity(): Promise<string> {
-    return hexFrom(await this.getBtcPublicKey()).slice(2);
+    return this.getDogeAddress();
   }
 
   /**
@@ -60,14 +53,13 @@ export abstract class SignerBtc extends Signer {
    * @returns A promise that resolves to an array of Address objects.
    */
   async getAddressObjs(): Promise<Address[]> {
-    const publicKey = await this.getBtcPublicKey();
-    const hash = btcEcdsaPublicKeyHash(publicKey);
+    const hash = bs58check.decode(await this.getDogeAddress()).slice(1);
 
     return [
       await Address.fromKnownScript(
         this.client,
         KnownScript.OmniLock,
-        hexFrom([0x04, ...hash, 0x00]),
+        hexFrom([0x05, ...hash, 0x00]),
       ),
     ];
   }
@@ -101,9 +93,7 @@ export abstract class SignerBtc extends Signer {
     }
 
     const signature = bytesFrom(
-      await this.signMessageRaw(
-        `CKB (Bitcoin Layer) transaction: ${info.message}`,
-      ),
+      await this.signMessageRaw(info.message.slice(2)),
       "base64",
     );
     signature[0] = 31 + ((signature[0] - 27) % 4);

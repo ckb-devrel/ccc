@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index 66d45a73078b2b149d19fa2280568bd6b8908d0b..32fe88fb7b22b340e513a9f9027e7a122b002389 100644
+--- a/package.json
++++ b/package.json
+@@ -2,7 +2,6 @@
+   "name": "bs58check",
+   "version": "4.0.0",
+   "description": "A straightforward implementation of base58-check encoding",
+-  "type": "module",
+   "keywords": [
+     "base",
+     "base58",

@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/core",
-  "version": "0.1.0-alpha.7",
+  "version": "0.1.2",
   "description": "Core of CCC - CKBer's Codebase",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -10,23 +10,28 @@
     "type": "git",
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
+  "sideEffects": false,
   "main": "./dist.commonjs/index.js",
   "module": "./dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
       "default": "./dist.commonjs/index.js"
     },
     "./barrel": {
       "import": "./dist/barrel.js",
+      "require": "./dist.commonjs/barrel.js",
       "default": "./dist.commonjs/barrel.js"
     },
     "./advancedBarrel": {
       "import": "./dist/advancedBarrel.js",
+      "require": "./dist.commonjs/advancedBarrel.js",
       "default": "./dist.commonjs/advancedBarrel.js"
     },
     "./advanced": {
       "import": "./dist/advanced.js",
+      "require": "./dist.commonjs/advanced.js",
       "default": "./dist.commonjs/advanced.js"
     }
   },
@@ -65,6 +70,7 @@
     "abort-controller": "^3.0.0",
     "bech32": "^2.0.0",
     "bitcoinjs-message": "^2.2.0",
+    "bs58check": "^4.0.0",
     "buffer": "^6.0.3",
     "cross-fetch": "^4.0.0",
     "ethers": "^6.13.1",

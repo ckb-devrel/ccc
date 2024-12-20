@@ -517,7 +517,7 @@ export abstract class Client {
   async waitTransaction(
     txHash: HexLike,
     confirmations: number = 0,
-    timeout: number = 30000,
+    timeout: number = 60000,
     interval: number = 2000,
   ): Promise<ClientTransactionResponse | undefined> {
     const startTime = Date.now();

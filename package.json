@@ -27,5 +27,10 @@
     "typedoc-material-theme": "^1.1.0",
     "typedoc-plugin-extras": "^3.1.0",
     "typescript": "^5.4.5"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "bs58check@4.0.0": "patches/bs58check@4.0.0.patch"
+    }
   }
 }
