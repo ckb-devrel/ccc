@@ -212,16 +212,15 @@ export class SSRIServer {
    * @throws {Error} Throws if the server request fails or returns an error
    */
   async call(payload: unknown): Promise<Hex> {
-    return axios
-      .post(process.env.SSRI_SERVER_URL!, payload, {
+    try {
+      const response = await axios.post(this.serverURL!, payload, {
         headers: { "Content-Type": "application/json" },
-      })
-      .then((response) => {
-        return response.data.result as Hex;
-      })
-      .catch((error) => {
-        throw new Error(error as string);
       });
+      console.log("Response", response.data);
+      return response.data.result as Hex;
+    } catch (error) {
+      throw new Error(error as string);
+    }
   }
 
   /**
@@ -250,6 +249,7 @@ export const ssriUtils = {
       tx?: boolean;
     },
   ): void {
+    console.log("Validating SSRI Params", params, validator);
     if (!params) {
       throw new Error(
         "SSRI Parameters Validation are required for this operation",
@@ -267,6 +267,8 @@ export const ssriUtils = {
     if (validator.signer && !params.signer) {
       throw new Error("Specific signer is required for this operation");
     }
+    console.log("Validation Passed");
+    return;
   },
   encodeHex(data: Uint8Array): Hex {
     // Convert each byte to a two-character hex string

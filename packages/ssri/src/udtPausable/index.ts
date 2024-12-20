@@ -19,7 +19,7 @@ export class UDTPausable extends UDT {
   /**
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {TransactionLike} [tx] - The transaction to be used.
-   * @param {HexLike[]} lockHashes - The array of lock hashes to be paused.
+   * @param {Hex[]} lockHashes - The array of lock hashes to be paused.
    * @returns {Promise<TransactionLike>} The transaction result.
    * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
@@ -85,7 +85,7 @@ export class UDTPausable extends UDT {
   /**
    * Unpauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {TransactionLike} tx - The transaction to be used.
-   * @param {HexLike[]} lockHashes - The array of lock hashes to be unpaused.
+   * @param {Hex[]} lockHashes - The array of lock hashes to be unpaused.
    * @returns {Promise<TransactionLike>} The transaction result.
    * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
@@ -122,7 +122,7 @@ export class UDTPausable extends UDT {
 
   /**
    * Checks if the UDT is paused for the specified lock hashes within a transaction. If not using external pause list, it can also be run on Code environment level.
-   * @param {HexLike[]} [lockHashes] - The lock hash to check.
+   * @param {Hex[]} [lockHashes] - The lock hash to check.
    * @returns {Promise<boolean>} True if any of the lock hashes are paused, false otherwise.
    * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Transaction
@@ -148,29 +148,29 @@ export class UDTPausable extends UDT {
 
   /**
    * Enumerates all paused lock hashes.
-   * @returns {Promise<HexLike[]>} The array of paused lock hashes.
+   * @returns {Promise<Hex[]>} The array of paused lock hashes.
    * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Transaction
    */
   async enumeratePaused(
-    offset = 0,
-    limit = 0,
+    offset?: bigint,
+    limit?: bigint,
     params?: SSRICallParams,
   ): Promise<unknown[]> {
     let rawResult: Hex;
     if (
       !params?.noCache &&
       this.cache.has("enumeratePaused") &&
-      offset === 0 &&
-      limit === 0
+      !offset &&
+      !limit
     ) {
       rawResult = this.cache.get("enumeratePaused") as Hex;
     } else {
       rawResult = await this.callMethod(
         "UDTPausable.enumerate_paused",
         [
-          ssriUtils.encodeHex(numToBytes(offset, 4)),
-          ssriUtils.encodeHex(numToBytes(limit, 4)),
+          ssriUtils.encodeHex(numToBytes(offset ?? 0, 4)),
+          ssriUtils.encodeHex(numToBytes(limit ?? 0, 4)),
         ],
         params,
       );

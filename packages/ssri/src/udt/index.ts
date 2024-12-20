@@ -2,30 +2,52 @@ import {
   Address,
   ccc,
   Hex,
-  HexLike,
   OutPointLike,
   Script,
   Transaction,
   TransactionLike,
   mol,
-  numToBytes
 } from "@ckb-ccc/core";
 import { SSRICallParams, SSRIContract, SSRIServer, ssriUtils } from "../ssri/index.js";
 import { getBalanceOf } from "./udt.advanced.js";
 
 /**
- * Represents a UDT (User Defined Token) contract compliant to SSRI protocol. Use composition style to allow customized combinations of UDT features including UDTExtended, UDTMetadata, UDTPausable.
+ * Represents a User Defined Token (UDT) contract compliant with the SSRI protocol.
+ * 
+ * This class provides a comprehensive implementation for interacting with User Defined Tokens,
+ * supporting various token operations such as querying metadata, checking balances, and performing transfers.
+ * 
+ * Key Features:
+ * - Metadata retrieval (name, symbol, decimals)
+ * - Balance checking for individual cells and addresses
+ * - Token transfer and minting capabilities
+ * - Caching mechanism for improved performance
+ * 
  * @public
  * @extends {SSRIContract}
+ * @category Blockchain
+ * @category Token
  */
 export class UDT extends SSRIContract {
+  /**
+   * Internal cache to store and retrieve token-related data efficiently.
+   * Helps reduce redundant network calls by storing previously fetched information.
+   * 
+   * @private
+   * @type {Map<string, unknown>}
+   */
   cache: Map<string, unknown> = new Map();
 
   /**
-   * Creates an instance of UDT.
-   * @param {SSRIServer} server - The SSRI server instance.
-   * @param {OutPointLike} codeOutPoint - The code out point.
-   * @param {boolean} [pausable=false] - Whether to include pausable functionality.
+   * Constructs a new UDT (User Defined Token) contract instance.
+   * 
+   * @param {SSRIServer} server - The SSRI server instance used for blockchain interactions.
+   * @param {OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
+   * 
+   * @example
+   * ```typescript
+   * const udt = new UDT(ssriServer, { txHash: '0x...', index: 0 });
+   * ```
    */
   constructor(
     server: SSRIServer,
@@ -35,22 +57,36 @@ export class UDT extends SSRIContract {
   }
 
   /**
-   * Retrieves the name of the UDT.
-   * @param {SSRICallParams} [params] - The parameters for the call.
-   * @returns {Promise<string>} The name of the UDT.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Cache
+   * Retrieves the human-readable name of the User Defined Token.
+   * 
+   * This method fetches the token's name from the blockchain, with optional caching
+   * to improve performance and reduce unnecessary network calls.
+   * 
+   * @param {SSRICallParams} [params] - Optional parameters to customize the call behavior.
+   * @param {boolean} [params.noCache=false] - If true, bypasses the internal cache.
+   * 
+   * @returns {Promise<string>} A promise resolving to the token's name.
+   * 
+   * @throws {Error} If the name cannot be retrieved from the blockchain.
+   * 
+   * @example
+   * ```typescript
+   * const tokenName = await udt.name(); // e.g., "My Custom Token"
+   * ```
+   * 
+   * @category Metadata
+   * @category Query
    */
   async name(params?: SSRICallParams): Promise<string> {
-    console.log("Calling name");
-    let rawResult: HexLike;
+    let rawResult: Hex;
     if (!params?.noCache && this.cache.has("name")) {
-      rawResult = this.cache.get("name") as HexLike;
+      rawResult = this.cache.get("name") as Hex;
     } else {
       rawResult = await this.callMethod("UDT.name", [], params);
       this.cache.set("name", rawResult);
     }
-    return mol.String.decode(rawResult);
+    const nameBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    return nameBytes.toString('utf8');
   }
 
   /**
@@ -68,7 +104,8 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.symbol", [], params);
       this.cache.set("symbol", rawResult);
     }
-    return mol.String.decode(rawResult);
+    const symbolBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    return symbolBytes.toString('utf8');
   }
 
   /**
@@ -97,20 +134,38 @@ export class UDT extends SSRIContract {
    * @tag Cell
    */
   async balance(params?: SSRICallParams): Promise<bigint> {
+    console.log("Into Balance")
     ssriUtils.validateSSRIParams(params, { level: "cell" });
     const rawResult = await this.callMethod("UDT.balance", [], params);
-    return BigInt(rawResult);
+    const result = ccc.numLeFromBytes(ssriUtils.decodeHex(rawResult));
+    return result;
   }
 
   /**
-   * Retrieves the balance in decimals of the specified address across the chain.
-   * @param {Address} address - The address to retrieve the balance for
-   * @returns {Promise<number>} The balance of the specified address adjusted for decimals
-   * @throws {Error} If the balance cannot be retrieved
+   * Retrieves the balance of the UDT for a specific address across the chain.
+   * 
+   * This method calculates the token balance for a given address, taking into account 
+   * the token's decimal places and performing a comprehensive balance lookup.
+   * 
+   * @param {string} address - The blockchain address to retrieve the balance for.
+   * @param {SSRICallParams} [params] - Optional parameters to customize the balance retrieval.
+   * @param {boolean} [params.noCache=false] - If true, bypasses any internal caching mechanism.
+   * 
+   * @returns {Promise<number>} The balance of the specified address, adjusted for token decimals.
+   * 
+   * @throws {Error} If the address is invalid or the balance cannot be retrieved.
+   * 
+   * @example
+   * ```typescript
+   * const balance = await udt.balanceOf('ckb1...'); // Returns balance with decimal adjustment
+   * ```
+   * 
    * @tag Elevated - This method is elevated with CCC and not available in raw SSRI call
+   * @tag Query - Performs a read-only balance query
    */
-  async balanceOf(address: Address, params?: SSRICallParams): Promise<number> {
-    return await getBalanceOf(this, address, params);
+  async balanceOf(address: string, params?: SSRICallParams): Promise<number> {
+    const addressObj = await Address.fromString(address, this.server.client);
+    return await getBalanceOf(this, addressObj, params);
   }
 
   /**
@@ -132,6 +187,10 @@ export class UDT extends SSRIContract {
   ): Promise<{
     tx: Transaction;
   }> {
+    console.log("Into Transfer")
+    console.log("toLockArray", toLockArray)
+    console.log("toAmountArray", toAmountArray)
+    console.log("params", params)
     if (toLockArray.length !== toAmountArray.length) {
       throw new Error("The number of lock scripts and amounts must match");
     }
@@ -140,18 +199,26 @@ export class UDT extends SSRIContract {
       : "0x";
     ssriUtils.validateSSRIParams(params, { level: "script" });
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
+    console.log("toLockArrayEncoded", toLockArrayEncoded)
     const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
+    // const decimals = await this.decimals();
     const toAmountArrayEncoded = udtUtils.encodeAmountArray(
       toAmountArray,
-      await this.decimals(),
+      BigInt(8)
     );
+    console.log("toAmountArrayEncoded", toAmountArrayEncoded)
     const toAmountArrayEncodedHex = ssriUtils.encodeHex(toAmountArrayEncoded);
+    console.log("toAmountArrayEncodedHex", toAmountArrayEncodedHex)
     const rawResult = await this.callMethod(
       "UDT.transfer",
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
       { ...params },
     );
-    const rawResultDecoded = mol.Transaction.decode(rawResult);
+    console.log("rawResult", rawResult)
+    const resultDecodedArray = ssriUtils.decodeHex(rawResult);
+    console.log("resultDecodedArray", resultDecodedArray)
+    const rawResultDecoded = mol.Transaction.decode(resultDecodedArray);
+    console.log("rawResultDecoded", rawResultDecoded)
     return { tx: ccc.Transaction.from(rawResultDecoded) };
   }
 
@@ -203,17 +270,30 @@ export const udtUtils = {
    * @returns {Uint8Array} Encoded Uint8Array representation of the lock scripts
    */
   encodeLockArray(val: Array<Script>): Uint8Array {
-    return mol.BytesVec.encode([...val.map((lock) => lock.toBytes())]);
+    console.log("Into encodeLockArray")
+    // const result = mol.BytesVec.encode([...val.map((lock) => lock.toBytes())]);
+    const lockBytesArray = []
+    for (const lock of val) {
+      console.log("lock", lock)
+      const lockBytes = mol.Script.encode(lock)
+      console.log("lockBytes", lockBytes)
+      lockBytesArray.push(lockBytes)
+    }
+    console.log("lockBytesArray", lockBytesArray)
+    const result = mol.BytesVec.encode(lockBytesArray);
+    console.log("result", result)
+    return result;
   },
 
   /**
-   * Encodes an array of numbers into a Uint128 array format with decimal adjustment.
+   * Encodes an array of numbers into a Uint8Array format with decimal adjustment.
    * @param {number[]} val - Array of numbers to encode
    * @param {bigint} decimals - Number of decimal places to adjust values by
    * @returns {Uint8Array} Encoded byte array of Uint128 values
    * @throws {Error} If values cannot be properly encoded
    */
   encodeAmountArray(val: Array<number>, decimals: bigint): Uint8Array {
+    console.log("Into encodeAmountArray")
     // Convert the length to a 4-byte little-endian array
     const lengthBytes = new Uint8Array(new Uint32Array([val.length]).buffer);
 
@@ -223,8 +303,8 @@ export const udtUtils = {
         Math.floor(Number(curr) * 10 ** Number(decimals)),
         16,
       );
-      const amountUint128 = mol.Uint128.decode(amountBytes);
-      return Array.from(numToBytes(amountUint128));
+      console.log("amountBytes", amountBytes)
+      return Array.from(amountBytes);
     });
 
     // Combine the length bytes with the flattened byte array

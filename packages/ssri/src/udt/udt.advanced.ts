@@ -21,12 +21,16 @@ export async function getBalanceOf(
     params!.script!.args,
   );
 
+  const lock = address.script;
+  console.log("Lock", lock);
+
   let balanceTotal = BigInt(0);
   for await (const cell of udtContract.server.client.findCellsByLock(
-    address.script,
+    lock,
     udtTypeScript,
     true,
   )) {
+    console.log("Found Cell", cell);
     balanceTotal += ccc.udtBalanceFrom(cell.outputData);
   }
 

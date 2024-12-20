@@ -41,42 +41,53 @@ interface SSRIParamsInputProps {
 
 export const SSRIParamsInput: React.FC<SSRIParamsInputProps> = ({ params, onChange }) => {
   const updateScript = (field: string, value: string) => {
-    onChange({
-      ...params,
+    onChange((prevParams: { script: any; }) => ({
+      ...prevParams,
       script: {
-        ...params.script,
+        ...prevParams.script,
+        code_hash: prevParams.script?.code_hash || '',
+        hash_type: prevParams.script?.hash_type || 'type',
+        args: prevParams.script?.args || '',
         [field]: value
       }
-    });
+    }));
   };
 
   const updateCell = (field: string, value: string) => {
-    const [section, subfield] = field.split('.');
-    if (section === 'cell_output') {
-      onChange({
-        ...params,
-        cell: {
-          ...params.cell,
-          cell_output: {
-            ...params.cell?.cell_output,
-            [subfield]: value
-          },
-          hex_data: params.cell?.hex_data || ''
+    const fieldPath = field.split('.');
+    
+    // Create a new cell object to avoid mutating state directly
+    const newCell = {
+      cell_output: {
+        ...params.cell?.cell_output,
+        capacity: params.cell?.cell_output.capacity || '',
+        lock: {
+          ...params.cell?.cell_output.lock,
+          code_hash: params.cell?.cell_output.lock.code_hash || '',
+          hash_type: params.cell?.cell_output.lock.hash_type || 'type',
+          args: params.cell?.cell_output.lock.args || ''
+        },
+        type: {
+          ...params.cell?.cell_output.type,
+          code_hash: params.cell?.cell_output.type?.code_hash || '',
+          hash_type: params.cell?.cell_output.type?.hash_type || 'type',
+          args: params.cell?.cell_output.type?.args || ''
         }
-      });
-    } else if (section === 'hex_data') {
-      onChange({
-        ...params,
-        cell: {
-          ...params.cell,
-          cell_output: params.cell?.cell_output || {
-            capacity: '',
-            lock: { code_hash: '', hash_type: 'type', args: '' }
-          },
-          hex_data: value
-        }
-      });
+      },
+      hex_data: params.cell?.hex_data || ''
+    };
+
+    // Handle nested updates
+    let current: any = newCell;
+    for (let i = 0; i < fieldPath.length - 1; i++) {
+      current = current[fieldPath[i]];
     }
+    current[fieldPath[fieldPath.length - 1]] = value;
+
+    onChange({
+      ...params,
+      cell: newCell
+    });
   };
 
   const updateTransaction = (field: string, value: string) => {
@@ -117,15 +128,18 @@ export const SSRIParamsInput: React.FC<SSRIParamsInputProps> = ({ params, onChan
               (value) => updateScript('code_hash', value)
             ]}
           />
-          <Dropdown
-            options={HASH_TYPES.map(type => ({
-              name: type,
-              displayName: type,
-              iconName: "Hash"
-            }))}
-            selected={params.script?.hash_type || "type"}
-            onSelect={(value) => updateScript('hash_type', value)}
-          />
+          <div className="flex flex-row items-center gap-2">
+            <label className="min-w-32">Hash Type:</label>
+            <Dropdown
+              options={HASH_TYPES.map(type => ({
+                name: type,
+                displayName: type,
+                iconName: "Hash"
+              }))}
+              selected={params.script?.hash_type || "type"}
+              onSelect={(value) => updateScript('hash_type', value)}
+            />
+          </div>
           <TextInput
             label="Args"
             placeholder="Enter args"
@@ -146,6 +160,62 @@ export const SSRIParamsInput: React.FC<SSRIParamsInputProps> = ({ params, onChan
             state={[
               params.cell?.cell_output.capacity || '',
               (value) => updateCell('cell_output.capacity', value)
+            ]}
+          />
+          <TextInput
+            label="Lock Code Hash"
+            placeholder="Enter lock code hash"
+            state={[
+              params.cell?.cell_output.lock.code_hash || '',
+              (value) => updateCell('cell_output.lock.code_hash', value)
+            ]}
+          />
+          <div className="flex flex-row items-center gap-2">
+            <label className="min-w-32">Lock Hash Type:</label>
+            <Dropdown
+              options={HASH_TYPES.map(type => ({
+                name: type,
+                displayName: type,
+                iconName: "Hash"
+              }))}
+              selected={params.cell?.cell_output.lock.hash_type || "type"}
+              onSelect={(value) => updateCell('cell_output.lock.hash_type', value)}
+            />
+          </div>
+          <TextInput
+            label="Lock Args"
+            placeholder="Enter lock args"
+            state={[
+              params.cell?.cell_output.lock.args || '',
+              (value) => updateCell('cell_output.lock.args', value)
+            ]}
+          />
+          <TextInput
+            label="Type Code Hash"
+            placeholder="Enter type code hash"
+            state={[
+              params.cell?.cell_output.type?.code_hash || '',
+              (value) => updateCell('cell_output.type.code_hash', value)
+            ]}
+          />
+          <div className="flex flex-row items-center gap-2">
+            <label className="min-w-32">Type Hash Type:</label>
+            <Dropdown
+              options={HASH_TYPES.map(type => ({
+                name: type,
+                displayName: type,
+                iconName: "Hash"
+              }))}
+              selected={params.cell?.cell_output.type?.hash_type || "type"}
+              onSelect={(value) => updateCell('cell_output.type.hash_type', value)}
+            />
+          </div>
+          <TextInput
+            label="Type Args"
+            placeholder="Enter type args"
+            state={[
+              params.cell?.cell_output.type?.args || '',
+              (value) => updateCell('cell_output.type.args', value)
             ]}
           />
           <TextInput
