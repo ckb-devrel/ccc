@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.0.1
+
+### Patch Changes
+
+- [#109](https://github.com/ckb-devrel/ccc/pull/109) [`94caaca`](https://github.com/ckb-devrel/ccc/commit/94caaca11c63752a25282d42f51161c94397dec6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor: remove redundant code
+
 ## 1.0.0
 
 ### Major Changes
