@@ -119,12 +119,10 @@ export type OutPointLike = {
  * @public
  */
 @mol.codec(
-  mol
-    .struct({
-      txHash: mol.Byte32,
-      index: mol.Uint32,
-    })
-    .map({ outMap: (decoded) => OutPoint.from(decoded) }),
+  mol.struct({
+    txHash: mol.Byte32,
+    index: mol.Uint32,
+  }),
 )
 export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
   /**
@@ -172,13 +170,11 @@ export type CellOutputLike = {
  * @public
  */
 @mol.codec(
-  mol
-    .table({
-      capacity: mol.Uint64,
-      lock: Script,
-      type: ScriptOpt,
-    })
-    .map({ outMap: (decoded) => CellOutput.from(decoded) }),
+  mol.table({
+    capacity: mol.Uint64,
+    lock: Script,
+    type: ScriptOpt,
+  }),
 )
 export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
   /**
@@ -347,10 +343,7 @@ export type SinceLike =
  * @public
  */
 @mol.codec(
-  mol.Uint64.map<SinceLike, Since>({
-    inMap: (encodable) => Since.from(encodable).toNum(),
-    outMap: (decoded) => Since.from(decoded),
-  }),
+  mol.Uint64.mapIn((encodable: SinceLike) => Since.from(encodable).toNum()),
 )
 export class Since extends mol.Entity.Base<SinceLike, Since>() {
   /**
@@ -472,10 +465,10 @@ export type CellInputLike = {
       since: Since,
       previousOutput: OutPoint,
     })
-    .map<CellInputLike, CellInput>({
-      inMap: (encodable) => ({ ...encodable, since: encodable.since ?? 0 }),
-      outMap: (decoded) => CellInput.from(decoded),
-    }),
+    .mapIn((encodable: CellInputLike) => ({
+      ...encodable,
+      since: encodable.since ?? 0,
+    })),
 )
 export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
   /**
@@ -560,12 +553,10 @@ export type CellDepLike = {
  * @public
  */
 @mol.codec(
-  mol
-    .struct({
-      outPoint: OutPoint,
-      depType: DepTypeCodec,
-    })
-    .map({ outMap: (decoded) => CellDep.from(decoded) }),
+  mol.struct({
+    outPoint: OutPoint,
+    depType: DepTypeCodec,
+  }),
 )
 export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
   /**
@@ -637,13 +628,11 @@ export type WitnessArgsLike = {
  * @public
  */
 @mol.codec(
-  mol
-    .table({
-      lock: mol.BytesOpt,
-      inputType: mol.BytesOpt,
-      outputType: mol.BytesOpt,
-    })
-    .map({ outMap: (decoded) => WitnessArgs.from(decoded) }),
+  mol.table({
+    lock: mol.BytesOpt,
+    inputType: mol.BytesOpt,
+    outputType: mol.BytesOpt,
+  }),
 )
 export class WitnessArgs extends mol.Entity.Base<
   WitnessArgsLike,
@@ -706,16 +695,14 @@ export function udtBalanceFrom(dataLike: BytesLike): Num {
   return numFromBytes(data);
 }
 
-export const RawTransaction = mol
-  .table({
-    version: mol.Uint32,
-    cellDeps: CellDepVec,
-    headerDeps: mol.Byte32Vec,
-    inputs: CellInputVec,
-    outputs: CellOutputVec,
-    outputsData: mol.BytesVec,
-  })
-  .map({ outMap: (decoded) => Transaction.from(decoded) });
+export const RawTransaction = mol.table({
+  version: mol.Uint32,
+  cellDeps: CellDepVec,
+  headerDeps: mol.Byte32Vec,
+  inputs: CellInputVec,
+  outputs: CellOutputVec,
+  outputsData: mol.BytesVec,
+});
 
 /**
  * @public
@@ -741,16 +728,14 @@ export type TransactionLike = {
       raw: RawTransaction,
       witnesses: mol.BytesVec,
     })
-    .map<TransactionLike, Transaction>({
-      inMap: (txLike) => {
-        const tx = Transaction.from(txLike);
-        return {
-          raw: tx,
-          witnesses: tx.witnesses,
-        };
-      },
-      outMap: (tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses }),
-    }),
+    .mapIn((txLike: TransactionLike) => {
+      const tx = Transaction.from(txLike);
+      return {
+        raw: tx,
+        witnesses: tx.witnesses,
+      };
+    })
+    .mapOut((tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses })),
 )
 export class Transaction extends mol.Entity.Base<
   TransactionLike,

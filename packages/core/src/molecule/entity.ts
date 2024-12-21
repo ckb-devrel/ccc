@@ -1,13 +1,19 @@
 import { Bytes, bytesEq, BytesLike } from "../bytes/index.js";
 import { hashCkb } from "../hasher/index.js";
 import { Hex } from "../hex/index.js";
+import { Constructor } from "../utils/index.js";
 import { Codec } from "./codec.js";
 
 /**
- * The base class of CCC to create a serializable instance
+ * The base class of CCC to create a serializable instance. This should be used with the {@link codec} decorator.
  * @public
  */
 export abstract class Entity {
+  /**
+   * Generate a base class of CCC to create a serializable instance.
+   * This should be used with the {@link codec} decorator.
+   * @public
+   */
   static Base<SubTypeLike, SubType = SubTypeLike>() {
     abstract class Impl {
       /**
@@ -97,7 +103,7 @@ export abstract class Entity {
        * @param other - The other entity to compare with
        * @returns True if the entities are equal, false otherwise
        */
-      eq(other: SubTypeLike | SubType): boolean {
+      eq(other: SubTypeLike): boolean {
         if (this === (other as unknown as this)) {
           return true;
         }
@@ -130,14 +136,28 @@ export abstract class Entity {
   abstract clone(): Entity;
 }
 
+/**
+ * A class decorator to add methods implementation on the {@link Entity.Base} class
+ * @example
+ * ```typescript
+ * @mol.codec(
+ *   mol.table({
+ *     codeHash: mol.Byte32,
+ *     hashType: HashTypeCodec,
+ *     args: mol.Bytes,
+ *   }),
+ * )
+ * export class Script extends mol.Entity.Base<ScriptLike, Script>() {
+ *   from(scriptLike: ScriptLike): Script {}
+ * }
+ * ```
+ */
 export function codec<
   Encodable,
   TypeLike extends Encodable,
   Decoded extends TypeLike,
   Type extends object & TypeLike,
-  ConstructorType extends {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (...args: any[]): Type;
+  ConstructorType extends Constructor<Type> & {
     from(decoded: TypeLike): Type;
     byteLength?: number;
     encode(encodable: TypeLike): Bytes;

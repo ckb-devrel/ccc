@@ -108,13 +108,11 @@ export type ScriptLike = {
  * @public
  */
 @mol.codec(
-  mol
-    .table({
-      codeHash: mol.Byte32,
-      hashType: HashTypeCodec,
-      args: mol.Bytes,
-    })
-    .map({ outMap: (decoded) => Script.from(decoded) }),
+  mol.table({
+    codeHash: mol.Byte32,
+    hashType: HashTypeCodec,
+    args: mol.Bytes,
+  }),
 )
 export class Script extends mol.Entity.Base<ScriptLike, Script>() {
   /**

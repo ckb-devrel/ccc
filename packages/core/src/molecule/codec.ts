@@ -47,6 +47,18 @@ export class Codec<Encodable, Decoded = Encodable> {
           : this.decode(buffer)) as NewDecoded,
     });
   }
+
+  mapIn<NewEncodable>(
+    map: (encodable: NewEncodable) => Encodable,
+  ): Codec<NewEncodable, Decoded> {
+    return this.map({ inMap: map });
+  }
+
+  mapOut<NewDecoded>(
+    map: (decoded: Decoded) => NewDecoded,
+  ): Codec<Encodable, NewDecoded> {
+    return this.map({ outMap: map });
+  }
 }
 
 export type EncodableType<T extends CodecLike<any, any>> =
