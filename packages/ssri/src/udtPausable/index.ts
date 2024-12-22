@@ -83,7 +83,7 @@ export class UDTPausable extends UDT {
   }
 
   /**
-   * Unpauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
+   * Unpauses the UDT for the specified lock hashes. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {TransactionLike} tx - The transaction to be used.
    * @param {Hex[]} lockHashes - The array of lock hashes to be unpaused.
    * @returns {Promise<TransactionLike>} The transaction result.
