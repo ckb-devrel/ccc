@@ -13,7 +13,7 @@ export class UDTPausable extends UDT {
   private static readonly u832VecCodec = mol.vector(this.u832Codec);
   private static readonly udtPausableDataCodec = mol.table({
     pause_list: this.u832VecCodec,
-    next_type_script: mol.option(mol.Script),
+    next_type_script: mol.option(ccc.Script),
   });
 
   /**
@@ -32,7 +32,7 @@ export class UDTPausable extends UDT {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
     ssriUtils.validateSSRIParams(params, { signer: true, tx: true });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
+      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
 
     const { script: ownerLock } =
@@ -45,7 +45,7 @@ export class UDTPausable extends UDT {
       );
       params!.cell = {
         cell_output: {
-          capacity: BigInt(0),
+          capacity: ccc.numToHex(0),
           lock: {
             code_hash: ownerLock.codeHash,
             args: ownerLock.args,
@@ -75,7 +75,7 @@ export class UDTPausable extends UDT {
       [txEncodedHex, lockHashU832ArrayEncodedHex],
       { ...params },
     );
-    const pauseTx = mol.Transaction.decode(rawResult);
+    const pauseTx = ccc.Transaction.decode(rawResult);
     const cccPauseTx = ssriUtils.recalibrateCapacity(
       ccc.Transaction.from(pauseTx),
     );
@@ -97,7 +97,7 @@ export class UDTPausable extends UDT {
   ): Promise<TransactionLike> {
     ssriUtils.validateSSRIParams(params, { tx: true });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
+      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
@@ -113,7 +113,7 @@ export class UDTPausable extends UDT {
       [txEncodedHex, lockHashU832ArrayEncodedHex],
       { ...params },
     );
-    const unPauseTx = mol.Transaction.decode(rawResult);
+    const unPauseTx = ccc.Transaction.decode(rawResult);
     const cccPauseTx = ssriUtils.recalibrateCapacity(
       ccc.Transaction.from(unPauseTx),
     );

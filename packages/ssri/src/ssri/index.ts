@@ -8,7 +8,6 @@ import {
   HashTypeLike,
   Hex,
   HexLike,
-  Num,
   numToBytes,
   OutPointLike,
   Transaction,
@@ -336,7 +335,7 @@ type SSRIScript = {
 };
 
 type SSRICellOutput = {
-  capacity: Num;
+  capacity: string;
   lock: SSRIScript;
   type?: SSRIScript;
 };

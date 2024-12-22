@@ -12,6 +12,7 @@ import 'reflect-metadata';
 import { Script } from "@ckb-ccc/connector-react";
 import JsonView from '@uiw/react-json-view';
 import { darkTheme } from '@uiw/react-json-view/dark';
+import Image from "next/image";
 
 interface ScriptInputProps {
   value: { codeHash: string; hashType: string; args: string };
@@ -117,7 +118,7 @@ export default function SSRI() {
   const { log, error } = createSender("SSRI");
 
   const [SSRIServerURL, setSSRIServerURL] = useState<string>("http://localhost:9090");
-  const [contractOutPointTx, setContractOutPointTx] = useState<string>("0x869204d4624fcdd9f1cc60534aa6b77e8477dd4344bb16c344d295431d6f99d7");
+  const [contractOutPointTx, setContractOutPointTx] = useState<string>("0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269");
   const [contractOutPointIndex, setContractOutPointIndex] = useState<string>("0");
   const [activeTrait, setActiveTrait] = useState<"UDT" | "UDTPausable">("UDT");
   const [methodList, setMethodList] = useState<string[]>([]);
@@ -125,8 +126,9 @@ export default function SSRI() {
   const [methodParams, setMethodParams] = useState<any[]>([]);
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
   const [ssriParams, setSSRIParams] = useState<any>({});
-  const [methodResult, setMethodResult] = useState<string>('');
+  const [methodResult, setMethodResult] = useState<any>(undefined);
   const [ssriPayload, setSSRIPayload] = useState<any>(null);
+  const [iconDataURL, setIconDataURL] = useState<string>('')
 
   useEffect(() => {
     if (activeTrait === "UDT") {
@@ -207,42 +209,49 @@ export default function SSRI() {
       });
       console.log("Args", args);
 
+      const ssriParamsWithSigner = { ...ssriParams, signer: signer };
+
       setSSRIPayload({
         trait: activeTrait,
         method: activeMethod,
         args: args,
         contractOutPoint: testOutPoint,
-        ssriParams: ssriParams,
+        ssriParams: ssriParamsWithSigner,
       });
 
       log(
         "Calling method", String(activeMethod),
-        "with args", String(args), 
-        "on contract", String(activeTrait), 
-        "at", String(contractOutPointTx), 
+        "with args", String(args),
+        "on contract", String(activeTrait),
+        "at", String(contractOutPointTx),
         "index", String(contractOutPointIndex)
       );
 
       let result;
       if (methodParams.length === 0) {
         // Method takes no parameters except optional ssriParams
-        result = await (contract as any)[activeMethod](ssriParams);
+        result = await (contract as any)[activeMethod](ssriParamsWithSigner);
       } else {
         // Method takes parameters plus optional ssriParams
-        result = await (contract as any)[activeMethod](...args, ssriParams);
+        result = await (contract as any)[activeMethod](...args, ssriParamsWithSigner);
       }
       // Convert result to a string representation for React rendering
-      
+
       // Store the full payload for JSON view
-      
-      setMethodResult(String(result));
+      // Special handling for icon method                                                                                                                                                                                                                                                      
+      if (activeTrait === 'UDT' && activeMethod === 'icon' && result instanceof Uint8Array) {
+        const dataURL = result.toString();;
+        setIconDataURL(dataURL);
+      } else {
+        setMethodResult(result);
+      }
     } catch (e) {
       const errorMessage = e instanceof Error
         ? e.message
         : typeof e === 'object'
           ? JSON.stringify(e)
           : String(e);
-      
+
       setMethodResult(`Error: ${errorMessage}`);
       // error(`Error: ${errorMessage}`);
     }
@@ -335,18 +344,12 @@ export default function SSRI() {
         onChange={setSSRIParams}
       />
 
-      <ButtonsPanel>
-        <Button onClick={makeSSRICall}>
-          Execute Method
-        </Button>
-      </ButtonsPanel>
-
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-700">SSRI Payload</label>
         {ssriPayload && (
           <div className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-            <JsonView 
-              value={ssriPayload} 
+            <JsonView
+              value={ssriPayload}
               style={darkTheme}
             />
           </div>
@@ -355,14 +358,23 @@ export default function SSRI() {
 
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-700">Method Result</label>
-        <textarea
-          readOnly
-          value={methodResult}
-          rows={5}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-          placeholder="Method results will appear here"
-        />
+        {methodResult && (<div className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+          <JsonView
+            value={{ result: methodResult }}
+            style={darkTheme}
+          />
+        </div>)}
       </div>
+      {iconDataURL && (<div className="mt-4">
+        <label className="block text-sm font-medium text-gray-700">Icon Result</label>
+        <Image
+          className="max-w-full h-auto border rounded" src={iconDataURL} alt={""} width={"100"} height={"100"}></Image>
+      </div>)}
+      <ButtonsPanel>
+        <Button onClick={makeSSRICall}>
+          Execute Method
+        </Button>
+      </ButtonsPanel>
     </div>
   );
 }

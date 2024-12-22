@@ -180,7 +180,7 @@ export class UDT extends SSRIContract {
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async transfer(
-    tx: TransactionLike | undefined,
+    tx: Transaction | undefined,
     toLockArray: Script[],
     toAmountArray: number[],
     params?: SSRICallParams,
@@ -195,7 +195,7 @@ export class UDT extends SSRIContract {
       throw new Error("The number of lock scripts and amounts must match");
     }
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
+      ? ssriUtils.encodeHex(tx.toBytes())
       : "0x";
     ssriUtils.validateSSRIParams(params, { level: "script" });
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
@@ -217,7 +217,7 @@ export class UDT extends SSRIContract {
     console.log("rawResult", rawResult)
     const resultDecodedArray = ssriUtils.decodeHex(rawResult);
     console.log("resultDecodedArray", resultDecodedArray)
-    const rawResultDecoded = mol.Transaction.decode(resultDecodedArray);
+    const rawResultDecoded = ccc.Transaction.decode(resultDecodedArray);
     console.log("rawResultDecoded", rawResultDecoded)
     return { tx: ccc.Transaction.from(rawResultDecoded) };
   }
@@ -244,7 +244,7 @@ export class UDT extends SSRIContract {
     }
     ssriUtils.validateSSRIParams(params, { level: "script" });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(mol.Transaction.encode(tx))
+      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
     const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
@@ -258,8 +258,20 @@ export class UDT extends SSRIContract {
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
       { ...params },
     );
-    const rawResultDecoded = mol.Transaction.decode(rawResult);
+    const rawResultDecoded = ccc.Transaction.decode(rawResult);
     return ccc.Transaction.from(rawResultDecoded);
+  }
+
+  async icon(params?: SSRICallParams): Promise<ccc.Bytes> {
+    let rawResult: Hex;
+    if (!params?.noCache && this.cache.has("icon")) {
+      rawResult = this.cache.get("icon") as Hex;
+    } else {
+      rawResult = await this.callMethod("UDT.icon", [], params);
+      this.cache.set("icon", rawResult);
+    }
+    const iconBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    return iconBytes;
   }
 }
 
@@ -275,7 +287,7 @@ export const udtUtils = {
     const lockBytesArray = []
     for (const lock of val) {
       console.log("lock", lock)
-      const lockBytes = mol.Script.encode(lock)
+      const lockBytes = ccc.Script.encode(lock);
       console.log("lockBytes", lockBytes)
       lockBytesArray.push(lockBytes)
     }

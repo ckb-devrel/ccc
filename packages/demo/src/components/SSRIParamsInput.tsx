@@ -109,12 +109,6 @@ export const SSRIParamsInput: React.FC<SSRIParamsInputProps> = ({ params, onChan
           onChange={(e) => onChange({ ...params, noCache: e.target.checked })}
         />
         <label>No Cache</label>
-        <input
-          type="checkbox"
-          checked={!!params.sendNow}
-          onChange={(e) => onChange({ ...params, sendNow: e.target.checked })}
-        />
-        <label>Send Now</label>
       </div>
 
       <details>
