@@ -52,19 +52,6 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "@joyid/ckb": "^1.0.1",
-    "@noble/ciphers": "^0.5.3",
-    "@noble/curves": "^1.4.2",
-    "@noble/hashes": "^1.4.0",
-    "abort-controller": "^3.0.0",
-    "axios": "^1.7.7",
-    "bech32": "^2.0.0",
-    "bitcoinjs-message": "^2.2.0",
-    "buffer": "^6.0.3",
-    "class-validator": "^0.14.1",
-    "cross-fetch": "^4.0.0",
-    "ethers": "^6.13.1",
-    "isomorphic-ws": "^5.0.0",
-    "ws": "^8.18.0"
+    "axios": "^1.7.7"
   }
 }

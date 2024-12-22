@@ -34,14 +34,12 @@ export class SSRICallParams {
    */
   transaction?: { inner: TransactionLike; hash: Hex };
   /**
-   * Some SSRI methods might be able to store results for cache (e.g. `UDTMetadata.symbol`, etc.). If `noCache` is set to `true`, the cache would be ignored.
+   * Some SSRI methods might be able to store results for cache (e.g. `UDT.symbol`, etc.). If `noCache` is set to `true`, the cache would be ignored.
    */
   noCache?: boolean;
   /**
    * For mutation methods, if `sendNow` is set to `true`, the transaction would be sent immediately. Note that in this way you won't be able to get the transaction response.
    */
-  sendNow?: boolean;
-
   signer?: ccc.Signer;
 }
 
@@ -109,7 +107,6 @@ export abstract class SSRIContract {
    * @param {number} offset - The offset for the methods.
    * @param {number} limit - The limit for the methods.
    * @returns {Promise<Bytes[]>} A promise that resolves to a list of methods.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    */
   async getMethods(
     offset = 0,
@@ -148,7 +145,6 @@ export abstract class SSRIContract {
    * Checks if the specified methods exist.
    * @param {Bytes[]} methods - The methods to check.
    * @returns {Promise<boolean>} A promise that resolves to a boolean indicating if the methods exist. True means all methods exist, false means at least one method does not exist.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    */
   async hasMethods(methods: Bytes[]): Promise<boolean> {
     const flattenedMethods = bytesConcat(...methods);
@@ -165,7 +161,6 @@ export abstract class SSRIContract {
   /**
    * Retrieves the version of the contract.
    * @returns {Promise<number>} A promise that resolves to the version number.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag cache
    */
   async version(): Promise<number> {
@@ -178,7 +173,6 @@ export abstract class SSRIContract {
    * Retrieves a list of errors.
    * @param {number[]} [errorCode] - The error codes to retrieve. If empty, all errors would be retrieved.
    * @returns {Promise<string[]>} A promise that resolves to a list of error messages.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag cache
    */
   // static async getErrors(errorCode?: number[]): Promise<string[]> {
@@ -207,7 +201,7 @@ export class SSRIServer {
   /**
    * Makes a JSON-RPC call to the SSRI server.
    * @param {unknown} payload - The JSON-RPC payload to send to the server.
-   * @returns {Promise<HexLike>} The hexadecimal result from the server
+   * @returns {Promise<Hex>} The hexadecimal result from the server
    * @throws {Error} Throws if the server request fails or returns an error
    */
   async call(payload: unknown): Promise<Hex> {
@@ -225,19 +219,18 @@ export class SSRIServer {
   /**
    * NOTE: This function is not yet implemented.
    * Runs the server.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    */
-  async run() {
-    // TODO: implement WASM style
-    throw new Error("TODO");
-  }
+  // async run() {
+  //   // TODO: implement WASM style
+  //   throw new Error("TODO");
+  // }
 }
 
 export const ssriUtils = {
   /**
    * Validates SSRI call parameters against required operation level.
    * @param {SSRICallParams} [params] - SSRI call parameters to validate
-   * @param {{ level: "script" | "cell" | "transaction" | undefined }} validator - Object containing required operation level
+   * @param {{ level: "script" | "cell" | "transaction" | undefined, signer: boolean }} validator - Object containing params specifications to validate against
    * @throws {Error} If required parameters are missing or invalid
    */
   validateSSRIParams(
@@ -245,7 +238,6 @@ export const ssriUtils = {
     validator: {
       level?: "script" | "cell" | "transaction";
       signer?: boolean;
-      tx?: boolean;
     },
   ): void {
     console.log("Validating SSRI Params", params, validator);
@@ -270,28 +262,24 @@ export const ssriUtils = {
     return;
   },
   encodeHex(data: Uint8Array): Hex {
-    // Convert each byte to a two-character hex string
     return `0x${Array.from(data, (byte) =>
       byte.toString(16).padStart(2, "0"),
     ).join("")}`;
   },
   decodeHex(data: Hex): Uint8Array {
-    // Remove the 0x prefix
     const dataString = data.slice(2);
     if (dataString.length % 2 !== 0) {
       throw new Error("Invalid hex string: must have an even length.");
     }
 
-    // Convert the hex string into a Uint8Array
     const result = new Uint8Array(dataString.length / 2);
     for (let i = 0; i < dataString.length; i += 2) {
       result[i / 2] = parseInt(dataString.slice(i, i + 2), 16);
     }
-
     return result;
   },
   recalibrateCapacity(tx: Transaction): Transaction {
-    return tx;
+    return ccc.Transaction.fromBytes(tx.toBytes());
   },
 };
 

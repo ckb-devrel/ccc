@@ -64,18 +64,8 @@ export class UDT extends SSRIContract {
    * 
    * @param {SSRICallParams} [params] - Optional parameters to customize the call behavior.
    * @param {boolean} [params.noCache=false] - If true, bypasses the internal cache.
-   * 
    * @returns {Promise<string>} A promise resolving to the token's name.
-   * 
-   * @throws {Error} If the name cannot be retrieved from the blockchain.
-   * 
-   * @example
-   * ```typescript
-   * const tokenName = await udt.name(); // e.g., "My Custom Token"
-   * ```
-   * 
-   * @category Metadata
-   * @category Query
+   * @tag Cache - This method supports caching to improve performance.
    */
   async name(params?: SSRICallParams): Promise<string> {
     let rawResult: Hex;
@@ -93,8 +83,7 @@ export class UDT extends SSRIContract {
    * Retrieves the symbol of the UDT.
    * @param {SSRICallParams} [params] - The parameters for the call.
    * @returns {Promise<string>} The symbol of the UDT.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Cache
+   * @tag Cache - This method supports caching to improve performance.
    */
   async symbol(params?: SSRICallParams): Promise<string> {
     let rawResult: Hex;
@@ -112,8 +101,7 @@ export class UDT extends SSRIContract {
    * Retrieves the decimals of the UDT.
    * @param {SSRICallParams} [params] - The parameters for the call.
    * @returns {Promise<bigint>} The decimals of the UDT.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Cache
+   * @tag Cache - This method supports caching to improve performance.
    */
   async decimals(params?: SSRICallParams): Promise<bigint> {
     let rawResult: Hex;
@@ -130,8 +118,7 @@ export class UDT extends SSRIContract {
    * Retrieves the balance of the UDT of a specific cell. Use the elevated method `balanceOf` for address balance.
    * @param {SSRICallParams} [params] - The parameters for the call.
    * @returns {Promise<number>} The balance of the UDT.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Cell
+   * @tag Cell - This method requires a cell level call.
    */
   async balance(params?: SSRICallParams): Promise<bigint> {
     console.log("Into Balance")
@@ -150,18 +137,12 @@ export class UDT extends SSRIContract {
    * @param {string} address - The blockchain address to retrieve the balance for.
    * @param {SSRICallParams} [params] - Optional parameters to customize the balance retrieval.
    * @param {boolean} [params.noCache=false] - If true, bypasses any internal caching mechanism.
-   * 
    * @returns {Promise<number>} The balance of the specified address, adjusted for token decimals.
-   * 
-   * @throws {Error} If the address is invalid or the balance cannot be retrieved.
-   * 
    * @example
    * ```typescript
    * const balance = await udt.balanceOf('ckb1...'); // Returns balance with decimal adjustment
    * ```
-   * 
    * @tag Elevated - This method is elevated with CCC and not available in raw SSRI call
-   * @tag Query - Performs a read-only balance query
    */
   async balanceOf(address: string, params?: SSRICallParams): Promise<number> {
     const addressObj = await Address.fromString(address, this.server.client);
@@ -170,13 +151,12 @@ export class UDT extends SSRIContract {
 
   /**
    * Transfers UDT to specified addresses.
-   * @param {TransactionLike} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
+   * @param {Transaction | undefined} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
    * @param {ScriptLike[]} toLockArray - The array of lock scripts for the recipients.
-   * @param {number[]} amountArray - The array of amounts to be transferred.
+   * @param {number[]} toAmountArray - The array of amounts to be transferred.
    * @param {SSRICallParams} [params] - The parameters for the call.
    * @returns {Promise<{ tx: Transaction }>} The transaction result.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Script - This method requires a script level call.
+   * @tag Script - This method requires a script level call. The script is the target Type Script for the UDT.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async transfer(
@@ -184,9 +164,7 @@ export class UDT extends SSRIContract {
     toLockArray: Script[],
     toAmountArray: number[],
     params?: SSRICallParams,
-  ): Promise<{
-    tx: Transaction;
-  }> {
+  ): Promise<Transaction> {
     console.log("Into Transfer")
     console.log("toLockArray", toLockArray)
     console.log("toAmountArray", toAmountArray)
@@ -201,7 +179,6 @@ export class UDT extends SSRIContract {
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
     console.log("toLockArrayEncoded", toLockArrayEncoded)
     const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
-    // const decimals = await this.decimals();
     const toAmountArrayEncoded = udtUtils.encodeAmountArray(
       toAmountArray,
       BigInt(8)
@@ -219,17 +196,16 @@ export class UDT extends SSRIContract {
     console.log("resultDecodedArray", resultDecodedArray)
     const rawResultDecoded = ccc.Transaction.decode(resultDecodedArray);
     console.log("rawResultDecoded", rawResultDecoded)
-    return { tx: ccc.Transaction.from(rawResultDecoded) };
+    return ccc.Transaction.from(rawResultDecoded);
   }
 
   /**
    * Mints new tokens to specified addresses.
-   * @param {TransactionLike} [tx] - Optional existing transaction to build upon
+   * @param {Transaction | undefined} [tx] - Optional existing transaction to build upon
    * @param {Script[]} toLockArray - Array of recipient lock scripts
    * @param {number[]} toAmountArray - Array of amounts to mint to each recipient
    * @param {SSRICallParams} [params] - Optional SSRI call parameters
    * @returns {Promise<Transaction>} The transaction containing the mint operation
-   * @throws {Error} If minting fails or invalid parameters provided
    * @tag Script - This method requires a script level call
    * @tag Mutation - This method represents a mutation of the onchain state
    */
@@ -283,7 +259,6 @@ export const udtUtils = {
    */
   encodeLockArray(val: Array<Script>): Uint8Array {
     console.log("Into encodeLockArray")
-    // const result = mol.BytesVec.encode([...val.map((lock) => lock.toBytes())]);
     const lockBytesArray = []
     for (const lock of val) {
       console.log("lock", lock)
@@ -302,7 +277,6 @@ export const udtUtils = {
    * @param {number[]} val - Array of numbers to encode
    * @param {bigint} decimals - Number of decimal places to adjust values by
    * @returns {Uint8Array} Encoded byte array of Uint128 values
-   * @throws {Error} If values cannot be properly encoded
    */
   encodeAmountArray(val: Array<number>, decimals: bigint): Uint8Array {
     console.log("Into encodeAmountArray")

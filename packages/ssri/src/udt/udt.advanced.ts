@@ -5,8 +5,7 @@ import { UDT } from "./index.js";
 /**
  * Retrieves the balance of the specified address.
  * @param {Address} address - The address to retrieve the balance for.
- * @returns {Promise<bigint>} The balance of the specified address.
- * @throws {Error} Throws an error if the function is not yet implemented.
+ * @returns {Promise<number>} The balance of the specified address.
  * @tag Elevated - This method is elevated with CCC and not available in raw SSRI call.
  */
 export async function getBalanceOf(

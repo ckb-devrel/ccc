@@ -1,4 +1,4 @@
-import { ccc, Hex, numToBytes, TransactionLike, mol } from "@ckb-ccc/core";
+import { ccc, Hex, numToBytes, TransactionLike, mol, Transaction } from "@ckb-ccc/core";
 import { SSRICallParams, ssriUtils } from "../ssri/index.js";
 import { UDT } from "../index.js";
 
@@ -20,7 +20,7 @@ export class UDTPausable extends UDT {
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {TransactionLike} [tx] - The transaction to be used.
    * @param {Hex[]} lockHashes - The array of lock hashes to be paused.
-   * @returns {Promise<TransactionLike>} The transaction result.
+   * @returns {Promise<Transaction>} The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async pause(
@@ -29,7 +29,7 @@ export class UDTPausable extends UDT {
     params?: SSRICallParams,
   ): Promise<TransactionLike> {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
-    ssriUtils.validateSSRIParams(params, { signer: true, tx: true });
+    ssriUtils.validateSSRIParams(params, { signer: true });
     const txEncodedHex = tx
       ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
@@ -85,15 +85,14 @@ export class UDTPausable extends UDT {
    * Unpauses the UDT for the specified lock hashes. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {TransactionLike} tx - The transaction to be used.
    * @param {Hex[]} lockHashes - The array of lock hashes to be unpaused.
-   * @returns {Promise<TransactionLike>} The transaction result.
+   * @returns {Promise<Transaction>} The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async unpause(
-    tx: TransactionLike | undefined,
+    tx: Transaction | undefined,
     lockHashes: Hex[],
     params?: SSRICallParams,
-  ): Promise<TransactionLike> {
-    ssriUtils.validateSSRIParams(params, { tx: true });
+  ): Promise<Transaction> {
     const txEncodedHex = tx
       ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
@@ -145,7 +144,6 @@ export class UDTPausable extends UDT {
   /**
    * Enumerates all paused lock hashes in UDTPausableData.
    * @returns {Promise<UDTPausableData[]>} The array of UDTPausableData.
-   * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async enumeratePaused(
     offset?: bigint,
