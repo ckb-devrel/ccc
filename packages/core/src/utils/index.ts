@@ -172,6 +172,11 @@ export function sleep(ms: NumLike) {
   return new Promise((resolve) => setTimeout(resolve, Number(numFrom(ms))));
 }
 
+export type Constructor<T> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  new (...args: any[]): T;
+};
+
 /**
  * @public
  */

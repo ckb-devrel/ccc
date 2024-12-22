@@ -1,8 +1,8 @@
-import { mol } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 
 export const Action = mol.table({
-  scriptInfoHash: mol.Hash,
-  scriptHash: mol.Hash,
+  scriptInfoHash: mol.Byte32,
+  scriptHash: mol.Byte32,
   data: mol.Bytes,
 });
 
@@ -13,14 +13,14 @@ export const Message = mol.table({
 });
 
 export const ResolvedInputs = mol.table({
-  outputs: mol.CellOutputVec,
+  outputs: ccc.CellOutputVec,
   outputsData: mol.BytesVec,
 });
 
 export const ScriptInfo = mol.table({
   name: mol.String,
   url: mol.String,
-  scriptHash: mol.Hash,
+  scriptHash: mol.Byte32,
   schema: mol.String,
   messageType: mol.String,
 });
@@ -29,7 +29,7 @@ export const ScriptInfoVec = mol.vector(ScriptInfo);
 
 export const BuildingPacketV1 = mol.table({
   message: Message,
-  payload: mol.Transaction,
+  payload: ccc.Transaction,
   resolvedInputs: ResolvedInputs,
   changeOutput: mol.Uint32Opt,
   scriptInfos: ScriptInfoVec,
