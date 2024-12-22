@@ -21,7 +21,6 @@ export class UDTPausable extends UDT {
    * @param {TransactionLike} [tx] - The transaction to be used.
    * @param {Hex[]} lockHashes - The array of lock hashes to be paused.
    * @returns {Promise<TransactionLike>} The transaction result.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async pause(
@@ -87,7 +86,6 @@ export class UDTPausable extends UDT {
    * @param {TransactionLike} tx - The transaction to be used.
    * @param {Hex[]} lockHashes - The array of lock hashes to be unpaused.
    * @returns {Promise<TransactionLike>} The transaction result.
-   * @throws {Error} Throws an error if the function is not yet implemented.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async unpause(
@@ -124,8 +122,6 @@ export class UDTPausable extends UDT {
    * Checks if the UDT is paused for the specified lock hashes within a transaction. If not using external pause list, it can also be run on Code environment level.
    * @param {Hex[]} [lockHashes] - The lock hash to check.
    * @returns {Promise<boolean>} True if any of the lock hashes are paused, false otherwise.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Transaction
    */
   async isPaused(lockHashes: Hex[], params?: SSRICallParams): Promise<boolean> {
     ssriUtils.validateSSRIParams(params, {});
@@ -147,10 +143,9 @@ export class UDTPausable extends UDT {
   }
 
   /**
-   * Enumerates all paused lock hashes.
-   * @returns {Promise<Hex[]>} The array of paused lock hashes.
-   * @throws {Error} Throws an error if the function is not yet implemented.
-   * @tag Transaction
+   * Enumerates all paused lock hashes in UDTPausableData.
+   * @returns {Promise<UDTPausableData[]>} The array of UDTPausableData.
+   * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async enumeratePaused(
     offset?: bigint,
