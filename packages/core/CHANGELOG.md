@@ -1,5 +1,13 @@
 # @ckb-ccc/core
 
+## 1.0.1
+
+### Patch Changes
+
+- [#111](https://github.com/ckb-devrel/ccc/pull/111) [`719055b`](https://github.com/ckb-devrel/ccc/commit/719055b404f31b40362f51714b9f11c85b857581) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: call stack overflow caused by spread operator
+
+- [#109](https://github.com/ckb-devrel/ccc/pull/109) [`94caaca`](https://github.com/ckb-devrel/ccc/commit/94caaca11c63752a25282d42f51161c94397dec6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor: remove redundant code
+
 ## 1.0.0
 
 ### Major Changes
