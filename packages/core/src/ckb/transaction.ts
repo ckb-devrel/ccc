@@ -1,6 +1,6 @@
-import { ClientCollectableSearchKeyFilterLike } from "../advancedBarrel.js";
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
-import { CellDepInfoLike, Client, KnownScript } from "../client/index.js";
+import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
+import type { CellDepInfoLike, Client, KnownScript } from "../client/index.js";
 import {
   Zero,
   fixedPointFrom,
@@ -17,11 +17,11 @@ import {
   numToBytes,
   numToHex,
 } from "../num/index.js";
-import { Signer } from "../signer/index.js";
+import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
-import { LumosTransactionSkeletonType } from "./transactionLumos.js";
+import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
 export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
   byteLength: 1,

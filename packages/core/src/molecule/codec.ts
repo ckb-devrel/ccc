@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Bytes, bytesConcat, bytesFrom, BytesLike } from "../bytes/index.js";
+import {
+  Bytes,
+  bytesConcat,
+  bytesConcatTo,
+  bytesFrom,
+  BytesLike,
+} from "../bytes/index.js";
 import {
   Num,
   numBeFromBytes,
@@ -89,10 +95,12 @@ export function fixedItemVec<Encodable, Decoded>(
   return Codec.from({
     encode(userDefinedItems) {
       try {
-        return userDefinedItems.reduce(
-          (concatted, item) => bytesConcat(concatted, itemCodec.encode(item)),
-          uint32To(userDefinedItems.length),
-        );
+        const concatted: number[] = [];
+        bytesConcatTo(concatted, uint32To(userDefinedItems.length));
+        for (const item of userDefinedItems) {
+          bytesConcatTo(concatted, itemCodec.encode(item));
+        }
+        return bytesFrom(concatted);
       } catch (e: unknown) {
         throw new Error(`fixedItemVec(${e?.toString()})`);
       }
@@ -137,26 +145,19 @@ export function dynItemVec<Encodable, Decoded>(
   return Codec.from({
     encode(userDefinedItems) {
       try {
-        const encoded = userDefinedItems.reduce(
-          ({ offset, header, body }, item) => {
-            const encodedItem = itemCodec.encode(item);
-            const packedHeader = uint32To(offset);
-            return {
-              header: bytesConcat(header, packedHeader),
-              body: bytesConcat(body, encodedItem),
-              offset: offset + bytesFrom(encodedItem).byteLength,
-            };
-          },
-          {
-            header: bytesFrom([]),
-            body: bytesFrom([]),
-            offset: 4 + userDefinedItems.length * 4,
-          },
-        );
-        const packedTotalSize = uint32To(
-          encoded.header.byteLength + encoded.body.byteLength + 4,
-        );
-        return bytesConcat(packedTotalSize, encoded.header, encoded.body);
+        let offset = 4 + userDefinedItems.length * 4;
+        const header: number[] = [];
+        const body: number[] = [];
+
+        for (const item of userDefinedItems) {
+          const encoded = itemCodec.encode(item);
+          bytesConcatTo(header, uint32To(offset));
+          bytesConcatTo(body, encoded);
+          offset += encoded.byteLength;
+        }
+
+        const packedTotalSize = uint32To(header.length + body.length + 4);
+        return bytesConcat(packedTotalSize, header, body);
       } catch (e) {
         throw new Error(`dynItemVec(${e?.toString()})`);
       }
@@ -329,29 +330,22 @@ export function table<
 
   return Codec.from({
     encode(object) {
-      const headerLength = 4 + keys.length * 4;
+      let offset = 4 + keys.length * 4;
+      const header: number[] = [];
+      const body: number[] = [];
 
-      const { header, body } = keys.reduce(
-        (result, key) => {
-          try {
-            const encodedItem = codecLayout[key].encode((object as any)[key]);
-            const packedOffset = uint32To(result.offset);
-            return {
-              header: bytesConcat(result.header, packedOffset),
-              body: bytesConcat(result.body, encodedItem),
-              offset: result.offset + bytesFrom(encodedItem).byteLength,
-            };
-          } catch (e: unknown) {
-            throw new Error(`table.${key}(${e?.toString()})`);
-          }
-        },
-        {
-          header: bytesFrom([]),
-          body: bytesFrom([]),
-          offset: headerLength,
-        },
-      );
-      const packedTotalSize = uint32To(header.byteLength + body.byteLength + 4);
+      for (const key of keys) {
+        try {
+          const encoded = codecLayout[key].encode((object as any)[key]);
+          bytesConcatTo(header, uint32To(offset));
+          bytesConcatTo(body, encoded);
+          offset += encoded.byteLength;
+        } catch (e: unknown) {
+          throw new Error(`table.${key}(${e?.toString()})`);
+        }
+      }
+
+      const packedTotalSize = uint32To(header.length + body.length + 4);
       return bytesConcat(packedTotalSize, header, body);
     },
     decode(buffer) {
@@ -494,23 +488,27 @@ export function struct<
   Decoded extends DecodedRecord<T>,
 >(codecLayout: T): Codec<Encodable, Decoded> {
   const codecArray = Object.values(codecLayout);
-  if (codecArray.some((codec) => codec.byteLength === undefined)) {
-    throw new Error("struct: all fields must be fixed-size");
-  }
-
   const keys = Object.keys(codecLayout);
 
   return Codec.from({
-    byteLength: codecArray.reduce((sum, codec) => sum + codec.byteLength!, 0),
+    byteLength: codecArray.reduce((acc, codec) => {
+      if (codec.byteLength === undefined) {
+        throw new Error("struct: all fields must be fixed-size");
+      }
+      return acc + codec.byteLength;
+    }, 0),
     encode(object) {
-      return keys.reduce((result, key) => {
+      const bytes: number[] = [];
+      for (const key of keys) {
         try {
-          const encodedItem = codecLayout[key].encode((object as any)[key]);
-          return bytesConcat(result, encodedItem);
+          const encoded = codecLayout[key].encode((object as any)[key]);
+          bytesConcatTo(bytes, encoded);
         } catch (e: unknown) {
           throw new Error(`struct.${key}(${e?.toString()})`);
         }
-      }, bytesFrom([]));
+      }
+
+      return bytesFrom(bytes);
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
@@ -550,10 +548,12 @@ export function array<Encodable, Decoded>(
     byteLength,
     encode(items) {
       try {
-        return items.reduce(
-          (concatted, item) => bytesConcat(concatted, itemCodec.encode(item)),
-          bytesFrom([]),
-        );
+        const bytes: number[] = [];
+        for (const item of items) {
+          bytesConcatTo(bytes, itemCodec.encode(item));
+        }
+
+        return bytesFrom(bytes);
       } catch (e: unknown) {
         throw new Error(`array(${e?.toString()})`);
       }

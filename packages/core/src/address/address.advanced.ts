@@ -29,7 +29,9 @@ export function addressPayloadFromString(address: string): {
   // Try parse full format address
   try {
     const { words, prefix } = bech32m.decode(address, ADDRESS_BECH32_LIMIT);
-    const [formatType, ...payload] = bech32m.fromWords(words);
+    const decoded = bech32m.fromWords(words);
+    const formatType = decoded[0];
+    const payload = decoded.slice(1);
 
     if (formatType === (AddressFormat.Full as number)) {
       return { prefix, format: AddressFormat.Full, payload };
@@ -39,7 +41,9 @@ export function addressPayloadFromString(address: string): {
   // Try parse legacy 2019 format address
   try {
     const { prefix, words } = bech32.decode(address, ADDRESS_BECH32_LIMIT);
-    const [formatType, ...payload] = bech32.fromWords(words);
+    const decoded = bech32.fromWords(words);
+    const formatType = decoded[0];
+    const payload = decoded.slice(1);
     if (
       [
         AddressFormat.FullData,
