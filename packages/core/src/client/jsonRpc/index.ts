@@ -95,6 +95,10 @@ const ERROR_PARSERS: [
  */
 
 export abstract class ClientJsonRpc extends Client {
+  private readonly maxConcurrent?: number;
+  private concurrent = 0;
+  private readonly pending: (() => void)[] = [];
+
   private id = 0;
   private readonly transport: Transport;
 
@@ -107,10 +111,15 @@ export abstract class ClientJsonRpc extends Client {
 
   constructor(
     private readonly url_: string,
-    config?: { timeout?: number; cache?: ClientCache },
+    config?: {
+      timeout?: number;
+      cache?: ClientCache;
+      maxConcurrent?: number;
+    },
   ) {
     super(config);
 
+    this.maxConcurrent = config?.maxConcurrent;
     this.transport = transportFromUri(url_, config);
   }
 
@@ -433,11 +442,25 @@ export abstract class ClientJsonRpc extends Client {
    * @throws Will throw an error if the response ID does not match the request ID, or if the response contains an error.
    */
   async send(payload: JsonRpcPayload): Promise<unknown> {
+    if (
+      this.maxConcurrent !== undefined &&
+      this.concurrent >= this.maxConcurrent
+    ) {
+      const pending = new Promise<void>((resolve) =>
+        this.pending.push(resolve),
+      );
+      await pending;
+    }
+
+    this.concurrent += 1;
     const res = (await this.transport.request(payload)) as {
       id: number;
       error: unknown;
       result: unknown;
     };
+    this.concurrent -= 1;
+    this.pending.pop()?.();
+
     if (res.id !== payload.id) {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
     }

@@ -1,7 +1,7 @@
 import WebSocket from "isomorphic-ws";
 import { ClientCache } from "./cache/index.js";
 import { TESTNET_SCRIPTS } from "./clientPublicTestnet.advanced.js";
-import { KnownScript, ScriptInfo } from "./clientTypes.js";
+import { KnownScript, ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
 import { ClientJsonRpc } from "./jsonRpc/index.js";
 
 /**
@@ -12,7 +12,8 @@ export class ClientPublicTestnet extends ClientJsonRpc {
     private readonly config?: {
       url?: string;
       timeout?: number;
-      scripts?: typeof TESTNET_SCRIPTS;
+      maxConcurrent?: number;
+      scripts?: Record<KnownScript, ScriptInfoLike | undefined>,
       cache?: ClientCache;
     },
   ) {
@@ -25,7 +26,7 @@ export class ClientPublicTestnet extends ClientJsonRpc {
     );
   }
 
-  get scripts(): typeof TESTNET_SCRIPTS {
+  get scripts(): Record<KnownScript, ScriptInfoLike | undefined> {
     return this.config?.scripts ?? TESTNET_SCRIPTS;
   }
 
@@ -35,6 +36,11 @@ export class ClientPublicTestnet extends ClientJsonRpc {
 
   async getKnownScript(script: KnownScript): Promise<ScriptInfo> {
     const found = this.scripts[script];
+    if (!found) {
+      throw new Error(
+        `No script information was found for ${script} on ${this.addressPrefix}`,
+      );
+    }
     return ScriptInfo.from(found);
   }
 }
