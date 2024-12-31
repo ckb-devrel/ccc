@@ -1,5 +1,12 @@
 # @ckb-ccc/nip07
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [[`128e87b`](https://github.com/ckb-devrel/ccc/commit/128e87b5ca3e97bfe7842e76f786aa6aec010797)]:
+  - @ckb-ccc/core@1.2.0
+
 ## 1.0.3
 
 ### Patch Changes

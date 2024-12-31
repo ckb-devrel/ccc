@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.2.0
+
+### Minor Changes
+
+- [#116](https://github.com/ckb-devrel/ccc/pull/116) [`128e87b`](https://github.com/ckb-devrel/ccc/commit/128e87b5ca3e97bfe7842e76f786aa6aec010797) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: Client LRU cache
+
 ## 1.1.1
 
 ### Patch Changes
