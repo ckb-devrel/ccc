@@ -7,7 +7,9 @@ import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import { UDTPausable, SSRIServer, UDT } from "@ckb-ccc/ssri";
+import { ssri } from "@ckb-ccc/ssri";
+import { udt } from "@ckb-ccc/udt";
+import { ccc } from "@ckb-ccc/connector-react";
 import 'reflect-metadata';
 import { Script } from "@ckb-ccc/connector-react";
 import JsonView from '@uiw/react-json-view';
@@ -129,23 +131,32 @@ export default function SSRI() {
   const [methodResult, setMethodResult] = useState<any>(undefined);
   const [ssriPayload, setSSRIPayload] = useState<any>(null);
   const [iconDataURL, setIconDataURL] = useState<string>('')
+  const [useFallback, setUseFallback] = useState<boolean>(false);
+  const [fallbackType, setFallbackType] = useState<{ codeHash: string; hashType: string; args: string }>({
+    codeHash: '',
+    hashType: 'type',
+    args: ''
+  });
+  const [fallbackName, setFallbackName] = useState<string>('');
+  const [fallbackSymbol, setFallbackSymbol] = useState<string>('');
+  const [fallbackDecimals, setFallbackDecimals] = useState<string>('6');
 
   useEffect(() => {
     if (activeTrait === "UDT") {
-      console.log("UDT methods:", Object.getOwnPropertyNames(UDT.prototype));
-      const methods = Object.getOwnPropertyNames(UDT.prototype).filter(name =>
+      console.log("UDT methods:", Object.getOwnPropertyNames(udt.UDT.prototype));
+      const methods = Object.getOwnPropertyNames(udt.UDT.prototype).filter(name =>
         name !== 'constructor' &&
-        typeof (UDT.prototype as any)[name] === 'function'
+        typeof (udt.UDT.prototype as any)[name] === 'function'
       );
       setMethodList(methods);
       if (!methods.includes(activeMethod)) {
         setActiveMethod(methods[0] || "");
       }
     } else {
-      console.log("UDTPausable methods:", Object.getOwnPropertyNames(UDTPausable.prototype));
-      const methods = Object.getOwnPropertyNames(UDTPausable.prototype).filter(name =>
+      console.log("UDTPausable methods:", Object.getOwnPropertyNames(udt.UDTPausable.prototype));
+      const methods = Object.getOwnPropertyNames(udt.UDTPausable.prototype).filter(name =>
         name !== 'constructor' &&
-        typeof (UDTPausable.prototype as any)[name] === 'function'
+        typeof (udt.UDTPausable.prototype as any)[name] === 'function'
       );
       setMethodList(methods);
       if (!methods.includes(activeMethod)) {
@@ -162,18 +173,48 @@ export default function SSRI() {
     }
   }, [activeMethod, activeTrait]);
 
+  useEffect(() => {
+    if (activeTrait !== "UDT") {
+      setUseFallback(false);
+    }
+  }, [activeTrait]);
+
   const makeSSRICall = async () => {
     if (!signer) return;
 
-    const testSSRIServer = new SSRIServer(signer.client, SSRIServerURL);
-    const testOutPoint = {
-      txHash: contractOutPointTx,
-      index: parseInt(contractOutPointIndex)
-    };
+    let contract;
+    if (useFallback) {
+      // Create fallback UDT instance
+      const fallbackScript = {
+        codeHash: fallbackType.codeHash,
+        hashType: fallbackType.hashType as ccc.HashType,
+        args: fallbackType.args
+      } as ccc.Script;
+      
+      contract = activeTrait === "UDT" 
+        ? udt.UDT.fallbackToXudt(
+            signer.client,
+            fallbackScript,
+            fallbackName,
+            fallbackSymbol,
+            BigInt(fallbackDecimals),
+          )
+        : new udt.UDTPausable(new ssri.Server(signer.client, SSRIServerURL), {
+              txHash: contractOutPointTx,
+              index: parseInt(contractOutPointIndex)
+            });
+    } else {
+      // Create regular SSRI UDT instance
+      const testSSRIServer = new ssri.Server(signer.client, SSRIServerURL);
+      const testOutPoint = {
+        txHash: contractOutPointTx,
+        index: parseInt(contractOutPointIndex)
+      };
 
-    const contract = activeTrait === "UDT"
-      ? new UDT(testSSRIServer, testOutPoint)
-      : new UDTPausable(testSSRIServer, testOutPoint);
+      contract = activeTrait === "UDT"
+        ? new udt.UDT(testSSRIServer, testOutPoint)
+        : new udt.UDTPausable(testSSRIServer, testOutPoint);
+    }
 
     try {
       // Prepare arguments based on the number of parameters the method expects
@@ -215,7 +256,10 @@ export default function SSRI() {
         trait: activeTrait,
         method: activeMethod,
         args: args,
-        contractOutPoint: testOutPoint,
+        contractOutPoint: {
+          txHash: contractOutPointTx,
+          index: parseInt(contractOutPointIndex)
+        },
         ssriParams: ssriParamsWithSigner,
       });
 
@@ -240,7 +284,8 @@ export default function SSRI() {
       // Store the full payload for JSON view
       // Special handling for icon method                                                                                                                                                                                                                                                      
       if (activeTrait === 'UDT' && activeMethod === 'icon' && result instanceof Uint8Array) {
-        const dataURL = result.toString();;
+        const dataURL = result.toString();
+        setMethodResult(result);
         setIconDataURL(dataURL);
       } else {
         setMethodResult(result);
@@ -263,16 +308,19 @@ export default function SSRI() {
         label="SSRI Server URL"
         placeholder="URL of the SSRI server"
         state={[SSRIServerURL, setSSRIServerURL]}
+        disabled={useFallback}
       />
       <TextInput
         label="Contract OutPoint Tx"
         placeholder="Tx hash of the contract outpoint"
         state={[contractOutPointTx, setContractOutPointTx]}
+        disabled={useFallback}
       />
       <TextInput
         label="Contract OutPoint Index"
         placeholder="Index of the contract outpoint"
         state={[contractOutPointIndex, setContractOutPointIndex]}
+        disabled={useFallback}
       />
 
       <div className="flex flex-row items-center gap-2 w-full">
@@ -287,6 +335,49 @@ export default function SSRI() {
           className="flex-grow"
         />
       </div>
+
+      <div className="flex flex-row items-center gap-2">
+        <input
+          type="checkbox"
+          checked={useFallback}
+          onChange={(e) => setUseFallback(e.target.checked)}
+          id="useFallback"
+          disabled={activeTrait !== "UDT"}
+        />
+        <label 
+          htmlFor="useFallback" 
+          className={activeTrait !== "UDT" ? "text-gray-400" : ""}
+        >
+          Use Fallback Mode (xUDT)
+        </label>
+      </div>
+
+      {useFallback && activeTrait === "UDT" && (
+        <div className="pl-4 flex flex-col gap-4 border-l-2 border-gray-200">
+          <ScriptInput
+            value={fallbackType}
+            onChange={setFallbackType}
+          />
+          <TextInput
+            label="Fallback Name"
+            placeholder="Enter token name"
+            state={[fallbackName, setFallbackName]}
+          />
+          
+          <TextInput
+            label="Fallback Symbol"
+            placeholder="Enter token symbol"
+            state={[fallbackSymbol, setFallbackSymbol]}
+          />
+          
+          <TextInput
+            label="Fallback Decimals"
+            placeholder="Enter decimals (default: 6)"
+            state={[fallbackDecimals, setFallbackDecimals]}
+            type="number"
+          />
+        </div>
+      )}
 
       <div className="flex flex-row items-center gap-2 w-full">
         <label className="min-w-32 shrink-0">Method:</label>
@@ -381,7 +472,7 @@ export default function SSRI() {
 
 
 const getMethodParameters = (trait: 'UDT' | 'UDTPausable', methodName: string) => {
-  const TraitClass = trait === 'UDT' ? UDT : UDTPausable;
+  const TraitClass = trait === 'UDT' ? udt.UDT : udt.UDTPausable;
   const method = (TraitClass.prototype as any)[methodName];
   if (!method) {
     return [];
