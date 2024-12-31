@@ -1,10 +1,10 @@
 import { ccc, OutPointLike } from "@ckb-ccc/core";
-import { SSRIServer } from "@ckb-ccc/ssri";
+import { ssri } from "@ckb-ccc/ssri";
 import { UDT } from "./index.js";
 
 
 const testClient = new ccc.ClientPublicTestnet({ url: "wss://testnet.ckb.dev/ws" })
-const testSSRIServer = new SSRIServer(
+const testSSRIServer = new ssri.Server(
   testClient,
   "http://localhost:9090"
 )
