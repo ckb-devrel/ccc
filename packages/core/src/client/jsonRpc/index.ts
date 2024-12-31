@@ -459,7 +459,7 @@ export abstract class ClientJsonRpc extends Client {
       result: unknown;
     };
     this.concurrent -= 1;
-    this.pending.pop()?.();
+    this.pending.shift()?.();
 
     if (res.id !== payload.id) {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
