@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.1.0
+
+### Minor Changes
+
+- [#112](https://github.com/ckb-devrel/ccc/pull/112) [`ddc0a28`](https://github.com/ckb-devrel/ccc/commit/ddc0a281c3d1dfa6ebc990dae92994f026dfddcc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: set maxConcurrent for ClientJsonRpc
+
 ## 1.0.1
 
 ### Patch Changes
