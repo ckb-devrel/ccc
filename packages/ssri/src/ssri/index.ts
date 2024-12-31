@@ -1,17 +1,5 @@
 import {
-  Bytes,
-  bytesConcat,
   ccc,
-  Client,
-  HasherCkb,
-  HashType,
-  HashTypeLike,
-  Hex,
-  HexLike,
-  numToBytes,
-  OutPointLike,
-  Transaction,
-  TransactionLike,
 } from "@ckb-ccc/core";
 import axios from "axios";
 
@@ -32,7 +20,7 @@ export class SSRICallParams {
    * Elevate to transaction level
    *
    */
-  transaction?: { inner: TransactionLike; hash: Hex };
+  transaction?: { inner: ccc.TransactionLike; hash: ccc.Hex };
   /**
    * Some SSRI methods might be able to store results for cache (e.g. `UDT.symbol`, etc.). If `noCache` is set to `true`, the cache would be ignored.
    */
@@ -49,14 +37,14 @@ export class SSRICallParams {
 export abstract class SSRIContract {
   cache: Map<string, unknown> = new Map();
   server: SSRIServer;
-  codeOutPoint: OutPointLike;
+  codeOutPoint: ccc.OutPointLike;
 
   /**
    * Creates an instance of SSRIContract.
    * @param {SSRIServer} server - The SSRI server instance.
    * @param {OutPointLike} codeOutPoint - The code OutPoint.
    */
-  constructor(server: SSRIServer, codeOutPoint: OutPointLike) {
+  constructor(server: SSRIServer, codeOutPoint: ccc.OutPointLike) {
     this.server = server;
     this.codeOutPoint = codeOutPoint;
     this.cache = new Map();
@@ -72,11 +60,11 @@ export abstract class SSRIContract {
    */
   async callMethod(
     path: string,
-    argsHex: Hex[],
+    argsHex: ccc.Hex[],
     params?: SSRICallParams,
-  ): Promise<Hex> {
+  ): Promise<ccc.Hex> {
     console.log("Calling method", path, "with args", argsHex);
-    const hasher = new HasherCkb();
+    const hasher = new ccc.HasherCkb();
     const pathHex = hasher.update(Buffer.from(path)).digest().slice(0, 18);
     const payload = {
       id: 2,
@@ -112,21 +100,21 @@ export abstract class SSRIContract {
     offset = 0,
     limit = 0,
     params?: SSRICallParams,
-  ): Promise<Bytes[]> {
-    let rawResult: Hex;
+  ): Promise<ccc.Bytes[]> {
+    let rawResult: ccc.Hex;
     if (
       !params?.noCache &&
       this.cache.has("getMethods") &&
       offset === 0 &&
       limit === 0
     ) {
-      rawResult = this.cache.get("getMethods") as Hex;
+      rawResult = this.cache.get("getMethods") as ccc.Hex;
     } else {
       rawResult = await this.callMethod(
         "SSRI.get_methods",
         [
-          ssriUtils.encodeHex(numToBytes(offset, 4)),
-          ssriUtils.encodeHex(numToBytes(limit, 4)),
+          ssriUtils.encodeHex(ccc.numToBytes(offset, 4)),
+          ssriUtils.encodeHex(ccc.numToBytes(limit, 4)),
         ],
         params,
       );
@@ -146,9 +134,9 @@ export abstract class SSRIContract {
    * @param {Bytes[]} methods - The methods to check.
    * @returns {Promise<boolean>} A promise that resolves to a boolean indicating if the methods exist. True means all methods exist, false means at least one method does not exist.
    */
-  async hasMethods(methods: Bytes[]): Promise<boolean> {
-    const flattenedMethods = bytesConcat(...methods);
-    const methodsEncoded = ssriUtils.encodeHex(flattenedMethods)
+  async hasMethods(methods: ccc.Bytes[]): Promise<boolean> {
+    const flattenedMethods = ccc.bytesConcat(...methods);
+    const methodsEncoded = ssriUtils.encodeHex(flattenedMethods);
     const rawResult = await this.callMethod(
       "SSRI.has_methods",
       [
@@ -185,15 +173,15 @@ export abstract class SSRIContract {
  * Represents an SSRI server. Shall connect to an external server or run in WASM (TODO).
  */
 export class SSRIServer {
-  client: Client;
+  client: ccc.Client;
   serverURL?: string;
 
   /**
    * Creates an instance of SSRIServer.
-   * @param {Client} client - The client instance.
+   * @param {ccc.Client} client - The client instance.
    * @param {string} [serverURL] - The external server URL.
    */
-  constructor(client: Client, serverURL?: string) {
+  constructor(client: ccc.Client, serverURL?: string) {
     this.client = client;
     this.serverURL = serverURL;
   }
@@ -201,16 +189,16 @@ export class SSRIServer {
   /**
    * Makes a JSON-RPC call to the SSRI server.
    * @param {unknown} payload - The JSON-RPC payload to send to the server.
-   * @returns {Promise<Hex>} The hexadecimal result from the server
+   * @returns {Promise<ccc.Hex>} The hexadecimal result from the server
    * @throws {Error} Throws if the server request fails or returns an error
    */
-  async call(payload: unknown): Promise<Hex> {
+  async call(payload: unknown): Promise<ccc.Hex> {
     try {
       const response = await axios.post(this.serverURL!, payload, {
         headers: { "Content-Type": "application/json" },
       });
       console.log("Response", response.data);
-      return response.data.result as Hex;
+      return response.data.result as ccc.Hex;
     } catch (error) {
       throw new Error(error as string);
     }
@@ -261,12 +249,12 @@ export const ssriUtils = {
     console.log("Validation Passed");
     return;
   },
-  encodeHex(data: Uint8Array): Hex {
+  encodeHex(data: ccc.Bytes): ccc.Hex {
     return `0x${Array.from(data, (byte) =>
       byte.toString(16).padStart(2, "0"),
     ).join("")}`;
   },
-  decodeHex(data: Hex): Uint8Array {
+  decodeHex(data: ccc.Hex): ccc.Bytes {
     const dataString = data.slice(2);
     if (dataString.length % 2 !== 0) {
       throw new Error("Invalid hex string: must have an even length.");
@@ -278,7 +266,7 @@ export const ssriUtils = {
     }
     return result;
   },
-  recalibrateCapacity(tx: Transaction): Transaction {
+  recalibrateCapacity(tx: ccc.Transaction): ccc.Transaction {
     return ccc.Transaction.fromBytes(tx.toBytes());
   },
 };
@@ -291,9 +279,9 @@ type PayloadType = {
 };
 
 type SSRIScriptLike = {
-  code_hash: HexLike;
-  hash_type: HashTypeLike;
-  args: HexLike;
+  code_hash: ccc.HexLike;
+  hash_type: ccc.HashTypeLike;
+  args: ccc.HexLike;
 };
 type ParamType =
   | string
@@ -308,18 +296,18 @@ type ParamType =
 
 type SSRICellOutputWithData = {
   cell_output: SSRICellOutput;
-  hex_data: Hex;
+  hex_data: ccc.Hex;
 };
 
 type SSRITransaction = {
-  inner: TransactionLike;
-  hash: Hex;
+  inner: ccc.TransactionLike;
+  hash: ccc.Hex;
 };
 
 type SSRIScript = {
-  code_hash: Hex;
-  hash_type: HashType;
-  args: Hex;
+  code_hash: ccc.Hex;
+  hash_type: ccc.HashType;
+  args: ccc.Hex;
 };
 
 type SSRICellOutput = {

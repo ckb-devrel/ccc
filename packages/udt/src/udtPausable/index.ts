@@ -1,6 +1,7 @@
-import { ccc, Hex, numToBytes, TransactionLike, mol, Transaction } from "@ckb-ccc/core";
-import { SSRICallParams, ssriUtils } from "../ssri/index.js";
+import { ccc, mol } from "@ckb-ccc/core";
+import { SSRICallParams, ssriUtils } from "@ckb-ccc/ssri";
 import { UDT } from "../index.js";
+import { udtPausableDataCodec } from "./advanced.js";
 
 /**
  * Represents a pausable functionality for a UDT (User Defined Token).
@@ -9,12 +10,7 @@ import { UDT } from "../index.js";
  */
 export class UDTPausable extends UDT {
   cache: Map<string, unknown> = new Map();
-  private static readonly u832Codec = mol.array(mol.Uint8, 32);
-  private static readonly u832VecCodec = mol.vector(this.u832Codec);
-  private static readonly udtPausableDataCodec = mol.table({
-    pause_list: this.u832VecCodec,
-    next_type_script: mol.option(ccc.Script),
-  });
+  
 
   /**
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
@@ -24,10 +20,10 @@ export class UDTPausable extends UDT {
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async pause(
-    tx: TransactionLike | undefined,
-    lockHashes: Hex[],
+    tx: ccc.Transaction | undefined,
+    lockHashes: ccc.Hex[],
     params?: SSRICallParams,
-  ): Promise<TransactionLike> {
+  ): Promise<ccc.Transaction> {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
     ssriUtils.validateSSRIParams(params, { signer: true });
     const txEncodedHex = tx
@@ -62,7 +58,7 @@ export class UDTPausable extends UDT {
 
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
       udtPausableUtils.encodeU832Array(lockHashU832Array);
@@ -89,16 +85,16 @@ export class UDTPausable extends UDT {
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async unpause(
-    tx: Transaction | undefined,
-    lockHashes: Hex[],
+    tx: ccc.Transaction | undefined,
+    lockHashes: ccc.Hex[],
     params?: SSRICallParams,
-  ): Promise<Transaction> {
+  ): Promise<ccc.Transaction> {
     const txEncodedHex = tx
       ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
       udtPausableUtils.encodeU832Array(lockHashU832Array);
@@ -122,11 +118,14 @@ export class UDTPausable extends UDT {
    * @param {Hex[]} [lockHashes] - The lock hash to check.
    * @returns {Promise<boolean>} True if any of the lock hashes are paused, false otherwise.
    */
-  async isPaused(lockHashes: Hex[], params?: SSRICallParams): Promise<boolean> {
+  async isPaused(
+    lockHashes: ccc.Hex[],
+    params?: SSRICallParams,
+  ): Promise<boolean> {
     ssriUtils.validateSSRIParams(params, {});
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
       udtPausableUtils.encodeU832Array(lockHashU832Array);
@@ -150,20 +149,20 @@ export class UDTPausable extends UDT {
     limit?: bigint,
     params?: SSRICallParams,
   ): Promise<unknown[]> {
-    let rawResult: Hex;
+    let rawResult: ccc.Hex;
     if (
       !params?.noCache &&
       this.cache.has("enumeratePaused") &&
       !offset &&
       !limit
     ) {
-      rawResult = this.cache.get("enumeratePaused") as Hex;
+      rawResult = this.cache.get("enumeratePaused") as ccc.Hex;
     } else {
       rawResult = await this.callMethod(
         "UDTPausable.enumerate_paused",
         [
-          ssriUtils.encodeHex(numToBytes(offset ?? 0, 4)),
-          ssriUtils.encodeHex(numToBytes(limit ?? 0, 4)),
+          ssriUtils.encodeHex(ccc.numToBytes(offset ?? 0, 4)),
+          ssriUtils.encodeHex(ccc.numToBytes(limit ?? 0, 4)),
         ],
         params,
       );
@@ -172,7 +171,7 @@ export class UDTPausable extends UDT {
     const udtPausableDataInBytesVec = mol.BytesVec.decode(rawResult);
     const udtPausableDataArray = [];
     for (const udtPausableDataInBytes of udtPausableDataInBytesVec) {
-      const udtPausableData = UDTPausable.udtPausableDataCodec.decode(
+      const udtPausableData = udtPausableDataCodec.decode(
         udtPausableDataInBytes,
       );
       udtPausableDataArray.push(udtPausableData);
@@ -182,21 +181,21 @@ export class UDTPausable extends UDT {
 }
 
 export const udtPausableUtils = {
-  encodeU832Array(val: Array<Uint8Array>): Uint8Array {
+  encodeU832Array(val: Array<ccc.Bytes>): ccc.Bytes {
     if (val.some((arr) => arr.length !== 32)) {
       throw new Error("Each inner array must be exactly 32 bytes.");
     }
 
     // Convert the length to a 4-byte little-endian array
-    const lengthBytes = new Uint8Array(new Uint32Array([val.length]).buffer);
+    const lengthBytes = ccc.bytesFrom(new Uint32Array([val.length]));
 
     // Flatten the 2D array of 32-byte elements into a single array
     const flattenedBytes = val.reduce((acc, curr) => {
-      acc.push(...curr);
+      acc = ccc.bytesConcat(acc, curr);
       return acc;
-    }, [] as number[]);
+    }, ccc.bytesFrom("0x"));
 
     // Combine the length bytes with the flattened byte array
-    return new Uint8Array([...lengthBytes, ...flattenedBytes]);
+    return ccc.bytesConcat(lengthBytes, flattenedBytes);
   },
 };

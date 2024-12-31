@@ -15,7 +15,9 @@
     "packages/uni-sat",
     "packages/nip07",
     "packages/eip6963",
-    "packages/lumos-patches"
+    "packages/lumos-patches",
+    "packages/udt",
+    "packages/ssri"
   ],
   "entryPointStrategy": "packages",
   "githubPages": true,

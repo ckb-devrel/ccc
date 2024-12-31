@@ -1,5 +1,5 @@
 import { ccc, Address } from "@ckb-ccc/core";
-import { SSRICallParams, ssriUtils } from "../ssri/index.js";
+import { SSRICallParams, ssriUtils } from "@ckb-ccc/ssri";
 import { UDT } from "./index.js";
 
 /**

@@ -1,5 +1,5 @@
 import { ccc, OutPointLike } from "@ckb-ccc/core";
-import { SSRIServer } from "../ssri/index.js";
+import { SSRIServer } from "@ckb-ccc/ssri";
 import { UDT } from "./index.js";
 
 
