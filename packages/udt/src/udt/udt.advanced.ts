@@ -1,5 +1,5 @@
-import { ccc, Address } from "@ckb-ccc/core";
-import { SSRICallParams, ssriUtils } from "@ckb-ccc/ssri";
+import { ccc } from "@ckb-ccc/core";
+import { ssri } from "@ckb-ccc/ssri";
 import { UDT } from "./index.js";
 
 /**
@@ -10,10 +10,10 @@ import { UDT } from "./index.js";
  */
 export async function getBalanceOf(
   udtContract: UDT,
-  address: Address,
-  params?: SSRICallParams,
+  address: ccc.Address,
+  params?: ssri.CallParams,
 ): Promise<number> {
-  ssriUtils.validateSSRIParams(params, { level: "script" });
+  ssri.utils.validateParams(params, { level: "script" });
   if (!params?.script) {
     throw new Error("Script is required");
   }

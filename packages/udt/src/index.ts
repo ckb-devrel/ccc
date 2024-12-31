@@ -1,2 +1,2 @@
-export * from "./udt/index.js";
-export * from "./udtPausable/index.js";
+export * from "./barrel.js";
+export * as udt from "./barrel.js";

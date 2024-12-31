@@ -7,15 +7,15 @@ import axios from "axios";
  * Represents the parameters for an SSRI call. By providing a script, cell, or transaction, the call environment would be elevated accordingly.
  * @public
  */
-export class SSRICallParams {
+export class CallParams {
   /**
    * Elevate to script level
    */
-  script?: SSRIScript;
+  script?: Script;
   /**
    * Elevate to cell level
    */
-  cell?: SSRICellOutputWithData;
+  cell?: CellOutputWithData;
   /**
    * Elevate to transaction level
    *
@@ -34,34 +34,34 @@ export class SSRICallParams {
 /**
  * Abstract class representing an SSRI contract. Should be used as the base of all SSRI contracts.
  */
-export abstract class SSRIContract {
+export abstract class Contract {
   cache: Map<string, unknown> = new Map();
-  server: SSRIServer;
+  server: Server;
   codeOutPoint: ccc.OutPointLike;
 
   /**
-   * Creates an instance of SSRIContract.
-   * @param {SSRIServer} server - The SSRI server instance.
+   * Creates an instance of SSRI Contract.
+   * @param {Server} server - The SSRI server instance.
    * @param {OutPointLike} codeOutPoint - The code OutPoint.
    */
-  constructor(server: SSRIServer, codeOutPoint: ccc.OutPointLike) {
+  constructor(server: Server, codeOutPoint: ccc.OutPointLike) {
     this.server = server;
     this.codeOutPoint = codeOutPoint;
     this.cache = new Map();
   }
 
   /**
-   * Calls a method on the SSRI server through SSRIServer.
+   * Calls a method on the SSRI server through SSRI Server.
    * @param {string} path - The path to the method.
    * @param {unknown[]} args - The arguments for the method.
-   * @param {SSRICallParams} params - The parameters for the call.
+   * @param {CallParams} params - The parameters for the call.
    * @returns {Promise<Hex>} The result of the call.
    * @private
    */
   async callMethod(
     path: string,
     argsHex: ccc.Hex[],
-    params?: SSRICallParams,
+    params?: CallParams,
   ): Promise<ccc.Hex> {
     console.log("Calling method", path, "with args", argsHex);
     const hasher = new ccc.HasherCkb();
@@ -99,7 +99,7 @@ export abstract class SSRIContract {
   async getMethods(
     offset = 0,
     limit = 0,
-    params?: SSRICallParams,
+    params?: CallParams,
   ): Promise<ccc.Bytes[]> {
     let rawResult: ccc.Hex;
     if (
@@ -113,14 +113,14 @@ export abstract class SSRIContract {
       rawResult = await this.callMethod(
         "SSRI.get_methods",
         [
-          ssriUtils.encodeHex(ccc.numToBytes(offset, 4)),
-          ssriUtils.encodeHex(ccc.numToBytes(limit, 4)),
+          utils.encodeHex(ccc.numToBytes(offset, 4)),
+          utils.encodeHex(ccc.numToBytes(limit, 4)),
         ],
         params,
       );
       this.cache.set("getMethods", rawResult);
     }
-    const decodedResult = ssriUtils.decodeHex(rawResult);
+    const decodedResult = utils.decodeHex(rawResult);
     // Chunk the results into arrays of 8 bytes
     const result = [];
     for (let i = 0; i < decodedResult.length; i += 8) {
@@ -136,7 +136,7 @@ export abstract class SSRIContract {
    */
   async hasMethods(methods: ccc.Bytes[]): Promise<boolean> {
     const flattenedMethods = ccc.bytesConcat(...methods);
-    const methodsEncoded = ssriUtils.encodeHex(flattenedMethods);
+    const methodsEncoded = utils.encodeHex(flattenedMethods);
     const rawResult = await this.callMethod(
       "SSRI.has_methods",
       [
@@ -172,12 +172,12 @@ export abstract class SSRIContract {
 /**
  * Represents an SSRI server. Shall connect to an external server or run in WASM (TODO).
  */
-export class SSRIServer {
+export class Server {
   client: ccc.Client;
   serverURL?: string;
 
   /**
-   * Creates an instance of SSRIServer.
+   * Creates an instance of SSRI Server.
    * @param {ccc.Client} client - The client instance.
    * @param {string} [serverURL] - The external server URL.
    */
@@ -203,26 +203,17 @@ export class SSRIServer {
       throw new Error(error as string);
     }
   }
-
-  /**
-   * NOTE: This function is not yet implemented.
-   * Runs the server.
-   */
-  // async run() {
-  //   // TODO: implement WASM style
-  //   throw new Error("TODO");
-  // }
 }
 
-export const ssriUtils = {
+export const utils = {
   /**
    * Validates SSRI call parameters against required operation level.
-   * @param {SSRICallParams} [params] - SSRI call parameters to validate
+   * @param {CallParams} [params] - SSRI call parameters to validate
    * @param {{ level: "script" | "cell" | "transaction" | undefined, signer: boolean }} validator - Object containing params specifications to validate against
    * @throws {Error} If required parameters are missing or invalid
    */
-  validateSSRIParams(
-    params: SSRICallParams | undefined,
+  validateParams(
+    params: CallParams | undefined,
     validator: {
       level?: "script" | "cell" | "transaction";
       signer?: boolean;
@@ -278,7 +269,7 @@ type PayloadType = {
   params: ParamType[];
 };
 
-type SSRIScriptLike = {
+type ScriptLike = {
   code_hash: ccc.HexLike;
   hash_type: ccc.HashTypeLike;
   args: ccc.HexLike;
@@ -290,28 +281,28 @@ type ParamType =
   | ArrayBuffer
   | ArrayLike<number>
   | string[]
-  | SSRIScriptLike
-  | SSRICellOutputWithData
-  | SSRITransaction;
+  | ScriptLike
+  | CellOutputWithData
+  | Transaction;
 
-type SSRICellOutputWithData = {
-  cell_output: SSRICellOutput;
+type CellOutputWithData = {
+  cell_output: CellOutput;
   hex_data: ccc.Hex;
 };
 
-type SSRITransaction = {
+type Transaction = {
   inner: ccc.TransactionLike;
   hash: ccc.Hex;
 };
 
-type SSRIScript = {
+type Script = {
   code_hash: ccc.Hex;
   hash_type: ccc.HashType;
   args: ccc.Hex;
 };
 
-type SSRICellOutput = {
+type CellOutput = {
   capacity: string;
-  lock: SSRIScript;
-  type?: SSRIScript;
+  lock: Script;
+  type?: Script;
 };

@@ -1,1 +1,1 @@
-export * from "./ssri/index.js";
+export * as ssri from "./ssri/index.js";

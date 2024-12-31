@@ -1,10 +1,5 @@
 import { ccc, mol } from "@ckb-ccc/core";
-import {
-  SSRICallParams,
-  SSRIContract,
-  SSRIServer,
-  ssriUtils,
-} from "@ckb-ccc/ssri";
+import { ssri } from "@ckb-ccc/ssri";
 import { getBalanceOf } from "./udt.advanced.js";
 
 /**
@@ -22,11 +17,11 @@ import { getBalanceOf } from "./udt.advanced.js";
  * - Fallback support for xUDT standard tokens
  *
  * @public
- * @extends {SSRIContract}
+ * @extends {ssri.Contract}
  * @category Blockchain
  * @category Token
  */
-export class UDT extends SSRIContract {
+export class UDT extends ssri.Contract {
   /**
    * Internal cache to store and retrieve token-related data efficiently.
    * Helps reduce redundant network calls by storing previously fetched information.
@@ -50,7 +45,7 @@ export class UDT extends SSRIContract {
    * Constructs a new UDT (User Defined Token) contract instance.
    * By default it is a SSRI-compliant UDT. Use `fallbackToXudt` instead to initialize a fallback xUDT.
    *
-   * @param {SSRIServer} server - The SSRI server instance used for blockchain interactions.
+   * @param {ssri.Server} server - The SSRI server instance used for blockchain interactions.
    * @param {OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
    *
    * @example
@@ -58,7 +53,7 @@ export class UDT extends SSRIContract {
    * const udt = new UDT(ssriServer, { txHash: '0x...', index: 0 });
    * ```
    */
-  constructor(server: SSRIServer, codeOutPoint: ccc.OutPointLike) {
+  constructor(server: ssri.Server, codeOutPoint: ccc.OutPointLike) {
     super(server, codeOutPoint);
   }
 
@@ -84,7 +79,7 @@ export class UDT extends SSRIContract {
     decimals?: bigint,
     icon?: ccc.Hex,
   ): UDT {
-    const placeHolderSSRIServer = new SSRIServer(
+    const placeHolderSSRIServer = new ssri.Server(
       client,
       "https://localhost:9090",
     );
@@ -110,13 +105,13 @@ export class UDT extends SSRIContract {
    * This method fetches the token's name from the blockchain, with optional caching
    * to improve performance and reduce unnecessary network calls.
    *
-   * @param {SSRICallParams} [params] - Optional parameters to customize the call behavior.
+   * @param {ssri.CallParams} [params] - Optional parameters to customize the call behavior.
    * @param {boolean} [params.noCache=false] - If true, bypasses the internal cache.
    * @returns {Promise<string>} A promise resolving to the token's name.
    * @tag Cache - This method supports caching to improve performance.
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async name(params?: SSRICallParams): Promise<string> {
+  async name(params?: ssri.CallParams): Promise<string> {
     let rawResult: ccc.Hex;
     if (this.fallbackArguments) {
       return this.fallbackArguments.name;
@@ -126,18 +121,18 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.name", [], params);
       this.cache.set("name", rawResult);
     }
-    const nameBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    const nameBytes = Buffer.from(ssri.utils.decodeHex(rawResult));
     return nameBytes.toString("utf8");
   }
 
   /**
    * Retrieves the symbol of the UDT.
-   * @param {SSRICallParams} [params] - The parameters for the call.
+   * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<string>} The symbol of the UDT.
    * @tag Cache - This method supports caching to improve performance.
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async symbol(params?: SSRICallParams): Promise<string> {
+  async symbol(params?: ssri.CallParams): Promise<string> {
     let rawResult: ccc.Hex;
     if (this.fallbackArguments) {
       return this.fallbackArguments.symbol;
@@ -147,18 +142,18 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.symbol", [], params);
       this.cache.set("symbol", rawResult);
     }
-    const symbolBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    const symbolBytes = Buffer.from(ssri.utils.decodeHex(rawResult));
     return symbolBytes.toString("utf8");
   }
 
   /**
    * Retrieves the decimals of the UDT.
-   * @param {SSRICallParams} [params] - The parameters for the call.
+   * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<bigint>} The decimals of the UDT.
    * @tag Cache - This method supports caching to improve performance.
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async decimals(params?: SSRICallParams): Promise<bigint> {
+  async decimals(params?: ssri.CallParams): Promise<bigint> {
     let rawResult: ccc.Hex;
     if (this.fallbackArguments) {
       return this.fallbackArguments.decimals;
@@ -173,13 +168,13 @@ export class UDT extends SSRIContract {
 
   /**
    * Retrieves the balance of the UDT of a specific cell. Use the elevated method `balanceOf` for address balance.
-   * @param {SSRICallParams} [params] - The parameters for the call.
+   * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<number>} The balance of the UDT.
    * @tag Cell - This method requires a cell level call.
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async balance(params?: SSRICallParams): Promise<bigint> {
-    ssriUtils.validateSSRIParams(params, { level: "cell" });
+  async balance(params?: ssri.CallParams): Promise<bigint> {
+    ssri.utils.validateParams(params, { level: "cell" });
     if (this.fallbackArguments) {
       if (!params?.cell) {
         throw new Error("Cell is required");
@@ -188,7 +183,7 @@ export class UDT extends SSRIContract {
       return balance;
     } else {
       const rawResult = await this.callMethod("UDT.balance", [], params);
-      const balance = ccc.numLeFromBytes(ssriUtils.decodeHex(rawResult));
+      const balance = ccc.numLeFromBytes(ssri.utils.decodeHex(rawResult));
       return balance;
     }
   }
@@ -200,7 +195,7 @@ export class UDT extends SSRIContract {
    * the token's decimal places and performing a comprehensive balance lookup.
    *
    * @param {string} address - The blockchain address to retrieve the balance for.
-   * @param {SSRICallParams} [params] - Optional parameters to customize the balance retrieval.
+   * @param {ssri.CallParams} [params] - Optional parameters to customize the balance retrieval.
    * @param {boolean} [params.noCache=false] - If true, bypasses any internal caching mechanism.
    * @returns {Promise<number>} The balance of the specified address, adjusted for token decimals.
    * @example
@@ -210,7 +205,7 @@ export class UDT extends SSRIContract {
    * @tag Elevated - This method is elevated with CCC and not available in raw SSRI call
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async balanceOf(address: string, params?: SSRICallParams): Promise<number> {
+  async balanceOf(address: string, params?: ssri.CallParams): Promise<number> {
     let client: ccc.Client;
     if (this.fallbackArguments) {
       client = this.fallbackArguments.client;
@@ -234,7 +229,7 @@ export class UDT extends SSRIContract {
    * @param {Transaction | undefined} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
    * @param {ScriptLike[]} toLockArray - The array of lock scripts for the recipients.
    * @param {number[]} toAmountArray - The array of amounts to be transferred.
-   * @param {SSRICallParams} [params] - The parameters for the call.
+   * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<{ tx: Transaction }>} The transaction result.
    * @tag Script - This method requires a script level call. The script is the target Type Script for the UDT.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
@@ -244,7 +239,7 @@ export class UDT extends SSRIContract {
     tx: ccc.Transaction | undefined,
     toLockArray: ccc.Script[],
     toAmountArray: number[],
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<ccc.Transaction> {
     if (toLockArray.length !== toAmountArray.length) {
       throw new Error("The number of lock scripts and amounts must match");
@@ -283,21 +278,21 @@ export class UDT extends SSRIContract {
       ]);
       return tx;
     }
-    const txEncodedHex = tx ? ssriUtils.encodeHex(tx.toBytes()) : "0x";
-    ssriUtils.validateSSRIParams(params, { level: "script" });
+    const txEncodedHex = tx ? ssri.utils.encodeHex(tx.toBytes()) : "0x";
+    ssri.utils.validateParams(params, { level: "script" });
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
-    const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
+    const toLockArrayEncodedHex = ssri.utils.encodeHex(toLockArrayEncoded);
     const toAmountArrayEncoded = udtUtils.encodeAmountArray(
       toAmountArray,
       await this.decimals(),
     );
-    const toAmountArrayEncodedHex = ssriUtils.encodeHex(toAmountArrayEncoded);
+    const toAmountArrayEncodedHex = ssri.utils.encodeHex(toAmountArrayEncoded);
     const rawResult = await this.callMethod(
       "UDT.transfer",
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
       { ...params },
     );
-    const resultDecodedArray = ssriUtils.decodeHex(rawResult);
+    const resultDecodedArray = ssri.utils.decodeHex(rawResult);
     return ccc.Transaction.decode(resultDecodedArray);
   }
 
@@ -306,7 +301,7 @@ export class UDT extends SSRIContract {
    * @param {Transaction | undefined} [tx] - Optional existing transaction to build upon
    * @param {Script[]} toLockArray - Array of recipient lock scripts
    * @param {number[]} toAmountArray - Array of amounts to mint to each recipient
-   * @param {SSRICallParams} [params] - Optional SSRI call parameters
+   * @param {ssri.CallParams} [params] - Optional SSRI call parameters
    * @returns {Promise<Transaction>} The transaction containing the mint operation
    * @tag Script - This method requires a script level call
    * @tag Mutation - This method represents a mutation of the onchain state
@@ -316,7 +311,7 @@ export class UDT extends SSRIContract {
     tx: ccc.Transaction | undefined,
     toLockArray: ccc.Script[],
     toAmountArray: number[],
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<ccc.Transaction> {
     if (toLockArray.length !== toAmountArray.length) {
       throw new Error("The number of lock scripts and amounts must match");
@@ -355,17 +350,17 @@ export class UDT extends SSRIContract {
       ]);
       return tx;
     }
-    ssriUtils.validateSSRIParams(params, { level: "script" });
+    ssri.utils.validateParams(params, { level: "script" });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
+      ? ssri.utils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     const toLockArrayEncoded = udtUtils.encodeLockArray(toLockArray);
-    const toLockArrayEncodedHex = ssriUtils.encodeHex(toLockArrayEncoded);
+    const toLockArrayEncodedHex = ssri.utils.encodeHex(toLockArrayEncoded);
     const toAmountArrayEncoded = udtUtils.encodeAmountArray(
       toAmountArray,
       await this.decimals(),
     );
-    const toAmountArrayEncodedHex = ssriUtils.encodeHex(toAmountArrayEncoded);
+    const toAmountArrayEncodedHex = ssri.utils.encodeHex(toAmountArrayEncoded);
     const rawResult = await this.callMethod(
       "UDT.mint",
       [txEncodedHex, toLockArrayEncodedHex, toAmountArrayEncodedHex],
@@ -377,11 +372,11 @@ export class UDT extends SSRIContract {
 
   /**
    * Retrieves the icon of the UDT encoded in base64.
-   * @param {SSRICallParams} [params] - The parameters for the call.
+   * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<ccc.Bytes>} The icon of the UDT.
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
    */
-  async icon(params?: SSRICallParams): Promise<ccc.Bytes> {
+  async icon(params?: ssri.CallParams): Promise<ccc.Bytes> {
     let rawResult: ccc.Hex;
     if (this.fallbackArguments) {
       rawResult = this.fallbackArguments.icon ?? ("0x" as ccc.Hex);
@@ -391,7 +386,7 @@ export class UDT extends SSRIContract {
       rawResult = await this.callMethod("UDT.icon", [], params);
       this.cache.set("icon", rawResult);
     }
-    const iconBytes = Buffer.from(ssriUtils.decodeHex(rawResult));
+    const iconBytes = Buffer.from(ssri.utils.decodeHex(rawResult));
     return iconBytes;
   }
 }
@@ -399,7 +394,7 @@ export class UDT extends SSRIContract {
 export const udtUtils = {
   /**
    * Encodes an array of lock scripts into a ccc.Bytes format suitable for UDT operations.
-   * @param {Script[]} val - Array of Script objects to encode
+   * @param {ccc.Script[]} val - Array of Script objects to encode
    * @returns {ccc.Bytes} Encoded ccc.Bytes representation of the lock scripts
    */
   encodeLockArray(val: Array<ccc.Script>): ccc.Bytes {

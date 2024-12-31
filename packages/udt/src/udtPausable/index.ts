@@ -1,6 +1,6 @@
 import { ccc, mol } from "@ckb-ccc/core";
-import { SSRICallParams, ssriUtils } from "@ckb-ccc/ssri";
-import { UDT } from "../index.js";
+import { ssri } from "@ckb-ccc/ssri";
+import { UDT } from "../udt/index.js";
 import { udtPausableDataCodec } from "./advanced.js";
 
 /**
@@ -14,20 +14,21 @@ export class UDTPausable extends UDT {
 
   /**
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
-   * @param {TransactionLike} [tx] - The transaction to be used.
-   * @param {Hex[]} lockHashes - The array of lock hashes to be paused.
-   * @returns {Promise<Transaction>} The transaction result.
+   * @param {ccc.Transaction} [tx] - The transaction to be used.
+   * @param {ccc.Hex[]} lockHashes - The array of lock hashes to be paused.
+   * @param {ssri.CallParams} [params] - The SSRI parameters for the call.
+   * @returns {Promise<ccc.Transaction>} The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async pause(
     tx: ccc.Transaction | undefined,
     lockHashes: ccc.Hex[],
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<ccc.Transaction> {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
-    ssriUtils.validateSSRIParams(params, { signer: true });
+    ssri.utils.validateParams(params, { signer: true });
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
+      ? ssri.utils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     if (!params) {
       throw new Error("Params are required");
@@ -66,8 +67,8 @@ export class UDTPausable extends UDT {
       lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
-      udtPausableUtils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
+      utils.encodeU832Array(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
@@ -76,7 +77,7 @@ export class UDTPausable extends UDT {
       { ...params },
     );
     const pauseTx = ccc.Transaction.decode(rawResult);
-    const cccPauseTx = ssriUtils.recalibrateCapacity(
+    const cccPauseTx = ssri.utils.recalibrateCapacity(
       ccc.Transaction.from(pauseTx),
     );
     return cccPauseTx;
@@ -84,26 +85,26 @@ export class UDTPausable extends UDT {
 
   /**
    * Unpauses the UDT for the specified lock hashes. Note that this method is only available if the pausable UDT uses external pause list.
-   * @param {TransactionLike} tx - The transaction to be used.
-   * @param {Hex[]} lockHashes - The array of lock hashes to be unpaused.
-   * @returns {Promise<Transaction>} The transaction result.
+   * @param {ccc.Transaction} tx - The transaction to be used.
+   * @param {ccc.Hex[]} lockHashes - The array of lock hashes to be unpaused.
+   * @returns {Promise<ccc.Transaction>} The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
   async unpause(
     tx: ccc.Transaction | undefined,
     lockHashes: ccc.Hex[],
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<ccc.Transaction> {
     const txEncodedHex = tx
-      ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
+      ? ssri.utils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
       lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
-      udtPausableUtils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
+      utils.encodeU832Array(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
@@ -112,7 +113,7 @@ export class UDTPausable extends UDT {
       { ...params },
     );
     const unPauseTx = ccc.Transaction.decode(rawResult);
-    const cccPauseTx = ssriUtils.recalibrateCapacity(
+    const cccPauseTx = ssri.utils.recalibrateCapacity(
       ccc.Transaction.from(unPauseTx),
     );
     return cccPauseTx;
@@ -120,21 +121,21 @@ export class UDTPausable extends UDT {
 
   /**
    * Checks if the UDT is paused for the specified lock hashes within a transaction. If not using external pause list, it can also be run on Code environment level.
-   * @param {Hex[]} [lockHashes] - The lock hash to check.
+   * @param {ccc.Hex[]} [lockHashes] - The lock hash to check.
    * @returns {Promise<boolean>} True if any of the lock hashes are paused, false otherwise.
    */
   async isPaused(
     lockHashes: ccc.Hex[],
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<boolean> {
-    ssriUtils.validateSSRIParams(params, {});
+    ssri.utils.validateParams(params, {});
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
       lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
     }
     const lockHashU832ArrayEncoded =
-      udtPausableUtils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssriUtils.encodeHex(
+      utils.encodeU832Array(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
@@ -152,7 +153,7 @@ export class UDTPausable extends UDT {
   async enumeratePaused(
     offset?: bigint,
     limit?: bigint,
-    params?: SSRICallParams,
+    params?: ssri.CallParams,
   ): Promise<unknown[]> {
     let rawResult: ccc.Hex;
     if (
@@ -166,8 +167,8 @@ export class UDTPausable extends UDT {
       rawResult = await this.callMethod(
         "UDTPausable.enumerate_paused",
         [
-          ssriUtils.encodeHex(ccc.numToBytes(offset ?? 0, 4)),
-          ssriUtils.encodeHex(ccc.numToBytes(limit ?? 0, 4)),
+          ssri.utils.encodeHex(ccc.numToBytes(offset ?? 0, 4)),
+          ssri.utils.encodeHex(ccc.numToBytes(limit ?? 0, 4)),
         ],
         params,
       );
@@ -185,7 +186,7 @@ export class UDTPausable extends UDT {
   }
 }
 
-export const udtPausableUtils = {
+export const utils = {
   encodeU832Array(val: Array<ccc.Bytes>): ccc.Bytes {
     if (val.some((arr) => arr.length !== 32)) {
       throw new Error("Each inner array must be exactly 32 bytes.");
