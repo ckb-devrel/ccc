@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.1.1
+
+### Patch Changes
+
+- [#114](https://github.com/ckb-devrel/ccc/pull/114) [`925991c`](https://github.com/ckb-devrel/ccc/commit/925991c8a24b1f34667e30b28b69812e936e3928) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: udtBalanceFrom
+
 ## 1.1.0
 
 ### Minor Changes

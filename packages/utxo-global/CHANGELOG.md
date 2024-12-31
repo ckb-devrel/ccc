@@ -1,5 +1,12 @@
 # @ckb-ccc/utxo-global
 
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`925991c`](https://github.com/ckb-devrel/ccc/commit/925991c8a24b1f34667e30b28b69812e936e3928)]:
+  - @ckb-ccc/core@1.1.1
+
 ## 1.0.2
 
 ### Patch Changes
