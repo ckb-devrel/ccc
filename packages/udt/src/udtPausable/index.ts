@@ -5,7 +5,7 @@ import { udtPausableDataCodec } from "./advanced.js";
 
 /**
  * Represents a pausable functionality for a UDT (User Defined Token).
- * @extends {UDT} in a composition style.
+ * @extends {UDT} This must be a SSRI UDT that does not fallback to xUDT.
  * @public
  */
 export class UDTPausable extends UDT {
