@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.2.1
+
+### Patch Changes
+
+- [#118](https://github.com/ckb-devrel/ccc/pull/118) [`94e2618`](https://github.com/ckb-devrel/ccc/commit/94e26182515e09d6086ec5b653d091f117a499e6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: client concurrent should be FIFO
+
 ## 1.2.0
 
 ### Minor Changes
