@@ -48,7 +48,7 @@ export class UDT extends SSRIContract {
 
   /**
    * Constructs a new UDT (User Defined Token) contract instance.
-   * By default it is a SSRI-compliant UDT. Use `fallbackToXudt`instead to initialize a fallback xUDT.
+   * By default it is a SSRI-compliant UDT. Use `fallbackToXudt` instead to initialize a fallback xUDT.
    *
    * @param {SSRIServer} server - The SSRI server instance used for blockchain interactions.
    * @param {OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
@@ -214,6 +214,14 @@ export class UDT extends SSRIContract {
     let client: ccc.Client;
     if (this.fallbackArguments) {
       client = this.fallbackArguments.client;
+      params = {
+        ...params,
+        script: {
+          code_hash: this.fallbackArguments.type.codeHash,
+          hash_type: this.fallbackArguments.type.hashType,
+          args: this.fallbackArguments.type.args,
+        },
+      };
     } else {
       client = this.server.client;
     }

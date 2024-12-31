@@ -14,17 +14,26 @@ export async function getBalanceOf(
   params?: SSRICallParams,
 ): Promise<number> {
   ssriUtils.validateSSRIParams(params, { level: "script" });
+  if (!params?.script) {
+    throw new Error("Script is required");
+  }
   const udtTypeScript = new ccc.Script(
-    params!.script!.code_hash,
-    params!.script!.hash_type,
-    params!.script!.args,
+    params.script.code_hash,
+    params.script.hash_type,
+    params.script.args,
   );
 
   const lock = address.script;
   console.log("Lock", lock);
 
   let balanceTotal = BigInt(0);
-  for await (const cell of udtContract.server.client.findCellsByLock(
+  let client: ccc.Client;
+  if (udtContract.fallbackArguments) {
+    client = udtContract.fallbackArguments.client;
+  } else {
+    client = udtContract.server.client;
+  }
+  for await (const cell of client.findCellsByLock(
     lock,
     udtTypeScript,
     true,

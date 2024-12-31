@@ -29,16 +29,21 @@ export class UDTPausable extends UDT {
     const txEncodedHex = tx
       ? ssriUtils.encodeHex(ccc.Transaction.encode(tx))
       : "0x";
-
+    if (!params) {
+      throw new Error("Params are required");
+    }
+    if (!params.signer) {
+      throw new Error("Signer is required");
+    }
     const { script: ownerLock } =
-      await params!.signer!.getRecommendedAddressObj();
-    if (!params?.cell) {
+      await params.signer.getRecommendedAddressObj();
+    if (!params.cell) {
       const dummy_typeid_script = await ccc.Script.fromKnownScript(
         this.server.client,
         ccc.KnownScript.TypeId,
         "0x",
       );
-      params!.cell = {
+      params.cell = {
         cell_output: {
           capacity: ccc.numToHex(0),
           lock: {
