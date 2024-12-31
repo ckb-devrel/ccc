@@ -688,10 +688,6 @@ export class WitnessArgs extends mol.Entity.Base<
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
   const data = bytesFrom(dataLike).slice(0, 16);
-  if (data.length !== 16) {
-    throw new Error("Invalid UDT cell data");
-  }
-
   return numFromBytes(data);
 }
 
