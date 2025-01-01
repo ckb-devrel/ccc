@@ -46,7 +46,7 @@ export class UDT extends ssri.Contract {
    * By default it is a SSRI-compliant UDT. Use `fallbackToXudt` instead to initialize a fallback xUDT.
    *
    * @param {ssri.Server} server - The SSRI server instance used for blockchain interactions.
-   * @param {OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
+   * @param {ccc.OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
    *
    * @example
    * ```typescript
@@ -226,8 +226,8 @@ export class UDT extends ssri.Contract {
 
   /**
    * Transfers UDT to specified addresses.
-   * @param {Transaction | undefined} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
-   * @param {ScriptLike[]} toLockArray - The array of lock scripts for the recipients.
+   * @param {ccc.Transaction | undefined} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
+   * @param {ccc.Script} toLockArray - The array of lock scripts for the recipients.
    * @param {number[]} toAmountArray - The array of amounts to be transferred.
    * @param {ssri.CallParams} [params] - The parameters for the call.
    * @returns {Promise<{ tx: Transaction }>} The transaction result.
@@ -298,11 +298,11 @@ export class UDT extends ssri.Contract {
 
   /**
    * Mints new tokens to specified addresses.
-   * @param {Transaction | undefined} [tx] - Optional existing transaction to build upon
-   * @param {Script[]} toLockArray - Array of recipient lock scripts
+   * @param {ccc.Transaction | undefined} [tx] - Optional existing transaction to build upon
+   * @param {ccc.Script[]} toLockArray - Array of recipient lock scripts
    * @param {number[]} toAmountArray - Array of amounts to mint to each recipient
    * @param {ssri.CallParams} [params] - Optional SSRI call parameters
-   * @returns {Promise<Transaction>} The transaction containing the mint operation
+   * @returns {Promise<ccc.Transaction>} The transaction containing the mint operation
    * @tag Script - This method requires a script level call
    * @tag Mutation - This method represents a mutation of the onchain state
    * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.

@@ -191,18 +191,13 @@ export default function SSRI() {
         args: fallbackType.args
       } as ccc.Script;
       
-      contract = activeTrait === "UDT" 
-        ? udt.UDT.fallbackToXudt(
+      contract = udt.UDT.fallbackToXudt(
             signer.client,
             fallbackScript,
             fallbackName,
             fallbackSymbol,
             BigInt(fallbackDecimals),
           )
-        : new udt.UDTPausable(new ssri.Server(signer.client, SSRIServerURL), {
-              txHash: contractOutPointTx,
-              index: parseInt(contractOutPointIndex)
-            });
     } else {
       // Create regular SSRI UDT instance
       const testSSRIServer = new ssri.Server(signer.client, SSRIServerURL);
