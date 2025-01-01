@@ -3,6 +3,7 @@ import { ClientCache } from "./cache/index.js";
 import { MAINNET_SCRIPTS } from "./clientPublicMainnet.advanced.js";
 import { KnownScript, ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
 import { ClientJsonRpc } from "./jsonRpc/index.js";
+import { Transport } from "./transports/advanced.js";
 
 /**
  * @public
@@ -13,6 +14,7 @@ export class ClientPublicMainnet extends ClientJsonRpc {
       url?: string;
       timeout?: number;
       maxConcurrent?: number;
+      transport?: Transport;
       scripts?: Record<KnownScript, ScriptInfoLike | undefined>;
       cache?: ClientCache;
     },

@@ -115,12 +115,13 @@ export abstract class ClientJsonRpc extends Client {
       timeout?: number;
       cache?: ClientCache;
       maxConcurrent?: number;
+      transport?: Transport;
     },
   ) {
     super(config);
 
     this.maxConcurrent = config?.maxConcurrent;
-    this.transport = transportFromUri(url_, config);
+    this.transport = config?.transport ?? transportFromUri(url_, config);
   }
 
   /**
