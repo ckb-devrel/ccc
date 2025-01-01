@@ -1,5 +1,20 @@
 # @ckb-ccc/ccc
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [[`7886e3d`](https://github.com/ckb-devrel/ccc/commit/7886e3d89e9ca8f3514a2044c6dd4e8ec6b49933)]:
+  - @ckb-ccc/core@1.2.2
+  - @ckb-ccc/eip6963@1.0.6
+  - @ckb-ccc/joy-id@1.0.6
+  - @ckb-ccc/nip07@1.0.6
+  - @ckb-ccc/okx@1.0.6
+  - @ckb-ccc/rei@1.0.6
+  - @ckb-ccc/uni-sat@1.0.6
+  - @ckb-ccc/utxo-global@1.0.6
+  - @ckb-ccc/xverse@1.0.6
+
 ## 1.0.5
 
 ### Patch Changes

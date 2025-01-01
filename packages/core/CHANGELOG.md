@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.2.2
+
+### Patch Changes
+
+- [#120](https://github.com/ckb-devrel/ccc/pull/120) [`7886e3d`](https://github.com/ckb-devrel/ccc/commit/7886e3d89e9ca8f3514a2044c6dd4e8ec6b49933) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: support ws:// rpc
+
 ## 1.2.1
 
 ### Patch Changes
