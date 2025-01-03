@@ -1,5 +1,43 @@
 # @ckb-ccc/core
 
+## 1.2.2
+
+### Patch Changes
+
+- [#120](https://github.com/ckb-devrel/ccc/pull/120) [`7886e3d`](https://github.com/ckb-devrel/ccc/commit/7886e3d89e9ca8f3514a2044c6dd4e8ec6b49933) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: support ws:// rpc
+
+## 1.2.1
+
+### Patch Changes
+
+- [#118](https://github.com/ckb-devrel/ccc/pull/118) [`94e2618`](https://github.com/ckb-devrel/ccc/commit/94e26182515e09d6086ec5b653d091f117a499e6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: client concurrent should be FIFO
+
+## 1.2.0
+
+### Minor Changes
+
+- [#116](https://github.com/ckb-devrel/ccc/pull/116) [`128e87b`](https://github.com/ckb-devrel/ccc/commit/128e87b5ca3e97bfe7842e76f786aa6aec010797) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: Client LRU cache
+
+## 1.1.1
+
+### Patch Changes
+
+- [#114](https://github.com/ckb-devrel/ccc/pull/114) [`925991c`](https://github.com/ckb-devrel/ccc/commit/925991c8a24b1f34667e30b28b69812e936e3928) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: udtBalanceFrom
+
+## 1.1.0
+
+### Minor Changes
+
+- [#112](https://github.com/ckb-devrel/ccc/pull/112) [`ddc0a28`](https://github.com/ckb-devrel/ccc/commit/ddc0a281c3d1dfa6ebc990dae92994f026dfddcc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: set maxConcurrent for ClientJsonRpc
+
+## 1.0.1
+
+### Patch Changes
+
+- [#111](https://github.com/ckb-devrel/ccc/pull/111) [`719055b`](https://github.com/ckb-devrel/ccc/commit/719055b404f31b40362f51714b9f11c85b857581) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: call stack overflow caused by spread operator
+
+- [#109](https://github.com/ckb-devrel/ccc/pull/109) [`94caaca`](https://github.com/ckb-devrel/ccc/commit/94caaca11c63752a25282d42f51161c94397dec6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor: remove redundant code
+
 ## 1.0.0
 
 ### Major Changes

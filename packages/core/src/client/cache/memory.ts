@@ -6,30 +6,31 @@ import {
   Transaction,
   TransactionLike,
 } from "../../ckb/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { hexFrom, HexLike } from "../../hex/index.js";
 import { ClientCollectableSearchKeyLike } from "../clientTypes.advanced.js";
 import { ClientCache } from "./cache.js";
-import { filterCell } from "./memory.advanced.js";
+import { CellRecord, filterCell, MapLru } from "./memory.advanced.js";
 
 export class ClientCacheMemory extends ClientCache {
   /**
    * OutPoint => [isLive, Cell | OutPoint]
    */
-  private readonly cells: Map<
-    string,
-    | [
-        false,
-        Pick<Cell, "outPoint"> &
-          Partial<Pick<Cell, "cellOutput" | "outputData">>,
-      ]
-    | [true, Cell]
-    | [undefined, Cell]
-  > = new Map();
+  private readonly cells: MapLru<string, CellRecord>;
 
   /**
    * TX Hash => Transaction
    */
-  private readonly knownTransactions: Map<string, Transaction> = new Map();
+  private readonly knownTransactions: MapLru<string, Transaction>;
+
+  constructor(
+    private readonly maxCells = 512,
+    private readonly maxTxs = 256,
+  ) {
+    super();
+
+    this.cells = new MapLru<string, CellRecord>(this.maxCells);
+    this.knownTransactions = new MapLru<string, Transaction>(this.maxTxs);
+  }
 
   async markUsable(...cellLikes: (CellLike | CellLike[])[]): Promise<void> {
     cellLikes.flat().forEach((cellLike) => {
@@ -57,15 +58,14 @@ export class ClientCacheMemory extends ClientCache {
   }
 
   async clear(): Promise<void> {
-    for (const val of this.cells.values()) {
-      val[0] = undefined;
-    }
+    this.cells.clear();
+    this.knownTransactions.clear();
   }
 
   async *findCells(
     keyLike: ClientCollectableSearchKeyLike,
   ): AsyncGenerator<Cell> {
-    for (const [isLive, cell] of this.cells.values()) {
+    for (const [key, [isLive, cell]] of this.cells.entries()) {
       if (!isLive) {
         continue;
       }
@@ -73,6 +73,7 @@ export class ClientCacheMemory extends ClientCache {
         continue;
       }
 
+      this.cells.access(key);
       yield cell.clone();
     }
   }

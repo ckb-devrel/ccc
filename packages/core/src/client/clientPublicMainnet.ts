@@ -1,8 +1,9 @@
 import WebSocket from "isomorphic-ws";
 import { ClientCache } from "./cache/index.js";
 import { MAINNET_SCRIPTS } from "./clientPublicMainnet.advanced.js";
-import { KnownScript, ScriptInfo } from "./clientTypes.js";
+import { KnownScript, ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
 import { ClientJsonRpc } from "./jsonRpc/index.js";
+import { Transport } from "./transports/advanced.js";
 
 /**
  * @public
@@ -12,7 +13,9 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     private readonly config?: {
       url?: string;
       timeout?: number;
-      scripts?: typeof MAINNET_SCRIPTS;
+      maxConcurrent?: number;
+      transport?: Transport;
+      scripts?: Record<KnownScript, ScriptInfoLike | undefined>;
       cache?: ClientCache;
     },
   ) {
@@ -25,7 +28,7 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     );
   }
 
-  get scripts(): typeof MAINNET_SCRIPTS {
+  get scripts(): Record<KnownScript, ScriptInfoLike | undefined> {
     return this.config?.scripts ?? MAINNET_SCRIPTS;
   }
 

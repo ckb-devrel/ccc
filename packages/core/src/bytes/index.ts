@@ -11,6 +11,41 @@ export type Bytes = Uint8Array;
 export type BytesLike = string | Uint8Array | ArrayBuffer | ArrayLike<number>;
 
 /**
+ * Concatenates multiple byte-like arrays to the first number array.
+ * @public
+ *
+ * @param result - The number array as result
+ * @param args - The byte-like arrays to concatenate.
+ * @returns The first number array
+ *
+ * @example
+ * ```typescript
+ * const concatenatedBytes = [1, 2];
+ * bytesConcatTo(
+ *   concatenatedBytes
+ *   new Uint8Array([3, 4]),
+ *   "hello",
+ *   [5, 6, 7]
+ * );
+ * console.log(concatenatedBytes); // Outputs [1, 2, 3, 4, /* bytes of "hello" *\/, 5, 6, 7]
+ * ```
+ */
+
+export function bytesConcatTo(
+  result: number[],
+  ...args: BytesLike[]
+): number[] {
+  return args.reduce((acc: number[], v) => {
+    const bytes = bytesFrom(v);
+    // Spread operator will cause call stack size exceeded
+    for (const byte of bytes) {
+      result.push(byte);
+    }
+    return acc;
+  }, result);
+}
+
+/**
  * Concatenates multiple byte-like arrays into a single byte array.
  * @public
  *
@@ -30,12 +65,7 @@ export type BytesLike = string | Uint8Array | ArrayBuffer | ArrayLike<number>;
  */
 
 export function bytesConcat(...args: BytesLike[]): Bytes {
-  return new Uint8Array(
-    args.reduce((acc: number[], v) => {
-      acc.push(...bytesFrom(v));
-      return acc;
-    }, []),
-  );
+  return new Uint8Array(bytesConcatTo([], ...args));
 }
 
 /**

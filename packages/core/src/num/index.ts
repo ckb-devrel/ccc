@@ -155,10 +155,7 @@ export function numBeToBytes(val: NumLike, bytes?: number): Bytes {
     return rawBytes;
   }
 
-  return bytesConcat(
-    Array.from(Array(bytes - rawBytes.length), () => 0),
-    rawBytes,
-  );
+  return bytesConcat("00".repeat(bytes - rawBytes.length), rawBytes);
 }
 
 /**
@@ -190,7 +187,7 @@ export function numFromBytes(val: BytesLike): Num {
  * ```
  */
 export function numLeFromBytes(val: BytesLike): Num {
-  return numBeFromBytes([...bytesFrom(val)].reverse());
+  return numBeFromBytes(bytesFrom(val).reverse());
 }
 
 /**

@@ -17,7 +17,9 @@ export function verifyMessageDogeEcdsa(
 ): boolean {
   const challenge =
     typeof message === "string" ? message : hexFrom(message).slice(2);
-  const [recoveryBit, ...rawSign] = bytesFrom(signature, "base64");
+  const signatureBytes = bytesFrom(signature, "base64");
+  const recoveryBit = signatureBytes[0];
+  const rawSign = signatureBytes.slice(1);
 
   const sig = secp256k1.Signature.fromCompact(
     hexFrom(rawSign).slice(2),

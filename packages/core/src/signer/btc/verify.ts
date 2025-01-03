@@ -43,7 +43,7 @@ export function verifyMessageBtcEcdsa(
   const challenge =
     typeof message === "string" ? message : hexFrom(message).slice(2);
 
-  const [_, ...rawSign] = bytesFrom(signature, "base64");
+  const rawSign = bytesFrom(signature, "base64").slice(1);
 
   return secp256k1.verify(bytesFrom(rawSign), magicHash(challenge), publicKey);
 }

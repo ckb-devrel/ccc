@@ -8,6 +8,15 @@ import {
 } from "../clientTypes.advanced.js";
 import { ClientIndexerSearchKey } from "../clientTypes.js";
 
+// [isLive, Cell | OutPoint]
+export type CellRecord =
+  | [
+      false,
+      Pick<Cell, "outPoint"> & Partial<Pick<Cell, "cellOutput" | "outputData">>,
+    ]
+  | [true, Cell]
+  | [undefined, Cell];
+
 export function filterData(
   dataLike: HexLike,
   filterLike: HexLike | undefined,
@@ -131,4 +140,34 @@ export function filterCell(
   }
 
   return true;
+}
+
+export class MapLru<K, V> extends Map<K, V> {
+  private readonly lru: K[] = [];
+
+  constructor(private readonly capacity: number) {
+    super();
+  }
+
+  access(key: K) {
+    const index = this.lru.indexOf(key);
+    if (index !== -1) {
+      this.lru.splice(index, 1);
+    }
+    this.lru.push(key);
+    if (this.lru.length > this.capacity) {
+      this.delete(this.lru[0]);
+      this.lru.shift();
+    }
+  }
+
+  get(key: K) {
+    this.access(key);
+    return super.get(key);
+  }
+
+  set(key: K, value: V) {
+    this.access(key);
+    return super.set(key, value);
+  }
 }
