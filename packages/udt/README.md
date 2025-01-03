@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center" style="font-size: 48px;">
-  CCC's Support for SSRI Compliant Contracts
+  CCC's Support for User Defined Token (UDT)
 </h1>
 
 <p align="center">
@@ -39,12 +39,17 @@
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
   <br />
-  Read more about SSRI on <a href="https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256">[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息</a>.
+  <br />
+  Based on <a href="https://github.com/ckb-devrel/ccc/tree/master/packages/ssri">@ckb-ccc/ssri</a> with xUDT fallback option.
+  <br />
+  Try and read about @ckb-ccc/udt at <a href="https://github.com/ckb-devrel/ccc/tree/master/packages/demo">@ckb-ccc/demo</a>.
+  <br />
+  Tutorial at <a href="https://github.com/Alive24/ckb_ssri_sdk/wiki/How-to-interact-with-an-SSRI-compliant-contract-on-chain">How to interact with an SSRI-compliant contract on chain</a>.
+  <br />
   <br />
   <a href="https://github.com/Alive24/ckb_ssri_sdk">ckb_ssri_sdk</a>: A toolkit to help developers build SSRI-Compliant smart contracts on CKB with production level example contract `pausable-udt` for reference.
   <br />
-  <a href="https://github.com/Alive24/ckb_ssri_cli">ckb_ssri_cli</a>: Command Line Interface for general users, moderators, and devs to interact with SSRI-Compliant Contracts deployed on CKB Network.
-  <br />
+
   <a href="https://github.com/Hanssen0/ssri-test">ssri-test</a>: First prototype of SSRI-Compliant contract.
   <br />
   <a href="https://github.com/ckb-devrel/ssri-server">ssri-server</a>: Server for calling SSRI methods.
