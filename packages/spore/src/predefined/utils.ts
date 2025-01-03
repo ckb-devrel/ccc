@@ -39,6 +39,22 @@ export function getSporeScriptInfo(
   return SporeScriptInfo.from(scriptInfo);
 }
 
+export function getSporeScriptVersion(
+  client: ccc.Client,
+  scriptLike: Omit<ccc.ScriptLike, "args">,
+): SporeVersion | undefined {
+  const scriptInfos = getSporeScriptInfos(client);
+
+  for (const [version, scriptInfo] of Object.entries(scriptInfos)) {
+    if (
+      scriptInfo?.codeHash === scriptLike.codeHash &&
+      scriptInfo?.hashType === scriptLike.hashType
+    ) {
+      return version as SporeVersion;
+    }
+  }
+}
+
 export function getClusterScriptInfo(
   client: ccc.Client,
   version?: SporeVersion,
@@ -53,4 +69,20 @@ export function getClusterScriptInfo(
   }
 
   return SporeScriptInfo.from(scriptInfo);
+}
+
+export function getClusterScriptVersion(
+  client: ccc.Client,
+  scriptLike: Omit<ccc.ScriptLike, "args">,
+): SporeVersion | undefined {
+  const scriptInfos = getClusterScriptInfos(client);
+
+  for (const [version, scriptInfo] of Object.entries(scriptInfos)) {
+    if (
+      scriptInfo?.codeHash === scriptLike.codeHash &&
+      scriptInfo?.hashType === scriptLike.hashType
+    ) {
+      return version as SporeVersion;
+    }
+  }
 }
