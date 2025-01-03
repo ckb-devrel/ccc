@@ -398,17 +398,12 @@ export const udtUtils = {
    * @returns {ccc.Bytes} Encoded ccc.Bytes representation of the lock scripts
    */
   encodeLockArray(val: Array<ccc.Script>): ccc.Bytes {
-    console.log("Into encodeLockArray");
     const lockBytesArray = [];
     for (const lock of val) {
-      console.log("lock", lock);
       const lockBytes = ccc.Script.encode(lock);
-      console.log("lockBytes", lockBytes);
       lockBytesArray.push(lockBytes);
     }
-    console.log("lockBytesArray", lockBytesArray);
     const result = mol.BytesVec.encode(lockBytesArray);
-    console.log("result", result);
     return result;
   },
 
@@ -419,7 +414,6 @@ export const udtUtils = {
    * @returns {ccc.Bytes} Encoded ccc.Bytes representation of the amount array
    */
   encodeAmountArray(val: Array<number>, decimals: bigint): ccc.Bytes {
-    console.log("Into encodeAmountArray");
     // Convert the length to a 4-byte little-endian array
     const lengthBytes = ccc.bytesFrom(new Uint32Array([val.length]));
 
@@ -429,7 +423,6 @@ export const udtUtils = {
         Math.floor(Number(curr) * 10 ** Number(decimals)),
         16,
       );
-      console.log("amountBytes", amountBytes);
       return ccc.bytesFrom(amountBytes);
     });
 

@@ -21,7 +21,6 @@ const testUDTContract = new UDT(
 
 describe("UDT Test", () => {
   it("should create UDT contract", async () => {
-    console.log("yay!")
     expect(testUDTContract).toBeInstanceOf(UDT)
   })
 

@@ -63,7 +63,6 @@ export abstract class Contract {
     argsHex: ccc.Hex[],
     params?: CallParams,
   ): Promise<ccc.Hex> {
-    console.log("Calling method", path, "with args", argsHex);
     const hasher = new ccc.HasherCkb();
     const pathHex = hasher.update(Buffer.from(path)).digest().slice(0, 18);
     const payload = {
@@ -86,7 +85,6 @@ export abstract class Contract {
       payload.method = "run_script_level_transaction";
       payload.params = [...payload.params, params.transaction];
     }
-    console.log("Calling method with Payload", payload);
     return await this.server.call(payload);
   }
 
@@ -197,7 +195,6 @@ export class Server {
       const response = await axios.post(this.serverURL!, payload, {
         headers: { "Content-Type": "application/json" },
       });
-      console.log("Response", response.data);
       return response.data.result as ccc.Hex;
     } catch (error) {
       throw new Error(error as string);
@@ -219,7 +216,6 @@ export const utils = {
       signer?: boolean;
     },
   ): void {
-    console.log("Validating SSRI Params", params, validator);
     if (!params) {
       throw new Error(
         "SSRI Parameters Validation are required for this operation",
@@ -237,7 +233,6 @@ export const utils = {
     if (validator.signer && !params.signer) {
       throw new Error("Specific signer is required for this operation");
     }
-    console.log("Validation Passed");
     return;
   },
   encodeHex(data: ccc.Bytes): ccc.Hex {

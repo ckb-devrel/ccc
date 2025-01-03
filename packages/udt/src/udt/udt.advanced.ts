@@ -24,7 +24,6 @@ export async function getBalanceOf(
   );
 
   const lock = address.script;
-  console.log("Lock", lock);
 
   let balanceTotal = BigInt(0);
   let client: ccc.Client;
@@ -38,7 +37,6 @@ export async function getBalanceOf(
     udtTypeScript,
     true,
   )) {
-    console.log("Found Cell", cell);
     balanceTotal += ccc.udtBalanceFrom(cell.outputData);
   }
 
