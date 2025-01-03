@@ -4,38 +4,9 @@ import {
 import axios from "axios";
 
 /**
- * Represents the parameters for an SSRI call. By providing a script, cell, or transaction, the call environment would be elevated accordingly.
- * @public
- */
-export class CallParams {
-  /**
-   * Elevate to script level
-   */
-  script?: Script;
-  /**
-   * Elevate to cell level
-   */
-  cell?: CellOutputWithData;
-  /**
-   * Elevate to transaction level
-   *
-   */
-  transaction?: { inner: ccc.TransactionLike; hash: ccc.Hex };
-  /**
-   * Some SSRI methods might be able to store results for cache (e.g. `UDT.symbol`, etc.). If `noCache` is set to `true`, the cache would be ignored.
-   */
-  noCache?: boolean;
-  /**
-   * For mutation methods, if `sendNow` is set to `true`, the transaction would be sent immediately. Note that in this way you won't be able to get the transaction response.
-   */
-  signer?: ccc.Signer;
-}
-
-/**
  * Abstract class representing an SSRI contract. Should be used as the base of all SSRI contracts.
  */
 export abstract class Contract {
-  cache: Map<string, unknown> = new Map();
   server: Server;
   codeOutPoint: ccc.OutPointLike;
 
@@ -47,21 +18,24 @@ export abstract class Contract {
   constructor(server: Server, codeOutPoint: ccc.OutPointLike) {
     this.server = server;
     this.codeOutPoint = codeOutPoint;
-    this.cache = new Map();
   }
 
   /**
    * Calls a method on the SSRI server through SSRI Server.
    * @param {string} path - The path to the method.
    * @param {unknown[]} args - The arguments for the method.
-   * @param {CallParams} params - The parameters for the call.
+   * @param {Script} [script] - The script level parameters.
+   * @param {CellOutputWithData} [cell] - The cell level parameters. Take precedence over script.
+   * @param {Transaction} [transaction] - The transaction level parameters. Take precedence over cell.
    * @returns {Promise<Hex>} The result of the call.
    * @private
    */
   async callMethod(
     path: string,
     argsHex: ccc.Hex[],
-    params?: CallParams,
+    script?: Script,
+    cell?: CellOutputWithData,
+    transaction?: Transaction,
   ): Promise<ccc.Hex> {
     const hasher = new ccc.HasherCkb();
     const pathHex = hasher.update(Buffer.from(path)).digest().slice(0, 18);
@@ -75,15 +49,15 @@ export abstract class Contract {
         [pathHex, ...argsHex],
       ],
     } as PayloadType;
-    if (params?.script) {
+    if (script) {
       payload.method = "run_script_level_script";
-      payload.params = [...payload.params, params.script];
-    } else if (params?.cell) {
+      payload.params = [...payload.params, script];
+    } else if (cell) {
       payload.method = "run_script_level_cell";
-      payload.params = [...payload.params, params.cell];
-    } else if (params?.transaction) {
+      payload.params = [...payload.params, cell];
+    } else if (transaction) {
       payload.method = "run_script_level_transaction";
-      payload.params = [...payload.params, params.transaction];
+      payload.params = [...payload.params, transaction];
     }
     return await this.server.call(payload);
   }
@@ -97,28 +71,15 @@ export abstract class Contract {
   async getMethods(
     offset = 0,
     limit = 0,
-    params?: CallParams,
   ): Promise<ccc.Bytes[]> {
-    let rawResult: ccc.Hex;
-    if (
-      !params?.noCache &&
-      this.cache.has("getMethods") &&
-      offset === 0 &&
-      limit === 0
-    ) {
-      rawResult = this.cache.get("getMethods") as ccc.Hex;
-    } else {
-      rawResult = await this.callMethod(
-        "SSRI.get_methods",
-        [
-          utils.encodeHex(ccc.numToBytes(offset, 4)),
-          utils.encodeHex(ccc.numToBytes(limit, 4)),
-        ],
-        params,
+    const rawResult = await this.callMethod(
+      "SSRI.get_methods",
+      [
+        ccc.hexFrom(ccc.numToBytes(offset, 4)),
+        ccc.hexFrom(ccc.numToBytes(limit, 4)),
+      ],
       );
-      this.cache.set("getMethods", rawResult);
-    }
-    const decodedResult = utils.decodeHex(rawResult);
+    const decodedResult = ccc.bytesFrom(rawResult);
     // Chunk the results into arrays of 8 bytes
     const result = [];
     for (let i = 0; i < decodedResult.length; i += 8) {
@@ -134,7 +95,7 @@ export abstract class Contract {
    */
   async hasMethods(methods: ccc.Bytes[]): Promise<boolean> {
     const flattenedMethods = ccc.bytesConcat(...methods);
-    const methodsEncoded = utils.encodeHex(flattenedMethods);
+    const methodsEncoded = ccc.hexFrom(flattenedMethods);
     const rawResult = await this.callMethod(
       "SSRI.has_methods",
       [
@@ -153,22 +114,10 @@ export abstract class Contract {
     const rawResult = await this.callMethod("SSRI.version", []);
     return Number(rawResult);
   }
-
-  /**
-   * NOTE: This function is not yet implemented.
-   * Retrieves a list of errors.
-   * @param {number[]} [errorCode] - The error codes to retrieve. If empty, all errors would be retrieved.
-   * @returns {Promise<string[]>} A promise that resolves to a list of error messages.
-   * @tag cache
-   */
-  // static async getErrors(errorCode?: number[]): Promise<string[]> {
-  //   // TODO: implement
-  //   throw new Error("TODO");
-  // }
 }
 
 /**
- * Represents an SSRI server. Shall connect to an external server or run in WASM (TODO).
+ * Represents an SSRI server. Shall connect to an external server.
  */
 export class Server {
   client: ccc.Client;
@@ -203,55 +152,6 @@ export class Server {
 }
 
 export const utils = {
-  /**
-   * Validates SSRI call parameters against required operation level.
-   * @param {CallParams} [params] - SSRI call parameters to validate
-   * @param {{ level: "script" | "cell" | "transaction" | undefined, signer: boolean }} validator - Object containing params specifications to validate against
-   * @throws {Error} If required parameters are missing or invalid
-   */
-  validateParams(
-    params: CallParams | undefined,
-    validator: {
-      level?: "script" | "cell" | "transaction";
-      signer?: boolean;
-    },
-  ): void {
-    if (!params) {
-      throw new Error(
-        "SSRI Parameters Validation are required for this operation",
-      );
-    }
-    if (validator.level === "transaction" && !params.transaction) {
-      throw new Error("Transaction Level is required for this operation");
-    }
-    if (validator.level === "cell" && !params.cell) {
-      throw new Error("Cell Level is required for this operation");
-    }
-    if (validator.level === "script" && !params.script) {
-      throw new Error("Script Level is required for this operation");
-    }
-    if (validator.signer && !params.signer) {
-      throw new Error("Specific signer is required for this operation");
-    }
-    return;
-  },
-  encodeHex(data: ccc.Bytes): ccc.Hex {
-    return `0x${Array.from(data, (byte) =>
-      byte.toString(16).padStart(2, "0"),
-    ).join("")}`;
-  },
-  decodeHex(data: ccc.Hex): ccc.Bytes {
-    const dataString = data.slice(2);
-    if (dataString.length % 2 !== 0) {
-      throw new Error("Invalid hex string: must have an even length.");
-    }
-
-    const result = new Uint8Array(dataString.length / 2);
-    for (let i = 0; i < dataString.length; i += 2) {
-      result[i / 2] = parseInt(dataString.slice(i, i + 2), 16);
-    }
-    return result;
-  },
   recalibrateCapacity(tx: ccc.Transaction): ccc.Transaction {
     return ccc.Transaction.fromBytes(tx.toBytes());
   },

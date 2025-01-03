@@ -1,7 +1,7 @@
 import { ccc, mol } from "@ckb-ccc/core";
 import { ssri } from "@ckb-ccc/ssri";
 import { UDT } from "../udt/index.js";
-import { udtPausableDataCodec } from "./advanced.js";
+import { udtPausableDataCodec, u832VecCodec } from "./advanced.js";
 
 /**
  * Represents a pausable functionality for a UDT (User Defined Token).
@@ -16,35 +16,31 @@ export class UDTPausable extends UDT {
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
    * @param {ccc.Transaction} [tx] - The transaction to be used.
    * @param {ccc.Hex[]} lockHashes - The array of lock hashes to be paused.
-   * @param {ssri.CallParams} [params] - The SSRI parameters for the call.
    * @returns {Promise<ccc.Transaction>} The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
+   * @tag Cell - This method accepts one of the pausable data cell; if not provided, it would be automatically redirect to the last pausable data cell. If there is no pausable data cell, it would be automatically generate one which needs to be pointed to in the next_type_script field in the contract.
+   * @tag Signer - This method requires a signer to generate the first external pause list or modify the existing external pause list.
    */
   async pause(
     tx: ccc.Transaction | undefined,
     lockHashes: ccc.Hex[],
-    params?: ssri.CallParams,
+    signer: ccc.Signer,
+    cell?: ccc.Cell
   ): Promise<ccc.Transaction> {
     // NOTE: In case that Pausable UDT doesn't have external pause list, a signer would be required to generate the first external pause list.
-    ssri.utils.validateParams(params, { signer: true });
     const txEncodedHex = tx
-      ? ssri.utils.encodeHex(ccc.Transaction.encode(tx))
+      ? ccc.hexFrom(ccc.Transaction.encode(tx))
       : "0x";
-    if (!params) {
-      throw new Error("Params are required");
-    }
-    if (!params.signer) {
-      throw new Error("Signer is required");
-    }
     const { script: ownerLock } =
-      await params.signer.getRecommendedAddressObj();
-    if (!params.cell) {
-      const dummy_typeid_script = await ccc.Script.fromKnownScript(
-        this.server.client,
-        ccc.KnownScript.TypeId,
-        "0x",
-      );
-      params.cell = {
+      await signer.getRecommendedAddressObj();
+    let cellForSSRI;
+    const dummy_typeid_script = await ccc.Script.fromKnownScript(
+      this.server.client,
+      ccc.KnownScript.TypeId,
+      "0x",
+    );
+    if (!cell) {
+      cellForSSRI = {
         cell_output: {
           capacity: ccc.numToHex(0),
           lock: {
@@ -58,23 +54,40 @@ export class UDTPausable extends UDT {
             hash_type: dummy_typeid_script.hashType,
           },
         },
-        hex_data: `0x`,
+        hex_data: `0x` as ccc.Hex,
+      };
+    } else {
+      cellForSSRI = {
+        cell_output: {
+          capacity: cell.cellOutput.capacity.toString(),
+          lock: {
+            code_hash: cell.cellOutput.lock.codeHash,
+            args: cell.cellOutput.lock.args,
+            hash_type: cell.cellOutput.lock.hashType,
+          },
+          type: {
+            code_hash: cell.cellOutput?.type?.codeHash ?? dummy_typeid_script.codeHash,
+            args: cell.cellOutput?.type?.args ?? dummy_typeid_script.args,
+            hash_type: cell.cellOutput?.type?.hashType ?? dummy_typeid_script.hashType,
+          },
+        },
+        hex_data: cell.outputData,
       };
     }
 
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(Array.from(ccc.numToBytes(String(lockHash), 32).reverse()));
     }
-    const lockHashU832ArrayEncoded =
-      utils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
+    const lockHashU832ArrayEncoded = u832VecCodec.encode(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ccc.hexFrom(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
       "UDTPausable.pause",
       [txEncodedHex, lockHashU832ArrayEncodedHex],
-      { ...params },
+      undefined,
+      cellForSSRI,
     );
     const pauseTx = ccc.Transaction.decode(rawResult);
     const cccPauseTx = ssri.utils.recalibrateCapacity(
@@ -93,24 +106,22 @@ export class UDTPausable extends UDT {
   async unpause(
     tx: ccc.Transaction | undefined,
     lockHashes: ccc.Hex[],
-    params?: ssri.CallParams,
   ): Promise<ccc.Transaction> {
     const txEncodedHex = tx
-      ? ssri.utils.encodeHex(ccc.Transaction.encode(tx))
+      ? ccc.hexFrom(ccc.Transaction.encode(tx))
       : "0x";
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(Array.from(ccc.numToBytes(String(lockHash), 32).reverse()));
     }
     const lockHashU832ArrayEncoded =
-      utils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
+      u832VecCodec.encode(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ccc.hexFrom(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
       "UDTPausable.unpause",
       [txEncodedHex, lockHashU832ArrayEncodedHex],
-      { ...params },
     );
     const unPauseTx = ccc.Transaction.decode(rawResult);
     const cccPauseTx = ssri.utils.recalibrateCapacity(
@@ -126,22 +137,19 @@ export class UDTPausable extends UDT {
    */
   async isPaused(
     lockHashes: ccc.Hex[],
-    params?: ssri.CallParams,
   ): Promise<boolean> {
-    ssri.utils.validateParams(params, {});
     const lockHashU832Array = [];
     for (const lockHash of lockHashes) {
-      lockHashU832Array.push(ccc.numToBytes(String(lockHash), 32).reverse());
+      lockHashU832Array.push(Array.from(ccc.numToBytes(String(lockHash), 32).reverse()));
     }
     const lockHashU832ArrayEncoded =
-      utils.encodeU832Array(lockHashU832Array);
-    const lockHashU832ArrayEncodedHex = ssri.utils.encodeHex(
+      u832VecCodec.encode(lockHashU832Array);
+    const lockHashU832ArrayEncodedHex = ccc.hexFrom(
       lockHashU832ArrayEncoded,
     );
     const rawResult = await this.callMethod(
       "UDTPausable.is_paused",
       [lockHashU832ArrayEncodedHex],
-      { ...params },
     );
     return rawResult === "0x01";
   }
@@ -151,29 +159,17 @@ export class UDTPausable extends UDT {
    * @returns {Promise<UDTPausableData[]>} The array of UDTPausableData.
    */
   async enumeratePaused(
-    offset?: bigint,
-    limit?: bigint,
-    params?: ssri.CallParams,
+    offset?: ccc.Num,
+    limit?: ccc.Num,
   ): Promise<unknown[]> {
-    let rawResult: ccc.Hex;
-    if (
-      !params?.noCache &&
-      this.cache.has("enumeratePaused") &&
-      !offset &&
-      !limit
-    ) {
-      rawResult = this.cache.get("enumeratePaused") as ccc.Hex;
-    } else {
-      rawResult = await this.callMethod(
-        "UDTPausable.enumerate_paused",
-        [
-          ssri.utils.encodeHex(ccc.numToBytes(offset ?? 0, 4)),
-          ssri.utils.encodeHex(ccc.numToBytes(limit ?? 0, 4)),
-        ],
-        params,
-      );
-      this.cache.set("enumeratePaused", rawResult);
-    }
+    const rawResult = await this.callMethod(
+      "UDTPausable.enumerate_paused",
+      [
+        ccc.hexFrom(ccc.numToBytes(offset ?? 0, 4)),
+        ccc.hexFrom(ccc.numToBytes(limit ?? 0, 4)),
+      ],
+      undefined,
+    );
     const udtPausableDataInBytesVec = mol.BytesVec.decode(rawResult);
     const udtPausableDataArray = [];
     for (const udtPausableDataInBytes of udtPausableDataInBytesVec) {
@@ -186,22 +182,3 @@ export class UDTPausable extends UDT {
   }
 }
 
-export const utils = {
-  encodeU832Array(val: Array<ccc.Bytes>): ccc.Bytes {
-    if (val.some((arr) => arr.length !== 32)) {
-      throw new Error("Each inner array must be exactly 32 bytes.");
-    }
-
-    // Convert the length to a 4-byte little-endian array
-    const lengthBytes = ccc.bytesFrom(new Uint32Array([val.length]));
-
-    // Flatten the 2D array of 32-byte elements into a single array
-    const flattenedBytes = val.reduce((acc, curr) => {
-      acc = ccc.bytesConcat(acc, curr);
-      return acc;
-    }, ccc.bytesFrom("0x"));
-
-    // Combine the length bytes with the flattened byte array
-    return ccc.bytesConcat(lengthBytes, flattenedBytes);
-  },
-};
