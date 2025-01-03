@@ -30,7 +30,7 @@ export async function prepareCluster(
     case "lockProxy": {
       const lock = cluster.cellOutput.lock;
 
-      if (!(await tx.findInputIndexByLock(lock, signer.client))) {
+      if (await tx.findInputIndexByLock(lock, signer.client) === undefined) {
         // note: We can only search proxy of signer, if any custom logic is in need, developer should get
         // the proxy filled in transaction before invoking `createSpore`
         const proxy = await searchOneCellBySigner(signer);
