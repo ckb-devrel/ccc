@@ -1,5 +1,11 @@
 # @ckb-ccc/spore
 
+## 1.0.7
+
+### Patch Changes
+
+- [#123](https://github.com/ckb-devrel/ccc/pull/123) [`7e64eea`](https://github.com/ckb-devrel/ccc/commit/7e64eeac15268725358f74b531a3013c9189979c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: spore cluster lock proxy
+
 ## 1.0.6
 
 ### Patch Changes
