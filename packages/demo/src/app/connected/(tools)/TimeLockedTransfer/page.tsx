@@ -230,4 +230,4 @@ function buildTimeLockArgs(
 ) {
   const lockedUntilBytes8 = ccc.numToBytes(lockedUntil, 8);
   return ccc.bytesConcat(requiredScriptHash, lockedUntilBytes8);
-}
+} 
