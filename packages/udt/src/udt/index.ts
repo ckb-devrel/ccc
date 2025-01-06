@@ -13,7 +13,7 @@ import { amountArrayCodec, getBalanceOf, lockArrayCodec } from "./udt.advanced.j
  * - Metadata retrieval (name, symbol, decimals)
  * - Balance checking for individual cells and addresses
  * - Token transfer and minting capabilities
- * - legacy support for xUDT standard tokens
+ * - Legacy support for xUDT standard tokens
  *
  * @public
  * @extends {ssri.Contract}
@@ -37,27 +37,23 @@ export class UDT extends ssri.Contract {
    * By default it is a SSRI-compliant UDT. By providing `xudtType`, it is compatible with the legacy xUDT.
    *
    * @param {ccc.Client} client - The CCC client instance used for blockchain interactions.
-   * @param {string} ssriServerURL - The URL of the SSRI server.
-   * @param {ccc.OutPointLike} codeOutPoint - The code out point defining the UDT contract's location.
-   * @param {ccc.Script} xudtType - The type script of the legacy xUDT. Take precedence over `ssriServerURL` and `codeOutPoint`.
+   * @param {{ssriServerURL: string, codeOutPoint: ccc.OutPointLike} | {xudtType: ccc.Script}} params - Either a SSRI server URL and code out point, or a legacy xUDT type script to instantiate a legacy xUDT contract.
+   * @param {string} params.ssriServerURL - The URL of the SSRI server.
+   * @param {ccc.OutPointLike} params.codeOutPoint - The code out point defining the UDT contract's location.
+   * @param {ccc.Script} params.xudtType - The type script of the legacy xUDT.
    * @example
    * ```typescript
-   * const udtSSRI = new UDT(client, "https://localhost:9090", { txHash: '0x...', index: 0 }};
-   * const udtLegacyXudt = new UDT(client, undefined, undefined, xudtType);
+   * const udtSSRI = new UDT(client, { ssriServerURL: "https://localhost:9090", codeOutPoint: { txHash: '0x...', index: 0 } });
+   * const udtLegacyXudt = new UDT(client, { xudtType: xudtType });
    * ```
    */
   constructor(
     client: ccc.Client,
-    ssriServerURL?: string,
-    codeOutPoint?: ccc.OutPointLike,
-    xudtType?: ccc.Script,
+    params: {ssriServerURL: string, codeOutPoint: ccc.OutPointLike} | {xudtType: ccc.Script},
   ) {
-    const ssriServer = new ssri.Server(client, ssriServerURL ?? "https://localhost:9090");
-    super(ssriServer, codeOutPoint ?? {
-      txHash: "0x",
-      index: 0,
-    } as ccc.OutPointLike);
-    if (xudtType) {
+    const ssriServer = 'xudtType' in params ? undefined : new ssri.Server(client, params.ssriServerURL);
+    super(ssriServer!, 'xudtType' in params ? { txHash: "0x00", index: 0 } : params.codeOutPoint);
+    if ('xudtType' in params) {
       // TODO: Obtain the name, symbol, decimals, and icon from ckb-udt-indexer
       throw new Error("ckb-udt-indexer is not implemented yet");
       // legacyModeUDTContract.legacyModeConfigs = {
@@ -68,13 +64,13 @@ export class UDT extends ssri.Contract {
       //   icon,
       // };
     } else {
-      if (!codeOutPoint || !ssriServerURL) {
+      if (!('codeOutPoint' in params) || !('ssriServerURL' in params)) {
         throw new Error(
           "codeOutPoint and ssriServerURL are required unless in legacy mode",
         );
       }
-      const ssriServer = new ssri.Server(client, ssriServerURL);
-      super(ssriServer, codeOutPoint);
+      const ssriServer = new ssri.Server(client, params.ssriServerURL);
+      super(ssriServer, params.codeOutPoint);
       this.client = client;
     }
   }
@@ -117,7 +113,7 @@ export class UDT extends ssri.Contract {
   /**
    * Retrieves the decimals of the UDT.
    * @returns {Promise<ccc.Num>} The decimals of the UDT.
-   * @tag Legacy - Supports xUDT legacy.
+   * @tag Legacy - Supports xUDT legacy behavior.
    */
   async decimals(): Promise<ccc.Num> {
     let rawResult: ccc.Hex;
@@ -130,8 +126,8 @@ export class UDT extends ssri.Contract {
   }
 
   /**
-   * Retrieves the balance of the UDT of a specific cell. Use the elevated method `balanceOf` for address balance.
-   * @returns {Promise<number>} The balance of the UDT.
+   * Retrieves the raw balance of the UDT of a specific cell. Use the elevated method `balanceOf` for address balance.
+   * @returns {Promise<number>} The raw balance of the UDT.
    * @tag Cell - This method requires a cell level call.
    * @tag Legacy - Supports xUDT legacy behavior.
    */
@@ -171,6 +167,7 @@ export class UDT extends ssri.Contract {
    * the token's decimal places and performing a comprehensive balance lookup.
    *
    * @param {ccc.Address} address - The blockchain address to retrieve the balance for.
+   * @param {ccc.Script} script - The script of the target Type Script for the UDT.
    * @returns {Promise<number>} The balance of the specified address, adjusted for token decimals.
    * @example
    * ```typescript
@@ -193,6 +190,54 @@ export class UDT extends ssri.Contract {
    * @tag Script - This method requires a script level call. The script is the target Type Script for the UDT.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction object.
    * @tag Legacy - Supports xUDT legacy behavior.
+   * @example
+   * ```typescript
+   * const receiver = await signer.getRecommendedAddress();
+   * const { script: changeLock } = await signer.getRecommendedAddressObj();
+   * const { script: receiverLock } = await ccc.Address.fromString(receiver, signer.client);
+   * 
+   * const usdiScript = {
+   *   codeHash: "0xcc9dc33ef234e14bc788c43a4848556a5fb16401a04662fc55db9bb201987037",
+   *   hashType: ccc.HashType.type,
+   *   args: "0x71fd1985b2971a9903e4d8ed0d59e6710166985217ca0681437883837b86162f"
+   * } as ccc.Script;
+   * 
+   * const codeCellDep : CellDepLike = {
+   *   outPoint: {
+   *     txHash: "0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269",
+   *     index: 0,
+   *   },
+   *   depType: 'code',
+   * }
+   * 
+   * const transferTx = await udtContract.transfer(
+   *   [receiverLock], 
+   *   [100], 
+   *   {
+   *     code_hash: usdiScript.codeHash,
+   *     hash_type: usdiScript.hashType,
+   *     args: usdiScript.args,
+   *   }
+   * )
+   * 
+   * await transferTx.completeInputsByUdt(signer, usdiScript)
+   * const balanceDiff =
+   *   (await transferTx.getInputsUdtBalance(signer.client, usdiScript)) -
+   *   transferTx.getOutputsUdtBalance(usdiScript);
+   * if (balanceDiff > ccc.Zero) {
+   *   cccTransferTx.addOutput(
+   *     {
+   *       lock: changeLock,
+   *       type: usdiScript,
+   *     },
+   *     ccc.numLeToBytes(balanceDiff, 16),
+   *   )
+   * }
+   * await transferTx.addCellDeps(codeCellDep)
+   * await transferTx.completeInputsByCapacity(signer)
+   * await transferTx.completeFeeBy(signer)
+   * const transferTxHash = await signer.sendTransaction(transferTx)
+   * ```
    */
   async transfer(
     tx: ccc.Transaction | undefined,
@@ -262,7 +307,7 @@ export class UDT extends ssri.Contract {
   }
 
   /**
-   * Mints new tokens to specified addresses.
+   * Mints new tokens to specified addresses. See the example in `transfer` as they are similar.
    * @param {ccc.Transaction | undefined} [tx] - Optional existing transaction to build upon
    * @param {ccc.Script[]} toLockArray - Array of recipient lock scripts
    * @param {number[]} toAmountArray - Array of amounts to mint to each recipient
@@ -341,7 +386,7 @@ export class UDT extends ssri.Contract {
   /**
    * Retrieves the icon of the UDT encoded in base64.
    * @returns {Promise<ccc.Bytes>} The icon of the UDT.
-   * @tag Legacy - Supports xUDT legacy behavior when initialized with legacyToXudt.
+   * @tag Legacy - Supports xUDT legacy behavior.
    */
   async icon(): Promise<ccc.Bytes> {
     let rawResult: ccc.Hex;

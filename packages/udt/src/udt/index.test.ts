@@ -11,8 +11,7 @@ const testOutPoint: OutPointLike = {
 
 const testUDTContract = new UDT(
   testClient,
-  "http://localhost:9090",
-  testOutPoint
+  {ssriServerURL: "http://localhost:9090", codeOutPoint: testOutPoint}
 )
 
 describe("UDT Test", () => {

@@ -9,8 +9,30 @@ import { udtPausableDataCodec, u832VecCodec } from "./advanced.js";
  * @public
  */
 export class UDTPausable extends UDT {
-  cache: Map<string, unknown> = new Map();
-  
+  /**
+   * Unlike `UDT`, `UDTPausable` contract cannot be instantiated in legacy mode.
+   */
+  legacyModeConfigs: undefined;
+    /**
+   * Constructs a new Pausable UDT (User Defined Token) contract instance.
+   * Unlike `UDT`, `UDTPausable` contract cannot be instantiated in legacy mode.
+   *
+   * @param {ccc.Client} client - The CCC client instance used for blockchain interactions.
+   * @param {{ssriServerURL: string, codeOutPoint: ccc.OutPointLike}} params - Configuration parameters
+   * @param {string} params.ssriServerURL - The URL of the SSRI server.
+   * @param {ccc.OutPointLike} params.codeOutPoint - The code out point defining the UDT contract's location.
+   * @example
+   * ```typescript
+   * const udtPausable = new UDTPausable(client, "https://localhost:9090", { txHash: '0x...', index: 0 });
+   * ```
+   */
+  constructor(
+    client: ccc.Client,
+    params: {ssriServerURL: string, codeOutPoint: ccc.OutPointLike},
+  ) {
+    super(client, params);
+    this.client = client;
+  }
 
   /**
    * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.

@@ -52,90 +52,59 @@
 <h2> Quick Start </h2>
 
 - At the moment, `UDT` and `UDTPausable` from `@ckb-ccc/udt` are fully supported through SSRI. In the future, there will be built in TypeScript generation directly based on the Rust contract on compilation.
-- To instantialize a `UDT` contract compliant with SSRI, you need to set up the SSRI server first, and also specify the OutPoint of the contract code. You can also directly instantialize a `UDTPausable` in the same way.
+- To instantiate a `UDT` contract compliant with SSRI, you can provide the SSRI server url and also specify the OutPoint of the contract code. Alternatively, You can also instantiate a `UDT` contract in legacy mode that is compatible with xUDT by providing a `ccc.Script` which retrieves name, symbol, and decimals via `ckb-udt-indexer` (To be released).
+- You can also instantiate a `UDTPausable` contract or other contracts (To be released) that extends from `UDT`.
+
 ```ts
 import { udt } from "@ckb-ccc/udt";
 
 const { signer } = useApp();
-const contractOutPointTx: ccc.Hex = "0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269";
-const contractOutPointIndex = 0;
-const SSRIServerURL:string = "http://localhost:9090"
 
-const testSSRIServer = new ssri.Server(signer.client, SSRIServerURL);
 const testOutPoint = {
   txHash: contractOutPointTx,
   index: parseInt(contractOutPointIndex)
 };
 
-const udtContract = new udt.UDT(testSSRIServer, testOutPoint);
-const udtPausableContract = new udt.UDTPausable(testSSRIServer, testOutPoint);
-```
-Alternatively, you can instantiate an `UDT` contract even if it's an `xUDT` contract by using `udt.UDT.fallbackToXudt` as constructor. However, this only works for `UDT` contract.
-```ts
-import { udt } from "@ckb-ccc/udt";
-import { ccc } from "@ckb-ccc/ccc";
+const udtSSRI = new UDT(client, 
+  { 
+    ssriServerURL: "https://localhost:9090", 
+    codeOutPoint: { 
+      txHash: '0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269', 
+      index: 0 
+    } 
+  }
+);
 
-const { signer } = useApp();
-const xudtTypeScript = await ccc.Script.fromKnownScript(
-  signer.client,
-  ccc.KnownScript.XUdt,
-  "0xf8f94a13dfe1b87c10312fb9678ab5276eefbe1e0b2c62b4841b1f393494eff2",
-); 
+const udtLegacyXudt = new UDT(
+  client, 
+  await ccc.Script.fromKnownScript(
+    signer.client,
+    ccc.KnownScript.XUdt,
+    "0xf8f94a13dfe1b87c10312fb9678ab5276eefbe1e0b2c62b4841b1f393494eff2"
+  )
+);
 
-// Or you can instantiate your own Type Script if it is compatible with sUDT or xUDT behaviors.
-const fallbackScript = {
-  codeHash: xudtTypeScript.codeHash,
-  hashType: xudtTypeScript.hashType as ccc.HashType,
-  args: xudtTypeScript.args
-} as ccc.Script;
-
-const fallbackName: string = "SEAL for testing UDT";
-const fallbackSymbol: string = "SEAL";
-const fallbackDecimals: string = "6"
-
-// TODO: When ckb-udt-indexer becomes available, providing fallbackScript would automatically retrieve name, symbol, and decimals.
-const xudtFallbackContract = udt.UDT.fallbackToXudt(
-  signer.client,
-  fallbackScript,
-  fallbackName,
-  fallbackSymbol,
-  BigInt(fallbackDecimals),
-)
+const udtPausable = new UDTPausable(client, {
+  ssriServerURL: "https://localhost:9090",
+  codeOutPoint: {
+    txHash: '0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269',
+    index: 0
+  }
+});
 ```
 
 You can directly call the methods in the contract:
 
 ```ts
-const udtSymbol = await udtContract.symbol();
-const pauseList = await udtPausableContract.enumeratePaused();
-
+const udtSymbol = await udtSSRI.symbol();
 const userAddress = await signer.getRecommendedAddress();
-const balanceOfUser = await xudtFallbackContract.balanceOf(userAddress);
+const balanceOfUser = await udtLegacyXudt.balanceOf(userAddress);
+
+const pauseList = await udtPausable.enumeratePaused();
 ```
 
-Some of the methods can return a `ccc.Transaction`, but you might need to call with the correct `ssri.CallParams,` based on the method's documentation:
+Some of the methods can return a `ccc.Transaction`. For example, you can call `transfer` with the following params:
 
-```ts
-  /**
-   * Transfers UDT to specified addresses.
-   * @param {ccc.Transaction | undefined} [tx] - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
-   * @param {ccc.Script} toLockArray - The array of lock scripts for the recipients.
-   * @param {number[]} toAmountArray - The array of amounts to be transferred.
-   * @param {ssri.CallParams} [params] - The parameters for the call.
-   * @returns {Promise<{ tx: Transaction }>} The transaction result.
-   * @tag Script - This method requires a script level call. The script is the target Type Script for the UDT.
-   * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
-   * @tag Fallback - Supports xUDT fallback behavior when initialized with fallbackToXudt.
-   */
-  async transfer(
-    tx: ccc.Transaction | undefined,
-    toLockArray: ccc.Script[],
-    toAmountArray: number[],
-    params?: ssri.CallParams,
-  ): Promise<ccc.Transaction>
-```
-
-for example, you can call `transfer` with the following params:
 ```ts
 const receiver = await signer.getRecommendedAddress();
 // The sender script for change
@@ -157,13 +126,7 @@ const codeCellDep : CellDepLike = {
   depType: 'code',
 }
 
-const transferTx = await udtContract.transfer([receiverLock], [100], { script: 
-  {
-    code_hash: usdiScript.codeHash,
-    hash_type: usdiScript.hashType,
-    args: usdiScript.args,
-  } as ssri.Script
-})
+const transferTx = await udtContract.transfer([receiverLock], [100], usdiScript)
 
 await transferTx.completeInputsByUdt(signer, usdiScript)
 const balanceDiff =

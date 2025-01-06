@@ -45,20 +45,19 @@
   <br />
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
   <br />
+  <br />
+
   Read more about SSRI on <a href="https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256">[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息</a>.
   <br />
-  Tutorial at <a href="https://github.com/Alive24/ckb_ssri_sdk/wiki/How-to-compose-an-SSRI-compliant-contract">How to compose an SSRI-compliant contract</a>.
-  <br />
-  Use <a href="https://github.com/ckb-devrel/ccc/tree/master/packages/ssri">@ckb-ccc/ssri</a> and <a href="https://github.com/ckb-devrel/ccc/tree/master/packages/udt">@ckb-ccc/udt</a> to interact with SSRI-Compliant contracts.
-  <br />
-  Try and read about them at <a href="https://github.com/ckb-devrel/ccc/tree/master/packages/demo">@ckb-ccc/demo</a>.
-  <br />
-  <br />
-  <a href="https://github.com/Alive24/ckb_ssri_sdk">ckb_ssri_sdk</a>: A toolkit to help developers build SSRI-Compliant smart contracts on CKB with production level example contract `pausable-udt` for reference.
-  <br />
-  <a href="https://github.com/Alive24/ckb_ssri_cli">ckb_ssri_cli</a>: Command Line Interface for general users, moderators, and devs to interact with SSRI-Compliant Contracts deployed on CKB Network.
-  <br />
-  <a href="https://github.com/Hanssen0/ssri-test">ssri-test</a>: First prototype of SSRI-Compliant contract.
-  <br />
-  <a href="https://github.com/ckb-devrel/ssri-server">ssri-server</a>: Server for calling SSRI methods.
+  Tutorial at <a href="https://github.com/Alive24/ckb_ssri_sdk/wiki/How-to-compose-an-SSRI-compliant-contract">How to compose an SSRI-compliant contract</a>
 </h3>
+
+- Use [`@ckb-ccc/ssri`](https://github.com/ckb-devrel/ccc/tree/master/packages/ssri) and [`@ckb-ccc/udt`](https://github.com/ckb-devrel/ccc/tree/master/packages/udt) to interact with SSRI-Compliant contracts.
+- Try and read about them at [`@ckb-ccc/demo`](https://github.com/ckb-devrel/ccc/tree/master/packages/demo).
+
+### Related Projects
+
+- [`ckb_ssri_sdk`](https://github.com/Alive24/ckb_ssri_sdk): A toolkit to help developers build SSRI-Compliant smart contracts on CKB with production level example contract `pausable-udt` for reference.
+- [`ckb_ssri_cli`](https://github.com/Alive24/ckb_ssri_cli): Command Line Interface for general users, moderators, and devs to interact with SSRI-Compliant Contracts deployed on CKB Network.
+- [`ssri-test`](https://github.com/Hanssen0/ssri-test): First prototype of SSRI-Compliant contract.
+- [`ssri-server`](https://github.com/ckb-devrel/ssri-server): Server for calling SSRI methods.
