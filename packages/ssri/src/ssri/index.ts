@@ -124,7 +124,7 @@ export class Server {
       | { cell: ccc.CellLike }
       | { transaction: ccc.TransactionLike },
   ): Promise<ccc.Hex> {
-    const pathHex = ccc.hashCkb(ccc.bytesFrom(path));
+    const pathHex = ccc.hashCkb(ccc.bytesFrom(path, "utf8")).slice(0, 18);
     const parsedArgsHex = argsHex.map((arg) => ccc.hexFrom(arg));
     const payload = {
       id: 2,
@@ -132,7 +132,7 @@ export class Server {
       method: "run_script_level_code",
       params: [
         codeOutPoint.txHash,
-        codeOutPoint.index,
+        Number(codeOutPoint.index),
         [pathHex, ...parsedArgsHex],
       ],
     } as PayloadType;

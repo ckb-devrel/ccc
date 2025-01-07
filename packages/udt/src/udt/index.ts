@@ -1,6 +1,6 @@
-import { ccc } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 import { ssri } from "@ckb-ccc/ssri";
-import { amountArrayCodec, lockArrayCodec } from "./advanced.js";
+import { amountArrayCodec } from "./advanced";
 
 /**
  * Represents a User Defined Token (UDT) contract compliant with the SSRI protocol.
@@ -58,8 +58,7 @@ export class UDT extends ssri.Contract {
    * @tag Legacy - Supports xUDT legacy behavior.
    */
   async name(): Promise<string> {
-    const hasMethod = (await this.hasMethods(["UDT.name"]))[0];
-    if (hasMethod) {
+    try {
       const rawResult = await this.ssriServer.callMethod(
         "UDT.name",
         [],
@@ -69,7 +68,7 @@ export class UDT extends ssri.Contract {
         },
       );
       return ccc.bytesTo(rawResult, "utf8");
-    } else {
+    } catch (_error) {
       throw new Error(
         "UDT.name method not found and ckb-udt-indexer not implemented yet",
       );
@@ -82,8 +81,7 @@ export class UDT extends ssri.Contract {
    * @tag Legacy - Supports xUDT legacy behavior.
    */
   async symbol(): Promise<string> {
-    const hasMethod = (await this.hasMethods(["UDT.symbol"]))[0];
-    if (hasMethod) {
+    try {
       const rawResult = await this.ssriServer.callMethod(
         "UDT.symbol",
         [],
@@ -93,7 +91,7 @@ export class UDT extends ssri.Contract {
         },
       );
       return ccc.bytesTo(rawResult, "utf8");
-    } else {
+    } catch (_error) {
       throw new Error(
         "UDT.symbol method not found and ckb-udt-indexer not implemented yet",
       );
@@ -106,18 +104,17 @@ export class UDT extends ssri.Contract {
    * @tag Legacy - Supports xUDT legacy behavior.
    */
   async decimals(): Promise<ccc.Num> {
-    const hasMethod = (await this.hasMethods(["UDT.decimals"]))[0];
-    if (hasMethod) {
+    try {
       const rawResult = await this.ssriServer.callMethod(
         "UDT.decimals",
         [],
         this.cellDep.outPoint,
         {
-        script: this.type,
-      },
+          script: this.type,
+        },
       );
       return ccc.numFromBytes(rawResult);
-    } else {
+    } catch (_error) {
       throw new Error(
         "UDT.decimals method not found and ckb-udt-indexer not implemented yet",
       );
@@ -130,18 +127,17 @@ export class UDT extends ssri.Contract {
    * @tag Legacy - Supports xUDT legacy behavior.
    */
   async balance(cell: ccc.CellLike): Promise<ccc.Num> {
-    const hasMethod = (await this.hasMethods(["UDT.balance"]))[0];
-    if (hasMethod) {
+    try {
       const rawResult = await this.ssriServer.callMethod(
         "UDT.balance",
         [],
         this.cellDep.outPoint,
         {
-        cell,
-      },
-    );
+          cell,
+        },
+      );
       return ccc.numLeFromBytes(ccc.bytesFrom(rawResult));
-    } else {
+    } catch (_error) {
       return ccc.numLeFromBytes(ccc.bytesFrom(cell.outputData));
     }
   }
@@ -211,15 +207,17 @@ export class UDT extends ssri.Contract {
     if (toLockArray.length !== toAmountArray.length) {
       throw new Error("The number of lock scripts and amounts must match");
     }
-    const hasMethod = (await this.hasMethods(["UDT.transfer"]))[0];
-    if (hasMethod) {
+    try {
       const txEncodedHex = tx
         ? ccc.hexFrom(ccc.Transaction.from(tx).toBytes())
         : "0x";
       const parsedToLockArray = toLockArray.map((lock) =>
         ccc.Script.from(lock),
       );
-      const toLockArrayEncoded = lockArrayCodec.encode(parsedToLockArray);
+
+      const toLockArrayEncoded = mol.BytesVec.encode(
+        parsedToLockArray.map((lock) => lock.toBytes()),
+      );
       const toLockArrayEncodedHex = ccc.hexFrom(toLockArrayEncoded);
       const toAmountArrayEncoded = amountArrayCodec.encode(toAmountArray);
       const toAmountArrayEncodedHex = ccc.hexFrom(toAmountArrayEncoded);
@@ -233,7 +231,7 @@ export class UDT extends ssri.Contract {
       );
       const resultDecodedArray = ccc.bytesFrom(rawResult);
       return ccc.Transaction.decode(resultDecodedArray);
-    } else {
+    } catch (_error) {
       let parsedTx: ccc.Transaction;
       if (!tx) {
         parsedTx = ccc.Transaction.from({
@@ -276,12 +274,13 @@ export class UDT extends ssri.Contract {
     if (toLockArray.length !== toAmountArray.length) {
       throw new Error("The number of lock scripts and amounts must match");
     }
-    const hasMethod = (await this.hasMethods(["UDT.mint"]))[0];
-    if (hasMethod) {
+    try {
       const txEncodedHex = tx
         ? ccc.hexFrom(ccc.Transaction.from(tx).toBytes())
         : "0x";
-      const toLockArrayEncoded = lockArrayCodec.encode(toLockArray);
+      const toLockArrayEncoded = mol.BytesVec.encode(
+        toLockArray.map((lock) => ccc.Script.from(lock).toBytes()),
+      );
       const toLockArrayEncodedHex = ccc.hexFrom(toLockArrayEncoded);
       const toAmountArrayEncoded = amountArrayCodec.encode(toAmountArray);
       const toAmountArrayEncodedHex = ccc.hexFrom(toAmountArrayEncoded);
@@ -295,7 +294,7 @@ export class UDT extends ssri.Contract {
       );
       const rawResultDecoded = ccc.Transaction.decode(rawResult);
       return ccc.Transaction.from(rawResultDecoded);
-    } else {
+    } catch (_error) {
       let parsedTx: ccc.Transaction;
       if (!tx) {
         parsedTx = ccc.Transaction.from({
@@ -327,15 +326,21 @@ export class UDT extends ssri.Contract {
    * @tag Legacy - Supports xUDT legacy behavior.
    */
   async icon(): Promise<ccc.Bytes> {
-    const rawResult = await this.ssriServer.callMethod(
-      "UDT.icon",
-      [],
-      this.cellDep.outPoint,
-      {
-        script: this.type,
-      },
-    );
-    const iconBytes = Buffer.from(ccc.bytesFrom(rawResult));
-    return iconBytes;
+    try {
+      const rawResult = await this.ssriServer.callMethod(
+        "UDT.icon",
+        [],
+        this.cellDep.outPoint,
+        {
+          script: this.type,
+        },
+      );
+      const iconBytes = Buffer.from(ccc.bytesFrom(rawResult));
+      return iconBytes;
+    } catch (_error) {
+      throw new Error(
+        "UDT.icon method not found and ckb-udt-indexer not implemented yet",
+      );
+    }
   }
 }
