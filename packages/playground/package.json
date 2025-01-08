@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ckb-ccc/ccc": "workspace:*",
+    "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/connector-react": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
     "axios": "^1.7.7",
