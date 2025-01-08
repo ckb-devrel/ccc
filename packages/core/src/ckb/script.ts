@@ -211,3 +211,4 @@ export class Script extends mol.Entity.Base<ScriptLike, Script>() {
 }
 
 export const ScriptOpt = mol.option(Script);
+export const ScriptVec = mol.vector(Script);

@@ -49,6 +49,38 @@ export const Bytes: Codec<HexLike, Hex> = byteVec({
 export const BytesOpt = option(Bytes);
 export const BytesVec = vector(Bytes);
 
+export const Bool: Codec<boolean> = Codec.from({
+  byteLength: 1,
+  encode: (value) => bytesFrom(value ? [1] : [0]),
+  decode: (buffer) => bytesFrom(buffer)[0] !== 0,
+});
+export const BoolOpt = option(Bool);
+export const BoolVec = vector(Bool);
+
+export const Byte4: Codec<HexLike, Hex> = Codec.from({
+  byteLength: 4,
+  encode: (value) => bytesFrom(value),
+  decode: (buffer) => hexFrom(buffer),
+});
+export const Byte4Opt = option(Byte4);
+export const Byte4Vec = vector(Byte4);
+
+export const Byte8: Codec<HexLike, Hex> = Codec.from({
+  byteLength: 8,
+  encode: (value) => bytesFrom(value),
+  decode: (buffer) => hexFrom(buffer),
+});
+export const Byte8Opt = option(Byte8);
+export const Byte8Vec = vector(Byte8);
+
+export const Byte16: Codec<HexLike, Hex> = Codec.from({
+  byteLength: 16,
+  encode: (value) => bytesFrom(value),
+  decode: (buffer) => hexFrom(buffer),
+});
+export const Byte16Opt = option(Byte16);
+export const Byte16Vec = vector(Byte16);
+
 export const Byte32: Codec<HexLike, Hex> = Codec.from({
   byteLength: 32,
   encode: (value) => bytesFrom(value),
