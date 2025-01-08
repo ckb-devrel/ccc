@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { SSRIParamsInput } from "@/src/components/SSRIParamsInput";
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
@@ -191,24 +190,7 @@ export default function SSRI() {
         args: fallbackType.args
       } as ccc.Script;
       
-      contract = udt.UDT.fallbackToXudt(
-            signer.client,
-            fallbackScript,
-            fallbackName,
-            fallbackSymbol,
-            BigInt(fallbackDecimals),
-          )
     } else {
-      // Create regular SSRI UDT instance
-      const testSSRIServer = new ssri.Server(signer.client, SSRIServerURL);
-      const testOutPoint = {
-        txHash: contractOutPointTx,
-        index: parseInt(contractOutPointIndex)
-      };
-
-      contract = activeTrait === "UDT"
-        ? new udt.UDT(testSSRIServer, testOutPoint)
-        : new udt.UDTPausable(testSSRIServer, testOutPoint);
     }
 
     try {

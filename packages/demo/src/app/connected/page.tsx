@@ -34,6 +34,7 @@ const TABS: [ReactNode, string, keyof typeof icons, string][] = [
   ],
   ["Nervos DAO", "/connected/NervosDao", "Vault", "text-pink-500"],
   ["SSRI", "/connected/SSRI", "Pill", "text-red-500"],
+  ["UDT", "/connected/UDT", "Coins", "text-green-500"],
   ["Hash", "/utils/Hash", "Barcode", "text-violet-500"],
   ["Mnemonic", "/utils/Mnemonic", "SquareAsterisk", "text-fuchsia-500"],
   ["Keystore", "/utils/Keystore", "Notebook", "text-rose-500"],
