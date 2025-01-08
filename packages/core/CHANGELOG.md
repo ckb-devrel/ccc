@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.2.3
+
+### Patch Changes
+
+- [#127](https://github.com/ckb-devrel/ccc/pull/127) [`01263bd`](https://github.com/ckb-devrel/ccc/commit/01263bd8c601fa8fcdfa24be52601716e1864843) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: numFromBytes modifies the args
+
 ## 1.2.2
 
 ### Patch Changes

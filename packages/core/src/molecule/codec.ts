@@ -350,14 +350,16 @@ export function table<
     },
     decode(buffer) {
       const value = bytesFrom(buffer);
+      if (value.byteLength < 4) {
+        throw new Error(
+          `table: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
+        );
+      }
       const byteLength = uint32From(value.slice(0, 4));
       if (byteLength !== value.byteLength) {
         throw new Error(
           `table: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
-      }
-      if (byteLength <= 4) {
-        throw new Error("table: empty buffer");
       }
       const offsets = keys.map((_, index) =>
         uint32From(value.slice(4 + index * 4, 8 + index * 4)),
