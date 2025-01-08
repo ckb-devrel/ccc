@@ -187,7 +187,13 @@ export function numFromBytes(val: BytesLike): Num {
  * ```
  */
 export function numLeFromBytes(val: BytesLike): Num {
-  return numBeFromBytes(bytesFrom(val).reverse());
+  // reverse() modifies the original array
+  // so we use the map to copy it to avoid this
+  return numBeFromBytes(
+    bytesFrom(val)
+      .map((v) => v)
+      .reverse(),
+  );
 }
 
 /**
