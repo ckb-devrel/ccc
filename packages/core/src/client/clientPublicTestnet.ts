@@ -1,22 +1,16 @@
 import WebSocket from "isomorphic-ws";
-import { ClientCache } from "./cache/index.js";
 import { TESTNET_SCRIPTS } from "./clientPublicTestnet.advanced.js";
 import { KnownScript, ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
-import { ClientJsonRpc } from "./jsonRpc/index.js";
-import { Transport } from "./transports/advanced.js";
+import { ClientJsonRpc, ClientJsonRpcConfig } from "./jsonRpc/index.js";
 
 /**
  * @public
  */
 export class ClientPublicTestnet extends ClientJsonRpc {
   constructor(
-    private readonly config?: {
+    private readonly config?: ClientJsonRpcConfig & {
       url?: string;
-      timeout?: number;
-      maxConcurrent?: number;
-      transport?: Transport;
       scripts?: Record<KnownScript, ScriptInfoLike | undefined>;
-      cache?: ClientCache;
     },
   ) {
     super(
