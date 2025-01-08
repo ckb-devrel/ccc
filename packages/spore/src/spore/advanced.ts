@@ -2,7 +2,6 @@ import { ccc, mol } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
-import { searchOneCellBySigner } from "../helper/index.js";
 
 export async function prepareCluster(
   signer: ccc.Signer,
@@ -33,16 +32,7 @@ export async function prepareCluster(
       if ((await tx.findInputIndexByLock(lock, signer.client)) === undefined) {
         // note: We can only search proxy of signer, if any custom logic is in need, developer should get
         // the proxy filled in transaction before invoking `createSpore`
-        const proxy = await searchOneCellBySigner(signer);
-        if (!proxy) {
-          throw new Error("Cluster lock proxy cell not found");
-        }
-        tx.inputs.push(
-          ccc.CellInput.from({
-            previousOutput: proxy.outPoint,
-            ...proxy,
-          }),
-        );
+        await tx.completeInputsAddOne(signer);
       }
       if (tx.outputs.every((output) => output.lock !== lock)) {
         tx.addOutput({

@@ -1517,6 +1517,51 @@ export class Transaction extends mol.Entity.Base<
     );
   }
 
+  async completeInputsAddOne(
+    from: Signer,
+    filter?: ClientCollectableSearchKeyFilterLike,
+  ): Promise<number> {
+    for await (const cell of from.findCells(
+      filter ?? {
+        scriptLenRange: [0, 1],
+        outputDataLenRange: [0, 1],
+      },
+      true,
+      undefined,
+      1,
+    )) {
+      if (
+        this.inputs.some(({ previousOutput }) =>
+          previousOutput.eq(cell.outPoint),
+        )
+      ) {
+        continue;
+      }
+
+      this.inputs.push(
+        CellInput.from({
+          previousOutput: cell.outPoint,
+          outputData: cell.outputData,
+          cellOutput: cell.cellOutput,
+        }),
+      );
+      return 1;
+    }
+
+    throw new Error(`Insufficient CKB, need at least one new cell`);
+  }
+
+  async completeInputsAtLeastOne(
+    from: Signer,
+    filter?: ClientCollectableSearchKeyFilterLike,
+  ): Promise<number> {
+    if (this.inputs.length > 0) {
+      return 0;
+    }
+
+    return this.completeInputsAddOne(from, filter);
+  }
+
   estimateFee(feeRate: NumLike): Num {
     const txSize = this.toBytes().length + 4;
     return (numFrom(txSize) * numFrom(feeRate) + numFrom(1000)) / numFrom(1000);

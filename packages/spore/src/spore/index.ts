@@ -6,10 +6,7 @@ import {
   prepareSporeTransaction,
 } from "../advanced.js";
 import { SporeData, SporeDataView, packRawSporeData } from "../codec/index.js";
-import {
-  findSingletonCellByArgs,
-  injectOneCapacityCell,
-} from "../helper/index.js";
+import { findSingletonCellByArgs } from "../helper/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -90,9 +87,7 @@ export async function createSpore(params: {
   const actions = [];
   const ids: ccc.Hex[] = [];
   const tx = ccc.Transaction.from(params.tx ?? {});
-  if (tx.inputs.length === 0) {
-    await injectOneCapacityCell(signer, tx);
-  }
+  await tx.completeInputsAtLeastOne(signer);
 
   const { script: lock } = await signer.getRecommendedAddressObj();
 

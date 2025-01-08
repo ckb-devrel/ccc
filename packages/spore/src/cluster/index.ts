@@ -10,10 +10,7 @@ import {
   ClusterDataView,
   packRawClusterData,
 } from "../codec/index.js";
-import {
-  findSingletonCellByArgs,
-  injectOneCapacityCell,
-} from "../helper/index.js";
+import { findSingletonCellByArgs } from "../helper/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -85,9 +82,7 @@ export async function createSporeCluster(params: {
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
-  if (tx.inputs.length === 0) {
-    await injectOneCapacityCell(signer, tx);
-  }
+  await tx.completeInputsAtLeastOne(signer);
 
   // build cluster cell
   const id = ccc.hashTypeId(tx.inputs[0], tx.outputs.length);
