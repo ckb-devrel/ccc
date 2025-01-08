@@ -82,7 +82,11 @@ export function numFrom(val: NumLike): Num {
     return BigInt(val);
   }
 
-  return BigInt(hexFrom(val));
+  const hex = hexFrom(val);
+  if (hex === "0x") {
+    return BigInt(0);
+  }
+  return BigInt(hex);
 }
 
 /**
