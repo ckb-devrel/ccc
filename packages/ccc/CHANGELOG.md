@@ -1,5 +1,24 @@
 # @ckb-ccc/ccc
 
+## 1.1.0
+
+### Minor Changes
+
+- [#130](https://github.com/ckb-devrel/ccc/pull/130) [`8c97c85`](https://github.com/ckb-devrel/ccc/commit/8c97c851db4a2d940c7e59116ca7620cfd0afae1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: export backend packages in @ckb-ccc/shell
+
+### Patch Changes
+
+- Updated dependencies [[`8c97c85`](https://github.com/ckb-devrel/ccc/commit/8c97c851db4a2d940c7e59116ca7620cfd0afae1)]:
+  - @ckb-ccc/shell@1.1.0
+  - @ckb-ccc/eip6963@1.0.8
+  - @ckb-ccc/joy-id@1.0.8
+  - @ckb-ccc/nip07@1.0.8
+  - @ckb-ccc/okx@1.0.8
+  - @ckb-ccc/rei@1.0.8
+  - @ckb-ccc/uni-sat@1.0.8
+  - @ckb-ccc/utxo-global@1.0.8
+  - @ckb-ccc/xverse@1.0.8
+
 ## 1.0.7
 
 ### Patch Changes

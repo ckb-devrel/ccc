@@ -1,5 +1,12 @@
 # ckb-ccc
 
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [[`8c97c85`](https://github.com/ckb-devrel/ccc/commit/8c97c851db4a2d940c7e59116ca7620cfd0afae1)]:
+  - @ckb-ccc/ccc@1.1.0
+
 ## 1.0.7
 
 ### Patch Changes
