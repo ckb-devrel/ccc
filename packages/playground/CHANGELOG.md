@@ -1,5 +1,14 @@
 # @ckb-ccc/ccc-playground
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [[`5d4517e`](https://github.com/ckb-devrel/ccc/commit/5d4517e049b541b2a695db7821c4cfc2218678e0)]:
+  - @ckb-ccc/spore@1.1.1
+  - @ckb-ccc/ccc@1.1.1
+  - @ckb-ccc/connector-react@1.0.9
+
 ## 1.0.8
 
 ### Patch Changes

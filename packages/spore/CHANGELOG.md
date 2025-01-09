@@ -1,5 +1,14 @@
 # @ckb-ccc/spore
 
+## 1.1.1
+
+### Patch Changes
+
+- [`5d4517e`](https://github.com/ckb-devrel/ccc/commit/5d4517e049b541b2a695db7821c4cfc2218678e0) Thanks [@sfsf332](https://github.com/sfsf332)! - refactor(spore): unified findSpore(s) interface
+
+- Updated dependencies [[`a48cccf`](https://github.com/ckb-devrel/ccc/commit/a48cccfae3ce6b3456a5eb863f207e7e5a6e568f)]:
+  - @ckb-ccc/core@1.3.1
+
 ## 1.1.0
 
 ### Minor Changes

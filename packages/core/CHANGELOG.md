@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.3.1
+
+### Patch Changes
+
+- [`a48cccf`](https://github.com/ckb-devrel/ccc/commit/a48cccfae3ce6b3456a5eb863f207e7e5a6e568f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): numFrom("0x") should be zero
+
 ## 1.3.0
 
 ### Minor Changes

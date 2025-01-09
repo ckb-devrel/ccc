@@ -1,5 +1,12 @@
 # @ckb-ccc/eip6963
 
+## 1.0.9
+
+### Patch Changes
+
+- Updated dependencies [[`a48cccf`](https://github.com/ckb-devrel/ccc/commit/a48cccfae3ce6b3456a5eb863f207e7e5a6e568f)]:
+  - @ckb-ccc/core@1.3.1
+
 ## 1.0.8
 
 ### Patch Changes
