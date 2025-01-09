@@ -3,9 +3,9 @@ import { Executor, ExecutorResponse } from "./executor.js";
 import { getMethodPath } from "./utils.js";
 
 /**
- * Abstract class representing an SSRI trait. Should be used as the base of all SSRI traits.
+ * Class representing an SSRI trait. Should be used as the base of all SSRI traits.
  */
-export abstract class Trait {
+export class Trait {
   public readonly code: ccc.OutPoint;
   public readonly executor?: Executor;
 
