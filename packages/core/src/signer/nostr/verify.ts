@@ -1,7 +1,7 @@
 import { schnorr } from "@noble/curves/secp256k1";
 import { sha256 } from "@noble/hashes/sha256";
 import { bech32 } from "bech32";
-import { BytesLike, bytesFrom } from "../../bytes/index.js";
+import { Bytes, BytesLike, bytesFrom } from "../../bytes/index.js";
 import { hexFrom } from "../../hex/index.js";
 import { NostrEvent } from "./signerNostr.js";
 
@@ -20,8 +20,8 @@ export function buildNostrEventFromMessage(
         typeof event.created_at === "number" &&
         typeof event.kind === "number" &&
         typeof event.content === "string" &&
-        Array.isArray(event.args) &&
-        (event.args as unknown[]).every(
+        Array.isArray(event.tags) &&
+        (event.tags as unknown[]).every(
           (tag) =>
             Array.isArray(tag) &&
             (tag as unknown[]).every((v) => typeof v === "string"),
@@ -40,6 +40,19 @@ export function buildNostrEventFromMessage(
   };
 }
 
+export function nostrEventHash(event: NostrEvent): Bytes {
+  const serialized = JSON.stringify([
+    0,
+    event.pubkey,
+    event.created_at,
+    event.kind,
+    event.tags,
+    event.content,
+  ]);
+
+  return sha256(bytesFrom(serialized, "utf8"));
+}
+
 export function verifyMessageNostrEvent(
   message: string | BytesLike,
   signature: string,
@@ -49,18 +62,10 @@ export function verifyMessageNostrEvent(
   const publicKey = hexFrom(bech32.fromWords(words)).slice(2);
 
   const event = buildNostrEventFromMessage(message);
-  const serialized = JSON.stringify([
-    0,
-    publicKey,
-    event.created_at,
-    event.kind,
-    event.tags,
-    event.content,
-  ]);
-  const eventHash = hexFrom(sha256(bytesFrom(serialized, "utf8")));
+  const eventHash = nostrEventHash(event);
 
   try {
-    return schnorr.verify(signature.slice(2), eventHash.slice(2), publicKey);
+    return schnorr.verify(hexFrom(signature).slice(2), eventHash, publicKey);
   } catch (_) {
     return false;
   }
