@@ -1,7 +1,7 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { HDKey } from "@scure/bip32";
@@ -26,6 +26,30 @@ export default function Keystore() {
     }[]
   >([]);
   const [hdKey, setHdKey] = useState<HDKey | undefined>(undefined);
+  const moreAccounts = useCallback(async () => {
+    if (!hdKey) {
+      return;
+    }
+    const count = parseInt(countStr, 10);
+    setAccount((accounts) => [
+      ...accounts,
+      ...Array.from(new Array(count), (_, i) => {
+        const path = `m/44'/309'/0'/0/${i + accounts.length}`;
+        const derivedKey = hdKey.derive(path);
+        return {
+          publicKey: ccc.hexFrom(derivedKey.publicKey!),
+          privateKey: ccc.hexFrom(derivedKey.privateKey!),
+          path,
+          address: "",
+        };
+      }),
+    ]);
+  }, [hdKey, countStr]);
+  useEffect(() => {
+    setAccount([]);
+    moreAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hdKey]);
 
   useEffect(() => {
     setAccount([]);
@@ -72,7 +96,7 @@ export default function Keystore() {
         state={[password, setPassword]}
       />
       {accounts.length !== 0 ? (
-        <div className="mt-1 w-full overflow-scroll whitespace-nowrap">
+        <div className="mt-1 w-full overflow-scroll whitespace-nowrap bg-white">
           <p>path, address, private key</p>
           {accounts.map(({ privateKey, address, path }) => (
             <p key={path}>
@@ -83,6 +107,7 @@ export default function Keystore() {
       ) : undefined}
       <ButtonsPanel>
         <Button
+          variant="success"
           onClick={async () => {
             try {
               const { privateKey, chainCode } = await ccc.keystoreDecrypt(
@@ -101,25 +126,7 @@ export default function Keystore() {
         </Button>
         <Button
           className="ml-2"
-          onClick={async () => {
-            if (!hdKey) {
-              return;
-            }
-            const count = parseInt(countStr, 10);
-            setAccount([
-              ...accounts,
-              ...Array.from(new Array(count), (_, i) => {
-                const path = `m/44'/309'/0'/0/${i}`;
-                const derivedKey = hdKey.derive(path);
-                return {
-                  publicKey: ccc.hexFrom(derivedKey.publicKey!),
-                  privateKey: ccc.hexFrom(derivedKey.privateKey!),
-                  path,
-                  address: "",
-                };
-              }),
-            ]);
-          }}
+          onClick={moreAccounts}
           disabled={!hdKey || Number.isNaN(parseInt(countStr, 10))}
         >
           More accounts
@@ -127,7 +134,7 @@ export default function Keystore() {
         {accounts.length !== 0 ? (
           <Button
             as="a"
-            className="mt-2"
+            className="ml-2"
             href={`data:application/octet-stream,path%2C%20address%2C%20private%20key%0A${accounts
               .map(({ privateKey, address, path }) =>
                 encodeURIComponent(`${path}, ${address}, ${privateKey}`),

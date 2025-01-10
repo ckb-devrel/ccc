@@ -40,12 +40,13 @@ export const APP_CONTEXT = createContext<
       openAction: ReactNode;
 
       sendMessage: (
-        level: "error" | "info",
+        level: "error" | "warn" | "info",
         title: string,
         msgs: ReactNode[],
       ) => void;
       createSender: (title: string) => {
         log: (...msgs: ReactNode[]) => void;
+        warn: (...msgs: ReactNode[]) => void;
         error: (...msgs: ReactNode[]) => void;
       };
     }
@@ -90,11 +91,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [signer]);
 
   const [messages, setMessages] = useState<
-    ["error" | "info", string, ReactNode][]
+    ["error" | "warn" | "info", string, ReactNode][]
   >([]);
 
   const sendMessage = (
-    level: "error" | "info",
+    level: "error" | "warn" | "info",
     title: string,
     msgs: ReactNode[],
   ) =>
@@ -171,6 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sendMessage,
         createSender: (title) => ({
           log: (...msgs) => sendMessage("info", title, msgs),
+          warn: (...msgs) => sendMessage("warn", title, msgs),
           error: (...msgs) => sendMessage("error", title, msgs),
         }),
       }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import * as bip39 from "@scure/bip39";
@@ -31,7 +31,32 @@ export default function Mnemonic() {
     [mnemonic],
   );
 
-  useEffect(() => setAccount([]), [mnemonic]);
+  const moreAccounts = useCallback(async () => {
+    const count = parseInt(countStr, 10);
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    const hdKey = HDKey.fromMasterSeed(seed);
+    setAccount((accounts) => [
+      ...accounts,
+      ...Array.from(new Array(count), (_, i) => {
+        const path = `m/44'/309'/0'/0/${i + accounts.length}`;
+        const derivedKey = hdKey.derive(path);
+        return {
+          publicKey: ccc.hexFrom(derivedKey.publicKey!),
+          privateKey: ccc.hexFrom(derivedKey.privateKey!),
+          path,
+          address: "",
+        };
+      }),
+    ]);
+  }, [countStr, mnemonic]);
+
+  useEffect(() => {
+    setAccount([]);
+    if (isValid) {
+      moreAccounts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mnemonic]);
 
   useEffect(() => {
     (async () => {
@@ -92,24 +117,7 @@ export default function Mnemonic() {
         </Button>
         <Button
           className="ml-2"
-          onClick={async () => {
-            const count = parseInt(countStr, 10);
-            const seed = await bip39.mnemonicToSeed(mnemonic);
-            const hdKey = HDKey.fromMasterSeed(seed);
-            setAccount([
-              ...accounts,
-              ...Array.from(new Array(count), (_, i) => {
-                const path = `m/44'/309'/0'/0/${i + accounts.length}`;
-                const derivedKey = hdKey.derive(path);
-                return {
-                  publicKey: ccc.hexFrom(derivedKey.publicKey!),
-                  privateKey: ccc.hexFrom(derivedKey.privateKey!),
-                  path,
-                  address: "",
-                };
-              }),
-            ]);
-          }}
+          onClick={moreAccounts}
           disabled={!isValid || Number.isNaN(parseInt(countStr, 10))}
         >
           More accounts

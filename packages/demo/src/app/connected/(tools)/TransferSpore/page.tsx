@@ -42,7 +42,9 @@ export default function TransferSpore() {
           if (cluster) {
             list.push({
               id: spore.cellOutput.type.args,
-              name: `${cluster.clusterData.name} ${spore.cellOutput.type.args.slice(10)}`,
+              name: `${cluster.clusterData.name} (${ccc
+                .hexFrom(sporeData.clusterId)
+                .slice(0, 10)}-${spore.cellOutput.type.args.slice(0, 10)})`,
             });
             continue;
           }
@@ -108,6 +110,7 @@ export default function TransferSpore() {
           Transfer Spore
         </Button>
         <Button
+          variant="danger"
           className="ml-2"
           disabled={sporeId === ""}
           onClick={async () => {

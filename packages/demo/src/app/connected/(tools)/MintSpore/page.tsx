@@ -8,12 +8,17 @@ import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
 import { ccc, spore } from "@ckb-ccc/connector-react";
+import { Message } from "@/src/components/Message";
+import Link from "next/link";
 
 export default function MintSpore() {
   const { signer, createSender } = useApp();
-  const { log } = createSender("Mint Spore");
+  const { log, warn } = createSender("Mint Spore");
   const { explorerTransaction } = useGetExplorerLink();
-  const [dna, setDna] = useState<string>("");
+  const [contentType, setContentType] = useState<string>("dob/1");
+  const [content, setContent] = useState<string>(
+    '{ "dna": "0123456789abcdef" }',
+  );
   const [clusterId, setClusterId] = useState<string>("");
   const [clusterList, setClusterList] = useState([
     {
@@ -25,13 +30,27 @@ export default function MintSpore() {
   const mintSpore = useCallback(async () => {
     if (!signer) return;
 
-    const content = `{"dna":"${ccc.hexFrom(dna).slice(2)}"}`;
+    const cont = (() => {
+      const trimmed = content.trim();
+      if (!(trimmed.startsWith("{") || trimmed.endsWith("}"))) {
+        return content;
+      }
+      try {
+        const compressed = JSON.stringify(JSON.parse(content));
+        log("JSON object content was compressed");
+        return compressed;
+      } catch (err) {
+        warn("Failed to parse content as JSON object, leaving it unchanged");
+        return content;
+      }
+    })();
+
     // Build transaction
     const { tx, id } = await spore.createSpore({
       signer,
       data: {
-        contentType: "dob/1",
-        content: ccc.bytesFrom(content, "utf8"),
+        contentType,
+        content: ccc.bytesFrom(cont, "utf8"),
         clusterId: clusterId === "" ? undefined : clusterId,
       },
       clusterMode: clusterId === "" ? "skip" : "clusterCell",
@@ -42,7 +61,7 @@ export default function MintSpore() {
     log("Transaction sent:", explorerTransaction(txHash), "Spore ID:", id);
     await signer.client.waitTransaction(txHash);
     log("Transaction committed:", explorerTransaction(txHash));
-  }, [signer, log, clusterId, dna, explorerTransaction]);
+  }, [signer, log, warn, clusterId, content, contentType, explorerTransaction]);
 
   useEffect(() => {
     if (!signer) {
@@ -70,7 +89,7 @@ export default function MintSpore() {
 
         list.push({
           id: cluster.cellOutput.type.args,
-          name: clusterData.name,
+          name: `${clusterData.name} (${cluster.cellOutput.type.args.slice(0, 10)})`,
         });
       }
 
@@ -80,7 +99,28 @@ export default function MintSpore() {
 
   return (
     <div className="flex w-full flex-col items-stretch">
-      <TextInput label="DNA" placeholder="Spore DNA" state={[dna, setDna]} />
+      <Message title="Hint" type="info">
+        Learn more on{" "}
+        <Link
+          className="underline"
+          href="https://docs.spore.pro/"
+          target="_blank"
+        >
+          the Spore Protocol Docs
+        </Link>
+        .
+      </Message>
+
+      <TextInput
+        label="Content Type"
+        placeholder="Spore Content Type"
+        state={[contentType, setContentType]}
+      />
+      <TextInput
+        label="Content"
+        placeholder="Spore Content"
+        state={[content, setContent]}
+      />
 
       <label className="mt-4 text-sm">Select a Cluster (optional)</label>
       <Dropdown

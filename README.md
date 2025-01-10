@@ -53,10 +53,10 @@ For non-developers, you can [try CCC's app now here](https://app.ckbccc.com/) ([
   - [Issue xUDT token with the Single-Use Lock.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtSus/page.tsx>)
   - [Issue xUDT token controlled by a Type ID cell.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtTypeId/page.tsx>)
 - [Spore Protocol](https://docs.spore.pro/) SDK.
-  - [Create spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/CreateCluster/page.tsx>)
+  - [Create spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/CreateSporeCluster/page.tsx>)
   - [Mint spore.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/MintSpore/page.tsx>)
   - [Transfer/Melt spore.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TransferSpore/page.tsx>)
-  - [Transfer spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TransferCluster/page.tsx>)
+  - [Transfer spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TransferSporeCluster/page.tsx>)
 - [Manage Nervos DAO.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/NervosDao/page.tsx>)
 - [Transfer native CKB token with time lock.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TimeLockedTransfer/page.tsx>)
 - [Calculate the CKB hash of any messages.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/utils/(tools)/Hash/page.tsx>)

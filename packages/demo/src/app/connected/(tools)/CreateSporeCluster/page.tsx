@@ -8,10 +8,12 @@ import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { ccc, spore } from "@ckb-ccc/connector-react";
 import { Textarea } from "@/src/components/Textarea";
+import { Message } from "@/src/components/Message";
+import Link from "next/link";
 
 function generateClusterDescriptionUnderDobProtocol(
   client: ccc.Client,
-): string {
+): [string, string] {
   /**
    * Generation example for DOB0
    */
@@ -26,7 +28,7 @@ function generateClusterDescriptionUnderDobProtocol(
       traitArgs: ["red", "blue", "green", "black", "white"],
     },
     {
-      traitName: "FontSize",
+      traitName: "Type",
       dobType: "Number",
       dnaOffset: 1,
       dnaLength: 1,
@@ -34,28 +36,21 @@ function generateClusterDescriptionUnderDobProtocol(
       traitArgs: [10, 50],
     },
     {
-      traitName: "FontFamily",
-      dobType: "String",
-      dnaOffset: 2,
-      dnaLength: 1,
-      patternType: "options",
-      traitArgs: ["Arial", "Helvetica", "Times New Roman", "Courier New"],
-    },
-    {
       traitName: "Timestamp",
       dobType: "Number",
-      dnaOffset: 3,
+      dnaOffset: 2,
       dnaLength: 4,
       patternType: "rawNumber",
     },
-    {
-      traitName: "ConsoleLog",
-      dobType: "String",
-      dnaOffset: 7,
-      dnaLength: 13,
-      patternType: "utf8",
-    },
   ];
+  const dob0: spore.dob.Dob0 = {
+    description: clusterDescription,
+    dob: {
+      ver: 0,
+      decoder: spore.dob.getDecoder(client, "dob0"),
+      pattern: dob0Pattern,
+    },
+  };
 
   /**
    * Generation example for DOB1
@@ -80,7 +75,7 @@ function generateClusterDescriptionUnderDobProtocol(
         ],
         [
           ["*"],
-          "<image width='300' height='200' btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0 />",
+          "<image width='300' height='200' href='btcfs://eb3910b3e32a5ed9460bd0d75168c01ba1b8f00cc0faf83e4d8b67b48ea79676i0' />",
         ],
       ],
     },
@@ -91,25 +86,9 @@ function generateClusterDescriptionUnderDobProtocol(
       patternType: "options",
       traitArgs: [
         ["red", "<rect width='20' height='20' x='5' y='5' fill='red' />"],
-        ["blud", "<rect width='20' height='20' x='20' y='5' fill='blue' />"],
+        ["blue", "<rect width='20' height='20' x='20' y='5' fill='blue' />"],
         ["green", "<rect width='20' height='20' x='5' y='20' fill='green' />"],
         [["*"], "<rect width='20' height='20' x='20' y='20' fill='pink' />"],
-      ],
-    },
-    {
-      imageName: "IMAGE.0",
-      svgFields: "elements",
-      traitName: "ConsoleLog",
-      patternType: "options",
-      traitArgs: [
-        [
-          "hello, world!",
-          "<image width='100' height='100' href='ipfs://QmeQ6TfqzsjJCMtYmpbyZeMxiSzQGc6Aqg6NyJTeLYrrJr' />",
-        ],
-        [
-          ["*"],
-          "<image width='100' height='100' href='ipfs://QmYiiN8EXxAnyddatCbXRYzwU9wwAjh21ms4KEJodxg8Fo' />",
-        ],
       ],
     },
   ];
@@ -129,22 +108,25 @@ function generateClusterDescriptionUnderDobProtocol(
       ],
     },
   };
-  return spore.dob.encodeClusterDescriptionForDob1(dob1);
+  return [
+    spore.dob.encodeClusterDescriptionForDob0(dob0),
+    spore.dob.encodeClusterDescriptionForDob1(dob1),
+  ];
 }
-export default function CreateCluster() {
+export default function CreateSporeCluster() {
   const { signer, createSender } = useApp();
   const { client } = ccc.useCcc();
-  const { log } = createSender("Create Cluster");
+  const { log, warn } = createSender("Create Cluster");
 
   const { explorerTransaction } = useGetExplorerLink();
 
-  const [name, SetName] = useState<string>("");
+  const [name, SetName] = useState<string>("My First DOB Cluster");
   const [description, setDescription] = useState<string>("");
 
   useEffect(() => {
     setDescription(
       JSON.stringify(
-        JSON.parse(generateClusterDescriptionUnderDobProtocol(client)),
+        JSON.parse(generateClusterDescriptionUnderDobProtocol(client)[1]),
         undefined,
         2,
       ),
@@ -153,6 +135,17 @@ export default function CreateCluster() {
 
   return (
     <div className="flex w-full flex-col items-stretch">
+      <Message title="Hint" type="info">
+        Learn more on{" "}
+        <Link
+          className="underline"
+          href="https://docs.spore.pro/"
+          target="_blank"
+        >
+          the Spore Protocol Docs
+        </Link>
+        .
+      </Message>
       <TextInput
         label="Name"
         placeholder="Cluster Name"
@@ -167,14 +160,65 @@ export default function CreateCluster() {
 
       <ButtonsPanel>
         <Button
+          variant="info"
+          onClick={() => {
+            setDescription(
+              JSON.stringify(
+                JSON.parse(
+                  generateClusterDescriptionUnderDobProtocol(client)[0],
+                ),
+                undefined,
+                2,
+              ),
+            );
+          }}
+        >
+          Generate DOB/0 Example
+        </Button>
+        <Button
+          variant="info"
+          className="ml-2"
+          onClick={() => {
+            setDescription(
+              JSON.stringify(
+                JSON.parse(
+                  generateClusterDescriptionUnderDobProtocol(client)[1],
+                ),
+                undefined,
+                2,
+              ),
+            );
+          }}
+        >
+          Generate DOB/1 Example
+        </Button>
+        <Button
+          className="ml-2"
           onClick={async () => {
             if (!signer) return;
+
+            const desc = (() => {
+              const trimmed = description.trim();
+              if (!(trimmed.startsWith("{") || trimmed.endsWith("}"))) {
+                return description;
+              }
+              try {
+                const compressed = JSON.stringify(JSON.parse(description));
+                log("JSON object description was compressed");
+                return compressed;
+              } catch (err) {
+                warn(
+                  "Failed to parse description as JSON object, leaving it unchanged",
+                );
+                return description;
+              }
+            })();
             const { tx, id } = await spore.createSporeCluster({
               signer,
 
               data: {
                 name,
-                description: JSON.stringify(JSON.parse(description)),
+                description: desc,
               },
             });
             await tx.completeFeeBy(signer);
