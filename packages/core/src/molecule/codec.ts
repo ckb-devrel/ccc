@@ -33,7 +33,30 @@ export class Codec<Encodable, Decoded = Encodable> {
     decode,
     byteLength,
   }: CodecLike<Encodable, Decoded>): Codec<Encodable, Decoded> {
-    return new Codec(encode, decode, byteLength);
+    return new Codec(
+      (encodable: Encodable) => {
+        const encoded = encode(encodable);
+        if (byteLength !== undefined && encoded.byteLength !== byteLength) {
+          throw new Error(
+            `Codec.encode: expected byte length ${byteLength}, got ${encoded.byteLength}`,
+          );
+        }
+        return encoded;
+      },
+      (decodable) => {
+        const decodableBytes = bytesFrom(decodable);
+        if (
+          byteLength !== undefined &&
+          decodableBytes.byteLength !== byteLength
+        ) {
+          throw new Error(
+            `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
+          );
+        }
+        return decode(decodable);
+      },
+      byteLength,
+    );
   }
 
   map<NewEncodable = Encodable, NewDecoded = Decoded>({
@@ -43,15 +66,15 @@ export class Codec<Encodable, Decoded = Encodable> {
     inMap?: (encodable: NewEncodable) => Encodable;
     outMap?: (decoded: Decoded) => NewDecoded;
   }): Codec<NewEncodable, NewDecoded> {
-    return Codec.from({
-      byteLength: this.byteLength,
-      encode: (encodable) =>
+    return new Codec(
+      (encodable) =>
         this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      decode: (buffer) =>
+      (buffer) =>
         (outMap
           ? outMap(this.decode(buffer))
           : this.decode(buffer)) as NewDecoded,
-    });
+      this.byteLength,
+    );
   }
 
   mapIn<NewEncodable>(
