@@ -9,7 +9,7 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { ccc } from "@ckb-ccc/connector-react";
 import { Dropdown } from "@/src/components/Dropdown";
 
-export default function TransferCluster() {
+export default function TransferSporeCluster() {
   const { signer, createSender } = useApp();
   const { log } = createSender("Transfer Cluster");
   const { explorerTransaction } = useGetExplorerLink();
@@ -40,7 +40,7 @@ export default function TransferCluster() {
 
         list.push({
           id: cluster.cellOutput.type.args,
-          name: clusterData.name,
+          name: `${clusterData.name} (${cluster.cellOutput.type.args.slice(0, 10)})`,
         });
       }
       setClusterList(list);

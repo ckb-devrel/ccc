@@ -3,7 +3,7 @@ import { Message } from "./Message";
 import { ChevronsRightLeft, History } from "lucide-react";
 
 interface NotificationProps {
-  messages: ["info" | "error", string, ReactNode][];
+  messages: ["info" | "warn" | "error", string, ReactNode][];
 }
 
 export function Notifications({ messages }: NotificationProps) {
@@ -78,7 +78,11 @@ export function Notifications({ messages }: NotificationProps) {
               <Message
                 key={messages.length - i}
                 title={`${messages.length - i} ${title}`}
-                type={level === "info" ? "success" : "error"}
+                type={
+                  { info: "success", warn: "warning", error: "error" }[
+                    level
+                  ] as "success" | "warning" | "error"
+                }
               >
                 {msg}
               </Message>

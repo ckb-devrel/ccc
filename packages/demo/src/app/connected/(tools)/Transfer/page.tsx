@@ -39,6 +39,7 @@ export default function Transfer() {
       />
       <ButtonsPanel>
         <Button
+          variant="info"
           onClick={async () => {
             if (!signer) {
               return;
