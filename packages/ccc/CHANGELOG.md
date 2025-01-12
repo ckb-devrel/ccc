@@ -1,5 +1,20 @@
 # @ckb-ccc/ccc
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/shell@1.1.2
+  - @ckb-ccc/eip6963@1.0.10
+  - @ckb-ccc/joy-id@1.0.10
+  - @ckb-ccc/nip07@1.0.10
+  - @ckb-ccc/okx@1.0.10
+  - @ckb-ccc/rei@1.0.10
+  - @ckb-ccc/uni-sat@1.0.10
+  - @ckb-ccc/utxo-global@1.0.10
+  - @ckb-ccc/xverse@1.0.10
+
 ## 1.1.1
 
 ### Patch Changes

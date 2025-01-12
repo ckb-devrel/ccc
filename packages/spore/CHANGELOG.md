@@ -1,5 +1,16 @@
 # @ckb-ccc/spore
 
+## 1.2.0
+
+### Minor Changes
+
+- [#136](https://github.com/ckb-devrel/ccc/pull/136) [`a1d5626`](https://github.com/ckb-devrel/ccc/commit/a1d56266da68602495054ad6b627b998ef27f04d) Thanks [@ashuralyk](https://github.com/ashuralyk)! - feat(spore): support decoding rendered dob data from spore data and cluster data
+
+### Patch Changes
+
+- Updated dependencies [[`3fdb2c4`](https://github.com/ckb-devrel/ccc/commit/3fdb2c477d0b2766b231e436b8f396f047b02634), [`f429087`](https://github.com/ckb-devrel/ccc/commit/f4290874dfab3fe58844e5169673c5d47bda64e3)]:
+  - @ckb-ccc/core@1.4.0
+
 ## 1.1.1
 
 ### Patch Changes

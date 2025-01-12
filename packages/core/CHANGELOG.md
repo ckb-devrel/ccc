@@ -1,5 +1,15 @@
 # @ckb-ccc/core
 
+## 1.4.0
+
+### Minor Changes
+
+- [#140](https://github.com/ckb-devrel/ccc/pull/140) [`f429087`](https://github.com/ckb-devrel/ccc/commit/f4290874dfab3fe58844e5169673c5d47bda64e3) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): SignerNostrPrivateKey
+
+### Patch Changes
+
+- [#138](https://github.com/ckb-devrel/ccc/pull/138) [`3fdb2c4`](https://github.com/ckb-devrel/ccc/commit/3fdb2c477d0b2766b231e436b8f396f047b02634) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): codec should throw if byteLength mismatch
+
 ## 1.3.1
 
 ### Patch Changes

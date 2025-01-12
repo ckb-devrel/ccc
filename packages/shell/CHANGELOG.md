@@ -1,5 +1,15 @@
 # @ckb-ccc/shell
 
+## 1.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`a1d5626`](https://github.com/ckb-devrel/ccc/commit/a1d56266da68602495054ad6b627b998ef27f04d), [`3fdb2c4`](https://github.com/ckb-devrel/ccc/commit/3fdb2c477d0b2766b231e436b8f396f047b02634), [`52ef11b`](https://github.com/ckb-devrel/ccc/commit/52ef11baa7bde8a73467683f5c44a863190aa1f1), [`f429087`](https://github.com/ckb-devrel/ccc/commit/f4290874dfab3fe58844e5169673c5d47bda64e3), [`e4ea183`](https://github.com/ckb-devrel/ccc/commit/e4ea18359675877511550ac0b28f207550f907e4)]:
+  - @ckb-ccc/spore@1.2.0
+  - @ckb-ccc/core@1.4.0
+  - @ckb-ccc/ssri@0.2.0
+  - @ckb-ccc/udt@0.1.2
+
 ## 1.1.1
 
 ### Patch Changes

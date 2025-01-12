@@ -1,5 +1,18 @@
 # @ckb-ccc/ssri
 
+## 0.2.0
+
+### Minor Changes
+
+- [`e4ea183`](https://github.com/ckb-devrel/ccc/commit/e4ea18359675877511550ac0b28f207550f907e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(ssri): Trait.tryRun to handle expected error
+
+### Patch Changes
+
+- [`52ef11b`](https://github.com/ckb-devrel/ccc/commit/52ef11baa7bde8a73467683f5c44a863190aa1f1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(ssri): Trait.version() should throw if byteLength mismatch
+
+- Updated dependencies [[`3fdb2c4`](https://github.com/ckb-devrel/ccc/commit/3fdb2c477d0b2766b231e436b8f396f047b02634), [`f429087`](https://github.com/ckb-devrel/ccc/commit/f4290874dfab3fe58844e5169673c5d47bda64e3)]:
+  - @ckb-ccc/core@1.4.0
+
 ## 0.1.1
 
 ### Patch Changes
