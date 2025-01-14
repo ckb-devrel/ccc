@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.5.0
+
+### Minor Changes
+
+- [#141](https://github.com/ckb-devrel/ccc/pull/141) [`28c211d`](https://github.com/ckb-devrel/ccc/commit/28c211d839a2d2305eca56e82ba7da144aa3df4a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): TransportFallback
+
 ## 1.4.0
 
 ### Minor Changes
