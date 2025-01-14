@@ -1,5 +1,12 @@
 # @ckb-ccc/ssri
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [[`28c211d`](https://github.com/ckb-devrel/ccc/commit/28c211d839a2d2305eca56e82ba7da144aa3df4a)]:
+  - @ckb-ccc/core@1.5.0
+
 ## 0.2.0
 
 ### Minor Changes
