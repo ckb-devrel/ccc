@@ -13,12 +13,24 @@ export class ClientPublicTestnet extends ClientJsonRpc {
       scripts?: Record<KnownScript, ScriptInfoLike | undefined>;
     },
   ) {
+    const hasWebSocket = typeof WebSocket !== "undefined";
     super(
       config?.url ??
-        (typeof WebSocket !== "undefined"
+        (hasWebSocket
           ? "wss://testnet.ckb.dev/ws"
           : "https://testnet.ckb.dev/"),
-      config,
+      {
+        ...config,
+        fallbacks:
+          config?.fallbacks ??
+          (hasWebSocket
+            ? [
+                "wss://testnet.ckb.dev/ws",
+                "https://testnet.ckb.dev/",
+                "https://testnet.ckbapp.dev/",
+              ]
+            : ["https://testnet.ckb.dev/", "https://testnet.ckbapp.dev/"]),
+      },
     );
   }
 
