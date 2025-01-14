@@ -87,24 +87,28 @@ export class TransportWebSocket implements Transport {
         reject,
         setTimeout(() => {
           this.ongoing.delete(data.id);
-          void socket.then((socket) => socket.close());
+          void socket
+            .then((socket) => socket.close())
+            .catch((err) => reject(err));
           reject(new Error("Request timeout"));
         }, this.timeout),
       ];
       this.ongoing.set(data.id, req);
 
-      void socket.then((socket) => {
-        if (
-          socket.readyState === socket.CLOSED ||
-          socket.readyState === socket.CLOSING
-        ) {
-          clearTimeout(req[2]);
-          this.ongoing.delete(data.id);
-          reject(new Error("Connection closed"));
-        } else {
-          socket.send(JSON.stringify(data));
-        }
-      });
+      void socket
+        .then((socket) => {
+          if (
+            socket.readyState === socket.CLOSED ||
+            socket.readyState === socket.CLOSING
+          ) {
+            clearTimeout(req[2]);
+            this.ongoing.delete(data.id);
+            reject(new Error("Connection closed"));
+          } else {
+            socket.send(JSON.stringify(data));
+          }
+        })
+        .catch((err) => reject(err));
     });
   }
 }
