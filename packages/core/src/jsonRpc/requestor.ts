@@ -1,6 +1,7 @@
 import {
   JsonRpcPayload,
   Transport,
+  TransportFallback,
   transportFromUri,
 } from "./transports/advanced.js";
 
@@ -25,6 +26,7 @@ function transform(value: unknown, transformer?: (i: unknown) => unknown) {
 }
 
 export type RequestorJsonRpcConfig = {
+  fallbacks?: string[];
   timeout?: number;
   maxConcurrent?: number;
   transport?: Transport;
@@ -51,7 +53,14 @@ export class RequestorJsonRpc {
     private readonly onError?: (err: unknown) => Promise<void> | void,
   ) {
     this.maxConcurrent = config?.maxConcurrent;
-    this.transport = config?.transport ?? transportFromUri(url_, config);
+    this.transport =
+      config?.transport ??
+      new TransportFallback(
+        Array.from(
+          new Set([url_, ...(config?.fallbacks ?? [])]).values(),
+          (url) => transportFromUri(url, config),
+        ),
+      );
   }
 
   /**

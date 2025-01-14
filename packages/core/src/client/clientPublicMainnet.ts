@@ -13,12 +13,29 @@ export class ClientPublicMainnet extends ClientJsonRpc {
       scripts?: Record<KnownScript, ScriptInfoLike | undefined>;
     },
   ) {
+    const hasWebSocket = typeof WebSocket !== "undefined";
     super(
       config?.url ??
-        (typeof WebSocket !== "undefined"
+        (hasWebSocket
           ? "wss://mainnet.ckb.dev/ws"
           : "https://mainnet.ckb.dev/"),
-      config,
+      {
+        ...config,
+        fallbacks:
+          config?.fallbacks ??
+          (hasWebSocket
+            ? [
+                "wss://mainnet.ckb.dev/ws",
+                "https://mainnet.ckb.dev/",
+                "https://mainnet.ckbapp.dev/",
+                "https://rpc.ankr.com/nervos_ckb",
+              ]
+            : [
+                "https://mainnet.ckb.dev/",
+                "https://mainnet.ckbapp.dev/",
+                "https://rpc.ankr.com/nervos_ckb",
+              ]),
+      },
     );
   }
 
