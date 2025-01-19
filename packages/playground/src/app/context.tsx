@@ -97,7 +97,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         level,
         title,
         msgs.map((msg, i) => {
-          if (typeof msg === "string" && msg.startsWith(`"https://`)) {
+          if (typeof msg === "string" && (msg.startsWith(`"http://`) || msg.startsWith(`"https://`))) {
             const url = msg.slice(1, -1);
             return (
               <a key={i} className="underline underline-offset-2 text-[#2D5FF5] px-2" href={url} target="_blank" rel="noopener noreferrer">
