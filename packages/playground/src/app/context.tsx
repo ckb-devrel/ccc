@@ -96,12 +96,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       [
         level,
         title,
-        msgs.map((msg, i) => (
-          <React.Fragment key={i}>
-            {i === 0 ? "" : " "}
-            {msg}
-          </React.Fragment>
-        )),
+        msgs.map((msg, i) => {
+          if (typeof msg === "string" && msg.startsWith(`"https://`)) {
+            const url = msg.slice(1, -1);
+            return (
+              <a key={i} className="underline underline-offset-2 text-[#2D5FF5] px-2" href={url} target="_blank" rel="noopener noreferrer">
+                {url}
+              </a>
+            );
+          }
+
+          return (
+            <React.Fragment key={i}>
+              {i === 0 ? "" : " "}
+              {msg}
+            </React.Fragment>
+          );
+        }),
       ],
     ]);
 
