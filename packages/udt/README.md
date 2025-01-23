@@ -170,7 +170,7 @@ const combinedTransferTxHash = await signer.sendTransaction(combinedTransferTx);
 console.log(combinedTransferTxHash);
 ```
 
-Full runnable example can be found at [here](https://live.ckbccc.com/?src=nostr:nevent1qqs8q20jvxqfsrhqw4te248qduex39dgls7qajhuc42kale0yqatdhspzemhxue69uhhyetvv9ujumn0wd68ytnzv9hxgqg5waehxw309ahx7um5wghx77r5wghxgetkqy28wumn8ghj7un9d3shjtnyv9kh2uewd9hspusjlf)
+Full runnable example can be found at [here](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/udt/quickstart.ts)
 
 
 <h3 align="center">

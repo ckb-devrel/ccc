@@ -110,6 +110,10 @@ We have done everything!
 - [Transfer native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
 - [Transfer all native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts)
 - [Transfer UDT token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts)
+- [Interact with UDT through @ckb-ccc/udt](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/udt/quickstart.ts):
+- [Get UDT symbol through @ckb-ccc/udt.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/udt/symbol.ts)
+- [Check if a lock hash has been paused through @ckb-ccc/udt.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/pausableUdt/isPaused.ts)
+- [Transfer UDT token through @ckb-ccc/udt.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/udt/transfer.ts)
 
 ## Quick Start with `create-ccc-app` (Recommended)
 
@@ -220,6 +224,12 @@ import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
 // Before using Lumos. You don't need @ckb-lumos/joyid anymore.
 registerCustomLockScriptInfos(generateDefaultScriptInfos());
 ```
+
+## Additional Guides
+
+### SSRI (Script Sourced Rich Information)
+
+- [Quick Starts: Interact with SSRI-Compliant UDT Script with @ckb-ccc/udt](https://github.com/ckb-devrel/ccc/tree/master/guides/quickstart_udt.md)
 
 ## Links
 
