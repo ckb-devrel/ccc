@@ -1567,9 +1567,21 @@ export class Transaction extends mol.Entity.Base<
     return this.completeInputsAddOne(from, filter);
   }
 
+  async fee(client: Client): Promise<Num> {
+    return (await this.getInputsCapacity(client)) - this.getOutputsCapacity();
+  }
+
+  async feeRate(client: Client): Promise<Num> {
+    return (
+      ((await this.fee(client)) * numFrom(1000)) /
+      numFrom(this.toBytes().length + 4)
+    );
+  }
+
   estimateFee(feeRate: NumLike): Num {
     const txSize = this.toBytes().length + 4;
-    return (numFrom(txSize) * numFrom(feeRate) + numFrom(1000)) / numFrom(1000);
+    // + 999 then / 1000 to ceil the calculated fee
+    return (numFrom(txSize) * numFrom(feeRate) + numFrom(999)) / numFrom(1000);
   }
 
   async completeFee(
@@ -1577,8 +1589,11 @@ export class Transaction extends mol.Entity.Base<
     change: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike,
     expectedFeeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: { feeRateBlockRange?: NumLike; maxFeeRate?: NumLike },
   ): Promise<[number, boolean]> {
-    const feeRate = expectedFeeRate ?? (await from.client.getFeeRate());
+    const feeRate =
+      expectedFeeRate ??
+      (await from.client.getFeeRate(options?.feeRateBlockRange, options));
 
     // Complete all inputs extra infos for cache
     await this.getInputsCapacity(from.client);
@@ -1609,27 +1624,21 @@ export class Transaction extends mol.Entity.Base<
         // The initial fee is calculated based on prepared transaction
         leastFee = tx.estimateFee(feeRate);
       }
-      const extraCapacity =
-        (await tx.getInputsCapacity(from.client)) - tx.getOutputsCapacity();
+      const fee = await tx.fee(from.client);
       // The extra capacity paid the fee without a change
-      if (extraCapacity === leastFee) {
+      if (fee === leastFee) {
         this.copy(tx);
         return [collected, false];
       }
 
-      const needed = numFrom(
-        await Promise.resolve(change(tx, extraCapacity - leastFee)),
-      );
+      const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
       // No enough extra capacity to create new cells for change
       if (needed > Zero) {
         leastExtraCapacity = needed;
         continue;
       }
 
-      if (
-        (await tx.getInputsCapacity(from.client)) - tx.getOutputsCapacity() !==
-        leastFee
-      ) {
+      if ((await tx.fee(from.client)) !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );

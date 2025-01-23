@@ -392,8 +392,23 @@ export class ErrorClientRBFRejected extends ErrorClientBase {
   }
 }
 
-export class ErrorClientWaitTransactionTimeout extends Error {
-  constructor() {
-    super("Wait transaction timeout");
+export class ErrorClientWaitTransactionTimeout extends ErrorClientBase {
+  constructor(timeoutLike: NumLike) {
+    const timeout = numFrom(timeoutLike);
+    super({
+      message: `Wait transaction timeout ${timeout}ms`,
+      data: JSON.stringify({ timeout }),
+    });
+  }
+}
+
+export class ErrorClientMaxFeeRateExceeded extends ErrorClientBase {
+  constructor(limitLike: NumLike, actualLike: NumLike) {
+    const limit = numFrom(limitLike);
+    const actual = numFrom(actualLike);
+    super({
+      message: `Max fee rate exceeded limit ${limit.toString()}, actual ${actual.toString()}. Developer might forgot to complete transaction fee before sending. See https://docs.ckbccc.com/classes/_ckb_ccc_core.index.ccc.Transaction.html#completeFeeBy.`,
+      data: JSON.stringify({ limit, actual }),
+    });
   }
 }

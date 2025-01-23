@@ -9,11 +9,15 @@ import {
 } from "../ckb/index.js";
 import { Zero } from "../fixedPoint/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
-import { Num, NumLike, numFrom, numMax } from "../num/index.js";
+import { Num, NumLike, numFrom, numMax, numMin } from "../num/index.js";
 import { reduceAsync, sleep } from "../utils/index.js";
 import { ClientCache } from "./cache/index.js";
 import { ClientCacheMemory } from "./cache/memory.js";
-import { ClientCollectableSearchKeyLike } from "./clientTypes.advanced.js";
+import {
+  ClientCollectableSearchKeyLike,
+  DEFAULT_MAX_FEE_RATE,
+  DEFAULT_MIN_FEE_RATE,
+} from "./clientTypes.advanced.js";
 import {
   CellDepInfo,
   CellDepInfoLike,
@@ -26,6 +30,7 @@ import {
   ClientIndexerSearchKeyLike,
   ClientIndexerSearchKeyTransactionLike,
   ClientTransactionResponse,
+  ErrorClientMaxFeeRateExceeded,
   ErrorClientWaitTransactionTimeout,
   KnownScript,
   OutputsValidator,
@@ -50,8 +55,21 @@ export abstract class Client {
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
   ): Promise<{ mean: Num; median: Num }>;
-  async getFeeRate(blockRange?: NumLike): Promise<Num> {
-    return numMax((await this.getFeeRateStatistics(blockRange)).median, 1000);
+  async getFeeRate(
+    blockRange?: NumLike,
+    options?: { maxFeeRate?: NumLike },
+  ): Promise<Num> {
+    const feeRate = numMax(
+      (await this.getFeeRateStatistics(blockRange)).median,
+      DEFAULT_MIN_FEE_RATE,
+    );
+
+    const maxFeeRate = numFrom(options?.maxFeeRate ?? DEFAULT_MAX_FEE_RATE);
+    if (maxFeeRate === Zero) {
+      return feeRate;
+    }
+
+    return numMin(feeRate, maxFeeRate);
   }
 
   abstract getTip(): Promise<Num>;
@@ -476,8 +494,15 @@ export abstract class Client {
   async sendTransaction(
     transaction: TransactionLike,
     validator?: OutputsValidator,
+    options?: { maxFeeRate?: NumLike },
   ): Promise<Hex> {
     const tx = Transaction.from(transaction);
+
+    const maxFeeRate = numFrom(options?.maxFeeRate ?? DEFAULT_MAX_FEE_RATE);
+    const fee = await tx.feeRate(this);
+    if (maxFeeRate > Zero && fee > maxFeeRate) {
+      throw new ErrorClientMaxFeeRateExceeded(maxFeeRate, fee);
+    }
 
     const txHash = await this.sendTransactionNoCache(tx, validator);
 
@@ -552,7 +577,7 @@ export abstract class Client {
       }
 
       if (Date.now() - startTime + interval >= timeout) {
-        throw new ErrorClientWaitTransactionTimeout();
+        throw new ErrorClientWaitTransactionTimeout(timeout);
       }
       await sleep(interval);
     }
