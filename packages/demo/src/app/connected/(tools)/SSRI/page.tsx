@@ -39,25 +39,19 @@ type MethodParamType =
   | "signer"
   | "hexArray"
   | "hex"
-  | "stringArray";
+  | "stringArray"
+  | "number";
 
 interface MethodParam {
   name: string;
   type?: MethodParamType;
 }
 
-const SSRI_BUILT_IN_METHODS = ["getMethods", "hasMethods", "version"];
-const MODE_OPTIONS = [
-  {
-    name: "builtin",
-    displayName: "Built-in SSRI method",
-    iconName: "Hash" as const,
-  },
-  {
-    name: "custom",
-    displayName: "Custom trait and method",
-    iconName: "Hash" as const,
-  },
+const METHODS_OPTIONS = [
+  "SSRI.version",
+  "SSRI.getMethods",
+  "SSRI.hasMethods",
+  "Customized",
 ];
 
 type IconName = "Hash" | "Code";
@@ -105,7 +99,6 @@ export default function SSRI() {
   const [paramValues, setParamValues] = useState<Record<string, ParamValue>>(
     {},
   );
-  const [ssriContext, setSSRIContext] = useState<any>({});
   const [methodResult, setMethodResult] = useState<any>(undefined);
   const [SSRICallDetails, setSSRICallDetails] = useState<any>(null);
   const [iconDataURL, setIconDataURL] = useState<string>("");
@@ -115,8 +108,7 @@ export default function SSRI() {
   const [showSSRICallDetails, setShowSSRICallDetails] =
     useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [traitName, setTraitName] = useState<string>("SSRI");
-  const [methodName, setMethodName] = useState<string>("getMethods");
+  const [rawMethodPath, setRawMethodPath] = useState<string>("SSRI.version");
   const [isBuiltIn, setIsBuiltIn] = useState(true);
   const [selectedParamType, setSelectedParamType] =
     useState<MethodParamType>("contextScript");
@@ -151,7 +143,8 @@ export default function SSRI() {
   const getOutPointFromTypeIDArgs = useCallback(async () => {
     if (!signer) return;
     const scriptCell = await signer.client.findSingletonCellByType({
-      codeHash: "0x00000000000000000000000000000000000000000000000000545950455f4944",
+      codeHash:
+        "0x00000000000000000000000000000000000000000000000000545950455f4944",
       hashType: "type",
       args: ssriContractTypeIDArgs,
     });
@@ -238,10 +231,9 @@ export default function SSRI() {
         }
       });
 
-      setSSRIContext(context);
       setSSRICallDetails({
-        trait: traitName,
-        method: methodName,
+        trait: rawMethodPath.split(".")[0],
+        method: rawMethodPath.split(".")[1],
         args: args,
         contractOutPoint: {
           txHash: contractOutPointTx,
@@ -252,26 +244,29 @@ export default function SSRI() {
 
       log(
         "Calling",
-        `${traitName}.${methodName}`,
+        rawMethodPath,
         "on contract at",
         String(contractOutPointTx),
         "index",
         String(contractOutPointIndex),
       );
       let result;
-      if (isBuiltIn) {
+      if (rawMethodPath.split(".")[0] === "SSRI") {
         // Type-safe way to call built-in methods
-        switch (methodName) {
-          case "getMethods":
-            result = await contract.getMethods();
+        switch (rawMethodPath) {
+          case "SSRI.getMethods":
+            result = await contract.getMethods(
+              args[0] as number,
+              args[1] as number,
+            );
             break;
-          case "hasMethods":
+          case "SSRI.hasMethods":
             result = await contract.hasMethods(
               (args[0] as string[]) ?? [],
               (args[1] as ccc.HexLike[]) ?? [],
             );
             break;
-          case "version":
+          case "SSRI.version":
             result = await contract.version();
             break;
         }
@@ -313,10 +308,13 @@ export default function SSRI() {
         });
         result = await contract
           .assertExecutor()
-          .runScript(contract.code, `${traitName}.${methodName}`, argsHex);
+          .runScript(contract.code, rawMethodPath, argsHex);
       }
       if (result) {
-        if (traitName === "UDT" && methodName === "icon") {
+        if (
+          rawMethodPath.split(".")[0] === "UDT" &&
+          rawMethodPath.split(".")[1] === "icon"
+        ) {
           const dataURL = ccc.bytesTo(result.res as string, "utf8");
           setMethodResult(result);
           setIconDataURL(dataURL);
@@ -372,7 +370,7 @@ export default function SSRI() {
               </span>{" "}
               button at the bottom to call the{" "}
               <code className="rounded bg-blue-50 px-2 py-1 font-mono text-sm text-blue-900 dark:bg-blue-900 dark:text-blue-100">
-                SSRI.get_methods
+                SSRI.version
               </code>{" "}
               method.
             </div>
@@ -419,76 +417,61 @@ export default function SSRI() {
           </Button>
         </div>
         <TextInput
-          label="Script Cell OutPoint Tx"
-          placeholder="Tx hash of the Script cell outpoint"
-          state={[contractOutPointTx, setContractOutPointTx]}
-        />
-        <TextInput
-          label="Script Cell OutPoint Index"
-          placeholder="Index of the script cell outpoint"
-          state={[contractOutPointIndex, setContractOutPointIndex]}
+          label="Script Cell OutPoint"
+          placeholder="Tx hash:index (e.g. 0x123...abc:0)"
+          state={[
+            `${contractOutPointTx}:${contractOutPointIndex}`,
+            (value: string) => {
+              const [tx, index] = value.split(":");
+              setContractOutPointTx(tx || "");
+              setContractOutPointIndex(index || "0");
+            },
+          ]}
         />
         <div className="flex flex-row items-center gap-4">
           <label className="min-w-32 shrink-0">Method to Call:</label>
           <Dropdown
-            options={MODE_OPTIONS}
-            selected={isBuiltIn ? "builtin" : "custom"}
+            options={METHODS_OPTIONS.map((method) => ({
+              name: method,
+              displayName: method,
+              iconName: "Code",
+            }))}
+            selected={rawMethodPath}
             onSelect={(value) => {
-              setIsBuiltIn(value === "builtin");
-              if (value === "builtin") {
-                setTraitName("SSRI");
-                setMethodName(SSRI_BUILT_IN_METHODS[0]);
-                if (methodName === "hasMethods") {
+              if (value !== "Customized") {
+                setRawMethodPath(value);
+                if (value === "SSRI.getMethods") {
                   setMethodParams([
-                    { name: "methodNames", type: "stringArray" },
-                    { name: "extraMethodPaths", type: "hexArray" },
+                    { name: "offset", type: "number" },
+                    { name: "limit", type: "number" },
                   ]);
-                }
-              } else {
-                setTraitName("");
-                setMethodName("");
-              }
-            }}
-            className="w-1/4"
-          />
-
-          {isBuiltIn ? (
-            <Dropdown
-              options={SSRI_BUILT_IN_METHODS.map((method) => ({
-                name: method,
-                displayName: method,
-                iconName: "Code",
-              }))}
-              selected={methodName}
-              onSelect={(value) => {
-                setMethodName(value);
-                if (value === "hasMethods") {
+                } else if (value === "SSRI.hasMethods") {
                   setMethodParams([
                     { name: "methodNames", type: "stringArray" },
                     { name: "extraMethodPaths", type: "hexArray" },
                   ]);
                 } else {
-                  setMethodParams([]); // Clear params for other methods
+                  setMethodParams([]);
                 }
-              }}
+              } else {
+                setRawMethodPath("");
+              }
+            }}
+            className="flex-1"
+          />
+          <>
+            <TextInput
+              label="Method Path"
+              placeholder="Enter trait.method (e.g. UDT.name)"
+              state={[
+                rawMethodPath,
+                (value: string) => {
+                  setRawMethodPath(value);
+                },
+              ]}
               className="flex-1"
             />
-          ) : (
-            <>
-              <TextInput
-                label="SSRI Trait Name"
-                placeholder="Enter the trait name"
-                state={[traitName, setTraitName]}
-                className="w-1/4"
-              />
-              <TextInput
-                label="Method Name"
-                placeholder="Enter the method name"
-                state={[methodName, setMethodName]}
-                className="flex-1"
-              />
-            </>
-          )}
+          </>
         </div>
       </>
 
@@ -826,46 +809,54 @@ export default function SSRI() {
                 />
               </div>
             ) : (
-              <TextInput
-                label={`(${param.name})`}
-                placeholder={`Enter ${param.name} value`}
-                state={[
-                  (paramValues[`Parameter${index}`] || "") as string,
-                  (value: string) =>
-                    setParamValues((prev) => ({
-                      ...prev,
-                      [`Parameter${index}`]: value,
-                    })),
-                ]}
-              />
-            )}
-            {param.type === "hexArray" && methodName === "hasMethods" && (
-              <div className="mt-2 flex flex-row items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <label className="font-bold">
+                    Parameter {index}: ({param.type})
+                  </label>
+                </div>
                 <TextInput
-                  label="Method Path Generator"
-                  placeholder="Enter method name to generate path"
+                  label={`${param.name}`}
+                  placeholder={`Enter ${param.name} value`}
                   state={[
-                    methodPathInput || "",
-                    (value: string) => setMethodPathInput(value),
+                    (paramValues[`Parameter${index}`] || "") as string,
+                    (value: string) =>
+                      setParamValues((prev) => ({
+                        ...prev,
+                        [`Parameter${index}`]: value,
+                      })),
                   ]}
-                  className="flex-grow"
                 />
-                <Button
-                  onClick={() => {
-                    const path = ssri.getMethodPath(methodPathInput);
-                    const currentValues =
-                      (paramValues[`Parameter${index}`] as string[]) || [];
-                    setParamValues((prev) => ({
-                      ...prev,
-                      [`Parameter${index}`]: [...currentValues, path],
-                    }));
-                  }}
-                  className="shrink-0"
-                >
-                  Generate & Add Path
-                </Button>
               </div>
             )}
+            {param.type === "hexArray" &&
+              rawMethodPath === "SSRI.hasMethods" && (
+                <div className="mt-2 flex flex-row items-center gap-2">
+                  <TextInput
+                    label="Method Path Generator"
+                    placeholder="Enter method name to generate path"
+                    state={[
+                      methodPathInput || "",
+                      (value: string) => setMethodPathInput(value),
+                    ]}
+                    className="flex-grow"
+                  />
+                  <Button
+                    onClick={() => {
+                      const path = ssri.getMethodPath(methodPathInput);
+                      const currentValues =
+                        (paramValues[`Parameter${index}`] as string[]) || [];
+                      setParamValues((prev) => ({
+                        ...prev,
+                        [`Parameter${index}`]: [...currentValues, path],
+                      }));
+                    }}
+                    className="shrink-0"
+                  >
+                    Generate & Add Path
+                  </Button>
+                </div>
+              )}
           </div>
           <Button onClick={() => deleteMethodParam(index)}>
             <Icon name="Trash" />
