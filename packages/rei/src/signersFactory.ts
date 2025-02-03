@@ -4,19 +4,19 @@ import { ReiSigner } from "./signer.js";
 
 /**
  * Retrieves the Rei signer if available.
- * @param client - The client instance.
- * @returns The Signer instance if the Rei provider is available, otherwise undefined.
+ * @param {ccc.Client} client - The client instance.
+ * @returns {Signer | undefined} The Signer instance if the Rei provider is available, otherwise undefined.
+
  */
 export function getReiSigners(client: ccc.Client): ccc.SignerInfo[] {
-  const windowRef = window as { ckb?: Provider };
+  const windowRef = window as { rei?:{ckb: Provider} };
 
-  if (typeof windowRef.ckb === "undefined") {
+  if (typeof windowRef?.rei?.ckb === "undefined") {
     return [];
   }
-
   return [
     {
-      signer: new ReiSigner(client, windowRef.ckb),
+      signer: new ReiSigner(client, windowRef.rei.ckb),
       name: "CKB",
     },
   ];
