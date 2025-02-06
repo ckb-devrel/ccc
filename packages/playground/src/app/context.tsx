@@ -41,7 +41,7 @@ export const APP_CONTEXT = createContext<
       disconnect: () => void;
       openAction: ReactNode;
 
-      messages: ["error" | "info", string, ReactNode][];
+      messages: ["error" | "info", string, ReactNode, number][];
       sendMessage: (
         level: "error" | "info",
         title: string,
@@ -83,7 +83,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [signer]);
 
   const [messages, setMessages] = useState<
-    ["error" | "info", string, ReactNode][]
+    ["error" | "info", string, ReactNode, number][]
   >([]);
 
   const sendMessage = (
@@ -97,13 +97,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         level,
         title,
         msgs.map((msg, i) => {
-          if (typeof msg === "string" && (msg.startsWith(`"http://`) || msg.startsWith(`"https://`))) {
-            const url = msg.slice(1, -1);
-            return (
-              <a key={i} className="underline underline-offset-2 text-[#2D5FF5] px-2" href={url} target="_blank" rel="noopener noreferrer">
-                {url}
-              </a>
-            );
+          if (typeof msg === "string") {
+            if (msg.startsWith(`"http://`) || msg.startsWith(`"https://`)) {
+              const url = msg.slice(1, -1);
+              return (
+                <a key={i} className="underline underline-offset-2 text-[#2D5FF5] px-2" href={url} target="_blank" rel="noopener noreferrer">
+                  {url}
+                </a>
+              );
+            } else if (msg.startsWith(`"<img`)){
+              // "<img src=\\\"https://world3.ai/dob/souldragonegg.jpg\\\" width='300' height='300/>"
+              
+              // Remove the outer quotes and parse
+              const imgString = msg
+              .slice(1, -1) 
+              .replace(/\\"/g, '"') 
+              .replace(/\/$/, '');  // Remove trailing slash(if any) 
+
+              // Parse the img string to extract src, width, and height
+              const parseImgAttributes = (imgStr: string) => {
+                const srcMatch = imgStr.match(/src=["']([^"']+)["']/);
+                const widthMatch = imgStr.match(/width=["'](\d+)["']/);
+                const heightMatch = imgStr.match(/height=["'](\d+)["']/);
+                
+                return {
+                    src: srcMatch ? srcMatch[1] : '',
+                    width: widthMatch ? parseInt(widthMatch[1]) : 300,
+                    height: heightMatch ? parseInt(heightMatch[1]) : 300
+                };
+              };
+            
+              const imgAttributes = parseImgAttributes(imgString);
+              
+              return (
+                <div className="relative p-2" key={i} >
+                  <img className="rounded" src={imgAttributes.src} width={imgAttributes.width} height={imgAttributes.height} alt="" />
+                  <span className="absolute top-2.5 left-2.5 px-2 flex items-center justify-center cursor-pointer bg-slate-800/50 rounded"
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        // Copy the imgString to the clipboard
+                        navigator.clipboard.writeText(imgString);
+                      }
+                    }}
+                  >
+                    Click to copy
+                  </span>
+                </div>
+              );
+            }
           }
 
           return (
@@ -113,6 +154,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             </React.Fragment>
           );
         }),
+        Date.now(),
       ],
     ]);
 
