@@ -14,6 +14,7 @@ import { reduceAsync, sleep } from "../utils/index.js";
 import { ClientCache } from "./cache/index.js";
 import { ClientCacheMemory } from "./cache/memory.js";
 import {
+  CONFIRMED_BLOCK_TIME,
   ClientCollectableSearchKeyLike,
   DEFAULT_MAX_FEE_RATE,
   DEFAULT_MIN_FEE_RATE,
@@ -36,6 +37,10 @@ import {
   OutputsValidator,
   ScriptInfo,
 } from "./clientTypes.js";
+
+function hasHeaderConfirmed(header: ClientBlockHeader): boolean {
+  return numFrom(Date.now()) - header.timestamp >= CONFIRMED_BLOCK_TIME;
+}
 
 /**
  * @public
@@ -74,24 +79,94 @@ export abstract class Client {
 
   abstract getTip(): Promise<Num>;
   abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
-  abstract getBlockByNumber(
+  abstract getBlockByNumberNoCache(
     blockNumber: NumLike,
     verbosity?: number | null,
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
-  abstract getBlockByHash(
+  abstract getBlockByHashNoCache(
     blockHash: HexLike,
     verbosity?: number | null,
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
-  abstract getHeaderByNumber(
+  abstract getHeaderByNumberNoCache(
     blockNumber: NumLike,
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
-  abstract getHeaderByHash(
+  abstract getHeaderByHashNoCache(
     blockHash: HexLike,
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
+  async getBlockByNumber(
+    blockNumber: NumLike,
+    verbosity?: number | null,
+    withCycles?: boolean | null,
+  ): Promise<ClientBlock | undefined> {
+    const block = await this.cache.getBlockByNumber(blockNumber);
+    if (block) {
+      return block;
+    }
+
+    const res = await this.getBlockByNumberNoCache(
+      blockNumber,
+      verbosity,
+      withCycles,
+    );
+    if (res && hasHeaderConfirmed(res.header)) {
+      await this.cache.recordBlocks(res);
+    }
+    return res;
+  }
+  async getBlockByHash(
+    blockHash: HexLike,
+    verbosity?: number | null,
+    withCycles?: boolean | null,
+  ): Promise<ClientBlock | undefined> {
+    const block = await this.cache.getBlockByHash(blockHash);
+    if (block) {
+      return block;
+    }
+
+    const res = await this.getBlockByHashNoCache(
+      blockHash,
+      verbosity,
+      withCycles,
+    );
+    if (res && hasHeaderConfirmed(res.header)) {
+      await this.cache.recordBlocks(res);
+    }
+    return res;
+  }
+  async getHeaderByNumber(
+    blockNumber: NumLike,
+    verbosity?: number | null,
+  ): Promise<ClientBlockHeader | undefined> {
+    const header = await this.cache.getHeaderByNumber(blockNumber);
+    if (header) {
+      return header;
+    }
+
+    const res = await this.getHeaderByNumberNoCache(blockNumber, verbosity);
+    if (res && hasHeaderConfirmed(res)) {
+      await this.cache.recordHeaders(res);
+    }
+    return res;
+  }
+  async getHeaderByHash(
+    blockHash: HexLike,
+    verbosity?: number | null,
+  ): Promise<ClientBlockHeader | undefined> {
+    const header = await this.cache.getHeaderByHash(blockHash);
+    if (header) {
+      return header;
+    }
+
+    const res = await this.getHeaderByHashNoCache(blockHash, verbosity);
+    if (res && hasHeaderConfirmed(res)) {
+      await this.cache.recordHeaders(res);
+    }
+    return res;
+  }
 
   abstract estimateCycles(transaction: TransactionLike): Promise<Num>;
   abstract sendTransactionDry(
@@ -115,7 +190,7 @@ export abstract class Client {
       return cached;
     }
 
-    const transaction = await this.getTransactionNoCache(outPoint.txHash);
+    const transaction = await this.getTransaction(outPoint.txHash);
     if (!transaction) {
       return;
     }
@@ -130,6 +205,30 @@ export abstract class Client {
     });
     await this.cache.recordCells(cell);
     return cell;
+  }
+
+  async getCellWithHeader(
+    outPointLike: OutPointLike,
+  ): Promise<{ cell: Cell; header?: ClientBlockHeader } | undefined> {
+    const outPoint = OutPoint.from(outPointLike);
+
+    const res = await this.getTransactionWithHeader(outPoint.txHash);
+    if (!res) {
+      return;
+    }
+    const { transaction, header } = res;
+
+    const output = transaction.transaction.getOutput(outPoint.index);
+    if (!output) {
+      return;
+    }
+
+    const cell = Cell.from({
+      outPoint,
+      ...output,
+    });
+    await this.cache.recordCells(cell);
+    return { cell, header };
   }
 
   abstract getCellLiveNoCache(
@@ -504,9 +603,7 @@ export abstract class Client {
 
     const txHash = await this.sendTransactionNoCache(tx, validator);
 
-    await this.cache.recordTransactions(tx);
     await this.cache.markTransactions(tx);
-
     return txHash;
   }
 
@@ -515,25 +612,48 @@ export abstract class Client {
   ): Promise<ClientTransactionResponse | undefined> {
     const txHash = hexFrom(txHashLike);
     const res = await this.getTransactionNoCache(txHash);
-    if (res?.transaction) {
+    if (res) {
+      await this.cache.recordTransactionResponses(res);
       return res;
     }
 
-    const tx = await this.cache.getTransaction(txHash);
-    if (!tx) {
+    return this.cache.getTransactionResponse(txHash);
+  }
+
+  /**
+   * This method gets specified transaction with its block header (if existed).
+   * This is mainly for caching because we need the header to test if we can safely trust the cached tx status.
+   * @param txHashLike
+   */
+  async getTransactionWithHeader(
+    txHashLike: HexLike,
+  ): Promise<
+    | { transaction: ClientTransactionResponse; header?: ClientBlockHeader }
+    | undefined
+  > {
+    const txHash = hexFrom(txHashLike);
+    const tx = await this.cache.getTransactionResponse(txHash);
+    if (tx?.blockHash) {
+      const header = await this.getHeaderByHash(tx.blockHash);
+      if (header && hasHeaderConfirmed(header)) {
+        return {
+          transaction: tx,
+          header,
+        };
+      }
+    }
+
+    const res = await this.getTransactionNoCache(txHash);
+    if (!res) {
       return;
     }
 
-    if (!res) {
-      return {
-        transaction: tx,
-        status: "sent",
-      };
-    }
-
+    await this.cache.recordTransactionResponses(res);
     return {
-      ...res,
-      transaction: tx,
+      transaction: res,
+      header: res.blockHash
+        ? await this.getHeaderByHash(res.blockHash)
+        : undefined,
     };
   }
 

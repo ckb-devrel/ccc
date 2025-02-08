@@ -192,7 +192,7 @@ export class JsonRpcTransformers {
       return;
     }
 
-    return {
+    return ClientTransactionResponse.from({
       transaction: JsonRpcTransformers.transactionTo(transaction),
       status,
       cycles: apply(numFrom, cycles),
@@ -200,7 +200,7 @@ export class JsonRpcTransformers {
       blockNumber: apply(numFrom, block_number),
       txIndex: apply(numFrom, tx_index),
       reason,
-    };
+    });
   }
   static blockHeaderTo(header: JsonRpcBlockHeader): ClientBlockHeader {
     const dao = bytesFrom(header.dao);
