@@ -4,16 +4,10 @@ import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
 import { Dropdown } from "@/src/components/Dropdown";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Icon } from "./Icon";
-
-export type ScriptType = {
-  codeHash: string;
-  hashType: string;
-  args: string;
-};
+import { Icon } from "../../../../../components/Icon";
 
 export type ScriptAmountType = {
-  script: ScriptType;
+  script: ccc.ScriptLike;
   amount?: string;
 };
 
@@ -90,7 +84,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
             label="Code Hash"
             placeholder="Enter code hash"
             state={[
-              value.script?.codeHash ?? "",
+              value.script?.codeHash?.toString() ?? "",
               (codeHash) =>
                 onChange({ ...value, script: { ...value.script, codeHash } }),
             ]}
@@ -105,7 +99,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
                 { name: "data1", displayName: "Data1", iconName: "Pill" },
                 { name: "data2", displayName: "Data2", iconName: "Pill" },
               ]}
-              selected={value.script?.hashType ?? "type"}
+              selected={value.script?.hashType?.toString() ?? "type"}
               onSelect={(hashType) =>
                 onChange({ ...value, script: { ...value.script, hashType } })
               }
@@ -116,7 +110,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
             label="Args"
             placeholder="Enter args"
             state={[
-              value.script?.args ?? "",
+              value.script?.args?.toString() ?? "",
               (args) =>
                 onChange({ ...value, script: { ...value.script, args } }),
             ]}

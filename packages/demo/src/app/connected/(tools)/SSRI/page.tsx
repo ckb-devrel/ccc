@@ -10,95 +10,25 @@ import {
   ScriptAmountArrayInput,
   ScriptAmountInput,
   ScriptAmountType,
-  ScriptType,
-} from "@/src/components/ScriptAmountInput";
+} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/connector-react";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
 import Image from "next/image";
-import { HexArrayInput, HexInput } from "@/src/components/HexArrayInput";
+import { HexArrayInput, HexInput } from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
 import { Icon } from "@/src/components/Icon";
-
-type ParamValue =
-  | ccc.ScriptLike
-  | ccc.CellLike
-  | ccc.TransactionLike
-  | ccc.HexLike
-  | ccc.HexLike[]
-  | string
-  | string[]
-  | number
-  | number[]
-  | boolean
-  | boolean[]
-  | ScriptAmountType
-  | ScriptAmountType[]
-  | undefined;
-
-type MethodParamType =
-  | "contextScript"
-  | "contextCell"
-  | "contextTransaction"
-  | "hex"
-  | "hexArray"
-  | "string"
-  | "stringArray"
-  | "number"
-  | "numberArray"
-  | "boolean"
-  | "booleanArray"
-  | "script"
-  | "scriptArray"
-  | "byte32"
-  | "byte32Array"
-  | "tx";
-
-interface MethodParam {
-  name: string;
-  type?: MethodParamType;
-}
+import { MethodParamType, PARAM_TYPE_OPTIONS } from "./types";
+import { ParamValue } from "./types";
+import { MethodParam } from "./types";
+import { ParameterInput } from "./components/ParameterInput";
+import { TransactionSkeletonPanel } from "./components/TransactionSkeletonPanel";
 
 const METHODS_OPTIONS = [
   "SSRI.version",
   "SSRI.getMethods",
   "SSRI.hasMethods",
   "Customized",
-];
-
-type IconName = "Hash" | "Code";
-
-const PARAM_TYPE_OPTIONS: {
-  name: string;
-  displayName: string;
-  iconName: IconName;
-}[] = [
-  { name: "contextScript", displayName: "Context Script", iconName: "Code" },
-  { name: "contextCell", displayName: "Context Cell", iconName: "Code" },
-  {
-    name: "contextTransaction",
-    displayName: "Context Transaction",
-    iconName: "Code",
-  },
-  { name: "hex", displayName: "Generic Data (HexLike)", iconName: "Code" },
-  {
-    name: "hexArray",
-    displayName: "Generic Data Array (HexLike)",
-    iconName: "Code",
-  },
-  { name: "string", displayName: "String", iconName: "Code" },
-  { name: "stringArray", displayName: "String Array", iconName: "Code" },
-  { name: "number", displayName: "Number", iconName: "Code" },
-  { name: "numberArray", displayName: "Number Array", iconName: "Code" },
-  {
-    name: "script",
-    displayName: "Script",
-    iconName: "Code",
-  },
-  { name: "scriptArray", displayName: "Script Array", iconName: "Code" },
-  { name: "byte32", displayName: "Byte32", iconName: "Code" },
-  { name: "byte32Array", displayName: "Byte32 Array", iconName: "Code" },
-  { name: "tx", displayName: "Transaction", iconName: "Code" },
 ];
 
 export default function SSRI() {
@@ -185,8 +115,16 @@ export default function SSRI() {
   }, [signer, ssriContractTypeIDArgs]);
 
   useEffect(() => {
-    getOutPointFromTypeIDArgs();
-  }, [ssriContractTypeIDArgs, signer, getOutPointFromTypeIDArgs]);
+    if (contractOutPointTx == "" && contractOutPointIndex == "0") {
+      getOutPointFromTypeIDArgs();
+    }
+  }, [
+    ssriContractTypeIDArgs,
+    signer,
+    getOutPointFromTypeIDArgs,
+    contractOutPointTx,
+    contractOutPointIndex,
+  ]);
 
   const makeSSRICall = async () => {
     if (!signer) return;
@@ -262,8 +200,54 @@ export default function SSRI() {
         String(contractOutPointIndex),
       );
       let result;
-      if (rawMethodPath.split(".")[0] === "SSRI") {
-        // Type-safe way to call built-in methods
+      result = await callSSRI(result, args, context);
+      if (result) {
+        try {
+          const transaction = ccc.Transaction.fromBytes(
+            result.res as ccc.HexLike,
+          );
+          setTransactionResult(transaction);
+        } catch (e) {}
+        setMethodResult(result);
+        try {
+          const dataURL = ccc.bytesTo(result.res as string, "utf8");
+          if (dataURL.startsWith("http") || dataURL.startsWith("data:image")) {
+            setIconDataURL(dataURL);
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      let errorMessage =
+        e instanceof Error
+          ? e.message
+          : typeof e === "object"
+            ? "Check your SSRI server"
+            : String(e) || "Unknown error";
+      if (String(errorMessage).length < 3) {
+        errorMessage =
+          "Check your SSRI server or URL. Run `docker run -p 9090:9090 hanssen0/ckb-ssri-server` to start a local SSRI server.";
+      }
+      setMethodResult(`Error: ${errorMessage}`);
+      error(`Error: ${errorMessage}`);
+    } finally {
+      setIsLoading(false);
+    }
+
+    async function callSSRI(
+      result: any,
+      args: ParamValue[],
+      context:
+        | ssri.ContextScript
+        | ssri.ContextCell
+        | ssri.ContextTransaction
+        | undefined,
+    ) {
+      if (!contract) return;
+      if (
+        ["SSRI.getMethods", "SSRI.hasMethods", "SSRI.version"].includes(
+          rawMethodPath,
+        )
+      ) {
         switch (rawMethodPath) {
           case "SSRI.getMethods":
             result = await contract.getMethods(
@@ -341,39 +325,7 @@ export default function SSRI() {
           .assertExecutor()
           .runScript(contract.code, rawMethodPath, argsHex, context);
       }
-      if (result) {
-        try {
-          const transaction = ccc.Transaction.fromBytes(
-            result.res as ccc.HexLike,
-          );
-          setTransactionResult(transaction);
-        } catch (e) {}
-        if (
-          rawMethodPath.split(".")[0] === "UDT" &&
-          rawMethodPath.split(".")[1] === "icon"
-        ) {
-          const dataURL = ccc.bytesTo(result.res as string, "utf8");
-          setMethodResult(result);
-          setIconDataURL(dataURL);
-        } else {
-          setMethodResult(result);
-        }
-      }
-    } catch (e) {
-      let errorMessage =
-        e instanceof Error
-          ? e.message
-          : typeof e === "object"
-            ? "Check your SSRI server"
-            : String(e) || "Unknown error";
-      if (String(errorMessage).length < 3) {
-        errorMessage =
-          "Check your SSRI server or URL. Run `docker run -p 9090:9090 hanssen0/ckb-ssri-server` to start a local SSRI server.";
-      }
-      setMethodResult(`Error: ${errorMessage}`);
-      error(`Error: ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
+      return result;
     }
   };
 
@@ -542,595 +494,18 @@ export default function SSRI() {
       )}
 
       {methodParams.map((param, index) => (
-        <div key={index} className="flex w-full flex-row items-center gap-2">
-          <div className="flex-grow">
-            {param.type === "hex" ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (Generic Data)
-                  </label>
-                </div>
-                <TextInput
-                  label={`Hex Data`}
-                  placeholder="Enter hex value (0x-prefixed)"
-                  state={[
-                    (paramValues[`Parameter${index}`] || "") as string,
-                    (value: string) => {
-                      if (!value.startsWith("0x")) value = "0x" + value;
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: value,
-                      }));
-                    },
-                  ]}
-                />
-              </div>
-            ) : param.type === "scriptArray" ? (
-              <ScriptAmountArrayInput
-                label={`Parameter ${index} (${param.type})`}
-                value={
-                  (paramValues[`Parameter${index}`] as ScriptAmountType[]) ?? []
-                }
-                onChange={(scriptAmounts) =>
-                  setParamValues((prev) => ({
-                    ...prev,
-                    [`Parameter${index}`]: scriptAmounts,
-                  }))
-                }
-                showAmount={false}
-              />
-            ) : param.type === "hexArray" ? (
-              <HexArrayInput
-                label={`Parameter ${index} (${param.type})`}
-                value={(paramValues[`Parameter${index}`] as string[]) ?? []}
-                onChange={(hexValues) =>
-                  setParamValues((prev) => ({
-                    ...prev,
-                    [`Parameter${index}`]: hexValues,
-                  }))
-                }
-              />
-            ) : param.type == "contextScript" || param.type == "script" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                    )
-                  </label>
-                </div>
-                <ScriptAmountInput
-                  showAmount={false}
-                  key={index}
-                  value={{
-                    script: paramValues[`Parameter${index}`] as ScriptType,
-                    amount: undefined,
-                  }}
-                  onChange={(updatedScriptAmount) =>
-                    setParamValues((prev) => ({
-                      ...prev,
-                      [`Parameter${index}`]: {
-                        codeHash: updatedScriptAmount.script?.codeHash ?? "",
-                        hashType:
-                          updatedScriptAmount.script?.hashType ?? "type",
-                        args: updatedScriptAmount.script?.args ?? "",
-                      },
-                    }))
-                  }
-                />
-              </div>
-            ) : param.type == "contextCell" ? (
-              <details open>
-                <summary className="cursor-pointer font-bold">
-                  Parameter {index}: (
-                  {
-                    PARAM_TYPE_OPTIONS.find(
-                      (option) => option.name === param.type,
-                    )?.displayName
-                  }
-                  )
-                </summary>
-                <div className="flex flex-col gap-2 pl-4 pt-2">
-                  <TextInput
-                    label="Capacity"
-                    placeholder="Enter capacity"
-                    state={[
-                      (
-                        paramValues[`Parameter${index}`] as ccc.CellLike
-                      )?.cellOutput?.capacity?.toString() || "",
-                      (value) =>
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}`]: {
-                            outPoint: {
-                              txHash: "0x",
-                              index: 0,
-                            },
-                            cellOutput: {
-                              capacity: value,
-                              lock: {
-                                codeHash:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.codeHash ?? "",
-                                hashType:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.hashType ?? "type",
-                                args:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.args ?? "",
-                              },
-                              type: {
-                                codeHash:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.codeHash ?? "",
-                                hashType:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.hashType ?? "type",
-                                args:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.args ?? "",
-                              },
-                            },
-                            outputData:
-                              (prev[`Parameter${index}`] as ccc.CellLike)
-                                ?.outputData || "",
-                          } as ccc.CellLike,
-                        })),
-                    ]}
-                  />
-                  <TextInput
-                    label="Data"
-                    placeholder="Enter cell data in Hex"
-                    state={[
-                      (
-                        paramValues[`Parameter${index}`] as ccc.CellLike
-                      )?.outputData?.toString() || "",
-                      (value) =>
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}`]: {
-                            outPoint: {
-                              txHash: "0x",
-                              index: 0,
-                            },
-                            cellOutput: {
-                              capacity:
-                                (
-                                  prev[`Parameter${index}`] as ccc.CellLike
-                                )?.cellOutput?.capacity?.toString() || "",
-                              lock: {
-                                codeHash:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.codeHash ?? "",
-                                hashType:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.hashType ?? "type",
-                                args:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.args ?? "",
-                              },
-                              type: {
-                                codeHash:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.codeHash ?? "",
-                                hashType:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.hashType ?? "type",
-                                args:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.type?.args ?? "",
-                              },
-                            },
-                            outputData: value,
-                          } as ccc.CellLike,
-                        })),
-                    ]}
-                  />
-                  <label className="min-w-24">Lock:</label>
-                  <ScriptAmountInput
-                    showAmount={false}
-                    value={{
-                      script: paramValues[`Parameter${index}`] as ScriptType,
-                      amount: undefined,
-                    }}
-                    onChange={(updatedScriptAmount) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: {
-                          outPoint: {
-                            txHash: "0x",
-                            index: 0,
-                          },
-                          cellOutput: {
-                            capacity:
-                              (
-                                prev[`Parameter${index}`] as ccc.CellLike
-                              )?.cellOutput?.capacity?.toString() || "",
-                            lock: {
-                              codeHash:
-                                updatedScriptAmount.script?.codeHash ?? "",
-                              hashType:
-                                updatedScriptAmount.script?.hashType ?? "type",
-                              args: updatedScriptAmount.script?.args ?? "",
-                            },
-                            type: {
-                              codeHash:
-                                (prev[`Parameter${index}`] as ccc.CellLike)
-                                  ?.cellOutput?.type?.codeHash ?? "",
-                              hashType:
-                                (prev[`Parameter${index}`] as ccc.CellLike)
-                                  ?.cellOutput?.type?.hashType ?? "type",
-                              args:
-                                (prev[`Parameter${index}`] as ccc.CellLike)
-                                  ?.cellOutput?.type?.args ?? "",
-                            },
-                          },
-                          outputData:
-                            (prev[`Parameter${index}`] as ccc.CellLike)
-                              ?.outputData || "",
-                        } as ccc.CellLike,
-                      }))
-                    }
-                  />
-                  <div className="flex items-center gap-2">
-                    <label className="min-w-24">Type:</label>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={
-                          !(
-                            paramValues[`Parameter${index}NotUsingNoneType`] ??
-                            false
-                          )
-                        }
-                        onChange={(e) =>
-                          setParamValues((prev) => ({
-                            ...prev,
-                            [`Parameter${index}NotUsingNoneType`]:
-                              !e.target.checked,
-                            ...(!e.target.checked && {
-                              [`Parameter${index}`]: undefined,
-                            }),
-                          }))
-                        }
-                      />
-                      Use None
-                    </label>
-                  </div>
-
-                  {(paramValues[`Parameter${index}NotUsingNoneType`] ??
-                    false) && (
-                    <ScriptAmountInput
-                      showAmount={false}
-                      value={{
-                        script: paramValues[`Parameter${index}`] as ScriptType,
-                        amount: undefined,
-                      }}
-                      onChange={(updatedScriptAmount) =>
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}`]: {
-                            outPoint: {
-                              txHash: "0x",
-                              index: 0,
-                            },
-                            cellOutput: {
-                              capacity:
-                                (
-                                  prev[`Parameter${index}`] as ccc.CellLike
-                                )?.cellOutput?.capacity?.toString() || "",
-                              type: {
-                                codeHash:
-                                  updatedScriptAmount.script?.codeHash ?? "",
-                                hashType:
-                                  updatedScriptAmount.script?.hashType ??
-                                  "type",
-                                args: updatedScriptAmount.script?.args ?? "",
-                              },
-                              lock: {
-                                codeHash:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.codeHash ?? "",
-                                hashType:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.hashType ?? "type",
-                                args:
-                                  (prev[`Parameter${index}`] as ccc.CellLike)
-                                    ?.cellOutput?.lock?.args ?? "",
-                              },
-                            },
-                            outputData:
-                              (prev[`Parameter${index}`] as ccc.CellLike)
-                                ?.outputData || "",
-                          } as ccc.CellLike,
-                        }))
-                      }
-                    />
-                  )}
-                </div>
-              </details>
-            ) : param.type == "contextTransaction" ? (
-              <details open>
-                <summary className="cursor-pointer font-bold">
-                  Parameter {index}: (
-                  {
-                    PARAM_TYPE_OPTIONS.find(
-                      (option) => option.name === param.type,
-                    )?.displayName
-                  }
-                  )
-                </summary>
-                <div className="flex flex-col gap-2 pl-4 pt-2">
-                  <TextInput
-                    label="Transaction Data (Hex)"
-                    placeholder="Enter transaction data in hex format"
-                    state={[
-                      (
-                        paramValues[`Parameter${index}`] as ccc.TransactionLike
-                      )?.toString() || "0x",
-                      (value) => {
-                        if (!value.startsWith("0x")) value = "0x" + value;
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}`]: value,
-                        }));
-                      },
-                    ]}
-                  />
-                </div>
-              </details>
-            ) : param.type == "tx" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}:{" "}
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={
-                        !(
-                          paramValues[`Parameter${index}NotUsingDefault`] ??
-                          false
-                        )
-                      }
-                      onChange={(e) =>
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}NotUsingDefault`]:
-                            !e.target.checked,
-                          ...(!e.target.checked && {
-                            [`Parameter${index}`]: undefined,
-                          }),
-                        }))
-                      }
-                      className="rounded border-gray-300"
-                    />
-                    Leave Blank
-                  </label>
-                </div>
-                {paramValues[`Parameter${index}NotUsingDefault`] && (
-                  <div className="flex flex-col gap-2 pl-4 pt-2">
-                    <TextInput
-                      label="Transaction Data (Hex)"
-                      placeholder="Enter transaction data in hex format"
-                      state={[
-                        (
-                          paramValues[
-                            `Parameter${index}`
-                          ] as ccc.TransactionLike
-                        )?.toString() || "0x",
-                        (value) => {
-                          if (!value.startsWith("0x")) value = "0x" + value;
-                          setParamValues((prev) => ({
-                            ...prev,
-                            [`Parameter${index}`]: value,
-                          }));
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : param.type === "stringArray" ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (String Array)
-                  </label>
-                </div>
-                <TextInput
-                  label={`String Array`}
-                  placeholder="Enter comma-separated string values. Will trim start and end of each string."
-                  state={[
-                    (paramValues[`Parameter${index}`] || "") as string,
-                    (value: string) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: value.split(","),
-                      })),
-                  ]}
-                />
-              </div>
-            ) : param.type === "number" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                    )
-                  </label>
-                </div>
-                <TextInput
-                  label={`Number`}
-                  placeholder={`Enter number value`}
-                  state={[
-                    (paramValues[`Parameter${index}`] || 0) as string,
-                    (value: string) => {
-                      const num = Number(value);
-                      if (!isNaN(num)) {
-                        setParamValues((prev) => ({
-                          ...prev,
-                          [`Parameter${index}`]: num,
-                        }));
-                      }
-                    },
-                  ]}
-                />
-              </div>
-            ) : param.type === "numberArray" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                    )
-                  </label>
-                </div>
-                <TextInput
-                  label={`Number Array`}
-                  placeholder={`Enter comma-separated number values`}
-                  state={[
-                    (paramValues[`Parameter${index}`] || "") as string,
-                    (value: string) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: value
-                          .split(",")
-                          .map(Number)
-                          .filter((num) => !isNaN(num)),
-                      })),
-                  ]}
-                />
-              </div>
-            ) : param.type === "byte32" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}:{" "}
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                  </label>
-                </div>
-                <HexInput
-                  value={(paramValues[`Parameter${index}`] as string) ?? "0x"}
-                  label={`Byte32 Hex Value`}
-                  placeholder={`Enter byte32 value`}
-                  onChange={(value) =>
-                    setParamValues((prev) => ({
-                      ...prev,
-                      [`Parameter${index}`]: value,
-                    }))
-                  }
-                />
-              </div>
-            ) : param.type === "byte32Array" ? (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                    )
-                  </label>
-                </div>
-                <HexArrayInput
-                  value={(paramValues[`Parameter${index}`] as string[]) ?? []}
-                  onChange={(hexValues) =>
-                    setParamValues((prev) => ({
-                      ...prev,
-                      [`Parameter${index}`]: hexValues,
-                    }))
-                  }
-                  label={`Byte32 Array Hex Values`}
-                />
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-2">
-                  <label className="font-bold">
-                    Parameter {index}: (
-                    {
-                      PARAM_TYPE_OPTIONS.find(
-                        (option) => option.name === param.type,
-                      )?.displayName
-                    }
-                    )
-                  </label>
-                </div>
-                <TextInput
-                  label={`${param.name}`}
-                  placeholder={`Enter ${param.name} value`}
-                  state={[
-                    (paramValues[`Parameter${index}`] || "") as string,
-                    (value: string) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: value,
-                      })),
-                  ]}
-                />
-              </div>
-            )}
-            {param.type === "hexArray" &&
-              rawMethodPath === "SSRI.hasMethods" && (
-                <div className="mt-2 flex flex-row items-center gap-2">
-                  <TextInput
-                    label="Method Path Generator"
-                    placeholder="Enter method name to generate path"
-                    state={[
-                      methodPathInput || "",
-                      (value: string) => setMethodPathInput(value),
-                    ]}
-                    className="flex-grow"
-                  />
-                  <Button
-                    onClick={() => {
-                      const path = ssri.getMethodPath(methodPathInput);
-                      const currentValues =
-                        (paramValues[`Parameter${index}`] as string[]) || [];
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [`Parameter${index}`]: [...currentValues, path],
-                      }));
-                    }}
-                    className="shrink-0"
-                  >
-                    Generate & Add Path
-                  </Button>
-                </div>
-              )}
-          </div>
-          {methodToCall === "Customized" && (
-            <Button onClick={() => deleteMethodParam(index)}>
-              <Icon name="Trash" />
-            </Button>
-          )}
-        </div>
+        <ParameterInput
+          key={index}
+          param={param}
+          index={index}
+          paramValues={paramValues}
+          setParamValues={setParamValues}
+          methodToCall={methodToCall}
+          rawMethodPath={rawMethodPath}
+          methodPathInput={methodPathInput}
+          setMethodPathInput={setMethodPathInput}
+          onDelete={() => deleteMethodParam(index)}
+        />
       ))}
 
       <>
@@ -1181,126 +556,16 @@ export default function SSRI() {
         )}
       </div>
       {transactionResult && (
-        <div className="mt-4">
-          <label className="block text-medium font-bold text-gray-700">
-            Transaction Skeleton (Advanced Feature, Use only if you know what you are doing with caution and only on Testnet)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={async () => {
-                if (!signer) return;
-                const newTransactionResult = transactionResult.clone();
-                await newTransactionResult.completeInputsAtLeastOne(signer);
-                setTransactionResult(newTransactionResult);
-              }}
-            >
-              completeInputsAtLeastOne
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!signer) {
-                  alert("No signer found");
-                  return;
-                }
-                const newTransactionResult = transactionResult.clone();
-                let udtScript: ccc.ScriptLike | undefined;
-                for (let index = 0; index < methodParams.length; index++) {
-                  const param = methodParams[index];
-                  if (param.type === "contextScript") {
-                    udtScript = paramValues[
-                      `Parameter${index}`
-                    ] as ccc.ScriptLike;
-                  }
-                }
-                if (!udtScript) {
-                  alert("No UDT script found from contextScript parameter");
-                  return;
-                }
-                await newTransactionResult.completeInputsByUdt(
-                  signer,
-                  udtScript,
-                );
-                const balanceDiff =
-                  (await newTransactionResult.getInputsUdtBalance(
-                    signer.client,
-                    udtScript,
-                  )) - newTransactionResult.getOutputsUdtBalance(udtScript);
-                const { script: changeScript } =
-                  await signer.getRecommendedAddressObj();
-                if (balanceDiff > ccc.Zero) {
-                  newTransactionResult.addOutput(
-                    {
-                      lock: changeScript,
-                      type: udtScript,
-                    },
-                    ccc.numLeToBytes(balanceDiff, 16),
-                  );
-                }
-                setTransactionResult(newTransactionResult);
-              }}
-            >
-              completeInputsByUdt and complete UDT change
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!signer) {
-                  alert("No signer found");
-                  return;
-                }
-                const newTransactionResult = transactionResult.clone();
-                await newTransactionResult.completeInputsByCapacity(signer);
-                setTransactionResult(newTransactionResult);
-              }}
-            >
-              completeInputsByCapacity
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!signer) {
-                  alert("No signer found");
-                  return;
-                }
-                const newTransactionResult = transactionResult.clone();
-                newTransactionResult.addCellDeps({
-                  outPoint: {
-                    txHash: contractOutPointTx,
-                    index: contractOutPointIndex,
-                  },
-                  depType: "code",
-                });
-                setTransactionResult(newTransactionResult);
-              }}
-            >
-              Add Cell Dep
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!signer) {
-                  alert("No signer found");
-                  return;
-                }
-                const newTransactionResult = transactionResult.clone();
-                await newTransactionResult.completeFeeBy(signer);
-                setTransactionResult(newTransactionResult);
-              }}
-            >
-              completeFeeBy
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!signer) {
-                  alert("No signer found");
-                  return;
-                }
-                const txHash = await signer.sendTransaction(transactionResult);
-                log("Transaction sent with hash:", txHash);
-              }}
-            >
-              Sign and Send Transaction
-            </Button>
-          </div>
-          <JsonView value={transactionResult} style={darkTheme} />
-        </div>
+        <TransactionSkeletonPanel
+          transactionResult={transactionResult}
+          setTransactionResult={setTransactionResult}
+          signer={signer}
+          methodParams={methodParams}
+          paramValues={paramValues}
+          contractOutPointTx={contractOutPointTx}
+          contractOutPointIndex={contractOutPointIndex}
+          log={log}
+        />
       )}
       {!isLoading && iconDataURL && (
         <div className="mt-4">
