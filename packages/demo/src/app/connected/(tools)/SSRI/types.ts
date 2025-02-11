@@ -24,8 +24,10 @@ export type MethodParamType =
   | "hexArray"
   | "string"
   | "stringArray"
-  | "number"
-  | "numberArray"
+  | "uint64"
+  | "uint64Array"
+  | "uint128"
+  | "uint128Array"
   | "boolean"
   | "booleanArray"
   | "script"
@@ -34,7 +36,7 @@ export type MethodParamType =
   | "byte32Array"
   | "scriptAmountArray"
   | "tx"
-  | "signer";
+  | "signer"
 
 export interface MethodParam {
   name: string;
@@ -46,30 +48,36 @@ export const PARAM_TYPE_OPTIONS: {
   displayName: string;
   iconName: "Code" | "Hash";
 }[] = [
-  { name: "contextScript", displayName: "Context Script", iconName: "Code" },
-  { name: "contextCell", displayName: "Context Cell", iconName: "Code" },
-  {
-    name: "contextTransaction",
-    displayName: "Context Transaction",
-    iconName: "Code",
-  },
-  { name: "hex", displayName: "Generic Data (HexLike)", iconName: "Code" },
-  {
-    name: "hexArray",
-    displayName: "Generic Data Array (HexLike)",
-    iconName: "Code",
-  },
-  { name: "string", displayName: "String", iconName: "Code" },
-  { name: "stringArray", displayName: "String Array", iconName: "Code" },
-  { name: "number", displayName: "Number", iconName: "Code" },
-  { name: "numberArray", displayName: "Number Array", iconName: "Code" },
-  {
-    name: "script",
-    displayName: "Script",
-    iconName: "Code",
-  },
-  { name: "scriptArray", displayName: "Script Array", iconName: "Code" },
-  { name: "byte32", displayName: "Byte32", iconName: "Code" },
-  { name: "byte32Array", displayName: "Byte32 Array", iconName: "Code" },
-  { name: "tx", displayName: "Transaction", iconName: "Code" },
-];
+    { name: "contextScript", displayName: "Context Script", iconName: "Code" },
+    { name: "contextCell", displayName: "Context Cell", iconName: "Code" },
+    {
+      name: "contextTransaction",
+      displayName: "Context Transaction",
+      iconName: "Code",
+    },
+    { name: "hex", displayName: "Generic Data (HexLike)", iconName: "Code" },
+    {
+      name: "hexArray",
+      displayName: "Generic Data Array (HexLike)",
+      iconName: "Code",
+    },
+    { name: "string", displayName: "String", iconName: "Code" },
+    { name: "stringArray", displayName: "String Array", iconName: "Code" },
+    { name: "uint64", displayName: "Number (Uint64)", iconName: "Code" },
+    { name: "uint64Array", displayName: "Number Array (Uint64)", iconName: "Code" },
+    {
+      name: "uint128",
+      displayName: "Number (Uint128)",
+      iconName: "Code",
+    },
+    { name: "uint128Array", displayName: "Number Array (Uint128)", iconName: "Code" },
+    {
+      name: "script",
+      displayName: "Script",
+      iconName: "Code",
+    },
+    { name: "scriptArray", displayName: "Script Array", iconName: "Code" },
+    { name: "byte32", displayName: "Byte32", iconName: "Code" },
+    { name: "byte32Array", displayName: "Byte32 Array", iconName: "Code" },
+    { name: "tx", displayName: "Transaction", iconName: "Code" },
+  ];

@@ -62,9 +62,11 @@ export function ParameterInput({
         return renderTxInput();
       case "stringArray":
         return renderStringArrayInput();
-      case "number":
+      case "uint64":
+      case "uint128":
         return renderNumberInput();
-      case "numberArray":
+      case "uint64Array":
+      case "uint128Array":
         return renderNumberArrayInput();
       case "byte32":
         return renderByte32Input();
@@ -135,7 +137,7 @@ export function ParameterInput({
         onChange={(hexValues) => updateParamValue(hexValues)}
       />
       {param.type === "hexArray" &&
-        rawMethodPath === "SSRI.hasMethods" &&
+        rawMethodPath === "SSRI.has_methods" &&
         setMethodPathInput && (
           <div className="mt-2 flex flex-row items-center gap-2">
             <TextInput

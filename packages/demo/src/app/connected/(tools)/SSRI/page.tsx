@@ -16,7 +16,10 @@ import { ccc } from "@ckb-ccc/connector-react";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
 import Image from "next/image";
-import { HexArrayInput, HexInput } from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
+import {
+  HexArrayInput,
+  HexInput,
+} from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
 import { Icon } from "@/src/components/Icon";
 import { MethodParamType, PARAM_TYPE_OPTIONS } from "./types";
 import { ParamValue } from "./types";
@@ -26,8 +29,8 @@ import { TransactionSkeletonPanel } from "./components/TransactionSkeletonPanel"
 
 const METHODS_OPTIONS = [
   "SSRI.version",
-  "SSRI.getMethods",
-  "SSRI.hasMethods",
+  "SSRI.get_methods",
+  "SSRI.has_methods",
   "Customized",
 ];
 
@@ -243,88 +246,70 @@ export default function SSRI() {
         | undefined,
     ) {
       if (!contract) return;
-      if (
-        ["SSRI.getMethods", "SSRI.hasMethods", "SSRI.version"].includes(
-          rawMethodPath,
-        )
-      ) {
-        switch (rawMethodPath) {
-          case "SSRI.getMethods":
-            result = await contract.getMethods(
-              args[0] as number,
-              args[1] as number,
-            );
-            break;
-          case "SSRI.hasMethods":
-            result = await contract.hasMethods(
-              (args[0] as string[]) ?? [],
-              (args[1] as ccc.HexLike[]) ?? [],
-            );
-            break;
-          case "SSRI.version":
-            result = await contract.version();
-            break;
-        }
-      } else {
-        let argsHex = methodParams
-          .map((param, index) => {
-            const arg = args[index];
 
-            switch (param.type) {
-              case "contextScript":
-              case "contextCell":
-              case "contextTransaction":
-                return undefined;
-              case "hex":
-                if (!arg) return "0x";
-                return arg as ccc.HexLike;
-              case "hexArray":
-                if (!arg) return "0x";
-                return ccc.mol.BytesVec.encode(arg as ccc.HexLike[]);
-              case "string":
-                return ccc.bytesFrom(
-                  (arg as string).trimStart().trimEnd(),
-                  "utf8",
-                );
-              case "stringArray":
-                return ccc.mol.BytesVec.encode(
-                  (arg as string[]).map((str) =>
-                    ccc.bytesFrom(str.trimStart().trimEnd(), "utf8"),
-                  ),
-                );
-              case "number":
-                return ccc.numLeToBytes(arg as number);
-              case "numberArray":
-                return ccc.mol.Uint128Vec.encode(arg as number[]);
-              case "script":
-                if (!arg) return "0x";
-                return ccc.Script.encode(arg as ccc.ScriptLike);
-              case "scriptArray":
-                if (!arg) return "0x";
-                return ccc.ScriptVec.encode(
-                  (arg as ScriptAmountType[]).map(
-                    (scriptAmount) => scriptAmount.script,
-                  ),
-                );
-              case "tx":
-                if (!arg) return "0x";
-                return ccc.Transaction.encode(arg as ccc.TransactionLike);
-              case "byte32":
-                if (!arg) return "0x";
-                return ccc.mol.Byte32.encode(arg as ccc.HexLike);
-              case "byte32Array":
-                if (!arg) return "0x";
-                return ccc.mol.Byte32Vec.encode(arg as ccc.HexLike[]);
-              default:
-                throw new Error(`Unsupported parameter type: ${param.type}`);
-            }
-          })
-          .filter((arg) => arg !== undefined);
+      let argsHex = methodParams
+        .map((param, index) => {
+          const arg = args[index];
 
-        result = await contract
-          .assertExecutor()
-          .runScript(contract.code, rawMethodPath, argsHex, context);
-      }
+          switch (param.type) {
+            case "contextScript":
+            case "contextCell":
+            case "contextTransaction":
+              return undefined;
+            case "hex":
+              if (!arg) return "0x";
+              return arg as ccc.HexLike;
+            case "hexArray":
+              if (!arg) return "0x";
+              return ccc.mol.BytesVec.encode(arg as ccc.HexLike[]);
+            case "string":
+              return ccc.bytesFrom(
+                (arg as string).trimStart().trimEnd(),
+                "utf8",
+              );
+            case "stringArray":
+              return ccc.mol.BytesVec.encode(
+                (arg as string[]).map((str) =>
+                  ccc.bytesFrom(str.trimStart().trimEnd(), "utf8"),
+                ),
+              );
+            case "uint64":
+              return ccc.numLeToBytes(arg as number, 8);
+            case "uint64Array":
+              return ccc.mol.Uint64Vec.encode(arg as number[]);
+            case "uint128":
+              return ccc.numLeToBytes(arg as number, 16);
+            case "uint128Array":
+              return ccc.mol.Uint128Vec.encode(arg as number[]);
+            case "script":
+              if (!arg) return "0x";
+              return ccc.Script.encode(arg as ccc.ScriptLike);
+            case "scriptArray":
+              if (!arg) return "0x";
+              return ccc.ScriptVec.encode(
+                (arg as ScriptAmountType[]).map(
+                  (scriptAmount) => scriptAmount.script,
+                ),
+              );
+            case "tx":
+              if (!arg) return "0x";
+              return ccc.Transaction.encode(arg as ccc.TransactionLike);
+            case "byte32":
+              if (!arg) return "0x";
+              return ccc.mol.Byte32.encode(arg as ccc.HexLike);
+            case "byte32Array":
+              if (!arg) return "0x";
+              return ccc.mol.Byte32Vec.encode(arg as ccc.HexLike[]);
+            default:
+              throw new Error(`Unsupported parameter type: ${param.type}`);
+          }
+        })
+        .filter((arg) => arg !== undefined);
+
+      result = await contract
+        .assertExecutor()
+        .runScript(contract.code, rawMethodPath, argsHex, context);
+
       return result;
     }
   };
@@ -430,23 +415,19 @@ export default function SSRI() {
               if (value !== "Customized") {
                 setMethodToCall(value);
                 setRawMethodPath(value);
-                if (value === "SSRI.getMethods") {
+                if (value === "SSRI.get_methods") {
                   setMethodParams([
-                    { name: "offset", type: "number" },
-                    { name: "limit", type: "number" },
+                    { name: "offset", type: "uint64" },
+                    { name: "limit", type: "uint64" },
                   ]);
                   setParamValues({
                     Parameter0: 0,
                     Parameter1: 0,
                   });
-                } else if (value === "SSRI.hasMethods") {
-                  setMethodParams([
-                    { name: "methodNames", type: "stringArray" },
-                    { name: "extraMethodPaths", type: "hexArray" },
-                  ]);
+                } else if (value === "SSRI.has_methods") {
+                  setMethodParams([{ name: "methodPaths", type: "hexArray" }]);
                   setParamValues({
                     Parameter0: [],
-                    Parameter1: [],
                   });
                 } else {
                   setMethodParams([]);
