@@ -229,8 +229,12 @@ export const CellOutputVec = mol.vector(CellOutput);
 /**
  * @public
  */
-export type CellLike = {
-  outPoint: OutPointLike;
+export type CellLike = (
+  | {
+      outPoint: OutPointLike;
+    }
+  | { previousOutput: OutPointLike }
+) & {
   cellOutput: CellOutputLike;
   outputData: HexLike;
 };
@@ -265,7 +269,7 @@ export class Cell {
     }
 
     return new Cell(
-      OutPoint.from(cell.outPoint),
+      OutPoint.from("outPoint" in cell ? cell.outPoint : cell.previousOutput),
       CellOutput.from(cell.cellOutput),
       hexFrom(cell.outputData),
     );
@@ -450,8 +454,12 @@ export class Since extends mol.Entity.Base<SinceLike, Since>() {
 /**
  * @public
  */
-export type CellInputLike = {
-  previousOutput: OutPointLike;
+export type CellInputLike = (
+  | {
+      previousOutput: OutPointLike;
+    }
+  | { outPoint: OutPointLike }
+) & {
   since?: SinceLike | NumLike | null;
   cellOutput?: CellOutputLike | null;
   outputData?: HexLike | null;
@@ -465,10 +473,7 @@ export type CellInputLike = {
       since: Since,
       previousOutput: OutPoint,
     })
-    .mapIn((encodable: CellInputLike) => ({
-      ...encodable,
-      since: encodable.since ?? 0,
-    })),
+    .mapIn((encodable: CellInputLike) => CellInput.from(encodable)),
 )
 export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
   /**
@@ -509,7 +514,11 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     }
 
     return new CellInput(
-      OutPoint.from(cellInput.previousOutput),
+      OutPoint.from(
+        "previousOutput" in cellInput
+          ? cellInput.previousOutput
+          : cellInput.outPoint,
+      ),
       Since.from(cellInput.since ?? 0).toNum(),
       apply(CellOutput.from, cellInput.cellOutput),
       apply(hexFrom, cellInput.outputData),
@@ -1231,6 +1240,58 @@ export class Transaction extends mol.Entity.Base<
   }
 
   /**
+   * get input
+   *
+   * @param index - The cell input index
+   *
+   * @example
+   * ```typescript
+   * await tx.getInput(0);
+   * ```
+   */
+  getInput(index: NumLike): CellInput | undefined {
+    return this.inputs[Number(numFrom(index))];
+  }
+  /**
+   * add input
+   *
+   * @param inputLike - The cell input.
+   *
+   * @example
+   * ```typescript
+   * await tx.addInput({ });
+   * ```
+   */
+  addInput(inputLike: CellInputLike): number {
+    return this.inputs.push(CellInput.from(inputLike));
+  }
+
+  /**
+   * get output
+   *
+   * @param index - The cell output index
+   *
+   * @example
+   * ```typescript
+   * await tx.getOutput(0);
+   * ```
+   */
+  getOutput(index: NumLike):
+    | {
+        cellOutput: CellOutput;
+        outputData: Hex;
+      }
+    | undefined {
+    const i = Number(numFrom(index));
+    if (i >= this.outputs.length) {
+      return;
+    }
+    return {
+      cellOutput: this.outputs[i],
+      outputData: this.outputsData[i] ?? "0x",
+    };
+  }
+  /**
    * Add output
    *
    * @param outputLike - The cell output to add
@@ -1245,7 +1306,7 @@ export class Transaction extends mol.Entity.Base<
     outputLike: Omit<CellOutputLike, "capacity"> &
       Partial<Pick<CellOutputLike, "capacity">>,
     outputData: HexLike = "0x",
-  ): void {
+  ): number {
     const output = CellOutput.from({
       ...outputLike,
       capacity: outputLike.capacity ?? 0,
@@ -1255,8 +1316,10 @@ export class Transaction extends mol.Entity.Base<
         output.occupiedSize + bytesFrom(outputData).length,
       );
     }
-    const i = this.outputs.push(output) - 1;
-    this.setOutputDataAt(i, outputData);
+    const len = this.outputs.push(output);
+    this.setOutputDataAt(len - 1, outputData);
+
+    return len;
   }
 
   /**
@@ -1415,15 +1478,7 @@ export class Transaction extends mol.Entity.Base<
       acc = next;
     }
 
-    this.inputs.push(
-      ...collectedCells.map(({ outPoint, outputData, cellOutput }) =>
-        CellInput.from({
-          previousOutput: outPoint,
-          outputData,
-          cellOutput,
-        }),
-      ),
-    );
+    collectedCells.forEach((cell) => this.addInput(cell));
     if (fulfilled) {
       return {
         addedCount: collectedCells.length,
@@ -1543,13 +1598,7 @@ export class Transaction extends mol.Entity.Base<
         continue;
       }
 
-      this.inputs.push(
-        CellInput.from({
-          previousOutput: cell.outPoint,
-          outputData: cell.outputData,
-          cellOutput: cell.cellOutput,
-        }),
-      );
+      this.addInput(cell);
       return 1;
     }
 

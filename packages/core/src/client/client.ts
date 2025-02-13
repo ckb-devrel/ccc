@@ -119,16 +119,14 @@ export abstract class Client {
     if (!transaction) {
       return;
     }
-
-    const index = Number(numFrom(outPoint.index));
-    if (index >= transaction.transaction.outputs.length) {
+    const output = transaction.transaction.getOutput(outPoint.index);
+    if (!output) {
       return;
     }
 
     const cell = Cell.from({
       outPoint,
-      cellOutput: transaction.transaction.outputs[index],
-      outputData: transaction.transaction.outputsData[index] ?? "0x",
+      ...output,
     });
     await this.cache.recordCells(cell);
     return cell;

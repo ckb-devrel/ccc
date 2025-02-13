@@ -157,12 +157,7 @@ export async function transferSporeCluster(params: {
   // build cluster cell
   const { cell: cluster, scriptInfo } = await assertCluster(signer.client, id);
 
-  tx.inputs.push(
-    ccc.CellInput.from({
-      previousOutput: cluster.outPoint,
-      ...cluster,
-    }),
-  );
+  tx.addInput(cluster);
   tx.addOutput(
     {
       lock: to,
