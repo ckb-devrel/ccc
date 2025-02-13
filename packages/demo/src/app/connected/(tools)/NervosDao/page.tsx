@@ -89,18 +89,13 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
       const tipHeader = await signer.client.getTipHeader();
       setTip(tipHeader);
 
-      const previousTx = await signer.client.getTransaction(
+      const previousTxRes = await signer.client.getTransactionWithHeader(
         dao.outPoint.txHash,
       );
-      if (!previousTx?.blockHash) {
+      if (!previousTxRes || !previousTxRes.header) {
         return;
       }
-      const previousHeader = await signer.client.getHeaderByHash(
-        previousTx.blockHash,
-      );
-      if (!previousHeader) {
-        return;
-      }
+      const { transaction: previousTx, header: previousHeader } = previousTxRes;
 
       const claimInfo = await (async (): Promise<typeof infos> => {
         if (isNew) {
@@ -110,17 +105,13 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
         const depositTxHash =
           previousTx.transaction.inputs[Number(dao.outPoint.index)]
             .previousOutput.txHash;
-        const depositTx = await signer.client.getTransaction(depositTxHash);
-        if (!depositTx?.blockHash) {
+        const depositTxRes =
+          await signer.client.getTransactionWithHeader(depositTxHash);
+        if (!depositTxRes || !depositTxRes.header) {
           return;
         }
-        const depositHeader = await signer.client.getHeaderByHash(
-          depositTx.blockHash,
-        );
+        const { transaction: depositTx, header: depositHeader } = depositTxRes;
 
-        if (!depositHeader) {
-          return;
-        }
         return [
           getProfit(dao, depositHeader, previousHeader),
           depositTx,
