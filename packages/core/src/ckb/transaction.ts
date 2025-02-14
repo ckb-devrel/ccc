@@ -548,6 +548,14 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     this.cellOutput = cell.cellOutput;
     this.outputData = cell.outputData;
   }
+
+  clone(): CellInput {
+    const cloned = super.clone();
+    cloned.cellOutput = this.cellOutput;
+    cloned.outputData = this.outputData;
+
+    return cloned;
+  }
 }
 export const CellInputVec = mol.vector(CellInput);
 
@@ -900,6 +908,11 @@ export class Transaction extends mol.Entity.Base<
     });
   }
 
+  /**
+   * @deprecated
+   * Use ccc.stringify instead.
+   * stringify the tx to JSON string.
+   */
   stringify(): string {
     return JSON.stringify(this, (_, value) => {
       if (typeof value === "bigint") {
