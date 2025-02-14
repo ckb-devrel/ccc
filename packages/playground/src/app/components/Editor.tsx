@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 const CCCSource = require.context(
   "!!raw-loader!../../../../",
   true,
-  /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/
+  /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/,
 );
 
 export function Editor({
@@ -26,7 +26,7 @@ export function Editor({
     editor.IStandaloneCodeEditor | undefined
   >(undefined);
   const decorationRef = useRef<editor.IEditorDecorationsCollection | undefined>(
-    undefined
+    undefined,
   );
 
   useEffect(() => {
@@ -73,9 +73,9 @@ export function Editor({
   }, [editor, highlight]);
 
   return (
-    <div className="h-full w-full relative">
+    <div className="relative h-full w-full">
       <MonacoEditor
-        className="h-[60vh] lg:h-auto w-full"
+        className="h-[60vh] w-full lg:h-auto"
         theme="vs-dark"
         defaultLanguage="typescript"
         defaultPath="/index.ts"
@@ -106,12 +106,12 @@ export function Editor({
           CCCSource.keys().forEach((key: string) => {
             monaco.languages.typescript.typescriptDefaults.addExtraLib(
               CCCSource(key).default,
-              "file:///node_modules/@ckb-ccc/" + key.replace("./", "")
+              "file:///node_modules/@ckb-ccc/" + key.replace("./", ""),
             );
           });
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
             "import { ccc } from '@ckb-ccc/core'; export function render(tx: ccc.Transaction): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
-            "file:///node_modules/@ckb-ccc/playground/index.d.ts"
+            "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
 
           setEditor(editor);
@@ -119,8 +119,8 @@ export function Editor({
         }}
       />
       {isLoading ? (
-        <div className="absolute left-0 top-0 w-full h-full bg-white/25 flex flex-col justify-center items-center">
-          <LoaderCircle className="animate-spin mb-2" size="48" />
+        <div className="absolute left-0 top-0 flex h-full w-full flex-col items-center justify-center bg-white/25">
+          <LoaderCircle className="mb-2 animate-spin" size="48" />
           Loading...
         </div>
       ) : undefined}

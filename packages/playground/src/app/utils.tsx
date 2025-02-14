@@ -4,7 +4,7 @@ import Link from "next/link";
 export function tokenInfoToBytes(
   decimals: ccc.NumLike,
   symbol: string,
-  name: string
+  name: string,
 ) {
   const symbolBytes = ccc.bytesFrom(symbol, "utf8");
   const nameBytes = ccc.bytesFrom(name === "" ? symbol : name, "utf8");
@@ -13,7 +13,7 @@ export function tokenInfoToBytes(
     ccc.numToBytes(nameBytes.length, 1),
     nameBytes,
     ccc.numToBytes(symbolBytes.length, 1),
-    symbolBytes
+    symbolBytes,
   );
 }
 
@@ -28,7 +28,7 @@ export function bytesFromAnyString(str: string): ccc.Bytes {
 export function formatString(
   str: string | undefined,
   l = 9,
-  r = 6
+  r = 6,
 ): string | undefined {
   if (str && str.length > l + r + 3) {
     return `${str.slice(0, l)}...${str.slice(-r)}`;

@@ -25,28 +25,28 @@ export function Transaction({
   }, [tx, client]);
   const outputAmount = useMemo(
     () => tx?.getOutputsCapacity() ?? ccc.Zero,
-    [tx]
+    [tx],
   );
 
   const inputs = useMemo(
     () => tx?.inputs.map((input, i) => <Cell cell={input} key={i} />),
-    [tx]
+    [tx],
   );
   const outputs = useMemo(
     () =>
       tx?.outputs.map((cellOutput, i) => (
         <Cell cell={{ cellOutput, outputData: tx.outputsData[i] }} key={i} />
       )),
-    [tx]
+    [tx],
   );
 
   if (!tx) {
     return (
       <div
         ref={innerRef}
-        className="flex flex-col grow justify-center items-center"
+        className="flex grow flex-col items-center justify-center"
       >
-        <button className="p-6 rounded-full bg-green-400 mb-4" onClick={onRun}>
+        <button className="mb-4 rounded-full bg-green-400 p-6" onClick={onRun}>
           <Play size="32" />
         </button>
         <p className="text-lg">Run code to generate transaction</p>
@@ -57,23 +57,23 @@ export function Transaction({
   return (
     <div
       ref={innerRef}
-      className={`flex flex-col grow ${disableScroll ? "" : "overflow-hidden"}`}
+      className={`flex grow flex-col ${disableScroll ? "" : "overflow-hidden"}`}
     >
       <div
-        className={`flex flex-col basis-1/2 ${
+        className={`flex basis-1/2 flex-col ${
           disableScroll ? "" : "overflow-y-hidden"
         }`}
       >
         <div className="p-3 pb-0">
           Inputs ({ccc.fixedPointToString(inputAmount)} CKB)
         </div>
-        <div className={`${disableScroll ? "" : "overflow-y-auto"} p-3 grow`}>
-          <div className="flex gap-2 flex-wrap justify-center">{inputs}</div>
+        <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>
+          <div className="flex flex-wrap justify-center gap-2">{inputs}</div>
         </div>
       </div>
 
       <div
-        className={`flex flex-col border-t border-fuchsia-900 basis-1/2 ${
+        className={`flex basis-1/2 flex-col border-t border-fuchsia-900 ${
           disableScroll ? "" : "overflow-y-hidden"
         }`}
       >
@@ -84,8 +84,8 @@ export function Transaction({
             : ccc.fixedPointToString(inputAmount - outputAmount)}{" "}
           CKB)
         </div>
-        <div className={`${disableScroll ? "" : "overflow-y-auto"} p-3 grow`}>
-          <div className="flex gap-2 flex-wrap justify-center">{outputs}</div>
+        <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>
+          <div className="flex flex-wrap justify-center gap-2">{outputs}</div>
         </div>
       </div>
     </div>
