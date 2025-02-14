@@ -1,5 +1,14 @@
 # @ckb-ccc/spore
 
+## 1.2.2
+
+### Patch Changes
+
+- [#158](https://github.com/ckb-devrel/ccc/pull/158) [`6f10589`](https://github.com/ckb-devrel/ccc/commit/6f1058977e7aa113808fa74793f1ad5d672626d2) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction utils
+
+- Updated dependencies [[`80e605d`](https://github.com/ckb-devrel/ccc/commit/80e605d0645e87b4e8b5be85c63322f7a3926e38), [`def62a0`](https://github.com/ckb-devrel/ccc/commit/def62a08bf908c6a21fe91c8db2c60848a2ada52), [`d584059`](https://github.com/ckb-devrel/ccc/commit/d584059644e8bcd3a0ea8b0314fdcbb68ee66013), [`1e88ad8`](https://github.com/ckb-devrel/ccc/commit/1e88ad8743428b46b28fe790bd559b96df8a6ce4), [`6f10589`](https://github.com/ckb-devrel/ccc/commit/6f1058977e7aa113808fa74793f1ad5d672626d2), [`d7728d9`](https://github.com/ckb-devrel/ccc/commit/d7728d9edb46c9c5a2bfeb342fc68a8b1c0fec5d)]:
+  - @ckb-ccc/core@1.6.0
+
 ## 1.2.1
 
 ### Patch Changes
