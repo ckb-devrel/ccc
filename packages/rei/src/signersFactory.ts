@@ -9,7 +9,7 @@ import { ReiSigner } from "./signer.js";
 
  */
 export function getReiSigners(client: ccc.Client): ccc.SignerInfo[] {
-  const windowRef = window as { rei?:{ckb: Provider} };
+  const windowRef = window as { rei?: { ckb: Provider } };
 
   if (typeof windowRef?.rei?.ckb === "undefined") {
     return [];

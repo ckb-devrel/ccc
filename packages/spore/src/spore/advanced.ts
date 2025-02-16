@@ -50,12 +50,7 @@ export async function prepareCluster(
         return;
       }
 
-      tx.inputs.push(
-        ccc.CellInput.from({
-          previousOutput: cluster.outPoint,
-          ...cluster,
-        }),
-      );
+      tx.addInput(cluster);
       tx.addOutput(cluster.cellOutput, cluster.outputData);
       await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
       // note: add cluster as cellDep, which will be used in Spore contract

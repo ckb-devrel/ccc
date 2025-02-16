@@ -11,23 +11,23 @@ export function Console() {
       messages.map(([level, _, message], i) => (
         <div
           key={i}
-          className={`border-t border-fuchsia-800 p-2 break-all ${
-            level === "error" ? "text-red-300 bg-red-600/25" : "text-stone-300"
+          className={`break-all border-t border-fuchsia-800 p-2 ${
+            level === "error" ? "bg-red-600/25 text-red-300" : "text-stone-300"
           }`}
         >
           {level === "error" ? (
-            <X className="inline mr-2" size="16" />
+            <X className="mr-2 inline" size="16" />
           ) : (
-            <Info className="inline mr-2" size="16" />
+            <Info className="mr-2 inline" size="16" />
           )}
           {message}
         </div>
       )),
-    [messages]
+    [messages],
   );
 
   return (
-    <div className="flex flex-col-reverse grow overflow-y-auto max-h-dvh font-mono">
+    <div className="flex max-h-dvh grow flex-col-reverse overflow-y-auto font-mono">
       <div className="flex flex-col">{consoles}</div>
     </div>
   );

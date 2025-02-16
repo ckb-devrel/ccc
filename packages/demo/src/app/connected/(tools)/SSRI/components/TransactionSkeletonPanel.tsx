@@ -30,8 +30,8 @@ export function TransactionSkeletonPanel({
   return (
     <div className="mt-4">
       <label className="text-medium block font-bold text-gray-700">
-        Transaction Skeleton (Advanced Feature, Use only if you know what you are
-        doing with caution and only on Testnet)
+        Transaction Skeleton (Advanced Feature, Use only if you know what you
+        are doing with caution and only on Testnet)
       </label>
       <div className="flex flex-wrap gap-2">
         <Button
@@ -66,7 +66,7 @@ export function TransactionSkeletonPanel({
             const balanceDiff =
               (await newTransactionResult.getInputsUdtBalance(
                 signer.client,
-                udtScript
+                udtScript,
               )) - newTransactionResult.getOutputsUdtBalance(udtScript);
             const { script: changeScript } =
               await signer.getRecommendedAddressObj();
@@ -76,7 +76,7 @@ export function TransactionSkeletonPanel({
                   lock: changeScript,
                   type: udtScript,
                 },
-                ccc.numLeToBytes(balanceDiff, 16)
+                ccc.numLeToBytes(balanceDiff, 16),
               );
             }
             setTransactionResult(newTransactionResult);

@@ -32,7 +32,7 @@ import { Editor } from "./components/Editor";
 async function shareToNostr(
   client: ccc.Client,
   relays: string[],
-  content: string
+  content: string,
 ): Promise<string> {
   const event: ccc.NostrEvent = {
     kind: 1050,
@@ -45,7 +45,7 @@ async function shareToNostr(
   };
   const signer = new ccc.SignerNostrPrivateKey(
     client,
-    Array.from(new Array(32), () => Math.floor(Math.random() * 256))
+    Array.from(new Array(32), () => Math.floor(Math.random() * 256)),
   );
   const signedEvent = await signer.signNostrEvent(event);
 
@@ -72,7 +72,7 @@ async function shareToNostr(
         });
         socket.close();
         return res;
-      })
+      }),
     )
   ).filter((r) => r !== undefined);
 
@@ -93,10 +93,10 @@ async function shareToNostr(
             const bytes = ccc.bytesFrom(relay, "ascii");
             return [[1, bytes.length], bytes];
           })
-          .flat()
-      )
+          .flat(),
+      ),
     ),
-    65536
+    65536,
   );
 }
 
@@ -118,12 +118,12 @@ function getTLVs(tlv: number[]) {
 
 async function getFromNEvent(
   defaultRelays: string[],
-  id: string
+  id: string,
 ): Promise<string | undefined> {
   let eventId;
   const relays = [...defaultRelays];
   for (const { type, value } of getTLVs(
-    bech32.fromWords(bech32.decode(id, 65536).words)
+    bech32.fromWords(bech32.decode(id, 65536).words),
   )) {
     if (type === 0) {
       eventId = ccc.hexFrom(value).slice(2);
@@ -185,7 +185,7 @@ export default function Home() {
   const [source, setSource] = useState(DEFAULT_TRANSFER);
   const [isRunning, setIsRunning] = useState(false);
   const [next, setNext] = useState<((abort?: boolean) => void) | undefined>(
-    undefined
+    undefined,
   );
 
   const [tx, setTx] = useState<ccc.Transaction | undefined>(undefined);
@@ -201,7 +201,7 @@ export default function Home() {
   }, [client]);
   useEffect(() => {
     setClient(
-      isTestnet ? new ccc.ClientPublicTestnet() : new ccc.ClientPublicMainnet()
+      isTestnet ? new ccc.ClientPublicTestnet() : new ccc.ClientPublicMainnet(),
     );
   }, [isTestnet, setClient]);
 
@@ -237,13 +237,13 @@ export default function Home() {
             });
           },
           signer,
-          sendMessage
+          sendMessage,
         );
       } finally {
         setIsRunning(false);
       }
     },
-    [source, signer, sendMessage]
+    [source, signer, sendMessage],
   );
 
   useEffect(() => {
@@ -306,12 +306,12 @@ export default function Home() {
 
   return (
     <div
-      className={`flex flex-col w-full min-h-dvh ${
+      className={`flex min-h-dvh w-full flex-col ${
         tab !== "Print" ? "lg:h-dvh lg:flex-row" : ""
       }`}
     >
       <div
-        className={`basis-1/2 shrink-0 flex flex-col overflow-hidden lg:h-dvh ${
+        className={`flex shrink-0 basis-1/2 flex-col overflow-hidden lg:h-dvh ${
           tab !== "Print" ? "" : "hidden"
         }`}
       >
@@ -321,7 +321,7 @@ export default function Home() {
           isLoading={isLoading}
           highlight={highlight}
         />
-        <div className="flex overflow-x-auto bg-gray-800 shrink-0">
+        <div className="flex shrink-0 overflow-x-auto bg-gray-800">
           <Button onClick={() => setIsTestnet(!isTestnet)}>
             {isTestnet ? (
               <FlaskConical size="16" />
@@ -352,7 +352,7 @@ export default function Home() {
               const id = await shareToNostr(
                 client,
                 DEFAULT_NOSTR_RELAYS,
-                source
+                source,
               );
 
               window.location.href = `/?src=nostr:${id}`;
@@ -363,17 +363,17 @@ export default function Home() {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col basis-1/2 grow shrink-0 overflow-hidden">
+      <div className="flex shrink-0 grow basis-1/2 flex-col overflow-hidden">
         {
           {
             Transaction: <Transaction tx={tx} onRun={() => runCode(true)} />,
             Scripts: <Scripts tx={tx} />,
             Console: <Console />,
             Print: <Transaction tx={tx} disableScroll innerRef={tabRef} />,
-            About: <About className="p-4 grow" />,
+            About: <About className="grow p-4" />,
           }[tab]
         }
-        <div className="flex overflow-x-auto bg-gray-800 shrink-0">
+        <div className="flex shrink-0 overflow-x-auto bg-gray-800">
           <Button onClick={openSigner}>{openAction}</Button>
           <Button onClick={() => setTab("Transaction")}>
             <Blocks size="16" />

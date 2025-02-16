@@ -13,7 +13,7 @@ export function About(props: React.ComponentPropsWithoutRef<"div">) {
         props.className ?? ""
       }`}
     >
-      <div className="flex flex-col gap-4 *:flex *:border-b *:gap-3 *:pt-3 *:pb-4 *:px-8 *:whitespace-nowrap">
+      <div className="flex flex-col gap-4 *:flex *:gap-3 *:whitespace-nowrap *:border-b *:px-8 *:pb-4 *:pt-3">
         <Link href="https://ckbccc.com/" target="_blank">
           <img
             src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logo.svg"

@@ -1,4 +1,4 @@
-import { NumLike, numFrom } from "../num/index.js";
+import { NumLike, numFrom, numToHex } from "../num/index.js";
 
 /**
  * A type safe way to apply a transformer on a value if it's not empty.
@@ -182,4 +182,17 @@ export type Constructor<T> = {
  */
 export function isWebview(userAgent: string): boolean {
   return /webview|wv|ip((?!.*Safari)|(?=.*like Safari))/i.test(userAgent);
+}
+
+/**
+ * @public
+ */
+export function stringify(val: unknown) {
+  return JSON.stringify(val, (_, value) => {
+    if (typeof value === "bigint") {
+      return numToHex(value);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return value;
+  });
 }

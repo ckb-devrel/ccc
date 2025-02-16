@@ -3,7 +3,6 @@
 import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
 
-
 interface HexInputProps {
   value: string;
   onChange: (value: string) => void;

@@ -107,7 +107,9 @@ export default function SSRI() {
       args: ssriContractTypeIDArgs,
     });
     if (!scriptCell) {
-      throw new Error("Could not identify OutPoint from the provided TypeID Args");
+      throw new Error(
+        "Could not identify OutPoint from the provided TypeID Args",
+      );
     }
     const targetOutPoint = scriptCell.outPoint;
     setContractOutPointTx(targetOutPoint.txHash);

@@ -58,7 +58,7 @@ export function Dropdown({
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute bottom-12 right-0 z-10 mt-2 w-full rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-scroll">
+        <div className="absolute bottom-12 right-0 z-10 mt-2 max-h-96 w-full overflow-y-scroll rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
           <div className="py-1">
             {options.map(({ name, displayName, iconName }) => (
               <button

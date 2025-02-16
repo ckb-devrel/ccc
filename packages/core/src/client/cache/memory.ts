@@ -1,13 +1,15 @@
-import {
-  Cell,
-  CellLike,
-  OutPoint,
-  OutPointLike,
-  Transaction,
-  TransactionLike,
-} from "../../ckb/index.js";
+import { Cell, CellLike, OutPoint, OutPointLike } from "../../ckb/index.js";
 import { hexFrom, HexLike } from "../../hex/index.js";
+import { Num, numFrom, NumLike } from "../../num/index.js";
 import { ClientCollectableSearchKeyLike } from "../clientTypes.advanced.js";
+import {
+  ClientBlock,
+  ClientBlockHeader,
+  ClientBlockHeaderLike,
+  ClientBlockLike,
+  ClientTransactionResponse,
+  ClientTransactionResponseLike,
+} from "../clientTypes.js";
 import { ClientCache } from "./cache.js";
 import { CellRecord, filterCell, MapLru } from "./memory.advanced.js";
 
@@ -18,21 +20,44 @@ export class ClientCacheMemory extends ClientCache {
   private readonly cells: MapLru<string, CellRecord>;
 
   /**
-   * TX Hash => Transaction
+   * TX Hash => Transaction Response
    */
-  private readonly knownTransactions: MapLru<string, Transaction>;
+  private readonly knownTransactions: MapLru<string, ClientTransactionResponse>;
+
+  /**
+   * Block Number => Block Hash
+   */
+  private readonly knownBlockHashes: MapLru<Num, string>;
+
+  /**
+   * Block Hash => Block Header / Full Block
+   */
+  private readonly knownBlocks: MapLru<
+    string,
+    Pick<ClientBlock, "header"> | ClientBlock
+  >;
 
   constructor(
     private readonly maxCells = 512,
     private readonly maxTxs = 256,
+    private readonly maxBlocks = 128,
   ) {
     super();
 
     this.cells = new MapLru<string, CellRecord>(this.maxCells);
-    this.knownTransactions = new MapLru<string, Transaction>(this.maxTxs);
+    this.knownTransactions = new MapLru<string, ClientTransactionResponse>(
+      this.maxTxs,
+    );
+    this.knownBlockHashes = new MapLru<Num, string>(this.maxBlocks);
+    this.knownBlocks = new MapLru<
+      string,
+      Pick<ClientBlock, "header"> | ClientBlock
+    >(this.maxBlocks);
   }
 
-  async markUsable(...cellLikes: (CellLike | CellLike[])[]): Promise<void> {
+  async markUsableNoCache(
+    ...cellLikes: (CellLike | CellLike[])[]
+  ): Promise<void> {
     cellLikes.flat().forEach((cellLike) => {
       const cell = Cell.from(cellLike).clone();
       const outPointStr = hexFrom(cell.outPoint.toBytes());
@@ -73,16 +98,8 @@ export class ClientCacheMemory extends ClientCache {
         continue;
       }
 
-      this.cells.access(key);
+      this.cells.get(key);
       yield cell.clone();
-    }
-  }
-  async getCell(outPointLike: OutPointLike): Promise<Cell | undefined> {
-    const outPoint = OutPoint.from(outPointLike);
-
-    const cell = this.cells.get(hexFrom(outPoint.toBytes()))?.[1];
-    if (cell && cell.cellOutput && cell.outputData) {
-      return Cell.from((cell as Cell).clone());
     }
   }
 
@@ -90,19 +107,6 @@ export class ClientCacheMemory extends ClientCache {
     const outPoint = OutPoint.from(outPointLike);
 
     return !(this.cells.get(hexFrom(outPoint.toBytes()))?.[0] ?? true);
-  }
-
-  async recordTransactions(
-    ...transactions: (TransactionLike | TransactionLike[])[]
-  ): Promise<void> {
-    transactions.flat().map((txLike) => {
-      const tx = Transaction.from(txLike);
-      this.knownTransactions.set(tx.hash(), tx);
-    });
-  }
-  async getTransaction(txHashLike: HexLike): Promise<Transaction | undefined> {
-    const txHash = hexFrom(txHashLike);
-    return this.knownTransactions.get(txHash)?.clone();
   }
 
   async recordCells(...cells: (CellLike | CellLike[])[]): Promise<void> {
@@ -115,5 +119,101 @@ export class ClientCacheMemory extends ClientCache {
       }
       this.cells.set(outPointStr, [undefined, cell]);
     });
+  }
+  async getCell(outPointLike: OutPointLike): Promise<Cell | undefined> {
+    const outPoint = OutPoint.from(outPointLike);
+
+    const cell = this.cells.get(hexFrom(outPoint.toBytes()))?.[1];
+    if (cell && cell.cellOutput && cell.outputData) {
+      return Cell.from((cell as Cell).clone());
+    }
+  }
+
+  async recordTransactionResponses(
+    ...transactions: (
+      | ClientTransactionResponseLike
+      | ClientTransactionResponseLike[]
+    )[]
+  ): Promise<void> {
+    transactions.flat().map((txLike) => {
+      const tx = ClientTransactionResponse.from(txLike);
+      this.knownTransactions.set(tx.transaction.hash(), tx);
+    });
+  }
+  async getTransactionResponse(
+    txHashLike: HexLike,
+  ): Promise<ClientTransactionResponse | undefined> {
+    const txHash = hexFrom(txHashLike);
+    return this.knownTransactions.get(txHash)?.clone();
+  }
+
+  async recordHeaders(
+    ...headers: (ClientBlockHeaderLike | ClientBlockHeaderLike[])[]
+  ): Promise<void> {
+    headers.flat().map((headerLike) => {
+      const header = ClientBlockHeader.from(headerLike);
+
+      this.knownBlockHashes.set(header.number, header.hash);
+
+      const existed = this.knownBlocks.get(header.hash);
+      if (existed) {
+        return;
+      }
+      this.knownBlocks.set(header.hash, { header });
+    });
+  }
+  async getHeaderByHash(
+    hashLike: HexLike,
+  ): Promise<ClientBlockHeader | undefined> {
+    const hash = hexFrom(hashLike);
+    const block = this.knownBlocks.get(hash);
+    if (block) {
+      this.knownBlockHashes.get(block.header.number); // For LRU
+    }
+    return block?.header;
+  }
+  async getHeaderByNumber(
+    numberLike: NumLike,
+  ): Promise<ClientBlockHeader | undefined> {
+    const number = numFrom(numberLike);
+
+    const hash = this.knownBlockHashes.get(number);
+    if (!hash) {
+      return;
+    }
+    return this.getHeaderByHash(hash);
+  }
+
+  async recordBlocks(
+    ...blocks: (ClientBlockLike | ClientBlockLike[])[]
+  ): Promise<void> {
+    blocks.flat().map((blockLike) => {
+      const block = ClientBlock.from(blockLike);
+
+      this.knownBlockHashes.set(block.header.number, block.header.hash);
+      this.knownBlocks.set(block.header.hash, block);
+    });
+  }
+  async getBlockByHash(hashLike: HexLike): Promise<ClientBlock | undefined> {
+    const hash = hexFrom(hashLike);
+    const block = this.knownBlocks.get(hash);
+    if (block) {
+      this.knownBlockHashes.get(block.header.number); // For LRU
+      if ("transactions" in block) {
+        return block;
+      }
+    }
+    return;
+  }
+  async getBlockByNumber(
+    numberLike: NumLike,
+  ): Promise<ClientBlock | undefined> {
+    const number = numFrom(numberLike);
+
+    const hash = this.knownBlockHashes.get(number);
+    if (!hash) {
+      return;
+    }
+    return this.getBlockByHash(hash);
   }
 }

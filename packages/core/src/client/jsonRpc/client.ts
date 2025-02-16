@@ -169,11 +169,11 @@ export abstract class ClientJsonRpc extends Client {
    * @param withCycles - whether the return cycles of block transactions. (Optional, default false.)
    * @returns Block
    */
-  getBlockByNumber = this.buildSender(
+  getBlockByNumberNoCache = this.buildSender(
     "get_block_by_number",
     [(v: NumLike) => numToHex(numFrom(v))],
     (b: JsonRpcBlock) => apply(JsonRpcTransformers.blockTo, b),
-  ) as Client["getBlockByNumber"];
+  ) as Client["getBlockByNumberNoCache"];
 
   /**
    * Get block by block hash
@@ -183,9 +183,11 @@ export abstract class ClientJsonRpc extends Client {
    * @param withCycles - whether the return cycles of block transactions. (Optional, default false.)
    * @returns Block
    */
-  getBlockByHash = this.buildSender("get_block", [hexFrom], (b: JsonRpcBlock) =>
-    apply(JsonRpcTransformers.blockTo, b),
-  ) as Client["getBlockByHash"];
+  getBlockByHashNoCache = this.buildSender(
+    "get_block",
+    [hexFrom],
+    (b: JsonRpcBlock) => apply(JsonRpcTransformers.blockTo, b),
+  ) as Client["getBlockByHashNoCache"];
 
   /**
    * Get header by block number
@@ -194,11 +196,11 @@ export abstract class ClientJsonRpc extends Client {
    * @param verbosity - result format which allows 0 and 1. (Optional, the default is 1.)
    * @returns BlockHeader
    */
-  getHeaderByNumber = this.buildSender(
+  getHeaderByNumberNoCache = this.buildSender(
     "get_header_by_number",
     [(v: NumLike) => numToHex(numFrom(v))],
     (b: JsonRpcBlockHeader) => apply(JsonRpcTransformers.blockHeaderTo, b),
-  ) as Client["getHeaderByNumber"];
+  ) as Client["getHeaderByNumberNoCache"];
 
   /**
    * Get header by block hash
@@ -207,11 +209,11 @@ export abstract class ClientJsonRpc extends Client {
    * @param verbosity - result format which allows 0 and 1. (Optional, the default is 1.)
    * @returns BlockHeader
    */
-  getHeaderByHash = this.buildSender(
+  getHeaderByHashNoCache = this.buildSender(
     "get_header",
     [hexFrom],
     (b: JsonRpcBlockHeader) => apply(JsonRpcTransformers.blockHeaderTo, b),
-  ) as Client["getHeaderByHash"];
+  ) as Client["getHeaderByHashNoCache"];
 
   /**
    * Estimate cycles of a transaction.

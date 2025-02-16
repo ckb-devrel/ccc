@@ -175,12 +175,7 @@ export async function transferSpore(params: {
 
   const { cell: sporeCell, scriptInfo } = await assertSpore(signer.client, id);
   await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
-  tx.inputs.push(
-    ccc.CellInput.from({
-      previousOutput: sporeCell.outPoint,
-      ...sporeCell,
-    }),
-  );
+  tx.addInput(sporeCell);
   tx.addOutput(
     {
       lock: to,
@@ -230,12 +225,7 @@ export async function meltSpore(params: {
   // build spore cell
   const { cell: sporeCell, scriptInfo } = await assertSpore(signer.client, id);
   await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
-  tx.inputs.push(
-    ccc.CellInput.from({
-      previousOutput: sporeCell.outPoint,
-      ...sporeCell,
-    }),
-  );
+  tx.addInput(sporeCell);
 
   const actions = scriptInfo.cobuild
     ? [assembleMeltSporeAction(sporeCell.cellOutput, scriptInfoHash)]

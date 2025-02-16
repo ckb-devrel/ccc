@@ -8,7 +8,7 @@ import { vlqDecode } from "./vlq";
 function findSourcePos(
   sourceMap: string | undefined,
   row: number,
-  col: number
+  col: number,
 ): [number, number, number, number] | undefined {
   if (!sourceMap) {
     return;
@@ -42,10 +42,10 @@ export async function execute(
   source: string,
   onUpdate: (
     pos: [number, number, number, number] | undefined,
-    tx: ccc.Transaction | undefined
+    tx: ccc.Transaction | undefined,
   ) => Promise<void>,
   signer: ccc.Signer,
-  log: (level: "error" | "info", title: string, msgs: ReactNode[]) => void
+  log: (level: "error" | "info", title: string, msgs: ReactNode[]) => void,
 ) {
   const compiled = ts.transpileModule(source, {
     compilerOptions: { sourceMap: true },
@@ -78,9 +78,9 @@ export async function execute(
               findSourcePos(
                 compiled.sourceMapText,
                 Number(match[1]) - 4,
-                Number(match[2]) - 2
+                Number(match[2]) - 2,
               ),
-              tx
+              tx,
             );
           } catch (err) {
             if (err !== "ABORTED") {
@@ -105,7 +105,7 @@ export async function execute(
       "exports",
       "require",
       "console",
-      `return (async () => {\n${compiled.outputText}\n})();`
+      `return (async () => {\n${compiled.outputText}\n})();`,
     )(exports, require, {
       log: (...msgs: unknown[]) =>
         log(
@@ -117,8 +117,8 @@ export async function execute(
                 return value.toString();
               }
               return value;
-            })
-          )
+            }),
+          ),
         ),
       error: (...msgs: unknown[]) =>
         log(
@@ -130,8 +130,8 @@ export async function execute(
                 return value.toString();
               }
               return value;
-            })
-          )
+            }),
+          ),
         ),
     });
   } finally {

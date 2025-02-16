@@ -45,7 +45,7 @@ export const APP_CONTEXT = createContext<
       sendMessage: (
         level: "error" | "info",
         title: string,
-        msgs: ReactNode[]
+        msgs: ReactNode[],
       ) => void;
       createSender: (title: string) => {
         log: (...msgs: ReactNode[]) => void;
@@ -68,9 +68,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () =>
       new ccc.SignerCkbPublicKey(
         client,
-        "0x026f3255791f578cc5e38783b6f2d87d4709697b797def6bf7b3b9af4120e2bfd9"
+        "0x026f3255791f578cc5e38783b6f2d87d4709697b797def6bf7b3b9af4120e2bfd9",
       ),
-    [client]
+    [client],
   );
   const [address, setAddress] = useState<string>("");
 
@@ -89,7 +89,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendMessage = (
     level: "error" | "info",
     title: string,
-    msgs: ReactNode[]
+    msgs: ReactNode[],
   ) =>
     setMessages((messages) => [
       ...messages,
@@ -97,10 +97,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         level,
         title,
         msgs.map((msg, i) => {
-          if (typeof msg === "string" && (msg.startsWith(`"http://`) || msg.startsWith(`"https://`))) {
+          if (
+            typeof msg === "string" &&
+            (msg.startsWith(`"http://`) || msg.startsWith(`"https://`))
+          ) {
             const url = msg.slice(1, -1);
             return (
-              <a key={i} className="underline underline-offset-2 text-[#2D5FF5] px-2" href={url} target="_blank" rel="noopener noreferrer">
+              <a
+                key={i}
+                className="px-2 text-[#2D5FF5] underline underline-offset-2"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 {url}
               </a>
             );
@@ -179,7 +188,7 @@ export function useApp() {
   const context = React.useContext(APP_CONTEXT);
   if (!context) {
     throw Error(
-      "The component which invokes the useApp hook should be placed in a AppProvider."
+      "The component which invokes the useApp hook should be placed in a AppProvider.",
     );
   }
   return context;

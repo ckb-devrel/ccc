@@ -5,7 +5,10 @@ import {
   ScriptAmountArrayInput,
   ScriptAmountInput,
 } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
-import { HexArrayInput, HexInput } from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
+import {
+  HexArrayInput,
+  HexInput,
+} from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
 import { Icon } from "@/src/components/Icon";
 import { MethodParam, ParamValue } from "../types";
 import { PARAM_TYPE_OPTIONS } from "../types";

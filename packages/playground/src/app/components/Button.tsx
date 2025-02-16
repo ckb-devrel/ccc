@@ -2,7 +2,7 @@ export function Button(props: React.ComponentPropsWithoutRef<"button">) {
   return (
     <button
       {...props}
-      className={`flex shrink-0 items-center border-gray-600 disabled:bg-gray-600 border px-4 font-bold py-1 text-white whitespace-nowrap ${props.className}`}
+      className={`flex shrink-0 items-center whitespace-nowrap border border-gray-600 px-4 py-1 font-bold text-white disabled:bg-gray-600 ${props.className}`}
     ></button>
   );
 }

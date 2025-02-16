@@ -149,7 +149,12 @@ export class MapLru<K, V> extends Map<K, V> {
     super();
   }
 
-  access(key: K) {
+  get(key: K) {
+    const val = super.get(key);
+    if (val === undefined) {
+      return;
+    }
+
     const index = this.lru.indexOf(key);
     if (index !== -1) {
       this.lru.splice(index, 1);
@@ -159,15 +164,27 @@ export class MapLru<K, V> extends Map<K, V> {
       this.delete(this.lru[0]);
       this.lru.shift();
     }
-  }
 
-  get(key: K) {
-    this.access(key);
-    return super.get(key);
+    return val;
   }
 
   set(key: K, value: V) {
-    this.access(key);
-    return super.set(key, value);
+    this.get(key);
+
+    super.set(key, value);
+    return this;
+  }
+
+  delete(key: K): boolean {
+    if (!super.delete(key)) {
+      return false;
+    }
+
+    const index = this.lru.indexOf(key);
+    if (index !== -1) {
+      this.lru.splice(index, 1);
+    }
+
+    return true;
   }
 }
