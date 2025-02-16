@@ -35,12 +35,9 @@ const METHODS_OPTIONS = [
 ];
 
 export default function SSRI() {
-  const { signer, createSender } = useApp();
+  const { signer, createSender, ssriExecutor } = useApp();
   const { log, error } = createSender("SSRI");
 
-  const [SSRIExecutorURL, setSSRIExecutorURL] = useState<string>(
-    "http://localhost:9090",
-  );
   const [contractOutPointTx, setContractOutPointTx] = useState<string>("");
   const [contractOutPointIndex, setContractOutPointIndex] =
     useState<string>("0");
@@ -136,8 +133,6 @@ export default function SSRI() {
     setMethodResult(undefined);
     setIconDataURL("");
 
-    const testSSRIExecutor = new ssri.ExecutorJsonRpc(SSRIExecutorURL);
-
     let contract: ssri.Trait | undefined;
     try {
       const targetOutPoint = {
@@ -153,7 +148,7 @@ export default function SSRI() {
       if (!scriptCell.cellOutput.type?.hash()) {
         throw new Error("Script cell type hash not found");
       }
-      contract = new ssri.Trait(scriptCell.outPoint, testSSRIExecutor);
+      contract = new ssri.Trait(scriptCell.outPoint, ssriExecutor);
 
       if (!contract) {
         throw new Error("Contract not initialized");
@@ -224,11 +219,11 @@ export default function SSRI() {
         e instanceof Error
           ? e.message
           : typeof e === "object"
-            ? "Check your SSRI server"
+            ? "Unexpected error. Please retry or post an issue on GitHub."
             : String(e) || "Unknown error";
       if (String(errorMessage).length < 3) {
         errorMessage =
-          "Check your SSRI server or URL. Run `docker run -p 9090:9090 hanssen0/ckb-ssri-server` to start a local SSRI server.";
+          "Unexpected error. Please retry or post an issue on GitHub.";
       }
       setMethodResult(`Error: ${errorMessage}`);
       error(`Error: ${errorMessage}`);
@@ -326,18 +321,6 @@ export default function SSRI() {
               1
             </span>
             <div className="flex-1 text-gray-800 dark:text-gray-100">
-              <code className="rounded bg-blue-50 px-2 py-1 font-mono text-sm text-blue-900 dark:bg-blue-900 dark:text-blue-100">
-                docker run -p 9090:9090 hanssen0/ckb-ssri-server
-              </code>
-              <span className="ml-2">to start a local SSRI server.</span>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold text-white">
-              2
-            </span>
-            <div className="flex-1 text-gray-800 dark:text-gray-100">
               The default parameters are prepared to just work. Just click{" "}
               <span className="font-semibold text-blue-600 dark:text-blue-400">
                 Execute Method
@@ -352,7 +335,7 @@ export default function SSRI() {
 
           <div className="flex items-start gap-3">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold text-white">
-              3
+              2
             </span>
             <div className="flex-1 text-gray-800 dark:text-gray-100">
               All Done! You called an SSRI method! Try playing with other
@@ -371,11 +354,6 @@ export default function SSRI() {
         </div>
       </div>
       <>
-        <TextInput
-          label="SSRI Executor URL"
-          placeholder="URL of the SSRI executor"
-          state={[SSRIExecutorURL, setSSRIExecutorURL]}
-        />
         <div className="flex flex-row items-center gap-2">
           <TextInput
             label="Script Cell Type ID Args (Optional)"
