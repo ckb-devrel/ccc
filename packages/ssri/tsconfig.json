@@ -4,5 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "outDir": "./dist",
+    "lib": [
+      "ES2024",
+      "WebWorker",
+      "ESNext"
+    ]
   }
 }
