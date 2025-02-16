@@ -1,5 +1,6 @@
+"use client";
+
 import { secp256k1 } from "@noble/curves/secp256k1";
-import { magicHash } from "bitcoinjs-message";
 import {
   Bytes,
   bytesConcat,
@@ -12,6 +13,14 @@ import { Hex, hexFrom } from "../../hex/index.js";
 import { btcP2pkhAddressFromPublicKey } from "../btc/verify.js";
 import { SignerDoge } from "./signerDoge.js";
 
+let magicHash: ((message: string, messagePrefix: string) => Uint8Array) | null =
+  null;
+
+if (typeof window !== "undefined") {
+  void import("bitcoinjs-message").then((mod) => {
+    magicHash = mod.magicHash;
+  });
+}
 /**
  * A class extending SignerDoge that provides access to a Doge address.
  * @public
@@ -85,7 +94,7 @@ export class SignerDogePrivateKey extends SignerDoge {
     const challenge = typeof msg === "string" ? msg : hexFrom(msg).slice(2);
 
     const signature = secp256k1.sign(
-      magicHash(challenge, "\x19Dogecoin Signed Message:\n"),
+      magicHash!(challenge, "\x19Dogecoin Signed Message:\n"),
       this.privateKey,
     );
 
