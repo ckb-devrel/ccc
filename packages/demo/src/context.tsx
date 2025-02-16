@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, ReactNode, useEffect, useState } from "react";
-import { ccc } from "@ckb-ccc/connector-react";
+import { ccc, ssri } from "@ckb-ccc/connector-react";
 import { Notifications } from "./components/Notifications";
 import { formatString, useGetExplorerLink } from "./utils";
 import { Key } from "lucide-react";
@@ -49,6 +49,7 @@ export const APP_CONTEXT = createContext<
         warn: (...msgs: ReactNode[]) => void;
         error: (...msgs: ReactNode[]) => void;
       };
+      ssriExecutor: ssri.ExecutorWASM;
     }
   | undefined
 >(undefined);
@@ -72,6 +73,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const signer = privateKeySigner ?? cccSigner?.signer;
 
   const { explorerAddress } = useGetExplorerLink();
+
+  const [ssriExecutorWASM] = useState(
+    () => new ssri.ExecutorWASM("https://testnet.ckb.dev/"),
+  );
+
+  useEffect(() => {
+    (async () => {
+      await ssriExecutorWASM.start("debug");
+    })();
+  }, [ssriExecutorWASM]);
 
   useEffect(() => {
     if (
@@ -175,6 +186,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           warn: (...msgs) => sendMessage("warn", title, msgs),
           error: (...msgs) => sendMessage("error", title, msgs),
         }),
+        ssriExecutor: ssriExecutorWASM,
       }}
     >
       {children}
