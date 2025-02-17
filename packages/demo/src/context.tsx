@@ -5,6 +5,7 @@ import { ccc, ssri } from "@ckb-ccc/connector-react";
 import { Notifications } from "./components/Notifications";
 import { formatString, useGetExplorerLink } from "./utils";
 import { Key } from "lucide-react";
+import dynamic from "next/dynamic";
 
 function WalletIcon({
   wallet,
@@ -59,10 +60,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     ccc.SignerCkbPrivateKey | undefined
   >(undefined);
   const [address, setAddress] = useState<string>("");
-
   const [enabledAnimate, setAnimate] = useState(true);
   const [backgroundLifted, setBackgroundLifted] = useState(false);
-
+  const [ssriExecutorWASM, setSsriExecutorWASM] = useState(
+    undefined as ssri.ExecutorWASM | undefined,
+  );
   const {
     wallet,
     signerInfo: cccSigner,
@@ -74,17 +76,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const { explorerAddress } = useGetExplorerLink();
 
-  const [ssriExecutorWASM] = useState(() => 
-    new ssri.ExecutorWASM("https://testnet.ckb.dev/")
-  );
-
   useEffect(() => {
+    if(!ssriExecutorWASM){
+      setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
+      return
+    } 
     (async () => {
       await ssriExecutorWASM.start("debug");
     })();
   }, [ssriExecutorWASM]);
 
   useEffect(() => {
+    setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
+    (async () => {
+      ssriExecutorWASM&& await ssriExecutorWASM.start("debug");
+    })();
+   
     if (
       !privateKeySigner ||
       privateKeySigner.client.addressPrefix === client.addressPrefix
@@ -186,7 +193,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           warn: (...msgs) => sendMessage("warn", title, msgs),
           error: (...msgs) => sendMessage("error", title, msgs),
         }),
-        ssriExecutor: ssriExecutorWASM,
+        ssriExecutor: ssriExecutorWASM!,
       }}
     >
       {children}
