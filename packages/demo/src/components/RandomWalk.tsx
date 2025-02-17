@@ -9,7 +9,7 @@ export type RandomWalkProps = React.ComponentPropsWithoutRef<"div"> & {
 
 export class RandomWalk extends Component<RandomWalkProps> {
   static contextType = APP_CONTEXT;
-  context: React.ContextType<typeof APP_CONTEXT>;
+  declare context: React.ContextType<typeof APP_CONTEXT>;
 
   // position, speed, force
   physics: number[] = [0, 0, 0, 0, 0, 0];

@@ -220,7 +220,7 @@ export class ExecutorWASM extends Executor {
   private stopping: boolean = false;
   private traceLogCallback: ((value: TraceRecord) => void) | null = null;
   public readonly url: string;
-  private started = false;
+  public started = false;
 
   /**
    * Creates an instance of SSRI executor through Json RPC.
@@ -253,11 +253,12 @@ export class ExecutorWASM extends Executor {
     this.url = url;
   }
 
-  async confirmStarted() {
+  async confirmStarted(): Promise<boolean> {
     if (!this.started) {
       await this.start("debug", this.url);
       this.started = true;
     }
+    return this.started;
   }
 
   /**

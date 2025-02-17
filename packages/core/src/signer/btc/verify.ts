@@ -1,11 +1,18 @@
 import { secp256k1 } from "@noble/curves/secp256k1";
 import { ripemd160 } from "@noble/hashes/ripemd160";
 import { sha256 } from "@noble/hashes/sha256";
-import { magicHash } from "bitcoinjs-message";
 import bs58check from "bs58check";
 import { Bytes, BytesLike, bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { Hex, hexFrom } from "../../hex/index.js";
 
+let magicHash: ((message: string, messagePrefix: string) => Uint8Array) | null =
+  null;
+
+if (typeof window !== "undefined") {
+  void import("bitcoinjs-message").then((mod) => {
+    magicHash = mod.magicHash;
+  });
+}
 /**
  * @public
  */
@@ -45,5 +52,9 @@ export function verifyMessageBtcEcdsa(
 
   const rawSign = bytesFrom(signature, "base64").slice(1);
 
-  return secp256k1.verify(bytesFrom(rawSign), magicHash(challenge), publicKey);
+  return secp256k1.verify(
+    bytesFrom(rawSign),
+    magicHash!(challenge, "\x19Bitcoin Signed Message:\n"),
+    publicKey,
+  );
 }

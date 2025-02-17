@@ -49,7 +49,7 @@ export const APP_CONTEXT = createContext<
         warn: (...msgs: ReactNode[]) => void;
         error: (...msgs: ReactNode[]) => void;
       };
-      ssriExecutor: ssri.ExecutorWASM;
+      ssriExecutor: ssri.ExecutorWASM | undefined;
     }
   | undefined
 >(undefined);
@@ -62,6 +62,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [enabledAnimate, setAnimate] = useState(true);
   const [backgroundLifted, setBackgroundLifted] = useState(false);
+  const [ssriExecutorWASM, setSsriExecutorWASM] = useState<
+    ssri.ExecutorWASM | undefined
+  >(undefined);
 
   const {
     wallet,
@@ -74,13 +77,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const { explorerAddress } = useGetExplorerLink();
 
-  const [ssriExecutorWASM] = useState(() => 
-    new ssri.ExecutorWASM("https://testnet.ckb.dev/")
-  );
-
   useEffect(() => {
+    if (!ssriExecutorWASM) {
+      setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
+    }
     (async () => {
-      await ssriExecutorWASM.start("debug");
+      if (ssriExecutorWASM) {
+        await ssriExecutorWASM.start("debug");
+      }
     })();
   }, [ssriExecutorWASM]);
 

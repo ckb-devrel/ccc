@@ -1,11 +1,19 @@
 import { secp256k1 } from "@noble/curves/secp256k1";
-import { magicHash } from "bitcoinjs-message";
 import { bytesFrom, BytesLike } from "../../bytes/index.js";
 import { hexFrom } from "../../hex/index.js";
 import {
   btcEcdsaPublicKeyHash,
   btcPublicKeyFromP2pkhAddress,
 } from "../btc/verify.js";
+
+let magicHash: ((message: string, messagePrefix: string) => Uint8Array) | null =
+  null;
+
+if (typeof window !== "undefined") {
+  void import("bitcoinjs-message").then((mod) => {
+    magicHash = mod.magicHash;
+  });
+}
 
 /**
  * @public
@@ -31,7 +39,7 @@ export function verifyMessageDogeEcdsa(
       btcEcdsaPublicKeyHash(
         sig
           .recoverPublicKey(
-            magicHash(challenge, "\x19Dogecoin Signed Message:\n"),
+            magicHash!(challenge, "\x19Dogecoin Signed Message:\n"),
           )
           .toHex(),
       ),
