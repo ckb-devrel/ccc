@@ -77,10 +77,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const { explorerAddress } = useGetExplorerLink();
 
   useEffect(() => {
-    if(!ssriExecutorWASM){
+    if (!ssriExecutorWASM) {
       setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
-      return
-    } 
+      return;
+    }
     (async () => {
       await ssriExecutorWASM.start("debug");
     })();
@@ -89,9 +89,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
     (async () => {
-      ssriExecutorWASM&& await ssriExecutorWASM.start("debug");
+      ssriExecutorWASM && (await ssriExecutorWASM.start("debug"));
     })();
-   
+
     if (
       !privateKeySigner ||
       privateKeySigner.client.addressPrefix === client.addressPrefix
@@ -102,7 +102,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPrivateKeySigner(
       new ccc.SignerCkbPrivateKey(client, privateKeySigner.privateKey),
     );
-  }, [privateKeySigner, client]);
+  }, [privateKeySigner, client, ssriExecutorWASM]);
 
   useEffect(() => {
     signer?.getInternalAddress().then((a) => setAddress(a));
