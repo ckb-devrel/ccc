@@ -36,18 +36,24 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-### Script-Sourced Rich Information
+## Script-Sourced Rich Information
 
-Read more about SSRI on [[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256).
+- Try interactive demo at [CCC App - SSRI](https://app.ckbccc.com/connected/SSRI)
+- Read more about SSRI on [[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256).
 
-NOTE: This is the base package for interaction with SSRI-Compliant scripts.
+>## NOTE: This is the base package for interaction with SSRI-Compliant scripts
+>
+>If you are looking for UDT support, please refer directly to [@ckb-ccc/udt](https://www.npmjs.com/package/@ckb-ccc/udt) which supports both SSRI-compliant UDT and legacy support for `xUDT` through `ckb-asset-indexer` (coming soon).
 
-If you are looking for UDT support, please refer directly to [@ckb-ccc/udt](https://www.npmjs.com/package/@ckb-ccc/udt) which supports both SSRI-compliant UDT and falling back to xUDT.
+## Additional Note
 
-### Related Projects
+- Currently `ExecutorJsonRpc` is the only supported `Executor`. There will be more in the future and legacy support for `xUDT` will be added through `ckb-asset-indexer`.
+- A public SSRI Executor JSON RPC Point is being scheduled, and efforts are being made to make to provide in-browser SSRI execution with WASM.
 
-- [`ssri-server`](https://github.com/ckb-devrel/ssri-server): Server for calling SSRI methods.
-- [`ckb_ssri_sdk`](https://github.com/ckb-devrel/ckb_ssri_sdk): A toolkit to help developers build SSRI-Compliant scripts on CKB with production level example script `pausable-udt` for reference.
+## Related Projects
+
+- [`ssri-server`](https://github.com/ckb-devrel/ssri-server): `ExecutorJSONRpc` server for calling SSRI methods.
+- [`ckb-ssri-std`](https://github.com/ckb-devrel/ckb-ssri-std): A toolkit to help developers build SSRI-Compliant scripts on CKB.
 
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
