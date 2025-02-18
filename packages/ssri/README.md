@@ -38,7 +38,7 @@
 
 ## Script-Sourced Rich Information
 
-- Try interactive demo at [CCC App - SSRI](https://ccc-git-udtssridemo-aaaaaaaalive24.vercel.app?_vercel_share=zQkvWcsB2U9HRbpRFtF9w3xQT9msZDWb)
+- Try interactive demo at [CCC App - SSRI](https://app.ckbccc.com/connected/SSRI)
 - Read more about SSRI on [[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256).
 
 >## NOTE: This is the base package for interaction with SSRI-Compliant scripts
