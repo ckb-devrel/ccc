@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "incremental": true,
+    "allowJs": true,
+    "importHelpers": false,
+    "declaration": true,
+    "declarationMap": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "esModuleInterop": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "alwaysStrict": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}

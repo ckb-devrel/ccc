@@ -1,0 +1,13 @@
+node_modules/
+
+dist/
+dist.commonjs/
+
+.npmignore
+.prettierrc
+tsconfig.json
+eslint.config.mjs
+.prettierrc
+
+tsconfig.tsbuildinfo
+.github/
