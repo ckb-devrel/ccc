@@ -120,7 +120,9 @@ export class ScriptVerificationResult {
     public cellType: "input" | "output",
     public index: number,
     public spawnReturn: SpawnSyncReturns<Buffer>,
-  ) { }
+    private cachedCycles: number | null = null,
+    private cachedScriptErrorCode: number | null = null,
+  ) {}
 
   /**
    * Gets the process exit status code returned by the ckb-debugger process.
@@ -168,7 +170,10 @@ export class ScriptVerificationResult {
    * @returns The parsed integer value representing the total cycles.
    */
   get stdoutCycles() {
-    return parseAllCycles(this.stdout);
+    if (this.cachedCycles === null) {
+      this.cachedCycles = parseAllCycles(this.stdout);
+    }
+    return this.cachedCycles;
   }
 
   /**
@@ -181,7 +186,10 @@ export class ScriptVerificationResult {
    * @returns The error code returned by the script execution
    */
   get scriptErrorCode() {
-    return parseRunResult(this.stdout);
+    if (this.cachedScriptErrorCode === null) {
+      this.cachedScriptErrorCode = parseRunResult(this.stdout);
+    }
+    return this.cachedScriptErrorCode;
   }
 
   /**
@@ -242,7 +250,7 @@ export class Resource {
     public header: Map<Hex, MockInfoHeaderDep> = new Map(),
     public headerIncr: Num = numFrom(0),
     public typeidIncr: Num = numFrom(0),
-  ) { }
+  ) {}
 
   // Static method to return a default Resource instance.
   static default(): Resource {
@@ -867,17 +875,23 @@ export class Verifier {
   }
 
   /**
-   * Verifies that the transaction is successful.
-   * Asserts that no failure status is found during the verification.
+   * Verifies that the transaction passes all script verifications successfully.
+   *
+   * @throws {AssertionError} If any script verification fails. The error message
+   *         will include a detailed summary of the failed verification.
+   * @returns The total number of cycles consumed by all script executions
    */
-  verifySuccess() {
+  verifySuccess(): number {
+    let cycles = 0;
     const runResults = this.verify();
     for (const e of runResults) {
       if (e.status != 0) {
         e.reportSummary();
         assert.fail("Transaction verification failed. See details above.");
       }
+      cycles += e.stdoutCycles;
     }
+    return cycles;
   }
   static checkSpawnResult(result: SpawnSyncReturns<Buffer>) {
     if (result.status === 0) {
