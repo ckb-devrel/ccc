@@ -4,13 +4,17 @@ import {
   SSRIExecutorWorkerInitializeOptions,
 } from "./types.js";
 
-onerror = (err) => {
-  console.error(err);
-};
 let loaded = false;
-onmessage = async (evt) => {
+
+self.addEventListener("error", (err) => {
+  console.error(err);
+});
+
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
+self.addEventListener("message", async (evt) => {
   if (!loaded) {
-    const data = evt.data as SSRIExecutorWorkerInitializeOptions;
+    const data = (evt as MessageEvent)
+      .data as SSRIExecutorWorkerInitializeOptions;
     console.log("Setting shared arrays");
     wasmModule.set_shared_array(data.inputBuffer, data.outputBuffer);
     console.log("Initiating WASM from Worker with log level", data.logLevel);
@@ -20,13 +24,13 @@ onmessage = async (evt) => {
     loaded = true;
     return;
   }
-  const data = evt.data as SSRIExecutorFunctionCall;
+  const data = (evt as MessageEvent).data as SSRIExecutorFunctionCall;
 
   try {
     self.postMessage({
       ok: true,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-      data: (wasmModule as any)[data.name](...evt.data.args),
+      data: (wasmModule as any)[data.name](...(evt as MessageEvent).data.args),
     });
   } catch (e) {
     self.postMessage({
@@ -36,5 +40,6 @@ onmessage = async (evt) => {
     });
     console.error(e);
   }
-};
+});
+
 export default {} as typeof Worker & { new (): Worker };
