@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   bs58check@4.0.0:
-    hash: 0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26
+    hash: xkju25h33uk7ay46aspcygifve
     path: patches/bs58check@4.0.0.patch
 
 importers:
@@ -244,7 +244,7 @@ importers:
         version: 2.2.0
       bs58check:
         specifier: ^4.0.0
-        version: 4.0.0(patch_hash=0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26)
+        version: 4.0.0(patch_hash=xkju25h33uk7ay46aspcygifve)
       buffer:
         specifier: ^6.0.3
         version: 6.0.3
@@ -8462,7 +8462,7 @@ snapshots:
       create-hash: 1.2.0
       safe-buffer: 5.2.1
 
-  bs58check@4.0.0(patch_hash=0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26):
+  bs58check@4.0.0(patch_hash=xkju25h33uk7ay46aspcygifve):
     dependencies:
       '@noble/hashes': 1.7.1
       bs58: 6.0.0
