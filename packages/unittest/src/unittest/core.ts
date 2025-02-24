@@ -848,10 +848,12 @@ export class Verifier {
   /**
    * Verifies that the transaction fails verification and optionally checks for a specific error code.
    * @param expectedErrorCode - Optional. If provided, asserts that the verification fails with this specific error code.
+   * @param enableLog - When true, prints detailed verification summaries for each script execution,
+   *                   including stdout and stderr output. Defaults to false.
    * @throws {AssertionError} If expectedErrorCode is provided and the actual error code doesn't match,
    *                          or if no verification failure occurs when one is expected.
    */
-  verifyFailure(expectedErrorCode?: number) {
+  verifyFailure(expectedErrorCode?: number, enableLog: boolean = false) {
     const runResults = this.verify();
     for (const e of runResults) {
       if (e.status != 0) {
@@ -868,6 +870,9 @@ export class Verifier {
           return;
         }
       }
+      if (enableLog) {
+        e.reportSummary();
+      }
     }
     assert.fail(
       `Transaction verification should fail. No verification failure occurred.`,
@@ -877,17 +882,22 @@ export class Verifier {
   /**
    * Verifies that the transaction passes all script verifications successfully.
    *
+   * @param enableLog - When true, prints detailed verification summaries for each script execution,
+   *                   including stdout and stderr output. Defaults to false.
    * @throws {AssertionError} If any script verification fails. The error message
    *         will include a detailed summary of the failed verification.
    * @returns The total number of cycles consumed by all script executions
    */
-  verifySuccess(): number {
+  verifySuccess(enableLog: boolean = false): number {
     let cycles = 0;
     const runResults = this.verify();
     for (const e of runResults) {
       if (e.status != 0) {
         e.reportSummary();
         assert.fail("Transaction verification failed. See details above.");
+      }
+      if (enableLog) {
+        e.reportSummary();
       }
       cycles += e.stdoutCycles;
     }
