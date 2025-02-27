@@ -1,5 +1,14 @@
 # @ckb-ccc/joy-id
 
+## 1.0.13
+
+### Patch Changes
+
+- [`1a39a8e`](https://github.com/ckb-devrel/ccc/commit/1a39a8ee291e603029ebc50ab65220b0c86986cb) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- Updated dependencies [[`1a39a8e`](https://github.com/ckb-devrel/ccc/commit/1a39a8ee291e603029ebc50ab65220b0c86986cb)]:
+  - @ckb-ccc/core@1.5.2
+
 ## 1.0.12
 
 ### Patch Changes
