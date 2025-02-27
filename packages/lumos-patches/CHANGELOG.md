@@ -1,5 +1,14 @@
 # @ckb-ccc/lumos-patches
 
+## 1.0.12
+
+### Patch Changes
+
+- [`9924f10`](https://github.com/ckb-devrel/ccc/commit/9924f10ad9a8adc13129a16230cb695e6afb7a09) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- Updated dependencies [[`9924f10`](https://github.com/ckb-devrel/ccc/commit/9924f10ad9a8adc13129a16230cb695e6afb7a09)]:
+  - @ckb-ccc/core@1.5.1
+
 ## 1.0.11
 
 ### Patch Changes
