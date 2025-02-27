@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/lumos-patches",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "Patches for using Lumos with CCC",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
