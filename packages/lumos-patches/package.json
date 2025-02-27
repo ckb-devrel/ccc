@@ -47,6 +47,6 @@
     "@ckb-lumos/common-scripts": "^0.24.0-next.1",
     "@ckb-lumos/config-manager": "^0.24.0-next.1",
     "@ckb-lumos/helpers": "^0.24.0-next.1",
-    "@joyid/ckb": "^1.0.1"
+    "@joyid/ckb": "^1.1.0"
   }
 }

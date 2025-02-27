@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "@joyid/ckb": "^1.0.1",
+    "@joyid/ckb": "^1.1.0",
     "@joyid/common": "^0.2.0"
   }
 }
