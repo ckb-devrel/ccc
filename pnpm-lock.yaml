@@ -222,7 +222,7 @@ importers:
   packages/core:
     dependencies:
       '@joyid/ckb':
-        specifier: ^1.1.0
+        specifier: ^1.1.1
         version: 1.1.1(typescript@5.5.4)
       '@noble/ciphers':
         specifier: ^0.5.3
@@ -575,7 +575,7 @@ importers:
         specifier: workspace:*
         version: link:../core
       '@joyid/ckb':
-        specifier: ^1.1.0
+        specifier: ^1.1.1
         version: 1.1.1(typescript@5.5.4)
       '@joyid/common':
         specifier: ^0.2.0
@@ -633,7 +633,7 @@ importers:
         specifier: ^0.24.0-next.1
         version: 0.24.0-next.2
       '@joyid/ckb':
-        specifier: ^1.1.0
+        specifier: ^1.1.1
         version: 1.1.1(typescript@5.5.4)
     devDependencies:
       '@eslint/js':
