@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.5.2
+
+### Patch Changes
+
+- [`1a39a8e`](https://github.com/ckb-devrel/ccc/commit/1a39a8ee291e603029ebc50ab65220b0c86986cb) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
 ## 1.5.1
 
 ### Patch Changes
