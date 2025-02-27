@@ -1,5 +1,14 @@
 # @ckb-ccc/ssri
 
+## 0.2.2
+
+### Patch Changes
+
+- [`dc7ee7d`](https://github.com/ckb-devrel/ccc/commit/dc7ee7dffa1802ae07407c123def16f97cf73b03) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: fix versioning
+
+- Updated dependencies [[`dc7ee7d`](https://github.com/ckb-devrel/ccc/commit/dc7ee7dffa1802ae07407c123def16f97cf73b03)]:
+  - @ckb-ccc/core@1.5.1
+
 ## 0.2.1
 
 ### Patch Changes
