@@ -1,4 +1,5 @@
-import { KnownScript, ScriptInfoLike } from "./clientTypes.js";
+import { ScriptInfoLike } from "./clientTypes.js";
+import { KnownScript } from "./knownScript.js";
 
 export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
   Object.freeze({

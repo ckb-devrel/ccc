@@ -1,4 +1,5 @@
-import { KnownScript, ScriptInfoLike } from "./clientTypes.js";
+import { ScriptInfoLike } from "./clientTypes.js";
+import { KnownScript } from "./knownScript.js";
 
 export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
   Object.freeze({

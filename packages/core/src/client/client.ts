@@ -33,10 +33,10 @@ import {
   ClientTransactionResponse,
   ErrorClientMaxFeeRateExceeded,
   ErrorClientWaitTransactionTimeout,
-  KnownScript,
   OutputsValidator,
   ScriptInfo,
 } from "./clientTypes.js";
+import { KnownScript } from "./knownScript.js";
 
 function hasHeaderConfirmed(header: ClientBlockHeader): boolean {
   return numFrom(Date.now()) - header.timestamp >= CONFIRMED_BLOCK_TIME;
