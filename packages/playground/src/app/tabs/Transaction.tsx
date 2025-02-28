@@ -17,9 +17,12 @@ export function Transaction({
   const { client } = ccc.useCcc();
 
   const [inputAmount, setInputAmount] = useState(ccc.Zero);
+  const [inputAmountExtra, setInputAmountExtra] = useState(ccc.Zero);
   useEffect(() => {
     (async () => {
+      const amountExtra = await tx?.getInputsCapacityExtra(client);
       const inputAmount = await tx?.getInputsCapacity(client);
+      setInputAmountExtra(amountExtra ?? ccc.Zero);
       setInputAmount(inputAmount ?? ccc.Zero);
     })();
   }, [tx, client]);
@@ -65,7 +68,11 @@ export function Transaction({
         }`}
       >
         <div className="p-3 pb-0">
-          Inputs ({ccc.fixedPointToString(inputAmount)} CKB)
+          Inputs ({ccc.fixedPointToString(inputAmount - inputAmountExtra)}
+          {inputAmountExtra === ccc.Zero
+            ? " "
+            : ` + ${ccc.fixedPointToString(inputAmountExtra)} `}
+          CKB)
         </div>
         <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>
           <div className="flex flex-wrap justify-center gap-2">{inputs}</div>
@@ -78,10 +85,10 @@ export function Transaction({
         }`}
       >
         <div className="p-3 pb-0">
-          Outputs ({ccc.fixedPointToString(outputAmount)} +{" "}
+          Outputs ({ccc.fixedPointToString(outputAmount)} +
           {outputAmount > inputAmount
-            ? "?"
-            : ccc.fixedPointToString(inputAmount - outputAmount)}{" "}
+            ? " ?"
+            : ` ${ccc.fixedPointToString(inputAmount - outputAmount)} `}
           CKB)
         </div>
         <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>

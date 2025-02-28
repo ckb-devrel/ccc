@@ -1,9 +1,16 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { formatString, getScriptColor, useGetExplorerLink } from "../utils";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RandomWalk } from "./RandomWalk";
 
-function Capacity({ capacity }: { capacity?: ccc.NumLike }) {
+function Capacity({
+  capacity,
+  profit,
+}: {
+  capacity?: ccc.NumLike;
+  profit: ccc.NumLike;
+}) {
+  const profitNum = ccc.numFrom(profit);
   const [l, r] = useMemo(() => {
     if (capacity === undefined) {
       return ["?"];
@@ -15,7 +22,12 @@ function Capacity({ capacity }: { capacity?: ccc.NumLike }) {
     return (
       <>
         <span className="break-all text-4xl font-bold">{l}</span>
-        <span className="break-all text-sm">CKB</span>
+        <span className="break-all text-sm">
+          {profitNum === ccc.Zero
+            ? ""
+            : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
+          CKB
+        </span>
       </>
     );
   }
@@ -23,13 +35,19 @@ function Capacity({ capacity }: { capacity?: ccc.NumLike }) {
   return (
     <>
       <span className="break-all text-4xl font-bold">{l}</span>
-      <span className="break-all text-sm">.{r} CKB</span>
+      <span className="break-all text-sm">.{r}</span>
+      <span className="break-all text-sm">
+        {profitNum === ccc.Zero
+          ? ""
+          : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
+        CKB
+      </span>
     </>
   );
 }
 
 export function Cell({
-  cell: { cellOutput, previousOutput, outputData },
+  cell,
 }: {
   cell: {
     cellOutput?: ccc.CellOutput;
@@ -38,6 +56,36 @@ export function Cell({
   };
 }) {
   const { explorerTransaction } = useGetExplorerLink();
+  const { client } = ccc.useCcc();
+
+  const { previousOutput } = cell;
+  const [cellOutput, setCellOutput] = useState(cell.cellOutput);
+  const [outputData, setOutputData] = useState(cell.outputData);
+  const [daoProfit, setDaoProfit] = useState(ccc.Zero);
+
+  useEffect(() => {
+    if (!previousOutput) {
+      return;
+    }
+
+    const input = ccc.CellInput.from({
+      ...cell,
+      previousOutput, // For type checking
+    });
+
+    (async () => {
+      try {
+        const { cellOutput, outputData } = await input.getCell(client);
+        const extraCapacity = await input.getExtraCapacity(client);
+
+        setCellOutput(cellOutput);
+        setOutputData(outputData);
+        setDaoProfit(extraCapacity);
+      } catch (err) {
+        return;
+      }
+    })();
+  }, [cell, previousOutput, cell.cellOutput, cell.outputData, client]);
 
   const freePercentage = useMemo(() => {
     if (!cellOutput || !outputData) {
@@ -98,7 +146,7 @@ export function Cell({
         ></div>
       </div>
       <div className="relative flex flex-col items-center">
-        <Capacity capacity={cellOutput?.capacity} />
+        <Capacity capacity={cellOutput?.capacity} profit={daoProfit} />
       </div>
       {previousOutput ? (
         <div className="relative">
