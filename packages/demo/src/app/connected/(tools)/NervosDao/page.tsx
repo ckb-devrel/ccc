@@ -144,7 +144,7 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
         }
 
         (async () => {
-          const [profit, depositTx, depositHeader] = infos;
+          const [_, depositTx, depositHeader] = infos;
           if (!depositTx.blockHash || !depositTx.blockNumber) {
             error(
               "Unexpected empty block info for",
@@ -217,7 +217,6 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
 
             await tx.completeInputsByCapacity(signer);
             await tx.completeFeeChangeToOutput(signer, 0);
-            tx.outputs[0].capacity += profit;
           }
 
           // Sign and send the transaction

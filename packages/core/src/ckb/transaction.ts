@@ -1,6 +1,7 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
-import type { CellDepInfoLike, Client, KnownScript } from "../client/index.js";
+import type { CellDepInfoLike, Client } from "../client/index.js";
+import { KnownScript } from "../client/knownScript.js";
 import {
   Zero,
   fixedPointFrom,
@@ -547,6 +548,60 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
 
     this.cellOutput = cell.cellOutput;
     this.outputData = cell.outputData;
+  }
+
+  /**
+   * Gets confirmed Nervos DAO profit of a CellInput
+   * It returns non-zero value only when the cell is in withdrawal phase 2
+   * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+   *
+   * @param client - A client for searching DAO related headers
+   * @returns Profit
+   *
+   * @example
+   * ```typescript
+   * const profit = await input.getDaoProfit(client);
+   * ```
+   */
+  async getDaoProfit(client: Client): Promise<Num> {
+    await this.completeExtraInfos(client);
+    if (!this.cellOutput) {
+      throw new Error("Unable to complete input");
+    }
+
+    const daoType = await client.getKnownScript(KnownScript.NervosDao);
+    const type = this.cellOutput.type;
+    if (
+      !type ||
+      type.codeHash !== daoType.codeHash ||
+      type.hashType !== daoType.hashType ||
+      !this.outputData ||
+      numFrom(this.outputData) === Zero
+    ) {
+      // Not a withdrawal phase 2 cell
+      return Zero;
+    }
+
+    const [depositHeader, withdrawRes] = await Promise.all([
+      client.getHeaderByNumber(numFromBytes(this.outputData)),
+      client.getCellWithHeader(this.previousOutput),
+    ]);
+    if (!withdrawRes?.header || !depositHeader) {
+      throw new Error(
+        `Unable to get headers of a Nervos DAO input ${this.previousOutput.txHash}:${this.previousOutput.index.toString()}`,
+      );
+    }
+    const withdrawHeader = withdrawRes.header;
+
+    const occupiedSize = fixedPointFrom(
+      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
+    );
+    const profitableSize = this.cellOutput.capacity - occupiedSize;
+
+    return (
+      (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
+      profitableSize
+    );
   }
 
   clone(): CellInput {
@@ -1405,6 +1460,14 @@ export class Transaction extends mol.Entity.Base<
     this.setWitnessArgsAt(position, witness);
   }
 
+  async getInputsDaoProfit(client: Client): Promise<Num> {
+    return reduceAsync(
+      this.inputs,
+      async (acc, input) => acc + (await input.getDaoProfit(client)),
+      numFrom(0),
+    );
+  }
+
   async getInputsCapacity(client: Client): Promise<Num> {
     return reduceAsync(
       this.inputs,
@@ -1413,7 +1476,10 @@ export class Transaction extends mol.Entity.Base<
         if (!input.cellOutput) {
           throw new Error("Unable to complete input");
         }
-        return acc + input.cellOutput.capacity;
+
+        return (
+          acc + input.cellOutput.capacity + (await input.getDaoProfit(client))
+        );
       },
       numFrom(0),
     );
