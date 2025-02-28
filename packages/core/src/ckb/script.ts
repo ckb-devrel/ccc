@@ -1,5 +1,6 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
-import { Client, KnownScript } from "../client/index.js";
+import type { Client } from "../client/index.js";
+import { KnownScript } from "../client/knownScript.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {

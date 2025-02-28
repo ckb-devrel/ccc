@@ -1,6 +1,7 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
-import type { CellDepInfoLike, Client, KnownScript } from "../client/index.js";
+import type { CellDepInfoLike, Client } from "../client/index.js";
+import { KnownScript } from "../client/knownScript.js";
 import {
   Zero,
   fixedPointFrom,
@@ -463,6 +464,7 @@ export type CellInputLike = (
   since?: SinceLike | NumLike | null;
   cellOutput?: CellOutputLike | null;
   outputData?: HexLike | null;
+  extraCapacity?: NumLike | null;
 };
 /**
  * @public
@@ -483,6 +485,9 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
    * @param since - The since value of the cell input.
    * @param cellOutput - The optional cell output associated with the cell input.
    * @param outputData - The optional output data associated with the cell input.
+   * @param extraCapacity - The optional extra capacity created when consume this input.
+   *  This is usually NervosDAO interest, see https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md.
+   *  And it can also be miners' income. (But this is not implemented yet)
    */
 
   constructor(
@@ -490,6 +495,7 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     public since: Num,
     public cellOutput?: CellOutput,
     public outputData?: Hex,
+    public extraCapacity?: Num,
   ) {
     super();
   }
@@ -522,11 +528,15 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
       Since.from(cellInput.since ?? 0).toNum(),
       apply(CellOutput.from, cellInput.cellOutput),
       apply(hexFrom, cellInput.outputData),
+      apply(numFrom, cellInput.extraCapacity),
     );
   }
 
   /**
-   * Complete extra infos in the input. Like the output of the out point.
+   * Complete extra infos in the input. Including
+   * - Previous cell output
+   * - Previous cell data
+   * - Extra capacity created when consumed this input
    * The instance will be modified.
    *
    * @returns true if succeed.
@@ -536,6 +546,11 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
    * ```
    */
   async completeExtraInfos(client: Client): Promise<void> {
+    await this.completeExtraInfosCell(client);
+    await this.completeExtraInfosExtraCapacity(client);
+  }
+
+  async completeExtraInfosCell(client: Client): Promise<void> {
     if (this.cellOutput && this.outputData) {
       return;
     }
@@ -547,6 +562,70 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
 
     this.cellOutput = cell.cellOutput;
     this.outputData = cell.outputData;
+  }
+
+  async completeExtraInfosExtraCapacity(client: Client): Promise<void> {
+    if (this.extraCapacity !== undefined) {
+      return;
+    }
+
+    // TODO: block reward part
+    // That should be able to determined by the since value
+    this.extraCapacity = await this.getDaoProfit(client);
+  }
+
+  /**
+   * Gets confirmed Nervos DAO profit of a CellInput
+   * It returns non-zero value only when the cell is in withdrawal phase 2
+   * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+   *
+   * @param client - A client for searching DAO related headers
+   * @returns Profit
+   *
+   * @example
+   * ```typescript
+   * const profit = await input.getDaoProfit(client);
+   * ```
+   */
+  async getDaoProfit(client: Client): Promise<Num> {
+    await this.completeExtraInfosCell(client);
+    if (!this.cellOutput) {
+      throw new Error("Unable to complete input");
+    }
+
+    const daoType = await client.getKnownScript(KnownScript.NervosDao);
+    const type = this.cellOutput.type;
+    if (
+      !type ||
+      type.codeHash !== daoType.codeHash ||
+      type.hashType !== daoType.hashType ||
+      !this.outputData ||
+      numFrom(this.outputData) === Zero
+    ) {
+      // Not a withdrawal phase 2 cell
+      return Zero;
+    }
+
+    const [depositHeader, withdrawRes] = await Promise.all([
+      client.getHeaderByNumber(numFromBytes(this.outputData)),
+      client.getCellWithHeader(this.previousOutput),
+    ]);
+    if (!withdrawRes?.header || !depositHeader) {
+      throw new Error(
+        `Unable to get headers of a Nervos DAO input ${this.previousOutput.txHash}:${this.previousOutput.index.toString()}`,
+      );
+    }
+    const withdrawHeader = withdrawRes.header;
+
+    const occupiedSize = fixedPointFrom(
+      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
+    );
+    const profitableSize = this.cellOutput.capacity - occupiedSize;
+
+    return (
+      (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
+      profitableSize
+    );
   }
 
   clone(): CellInput {
@@ -1405,15 +1484,32 @@ export class Transaction extends mol.Entity.Base<
     this.setWitnessArgsAt(position, witness);
   }
 
+  async getInputsCapacityExtra(client: Client): Promise<Num> {
+    return reduceAsync(
+      this.inputs,
+      async (acc, input) => {
+        await input.completeExtraInfos(client);
+        if (input.extraCapacity === undefined) {
+          throw new Error("Unable to complete input");
+        }
+
+        return acc + input.extraCapacity;
+      },
+      numFrom(0),
+    );
+  }
+
+  // This also includes extra amount
   async getInputsCapacity(client: Client): Promise<Num> {
     return reduceAsync(
       this.inputs,
       async (acc, input) => {
         await input.completeExtraInfos(client);
-        if (!input.cellOutput) {
+        if (!input.cellOutput || input.extraCapacity === undefined) {
           throw new Error("Unable to complete input");
         }
-        return acc + input.cellOutput.capacity;
+
+        return acc + input.cellOutput.capacity + input.extraCapacity;
       },
       numFrom(0),
     );
