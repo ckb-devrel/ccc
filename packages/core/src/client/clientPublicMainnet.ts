@@ -1,7 +1,8 @@
 import WebSocket from "isomorphic-ws";
 import { MAINNET_SCRIPTS } from "./clientPublicMainnet.advanced.js";
-import { KnownScript, ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
+import { ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
 import { ClientJsonRpc, ClientJsonRpcConfig } from "./jsonRpc/index.js";
+import { KnownScript } from "./knownScript.js";
 
 /**
  * @public
