@@ -79,13 +79,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!ssriExecutorWASM) {
-      setSsriExecutorWASM(new ssri.ExecutorWASM("https://testnet.ckb.dev/"));
+      setSsriExecutorWASM(
+        new ssri.ExecutorWASM("https://testnet.ckb.dev/", true, 10, 300),
+      );
     }
-    (async () => {
-      if (ssriExecutorWASM) {
-        await ssriExecutorWASM.start("debug");
-      }
-    })();
   }, [ssriExecutorWASM]);
 
   useEffect(() => {

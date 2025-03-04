@@ -6,11 +6,7 @@ import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import {
-  ScriptAmountArrayInput,
-  ScriptAmountType,
-} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
-import { ssri } from "@ckb-ccc/ssri";
+import { ScriptAmountType } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import { udt } from "@ckb-ccc/udt";
 import { ccc } from "@ckb-ccc/connector-react";
 import JsonView from "@uiw/react-json-view";
@@ -124,6 +120,7 @@ export default function UDT() {
   const makeUDTCall = async () => {
     if (!signer) return;
     if (!ssriExecutor) return;
+    await ssriExecutor.confirmStarted();
 
     // Set loading state and clear previous results
     setIsLoading(true);
@@ -624,14 +621,3 @@ const getMethodParameters = (
 
   return [];
 };
-
-const hiddenMethods = [
-  "constructor",
-  "completeChangeToLock",
-  "completeBy",
-  "assertExecutor",
-  "tryRun",
-  "hasMethods",
-  "getMethods",
-  "version",
-];

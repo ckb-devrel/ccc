@@ -2,10 +2,11 @@ import { ccc } from "@ckb-ccc/core";
 import { cccA } from "@ckb-ccc/core/advanced";
 import { Mutex } from "async-mutex";
 import ExecutorWorker from "./executor.worker.js";
+import RpcWorker from "./rpc.worker.js";
 import {
+  BroadcastChannelMessagePacket,
   SSRIExecutorResult,
   SSRIExecutorWorkerInitializeOptions,
-  TraceRecord,
 } from "./types.js";
 import { getMethodPath } from "./utils.js";
 
@@ -209,149 +210,121 @@ export class ExecutorJsonRpc extends Executor {
   }
 }
 
-const DEFAULT_BUFFER_SIZE = 50 * (1 << 20);
-
 export class ExecutorWASM extends Executor {
-  private executorWorker: Worker;
-  private inputBuffer: SharedArrayBuffer;
-  private outputBuffer: SharedArrayBuffer;
-  private commandInvokeLock: Mutex;
-  private traceLogBuffer: SharedArrayBuffer;
-  private stopping: boolean = false;
-  private traceLogCallback: ((value: TraceRecord) => void) | null = null;
   public readonly url: string;
+  private executorWorker: Worker;
+  private rpcWorker: Worker;
+  private commandInvokeLock: Mutex;
+  private stopping: boolean = false;
+  public broadcastChannel: BroadcastChannel;
   public started = false;
-
+  public maxIterations: number = 3;
+  public iterationIntervalMs: number = 1000;
+  public scriptDebug: boolean = false;
+  public network: "testnet" | "mainnet" = "testnet";
   /**
-   * Creates an instance of SSRI executor through Json RPC.
+   * Creates an instance of SSRI executor in WASM with Workers
    * @param {string} [url] - The external server URL.
    */
   constructor(
     url: string,
-    inputBufferSize = DEFAULT_BUFFER_SIZE,
-    outputBufferSize = DEFAULT_BUFFER_SIZE,
+    scriptDebug: boolean = false,
+    maxIterations: number = 10,
+    iterationIntervalMs: number = 1000,
+    network: "testnet" | "mainnet" = "testnet",
   ) {
     super();
 
     this.executorWorker = new ExecutorWorker();
-    this.inputBuffer = new SharedArrayBuffer(inputBufferSize);
-    this.outputBuffer = new SharedArrayBuffer(outputBufferSize);
-    this.traceLogBuffer = new SharedArrayBuffer(10 * 1024);
+    this.rpcWorker = new RpcWorker();
     this.commandInvokeLock = new Mutex();
-    // this.executorWorker.onmessage = (event: MessageEvent) => {
-    //     // Call the Wasm function to handle worker responses
-    //     wasmModule.handle_worker_response(event.data);
-    // };
+    this.scriptDebug = scriptDebug;
+    this.maxIterations = maxIterations;
+    this.iterationIntervalMs = iterationIntervalMs;
 
-    // Make the worker accessible to Wasm
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (self as any).post_message_to_worker = (message: string) => {
-      if (this.executorWorker) {
-        this.executorWorker.postMessage(message);
-      }
-    };
     this.url = url;
+    this.network = network;
+    this.broadcastChannel = new BroadcastChannel("ssri");
   }
 
   async confirmStarted(): Promise<boolean> {
     if (!this.started) {
-      await this.start("debug", this.url);
+      await this.start("debug");
       this.started = true;
     }
     return this.started;
   }
 
   /**
-   * Set a callback to receive trace log records
-   * @param cb The callback
-   */
-  setTraceLogCallback(cb: (value: TraceRecord) => void) {
-    this.traceLogCallback = cb;
-  }
-
-  /**
    * Start the SSRI Executor WASM.
    * @param logLevel Log Level for the SSRI Executor WASM
    */
-  async start(
-    logLevel: "trace" | "debug" | "info" | "error" = "info",
-    rpcUrl: string = "https://testnet.ckb.dev/",
-  ) {
-    console.log("Starting SSRIExecutor WASM");
-    this.executorWorker.postMessage({
-      inputBuffer: this.inputBuffer,
-      outputBuffer: this.outputBuffer,
-      logLevel: logLevel,
-      traceLogBuffer: this.traceLogBuffer,
-      rpcUrl: rpcUrl,
-    } as SSRIExecutorWorkerInitializeOptions);
-    await new Promise<void>((res, rej) => {
-      this.executorWorker.onmessage = () => res();
-      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-      this.executorWorker.onerror = (evt) => rej(evt);
-    });
-    void (async () => {
-      while (!this.stopping) {
-        const i32arr = new Int32Array(this.traceLogBuffer);
-        const u8arr = new Uint8Array(this.traceLogBuffer);
-        const resp = Atomics.waitAsync(i32arr, 0, 0);
-        if (resp.async) {
-          await resp.value;
-        }
-        if (i32arr[0] === 1) {
-          const length = i32arr[1];
-          const data = u8arr.slice(8, 8 + length);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const decoded = JSON.parse(new TextDecoder().decode(data));
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          if (this.traceLogCallback !== null) this.traceLogCallback(decoded);
-          i32arr[0] = 0;
-          Atomics.notify(i32arr, 0);
-        }
-      }
-      console.log("Exiting trace log fetcher..");
-    })();
+  async start(logLevel: "trace" | "debug" | "info" | "error" = "info") {
+    const initializeMessagePacket: BroadcastChannelMessagePacket = {
+      senderName: "ssriExecutor",
+      targetName: "ssriWorkers",
+      messageLabel: "initialize",
+      dataTypeHint: "SSRIExecutorWorkerInitializeOptions",
+      data: {
+        logLevel: logLevel,
+        channelName: "ssri",
+        rpcUrl: this.url,
+        network: this.network,
+      } as SSRIExecutorWorkerInitializeOptions,
+    };
+
+    try {
+      this.broadcastChannel.postMessage(initializeMessagePacket);
+      this.started = true;
+    } catch (error) {
+      console.error("Failed to send initialize message:", error);
+      throw error;
+    }
   }
 
   private invokeSSRIExecutorCommand(
     name: string,
     args?: unknown[],
   ): Promise<unknown> {
-    // Why use lock here?
-    // SSRI Executor WASM uses synchronous APIs, means if we send a call request through postMessage, onmessage will be called only when the command call resolved.
-    // We use lock here to avoid multiple call to postMessage before onmessage fired, to avoid mixed result of different calls
-    // Since SSRI Executor WASM is synchronous, we won't lose any performance by locking here
     return this.commandInvokeLock.runExclusive(async () => {
-      this.executorWorker.postMessage({
-        name,
-        args: args || [],
+      this.broadcastChannel.postMessage({
+        senderName: "ssriExecutor",
+        targetName: "ssriExecutorWorker",
+        messageLabel: "execute",
+        dataTypeHint: "SSRIExecutorFunctionCall",
+        data: {
+          name,
+          args: args || [],
+        },
       });
       return await new Promise((resolve, reject) => {
         const clean = () => {
-          this.executorWorker.removeEventListener("message", resolveFn);
-          this.executorWorker.removeEventListener("error", errorFn);
+          this.broadcastChannel.removeEventListener("message", resolveFn);
         };
         const resolveFn = (
-          evt: MessageEvent<
+          evt: MessageEvent<{
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            { ok: true; data: any } | { ok: false; error: string }
-          >,
+            data: any;
+            messageLabel: string;
+            senderName: string;
+            targetName: string;
+          }>,
         ) => {
-          if (evt.data.ok === true) {
-            resolve(evt.data.data);
+          if (evt.data.messageLabel === "executionResult") {
+            const result: SSRIExecutorResult = {
+              content: evt.data.data.content as ccc.Hex,
+              cellDeps: (evt.data.data.cellDeps as cccA.JsonRpcOutPoint[]).map(
+                cccA.JsonRpcTransformers.outPointTo,
+              ),
+            };
+            resolve(result);
           } else {
             // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-            reject(evt.data.error);
+            reject(evt.data.data);
           }
           clean();
         };
-        const errorFn = (evt: ErrorEvent) => {
-          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-          reject(evt);
-          clean();
-        };
-        this.executorWorker.addEventListener("message", resolveFn);
-        this.executorWorker.addEventListener("error", errorFn);
+        this.broadcastChannel.addEventListener("message", resolveFn);
       });
     });
   }
@@ -361,6 +334,7 @@ export class ExecutorWASM extends Executor {
    */
   async stop() {
     this.executorWorker.terminate();
+    this.rpcWorker.terminate();
     this.stopping = true;
   }
 
@@ -369,13 +343,38 @@ export class ExecutorWASM extends Executor {
     index: ccc.NumLike,
     args: ccc.HexLike[],
     scriptDebug: boolean = false,
+    maxIterations: number = 10,
+    iterationIntervalMs: number = 1000,
   ): Promise<SSRIExecutorResult> {
-    return (await this.invokeSSRIExecutorCommand("run_script_level_code", [
-      ccc.hexFrom(txHash),
-      index,
-      args.map((x) => ccc.hexFrom(x)),
-      scriptDebug,
-    ])) as SSRIExecutorResult;
+    let iterations = 0;
+
+    while (iterations <= maxIterations) {
+      try {
+        await this.confirmStarted();
+        return (await this.invokeSSRIExecutorCommand("run_script_level_code", [
+          ccc.hexFrom(txHash),
+          index,
+          args.map((x) => ccc.hexFrom(x)),
+          scriptDebug,
+        ])) as SSRIExecutorResult;
+      } catch (_error) {
+        iterations++;
+
+        if (iterations <= maxIterations) {
+          // Wait with exponential backoff before retrying
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              iterationIntervalMs * Math.pow(2, iterations - 1),
+            ),
+          );
+        }
+      }
+    }
+
+    throw new ExecutorErrorExecutionFailed(
+      `Failed after ${maxIterations + 1} iterations.`,
+    );
   }
 
   async runScriptLevelScript(
@@ -384,14 +383,41 @@ export class ExecutorWASM extends Executor {
     args: ccc.HexLike[],
     script: ccc.ScriptLike,
     scriptDebug: boolean = false,
+    maxIterations: number = 10,
+    iterationIntervalMs: number = 1000,
   ): Promise<SSRIExecutorResult> {
-    return (await this.invokeSSRIExecutorCommand("run_script_level_script", [
-      ccc.hexFrom(txHash),
-      index,
-      args.map((x) => ccc.hexFrom(x)),
-      cccA.JsonRpcTransformers.scriptFrom(script),
-      scriptDebug,
-    ])) as SSRIExecutorResult;
+    let iterations = 0;
+
+    while (iterations <= maxIterations) {
+      try {
+        return (await this.invokeSSRIExecutorCommand(
+          "run_script_level_script",
+          [
+            ccc.hexFrom(txHash),
+            index,
+            args.map((x) => ccc.hexFrom(x)),
+            cccA.JsonRpcTransformers.scriptFrom(script),
+            scriptDebug,
+          ],
+        )) as SSRIExecutorResult;
+      } catch (_error) {
+        iterations++;
+
+        if (iterations <= maxIterations) {
+          // Wait with exponential backoff before retrying
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              iterationIntervalMs * Math.pow(2, iterations - 1),
+            ),
+          );
+        }
+      }
+    }
+
+    throw new ExecutorErrorExecutionFailed(
+      `Failed after ${maxIterations + 1} iterations.`,
+    );
   }
 
   async runScriptLevelCell(
@@ -400,17 +426,43 @@ export class ExecutorWASM extends Executor {
     args: ccc.HexLike[],
     cell: ccc.CellLike,
     scriptDebug: boolean = false,
+    maxIterations: number = 10,
+    iterationIntervalMs: number = 1000,
   ): Promise<SSRIExecutorResult> {
-    return (await this.invokeSSRIExecutorCommand("run_script_level_cell", [
-      ccc.hexFrom(txHash),
-      index,
-      args.map((x) => ccc.hexFrom(x)),
-      {
-        cell_output: cccA.JsonRpcTransformers.cellOutputFrom(cell.cellOutput),
-        hex_data: ccc.hexFrom(cell.outputData),
-      },
-      scriptDebug,
-    ])) as SSRIExecutorResult;
+    let iterations = 0;
+
+    while (iterations <= maxIterations) {
+      try {
+        return (await this.invokeSSRIExecutorCommand("run_script_level_cell", [
+          ccc.hexFrom(txHash),
+          index,
+          args.map((x) => ccc.hexFrom(x)),
+          {
+            cell_output: cccA.JsonRpcTransformers.cellOutputFrom(
+              cell.cellOutput,
+            ),
+            hex_data: ccc.hexFrom(cell.outputData),
+          },
+          scriptDebug,
+        ])) as SSRIExecutorResult;
+      } catch (_error) {
+        iterations++;
+
+        if (iterations <= maxIterations) {
+          // Wait with exponential backoff before retrying
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              iterationIntervalMs * Math.pow(2, iterations - 1),
+            ),
+          );
+        }
+      }
+    }
+
+    throw new ExecutorErrorExecutionFailed(
+      `Failed after ${maxIterations + 1} iterations.`,
+    );
   }
 
   async runScriptLevelTx(
@@ -419,17 +471,41 @@ export class ExecutorWASM extends Executor {
     args: ccc.HexLike[],
     tx: ccc.TransactionLike,
     scriptDebug: boolean = false,
+    maxIterations: number = 10,
+    iterationIntervalMs: number = 1000,
   ): Promise<SSRIExecutorResult> {
-    return (await this.invokeSSRIExecutorCommand("run_script_level_tx", [
-      ccc.hexFrom(txHash),
-      index,
-      args.map((x) => ccc.hexFrom(x)),
-      {
-        inner: cccA.JsonRpcTransformers.transactionFrom(tx),
-        hash: ccc.Transaction.from(tx).hash(),
-      },
-      scriptDebug,
-    ])) as SSRIExecutorResult;
+    let iterations = 0;
+
+    while (iterations <= maxIterations) {
+      try {
+        return (await this.invokeSSRIExecutorCommand("run_script_level_tx", [
+          ccc.hexFrom(txHash),
+          index,
+          args.map((x) => ccc.hexFrom(x)),
+          {
+            inner: cccA.JsonRpcTransformers.transactionFrom(tx),
+            hash: ccc.Transaction.from(tx).hash(),
+          },
+          scriptDebug,
+        ])) as SSRIExecutorResult;
+      } catch (_error) {
+        iterations++;
+
+        if (iterations <= maxIterations) {
+          // Wait with exponential backoff before retrying
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              iterationIntervalMs * Math.pow(2, iterations - 1),
+            ),
+          );
+        }
+      }
+    }
+
+    throw new ExecutorErrorExecutionFailed(
+      `Failed after ${maxIterations + 1} iterations.`,
+    );
   }
 
   /* Calls a method on the SSRI executor through SSRI Server.
@@ -483,54 +559,71 @@ export class ExecutorWASM extends Executor {
       }
       return ["run_script_level_code", []];
     })();
-
+    let result: SSRIExecutorResult;
     switch (rpcMethod) {
-      case "run_script_level_transaction": {
-        if (!context?.tx) {
-          throw new ExecutorErrorUnknown("Transaction context is required");
+      case "run_script_level_transaction":
+        {
+          if (!context?.tx) {
+            throw new ExecutorErrorUnknown("Transaction context is required");
+          }
+          result = await this.runScriptLevelTx(
+            code.txHash,
+            Number(code.index),
+            [getMethodPath(method), ...args.map(ccc.hexFrom)],
+            context.tx,
+            this.scriptDebug,
+            this.maxIterations,
+            this.iterationIntervalMs,
+          );
         }
-        const result = await this.runScriptLevelTx(
-          code.txHash,
-          Number(code.index),
-          [getMethodPath(method), ...args.map(ccc.hexFrom)],
-          context.tx,
-        );
-        return ExecutorResponse.new(result.content, result.cellDeps);
-      }
-      case "run_script_level_cell": {
-        if (!context?.cell) {
-          throw new ExecutorErrorUnknown("Cell context is required");
+        break;
+      case "run_script_level_cell":
+        {
+          if (!context?.cell) {
+            throw new ExecutorErrorUnknown("Cell context is required");
+          }
+          result = await this.runScriptLevelCell(
+            code.txHash,
+            Number(code.index),
+            [getMethodPath(method), ...args.map(ccc.hexFrom)],
+            { ...context.cell, outPoint: { txHash: "0x0", index: "0x0" } },
+            this.scriptDebug,
+            this.maxIterations,
+            this.iterationIntervalMs,
+          );
         }
-        const result = await this.runScriptLevelCell(
-          code.txHash,
-          Number(code.index),
-          [getMethodPath(method), ...args.map(ccc.hexFrom)],
-          { ...context.cell, outPoint: { txHash: "0x0", index: "0x0" } },
-        );
-        return ExecutorResponse.new(result.content, result.cellDeps);
-      }
-      case "run_script_level_script": {
-        if (!context?.script) {
-          throw new ExecutorErrorUnknown("Script context is required");
+        break;
+      case "run_script_level_script":
+        {
+          if (!context?.script) {
+            throw new ExecutorErrorUnknown("Script context is required");
+          }
+          result = await this.runScriptLevelScript(
+            code.txHash,
+            Number(code.index),
+            [getMethodPath(method), ...args.map(ccc.hexFrom)],
+            context.script,
+            this.scriptDebug,
+            this.maxIterations,
+            this.iterationIntervalMs,
+          );
         }
-        const result = await this.runScriptLevelScript(
-          code.txHash,
-          Number(code.index),
-          [getMethodPath(method), ...args.map(ccc.hexFrom)],
-          context.script,
-        );
-        return ExecutorResponse.new(result.content, result.cellDeps);
-      }
-      case "run_script_level_code": {
-        const result = await this.runScriptLevelCode(
-          code.txHash,
-          Number(code.index),
-          [getMethodPath(method), ...args.map(ccc.hexFrom)],
-        );
-        return ExecutorResponse.new(result.content, result.cellDeps);
-      }
+        break;
+      case "run_script_level_code":
+        {
+          result = await this.runScriptLevelCode(
+            code.txHash,
+            Number(code.index),
+            [getMethodPath(method), ...args.map(ccc.hexFrom)],
+            this.scriptDebug,
+            this.maxIterations,
+            this.iterationIntervalMs,
+          );
+        }
+        break;
       default:
         throw new ExecutorErrorUnknown(`Unsupported method: ${rpcMethod}`);
     }
+    return ExecutorResponse.new(result.content, result.cellDeps);
   }
 }

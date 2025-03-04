@@ -1,21 +1,19 @@
 import { ccc } from "@ckb-ccc/core";
 
 interface WorkerInitializeOptions {
-  inputBuffer: SharedArrayBuffer;
-  outputBuffer: SharedArrayBuffer;
   logLevel: string;
 }
 
 interface SSRIExecutorWorkerInitializeOptions extends WorkerInitializeOptions {
+  logLevel: "trace" | "debug" | "info" | "error";
+  channelName: string;
   rpcUrl: string;
+  network: "testnet" | "mainnet";
 }
 
 interface SSRIExecutorFunctionCall {
-  initiator: "js" | "wasm";
   name: string;
   args: unknown[];
-  inputBuffer: SharedArrayBuffer;
-  outputBuffer: SharedArrayBuffer;
 }
 
 type TraceRecord = {
@@ -35,4 +33,36 @@ export {
 export interface SSRIExecutorResult {
   content: ccc.Hex;
   cellDeps: ccc.OutPointLike[];
+}
+
+export interface BroadcastChannelMessagePacket {
+  senderName: string;
+  targetName: string;
+  messageLabel: string;
+  dataTypeHint: string;
+  data: unknown;
+}
+
+export interface GetCellsArguments {
+  searchKey: {
+    script: {
+      args: ccc.HexLike;
+      code_hash: ccc.HexLike;
+      hash_type: ccc.HashTypeLike;
+    };
+    scriptType: "lock" | "type";
+    scriptSearchMode: "prefix" | "exact" | "partial";
+    filter?: {
+      outputData: ccc.HexLike;
+      outputDataSearchMode: "prefix" | "exact" | "partial";
+    };
+    withData?: boolean;
+  };
+  order: "asc" | "desc";
+  limit: number;
+  afterCursor?: string | undefined;
+}
+
+export interface GetTransactionArguments {
+  tx_hash: ccc.HexLike;
 }

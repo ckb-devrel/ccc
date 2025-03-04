@@ -23,7 +23,7 @@ ckb-hash = "0.116.1"
 
 
 hex = { version = "0.4.3", features = ["serde"] }
-web-sys = { version = "0.3.77", features = ["XmlHttpRequest", "Window", "Request", "RequestInit", "RequestMode", "Response", "TextEncoder"] }
+web-sys = { version = "0.3.77", features = ["XmlHttpRequest", "Window", "Request", "RequestInit", "RequestMode", "Response", "TextEncoder", "BroadcastChannel", "Performance", "MessageEvent"] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [dependencies.schemars]

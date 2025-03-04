@@ -6,20 +6,12 @@ import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import {
-  ScriptAmountArrayInput,
-  ScriptAmountInput,
-  ScriptAmountType,
-} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
+import { ScriptAmountType } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/connector-react";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
 import Image from "next/image";
-import {
-  HexArrayInput,
-  HexInput,
-} from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
 import { Icon } from "@/src/components/Icon";
 import { MethodParamType, PARAM_TYPE_OPTIONS } from "./types";
 import { ParamValue } from "./types";
@@ -129,6 +121,10 @@ export default function SSRI() {
   ]);
 
   const makeSSRICall = async () => {
+    if (!ssriExecutor) {
+      return;
+    }
+    await ssriExecutor.confirmStarted();
     if (!signer) return;
 
     setIsLoading(true);

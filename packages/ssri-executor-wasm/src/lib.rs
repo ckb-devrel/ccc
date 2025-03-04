@@ -3,19 +3,22 @@ mod ssri_vm;
 mod types;
 
 use crate::error::Error;
-use std::{cell::RefCell, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, str::FromStr};
 
 use wasm_bindgen_futures::wasm_bindgen::prelude::*;
-use web_sys::{js_sys::SharedArrayBuffer, XmlHttpRequest};
+use web_sys::BroadcastChannel;
 
 use log::debug;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_wasm_bindgen::Serializer;
 use ssri_vm::execute_riscv_binary;
-use types::{Cell, CellOutputWithData, Hex, Order, Pagination, SearchKey, VmResult};
+use types::{
+    BroadcastChannelMessagePacket, Cell, CellOutputWithData, GetCellsArguments, Hex, Order,
+    Pagination, SearchKey, VmResult
+};
 
 use ckb_jsonrpc_types::{
-    CellOutput, Either, JsonBytes, Script, TransactionView, TransactionWithStatusResponse, Uint32,
+    CellOutput, Either, JsonBytes, Script, TransactionView, TransactionWithStatusResponse
 };
 use ckb_types::H256;
 
@@ -24,42 +27,68 @@ static SERIALIZER: Serializer = Serializer::new()
     .serialize_maps_as_objects(true);
 
 thread_local! {
-    static INPUT_BUFFER: RefCell<Option<SharedArrayBuffer>> = const { RefCell::new(None) };
-    static OUTPUT_BUFFER: RefCell<Option<SharedArrayBuffer>> = const { RefCell::new(None) };
+    static CHANNEL: RefCell<Option<BroadcastChannel>> = RefCell::new(None);
+    static GET_TRANSACTION_CACHE: RefCell<HashMap<H256, TransactionWithStatusResponse>> = RefCell::new(HashMap::with_capacity(10000));
+    static GET_CELLS_CACHE: RefCell<HashMap<String, Pagination<Cell>>> = RefCell::new(HashMap::with_capacity(10000));
 }
 
-static mut RPC_URL: &str = "https://testnet.ckb.dev/";
-
 #[wasm_bindgen]
-pub fn set_shared_array(input: JsValue, output: JsValue) {
+pub fn put_get_transaction_cache(tx_hash: &str, transaction_with_status_response_string: &str) -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
-    
-    INPUT_BUFFER.with(|v| {
-        match input.dyn_into() {
-            Ok(buffer) => *v.borrow_mut() = Some(buffer),
-            Err(e) => debug!("Failed to set input buffer: {:?}", e),
-        }
-    });
-    
-    OUTPUT_BUFFER.with(|v| {
-        match output.dyn_into() {
-            Ok(buffer) => *v.borrow_mut() = Some(buffer),
-            Err(e) => debug!("Failed to set output buffer: {:?}", e),
-        }
-    });
+    debug!("WASM putting get_transaction_cache");
+    let tx_hash = H256::from_str(&tx_hash[2..]).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let transaction_with_status_response_object: serde_json::Value = serde_json::from_str(&transaction_with_status_response_string)
+    .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let transaction_with_status_response: TransactionWithStatusResponse = serde_json::from_value(transaction_with_status_response_object).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    GET_TRANSACTION_CACHE.with(|v| v.borrow_mut().insert(tx_hash.clone(), transaction_with_status_response));
+    Ok(())
 }
 
 #[wasm_bindgen]
-extern "C" {
-    fn post_message_to_worker(message: &str);
+pub fn put_get_cells_cache(
+    search_key: JsValue,
+    order: JsValue,
+    limit: JsValue,
+    after_cursor: JsValue,
+    cells_string: &str,
+) -> Result<(), JsValue> {
+    console_error_panic_hook::set_once();
+    debug!("WASM putting get_cells cache");
+    let search_key: SearchKey = serde_wasm_bindgen::from_value(search_key)?;
+    let order: Order = serde_wasm_bindgen::from_value(order)?;
+    let limit: u32 = serde_wasm_bindgen::from_value(limit)?;
+    let after_cursor: Option<Vec<u8>> = serde_wasm_bindgen::from_value(after_cursor)?;
+    let cells_json: serde_json::Value = serde_json::from_str(&cells_string).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let cells: Pagination<Cell> = serde_json::from_value(cells_json).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let cache_key_string = format!("{:?}", (search_key, order, limit, after_cursor));
+    GET_CELLS_CACHE.with(|v| {
+        v.borrow_mut()
+            .insert(cache_key_string, cells)
+    });
+    debug!("WASM put get cells cache successfully");
+    Ok(())
 }
 
 #[wasm_bindgen]
-pub async fn initiate(log_level: String, rpc_url: String) -> Result<(), JsValue> {
-    unsafe { RPC_URL = Box::leak(rpc_url.into_boxed_str()) };
+pub async fn initiate(
+    log_level: String,
+    channel_name: Option<String>,
+) -> Result<(), JsValue> {
+    // Initialize logger
     wasm_logger::init(wasm_logger::Config::new(
         log::Level::from_str(&log_level).expect("Bad log level"),
     ));
+
+    // Initialize broadcast channel
+    debug!(
+        "Initializing broadcast channel with name: {}",
+        channel_name.clone().unwrap_or("ssri-executor".into())
+    );
+    let channel_name = channel_name.unwrap_or("ssri-executor".into());
+    let channel = BroadcastChannel::new(&channel_name)?;
+
+    CHANNEL.with(|v| *v.borrow_mut() = Some(channel));
+
     debug!("Initiated!");
     Ok(())
 }
@@ -95,7 +124,6 @@ pub fn run_script_level_script(
         .map(|v| serde_wasm_bindgen::from_value(v))
         .collect::<Result<_, _>>()?;
     let script: Script = serde_wasm_bindgen::from_value(script)?;
-
     let result = run_script(script_debug, tx_hash, index, args, Some(script), None, None)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(result.serialize(&SERIALIZER)?)
@@ -115,7 +143,6 @@ pub fn run_script_level_cell(
         .map(|v| serde_wasm_bindgen::from_value(v))
         .collect::<Result<_, _>>()?;
     let cell: CellOutputWithData = serde_wasm_bindgen::from_value(cell)?;
-
     let result = run_script(script_debug, tx_hash, index, args, None, Some(cell), None)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(result.serialize(&SERIALIZER)?)
@@ -135,7 +162,6 @@ pub fn run_script_level_tx(
         .map(|v| serde_wasm_bindgen::from_value(v))
         .collect::<Result<_, _>>()?;
     let tx: TransactionView = serde_wasm_bindgen::from_value(tx)?;
-
     let result = run_script(script_debug, tx_hash, index, args, None, None, Some(tx))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
     Ok(result.serialize(&SERIALIZER)?)
@@ -147,10 +173,67 @@ pub fn get_cells(
     limit: u32,
     after_cursor: Option<Vec<u8>>,
 ) -> Result<Pagination<Cell>, JsValue> {
-    let limit = Uint32::from(limit);
-    let cells = call_rpc::<Pagination<Cell>>("get_cells", (search_key, order, limit, after_cursor))
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-    Ok(cells)
+    let cache_key = (
+        search_key.clone(),
+        order.clone(),
+        limit,
+        after_cursor.clone(),
+    );
+    let cache_key_string = format!("{:?}", cache_key);
+
+    let cached_cells = GET_CELLS_CACHE.with(|cache| {
+        // Try direct lookup first. Might fail.
+        if let Some(cells) = cache.borrow().get(&cache_key_string) {
+            let cells_json = serde_json::to_string(cells).ok()?;
+            let cells_owned: Pagination<Cell> = serde_json::from_str(&cells_json).ok()?;
+            return Some(cells_owned);
+        }
+        
+        // Fall back to manual lookup if direct lookup fails
+        for (existing_key, cells) in cache.borrow().iter() {
+            if format!("{:?}", existing_key) == cache_key_string {
+                debug!("Found matching key based on string representation");
+                let cells_json = serde_json::to_string(cells).ok()?;
+                let cells_owned: Pagination<Cell> = serde_json::from_str(&cells_json).ok()?;
+                return Some(cells_owned);
+            }
+        }
+        
+        None
+    });
+    
+    if let Some(cells) = cached_cells {
+        debug!("Get Cells Cache hit in WASM!");
+        return Ok(cells);
+    };
+    debug!("Get Cells Cache missed in WASM, sending update request message to ssriRpcWorker!");
+
+    let message = BroadcastChannelMessagePacket {
+        sender_name: "ssriExecutorWasm".to_string(),
+        target_name: "ssriRpcWorker".to_string(),
+        message_label: "getCells".to_string(),
+        data_type_hint: "GetCellsArguments".to_string(),
+        data: serde_json::to_value(&GetCellsArguments {
+            search_key,
+            order,
+            limit: limit.into(),
+            after_cursor: after_cursor
+                .map_or_else(|| JsonBytes::default(), |v| JsonBytes::from_vec(v)),
+        })
+        .unwrap(),
+    };
+
+    CHANNEL.with(|v| {
+        if let Some(channel) = &*v.borrow() {
+            debug!("WASM posting message to get cells");
+            channel.post_message(&serde_wasm_bindgen::to_value(&message).unwrap())?;
+        }
+        Ok::<_, JsValue>(())
+    })?;
+
+    Err(JsValue::from_str(
+        "GetCells message sent, shall be available in next iteration!",
+    ))
 }
 
 fn run_script(
@@ -172,14 +255,19 @@ fn run_script(
     let script = script.map(Into::into);
     let cell = cell.map(Into::into);
     let tx = tx.map(|v| v.inner.into());
-    let description = format!(
-        "Script {tx_hash}:{index} with args {args:?} context\nscript: {script:?}\ncell: {cell:?}\ntx: {tx:?}"
-    );
 
     let args = args.into_iter().map(|v| v.hex.into()).collect();
     let res = execute_riscv_binary(script_debug, ssri_binary, args, script, cell, tx)
-        .map_err(|e| Error::Runtime(e.to_string()))?;
-    Ok(res)
+        .map_err(|e| Error::Runtime(e.to_string()));
+    match res {
+        Ok(output) => {
+            debug!("Got output successfully. Clearing caches.");
+            GET_TRANSACTION_CACHE.with(|v| v.borrow_mut().clear());
+            GET_CELLS_CACHE.with(|v| v.borrow_mut().clear());
+            Ok(output)
+        }
+        _ => Err(Error::Runtime("Script execution failed".to_string())),
+    }
 }
 
 pub fn get_cell(tx_hash: &H256, index: u32) -> Result<Option<(CellOutput, JsonBytes)>, JsValue> {
@@ -209,54 +297,40 @@ pub fn get_cell(tx_hash: &H256, index: u32) -> Result<Option<(CellOutput, JsonBy
 }
 
 pub fn get_transaction(tx_hash: &H256) -> Result<Option<TransactionWithStatusResponse>, JsValue> {
-    let tx = call_rpc::<TransactionWithStatusResponse>("get_transaction", [tx_hash])
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
-
-    Ok(Some(tx)) // Return the tx option
-}
-
-pub fn call_rpc<R: DeserializeOwned>(method: &str, params: impl Serialize) -> Result<R, Error> {
-    debug!("Calling RPC method: {}", method);
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-        "id": 0,
+    let cached_tx = GET_TRANSACTION_CACHE.with(|cache| {
+        if let Some(tx) = cache.borrow().get(tx_hash) {
+            // Convert to Option<TransactionWithStatusResponse> by deserializing from a serialized version
+            // This avoids cloning the non-cloneable type
+            let tx_json = serde_json::to_string(tx).ok()?;
+            let tx_owned: TransactionWithStatusResponse = serde_json::from_str(&tx_json).ok()?;
+            Some(tx_owned)
+        } else {
+            None
+        }
     });
 
-    let xhr = XmlHttpRequest::new()
-        .map_err(|_e| Error::Runtime("Failed to create XMLHttpRequest".to_string()))?;
+    if let Some(tx) = cached_tx {
+        debug!("Get Transaction Cache hit in WASM!");
+        return Ok(Some(tx));
+    };
+    debug!("Get Transaction Cache missed in WASM, sending update request message to ssriRpcWorker!");
 
-    xhr.open_with_async("POST", unsafe { RPC_URL }, false)
-        .map_err(|_e| Error::Runtime("Failed to open XMLHttpRequest".to_string()))?;
+    let message = BroadcastChannelMessagePacket {
+        sender_name: "ssriExecutorWasm".to_string(),
+        target_name: "ssriRpcWorker".to_string(),
+        message_label: "getTransaction".to_string(),
+        data_type_hint: "H256".to_string(),
+        data: serde_json::to_value(&tx_hash).unwrap(),
+    };
 
-    xhr.set_request_header("Content-Type", "application/json")
-        .map_err(|_e| Error::Runtime("Failed to set request header".to_string()))?;
+    CHANNEL.with(|v| {
+        if let Some(channel) = &*v.borrow() {
+            channel.post_message(&serde_wasm_bindgen::to_value(&message).unwrap())?;
+        }
+        Ok::<_, JsValue>(())
+    })?;
 
-    // Convert the request to a string
-    let request_body = serde_json::to_string(&request)
-        .map_err(|e| Error::Runtime(format!("Failed to serialize request: {}", e)))?;
-
-    debug!("Request body: {}", request_body);
-
-    // Send the request with the JSON body
-    xhr.send_with_opt_str(Some(&request_body))
-        .map_err(|_e| Error::Runtime("Failed to send request".to_string()))?;
-
-    // Wait for the response
-    let response_text = xhr
-        .response_text()
-        .map_err(|_e| Error::Runtime("Failed to get response text".to_string()))?
-        .ok_or_else(|| Error::Runtime("Empty response".to_string()))?;
-    // Parse the response
-    let response: serde_json::Value = serde_json::from_str(&response_text)
-        .map_err(|e| Error::Runtime(format!("Failed to parse response: {}", e)))?;
-    // Extract the result field
-    let result = response
-        .get("result")
-        .ok_or_else(|| Error::Runtime("No result field in response".to_string()))?;
-    debug!("Result: {}", result);
-    // Deserialize the result into the expected type
-    serde_json::from_value(result.clone())
-        .map_err(|e| Error::Runtime(format!("Failed to deserialize result: {}", e)))
+    Err(JsValue::from_str(
+        "Message sent, shall be available in next iteration!",
+    ))
 }

@@ -87,19 +87,22 @@ impl From<Bytes> for Hex {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct CellOutputWithData {
     pub cell_output: CellOutput,
     pub hex_data: Option<Hex>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct VmResult {
     pub content: Hex,
     pub cell_deps: Vec<OutPoint>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Pagination<T> {
     /// objects collection
     pub objects: Vec<T>,
@@ -108,7 +111,8 @@ pub struct Pagination<T> {
 }
 
 /// SearchKey represent indexer support params
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[derive(Deserialize, Serialize, JsonSchema, Eq, Hash, PartialEq, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchKey {
     /// Script
     pub script: Script,
@@ -125,8 +129,7 @@ pub struct SearchKey {
 }
 
 /// ScriptType `Lock` | `Type`
-#[derive(Deserialize, Serialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[derive(Deserialize, Serialize, JsonSchema, Eq, Hash, PartialEq, Clone, Debug)]
 pub enum ScriptType {
     /// Lock
     Lock,
@@ -134,8 +137,8 @@ pub enum ScriptType {
     Type,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Hash, JsonSchema)]
-#[serde(rename_all = "snake_case")]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub enum SearchMode {
     // search with prefix
     Prefix,
@@ -151,7 +154,8 @@ impl Default for SearchMode {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Clone, Debug, JsonSchema)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug, Eq, Hash, PartialEq, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchKeyFilter {
     pub script: Option<Script>,
     pub script_len_range: Option<[Uint64; 2]>,
@@ -162,18 +166,36 @@ pub struct SearchKeyFilter {
     pub block_range: Option<[BlockNumber; 2]>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "snake_case")]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum Order {
     Desc,
     Asc,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct Cell {
     pub output: CellOutput,
     pub output_data: Option<JsonBytes>,
     pub out_point: OutPoint,
-    pub block_number: BlockNumber,
-    pub tx_index: Uint32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BroadcastChannelMessagePacket {
+    pub sender_name: String,
+    pub target_name: String,
+    pub message_label: String,
+    pub data_type_hint: String,
+    pub data: serde_json::Value,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GetCellsArguments {
+    pub search_key: SearchKey,
+    pub order: Order,
+    pub limit: Uint32,
+    pub after_cursor: JsonBytes,
 }
