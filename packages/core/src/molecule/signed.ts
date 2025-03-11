@@ -1,4 +1,4 @@
-import { Bytes, bytesFrom, BytesLike } from "../bytes/index.js";
+import { bytesFrom } from "../bytes/index.js";
 import { Num, numFrom, NumLike} from "../num/index.js";
 import { Codec, option, vector } from "./codec.js";
 
@@ -6,24 +6,25 @@ import { Codec, option, vector } from "./codec.js";
  * Codec for encoding and decoding 8-bit signed integers.
  */
 export const Int8 = Codec.from<NumLike, number>({
+  byteLength: 1,
   /**
    * Encodes a number-like value into Bytes.
    * @param numLike - The number-like value to encode.
    * @returns Bytes containing the encoded value.
    */
   encode: (numLike) => {
-    const encoded = new Uint8Array([0]);
+    const encoded = new Uint8Array(1);
     new DataView(encoded.buffer).setInt8(0, Number(numLike));
     return encoded;
   },
   /**
    * Decodes Bytes into a number.
-   * @param bufferLike - The buffer-like input to decode.
+   * @param bytesLike - The bytes-like input to decode.
    * @returns The decoded 8-bit signed integer.
    */
-  decode: (bufferLike) => {
-    const buffer = fixedBytesFrom(bufferLike, 1);
-    return new DataView(buffer.buffer).getInt8(0);
+  decode: (bytesLike) => {
+    const bytes = bytesFrom(bytesLike);
+    return new DataView(bytes.buffer).getInt8(0);
   },
 });
 
@@ -52,18 +53,18 @@ function int16Number(littleEndian: boolean): Codec<NumLike, number> {
      * @returns Bytes containing the encoded value.
      */
     encode: (numLike) => {
-      const encoded = new Uint8Array([0, 0]);
+      const encoded = new Uint8Array(byteLength);
       new DataView(encoded.buffer).setInt16(0, Number(numLike), littleEndian);
       return encoded;
     },
     /**
      * Decodes Bytes into a number.
-     * @param bufferLike - The buffer-like input to decode.
+     * @param bytesLike - The bytes-like input to decode.
      * @returns The decoded 16-bit signed integer.
      */
-    decode: (bufferLike) => {
-      const buffer = fixedBytesFrom(bufferLike, byteLength);
-      return new DataView(buffer.buffer).getInt16(0, littleEndian);
+    decode: (bytesLike) => {
+      const bytes = bytesFrom(bytesLike);
+      return new DataView(bytes.buffer).getInt16(0, littleEndian);
     },
   });
 }
@@ -108,18 +109,18 @@ function int32Number(littleEndian: boolean): Codec<NumLike, number> {
      * @returns Bytes containing the encoded value.
      */
     encode: (numLike) => {
-      const encoded = new Uint8Array([0, 0, 0, 0]);
+      const encoded = new Uint8Array(byteLength);
       new DataView(encoded.buffer).setInt32(0, Number(numLike), littleEndian);
       return encoded;
     },
     /**
      * Decodes Bytes into a number.
-     * @param bufferLike - The buffer-like input to decode.
+     * @param bytesLike - The bytes-like input to decode.
      * @returns The decoded 32-bit signed integer.
      */
-    decode: (bufferLike) => {
-      const buffer = fixedBytesFrom(bufferLike, byteLength);
-      return new DataView(buffer.buffer).getInt32(0, littleEndian);
+    decode: (bytesLike) => {
+      const bytes = bytesFrom(bytesLike);
+      return new DataView(bytes.buffer).getInt32(0, littleEndian);
     },
   });
 }
@@ -164,7 +165,7 @@ function int64(littleEndian: boolean): Codec<NumLike, Num> {
      * @returns Bytes containing the encoded value.
      */
     encode: (numLike) => {
-      const encoded = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]);
+      const encoded = new Uint8Array(byteLength);
       new DataView(encoded.buffer).setBigInt64(
         0,
         numFrom(numLike),
@@ -174,12 +175,12 @@ function int64(littleEndian: boolean): Codec<NumLike, Num> {
     },
     /**
      * Decodes Bytes into a number.
-     * @param bufferLike - The buffer-like input to decode.
+     * @param bytesLike - The bytes-like input to decode.
      * @returns The decoded 64-bit signed integer.
      */
-    decode: (bufferLike) => {
-      const buffer = fixedBytesFrom(bufferLike, byteLength);
-      return new DataView(buffer.buffer).getBigInt64(0, littleEndian);
+    decode: (bytesLike) => {
+      const bytes = bytesFrom(bytesLike);
+      return new DataView(bytes.buffer).getBigInt64(0, littleEndian);
     },
   });
 }
@@ -208,23 +209,3 @@ export const Int64Opt = option(Int64);
  * Vector codec for arrays of 64-bit signed integers.
  */
 export const Int64Vec = vector(Int64);
-
-/**
- * Converts a buffer-like input to a fixed-length byte buffer.
- * @param bufferLike - The buffer-like input to convert.
- * @param byteLength - The expected byte length of the buffer.
- * @returns A fixed-length byte buffer.
- * @throws Error if the buffer size does not match the expected byte length.
- */
-function fixedBytesFrom(
-  bufferLike: BytesLike,
-  byteLength: number,
-): Bytes {
-  const buffer = bytesFrom(bufferLike);
-  if (buffer.byteLength != byteLength) {
-    throw new Error(
-      `int${String(byteLength)}: invalid buffer size, expected ${String(byteLength)}, but got ${String(buffer.byteLength)}`,
-    );
-  }
-  return buffer;
-}
