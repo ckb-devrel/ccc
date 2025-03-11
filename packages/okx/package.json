@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/okx",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for OKX",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
