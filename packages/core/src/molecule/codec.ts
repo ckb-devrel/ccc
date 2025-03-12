@@ -448,9 +448,9 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
 
   return Codec.from({
     byteLength: Object.values(codecLayout)
-    .map(({ byteLength }) =>
-      byteLength === undefined ? undefined : 4 + byteLength,
-    )
+      .map(({ byteLength }) =>
+        byteLength === undefined ? undefined : 4 + byteLength,
+      )
       .reduce((acc, byteLength) => {
         if (
           acc === undefined ||
