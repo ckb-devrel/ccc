@@ -445,22 +445,22 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T>, UnionDecoded<T>> {
   const keys = Object.keys(codecLayout);
+  const values = Object.values(codecLayout);
+  let byteLength = values[0]?.byteLength;
+  for (const { byteLength: l } of values.slice(1)) {
+    if (l === undefined || l !== byteLength) {
+      // byteLength is undefined if any of the codecs byteLength is undefined or different
+      byteLength = undefined;
+      break;
+    }
+  }
+  if (byteLength !== undefined) {
+    // Account for header size
+    byteLength += 4;
+  }
 
   return Codec.from({
-    byteLength: Object.values(codecLayout)
-      .map(({ byteLength }) =>
-        byteLength === undefined ? undefined : 4 + byteLength,
-      )
-      .reduce((acc, byteLength) => {
-        if (
-          acc === undefined ||
-          byteLength === undefined ||
-          acc !== byteLength
-        ) {
-          return undefined;
-        }
-        return acc;
-      }),
+    byteLength,
     encode({ type, value }) {
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
