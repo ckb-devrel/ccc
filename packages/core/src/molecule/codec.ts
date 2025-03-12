@@ -426,8 +426,9 @@ type UnionDecoded<
     }
   : never;
 
+
 /**
- * Union is a dynamic-size type.
+ * General union codec, if all items are of the same fixed size, it will create a fixed-size union codec, otherwise an usual dynamic-size union codec will be created.
  * Serializing a union has two steps:
  * - Serialize an item type id in bytes as a 32 bit unsigned integer in little-endian. The item type id is the index of the inner items, and it's starting at 0.
  * - Serialize the inner item.
@@ -444,8 +445,22 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T>, UnionDecoded<T>> {
   const keys = Object.keys(codecLayout);
+  const values = Object.values(codecLayout);
+  let byteLength = values[0]?.byteLength;
+  for (const { byteLength: l } of values.slice(1)) {
+    if (l === undefined || l !== byteLength) {
+      // byteLength is undefined if any of the codecs byteLength is undefined or different
+      byteLength = undefined;
+      break;
+    }
+  }
+  if (byteLength !== undefined) {
+    // Account for header size
+    byteLength += 4;
+  }
 
   return Codec.from({
+    byteLength,
     encode({ type, value }) {
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
