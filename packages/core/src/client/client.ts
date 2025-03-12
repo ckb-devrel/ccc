@@ -33,10 +33,10 @@ import {
   ClientTransactionResponse,
   ErrorClientMaxFeeRateExceeded,
   ErrorClientWaitTransactionTimeout,
-  KnownScript,
   OutputsValidator,
   ScriptInfo,
 } from "./clientTypes.js";
+import { KnownScript } from "./knownScript.js";
 
 function hasHeaderConfirmed(header: ClientBlockHeader): boolean {
   return numFrom(Date.now()) - header.timestamp >= CONFIRMED_BLOCK_TIME;
@@ -295,6 +295,7 @@ export abstract class Client {
 
   /**
    * Find cells by search key designed for collectable cells.
+   * The result also includes cached cells, the order param only works for cells fetched from RPC.
    *
    * @param keyLike - The search key.
    * @returns A async generator for yielding cells.
@@ -596,9 +597,9 @@ export abstract class Client {
     const tx = Transaction.from(transaction);
 
     const maxFeeRate = numFrom(options?.maxFeeRate ?? DEFAULT_MAX_FEE_RATE);
-    const fee = await tx.feeRate(this);
-    if (maxFeeRate > Zero && fee > maxFeeRate) {
-      throw new ErrorClientMaxFeeRateExceeded(maxFeeRate, fee);
+    const feeRate = await tx.getFeeRate(this);
+    if (maxFeeRate > Zero && feeRate > maxFeeRate) {
+      throw new ErrorClientMaxFeeRateExceeded(maxFeeRate, feeRate);
     }
 
     const txHash = await this.sendTransactionNoCache(tx, validator);
