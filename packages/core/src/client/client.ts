@@ -596,9 +596,9 @@ export abstract class Client {
     const tx = Transaction.from(transaction);
 
     const maxFeeRate = numFrom(options?.maxFeeRate ?? DEFAULT_MAX_FEE_RATE);
-    const fee = await tx.feeRate(this);
-    if (maxFeeRate > Zero && fee > maxFeeRate) {
-      throw new ErrorClientMaxFeeRateExceeded(maxFeeRate, fee);
+    const feeRate = await tx.getFeeRate(this);
+    if (maxFeeRate > Zero && feeRate > maxFeeRate) {
+      throw new ErrorClientMaxFeeRateExceeded(maxFeeRate, feeRate);
     }
 
     const txHash = await this.sendTransactionNoCache(tx, validator);

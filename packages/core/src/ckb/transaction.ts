@@ -1631,13 +1631,13 @@ export class Transaction extends mol.Entity.Base<
     return this.completeInputsAddOne(from, filter);
   }
 
-  async fee(client: Client): Promise<Num> {
+  async getFee(client: Client): Promise<Num> {
     return (await this.getInputsCapacity(client)) - this.getOutputsCapacity();
   }
 
-  async feeRate(client: Client): Promise<Num> {
+  async getFeeRate(client: Client): Promise<Num> {
     return (
-      ((await this.fee(client)) * numFrom(1000)) /
+      ((await this.getFee(client)) * numFrom(1000)) /
       numFrom(this.toBytes().length + 4)
     );
   }
@@ -1688,7 +1688,7 @@ export class Transaction extends mol.Entity.Base<
         // The initial fee is calculated based on prepared transaction
         leastFee = tx.estimateFee(feeRate);
       }
-      const fee = await tx.fee(from.client);
+      const fee = await tx.getFee(from.client);
       // The extra capacity paid the fee without a change
       if (fee === leastFee) {
         this.copy(tx);
@@ -1702,7 +1702,7 @@ export class Transaction extends mol.Entity.Base<
         continue;
       }
 
-      if ((await tx.fee(from.client)) !== leastFee) {
+      if ((await tx.getFee(from.client)) !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
