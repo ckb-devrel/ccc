@@ -295,6 +295,7 @@ export abstract class Client {
 
   /**
    * Find cells by search key designed for collectable cells.
+   * The result also includes cached cells, the order param only works for cells fetched from RPC.
    *
    * @param keyLike - The search key.
    * @returns A async generator for yielding cells.
