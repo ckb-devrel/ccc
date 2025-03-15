@@ -19,6 +19,7 @@
     "packages/nip07",
     "packages/eip6963",
     "packages/lumos-patches",
+    "packages/molecule"
   ],
   "entryPointStrategy": "packages",
   "githubPages": true,

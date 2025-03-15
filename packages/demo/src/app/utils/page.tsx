@@ -11,6 +11,7 @@ const TABS: [string, string, keyof typeof icons, string][] = [
   ["Hash", "/utils/Hash", "Barcode", "text-violet-500"],
   ["Mnemonic", "/utils/Mnemonic", "SquareAsterisk", "text-fuchsia-500"],
   ["Keystore", "/utils/Keystore", "Notebook", "text-rose-500"],
+  ["Molecule", "/utils/Molecule", "Hash", "text-emerald-500"],
 ];
 
 export default function Page() {
