@@ -1,0 +1,62 @@
+{
+  "name": "@ckb-ccc/molecule",
+  "version": "0.0.1",
+  "description": "Molecule parser for CKB",
+  "author": "Alive24 <xct24@live.com>",
+  "homepage": "https://github.com/ckb-devrel/ccc",
+  "license": "MIT",
+  "main": "./dist.commonjs/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist.commonjs/index.js"
+    },
+    "./barrel": {
+      "import": "./dist/barrel.js",
+      "default": "./dist.commonjs/barrel.js"
+    }
+  },
+  "private": false,
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ckb-devrel/ccc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ckb-devrel/ccc/issues"
+  },
+  "bin": {
+    "ccc-molecule-codegen": "cli.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "fmt": "prettier --write \"{src,tests,examples}/**/*.ts\" package.json",
+    "lint": "eslint ./src",
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && pnpm generate:grammar && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "build:types": "tsc --declaration --emitDeclarationOnly",
+    "build:js": "pnpm generate:grammar && babel --root-mode upward src --out-dir lib --extensions .ts -s && pnpm run build:old",
+    "build:old": "shx mkdir -p lib/grammar && shx cp -r src/grammar/*.js lib/grammar",
+    "clean": "rm -rf lib",
+    "generate:grammar": "peggy -o ./src/grammar/grammar.js ./src/grammar/grammar.peggy",
+    "generate:test-mol": "cd tests/codegen && node ../../lib/cli > generated.ts"
+  },
+  "dependencies": {
+    "@ckb-ccc/core": "workspace:*",
+    "glob": "^10.3.10",
+    "relative": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "copyfiles": "^2.4.1",
+    "js-yaml": "^4.1.0",
+    "jsbi": "^4.1.0",
+    "peggy": "^4.0.3",
+    "rimraf": "^5.0.5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
