@@ -154,11 +154,31 @@ export function numLeToBytes(val: NumLike, bytes?: number): Bytes {
  * ```
  */
 export function numBeToBytes(val: NumLike, bytes?: number): Bytes {
-  const rawBytes = bytesFrom(numFrom(val).toString(16));
+  let num = numFrom(val);
+  if (num < numFrom(0)) {
+    if (bytes == null) {
+      throw Error(
+        "negative number can not be serialized without knowing bytes length",
+      );
+    }
+
+    // 0x100............00 - abs(num)
+    //    | . bytes * 8 .|
+    // 2's complement for negative number
+    num = (numFrom(1) << (numFrom(8) * numFrom(bytes))) + num;
+    if (num < 0) {
+      throw Error("negative number underflow");
+    }
+  }
+
+  const rawBytes = bytesFrom(num.toString(16));
   if (bytes == null) {
     return rawBytes;
   }
 
+  if (rawBytes.length > bytes) {
+    throw Error("number overflow");
+  }
   return bytesConcat("00".repeat(bytes - rawBytes.length), rawBytes);
 }
 
