@@ -145,17 +145,22 @@ export async function transferSporeCluster(params: {
   id: ccc.HexLike;
   to: ccc.ScriptLike;
   tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, to, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
 
   // build cluster cell
-  const { cell: cluster, scriptInfo } = await assertCluster(signer.client, id);
+  const { cell: cluster, scriptInfo: clusterScriptInfo } = await assertCluster(
+    signer.client,
+    id,
+    scripts,
+  );
 
   tx.addInput(cluster);
   tx.addOutput(
@@ -167,10 +172,10 @@ export async function transferSporeCluster(params: {
   );
 
   // complete cellDeps
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  await tx.addCellDepInfos(signer.client, clusterScriptInfo.cellDeps);
 
   // generate cobuild action
-  const actions = scriptInfo.cobuild
+  const actions = clusterScriptInfo.cobuild
     ? [
         assembleTransferClusterAction(
           cluster.cellOutput,

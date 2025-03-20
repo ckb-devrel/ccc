@@ -164,17 +164,22 @@ export async function transferSpore(params: {
   id: ccc.HexLike;
   to: ccc.ScriptLike;
   tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, to, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
 
-  const { cell: sporeCell, scriptInfo } = await assertSpore(signer.client, id);
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  const { cell: sporeCell, scriptInfo: sporeScriptInfo } = await assertSpore(
+    signer.client,
+    id,
+    scripts,
+  );
+  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
   tx.addInput(sporeCell);
   tx.addOutput(
     {
@@ -184,7 +189,7 @@ export async function transferSpore(params: {
     sporeCell.outputData,
   );
 
-  const actions = scriptInfo.cobuild
+  const actions = sporeScriptInfo.cobuild
     ? [
         assembleTransferSporeAction(
           sporeCell.cellOutput,
@@ -213,21 +218,26 @@ export async function meltSpore(params: {
   signer: ccc.Signer;
   id: ccc.HexLike;
   tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, scriptInfoHash } = params;
+  const { signer, id, scripts, scriptInfoHash } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
 
   // build spore cell
-  const { cell: sporeCell, scriptInfo } = await assertSpore(signer.client, id);
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  const { cell: sporeCell, scriptInfo: sporeScriptInfo } = await assertSpore(
+    signer.client,
+    id,
+    scripts,
+  );
+  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
   tx.addInput(sporeCell);
 
-  const actions = scriptInfo.cobuild
+  const actions = sporeScriptInfo.cobuild
     ? [assembleMeltSporeAction(sporeCell.cellOutput, scriptInfoHash)]
     : [];
 
