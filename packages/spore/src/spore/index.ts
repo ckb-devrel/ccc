@@ -69,17 +69,17 @@ export async function assertSpore(
 /**
  * Create one Spore cell with the specified Spore data.
  *
- * @param signer who takes the responsibility to balance and sign the transaction
- * @param data specific format of data required by Spore protocol
- * @param to owner of new spore cell, signer if no provided
- * @param clusterMode how to process cluster cell **(if clusterId is not provided in SporeData, this parameter will be ignored)**
+ * @param params.signer who takes the responsibility to balance and sign the transaction
+ * @param params.data specific format of data required by Spore protocol
+ * @param params.to owner of new spore cell, signer if no provided
+ * @param params.clusterMode how to process cluster cell **(if clusterId is not provided in SporeData, this parameter will be ignored)**
  *   - undefined: error if the spore has a cluster but the clusterMode is not set
  *   - lockProxy: put a cell that uses the same lock from Cluster cell in both Inputs and Outputs
  *   - clusterCell: directly put Cluster cell in Inputs and Outputs
  *   - skip: don't handle the cluster logic
- * @param tx the transaction skeleton, if not provided, a new one will be created
- * @param scriptInfo the script info of Spore cell, if not provided, the default script info will be used
- * @param scriptInfoHash the script info hash used in cobuild
+ * @param params.tx the transaction skeleton, if not provided, a new one will be created
+ * @param params.scriptInfo the script info of Spore cell, if not provided, the default script info will be used
+ * @param params.scriptInfoHash the script info hash used in cobuild
  * @returns
  *  - **tx**: a new transaction that contains created Spore cells
  *  - **id**: the sporeId of created Spore cell
@@ -151,11 +151,11 @@ export async function createSpore(params: {
 /**
  * Transfer one Spore cell
  *
- * @param signer who takes the responsibility to balance and sign the transaction
- * @param id sporeId
- * @param to Spore's new owner
- * @param tx the transaction skeleton, if not provided, a new one will be created
- * @param scriptInfoHash the script info hash used in cobuild
+ * @param params.signer who takes the responsibility to balance and sign the transaction
+ * @param params.id sporeId
+ * @param params.to Spore's new owner
+ * @param params.tx the transaction skeleton, if not provided, a new one will be created
+ * @param params.scriptInfoHash the script info hash used in cobuild
  * @returns
  *  - **tx**: a new transaction that contains transferred Spore cells
  */
@@ -202,10 +202,10 @@ export async function transferSpore(params: {
 /**
  * Melt one Spore cell
  *
- * @param signer who takes the responsibility to balance and sign the transaction
- * @param id sporeId to be melted
- * @param tx the transaction skeleton, if not provided, a new one will be created
- * @param scriptInfoHash the script info hash used in cobuild
+ * @param params.signer who takes the responsibility to balance and sign the transaction
+ * @param params.id sporeId to be melted
+ * @param params.tx the transaction skeleton, if not provided, a new one will be created
+ * @param params.scriptInfoHash the script info hash used in cobuild
  * @returns
  *  - **tx**: a new transaction that contains melted Spore cell
  */
@@ -239,19 +239,13 @@ export async function meltSpore(params: {
 /**
  * Search on-chain spores under the signer's control, if cluster provided, filter spores belonging to this cluster
  *
- * @param signer the owner of spores
- * @param order the order in creation time of spores
- * @param clusterId the cluster that spores belong to. "" to find public spores
- * @param scriptInfos the deployed script infos of spores
+ * @param params.signer the owner of spores
+ * @param params.order the order in creation time of spores
+ * @param params.clusterId the cluster that spores belong to. "" to find public spores
+ * @param params.scriptInfos the deployed script infos of spores
  * @returns specified spore cells
  */
-export async function* findSporesBySigner({
-  signer,
-  clusterId,
-  scriptInfos,
-  limit,
-  order,
-}: {
+export async function* findSporesBySigner(params: {
   signer: ccc.Signer;
   order?: "asc" | "desc";
   limit?: number;
@@ -263,6 +257,7 @@ export async function* findSporesBySigner({
   sporeData: SporeDataView;
   scriptInfo: SporeScriptInfo;
 }> {
+  const { signer, clusterId, scriptInfos, limit, order } = params;
   for (const scriptInfo of scriptInfos ??
     Object.values(getSporeScriptInfos(signer.client))) {
     if (!scriptInfo) {
@@ -299,32 +294,28 @@ export async function* findSporesBySigner({
 /**
  * Search on-chain spores under the specified lock or not, if cluster provided, filter spores belonging to this cluster
  *
- * @param client the client to search spores
- * @param lock the lock of spores
- * @param clusterId the cluster that spores belong to. "" to find public spores
- * @param scriptInfos the deployed script infos of spores
+ * @param params.client the client to search spores
+ * @param params.lock the lock of spores
+ * @param params.clusterId the cluster that spores belong to. "" to find public spores
+ * @param params.scriptInfos the deployed script infos of spores
+ * @param params.limit the limit of spores to search
+ * @param params.order the order in creation time of spores
  * @returns specified spore cells
  */
-export async function* findSpores({
-  client,
-  lock,
-  clusterId,
-  scriptInfos,
-  limit,
-  order,
-}: {
+export async function* findSpores(params: {
   client: ccc.Client;
   lock?: ccc.ScriptLike;
-  order?: "asc" | "desc";
-  limit?: number;
   clusterId?: ccc.HexLike;
   scriptInfos?: SporeScriptInfoLike[];
+  limit?: number;
+  order?: "asc" | "desc";
 }): AsyncGenerator<{
   cell: ccc.Cell;
   spore: ccc.Cell;
   sporeData: SporeDataView;
   scriptInfo: SporeScriptInfo;
 }> {
+  const { client, lock, clusterId, scriptInfos, limit, order } = params;
   for (const scriptInfo of scriptInfos ??
     Object.values(getSporeScriptInfos(client))) {
     if (!scriptInfo) {

@@ -67,12 +67,12 @@ export async function assertCluster(
 /**
  * Create a new Cluster cell
  *
- * @param signer who takes the responsibility to balance and sign the transaction
- * @param data specific format of data required by Cluster protocol
- * @param to the owner of the Cluster cell, which will be replaced with signer if not provided
- * @param tx the transaction skeleton, if not provided, a new one will be created
- * @param scriptInfo the script info of new cluster, default spore version if undefined
- * @param scriptInfoHash the script info hash used in cobuild
+ * @param params.signer who takes the responsibility to balance and sign the transaction
+ * @param params.data specific format of data required by Cluster protocol
+ * @param params.to the owner of the Cluster cell, which will be replaced with signer if not provided
+ * @param params.tx the transaction skeleton, if not provided, a new one will be created
+ * @param params.scriptInfo the script info of new cluster, default spore version if undefined
+ * @param params.scriptInfoHash the script info hash used in cobuild
  * @returns
  *  - **tx**: a new transaction that contains created Cluster cell
  *  - **id**: the id of the created Cluster cell
@@ -132,11 +132,11 @@ export async function createSporeCluster(params: {
 /**
  * Transfer a Cluster cell
  *
- * @param signer who takes the responsibility to balance and sign the transaction
- * @param id the id of the Cluster cell to be transferred
- * @param to the new owner of the Cluster cell
- * @param tx the transaction skeleton, if not provided, a new one will be created
- * @param scriptInfoHash the script info hash used in cobuild
+ * @param params.signer who takes the responsibility to balance and sign the transaction
+ * @param params.id the id of the Cluster cell to be transferred
+ * @param params.to the new owner of the Cluster cell
+ * @param params.tx the transaction skeleton, if not provided, a new one will be created
+ * @param params.scriptInfoHash the script info hash used in cobuild
  * @returns
  *  - **tx**: a new transaction that contains transferred Cluster cell
  */
@@ -188,16 +188,11 @@ export async function transferSporeCluster(params: {
 /**
  * Search on-chain clusters under the signer's control
  *
- * @param signer the owner of clusters
- * @param order the order in creation time of clusters
- * @param scriptInfos the deployed script infos of clusters
+ * @param params.signer the owner of clusters
+ * @param params.order the order in creation time of clusters
+ * @param params.scriptInfos the deployed script infos of clusters
  */
-export async function* findSporeClustersBySigner({
-  signer,
-  order,
-  limit,
-  scriptInfos,
-}: {
+export async function* findSporeClustersBySigner(params: {
   signer: ccc.Signer;
   order?: "asc" | "desc";
   limit?: number;
@@ -208,6 +203,7 @@ export async function* findSporeClustersBySigner({
   clusterData: ClusterDataView;
   scriptInfo: SporeScriptInfo;
 }> {
+  const { signer, order, limit, scriptInfos } = params;
   for (const scriptInfo of scriptInfos ??
     Object.values(getClusterScriptInfos(signer.client))) {
     if (!scriptInfo) {
@@ -238,16 +234,10 @@ export async function* findSporeClustersBySigner({
 /**
  * Search on-chain clusters under the specified lock or not
  *
- * @param client the client to search clusters
- * @param lock the lock of clusters
+ * @param params.client the client to search clusters
+ * @param params.lock the lock of clusters
  */
-export async function* findSporeClusters({
-  client,
-  lock,
-  order,
-  limit,
-  scriptInfos,
-}: {
+export async function* findSporeClusters(params: {
   client: ccc.Client;
   lock?: ccc.ScriptLike;
   order?: "asc" | "desc";
@@ -259,6 +249,7 @@ export async function* findSporeClusters({
   clusterData: ClusterDataView;
   scriptInfo: SporeScriptInfo;
 }> {
+  const { client, lock, order, limit, scriptInfos } = params;
   for (const scriptInfo of scriptInfos ??
     Object.values(getClusterScriptInfos(client))) {
     if (!scriptInfo) {
