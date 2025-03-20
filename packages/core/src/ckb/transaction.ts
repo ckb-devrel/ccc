@@ -526,6 +526,21 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     );
   }
 
+  async getCell(client: Client): Promise<{
+    cellOutput: CellOutput;
+    outputData: Hex;
+  }> {
+    await this.completeExtraInfos(client);
+    if (!this.cellOutput || !this.outputData) {
+      throw new Error("Unable to complete input");
+    }
+
+    return {
+      cellOutput: this.cellOutput,
+      outputData: this.outputData,
+    };
+  }
+
   /**
    * Complete extra infos in the input. Including
    * - Previous cell output
@@ -575,26 +590,22 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
    * ```
    */
   async getDaoProfit(client: Client): Promise<Num> {
-    await this.completeExtraInfos(client);
-    if (!this.cellOutput || !this.outputData) {
-      throw new Error("Unable to complete input");
-    }
+    const { cellOutput, outputData } = await this.getCell(client);
+    const { type } = cellOutput;
 
     const daoType = await client.getKnownScript(KnownScript.NervosDao);
-    const type = this.cellOutput.type;
     if (
       !type ||
       type.codeHash !== daoType.codeHash ||
       type.hashType !== daoType.hashType ||
-      !this.outputData ||
-      numFrom(this.outputData) === Zero
+      numFrom(outputData) === Zero
     ) {
       // Not a withdrawal phase 2 cell
       return Zero;
     }
 
     const [depositHeader, withdrawRes] = await Promise.all([
-      client.getHeaderByNumber(numFromBytes(this.outputData)),
+      client.getHeaderByNumber(numFromBytes(outputData)),
       client.getCellWithHeader(this.previousOutput),
     ]);
     if (!withdrawRes?.header || !depositHeader) {
@@ -605,9 +616,9 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     const withdrawHeader = withdrawRes.header;
 
     const occupiedSize = fixedPointFrom(
-      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
+      cellOutput.occupiedSize + bytesFrom(outputData).length,
     );
-    const profitableSize = this.cellOutput.capacity - occupiedSize;
+    const profitableSize = cellOutput.capacity - occupiedSize;
 
     return (
       (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
@@ -1081,13 +1092,9 @@ export class Transaction extends mol.Entity.Base<
     for (let i = 0; i < this.witnesses.length; i += 1) {
       const input = this.inputs[i];
       if (input) {
-        await input.completeExtraInfos(client);
+        const { cellOutput } = await input.getCell(client);
 
-        if (!input.cellOutput) {
-          throw new Error("Unable to complete input");
-        }
-
-        if (!script.eq(input.cellOutput.lock)) {
+        if (!script.eq(cellOutput.lock)) {
           continue;
         }
 
@@ -1132,15 +1139,11 @@ export class Transaction extends mol.Entity.Base<
     const script = Script.from({ ...scriptIdLike, args: "0x" });
 
     for (let i = 0; i < this.inputs.length; i += 1) {
-      const input = this.inputs[i];
-      await input.completeExtraInfos(client);
-      if (!input.cellOutput) {
-        throw new Error("Unable to complete input");
-      }
+      const { cellOutput } = await this.inputs[i].getCell(client);
 
       if (
-        script.codeHash === input.cellOutput.lock.codeHash &&
-        script.hashType === input.cellOutput.lock.hashType
+        script.codeHash === cellOutput.lock.codeHash &&
+        script.hashType === cellOutput.lock.hashType
       ) {
         return i;
       }
@@ -1166,13 +1169,9 @@ export class Transaction extends mol.Entity.Base<
     const script = Script.from(scriptLike);
 
     for (let i = 0; i < this.inputs.length; i += 1) {
-      const input = this.inputs[i];
-      await input.completeExtraInfos(client);
-      if (!input.cellOutput) {
-        throw new Error("Unable to complete input");
-      }
+      const { cellOutput } = await this.inputs[i].getCell(client);
 
-      if (script.eq(input.cellOutput.lock)) {
+      if (script.eq(cellOutput.lock)) {
         return i;
       }
     }
@@ -1197,13 +1196,9 @@ export class Transaction extends mol.Entity.Base<
     const script = Script.from(scriptLike);
 
     for (let i = this.inputs.length - 1; i >= 0; i -= 1) {
-      const input = this.inputs[i];
-      await input.completeExtraInfos(client);
-      if (!input.cellOutput) {
-        throw new Error("Unable to complete input");
-      }
+      const { cellOutput } = await this.inputs[i].getCell(client);
 
-      if (script.eq(input.cellOutput.lock)) {
+      if (script.eq(cellOutput.lock)) {
         return i;
       }
     }
@@ -1476,14 +1471,7 @@ export class Transaction extends mol.Entity.Base<
   async getInputsCapacityExtra(client: Client): Promise<Num> {
     return reduceAsync(
       this.inputs,
-      async (acc, input) => {
-        const extraCapacity = await input.getExtraCapacity(client);
-        if (extraCapacity === undefined) {
-          throw new Error("Unable to complete input");
-        }
-
-        return acc + extraCapacity;
-      },
+      async (acc, input) => acc + (await input.getExtraCapacity(client)),
       numFrom(0),
     );
   }
@@ -1494,12 +1482,11 @@ export class Transaction extends mol.Entity.Base<
       this.inputs,
       async (acc, input) => {
         const extraCapacity = await input.getExtraCapacity(client);
-        await input.completeExtraInfos(client);
-        if (!input.cellOutput) {
-          throw new Error("Unable to complete input");
-        }
+        const {
+          cellOutput: { capacity },
+        } = await input.getCell(client);
 
-        return acc + input.cellOutput.capacity + extraCapacity;
+        return acc + capacity + extraCapacity;
       },
       numFrom(0),
     );
@@ -1516,15 +1503,12 @@ export class Transaction extends mol.Entity.Base<
     return reduceAsync(
       this.inputs,
       async (acc, input) => {
-        await input.completeExtraInfos(client);
-        if (!input.cellOutput || !input.outputData) {
-          throw new Error("Unable to complete input");
-        }
-        if (!input.cellOutput.type?.eq(type)) {
+        const { cellOutput, outputData } = await input.getCell(client);
+        if (!cellOutput.type?.eq(type)) {
           return;
         }
 
-        return acc + udtBalanceFrom(input.outputData);
+        return acc + udtBalanceFrom(outputData);
       },
       numFrom(0),
     );

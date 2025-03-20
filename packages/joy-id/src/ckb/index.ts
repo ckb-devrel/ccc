@@ -259,12 +259,9 @@ export class CkbSigner extends ccc.Signer {
     const witnessIndexes = await ccc.reduceAsync(
       tx.inputs,
       async (acc, input, i) => {
-        await input.completeExtraInfos(this.client);
-        if (!input.cellOutput) {
-          throw new Error("Unable to complete input");
-        }
+        const { cellOutput } = await input.getCell(this.client);
 
-        if (input.cellOutput.lock.eq(script)) {
+        if (cellOutput.lock.eq(script)) {
           acc.push(i);
         }
       },

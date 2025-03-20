@@ -104,12 +104,10 @@ export class SignerCkbPublicKey extends Signer {
 
     const scripts: { script: Script; cellDeps: CellDepInfo[] }[] = [];
     for (const input of tx.inputs) {
-      await input.completeExtraInfos(this.client);
-      if (!input.cellOutput) {
-        throw new Error("Unable to complete input");
-      }
+      const {
+        cellOutput: { lock },
+      } = await input.getCell(this.client);
 
-      const { lock } = input.cellOutput;
       if (scripts.some(({ script }) => script.eq(lock))) {
         continue;
       }
