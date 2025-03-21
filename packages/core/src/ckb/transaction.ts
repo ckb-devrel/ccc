@@ -1,6 +1,11 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
-import type { CellDepInfoLike, Client } from "../client/index.js";
+import {
+  ClientBlockHeader,
+  type CellDepInfoLike,
+  type Client,
+  type ClientBlockHeaderLike,
+} from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
 import {
   Zero,
@@ -276,6 +281,127 @@ export class Cell {
     );
   }
 
+  get capacityFree() {
+    const occupiedSize = fixedPointFrom(
+      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
+    );
+    return this.cellOutput.capacity - occupiedSize;
+  }
+
+  /**
+   * Occupied bytes of a cell on chain
+   * It's CellOutput.occupiedSize + bytesFrom(outputData).byteLength
+   */
+  get occupiedSize() {
+    return this.cellOutput.occupiedSize + bytesFrom(this.outputData).byteLength;
+  }
+
+  /**
+   * Gets confirmed Nervos DAO profit of a Cell
+   * It returns non-zero value only when the cell is in withdrawal phase 2
+   * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+   *
+   * @param client - A client for searching DAO related headers
+   * @returns Profit
+   *
+   * @example
+   * ```typescript
+   * const profit = await cell.getDaoProfit(client);
+   * ```
+   */
+  async getDaoProfit(client: Client): Promise<Num> {
+    if (!(await this.isNervosDao(client, "withdrew"))) {
+      return Zero;
+    }
+
+    const { depositHeader, withdrawHeader } =
+      await this.getNervosDaoInfo(client);
+    if (!withdrawHeader || !depositHeader) {
+      throw new Error(
+        `Unable to get headers of a Nervos DAO cell ${this.outPoint.txHash}:${this.outPoint.index.toString()}`,
+      );
+    }
+
+    return calcDaoProfit(this.capacityFree, depositHeader, withdrawHeader);
+  }
+
+  async isNervosDao(
+    client: Client,
+    phase?: "deposited" | "withdrew",
+  ): Promise<boolean> {
+    const { type } = this.cellOutput;
+
+    const daoType = await client.getKnownScript(KnownScript.NervosDao);
+    if (
+      !type ||
+      type.codeHash !== daoType.codeHash ||
+      type.hashType !== daoType.hashType
+    ) {
+      // Non Nervos DAO cell
+      return false;
+    }
+
+    const hasWithdrew = numFrom(this.outputData) !== Zero;
+    return (
+      !phase ||
+      (phase === "deposited" && !hasWithdrew) ||
+      (phase === "withdrew" && hasWithdrew)
+    );
+  }
+
+  async getNervosDaoInfo(client: Client): Promise<
+    // Non Nervos DAO cell
+    | {
+        depositHeader?: undefined;
+        withdrawHeader?: undefined;
+      }
+    // Deposited Nervos DAO cell
+    | {
+        depositHeader: ClientBlockHeader;
+        withdrawHeader?: undefined;
+      }
+    // Withdrew Nervos DAO cell
+    | {
+        depositHeader: ClientBlockHeader;
+        withdrawHeader: ClientBlockHeader;
+      }
+  > {
+    if (!(await this.isNervosDao(client))) {
+      // Non Nervos DAO cell
+      return {};
+    }
+
+    if (numFrom(this.outputData) === Zero) {
+      // Deposited Nervos DAO cell
+      const depositRes = await client.getCellWithHeader(this.outPoint);
+      if (!depositRes?.header) {
+        throw new Error(
+          `Unable to get header of a Nervos DAO deposited cell ${this.outPoint.txHash}:${this.outPoint.index.toString()}`,
+        );
+      }
+
+      return {
+        depositHeader: depositRes.header,
+      };
+    }
+
+    // Withdrew Nervos DAO cell
+    const [depositHeader, withdrawRes] = await Promise.all([
+      client.getHeaderByNumber(numFromBytes(this.outputData)),
+      client.getCellWithHeader(this.outPoint),
+    ]);
+    if (!withdrawRes?.header || !depositHeader) {
+      throw new Error(
+        `Unable to get headers of a Nervos DAO withdrew cell ${this.outPoint.txHash}:${this.outPoint.index.toString()}`,
+      );
+    }
+
+    return {
+      depositHeader,
+      withdrawHeader: withdrawRes.header,
+    };
+  }
+
   /**
    * Clone a Cell
    *
@@ -526,19 +652,17 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     );
   }
 
-  async getCell(client: Client): Promise<{
-    cellOutput: CellOutput;
-    outputData: Hex;
-  }> {
+  async getCell(client: Client): Promise<Cell> {
     await this.completeExtraInfos(client);
     if (!this.cellOutput || !this.outputData) {
       throw new Error("Unable to complete input");
     }
 
-    return {
+    return Cell.from({
+      outPoint: this.previousOutput,
       cellOutput: this.cellOutput,
       outputData: this.outputData,
-    };
+    });
   }
 
   /**
@@ -573,57 +697,7 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
    * And it can also be miners' income. (But this is not implemented yet)
    */
   async getExtraCapacity(client: Client): Promise<Num> {
-    return this.getDaoProfit(client);
-  }
-
-  /**
-   * Gets confirmed Nervos DAO profit of a CellInput
-   * It returns non-zero value only when the cell is in withdrawal phase 2
-   * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
-   *
-   * @param client - A client for searching DAO related headers
-   * @returns Profit
-   *
-   * @example
-   * ```typescript
-   * const profit = await input.getDaoProfit(client);
-   * ```
-   */
-  async getDaoProfit(client: Client): Promise<Num> {
-    const { cellOutput, outputData } = await this.getCell(client);
-    const { type } = cellOutput;
-
-    const daoType = await client.getKnownScript(KnownScript.NervosDao);
-    if (
-      !type ||
-      type.codeHash !== daoType.codeHash ||
-      type.hashType !== daoType.hashType ||
-      numFrom(outputData) === Zero
-    ) {
-      // Not a withdrawal phase 2 cell
-      return Zero;
-    }
-
-    const [depositHeader, withdrawRes] = await Promise.all([
-      client.getHeaderByNumber(numFromBytes(outputData)),
-      client.getCellWithHeader(this.previousOutput),
-    ]);
-    if (!withdrawRes?.header || !depositHeader) {
-      throw new Error(
-        `Unable to get headers of a Nervos DAO input ${this.previousOutput.txHash}:${this.previousOutput.index.toString()}`,
-      );
-    }
-    const withdrawHeader = withdrawRes.header;
-
-    const occupiedSize = fixedPointFrom(
-      cellOutput.occupiedSize + bytesFrom(outputData).length,
-    );
-    const profitableSize = cellOutput.capacity - occupiedSize;
-
-    return (
-      (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
-      profitableSize
-    );
+    return (await this.getCell(client)).getDaoProfit(client);
   }
 
   clone(): CellInput {
@@ -1478,17 +1552,18 @@ export class Transaction extends mol.Entity.Base<
 
   // This also includes extra amount
   async getInputsCapacity(client: Client): Promise<Num> {
-    return reduceAsync(
-      this.inputs,
-      async (acc, input) => {
-        const extraCapacity = await input.getExtraCapacity(client);
-        const {
-          cellOutput: { capacity },
-        } = await input.getCell(client);
+    return (
+      (await reduceAsync(
+        this.inputs,
+        async (acc, input) => {
+          const {
+            cellOutput: { capacity },
+          } = await input.getCell(client);
 
-        return acc + capacity + extraCapacity;
-      },
-      numFrom(0),
+          return acc + capacity;
+        },
+        numFrom(0),
+      )) + (await this.getInputsCapacityExtra(client))
     );
   }
 
@@ -1848,4 +1923,55 @@ export class Transaction extends mol.Entity.Base<
       filter,
     );
   }
+}
+
+/**
+ * Calculate Nervos DAO profit between two blocks
+ */
+export function calcDaoProfit(
+  profitableCapacity: NumLike,
+  depositHeaderLike: ClientBlockHeaderLike,
+  withdrawHeaderLike: ClientBlockHeaderLike,
+): Num {
+  const depositHeader = ClientBlockHeader.from(depositHeaderLike);
+  const withdrawHeader = ClientBlockHeader.from(withdrawHeaderLike);
+
+  const profitableSize = numFrom(profitableCapacity);
+
+  return (
+    (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
+    profitableSize
+  );
+}
+
+/**
+ * Calculate claimable epoch for Nervos DAO withdrawal
+ * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+ */
+export function calcDaoClaimEpoch(
+  depositHeader: ClientBlockHeaderLike,
+  withdrawHeader: ClientBlockHeaderLike,
+): Epoch {
+  const depositEpoch = ClientBlockHeader.from(depositHeader).epoch;
+  const withdrawEpoch = ClientBlockHeader.from(withdrawHeader).epoch;
+  const intDiff = withdrawEpoch[0] - depositEpoch[0];
+  // deposit[1]    withdraw[1]
+  // ---------- <= -----------
+  // deposit[2]    withdraw[2]
+  if (
+    intDiff % numFrom(180) !== numFrom(0) ||
+    depositEpoch[1] * withdrawEpoch[2] <= depositEpoch[2] * withdrawEpoch[1]
+  ) {
+    return [
+      depositEpoch[0] + (intDiff / numFrom(180) + numFrom(1)) * numFrom(180),
+      depositEpoch[1],
+      depositEpoch[2],
+    ];
+  }
+
+  return [
+    depositEpoch[0] + (intDiff / numFrom(180)) * numFrom(180),
+    depositEpoch[1],
+    depositEpoch[2],
+  ];
 }

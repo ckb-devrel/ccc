@@ -17,51 +17,6 @@ function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
   );
 }
 
-function getProfit(
-  dao: ccc.Cell,
-  depositHeader: ccc.ClientBlockHeader,
-  withdrawHeader: ccc.ClientBlockHeader,
-): ccc.Num {
-  const occupiedSize = ccc.fixedPointFrom(
-    dao.cellOutput.occupiedSize + ccc.bytesFrom(dao.outputData).length,
-  );
-  const profitableSize = dao.cellOutput.capacity - occupiedSize;
-
-  return (
-    (profitableSize * withdrawHeader.dao.ar) / depositHeader.dao.ar -
-    profitableSize
-  );
-}
-
-function getClaimEpoch(
-  depositHeader: ccc.ClientBlockHeader,
-  withdrawHeader: ccc.ClientBlockHeader,
-): ccc.Epoch {
-  const depositEpoch = depositHeader.epoch;
-  const withdrawEpoch = withdrawHeader.epoch;
-  const intDiff = withdrawEpoch[0] - depositEpoch[0];
-  // deposit[1]    withdraw[1]
-  // ---------- <= -----------
-  // deposit[2]    withdraw[2]
-  if (
-    intDiff % ccc.numFrom(180) !== ccc.numFrom(0) ||
-    depositEpoch[1] * withdrawEpoch[2] <= depositEpoch[2] * withdrawEpoch[1]
-  ) {
-    return [
-      depositEpoch[0] +
-        (intDiff / ccc.numFrom(180) + ccc.numFrom(1)) * ccc.numFrom(180),
-      depositEpoch[1],
-      depositEpoch[2],
-    ];
-  }
-
-  return [
-    depositEpoch[0] + (intDiff / ccc.numFrom(180)) * ccc.numFrom(180),
-    depositEpoch[1],
-    depositEpoch[2],
-  ];
-}
-
 function DaoButton({ dao }: { dao: ccc.Cell }) {
   const { signer, createSender } = useApp();
   const { log, error } = createSender("Transfer");
@@ -70,15 +25,9 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
 
   const [tip, setTip] = useState<ccc.ClientBlockHeader | undefined>();
   const [infos, setInfos] = useState<
-    | [
-        ccc.Num,
-        ccc.ClientTransactionResponse,
-        ccc.ClientBlockHeader,
-        [undefined | ccc.ClientTransactionResponse, ccc.ClientBlockHeader],
-      ]
-    | undefined
+    [ccc.Num, ccc.ClientBlockHeader, ccc.ClientBlockHeader] | undefined
+    // Profit, Deposit Header, Withdraw Header / Tip Header
   >();
-
   const isNew = useMemo(() => dao.outputData === "0x0000000000000000", [dao]);
   useEffect(() => {
     if (!signer) {
@@ -89,49 +38,25 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
       const tipHeader = await signer.client.getTipHeader();
       setTip(tipHeader);
 
-      const previousTxRes = await signer.client.getTransactionWithHeader(
-        dao.outPoint.txHash,
+      const { depositHeader, withdrawHeader } = await dao.getNervosDaoInfo(
+        signer.client,
       );
-      if (!previousTxRes || !previousTxRes.header) {
-        return;
-      }
-      const { transaction: previousTx, header: previousHeader } = previousTxRes;
 
-      const claimInfo = await (async (): Promise<typeof infos> => {
-        if (isNew) {
-          return;
-        }
-
-        const depositTxHash =
-          previousTx.transaction.inputs[Number(dao.outPoint.index)]
-            .previousOutput.txHash;
-        const depositTxRes =
-          await signer.client.getTransactionWithHeader(depositTxHash);
-        if (!depositTxRes || !depositTxRes.header) {
-          return;
-        }
-        const { transaction: depositTx, header: depositHeader } = depositTxRes;
-
-        return [
-          getProfit(dao, depositHeader, previousHeader),
-          depositTx,
-          depositHeader,
-          [previousTx, previousHeader],
-        ];
-      })();
-
-      if (claimInfo) {
-        setInfos(claimInfo);
-      } else {
-        setInfos([
-          getProfit(dao, previousHeader, tipHeader),
-          previousTx,
-          previousHeader,
-          [undefined, tipHeader],
-        ]);
-      }
+      setInfos(
+        depositHeader
+          ? [
+              ccc.calcDaoProfit(
+                dao.capacityFree,
+                depositHeader,
+                withdrawHeader ?? tipHeader,
+              ),
+              depositHeader,
+              withdrawHeader ?? tipHeader,
+            ]
+          : undefined,
+      );
     })();
-  }, [dao, signer, isNew]);
+  }, [dao, signer]);
 
   return (
     <BigButton
@@ -144,23 +69,15 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
         }
 
         (async () => {
-          const [_, depositTx, depositHeader] = infos;
-          if (!depositTx.blockHash || !depositTx.blockNumber) {
-            error(
-              "Unexpected empty block info for",
-              explorerTransaction(dao.outPoint.txHash),
-            );
-            return;
-          }
-          const { blockHash, blockNumber } = depositTx;
+          const [_, depositHeader, withdrawHeader] = infos;
 
           let tx;
           if (isNew) {
             tx = ccc.Transaction.from({
-              headerDeps: [blockHash],
+              headerDeps: [depositHeader.hash],
               inputs: [{ previousOutput: dao.outPoint }],
               outputs: [dao.cellOutput],
-              outputsData: [ccc.numLeToBytes(blockNumber, 8)],
+              outputsData: [ccc.numLeToBytes(depositHeader.number, 8)],
             });
 
             await tx.addCellDepsOfKnownScripts(
@@ -171,22 +88,8 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
             await tx.completeInputsByCapacity(signer);
             await tx.completeFeeBy(signer);
           } else {
-            if (!infos[3]) {
-              error("Unexpected no found deposit info");
-              return;
-            }
-            const [withdrawTx, withdrawHeader] = infos[3];
-            if (!withdrawTx?.blockHash) {
-              error("Unexpected empty redeem tx block info");
-              return;
-            }
-            if (!depositTx.blockHash) {
-              error("Unexpected empty deposit tx block info");
-              return;
-            }
-
             tx = ccc.Transaction.from({
-              headerDeps: [withdrawTx.blockHash, blockHash],
+              headerDeps: [withdrawHeader.hash, depositHeader.hash],
               inputs: [
                 {
                   previousOutput: dao.outPoint,
@@ -194,7 +97,7 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
                     relative: "absolute",
                     metric: "epoch",
                     value: ccc.epochToHex(
-                      getClaimEpoch(depositHeader, withdrawHeader),
+                      ccc.calcDaoClaimEpoch(depositHeader, withdrawHeader),
                     ),
                   },
                 },
@@ -249,7 +152,7 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
         {infos && tip ? (
           <div className="flex whitespace-nowrap">
             {ccc.fixedPointToString(
-              ((parseEpoch(getClaimEpoch(infos[2], infos[3][1])) -
+              ((parseEpoch(ccc.calcDaoClaimEpoch(infos[1], infos[2])) -
                 parseEpoch(tip.epoch)) /
                 ccc.fixedPointFrom("0.001")) *
                 ccc.fixedPointFrom("0.001"),
@@ -263,7 +166,7 @@ function DaoButton({ dao }: { dao: ccc.Cell }) {
   );
 }
 
-export default function Transfer() {
+export default function NervosDao() {
   const { signer, createSender } = useApp();
   const { log, error } = createSender("Transfer");
 
