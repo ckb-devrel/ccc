@@ -1278,6 +1278,10 @@ export class Transaction extends mol.Entity.Base<
    * ```
    */
   addInput(inputLike: CellInputLike): number {
+    if (this.witnesses.length > this.inputs.length) {
+      this.witnesses.splice(this.inputs.length, 0, "0x");
+    }
+
     return this.inputs.push(CellInput.from(inputLike));
   }
 
@@ -1367,6 +1371,21 @@ export class Transaction extends mol.Entity.Base<
    * ```
    */
   setWitnessArgsAt(index: number, witness: WitnessArgs): void {
+    this.setWitnessAt(index, witness.toBytes());
+  }
+
+  /**
+   * Set witness at index
+   *
+   * @param index - The index of the witness.
+   * @param witness - The witness to set.
+   *
+   * @example
+   * ```typescript
+   * await tx.setWitnessAt(0, witness);
+   * ```
+   */
+  setWitnessAt(index: number, witness: HexLike): void {
     if (this.witnesses.length < index) {
       this.witnesses.push(
         ...Array.from(
@@ -1376,7 +1395,7 @@ export class Transaction extends mol.Entity.Base<
       );
     }
 
-    this.witnesses[index] = hexFrom(witness.toBytes());
+    this.witnesses[index] = hexFrom(witness);
   }
 
   /**
@@ -1596,25 +1615,18 @@ export class Transaction extends mol.Entity.Base<
     from: Signer,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    for await (const cell of from.findCells(
+    const { addedCount, accumulated } = await this.completeInputs(
+      from,
       filter ?? {
         scriptLenRange: [0, 1],
         outputDataLenRange: [0, 1],
       },
+      () => undefined,
       true,
-      undefined,
-      1,
-    )) {
-      if (
-        this.inputs.some(({ previousOutput }) =>
-          previousOutput.eq(cell.outPoint),
-        )
-      ) {
-        continue;
-      }
+    );
 
-      this.addInput(cell);
-      return 1;
+    if (accumulated === undefined) {
+      return addedCount;
     }
 
     throw new Error(`Insufficient CKB, need at least one new cell`);

@@ -204,7 +204,8 @@ export function injectCobuild(
   tx: ccc.Transaction,
   actions: mol.EncodableType<typeof ActionVec>,
 ): void {
-  const witnessLayout = ccc.hexFrom(
+  tx.setWitnessAt(
+    Math.max(tx.witnesses.length, tx.inputs.length),
     WitnessLayout.encode({
       type: "SighashAll",
       value: {
@@ -215,5 +216,4 @@ export function injectCobuild(
       },
     }),
   );
-  tx.witnesses.push(ccc.hexFrom(witnessLayout));
 }
