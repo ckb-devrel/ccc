@@ -5,6 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import { shikiToMonaco } from "@shikijs/monaco";
 import { createHighlighter } from "shiki";
 
+const ReactSource = require.context(
+  "!!raw-loader!../../../node_modules/@types/react",
+  true,
+  /^\.\/(.*\.d\.ts|package.json)$/,
+);
+
 const CCCSource = require.context(
   "!!raw-loader!../../../../",
   true,
@@ -78,7 +84,7 @@ export function Editor({
     <div className="relative h-full w-full">
       <MonacoEditor
         className="h-[60vh] w-full lg:h-auto"
-        defaultLanguage="tsx"
+        defaultLanguage="typescript"
         defaultPath="/index.tsx"
         options={{
           padding: { top: 20 },
@@ -105,6 +111,13 @@ export function Editor({
             ],
           });
 
+          ReactSource.keys().forEach((key: string) => {
+            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+              ReactSource(key).default,
+              "file:///node_modules/@types/react/" + key.replace("./", ""),
+            );
+          });
+
           CCCSource.keys().forEach((key: string) => {
             monaco.languages.typescript.typescriptDefaults.addExtraLib(
               CCCSource(key).default,
@@ -116,10 +129,10 @@ export function Editor({
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
 
-          monaco.languages.register({ id: "tsx" });
+          monaco.languages.register({ id: "typescript" });
           createHighlighter({
             themes: ["github-dark"],
-            langs: ["tsx"],
+            langs: ["typescript"],
           }).then((highlighter) => {
             shikiToMonaco(highlighter, monaco);
           });
