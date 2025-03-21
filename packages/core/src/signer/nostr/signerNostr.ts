@@ -50,7 +50,9 @@ export abstract class SignerNostr extends Signer {
    *
    * @returns A promise that resolves to the signed event.
    */
-  abstract signNostrEvent(event: NostrEvent): Promise<Required<NostrEvent>>;
+  async signNostrEvent(_event: NostrEvent): Promise<Required<NostrEvent>> {
+    throw Error("SignerNostr.signNostrEvent not implemented");
+  }
 
   /**
    * Sign a message.
