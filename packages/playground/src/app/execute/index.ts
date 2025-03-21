@@ -1,6 +1,7 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import * as cccLib from "@ckb-ccc/ccc";
 import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
+import * as React from "react";
 import { ReactNode } from "react";
 import ts from "typescript";
 import { vlqDecode } from "./vlq";
@@ -48,7 +49,7 @@ export async function execute(
   log: (level: "error" | "info", title: string, msgs: ReactNode[]) => void,
 ) {
   const compiled = ts.transpileModule(source, {
-    compilerOptions: { sourceMap: true },
+    compilerOptions: { sourceMap: true, jsx: ts.JsxEmit.React },
   });
 
   const exports = {};
@@ -104,34 +105,43 @@ export async function execute(
     await Function(
       "exports",
       "require",
+      "React",
       "console",
       `return (async () => {\n${compiled.outputText}\n})();`,
-    )(exports, require, {
+    )(exports, require, React, {
       log: (...msgs: unknown[]) =>
         log(
           "info",
           "",
-          msgs.map((m) =>
-            JSON.stringify(m, (_, value) => {
+          msgs.map((m) => {
+            if (React.isValidElement(m)) {
+              return m;
+            }
+
+            return JSON.stringify(m, (_, value) => {
               if (typeof value === "bigint") {
                 return value.toString();
               }
               return value;
-            }),
-          ),
+            });
+          }),
         ),
       error: (...msgs: unknown[]) =>
         log(
           "error",
           "",
-          msgs.map((m) =>
-            JSON.stringify(m, (_, value) => {
+          msgs.map((m) => {
+            if (React.isValidElement(m)) {
+              return m;
+            }
+
+            return JSON.stringify(m, (_, value) => {
               if (typeof value === "bigint") {
                 return value.toString();
               }
               return value;
-            }),
-          ),
+            });
+          }),
         ),
     });
   } finally {

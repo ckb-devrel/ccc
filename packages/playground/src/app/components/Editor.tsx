@@ -2,6 +2,8 @@ import MonacoEditor from "@monaco-editor/react";
 import { LoaderCircle } from "lucide-react";
 import { editor } from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
+import { shikiToMonaco } from "@shikijs/monaco";
+import { createHighlighter } from "shiki";
 
 const CCCSource = require.context(
   "!!raw-loader!../../../../",
@@ -76,9 +78,8 @@ export function Editor({
     <div className="relative h-full w-full">
       <MonacoEditor
         className="h-[60vh] w-full lg:h-auto"
-        theme="vs-dark"
-        defaultLanguage="typescript"
-        defaultPath="/index.ts"
+        defaultLanguage="tsx"
+        defaultPath="/index.tsx"
         options={{
           padding: { top: 20 },
           minimap: { enabled: false },
@@ -94,6 +95,7 @@ export function Editor({
             moduleResolution: 99 as any, // NodeNext
             noImplicitAny: true,
             strictNullChecks: true,
+            jsx: monaco.languages.typescript.JsxEmit.React,
           });
 
           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
@@ -113,6 +115,14 @@ export function Editor({
             "import { ccc } from '@ckb-ccc/core'; export function render(tx: ccc.Transaction): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
+
+          monaco.languages.register({ id: "tsx" });
+          createHighlighter({
+            themes: ["github-dark"],
+            langs: ["tsx"],
+          }).then((highlighter) => {
+            shikiToMonaco(highlighter, monaco);
+          });
 
           setEditor(editor);
           onMount?.(editor);

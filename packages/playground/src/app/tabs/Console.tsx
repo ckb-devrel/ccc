@@ -16,9 +16,9 @@ export function Console() {
           }`}
         >
           {level === "error" ? (
-            <X className="mr-2 inline" size="16" />
+            <X className="mb-2 mr-2 inline" size="16" />
           ) : (
-            <Info className="mr-2 inline" size="16" />
+            <Info className="mb-2 mr-2 inline" size="16" />
           )}
           {message}
         </div>

@@ -8,6 +8,7 @@ import { useApp } from "./context";
 import {
   Blocks,
   BookOpenText,
+  Braces,
   Bug,
   FlaskConical,
   FlaskConicalOff,
@@ -28,6 +29,9 @@ import { Console } from "./tabs/Console";
 import axios from "axios";
 import { execute } from "./execute";
 import { Editor } from "./components/Editor";
+import * as prettier from "prettier/standalone";
+import * as prettierTs from "prettier/parser-typescript";
+import * as prettierEstree from "prettier/plugins/estree";
 
 async function shareToNostr(
   client: ccc.Client,
@@ -329,6 +333,20 @@ export default function Home() {
               <FlaskConicalOff size="16" />
             )}
             <span className="ml-1">{isTestnet ? "Testnet" : "Mainnet"}</span>
+          </Button>
+          <Button
+            onClick={() =>
+              prettier
+                .format(source, {
+                  parser: "typescript",
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  plugins: [prettierTs, prettierEstree as any],
+                })
+                .then(setSource)
+            }
+          >
+            <Braces size="16" />
+            <span className="ml-1">Format</span>
           </Button>
           {isRunning ? (
             <Button onClick={() => next?.()} disabled={!next}>
