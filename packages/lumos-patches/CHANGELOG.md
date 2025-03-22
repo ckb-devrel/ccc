@@ -1,5 +1,16 @@
 # @ckb-ccc/lumos-patches
 
+## 1.0.16
+
+### Patch Changes
+
+- [#166](https://github.com/ckb-devrel/ccc/pull/166) [`90b6e9f`](https://github.com/ckb-devrel/ccc/commit/90b6e9fee543b6ee16b96e27d6f86ff33fc57029) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- [`29a2e22`](https://github.com/ckb-devrel/ccc/commit/29a2e223b902ed23523e4948ab3fca793f9e5b01) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- Updated dependencies [[`80e605d`](https://github.com/ckb-devrel/ccc/commit/80e605d0645e87b4e8b5be85c63322f7a3926e38), [`8c7e000`](https://github.com/ckb-devrel/ccc/commit/8c7e00069a276ac58afa4737623e95656d4852c5), [`732ad59`](https://github.com/ckb-devrel/ccc/commit/732ad59f13ea2cd47003033e30b310b8ff26f058), [`90b6e9f`](https://github.com/ckb-devrel/ccc/commit/90b6e9fee543b6ee16b96e27d6f86ff33fc57029), [`815fb4d`](https://github.com/ckb-devrel/ccc/commit/815fb4da3432b889b848eb70943d725988fe611d), [`def62a0`](https://github.com/ckb-devrel/ccc/commit/def62a08bf908c6a21fe91c8db2c60848a2ada52), [`d584059`](https://github.com/ckb-devrel/ccc/commit/d584059644e8bcd3a0ea8b0314fdcbb68ee66013), [`f58d398`](https://github.com/ckb-devrel/ccc/commit/f58d3980f08da1f3fa19cee45aa50c8b293294ea), [`1e88ad8`](https://github.com/ckb-devrel/ccc/commit/1e88ad8743428b46b28fe790bd559b96df8a6ce4), [`6f10589`](https://github.com/ckb-devrel/ccc/commit/6f1058977e7aa113808fa74793f1ad5d672626d2), [`601a729`](https://github.com/ckb-devrel/ccc/commit/601a7291e877b39c4032c95fab421ed3d41404c2), [`074b4cd`](https://github.com/ckb-devrel/ccc/commit/074b4cd3b0cdc925dc9ef99e8146564a60646f1e), [`d7728d9`](https://github.com/ckb-devrel/ccc/commit/d7728d9edb46c9c5a2bfeb342fc68a8b1c0fec5d), [`ab195a0`](https://github.com/ckb-devrel/ccc/commit/ab195a024aeee5e21ed19d89c2cf1bf8d52bb380), [`29a2e22`](https://github.com/ckb-devrel/ccc/commit/29a2e223b902ed23523e4948ab3fca793f9e5b01)]:
+  - @ckb-ccc/core@1.8.0
+
 ## 1.0.11
 
 ### Patch Changes

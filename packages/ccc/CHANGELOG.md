@@ -1,5 +1,20 @@
 # @ckb-ccc/ccc
 
+## 1.1.8
+
+### Patch Changes
+
+- Updated dependencies [[`90b6e9f`](https://github.com/ckb-devrel/ccc/commit/90b6e9fee543b6ee16b96e27d6f86ff33fc57029), [`7bed665`](https://github.com/ckb-devrel/ccc/commit/7bed665f6c9444b37893f1c6c8c3cbca344a6ca4), [`29a2e22`](https://github.com/ckb-devrel/ccc/commit/29a2e223b902ed23523e4948ab3fca793f9e5b01)]:
+  - @ckb-ccc/joy-id@1.0.16
+  - @ckb-ccc/rei@1.0.16
+  - @ckb-ccc/shell@1.1.8
+  - @ckb-ccc/eip6963@1.0.16
+  - @ckb-ccc/nip07@1.0.16
+  - @ckb-ccc/okx@1.0.16
+  - @ckb-ccc/uni-sat@1.0.16
+  - @ckb-ccc/utxo-global@1.0.16
+  - @ckb-ccc/xverse@1.0.16
+
 ## 1.1.3
 
 ### Patch Changes
