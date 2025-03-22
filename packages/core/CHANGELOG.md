@@ -1,5 +1,41 @@
 # @ckb-ccc/core
 
+## 1.7.0
+
+### Minor Changes
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): stringify util
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Dao related utils
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: add inputs after cobuild witness injected
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add treatment to uncompatible XUDT data format
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): more rpc calls cache
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction.getFee
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): fee rate checks
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction utils
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): SignerNostrPublicKeyReadonly
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): calculate Nervos DAO profit as input capacity
+
+### Patch Changes
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): uncatched websocket error
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(core): remove ankr public node from default
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): negative number for numToByte
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
 ## 1.6.0
 
 ### Minor Changes
