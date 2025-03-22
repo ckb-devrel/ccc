@@ -1,5 +1,22 @@
 # @ckb-ccc/spore
 
+## 1.4.0
+
+### Minor Changes
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - support search spore/cluster under customized lock script
+
+### Patch Changes
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: add inputs after cobuild witness injected
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - bug: add scriptInfo parameter in transfer/melt spore method
+
+- [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction utils
+
+- Updated dependencies [[`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4)]:
+  - @ckb-ccc/core@1.7.0
+
 ## 1.3.0
 
 ### Minor Changes

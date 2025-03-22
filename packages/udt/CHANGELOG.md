@@ -1,5 +1,13 @@
 # @ckb-ccc/udt
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [[`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4), [`e19bd16`](https://github.com/ckb-devrel/ccc/commit/e19bd16c1375bb66fa5b66f37a07792e594176e4)]:
+  - @ckb-ccc/core@1.7.0
+  - @ckb-ccc/ssri@0.2.5
+
 ## 0.1.4
 
 ### Patch Changes
