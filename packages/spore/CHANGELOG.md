@@ -1,5 +1,22 @@
 # @ckb-ccc/spore
 
+## 1.4.0
+
+### Minor Changes
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - support search spore/cluster under customized lock script
+
+### Patch Changes
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: add inputs after cobuild witness injected
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - bug: add scriptInfo parameter in transfer/melt spore method
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction utils
+
+- Updated dependencies [[`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b)]:
+  - @ckb-ccc/core@1.7.0
+
 ## 1.3.0
 
 ### Minor Changes
