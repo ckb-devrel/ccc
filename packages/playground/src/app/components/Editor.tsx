@@ -101,7 +101,10 @@ export function Editor({
             moduleResolution: 99 as any, // NodeNext
             noImplicitAny: true,
             strictNullChecks: true,
-            jsx: monaco.languages.typescript.JsxEmit.React,
+            jsx: monaco.languages.typescript.JsxEmit.ReactJSX,
+            jsxFactory: "React.createElement",
+            reactNamespace: "React",
+            allowUmdGlobalAccess: true,
           });
 
           monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
