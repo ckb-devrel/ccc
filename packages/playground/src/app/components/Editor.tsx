@@ -127,8 +127,9 @@ export function Editor({
               "file:///node_modules/@ckb-ccc/" + key.replace("./", ""),
             );
           });
+
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            "import { ccc } from '@ckb-ccc/core'; export function render(tx: ccc.Transaction): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
+            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
 

@@ -3,27 +3,23 @@
 import { bech32 } from "bech32";
 import WebSocket from "isomorphic-ws";
 import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useApp } from "./context";
 import {
-  Blocks,
-  BookOpenText,
   Braces,
   Bug,
   FlaskConical,
   FlaskConicalOff,
+  Loader,
   Play,
-  Printer,
   Share2,
   SquareArrowOutUpRight,
   SquareTerminal,
   StepForward,
+  Trash,
 } from "lucide-react";
 import { Button } from "./components/Button";
-import { Transaction } from "./tabs/Transaction";
-import { Scripts } from "./tabs/Scripts";
 import { DEFAULT_TRANSFER } from "./examples";
-import html2canvas from "html2canvas";
 import { About } from "./tabs/About";
 import { Console } from "./tabs/Console";
 import axios from "axios";
@@ -182,7 +178,14 @@ const DEFAULT_NOSTR_RELAYS = [
 ];
 
 export default function Home() {
-  const { openSigner, openAction, signer, messages, sendMessage } = useApp();
+  const {
+    openSigner,
+    openAction,
+    signer,
+    messages,
+    sendMessage,
+    clearMessage,
+  } = useApp();
   const { setClient, client } = ccc.useCcc();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -192,10 +195,7 @@ export default function Home() {
     undefined,
   );
 
-  const [tx, setTx] = useState<ccc.Transaction | undefined>(undefined);
-  const tabRef = useRef<HTMLDivElement | null>(null);
-
-  const [tab, setTab] = useState("Transaction");
+  const [tab, setTab] = useState("Console");
   const [readMsgCount, setReadMsgCount] = useState(0);
   const [highlight, setHighlight] = useState<number[] | undefined>(undefined);
 
@@ -215,11 +215,7 @@ export default function Home() {
       try {
         await execute(
           source,
-          (pos, tx) => {
-            if (tx) {
-              setTx(ccc.Transaction.from({ ...tx }));
-            }
-
+          (pos) => {
             setHighlight(pos);
             if (!pos) {
               return Promise.resolve();
@@ -309,16 +305,8 @@ export default function Home() {
   }, [messages, tab, readMsgCount]);
 
   return (
-    <div
-      className={`flex min-h-dvh w-full flex-col ${
-        tab !== "Print" ? "lg:h-dvh lg:flex-row" : ""
-      }`}
-    >
-      <div
-        className={`flex shrink-0 basis-1/2 flex-col overflow-hidden lg:h-dvh ${
-          tab !== "Print" ? "" : "hidden"
-        }`}
-      >
+    <div className="flex min-h-dvh w-full flex-col lg:h-dvh lg:flex-row">
+      <div className="flex shrink-0 basis-1/2 flex-col overflow-hidden lg:h-dvh">
         <Editor
           value={source}
           onChange={(v) => setSource(v ?? "")}
@@ -349,10 +337,17 @@ export default function Home() {
             <span className="ml-1">Format</span>
           </Button>
           {isRunning ? (
-            <Button onClick={() => next?.()} disabled={!next}>
-              <StepForward size="16" />
-              <span className="ml-1">Continue</span>
-            </Button>
+            next ? (
+              <Button onClick={() => next?.()}>
+                <StepForward size="16" />
+                <span className="ml-1">Continue</span>
+              </Button>
+            ) : (
+              <Button>
+                <Loader className="animate-spin" size="16" />
+                <span className="ml-1">Running</span>
+              </Button>
+            )
           ) : (
             <>
               <Button onClick={() => runCode(true)}>
@@ -384,48 +379,19 @@ export default function Home() {
       <div className="flex shrink-0 grow basis-1/2 flex-col overflow-hidden">
         {
           {
-            Transaction: <Transaction tx={tx} onRun={() => runCode(true)} />,
-            Scripts: <Scripts tx={tx} />,
-            Console: <Console />,
-            Print: <Transaction tx={tx} disableScroll innerRef={tabRef} />,
+            Console: <Console onRun={() => runCode(true)} />,
             About: <About className="grow p-4" />,
           }[tab]
         }
         <div className="flex shrink-0 overflow-x-auto bg-gray-800">
           <Button onClick={openSigner}>{openAction}</Button>
-          <Button onClick={() => setTab("Transaction")}>
-            <Blocks size="16" />
-            <span className="ml-1">Transaction</span>
-          </Button>
-          <Button onClick={() => setTab("Scripts")}>
-            <BookOpenText size="16" />
-            <span className="ml-1">Scripts</span>
-          </Button>
           <Button onClick={() => setTab("Console")}>
             <SquareTerminal size="16" />
             <span className="ml-1">Console</span>
           </Button>
-          <Button
-            onClick={() => {
-              if (tab === "Print" && tabRef.current) {
-                html2canvas(tabRef.current, {
-                  backgroundColor: "#4a044e",
-                  foreignObjectRendering: true,
-                }).then((canvas) => {
-                  const image = canvas.toDataURL("image/png");
-                  const link = document.createElement("a");
-                  link.href = image;
-                  link.download = "transaction.png";
-                  link.click();
-                });
-              }
-              setTab("Print");
-            }}
-          >
-            <Printer size="16" />
-            <span className="ml-1">
-              Print{tab === "Print" ? " (Click again)" : ""}
-            </span>
+          <Button onClick={clearMessage}>
+            <Trash size="16" />
+            <span className="ml-1">Clear</span>
           </Button>
           <Button onClick={() => setTab("About")}>
             <SquareArrowOutUpRight size="16" />

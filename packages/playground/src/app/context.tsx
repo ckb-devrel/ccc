@@ -42,14 +42,15 @@ export const APP_CONTEXT = createContext<
       openAction: ReactNode;
 
       messages: ["error" | "info", string, ReactNode][];
+      clearMessage: () => void;
       sendMessage: (
         level: "error" | "info",
         title: string,
-        msgs: ReactNode[],
+        msgs: unknown[],
       ) => void;
       createSender: (title: string) => {
-        log: (...msgs: ReactNode[]) => void;
-        error: (...msgs: ReactNode[]) => void;
+        log: (...msgs: unknown[]) => void;
+        error: (...msgs: unknown[]) => void;
       };
     }
   | undefined
@@ -89,7 +90,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendMessage = (
     level: "error" | "info",
     title: string,
-    msgs: ReactNode[],
+    msgs: unknown[],
   ) =>
     setMessages((messages) => [
       ...messages,
@@ -97,28 +98,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         level,
         title,
         msgs.map((msg, i) => {
-          if (
-            typeof msg === "string" &&
-            (msg.startsWith(`"http://`) || msg.startsWith(`"https://`))
-          ) {
-            const url = msg.slice(1, -1);
-            return (
-              <a
-                key={i}
-                className="px-2 text-[#2D5FF5] underline underline-offset-2"
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {url}
-              </a>
-            );
+          if (React.isValidElement(msg)) {
+            return msg;
           }
 
           return (
             <React.Fragment key={i}>
               {i === 0 ? "" : " "}
-              {msg}
+              {JSON.stringify(msg, (_, value) => {
+                if (typeof value === "bigint") {
+                  return value.toString();
+                }
+                return value;
+              })}
             </React.Fragment>
           );
         }),
@@ -172,6 +164,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
 
         messages,
+        clearMessage: () => setMessages([]),
         sendMessage,
         createSender: (title) => ({
           log: (...msgs) => sendMessage("info", title, msgs),

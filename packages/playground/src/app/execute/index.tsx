@@ -2,9 +2,9 @@ import { ccc } from "@ckb-ccc/connector-react";
 import * as cccLib from "@ckb-ccc/ccc";
 import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
 import * as React from "react";
-import { ReactNode } from "react";
 import ts from "typescript";
 import { vlqDecode } from "./vlq";
+import { enhanceDisplay } from "../components/enhanceDisplay";
 
 function findSourcePos(
   sourceMap: string | undefined,
@@ -43,11 +43,11 @@ export async function execute(
   source: string,
   onUpdate: (
     pos: [number, number, number, number] | undefined,
-    tx: ccc.Transaction | undefined,
   ) => Promise<void>,
   signer: ccc.Signer,
-  log: (level: "error" | "info", title: string, msgs: ReactNode[]) => void,
+  log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
 ) {
+  const display = enhanceDisplay(log, signer.client);
   const compiled = ts.transpileModule(source, {
     compilerOptions: { sourceMap: true, jsx: ts.JsxEmit.React },
   });
@@ -60,10 +60,9 @@ export async function execute(
       "@ckb-ccc/ccc": cccLib,
       "@ckb-ccc/ccc/advanced": cccAdvancedLib,
       "@ckb-ccc/playground": {
-        render: async (tx: ccc.Transaction | unknown) => {
-          if (!(tx instanceof ccc.Transaction)) {
-            return;
-          }
+        render: async (...msgs: unknown[]) => {
+          display("info", msgs);
+
           const stack = new Error().stack;
           if (!stack) {
             return;
@@ -81,7 +80,6 @@ export async function execute(
                 Number(match[1]) - 4,
                 Number(match[2]) - 2,
               ),
-              tx,
             );
           } catch (err) {
             if (err !== "ABORTED") {
@@ -109,43 +107,11 @@ export async function execute(
       "console",
       `return (async () => {\n${compiled.outputText}\n})();`,
     )(exports, require, React, {
-      log: (...msgs: unknown[]) =>
-        log(
-          "info",
-          "",
-          msgs.map((m) => {
-            if (React.isValidElement(m)) {
-              return m;
-            }
-
-            return JSON.stringify(m, (_, value) => {
-              if (typeof value === "bigint") {
-                return value.toString();
-              }
-              return value;
-            });
-          }),
-        ),
-      error: (...msgs: unknown[]) =>
-        log(
-          "error",
-          "",
-          msgs.map((m) => {
-            if (React.isValidElement(m)) {
-              return m;
-            }
-
-            return JSON.stringify(m, (_, value) => {
-              if (typeof value === "bigint") {
-                return value.toString();
-              }
-              return value;
-            });
-          }),
-        ),
+      log: (...msgs: unknown[]) => display("info", msgs),
+      error: (...msgs: unknown[]) => display("error", msgs),
     });
   } finally {
-    await onUpdate(undefined, undefined);
+    await onUpdate(undefined);
   }
   return;
 }

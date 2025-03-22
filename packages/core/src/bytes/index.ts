@@ -8,6 +8,10 @@ export type Bytes = Uint8Array;
 /**
  * @public
  */
+export const Bytes = Uint8Array;
+/**
+ * @public
+ */
 export type BytesLike = string | Uint8Array | ArrayBuffer | ArrayLike<number>;
 
 /**

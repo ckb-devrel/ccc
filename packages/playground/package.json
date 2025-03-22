@@ -15,7 +15,6 @@
     "@monaco-editor/react": "^4.6.0",
     "axios": "^1.7.7",
     "bech32": "^2.0.0",
-    "html2canvas": "^1.4.1",
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.438.0",
     "monaco-editor": "^0.51.0",

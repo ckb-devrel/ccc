@@ -76,3 +76,16 @@ export function getScriptColor(script: ccc.ScriptLike): string {
 
   return `hsl(${(ccc.numFrom(hash) % ccc.numFrom(360)).toString()} 65% 45%)`;
 }
+
+export function formatTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  return (
+    date.getHours().toString().padStart(2, "0") +
+    ":" +
+    date.getMinutes().toString().padStart(2, "0") +
+    ":" +
+    date.getSeconds().toString().padStart(2, "0") +
+    "." +
+    date.getMilliseconds().toString().padStart(3, "0")
+  );
+}

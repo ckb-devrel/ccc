@@ -1,20 +1,18 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { MutableRefObject, useEffect, useMemo, useState } from "react";
-import { Cell } from "../components/Cell";
-import { Play } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Cell } from "./Cell";
+import { Button } from "./Button";
 
 export function Transaction({
   tx,
-  disableScroll,
-  onRun,
-  innerRef,
+  client,
+  isDefaultOpen,
 }: {
-  tx?: ccc.Transaction;
-  disableScroll?: boolean;
-  onRun?: () => void;
-  innerRef?: MutableRefObject<HTMLDivElement | null>;
+  tx: ccc.Transaction;
+  client: ccc.Client;
+  isDefaultOpen?: boolean;
 }) {
-  const { client } = ccc.useCcc();
+  const [isOpen, setIsOpen] = useState<boolean | undefined>();
 
   const [inputAmount, setInputAmount] = useState(ccc.Zero);
   const [inputAmountExtra, setInputAmountExtra] = useState(ccc.Zero);
@@ -42,31 +40,28 @@ export function Transaction({
       )),
     [tx],
   );
+  const txHash = useMemo(() => tx.hash(), [tx]);
 
-  if (!tx) {
+  if (!(isOpen ?? isDefaultOpen ?? true)) {
     return (
       <div
-        ref={innerRef}
-        className="flex grow flex-col items-center justify-center"
+        className="flex grow cursor-pointer flex-col items-center rounded-md bg-gray-400/25 py-4"
+        onClick={() => setIsOpen(true)}
       >
-        <button className="mb-4 rounded-full bg-green-400 p-6" onClick={onRun}>
-          <Play size="32" />
-        </button>
-        <p className="text-lg">Run code to generate transaction</p>
+        Show transaction {txHash.substring(0, 8)}...
+        {txHash.substring(txHash.length - 6)}
       </div>
     );
   }
 
   return (
-    <div
-      ref={innerRef}
-      className={`flex grow flex-col ${disableScroll ? "" : "overflow-hidden"}`}
-    >
-      <div
-        className={`flex basis-1/2 flex-col ${
-          disableScroll ? "" : "overflow-y-hidden"
-        }`}
-      >
+    <div className="flex grow flex-col">
+      <div className="flex flex-col items-center">
+        <span>Transaction</span>
+        <span>{txHash}</span>
+      </div>
+
+      <div className="flex basis-1/2 flex-col">
         <div className="p-3 pb-0">
           Inputs ({ccc.fixedPointToString(inputAmount - inputAmountExtra)}
           {inputAmountExtra === ccc.Zero
@@ -74,26 +69,28 @@ export function Transaction({
             : ` + ${ccc.fixedPointToString(inputAmountExtra)} `}
           CKB)
         </div>
-        <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>
+        <div className="grow p-3">
           <div className="flex flex-wrap justify-center gap-2">{inputs}</div>
         </div>
       </div>
 
-      <div
-        className={`flex basis-1/2 flex-col border-t border-fuchsia-900 ${
-          disableScroll ? "" : "overflow-y-hidden"
-        }`}
-      >
+      <div className="flex basis-1/2 flex-col border-t border-fuchsia-900">
         <div className="p-3 pb-0">
           Outputs ({ccc.fixedPointToString(outputAmount)} +
           {outputAmount > inputAmount
-            ? " ?"
+            ? " ? "
             : ` ${ccc.fixedPointToString(inputAmount - outputAmount)} `}
           CKB)
         </div>
-        <div className={`${disableScroll ? "" : "overflow-y-auto"} grow p-3`}>
+        <div className="grow p-3">
           <div className="flex flex-wrap justify-center gap-2">{outputs}</div>
         </div>
+      </div>
+
+      <div className="flex justify-center">
+        <Button onClick={() => setIsOpen(false)} className="my-2 rounded-sm">
+          Hide
+        </Button>
       </div>
     </div>
   );

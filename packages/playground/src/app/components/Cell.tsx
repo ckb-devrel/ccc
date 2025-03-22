@@ -2,6 +2,9 @@ import { ccc } from "@ckb-ccc/connector-react";
 import { formatString, getScriptColor, useGetExplorerLink } from "../utils";
 import { useEffect, useMemo, useState } from "react";
 import { RandomWalk } from "./RandomWalk";
+import { useApp } from "../context";
+import { enhanceDisplay } from "./enhanceDisplay";
+import { Address } from "./Address";
 
 function Capacity({
   capacity,
@@ -46,6 +49,80 @@ function Capacity({
   );
 }
 
+export function CellInfo({
+  cell,
+  client,
+}: {
+  cell: {
+    cellOutput?: ccc.CellOutput;
+    outPoint?: ccc.OutPoint;
+    outputData?: ccc.Hex;
+  };
+  client: ccc.Client;
+}) {
+  const { explorerTransaction } = useGetExplorerLink();
+
+  const { outPoint } = cell;
+  const [cellOutput, setCellOutput] = useState(cell.cellOutput);
+  const [outputData, setOutputData] = useState(cell.outputData);
+  const [daoProfit, setDaoProfit] = useState(ccc.Zero);
+
+  useEffect(() => {
+    if (!outPoint) {
+      return;
+    }
+
+    const input = ccc.CellInput.from({
+      ...cell,
+      previousOutput: outPoint, // For type checking
+    });
+
+    (async () => {
+      try {
+        const { cellOutput, outputData } = await input.getCell(client);
+        const extraCapacity = await input.getExtraCapacity(client);
+
+        setCellOutput(cellOutput);
+        setOutputData(outputData);
+        setDaoProfit(extraCapacity);
+      } catch (err) {
+        return;
+      }
+    })();
+  }, [cell, outPoint, cell.cellOutput, cell.outputData, client]);
+
+  return (
+    <div>
+      {outPoint
+        ? explorerTransaction(
+            outPoint?.txHash,
+            `${outPoint?.txHash}:${outPoint?.index}`,
+          )
+        : undefined}
+      <div className="my-1">
+        Capacity {ccc.apply(ccc.fixedPointToString, cellOutput?.capacity)}
+        {daoProfit !== ccc.Zero
+          ? ` + ${ccc.fixedPointToString(daoProfit)} `
+          : " "}
+        CKB
+      </div>
+      <div className="mt-1">Lock</div>
+      {cellOutput?.lock ? (
+        <Address address={ccc.Address.fromScript(cellOutput.lock, client)} />
+      ) : undefined}
+      {cellOutput?.type ? (
+        <>
+          <div className="mt-1">Type</div>
+          <Address address={ccc.Address.fromScript(cellOutput.type, client)} />
+        </>
+      ) : (
+        <div className="mt-1">Type is Empty</div>
+      )}
+      {outputData ? <div className="my-1">Data: {outputData}</div> : undefined}
+    </div>
+  );
+}
+
 export function Cell({
   cell,
 }: {
@@ -57,6 +134,9 @@ export function Cell({
 }) {
   const { explorerTransaction } = useGetExplorerLink();
   const { client } = ccc.useCcc();
+
+  const { sendMessage } = useApp();
+  const display = enhanceDisplay(sendMessage, client);
 
   const { previousOutput } = cell;
   const [cellOutput, setCellOutput] = useState(cell.cellOutput);
@@ -125,9 +205,18 @@ export function Cell({
 
   return (
     <RandomWalk
-      className="relative flex h-40 w-40 flex-col items-center justify-center rounded-full border border-fuchsia-900 shadow-md"
+      className="relative flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-full border border-fuchsia-900 shadow-md"
       style={{
         backgroundColor: lockColor,
+      }}
+      onClick={() => {
+        display("info", [
+          <CellInfo
+            key="0"
+            cell={{ outPoint: previousOutput, outputData, cellOutput }}
+            client={client}
+          />,
+        ]);
       }}
     >
       <div
