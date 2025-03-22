@@ -1,5 +1,41 @@
 # @ckb-ccc/core
 
+## 1.7.0
+
+### Minor Changes
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): stringify util
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Dao related utils
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: add inputs after cobuild witness injected
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add treatment to uncompatible XUDT data format
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): more rpc calls cache
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction.getFee
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): fee rate checks
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Transaction utils
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): SignerNostrPublicKeyReadonly
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): calculate Nervos DAO profit as input capacity
+
+### Patch Changes
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): uncatched websocket error
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(core): remove ankr public node from default
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): negative number for numToByte
+
+- [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump @joyid/ckb version
+
 ## 1.6.0
 
 ### Minor Changes

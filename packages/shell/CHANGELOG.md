@@ -1,5 +1,15 @@
 # @ckb-ccc/shell
 
+## 1.1.5
+
+### Patch Changes
+
+- Updated dependencies [[`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b)]:
+  - @ckb-ccc/spore@1.4.0
+  - @ckb-ccc/core@1.7.0
+  - @ckb-ccc/ssri@0.2.3
+  - @ckb-ccc/udt@0.1.5
+
 ## 1.1.4
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ckb-ccc/eip6963
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [[`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b), [`c53ea86`](https://github.com/ckb-devrel/ccc/commit/c53ea863c0c9a9afe737b1abfd1bea6a05d1156b)]:
+  - @ckb-ccc/core@1.7.0
+
 ## 1.0.12
 
 ### Patch Changes
