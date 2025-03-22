@@ -3,6 +3,10 @@ import { Client } from "../../client/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
 import { SignerNostr } from "./signerNostr.js";
 
+/**
+ * Signer from Nostr public key
+ * Support npub and hex format
+ */
 export class SignerNostrPublicKeyReadonly extends SignerNostr {
   public readonly publicKey: Hex;
 
