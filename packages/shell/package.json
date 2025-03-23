@@ -59,6 +59,7 @@
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
-    "@ckb-ccc/ssri": "workspace:*"
+    "@ckb-ccc/ssri": "workspace:*",
+    "@ckb-ccc/molecule": "workspace:*"
   }
 }

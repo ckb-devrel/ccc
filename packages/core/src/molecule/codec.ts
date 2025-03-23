@@ -36,7 +36,10 @@ export class Codec<Encodable, Decoded = Encodable> {
     return new Codec(
       (encodable: Encodable) => {
         const encoded = encode(encodable);
-        if (byteLength !== undefined && encoded.byteLength !== byteLength) {
+        if (
+          byteLength !== undefined &&
+          Number(encoded.byteLength) !== Number(byteLength)
+        ) {
           throw new Error(
             `Codec.encode: expected byte length ${byteLength}, got ${encoded.byteLength}`,
           );
@@ -47,7 +50,7 @@ export class Codec<Encodable, Decoded = Encodable> {
         const decodableBytes = bytesFrom(decodable);
         if (
           byteLength !== undefined &&
-          decodableBytes.byteLength !== byteLength
+          Number(decodableBytes.byteLength) !== Number(byteLength)
         ) {
           throw new Error(
             `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
@@ -110,7 +113,7 @@ function uint32From(bytesLike: BytesLike) {
 export function fixedItemVec<Encodable, Decoded>(
   itemCodec: CodecLike<Encodable, Decoded>,
 ): Codec<Array<Encodable>, Array<Decoded>> {
-  const itemByteLength = itemCodec.byteLength;
+  const itemByteLength = Number(itemCodec.byteLength);
   if (itemByteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
   }
