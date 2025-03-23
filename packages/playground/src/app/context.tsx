@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import { ccc } from "@ckb-ccc/connector-react";
-import { formatString } from "./utils";
+import { formatString, formatTimestamp } from "./utils";
 import { Link } from "lucide-react";
 
 function WalletIcon({
@@ -119,17 +119,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
-      const msg = (() => {
-        if (typeof event.reason === "object" && event.reason !== null) {
-          const { name, message, stack, cause } = event.reason;
-          return JSON.stringify({ name, message, stack, cause });
-        }
-        if (typeof event.reason === "string") {
-          return event.reason;
-        }
-        return JSON.stringify(event);
-      })();
-      sendMessage("error", "Unknown error", [msg]);
+      if (typeof event.reason === "object" && event.reason !== null) {
+        const { name, message, stack, cause } = event.reason;
+        sendMessage(
+          "error",
+          `${formatTimestamp(Date.now())} ${name ?? "Unknown Error"}`,
+          [
+            <div key="0">
+              <div className="whitespace-pre-line">{message}</div>
+              <div className="whitespace-pre-line">{cause}</div>
+              <div className="whitespace-pre-line text-sm text-gray-300/75">
+                {stack}
+              </div>
+            </div>,
+          ],
+        );
+      } else if (typeof event.reason === "string") {
+        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
+          <div key="0" className="whitespace-pre-line">
+            {event.reason}
+          </div>,
+        ]);
+      } else {
+        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
+          <div key="0" className="whitespace-pre-line">
+            {JSON.stringify(event)}
+          </div>,
+        ]);
+      }
     };
 
     window.addEventListener("unhandledrejection", handler);

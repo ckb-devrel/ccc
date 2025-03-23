@@ -166,18 +166,17 @@ export function codec<
   },
 >(codec: Codec<Encodable, Decoded>) {
   return function (Constructor: ConstructorType) {
-    return class Extended extends Constructor {
-      static byteLength = codec.byteLength;
-      static encode(encodable: TypeLike): Bytes {
-        return codec.encode(encodable);
-      }
-      static decode(bytesLike: BytesLike): Type {
-        return Constructor.from(codec.decode(bytesLike));
-      }
-
-      static fromBytes(bytes: BytesLike): Type {
-        return Constructor.from(codec.decode(bytes));
-      }
+    Constructor.byteLength = codec.byteLength;
+    Constructor.encode = function (encodable: TypeLike) {
+      return codec.encode(encodable);
     };
+    Constructor.decode = function (bytesLike: BytesLike) {
+      return Constructor.from(codec.decode(bytesLike));
+    };
+    Constructor.fromBytes = function (bytes: BytesLike) {
+      return Constructor.from(codec.decode(bytes));
+    };
+
+    return Constructor;
   };
 }
