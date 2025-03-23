@@ -17,6 +17,12 @@ const CCCSource = require.context(
   /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/,
 );
 
+const DobRenderSource = require.context(
+  "!!raw-loader!../../../node_modules/@nervina-labs/dob-render/dist",
+  true,
+  /^\.\/.*\.d\.ts$/
+);
+
 export function Editor({
   value,
   onChange,
@@ -125,6 +131,14 @@ export function Editor({
             monaco.languages.typescript.typescriptDefaults.addExtraLib(
               CCCSource(key).default,
               "file:///node_modules/@ckb-ccc/" + key.replace("./", ""),
+            );
+          });
+
+          // Add dob-render type definitions
+          DobRenderSource.keys().forEach((key: string) => {
+            monaco.languages.typescript.typescriptDefaults.addExtraLib(
+              DobRenderSource(key).default,
+              "file:///node_modules/@nervina-labs/dob-render/" + key.replace("./", ""),
             );
           });
 

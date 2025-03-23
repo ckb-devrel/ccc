@@ -1,6 +1,7 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import * as cccLib from "@ckb-ccc/ccc";
 import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
+import * as dobRenderLib from "@nervina-labs/dob-render";
 import * as React from "react";
 import ts from "typescript";
 import { vlqDecode } from "./vlq";
@@ -59,6 +60,7 @@ export async function execute(
       "@ckb-ccc/core/advanced": cccAdvancedLib,
       "@ckb-ccc/ccc": cccLib,
       "@ckb-ccc/ccc/advanced": cccAdvancedLib,
+      "@nervina-labs/dob-render": dobRenderLib,
       "@ckb-ccc/playground": {
         render: async (...msgs: unknown[]) => {
           display("info", msgs);
