@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/eip6963",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for EIP6963",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
