@@ -1,6 +1,7 @@
-interface ClientConfig {
+import { RequestorJsonRpc, RequestorJsonRpcConfig } from "@ckb-ccc/core";
+
+interface ClientConfig extends RequestorJsonRpcConfig {
   endpoint: string;
-  timeout?: number;
 }
 
 interface AcceptChannelParams {
@@ -17,60 +18,113 @@ interface AcceptChannelResponse {
   channel_id: string;
 }
 
-export class Client {
-  private endpoint: string;
-  private timeout: number;
-  private id: number;
+export class RPCError extends Error {
+  constructor(
+    public error: {
+      code: number;
+      message: string;
+      data?: unknown;
+    },
+  ) {
+    super(`[RPC Error ${error.code}] ${error.message}`);
+    this.name = "RPCError";
+  }
+}
+
+export class FiberClient {
+  private requestor: RequestorJsonRpc;
 
   constructor(config: ClientConfig) {
-    this.endpoint = config.endpoint;
-    this.timeout = config.timeout || 5000;
-    this.id = 1;
+    this.requestor = new RequestorJsonRpc(config.endpoint, {
+      timeout: config.timeout,
+      maxConcurrent: config.maxConcurrent,
+      fallbacks: config.fallbacks,
+      transport: config.transport,
+    });
   }
 
-  async call<T>(method: string, params: any[]): Promise<T> {
-    const response = await fetch(this.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method,
-        params,
-        id: this.id++,
-      }),
-      signal: AbortSignal.timeout(this.timeout),
+  private serializeBigInt(obj: unknown): unknown {
+    if (typeof obj === "bigint") {
+      const hex = obj.toString(16);
+      return "0x" + hex;
+    }
+    if (typeof obj === "number") {
+      const hex = obj.toString(16);
+      return "0x" + hex;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.serializeBigInt(item));
+    }
+    if (obj !== null && typeof obj === "object") {
+      if (Object.keys(obj).length === 0) {
+        return obj;
+      }
+      const result: Record<string, unknown> = {};
+      const typedObj = obj as Record<string, unknown>;
+      for (const key in typedObj) {
+        if (key === "peer_id") {
+          result[key] = typedObj[key];
+        } else if (key === "channel_id") {
+          result[key] = typedObj[key];
+        } else if (
+          typeof typedObj[key] === "bigint" ||
+          typeof typedObj[key] === "number"
+        ) {
+          result[key] = "0x" + typedObj[key].toString(16);
+        } else {
+          result[key] = this.serializeBigInt(typedObj[key]);
+        }
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  async call<T>(method: string, params: unknown[]): Promise<T> {
+    const serializedParams = params.map((param) => {
+      if (param === null || param === undefined) {
+        return {};
+      }
+      return this.serializeBigInt(param);
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+      const result = await this.requestor.request(method, serializedParams);
+      if (!result) {
+        throw new RPCError({
+          code: -1,
+          message: "Unknown RPC error",
+          data: undefined,
+        });
+      }
+      return result as T;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new RPCError({
+          code: -1,
+          message: error.message,
+          data: undefined,
+        });
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    if (data.error) {
-      throw new Error(
-        `[RPC Error ${data.error.code}] ${data.error.message}\nDetails: ${data.error.data}`,
-      );
-    }
-
-    return data.result;
   }
 
   async acceptChannel(
     params: AcceptChannelParams,
   ): Promise<AcceptChannelResponse> {
-    const response = await this.call<AcceptChannelResponse>("accept_channel", [
-      {
-        temporary_channel_id: params.temporary_channel_id,
-        funding_amount: `0x${params.funding_amount.toString(16)}`,
-        max_tlc_value_in_flight: `0x${params.max_tlc_value_in_flight.toString(16)}`,
-        max_tlc_number_in_flight: `0x${params.max_tlc_number_in_flight.toString(16)}`,
-        tlc_min_value: `0x${params.tlc_min_value.toString(16)}`,
-        tlc_fee_proportional_millionths: `0x${params.tlc_fee_proportional_millionths.toString(16)}`,
-        tlc_expiry_delta: `0x${params.tlc_expiry_delta.toString(16)}`,
-      },
+    const transformedParams = {
+      temporary_channel_id: params.temporary_channel_id,
+      funding_amount: params.funding_amount,
+      max_tlc_value_in_flight: params.max_tlc_value_in_flight,
+      max_tlc_number_in_flight: params.max_tlc_number_in_flight,
+      tlc_min_value: params.tlc_min_value,
+      tlc_fee_proportional_millionths: params.tlc_fee_proportional_millionths,
+      tlc_expiry_delta: params.tlc_expiry_delta,
+    };
+
+    return this.call<AcceptChannelResponse>("accept_channel", [
+      transformedParams,
     ]);
-    return response;
   }
 }
