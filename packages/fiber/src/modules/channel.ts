@@ -1,5 +1,5 @@
-import { FiberClient } from "../core/client";
-import { Channel, Hash256 } from "../types";
+import { FiberClient } from "../client";
+import { Channel, Hash256, Script } from "../types";
 
 export class ChannelModule {
   constructor(private client: FiberClient) {}
@@ -11,8 +11,8 @@ export class ChannelModule {
     peer_id: string;
     funding_amount: bigint;
     public?: boolean;
-    funding_udt_type_script?: any;
-    shutdown_script?: any;
+    funding_udt_type_script?: Script;
+    shutdown_script?: Script;
     commitment_delay_epoch?: bigint;
     commitment_fee_rate?: bigint;
     funding_fee_rate?: bigint;
@@ -22,7 +22,7 @@ export class ChannelModule {
     max_tlc_value_in_flight?: bigint;
     max_tlc_number_in_flight?: bigint;
   }): Promise<Hash256> {
-    return this.client.call("open_channel", params);
+    return this.client.call("open_channel", [params]);
   }
 
   /**
@@ -37,33 +37,21 @@ export class ChannelModule {
     tlc_fee_proportional_millionths: bigint;
     tlc_expiry_delta: bigint;
   }): Promise<void> {
-    const serializedParams = {
-      temporary_channel_id: params.temporary_channel_id,
-      funding_amount: params.funding_amount,
-      max_tlc_value_in_flight: params.max_tlc_value_in_flight,
-      max_tlc_number_in_flight: params.max_tlc_number_in_flight,
-      tlc_min_value: params.tlc_min_value,
-      tlc_fee_proportional_millionths: params.tlc_fee_proportional_millionths,
-      tlc_expiry_delta: params.tlc_expiry_delta,
-    };
-    return this.client.call("accept_channel", serializedParams);
+    return this.client.call("accept_channel", [params]);
   }
 
   /**
    * 放弃通道
    */
   async abandonChannel(channelId: Hash256): Promise<void> {
-    return this.client.call("abandon_channel", { channel_id: channelId });
+    return this.client.call("abandon_channel", [channelId]);
   }
 
   /**
-   * 列出所有通道
+   * 列出通道
    */
-  async listChannels(params?: {
-    peer_id?: string;
-    include_closed?: boolean;
-  }): Promise<Channel[]> {
-    return this.client.call("list_channels", params || {});
+  async listChannels(): Promise<Channel[]> {
+    return this.client.call("list_channels", []);
   }
 
   /**
@@ -71,11 +59,11 @@ export class ChannelModule {
    */
   async shutdownChannel(params: {
     channel_id: Hash256;
-    close_script: any;
+    close_script: Script;
     force?: boolean;
     fee_rate: bigint;
   }): Promise<void> {
-    return this.client.call("shutdown_channel", params);
+    return this.client.call("shutdown_channel", [params]);
   }
 
   /**
@@ -88,6 +76,6 @@ export class ChannelModule {
     tlc_minimum_value?: bigint;
     tlc_fee_proportional_millionths?: bigint;
   }): Promise<void> {
-    return this.client.call("update_channel", params);
+    return this.client.call("update_channel", [params]);
   }
 }

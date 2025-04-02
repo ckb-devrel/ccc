@@ -1,5 +1,10 @@
-import { FiberClient } from "../core/client";
-import { Hash256, PaymentSessionStatus, Pubkey } from "../types";
+import { FiberClient } from "../client";
+import {
+  Hash256,
+  PaymentCustomRecords,
+  PaymentSessionStatus,
+  SessionRoute,
+} from "../types";
 
 export class PaymentModule {
   constructor(private client: FiberClient) {}
@@ -8,31 +13,28 @@ export class PaymentModule {
    * 发送支付
    */
   async sendPayment(params: {
-    target_pubkey?: Pubkey;
-    amount?: bigint;
-    payment_hash?: Hash256;
-    final_tlc_expiry_delta?: bigint;
-    tlc_expiry_limit?: bigint;
-    invoice?: string;
-    timeout?: bigint;
-    max_fee_amount?: bigint;
-    max_parts?: bigint;
-    keysend?: boolean;
-    udt_type_script?: any;
-    allow_self_payment?: boolean;
-    custom_records?: Record<string, string>;
-    hop_hints?: any[];
-    dry_run?: boolean;
-  }): Promise<PaymentSessionStatus> {
-    return this.client.call("payment.send_payment", params);
+    payment_hash: string;
+    amount: bigint;
+    fee_rate: bigint;
+    custom_records?: PaymentCustomRecords;
+    route?: SessionRoute;
+  }): Promise<void> {
+    return this.client.call("send_payment", [params]);
   }
 
   /**
-   * 获取支付状态
+   * 获取支付
    */
-  async getPayment(paymentHash: Hash256): Promise<PaymentSessionStatus> {
-    return this.client.call("payment.get_payment", {
-      payment_hash: paymentHash,
-    });
+  async getPayment(payment_hash: string): Promise<{
+    status: PaymentSessionStatus;
+    payment_hash: Hash256;
+    created_at: bigint;
+    last_updated_at: bigint;
+    failed_error?: string;
+    fee: bigint;
+    custom_records?: PaymentCustomRecords;
+    route: SessionRoute;
+  }> {
+    return this.client.call("get_payment", [payment_hash]);
   }
 }

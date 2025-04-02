@@ -1,22 +1,22 @@
-import { FiberClient } from "../core/client";
+import { FiberClient } from "../client";
 
 export class PeerModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 连接到对等节点
+   * 连接节点
    */
   async connectPeer(params: {
     address: string;
     save?: boolean;
   }): Promise<void> {
-    return this.client.call("connect_peer", params);
+    return this.client.call("connect_peer", [params.address]);
   }
 
   /**
-   * 断开对等节点连接
+   * 断开节点连接
    */
-  async disconnectPeer(peerId: string): Promise<void> {
-    return this.client.call("disconnect_peer", [peerId]);
+  async disconnectPeer(peer_id: string): Promise<void> {
+    return this.client.call("disconnect_peer", [peer_id]);
   }
 }
