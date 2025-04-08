@@ -81,6 +81,10 @@ export class FiberClient {
   }
 
   async call<T>(method: string, params: unknown[]): Promise<T> {
+    if (params.length === 0 || (params.length === 1 && params[0] === null)) {
+      params = [];
+    }
+
     const serializedParams = params.map((param) => {
       if (param === null || param === undefined) {
         return {};
@@ -93,13 +97,20 @@ export class FiberClient {
       if (!result) {
         throw new RPCError({
           code: -1,
-          message: "Unknown RPC error",
+          message: `RPC method "${method}" failed`,
           data: undefined,
         });
       }
       return result as T;
     } catch (error) {
       if (error instanceof Error) {
+        if (error.message.includes("Method not found")) {
+          throw new RPCError({
+            code: -32601,
+            message: `RPC method "${method}" not found`,
+            data: undefined,
+          });
+        }
         throw new RPCError({
           code: -1,
           message: error.message,
