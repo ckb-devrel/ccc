@@ -42,16 +42,53 @@ export class ChannelModule {
 
   /**
    * 放弃通道
+   * @param channelId - 通道ID，必须是有效的 Hash256 格式
+   * @throws {Error} 当通道ID无效或通道不存在时抛出错误
+   * @returns Promise<void>
    */
   async abandonChannel(channelId: Hash256): Promise<void> {
-    return this.client.call("abandon_channel", [channelId]);
+    if (!channelId) {
+      throw new Error("通道ID不能为空");
+    }
+
+    if (!channelId.startsWith("0x")) {
+      throw new Error("通道ID必须以0x开头");
+    }
+
+    if (channelId.length !== 66) {
+      // 0x + 64位哈希
+      throw new Error("通道ID长度无效");
+    }
+
+    try {
+      // 先检查通道是否存在
+      const channels = await this.listChannels();
+      const channelExists = channels.some(
+        (channel) => channel.channel_id === channelId,
+      );
+
+      if (!channelExists) {
+        throw new Error(`找不到ID为 ${channelId} 的通道`);
+      }
+
+      return this.client.call("abandon_channel", [channelId]);
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`放弃通道失败: ${error.message}`);
+      }
+      throw error;
+    }
   }
 
   /**
    * 列出通道
    */
   async listChannels(): Promise<Channel[]> {
-    return this.client.call("list_channels", []);
+    const response = await this.client.call<{ channels: Channel[] }>(
+      "list_channels",
+      [{}],
+    );
+    return response.channels;
   }
 
   /**
