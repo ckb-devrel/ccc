@@ -1,8 +1,10 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "outDir": "./dist",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   }
 }

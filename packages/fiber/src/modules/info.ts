@@ -5,9 +5,9 @@ export class InfoModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 获取节点信息
-   * @returns 返回节点的详细信息，包括节点名称、地址、ID等
-   * @throws {Error} 当无法获取节点信息时抛出错误
+   * Get node information
+   * @returns Returns detailed node information, including node name, address, ID, etc.
+   * @throws {Error} Throws error when unable to get node information
    */
   async nodeInfo(): Promise<NodeInfo> {
     return this.client.call("node_info", []);

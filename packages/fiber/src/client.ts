@@ -1,6 +1,6 @@
 import { RequestorJsonRpc, RequestorJsonRpcConfig } from "@ckb-ccc/core";
 
-interface ClientConfig extends RequestorJsonRpcConfig {
+export interface ClientConfig extends RequestorJsonRpcConfig {
   endpoint: string;
 }
 
@@ -94,7 +94,7 @@ export class FiberClient {
 
     try {
       const result = await this.requestor.request(method, serializedParams);
-      if (!result) {
+      if (!result && result !== null) {
         throw new RPCError({
           code: -1,
           message: `RPC method "${method}" failed`,
@@ -103,6 +103,7 @@ export class FiberClient {
       }
       return result as T;
     } catch (error) {
+      console.log(error);
       if (error instanceof Error) {
         if (error.message.includes("Method not found")) {
           throw new RPCError({

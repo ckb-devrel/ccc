@@ -1,4 +1,4 @@
-import { RequestorJsonRpc, RequestorJsonRpcConfig } from "@ckb-ccc/core/barrel";
+import { RequestorJsonRpc, RequestorJsonRpcConfig } from "@ckb-ccc/core";
 
 export type JsonRpcConfig = RequestorJsonRpcConfig & {
   requestor?: RequestorJsonRpc;
@@ -45,7 +45,7 @@ export abstract class FiberJsonRpc {
   constructor(url_: string, config?: JsonRpcConfig) {
     this.requestor =
       config?.requestor ??
-      new RequestorJsonRpc(url_, config, (errAny) => {
+      new RequestorJsonRpc(url_, config, (errAny: unknown) => {
         if (
           typeof errAny !== "object" ||
           errAny === null ||

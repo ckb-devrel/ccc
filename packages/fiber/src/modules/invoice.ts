@@ -5,7 +5,7 @@ export class InvoiceModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 创建新发票
+   * Create a new invoice
    */
   async newInvoice(params: {
     amount: bigint;
@@ -17,27 +17,27 @@ export class InvoiceModule {
   }
 
   /**
-   * 解析发票
+   * Parse an invoice
    */
   async parseInvoice(invoice: string): Promise<CkbInvoice> {
-    return this.client.call("parse_invoice", [invoice]);
+    return this.client.call("parse_invoice", [{ invoice }]);
   }
 
   /**
-   * 获取发票
+   * Get invoice details
    */
   async getInvoice(payment_hash: string): Promise<{
     status: CkbInvoiceStatus;
     invoice_address: string;
     invoice: CkbInvoice;
   }> {
-    return this.client.call("get_invoice", [payment_hash]);
+    return this.client.call("get_invoice", [{ payment_hash }]);
   }
 
   /**
-   * 取消发票
+   * Cancel an invoice
    */
   async cancelInvoice(payment_hash: string): Promise<void> {
-    return this.client.call("cancel_invoice", [payment_hash]);
+    return this.client.call("cancel_invoice", [{ payment_hash }]);
   }
 }
