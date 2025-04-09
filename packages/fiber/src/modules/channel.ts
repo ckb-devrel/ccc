@@ -1,5 +1,5 @@
-import { FiberClient } from "../client";
-import { Channel, Hash256, Script } from "../types";
+import { FiberClient } from "../client.js";
+import { Channel, Hash256, Script } from "../types.js";
 
 export class ChannelModule {
   constructor(private client: FiberClient) {}

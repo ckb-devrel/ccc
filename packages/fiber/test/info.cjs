@@ -1,5 +1,4 @@
-const { FiberClient, FiberSDK } = require("../dist.commonjs/index.js");
-
+const { FiberSDK } = require("../dist.commonjs/index.js");
 // Custom error handling function
 function handleRPCError(error) {
   if (error.error && error.error.code === -32601) {
@@ -41,7 +40,7 @@ async function testNodeInfo() {
     try {
       // Get node information
       console.log("Calling node_info method...");
-      const info = await sdk.info.nodeInfo();
+      const info = await sdk.nodeInfo();
 
       // Output node information
       console.log("\nNode Information:");

@@ -1,7 +1,7 @@
 {
   "name": "@ckb-ccc/fiber",
   "version": "1.0.0",
-  "type": "commonjs",
+  "type": "module",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Fiber SDK",
   "author": "author: Jack <xlws2002@gmail.com>",
   "license": "MIT",

@@ -1,4 +1,4 @@
-const { FiberClient, FiberSDK } = require("../dist.commonjs/index.js");
+const { FiberSDK } = require("../dist.commonjs/index.js");
 
 // Custom error handling function
 function handleRPCError(error) {

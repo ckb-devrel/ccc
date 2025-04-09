@@ -1,12 +1,16 @@
-const { FiberClient, FiberSDK } = require("../dist.commonjs/index.js");
+const { FiberSDK } = require("../dist.commonjs/index.js");
 
 // 自定义错误处理函数
 function handleRPCError(error) {
   if (error.error && error.error.code === -32601) {
-    console.error("错误: 节点可能未运行或 RPC 方法不存在");
+    console.error(
+      "错误: 节点可能未运行或 RPC 方法不存在",
+    );
     console.error("请确保:");
     console.error("1. Fiber 节点已启动");
-    console.error("2. 节点 RPC 地址正确 (当前: http://127.0.0.1:8227)");
+    console.error(
+      "2. 节点 RPC 地址正确 (当前: http://127.0.0.1:8227)",
+    );
     console.error("3. 节点 RPC 接口可用");
   } else if (error.error && error.error.code === -32602) {
     console.error("错误: 参数无效");

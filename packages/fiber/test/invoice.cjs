@@ -136,7 +136,9 @@ async function testGetInvoice() {
       }
 
       console.log("Calling get_invoice method...");
-      const invoiceInfo = await sdk.invoice.getInvoice(invoice.payment_hash);
+      const invoiceInfo = await sdk.invoice.getInvoice(
+        invoice.payment_hash,
+      );
 
       // Output invoice information
       console.log("\nInvoice details:");
@@ -190,8 +192,13 @@ async function testCancelInvoice() {
 
       // Verify invoice status
       console.log("\nVerifying invoice status...");
-      const cancelledInvoice = await sdk.invoice.getInvoice(invoice.payment_hash);
-      console.log("Invoice status after cancellation:", cancelledInvoice.status);
+      const cancelledInvoice = await sdk.invoice.getInvoice(
+        invoice.payment_hash,
+      );
+      console.log(
+        "Invoice status after cancellation:",
+        cancelledInvoice.status,
+      );
     } catch (error) {
       if (error.error) {
         handleRPCError(error);
@@ -210,6 +217,13 @@ async function testCancelInvoice() {
 
 // Run tests
 console.log("Starting invoice-related tests...\n");
+
+async function main() {
+  await testNewInvoice();
+  await testParseInvoice();
+  await testGetInvoice();
+  await testCancelInvoice();
+}
 
 main()
   .then(() => console.log("\nAll tests completed!"))

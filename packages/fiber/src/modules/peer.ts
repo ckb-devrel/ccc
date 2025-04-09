@@ -1,4 +1,5 @@
-import { FiberClient } from "../client";
+import { FiberClient } from "../client.js";
+import { Peer } from "../types.js";
 
 export class PeerModule {
   constructor(private client: FiberClient) {}

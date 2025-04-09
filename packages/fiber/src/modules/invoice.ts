@@ -1,5 +1,5 @@
-import { FiberClient } from "../client";
-import { CkbInvoice, CkbInvoiceStatus } from "../types";
+import { FiberClient } from "../client.js";
+import { CkbInvoice, CkbInvoiceStatus } from "../types.js";
 
 export class InvoiceModule {
   constructor(private client: FiberClient) {}
