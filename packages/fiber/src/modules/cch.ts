@@ -1,5 +1,5 @@
-import { FiberClient } from "../client";
-import { Currency, Script } from "../types";
+import { FiberClient } from "../client.js";
+import { Currency, Script } from "../types.js";
 
 export class CchModule {
   constructor(private client: FiberClient) {}

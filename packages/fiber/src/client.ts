@@ -1,3 +1,5 @@
+import axios from "axios";
+import { RPCRequest, RPCResponse } from "./types.js";
 import { RequestorJsonRpc, RequestorJsonRpcConfig } from "@ckb-ccc/core";
 
 export interface ClientConfig extends RequestorJsonRpcConfig {

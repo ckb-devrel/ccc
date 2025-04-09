@@ -1,10 +1,14 @@
-import { FiberClient } from "../client";
+import { FiberClient } from "../client.js";
 import {
   Hash256,
   PaymentCustomRecords,
   PaymentSessionStatus,
   SessionRoute,
-} from "../types";
+  Payment,
+  PaymentStatus,
+  PaymentType,
+  PaymentResult,
+} from "../types.js";
 
 export class PaymentModule {
   constructor(private client: FiberClient) {}

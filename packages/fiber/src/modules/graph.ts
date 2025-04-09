@@ -1,5 +1,5 @@
-import { FiberClient } from "../client";
-import { ChannelInfo, Pubkey } from "../types";
+import { FiberClient } from "../client.js";
+import { ChannelInfo, Pubkey } from "../types.js";
 
 export class GraphModule {
   constructor(private client: FiberClient) {}

@@ -1,5 +1,5 @@
-import { FiberClient } from "../client";
-import { Hash256, RemoveTlcReason } from "../types";
+import { FiberClient } from "../client.js";
+import { Hash256, RemoveTlcReason } from "../types.js";
 
 export class DevModule {
   constructor(private client: FiberClient) {}
