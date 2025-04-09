@@ -41,14 +41,8 @@ async function testSendPayment() {
       // 发送支付
       console.log("正在调用 sendPayment 方法...");
       await sdk.payment.sendPayment({
-        payment_hash: "payment_hash", // 替换为实际的 payment_hash
-        amount: BigInt(1000),
-        fee_rate: BigInt(100),
-        custom_records: {
-          // 自定义记录
-          "key1": "value1",
-          "key2": "value2",
-        },
+        invoice:
+          "fibt1000000001pcsaug0p0exgfw0pnm6vkkya5ul6wxurhh09qf9tuwwaufqnr3uzwpplgcrjpeuhe6w4rudppfkytvm4jekf6ymmwqk2h0ajvr5uhjpwfd9aga09ahpy88hz2um4l9t0xnpk3m9wlf22m2yjcshv3k4g5x7c68fn0gs6a35dw5r56cc3uztyf96l55ayeuvnd9fl4yrt68y086xn6qgjhf4n7xkml62gz5ecypm3xz0wdd59tfhtrhwvp5qlps959vmpf4jygdkspxn8xalparwj8h9ts6v6v0rf7vvhhku40z9sa4txxmgsjzwqzme4ddazxrfrlkc9m4uysh27zgqlx7jrfgvjw7rcqpmsrlga",
       });
       console.log("支付发送成功");
     } catch (error) {
@@ -123,7 +117,4 @@ async function testGetPayment() {
 // 运行所有测试
 console.log("开始运行支付相关测试...\n");
 
-testSendPayment()
-  .then(() => testGetPayment())
-  .then(() => console.log("\n所有测试完成！"))
-  .catch(console.error); 
+testSendPayment().catch(console.error);

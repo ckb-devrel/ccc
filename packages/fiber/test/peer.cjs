@@ -1,75 +1,85 @@
-const { FiberSDK } = require("../dist.commonjs/index.js");
+const { FiberClient, FiberSDK } = require("../dist.commonjs/index.js");
 
-// 自定义错误处理函数
+// Custom error handling function
 function handleRPCError(error) {
   if (error.error && error.error.code === -32601) {
-    console.error("错误: 节点可能未运行或 RPC 方法不存在");
-    console.error("请确保:");
-    console.error("1. Fiber 节点已启动");
-    console.error("2. 节点 RPC 地址正确 (当前: http://127.0.0.1:8227)");
-    console.error("3. 节点 RPC 接口可用");
+    console.error("Error: Node may not be running or RPC method does not exist");
+    console.error("Please ensure:");
+    console.error("1. Fiber node is started");
+    console.error("2. Node RPC address is correct (current: http://127.0.0.1:8227)");
+    console.error("3. Node RPC interface is available");
   } else if (error.error && error.error.code === -32602) {
-    console.error("错误: 参数无效");
-    console.error("请检查:");
-    console.error("1. 参数类型是否正确");
-    console.error("2. 参数值是否在有效范围内");
-    console.error("3. 必填参数是否都已提供");
+    console.error("Error: Invalid parameters");
+    console.error("Please check:");
+    console.error("1. Parameter types are correct");
+    console.error("2. Parameter values are within valid range");
+    console.error("3. All required parameters are provided");
   } else {
-    console.error("RPC 错误:", error.message);
+    console.error("RPC Error:", error.message);
     if (error.error && error.error.data) {
-      console.error("错误详情:", error.error.data);
+      console.error("Error details:", error.error.data);
     }
   }
 }
 
 async function testConnectPeer() {
-  console.log("\n开始测试连接节点...\n");
-
   try {
+    // Initialize SDK
     const sdk = new FiberSDK({
       endpoint: "http://127.0.0.1:8227",
-      timeout: 30000,
+      timeout: 5000,
     });
 
-    // 使用文档中的测试节点地址
-    const peerAddress = "/ip4/18.162.235.225/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
-    console.log("正在调用 connect_peer 方法，连接地址:", peerAddress);
+    console.log("Starting peer connection test...\n");
 
-    await sdk.peer.connectPeer({ address: peerAddress });
-    console.log("连接节点成功");
+    try {
+      // Connect to peer
+      console.log("Calling connect_peer method...");
+      const peerAddress = "/ip4/18.162.235.225/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
+      const [address, peerId] = peerAddress.split("/p2p/");
+      
+      try {
+        const response = await sdk.peer.connectPeer({
+          peer_id: peerId,
+          address: address,
+        });
+        console.log("Successfully connected to peer:", response);
+      } catch (error) {
+        // Check error message, if already connected, consider it a success
+        if (error.message && error.message.includes("already connected")) {
+          console.log("Peer is already connected, proceeding with next steps");
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      if (error.error) {
+        handleRPCError(error);
+      } else {
+        console.error("Failed to connect to peer:", error.message);
+      }
+    }
+
+    console.log("\nTest completed!");
   } catch (error) {
-    console.error("连接节点失败:", error.message);
-    handleRPCError(error);
+    if (error.error) {
+      handleRPCError(error);
+    } else {
+      console.error("Error during test:", error.message);
+    }
   }
-
-  console.log("\n测试完成！");
 }
 
-async function testOpenChannel() {
-  console.log("\n开始测试打开通道...\n");
-
-  try {
-    const sdk = new FiberSDK({
-      endpoint: "http://127.0.0.1:8227",
-      timeout: 30000,
-    });
-
-    const peerId = "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
-    console.log("正在调用 open_channel 方法，节点 ID:", peerId);
-
-    const result = await sdk.channel.openChannel({
-      peer_id: peerId,
-      funding_amount: "0x174876e800", // 100 CKB
-      public: true,
-    });
-
-    console.log("打开通道结果:", result);
-  } catch (error) {
-    console.error("打开通道失败:", error.message);
-    handleRPCError(error);
-  }
-
-  console.log("\n测试完成！");
+async function testDisconnectPeer() {
+  console.log("\nStarting peer disconnection test...\n");
+  const sdk = new FiberSDK({
+    endpoint: "http://127.0.0.1:8227",
+    timeout: 30000,
+  });
+  const peerId = "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89";
+  console.log("正在调用 disconnect_peer 方法，节点 ID:", peerId);
+  const result = await sdk.peer.disconnectPeer(peerId);
+  console.log("断开链接结果:", result);
 }
 
 async function testListChannels() {
@@ -97,102 +107,23 @@ async function testListChannels() {
   console.log("\n测试完成！");
 }
 
-async function testCloseChannel() {
-  console.log("\n开始测试关闭通道...\n");
-
-  try {
-    const sdk = new FiberSDK({
-      endpoint: "http://127.0.0.1:8227",
-      timeout: 30000,
-    });
-
-    // 获取通道列表
-    const channels = await sdk.channel.listChannels({
-      peer_id: "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo",
-    });
-
-    // 关闭所有通道
-    for (const channel of channels) {
-      console.log("正在关闭通道:", channel.channel_id);
-      await sdk.channel.shutdownChannel({
-        channel_id: channel.channel_id,
-        close_script: {
-          code_hash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-          hash_type: "type",
-          args: "0xea076cd91e879a3c189d94068e1584c3fbcc1876"
-        },
-        fee_rate: "0x3FC"
-      });
-      console.log("通道关闭成功:", channel.channel_id);
-    }
-  } catch (error) {
-    console.error("关闭通道失败:", error.message);
-    handleRPCError(error);
-  }
-
-  console.log("\n测试完成！");
-}
-
-async function cleanupNegotiatingChannels() {
-  console.log("\n开始清理处于 NEGOTIATING_FUNDING 状态的通道...\n");
-
-  try {
-    const sdk = new FiberSDK({
-      endpoint: "http://127.0.0.1:8227",
-      timeout: 30000,
-    });
-
-    // 获取通道列表
-    const channels = await sdk.channel.listChannels({
-      peer_id: "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo",
-    });
-
-    // 过滤出处于 NEGOTIATING_FUNDING 状态的通道
-    const negotiatingChannels = channels.filter(
-      channel => channel.state.state_name === "NEGOTIATING_FUNDING"
-    );
-
-    console.log(`找到 ${negotiatingChannels.length} 个处于 NEGOTIATING_FUNDING 状态的通道`);
-
-    // 关闭这些通道
-    for (const channel of negotiatingChannels) {
-      console.log("正在关闭通道:", channel.channel_id);
-      try {
-        await sdk.channel.shutdownChannel({
-          channel_id: channel.channel_id,
-          close_script: {
-            code_hash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-            hash_type: "type",
-            args: "0xea076cd91e879a3c189d94068e1584c3fbcc1876"
-          },
-          fee_rate: "0x3FC",
-          force: true
-        });
-        console.log("通道关闭成功:", channel.channel_id);
-      } catch (closeError) {
-        console.error("关闭通道失败:", channel.channel_id, closeError.message);
-      }
-    }
-  } catch (error) {
-    console.error("清理通道失败:", error.message);
-    handleRPCError(error);
-  }
-
-  console.log("\n清理完成！");
-}
-
 async function main() {
   // 1. 首先清理处于 NEGOTIATING_FUNDING 状态的通道
-  await cleanupNegotiatingChannels();
-  
-  // 2. 然后建立网络连接
-  await testConnectPeer();
-  
-  // 3. 打开新通道
-  await testOpenChannel();
-  
-  // 4. 最后查询通道状态
   await testListChannels();
+
+  // 2. 然后建立网络连接
+  // await testConnectPeer();
+
+  // 3. 断开链接
+  await testDisconnectPeer();
+
+  // 4. 最后查询通道状态
+  // await testListChannels();
 }
 
-main().catch(console.error);
+// 运行测试
+console.log("开始运行节点连接测试...\n");
+
+main()
+  .then(() => console.log("\n所有测试完成！"))
+  .catch(console.error);

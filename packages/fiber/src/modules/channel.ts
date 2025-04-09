@@ -5,7 +5,7 @@ export class ChannelModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 打开通道
+   * Open a channel
    */
   async openChannel(params: {
     peer_id: string;
@@ -26,7 +26,7 @@ export class ChannelModule {
   }
 
   /**
-   * 接受通道
+   * Accept a channel
    */
   async acceptChannel(params: {
     temporary_channel_id: string;
@@ -41,47 +41,48 @@ export class ChannelModule {
   }
 
   /**
-   * 放弃通道
-   * @param channelId - 通道ID，必须是有效的 Hash256 格式
-   * @throws {Error} 当通道ID无效或通道不存在时抛出错误
+   * Abandon a channel
+   * @param channelId - Channel ID, must be a valid Hash256 format
+   * @throws {Error} Throws error when channel ID is invalid or channel does not exist
    * @returns Promise<void>
    */
   async abandonChannel(channelId: Hash256): Promise<void> {
+    console.log(channelId);
     if (!channelId) {
-      throw new Error("通道ID不能为空");
+      throw new Error("Channel ID cannot be empty");
     }
 
     if (!channelId.startsWith("0x")) {
-      throw new Error("通道ID必须以0x开头");
+      throw new Error("Channel ID must start with 0x");
     }
 
     if (channelId.length !== 66) {
-      // 0x + 64位哈希
-      throw new Error("通道ID长度无效");
+      // 0x + 64-bit hash
+      throw new Error("Invalid channel ID length");
     }
 
     try {
-      // 先检查通道是否存在
+      // Check if channel exists
       const channels = await this.listChannels();
       const channelExists = channels.some(
         (channel) => channel.channel_id === channelId,
       );
 
       if (!channelExists) {
-        throw new Error(`找不到ID为 ${channelId} 的通道`);
+        throw new Error(`Channel with ID ${channelId} not found`);
       }
 
-      return this.client.call("abandon_channel", [channelId]);
+      return this.client.call("abandon_channel", [{ channel_id: channelId }]);
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`放弃通道失败: ${error.message}`);
+        throw new Error(`Failed to abandon channel: ${error.message}`);
       }
       throw error;
     }
   }
 
   /**
-   * 列出通道
+   * List channels
    */
   async listChannels(): Promise<Channel[]> {
     const response = await this.client.call<{ channels: Channel[] }>(
@@ -92,7 +93,7 @@ export class ChannelModule {
   }
 
   /**
-   * 关闭通道
+   * Shutdown channel
    */
   async shutdownChannel(params: {
     channel_id: Hash256;
@@ -104,7 +105,7 @@ export class ChannelModule {
   }
 
   /**
-   * 更新通道
+   * Update channel
    */
   async updateChannel(params: {
     channel_id: Hash256;

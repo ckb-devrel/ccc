@@ -4,17 +4,17 @@ export class PeerModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 连接对等节点
-   * @param address 节点地址
+   * Connect to a peer node
+   * @param address Node address
    */
   async connectPeer(address: string): Promise<void> {
-    return this.client.call("connect_peer", [address]);
+    return this.client.call("connect_peer", [{ address }]);
   }
 
   /**
-   * 断开对等节点连接
+   * Disconnect from a peer node
    */
   async disconnectPeer(peer_id: string): Promise<void> {
-    return this.client.call("disconnect_peer", [peer_id]);
+    return this.client.call("disconnect_peer", [{ peer_id }]);
   }
 }
