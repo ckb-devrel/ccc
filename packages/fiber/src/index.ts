@@ -53,21 +53,21 @@ export class FiberSDK {
   }
 
   /**
-   * 列出所有通道
+   * List all channels
    */
   async listChannels(): Promise<Channel[]> {
     return this.channel.listChannels();
   }
 
   /**
-   * 获取节点信息
+   * Get node information
    */
   async nodeInfo(): Promise<NodeInfo> {
     return this.info.nodeInfo();
   }
 
   /**
-   * 打开通道
+   * Open channel
    */
   async openChannel(params: {
     peer_id: string;
@@ -88,7 +88,7 @@ export class FiberSDK {
   }
 
   /**
-   * 关闭通道
+   * Close channel
    */
   async shutdownChannel(params: {
     channel_id: Hash256;
@@ -100,16 +100,14 @@ export class FiberSDK {
   }
 
   /**
-   * 关闭通道
-   /**
-    * 关闭通道
-    */
+   * Close channel
+   */
   async abandonChannel(channel_id: Hash256): Promise<void> {
     return this.channel.abandonChannel(channel_id);
   }
 
   /**
-   * 发送支付
+   * Send payment
    */
   async sendPayment(params: {
     payment_hash: string;
@@ -120,14 +118,14 @@ export class FiberSDK {
   }
 
   /**
-   * 解析发票
+   * Parse invoice
    */
   async parseInvoice(invoice: string): Promise<CkbInvoice> {
     return this.invoice.parseInvoice(invoice);
   }
 
   /**
-   * 创建新发票
+   * Create new invoice
    */
   async newInvoice(params: {
     amount: bigint;
@@ -139,7 +137,7 @@ export class FiberSDK {
   }
 
   /**
-   * 获取发票信息
+   * Get invoice information
    */
   async getInvoice(payment_hash: string): Promise<{
     status: string;
@@ -150,14 +148,14 @@ export class FiberSDK {
   }
 
   /**
-   * 取消发票
+   * Cancel invoice
    */
   async cancelInvoice(payment_hash: string): Promise<void> {
     return this.invoice.cancelInvoice(payment_hash);
   }
 
   /**
-   * 获取支付信息
+   * Get payment information
    */
   async getPayment(payment_hash: string): Promise<{
     status: PaymentSessionStatus;
@@ -171,21 +169,21 @@ export class FiberSDK {
   }
 
   /**
-   * 连接节点
+   * Connect to node
    */
   async connectPeer(address: string): Promise<void> {
     return this.peer.connectPeer(address);
   }
 
   /**
-   * 断开节点连接
+   * Disconnect from node
    */
   async disconnectPeer(peer_id: string): Promise<void> {
     return this.peer.disconnectPeer(peer_id);
   }
 
   /**
-   * 列出所有连接的节点
+   * List all connected nodes
    */
   async listPeers(): Promise<PeerInfo[]> {
     return this.peer.listPeers();

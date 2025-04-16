@@ -5,16 +5,16 @@ export class GraphModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 获取节点列表
+   * Get node list
    */
   async graphNodes(): Promise<Pubkey[]> {
     return this.client.call("graph_nodes", []);
   }
 
   /**
-   * 获取通道列表
+   * Get channel list
    */
   async graphChannels(): Promise<ChannelInfo[]> {
     return this.client.call("graph_channels", []);
   }
-} 
+}

@@ -4,17 +4,13 @@ import {
   PaymentCustomRecords,
   PaymentSessionStatus,
   SessionRoute,
-  Payment,
-  PaymentStatus,
-  PaymentType,
-  PaymentResult,
 } from "../types.js";
 
 export class PaymentModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 发送支付
+   * Send payment
    */
   async sendPayment(params: {
     payment_hash: string;
@@ -27,7 +23,7 @@ export class PaymentModule {
   }
 
   /**
-   * 获取支付
+   * Get payment
    */
   async getPayment(payment_hash: string): Promise<{
     status: PaymentSessionStatus;

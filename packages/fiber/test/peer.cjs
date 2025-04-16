@@ -111,20 +111,20 @@ async function testListChannels() {
 }
 
 async function main() {
-  // 1. 首先清理处于 NEGOTIATING_FUNDING 状态的通道
+  // 1. First clean up channels in NEGOTIATING_FUNDING state
   // await testListChannels();
 
-  // 2. 然后建立网络连接
+  // 2. Then establish network connection
   await testConnectPeer();
 
-  // 3. 断开链接
+  // 3. Disconnect
   await testDisconnectPeer();
 
-  // 4. 最后查询通道状态
+  // 4. Finally query channel status
   // await testListChannels();
 }
 
-// 运行测试
+// Run tests
 console.log("开始运行节点连接测试...\n");
 
 main()

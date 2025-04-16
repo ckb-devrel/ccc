@@ -34,6 +34,7 @@ const sdk = new FiberSDK({
 ### Channel Management
 
 #### listChannels
+
 List all channel information.
 
 ```javascript
@@ -41,6 +42,7 @@ const channels = await sdk.channel.listChannels();
 ```
 
 Return Parameters:
+
 - `channels`: Array of channels, each containing:
   - `channel_id`: Channel ID
   - `peer_id`: Peer node ID
@@ -56,6 +58,7 @@ Return Parameters:
   - `tlc_fee_proportional_millionths`: TLC fee proportion
 
 #### openChannel
+
 Open a new channel.
 
 ```javascript
@@ -63,12 +66,14 @@ const result = await sdk.channel.openChannel({
   peer_id: "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89", // Peer node ID
   funding_amount: "0xba43b7400", // Channel funding amount (hexadecimal)
   public: true, // Whether the channel is public
-  funding_udt_type_script: { // Optional UDT type script
+  funding_udt_type_script: {
+    // Optional UDT type script
     code_hash: "0x...",
     hash_type: "type",
     args: "0x...",
   },
-  shutdown_script: { // Optional shutdown script
+  shutdown_script: {
+    // Optional shutdown script
     code_hash: "0x...",
     hash_type: "type",
     args: "0x...",
@@ -85,6 +90,7 @@ const result = await sdk.channel.openChannel({
 ```
 
 Parameters:
+
 - `peer_id`: Peer node ID
 - `funding_amount`: Channel funding amount (hexadecimal)
 - `public`: Whether the channel is public
@@ -100,13 +106,15 @@ Parameters:
 - `max_tlc_number_in_flight`: Optional maximum TLC number in flight
 
 #### shutdownChannel
+
 Close a channel.
 
 ```javascript
 await sdk.channel.shutdownChannel({
   channel_id: "channel_id", // Channel ID
   close_script: {
-    code_hash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+    code_hash:
+      "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
     hash_type: "type",
     args: "0xea076cd91e879a3c189d94068e1584c3fbcc1876",
   },
@@ -116,6 +124,7 @@ await sdk.channel.shutdownChannel({
 ```
 
 Parameters:
+
 - `channel_id`: Channel ID
 - `close_script`: Close script
   - `code_hash`: Code hash
@@ -127,6 +136,7 @@ Parameters:
 ### Payment Processing
 
 #### sendPayment
+
 Send a payment.
 
 ```javascript
@@ -140,6 +150,7 @@ await sdk.payment.sendPayment({
 ```
 
 Parameters:
+
 - `payment_hash`: Payment hash
 - `amount`: Amount (hexadecimal)
 - `fee_rate`: Fee rate (hexadecimal)
@@ -147,6 +158,7 @@ Parameters:
 - `route`: Optional route information
 
 #### getPayment
+
 Query payment status.
 
 ```javascript
@@ -154,9 +166,11 @@ const payment = await sdk.payment.getPayment("payment_hash");
 ```
 
 Parameters:
+
 - `payment_hash`: Payment hash
 
 Return Parameters:
+
 - `status`: Payment status
 - `payment_hash`: Payment hash
 - `created_at`: Creation time (hexadecimal timestamp)
@@ -167,6 +181,7 @@ Return Parameters:
 ### Invoice Management
 
 #### newInvoice
+
 Create a new invoice.
 
 ```javascript
@@ -179,12 +194,14 @@ const invoice = await sdk.invoice.newInvoice({
 ```
 
 Parameters:
+
 - `amount`: Amount (hexadecimal)
 - `description`: Optional description
 - `expiry`: Optional expiry time (hexadecimal)
 - `payment_secret`: Optional payment secret
 
 #### parseInvoice
+
 Parse an invoice.
 
 ```javascript
@@ -192,12 +209,15 @@ const parsedInvoice = await sdk.invoice.parseInvoice("invoice_string");
 ```
 
 Parameters:
+
 - `invoice_string`: Invoice string
 
 Return Parameters:
+
 - Parsed invoice information object
 
 #### getInvoice
+
 Query invoice status.
 
 ```javascript
@@ -205,9 +225,11 @@ const invoiceInfo = await sdk.invoice.getInvoice("payment_hash");
 ```
 
 Parameters:
+
 - `payment_hash`: Payment hash
 
 Return Parameters:
+
 - `status`: Invoice status
 - `invoice_address`: Invoice address
 - `invoice`: Invoice details
@@ -218,6 +240,7 @@ Return Parameters:
   - `created_at`: Creation time
 
 #### cancelInvoice
+
 Cancel an invoice.
 
 ```javascript
@@ -225,11 +248,13 @@ await sdk.invoice.cancelInvoice("payment_hash");
 ```
 
 Parameters:
+
 - `payment_hash`: Payment hash
 
 ### Node Management
 
 #### nodeInfo
+
 Get node information.
 
 ```javascript
@@ -237,6 +262,7 @@ const nodeInfo = await sdk.nodeInfo();
 ```
 
 Return Parameters:
+
 - `node_name`: Node name
 - `node_id`: Node ID
 - `addresses`: Node addresses list
@@ -246,16 +272,23 @@ Return Parameters:
 - `timestamp`: Timestamp
 
 #### connectPeer
+
 Connect to a peer node.
 
 ```javascript
-await sdk.peer.connectPeer("/ip4/127.0.0.1/tcp/8119/p2p/QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89");
+await sdk.peer.connectPeer(
+  "/ip4/127.0.0.1/tcp/8119/p2p/QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89",
+);
 ```
 
 Parameters:
+
 - `address`: Full peer address including peer ID (e.g. "/ip4/127.0.0.1/tcp/8119/p2p/Qm...")
 
 #### disconnectPeer
+
 Disconnect from a peer node.
+
+```
 
 ```
