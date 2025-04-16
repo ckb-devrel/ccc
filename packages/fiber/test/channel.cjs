@@ -45,7 +45,7 @@ async function testListChannels() {
     try {
       // List channels
       console.log("Calling listChannels method...");
-      const channels = await sdk.channel.listChannels();
+      const channels = await sdk.listChannels();
 
       // Output raw data
       console.log("Raw data:", JSON.stringify(channels, null, 2));
@@ -105,7 +105,7 @@ async function testListChannels() {
   }
 }
 
-async function testCloseChannels() {
+async function testAbandonChannel() {
   try {
     // Initialize SDK
     const sdk = new FiberSDK({
@@ -131,23 +131,7 @@ async function testCloseChannels() {
       console.log("Peer ID:", channelToClose.peer_id);
       console.log("State:", channelToClose.state);
 
-      // Call shutdown channel method
-      console.log("\nCalling shutdownChannel method...");
-      await sdk.channel.shutdownChannel({
-        channel_id: channelToClose.channel_id,
-        close_script: {
-          code_hash:
-            "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-          hash_type: "type",
-          args: "0xea076cd91e879a3c189d94068e1584c3fbcc1876",
-        },
-        fee_rate: "0x3FC",
-        force: false,
-      });
-      console.log("Channel closed successfully");
-
-      // Verify channel status
-      console.log("\nVerifying channel status...");
+      await sdk.abandonChannel(channelToClose.channel_id);
     } catch (error) {
       if (error.error) {
         handleRPCError(error);
@@ -165,9 +149,9 @@ async function testNewChannel() {
     endpoint: "http://127.0.0.1:8227",
     timeout: 5000,
   });
-  const peerId = "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89";
+  const peerId = "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
   console.log("Calling open_channel method, Peer ID:", peerId);
-  const result = await sdk.channel.openChannel({
+  const result = await sdk.openChannel({
     peer_id: peerId,
     funding_amount: "0xba43b7400", // 100 CKB
     public: true,
@@ -204,7 +188,7 @@ async function testUpdateAndShutdownChannel() {
   }
 
   console.log("Calling shutdown_channel method, Channel ID:", channelId);
-  const result2 = await sdk.channel.shutdownChannel({
+  const result2 = await sdk.shutdownChannel({
     channel_id: channelId,
     close_script: {
       code_hash:
@@ -220,11 +204,11 @@ async function testUpdateAndShutdownChannel() {
 
 async function main() {
   try {
-    await testListChannels();
-    // await testCloseChannels();
-    // await testNewChannel();
-    // await testUpdateAndShutdownChannel();
     // await testListChannels();
+    // await testNewChannel();
+    await testUpdateAndShutdownChannel();
+    // await testListChannels();
+    // await testAbandonChannel();
     console.log("\nAll tests completed!");
   } catch (error) {
     console.error("Error during test:", error);

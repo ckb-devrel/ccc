@@ -3,7 +3,7 @@ import { ChannelModule } from "./modules/channel.js";
 import { InfoModule } from "./modules/info.js";
 import { InvoiceModule } from "./modules/invoice.js";
 import { PaymentModule } from "./modules/payment.js";
-import { PeerModule } from "./modules/peer.js";
+import { PeerInfo, PeerModule } from "./modules/peer.js";
 import {
   Channel,
   CkbInvoice,
@@ -100,6 +100,15 @@ export class FiberSDK {
   }
 
   /**
+   * 关闭通道
+   /**
+    * 关闭通道
+    */
+  async abandonChannel(channel_id: Hash256): Promise<void> {
+    return this.channel.abandonChannel(channel_id);
+  }
+
+  /**
    * 发送支付
    */
   async sendPayment(params: {
@@ -164,8 +173,8 @@ export class FiberSDK {
   /**
    * 连接节点
    */
-  async connectPeer(peer_address: string): Promise<void> {
-    return this.peer.connectPeer(peer_address);
+  async connectPeer(address: string): Promise<void> {
+    return this.peer.connectPeer(address);
   }
 
   /**
@@ -173,6 +182,13 @@ export class FiberSDK {
    */
   async disconnectPeer(peer_id: string): Promise<void> {
     return this.peer.disconnectPeer(peer_id);
+  }
+
+  /**
+   * 列出所有连接的节点
+   */
+  async listPeers(): Promise<PeerInfo[]> {
+    return this.peer.listPeers();
   }
 }
 

@@ -2,10 +2,14 @@ const { FiberSDK } = require("../dist.commonjs/index.js");
 // Custom error handling function
 function handleRPCError(error) {
   if (error.error && error.error.code === -32601) {
-    console.error("Error: Node may not be running or RPC method does not exist");
+    console.error(
+      "Error: Node may not be running or RPC method does not exist",
+    );
     console.error("Please ensure:");
     console.error("1. Fiber node is started");
-    console.error("2. Node RPC address is correct (current: http://127.0.0.1:8227)");
+    console.error(
+      "2. Node RPC address is correct (current: http://127.0.0.1:8227)",
+    );
     console.error("3. Node RPC interface is available");
   } else if (error.error && error.error.code === -32602) {
     console.error("Error: Invalid parameters");
@@ -41,22 +45,22 @@ async function testNodeInfo() {
       // Get node information
       console.log("Calling node_info method...");
       const info = await sdk.nodeInfo();
-
-      // Output node information
-      console.log("\nNode Information:");
-      console.log("Node Name:", info.node_name);
-      console.log("Node ID:", info.node_id);
-      console.log("Addresses:", info.addresses);
-      console.log("Chain Hash:", info.chain_hash);
-      console.log(
-        "Auto Accept Min CKB Funding Amount:",
-        info.auto_accept_min_ckb_funding_amount,
-      );
-      console.log("UDT Config Info:", info.udt_cfg_infos);
-      console.log(
-        "Timestamp:",
-        new Date(Number(info.timestamp)).toLocaleString(),
-      );
+      console.log(info);
+      // // Output node information
+      // console.log("\nNode Information:");
+      // console.log("Node Name:", info.node_name);
+      // console.log("Node ID:", info.node_id);
+      // console.log("Addresses:", info.addresses);
+      // console.log("Chain Hash:", info.chain_hash);
+      // console.log(
+      //   "Auto Accept Min CKB Funding Amount:",
+      //   info.auto_accept_min_ckb_funding_amount,
+      // );
+      // console.log("UDT Config Info:", info.udt_cfg_infos);
+      // console.log(
+      //   "Timestamp:",
+      //   new Date(Number(info.timestamp)).toLocaleString(),
+      // );
     } catch (error) {
       if (error.error) {
         handleRPCError(error);

@@ -63,6 +63,24 @@ const result = await sdk.channel.openChannel({
   peer_id: "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89", // Peer node ID
   funding_amount: "0xba43b7400", // Channel funding amount (hexadecimal)
   public: true, // Whether the channel is public
+  funding_udt_type_script: { // Optional UDT type script
+    code_hash: "0x...",
+    hash_type: "type",
+    args: "0x...",
+  },
+  shutdown_script: { // Optional shutdown script
+    code_hash: "0x...",
+    hash_type: "type",
+    args: "0x...",
+  },
+  commitment_delay_epoch: "0x...", // Optional commitment delay epoch
+  commitment_fee_rate: "0x...", // Optional commitment fee rate
+  funding_fee_rate: "0x...", // Optional funding fee rate
+  tlc_expiry_delta: "0x...", // Optional TLC expiry delta
+  tlc_min_value: "0x...", // Optional TLC minimum value
+  tlc_fee_proportional_millionths: "0x...", // Optional TLC fee proportion
+  max_tlc_value_in_flight: "0x...", // Optional maximum TLC value in flight
+  max_tlc_number_in_flight: "0x...", // Optional maximum TLC number in flight
 });
 ```
 
@@ -70,6 +88,16 @@ Parameters:
 - `peer_id`: Peer node ID
 - `funding_amount`: Channel funding amount (hexadecimal)
 - `public`: Whether the channel is public
+- `funding_udt_type_script`: Optional UDT type script
+- `shutdown_script`: Optional shutdown script
+- `commitment_delay_epoch`: Optional commitment delay epoch
+- `commitment_fee_rate`: Optional commitment fee rate
+- `funding_fee_rate`: Optional funding fee rate
+- `tlc_expiry_delta`: Optional TLC expiry delta
+- `tlc_min_value`: Optional TLC minimum value
+- `tlc_fee_proportional_millionths`: Optional TLC fee proportion
+- `max_tlc_value_in_flight`: Optional maximum TLC value in flight
+- `max_tlc_number_in_flight`: Optional maximum TLC number in flight
 
 #### shutdownChannel
 Close a channel.
@@ -103,12 +131,20 @@ Send a payment.
 
 ```javascript
 await sdk.payment.sendPayment({
-  invoice: "fibt1000000001pcsaug0p0exgfw0pnm6vk0rnt4xefskmrz0k2vqxr4lnrms60qasvc54jagg2hk8v40k88exmp04pn5cpcnrcsw5lk9w0w6l0m3k84e2ax4v6gq9ne2n77u4p8h3npx6tuufqftq8eyqxw9t4upaw4f89xukcee79rm0p0jv92d5ckq7pmvm09ma3psheu3rfyy9atlrdr4el6ys8yqurl2m74msuykljp35j0s47vpw8h3crfp5ldp8kp4xlusqk6rad3ssgwn2a429qlpgfgjrtj3gzy26w50cy7gypgjm6mjgaz2ff5q4am0avf6paxja2gh2wppjagqlg466yzty0r0pfz8qpuzqgq43mkgx", // Invoice string
+  payment_hash: "payment_hash", // Payment hash
+  amount: "0x5f5e100", // Amount (hexadecimal)
+  fee_rate: "0x3FC", // Fee rate (hexadecimal)
+  custom_records: {}, // Optional custom records
+  route: {}, // Optional route information
 });
 ```
 
 Parameters:
-- `invoice`: Invoice string
+- `payment_hash`: Payment hash
+- `amount`: Amount (hexadecimal)
+- `fee_rate`: Fee rate (hexadecimal)
+- `custom_records`: Optional custom records
+- `route`: Optional route information
 
 #### getPayment
 Query payment status.
@@ -136,30 +172,17 @@ Create a new invoice.
 ```javascript
 const invoice = await sdk.invoice.newInvoice({
   amount: "0x5f5e100", // Amount (hexadecimal)
-  currency: "Fibt", // Currency type
-  description: "test invoice", // Description
-  expiry: "0xe10", // Expiry time (hexadecimal)
-  final_cltv: "0x28", // Final CLTV value (hexadecimal)
-  payment_preimage: "0x...", // Payment preimage
-  hash_algorithm: "sha256", // Hash algorithm
+  description: "test invoice", // Optional description
+  expiry: "0xe10", // Optional expiry time (hexadecimal)
+  payment_secret: "0x...", // Optional payment secret
 });
 ```
 
 Parameters:
 - `amount`: Amount (hexadecimal)
-- `currency`: Currency type
-- `description`: Description
-- `expiry`: Expiry time (hexadecimal)
-- `final_cltv`: Final CLTV value (hexadecimal)
-- `payment_preimage`: Payment preimage
-- `hash_algorithm`: Hash algorithm
-
-Return Parameters:
-- `payment_hash`: Payment hash
-- `amount`: Amount
-- `description`: Description
-- `expiry`: Expiry time
-- `created_at`: Creation time
+- `description`: Optional description
+- `expiry`: Optional expiry time (hexadecimal)
+- `payment_secret`: Optional payment secret
 
 #### parseInvoice
 Parse an invoice.
@@ -194,6 +217,16 @@ Return Parameters:
   - `expiry`: Expiry time
   - `created_at`: Creation time
 
+#### cancelInvoice
+Cancel an invoice.
+
+```javascript
+await sdk.invoice.cancelInvoice("payment_hash");
+```
+
+Parameters:
+- `payment_hash`: Payment hash
+
 ### Node Management
 
 #### nodeInfo
@@ -216,75 +249,13 @@ Return Parameters:
 Connect to a peer node.
 
 ```javascript
-await sdk.peer.connectPeer({
-  peer_id: "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89", // Node ID
-  address: "/ip4/127.0.0.1/tcp/8119", // Node address
-});
+await sdk.peer.connectPeer("/ip4/127.0.0.1/tcp/8119/p2p/QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89");
 ```
 
 Parameters:
-- `peer_id`: Node ID
-- `address`: Node address
+- `address`: Full peer address including peer ID (e.g. "/ip4/127.0.0.1/tcp/8119/p2p/Qm...")
 
 #### disconnectPeer
 Disconnect from a peer node.
 
-```javascript
-await sdk.peer.disconnectPeer("peer_id");
 ```
-
-Parameters:
-- `peer_id`: Node ID
-
-## Error Handling
-
-The SDK provides a unified error handling mechanism. When an error occurs, it returns an object containing error information:
-
-```javascript
-try {
-  await sdk.channel.listChannels();
-} catch (error) {
-  if (error.error) {
-    // RPC error
-    console.error("RPC Error:", error.error);
-  } else {
-    // Other errors
-    console.error("Error:", error.message);
-  }
-}
-```
-
-## Testing
-
-The project includes multiple test files for testing various functional modules:
-
-- `test/channel.cjs` - Channel management tests
-- `test/payment.cjs` - Payment processing tests
-- `test/invoice.cjs` - Invoice management tests
-- `test/peer.cjs` - Node connection tests
-- `test/info.cjs` - Node information tests
-
-Run tests:
-
-```bash
-node test/channel.cjs
-node test/payment.cjs
-node test/invoice.cjs
-node test/peer.cjs
-node test/info.cjs
-```
-
-## Notes
-
-1. Ensure the Fiber node is started and running properly before use
-2. Make sure the RPC address is configured correctly
-3. All amount parameters must be in hexadecimal format (starting with "0x")
-4. It is recommended to use appropriate error handling in production environments
-
-## Contributing
-
-Issues and Pull Requests are welcome to help improve the project.
-
-## License
-
-[MIT](LICENSE)
