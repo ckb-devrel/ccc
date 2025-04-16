@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/src/components/Button";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { TextInput } from "@/src/components/Input";
 import { useRouter } from "next/navigation";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
@@ -26,7 +26,6 @@ export default function Page() {
   const [endpoint, setEndpoint] = useState("");
   const [nodeInfo, setNodeInfo] = useState<any>(null);
 
-
   const initSdk = () => {
     const newFiber = new FiberSDK({
       endpoint: endpoint || `/api/fiber`,
@@ -40,7 +39,7 @@ export default function Page() {
     }
   };
 
-  const getNodeInfo = async () => {
+  const getNodeInfo = useCallback(async () => {
     if (!fiber) return;
     try {
       const info = await fiber.nodeInfo();
@@ -49,56 +48,54 @@ export default function Page() {
     } catch (error) {
       console.error("Failed to get node info:", error);
     }
-  };
-
-
+  }, [fiber]);
 
   useEffect(() => {
     if (fiber) {
       getNodeInfo();
     }
-  }, [fiber]);
+  }, [fiber, getNodeInfo]);
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Fiber </h1>
       </div>
       {fiber ? (
         <div className="flex gap-2">
           <BigButton
-            key={'/fiber/channel'}
+            key={"/fiber/channel"}
             size="sm"
-            iconName={'ArrowLeftRight'}
-            onClick={() => router.push('/fiber/channel')}
-            className={'text-yellow-500'}
+            iconName={"ArrowLeftRight"}
+            onClick={() => router.push("/fiber/channel")}
+            className={"text-yellow-500"}
           >
             channel
           </BigButton>
           <BigButton
-            key={'/fiber/Peer'}
+            key={"/fiber/Peer"}
             size="sm"
-            iconName={'ArrowLeftRight'}
-            onClick={() => router.push('/fiber/peer')}
-            className={'text-yellow-500'}
+            iconName={"ArrowLeftRight"}
+            onClick={() => router.push("/fiber/peer")}
+            className={"text-yellow-500"}
           >
             Peer
           </BigButton>
           <BigButton
-            key={'/fiber/payment'}
+            key={"/fiber/payment"}
             size="sm"
-            iconName={'ArrowLeftRight'}
-            onClick={() => router.push('/fiber/payment')}
-            className={'text-yellow-500'}
+            iconName={"ArrowLeftRight"}
+            onClick={() => router.push("/fiber/payment")}
+            className={"text-yellow-500"}
           >
             Payment
           </BigButton>
           <BigButton
-            key={'/fiber/invoice'}
+            key={"/fiber/invoice"}
             size="sm"
-            iconName={'ArrowLeftRight'}
-            onClick={() => router.push('/fiber/invoice')}
-            className={'text-yellow-500'}
+            iconName={"ArrowLeftRight"}
+            onClick={() => router.push("/fiber/invoice")}
+            className={"text-yellow-500"}
           >
             Invoice
           </BigButton>
@@ -114,8 +111,6 @@ export default function Page() {
           </div>
         </div>
       )}
-
-      
 
       {nodeInfo && (
         <div className="mt-4 w-full rounded-lg border bg-white p-4">
@@ -145,10 +140,9 @@ export default function Page() {
         </div>
       )}
       <ButtonsPanel>
-      <Button onClick={() => router.push("/")}>Back</Button>
-      <Button onClick={initSdk}>Init Fiber SDK</Button>
+        <Button onClick={() => router.push("/")}>Back</Button>
+        <Button onClick={initSdk}>Init Fiber SDK</Button>
       </ButtonsPanel>
-      
     </div>
   );
 }
