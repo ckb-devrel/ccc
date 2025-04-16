@@ -47,7 +47,7 @@ export class ChannelModule {
    * @returns Promise<void>
    */
   async abandonChannel(channelId: Hash256): Promise<void> {
-    console.log(channelId);
+    console.log(11111, channelId);
     if (!channelId) {
       throw new Error("Channel ID cannot be empty");
     }

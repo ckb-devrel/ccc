@@ -39,13 +39,12 @@ async function testConnectPeer() {
     try {
       // Connect to peer
       console.log("Calling connect_peer method...");
-      const peerAddress = "/ip4/18.162.235.225/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
-      const [address, peerId] = peerAddress.split("/p2p/");
-      
+      const peerAddress =
+        "/ip4/18.162.235.225/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
+
       try {
-        const response = await sdk.peer.connectPeer({
-          peer_id: peerId,
-          address: address,
+        const response = await sdk.connectPeer({
+          address: peerAddress,
         });
         console.log("Successfully connected to peer:", response);
       } catch (error) {
@@ -80,7 +79,7 @@ async function testDisconnectPeer() {
     endpoint: "http://127.0.0.1:8227",
     timeout: 30000,
   });
-  const peerId = "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89";
+  const peerId = "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
   console.log("正在调用 disconnect_peer 方法，节点 ID:", peerId);
   const result = await sdk.peer.disconnectPeer(peerId);
   console.log("断开链接结果:", result);
@@ -98,7 +97,7 @@ async function testListChannels() {
     const peerId = "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
     console.log("正在调用 list_channels 方法，节点 ID:", peerId);
 
-    const result = await sdk.channel.listChannels({
+    const result = await sdk.listChannels({
       peer_id: peerId,
     });
 
@@ -113,10 +112,10 @@ async function testListChannels() {
 
 async function main() {
   // 1. 首先清理处于 NEGOTIATING_FUNDING 状态的通道
-  await testListChannels();
+  // await testListChannels();
 
   // 2. 然后建立网络连接
-  // await testConnectPeer();
+  await testConnectPeer();
 
   // 3. 断开链接
   await testDisconnectPeer();
