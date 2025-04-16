@@ -25,7 +25,7 @@ function handleRPCError(error) {
   }
 }
 
-// 将十六进制字符串转换为数字
+// Convert hexadecimal string to number
 function hexToNumber(hex) {
   if (!hex) return 0;
   return parseInt(hex.replace("0x", ""), 16);

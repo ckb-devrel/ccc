@@ -5,7 +5,7 @@ export class DevModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 提交承诺交易
+   * Submit commitment transaction
    */
   async commitmentSigned(params: {
     channel_id: Hash256;
@@ -15,7 +15,7 @@ export class DevModule {
   }
 
   /**
-   * 添加时间锁定合约
+   * Add time-locked contract
    */
   async addTlc(params: {
     channel_id: Hash256;
@@ -27,7 +27,7 @@ export class DevModule {
   }
 
   /**
-   * 移除时间锁定合约
+   * Remove time-locked contract
    */
   async removeTlc(params: {
     channel_id: Hash256;
@@ -40,7 +40,7 @@ export class DevModule {
   }
 
   /**
-   * 提交承诺交易
+   * Submit commitment transaction
    */
   async submitCommitmentTransaction(params: {
     channel_id: Hash256;
@@ -50,9 +50,9 @@ export class DevModule {
   }
 
   /**
-   * 移除监视通道
+   * Remove watch channel
    */
   async removeWatchChannel(channel_id: Hash256): Promise<void> {
     return this.client.call("remove_watch_channel", [channel_id]);
   }
-} 
+}

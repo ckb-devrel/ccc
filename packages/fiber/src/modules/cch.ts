@@ -5,12 +5,9 @@ export class CchModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * 发送 BTC
+   * Send BTC
    */
-  async sendBtc(params: {
-    btc_pay_req: string;
-    currency: Currency;
-  }): Promise<{
+  async sendBtc(params: { btc_pay_req: string; currency: Currency }): Promise<{
     timestamp: bigint;
     expiry: bigint;
     ckb_final_tlc_expiry_delta: bigint;
@@ -27,7 +24,7 @@ export class CchModule {
   }
 
   /**
-   * 接收 BTC
+   * Receive BTC
    */
   async receiveBtc(params: {
     payment_hash: string;
@@ -50,7 +47,7 @@ export class CchModule {
   }
 
   /**
-   * 获取接收 BTC 订单
+   * Get receive BTC order
    */
   async getReceiveBtcOrder(payment_hash: string): Promise<{
     timestamp: bigint;
@@ -66,4 +63,4 @@ export class CchModule {
   }> {
     return this.client.call("get_receive_btc_order", [payment_hash]);
   }
-} 
+}

@@ -1,238 +1,258 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fiber 通道测试</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .card {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        button.danger {
-            background-color: #f44336;
-        }
-        button.danger:hover {
-            background-color: #d32f2f;
-        }
-        pre {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            overflow-x: auto;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .status {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .status.success {
-            background-color: #dff0d8;
-            color: #3c763d;
-        }
-        .status.error {
-            background-color: #f2dede;
-            color: #a94442;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 8px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 10px 20px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button.danger {
+        background-color: #f44336;
+      }
+      button.danger:hover {
+        background-color: #d32f2f;
+      }
+      pre {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+        overflow-x: auto;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .status {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      .status.success {
+        background-color: #dff0d8;
+        color: #3c763d;
+      }
+      .status.error {
+        background-color: #f2dede;
+        color: #a94442;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Fiber 通道测试</h1>
-        
-        <div class="card">
-            <h2>节点信息</h2>
-            <button onclick="getNodeInfo()">获取节点信息</button>
-            <pre id="nodeInfo"></pre>
-        </div>
+      <h1>Fiber 通道测试</h1>
 
-        <div class="card">
-            <h2>节点连接</h2>
-            <div class="form-group">
-                <label for="peerAddress">对等节点地址</label>
-                <input type="text" id="peerAddress" placeholder="/ip4/127.0.0.1/tcp/8119/p2p/Qm...">
-            </div>
-            <button onclick="connectPeer()">连接节点</button>
-            <div id="peerStatus" class="status"></div>
-        </div>
+      <div class="card">
+        <h2>节点信息</h2>
+        <button onclick="getNodeInfo()">获取节点信息</button>
+        <pre id="nodeInfo"></pre>
+      </div>
 
-        <div class="card">
-            <h2>通道操作</h2>
-            <div class="form-group">
-                <label for="fundingAmount">通道资金 (CKB)</label>
-                <input type="number" id="fundingAmount" placeholder="100" value="100">
-            </div>
-            <div class="form-group">
-                <label for="isPublic">是否公开</label>
-                <input type="checkbox" id="isPublic" checked>
-            </div>
-            <button onclick="openChannel()">打开通道</button>
-            <button onclick="listChannels()">列出通道</button>
-            <button onclick="abandonChannel()" class="danger">放弃通道</button>
-            <pre id="channelInfo"></pre>
+      <div class="card">
+        <h2>节点连接</h2>
+        <div class="form-group">
+          <label for="peerAddress">对等节点地址</label>
+          <input
+            type="text"
+            id="peerAddress"
+            placeholder="/ip4/127.0.0.1/tcp/8119/p2p/Qm..."
+          />
         </div>
+        <button onclick="connectPeer()">连接节点</button>
+        <div id="peerStatus" class="status"></div>
+      </div>
+
+      <div class="card">
+        <h2>通道操作</h2>
+        <div class="form-group">
+          <label for="fundingAmount">通道资金 (CKB)</label>
+          <input
+            type="number"
+            id="fundingAmount"
+            placeholder="100"
+            value="100"
+          />
+        </div>
+        <div class="form-group">
+          <label for="isPublic">是否公开</label>
+          <input type="checkbox" id="isPublic" checked />
+        </div>
+        <button onclick="openChannel()">打开通道</button>
+        <button onclick="listChannels()">列出通道</button>
+        <button onclick="abandonChannel()" class="danger">放弃通道</button>
+        <pre id="channelInfo"></pre>
+      </div>
     </div>
 
     <!-- 使用更适合浏览器环境的 punycode polyfill -->
     <script>
-        window.module = { exports: {} };
+      window.module = { exports: {} };
     </script>
     <script src="https://cdn.jsdelivr.net/npm/punycode@2.1.1/punycode.min.js"></script>
-    
+
     <!-- 使用 ES 模块方式导入 -->
     <script type="module">
-        import { FiberSDK } from '../dist/index.js';
+      import { FiberSDK } from "../dist/index.js";
 
-        // 初始化 Fiber SDK
-        const sdk = new FiberSDK({
-            endpoint: "http://127.0.0.1:8227",
-            timeout: 5000,
-        });
+      // 初始化 Fiber SDK
+      const sdk = new FiberSDK({
+        endpoint: "http://127.0.0.1:8227",
+        timeout: 5000,
+      });
 
-        // 将 sdk 对象和所有函数挂载到全局
-        window.sdk = sdk;
+      // 将 sdk 对象和所有函数挂载到全局
+      window.sdk = sdk;
 
-        // 获取节点信息
-        window.getNodeInfo = async function() {
-            try {
-                const info = await sdk.nodeInfo();
-                document.getElementById('nodeInfo').textContent = JSON.stringify(info, null, 2);
-            } catch (error) {
-                document.getElementById('nodeInfo').textContent = '错误: ' + error.message;
-            }
-        };
-
-        // 连接对等节点
-        window.connectPeer = async function() {
-            const peerAddress = document.getElementById('peerAddress').value;
-            if (!peerAddress) {
-                showStatus('请输入对等节点地址', 'error');
-                return;
-            }
-
-            try {
-                await sdk.peer.connectPeer(peerAddress);
-                showStatus('连接成功', 'success');
-            } catch (error) {
-                showStatus('连接错误: ' + error.message, 'error');
-            }
-        };
-
-        // 打开通道
-        window.openChannel = async function() {
-            const peerAddress = document.getElementById('peerAddress').value;
-            const fundingAmount = document.getElementById('fundingAmount').value;
-            const isPublic = document.getElementById('isPublic').checked;
-
-            if (!peerAddress) {
-                showStatus('请先连接对等节点', 'error');
-                return;
-            }
-
-            try {
-                // 从地址中提取 peer_id
-                const peerId = peerAddress.split('/p2p/')[1];
-                if (!peerId) {
-                    showStatus('无效的对等节点地址', 'error');
-                    return;
-                }
-
-                const result = await sdk.channel.openChannel({
-                    peer_id: peerId,
-                    funding_amount: BigInt(fundingAmount) * BigInt(100000000), // 转换为 shannon
-                    public: isPublic
-                });
-
-                showStatus('通道创建成功: ' + result, 'success');
-                await listChannels(); // 刷新通道列表
-            } catch (error) {
-                showStatus('创建通道失败: ' + error.message, 'error');
-            }
-        };
-
-        // 列出通道
-        window.listChannels = async function() {
-            try {
-                const channels = await sdk.channel.listChannels();
-                document.getElementById('channelInfo').textContent = JSON.stringify(channels, null, 2);
-            } catch (error) {
-                document.getElementById('channelInfo').textContent = '错误: ' + error.message;
-            }
-        };
-
-        // 放弃通道
-        window.abandonChannel = async function() {
-            try {
-                const channels = await sdk.channel.listChannels();
-                if (channels.length === 0) {
-                    showStatus('没有可用的通道', 'error');
-                    return;
-                }
-
-                // 选择第一个通道
-                const channelToClose = channels[0];
-                if (channelToClose.state.state_name === "NEGOTIATING_FUNDING") {
-                    showStatus('通道正在协商资金阶段，无法关闭', 'error');
-                    return;
-                }
-
-                await sdk.channel.abandonChannel(channelToClose.channel_id);
-                showStatus('通道已放弃', 'success');
-                await listChannels(); // 刷新通道列表
-            } catch (error) {
-                showStatus('放弃通道失败: ' + error.message, 'error');
-            }
-        };
-
-        // 显示状态信息
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('peerStatus');
-            statusDiv.textContent = message;
-            statusDiv.className = 'status ' + type;
+      // 获取节点信息
+      window.getNodeInfo = async function () {
+        try {
+          const info = await sdk.nodeInfo();
+          document.getElementById("nodeInfo").textContent = JSON.stringify(
+            info,
+            null,
+            2,
+          );
+        } catch (error) {
+          document.getElementById("nodeInfo").textContent =
+            "错误: " + error.message;
         }
+      };
+
+      // 连接对等节点
+      window.connectPeer = async function () {
+        const peerAddress = document.getElementById("peerAddress").value;
+        if (!peerAddress) {
+          showStatus("请输入对等节点地址", "error");
+          return;
+        }
+
+        try {
+          await sdk.peer.connectPeer(peerAddress);
+          showStatus("连接成功", "success");
+        } catch (error) {
+          showStatus("连接错误: " + error.message, "error");
+        }
+      };
+
+      // 打开通道
+      window.openChannel = async function () {
+        const peerAddress = document.getElementById("peerAddress").value;
+        const fundingAmount = document.getElementById("fundingAmount").value;
+        const isPublic = document.getElementById("isPublic").checked;
+
+        if (!peerAddress) {
+          showStatus("请先连接对等节点", "error");
+          return;
+        }
+
+        try {
+          // 从地址中提取 peer_id
+          const peerId = peerAddress.split("/p2p/")[1];
+          if (!peerId) {
+            showStatus("无效的对等节点地址", "error");
+            return;
+          }
+
+          const result = await sdk.channel.openChannel({
+            peer_id: peerId,
+            funding_amount: BigInt(fundingAmount) * BigInt(100000000), // Convert to shannon
+            public: isPublic,
+          });
+
+          showStatus("通道创建成功: " + result, "success");
+          await listChannels(); // Refresh channel list
+        } catch (error) {
+          showStatus("创建通道失败: " + error.message, "error");
+        }
+      };
+
+      // 列出通道
+      window.listChannels = async function () {
+        try {
+          const channels = await sdk.channel.listChannels();
+          document.getElementById("channelInfo").textContent = JSON.stringify(
+            channels,
+            null,
+            2,
+          );
+        } catch (error) {
+          document.getElementById("channelInfo").textContent =
+            "错误: " + error.message;
+        }
+      };
+
+      // 放弃通道
+      window.abandonChannel = async function () {
+        try {
+          const channels = await sdk.channel.listChannels();
+          if (channels.length === 0) {
+            showStatus("没有可用的通道", "error");
+            return;
+          }
+
+          // 选择第一个通道
+          const channelToClose = channels[0];
+          if (channelToClose.state.state_name === "NEGOTIATING_FUNDING") {
+            showStatus("通道正在协商资金阶段，无法关闭", "error");
+            return;
+          }
+
+          await sdk.channel.abandonChannel(channelToClose.channel_id);
+          showStatus("通道已放弃", "success");
+          await listChannels(); // Refresh channel list
+        } catch (error) {
+          showStatus("放弃通道失败: " + error.message, "error");
+        }
+      };
+
+      // 显示状态信息
+      function showStatus(message, type) {
+        const statusDiv = document.getElementById("peerStatus");
+        statusDiv.textContent = message;
+        statusDiv.className = "status " + type;
+      }
     </script>
-</body>
-</html> 
+  </body>
+</html>
