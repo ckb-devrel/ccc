@@ -9,7 +9,7 @@ const config: Config = {
   safelist: [
     {
       pattern: /./, // Include all Tailwind classes
-    }
+    },
   ],
   theme: {
     extend: {
