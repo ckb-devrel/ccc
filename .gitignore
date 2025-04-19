@@ -10,5 +10,6 @@ packages/*/dist*
 
 .vscode
 .env.js
+**/.env
 
 *.DS_Store
