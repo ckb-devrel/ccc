@@ -325,6 +325,9 @@ importers:
       '@ckb-ccc/connector-react':
         specifier: workspace:*
         version: link:../connector-react
+      '@ckb-ccc/fiber':
+        specifier: workspace:*
+        version: link:../fiber
       '@ckb-ccc/lumos-patches':
         specifier: workspace:*
         version: link:../lumos-patches
