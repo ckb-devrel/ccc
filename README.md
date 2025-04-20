@@ -33,87 +33,36 @@
   <br />
   Interoperate with wallets from different chain ecosystems.
   <br />
-  Fully enabling CKB's Turing completeness and cryptographic freedom power.
+  Fully enabling CKB's Turing completeness and cryptographic freedom.
 </p>
 
 ## Use Cases
 
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/appPreview.png" width="50%" />
-  </a>
-</p>
+We design CCC to optimize various use cases, including:
 
-For non-developers, you can [try CCC's app now here](https://app.ckbccc.com/) ([Project source code](https://github.com/ckb-devrel/ccc/tree/master/packages/demo)). It showcases how to use CCC for some basic scenarios in CKB:
+- **Learn CKB**: Numerous [basic code examples and web demos based on CCC](https://github.com/ckb-devrel/ccc?tab=readme-ov-file#examples) help you quickly understand how CKB works.
+- **Analyze Data**: Leverage CCC to interact with CKB nodes and process blockchain data programmatically.
+- [**Compose Transaction**](https://github.com/ckb-devrel/ccc?tab=readme-ov-file#transaction-composing): Highly intuitive and customizable transaction composition, with helpers to simplify the process.
+- **Sign Easily**: Unified Signing interface with pre-built signing methods to interoperate with multiple chains seamlessly.
+- **Connect Wallets**: Integrate the connector component in a minute or smoothly build a customized wallet connection UI, enabling your app to reach a wider audience.
 
-- [Sign and verify any message.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/Sign/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts))
-- [Transfer native CKB token.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/Transfer/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts))
-- [Transfer UDT token.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/TransferUdt/page.tsx>) ([Playground](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts))
-- See [Misc: Single-Use-Seals](https://talk.nervos.org/t/en-cn-misc-single-use-seals/8279) to learn how token issuing works in the cell model.
-  - [Issue xUDT token with the Single-Use Lock.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtSus/page.tsx>)
-  - [Issue xUDT token controlled by a Type ID cell.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/IssueXUdtTypeId/page.tsx>)
-- [Spore Protocol](https://docs.spore.pro/) SDK.
-  - [Create spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/CreateSporeCluster/page.tsx>)
-  - [Mint spore.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/MintSpore/page.tsx>)
-  - [Transfer/Melt spore.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TransferSpore/page.tsx>)
-  - [Transfer spore cluster.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TransferSporeCluster/page.tsx>)
-- [Manage Nervos DAO.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/NervosDao/page.tsx>)
-- [Transfer native CKB token with time lock.](<https://github.com/ckb-devrel/ccc/blob/master/packages/demo/src/app/connected/(tools)/TimeLockedTransfer/page.tsx>)
-- [Calculate the CKB hash of any messages.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/utils/(tools)/Hash/page.tsx>)
-- [Generate mnemonic and keypairs. Encrypt to a keystore.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/utils/(tools)/Mnemonic/page.tsx>)
-- [Decrypt a keystore.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/utils/(tools)/Keystore/page.tsx>)
-- [Transfer the native CKB token with the old Lumos SDK.](<https://github.com/ckb-devrel/ccc/tree/master/packages/demo/src/app/connected/(tools)/TransferLumos/page.tsx>)
+Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckbccc.com) to learn more about CCC. If you are new to the CKB, we also recommend [Nervos CKB Docs](https://docs.nervos.org/) for basic knowledge.
 
-## Examples
+## Try in the Playground
 
 <p align="center">
   <a href="https://live.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png" width="90%" />
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png" width="70%" />
   </a>
 </p>
 
-Check our [full documents for all detailed APIs](https://docs.ckbccc.com) to understand these examples better. If you are new to the CKB, we recommend checking [Nervos CKB Docs](https://docs.nervos.org/) for basic knowledge. We build examples based on [the CCC playground](https://live.ckbccc.com/).
+The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing. [Click the link](https://live.ckbccc.com/) to run your code without the annoying preparation and watch how the code works, exploring CCC's capabilities.
 
-<p align="center">
-  <a href="https://live.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/playgroundCell.png" width="40%" />
-  </a>
-</p>
+For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/docs/playground).
 
-Cells are represented with graphs in the playground. The three layers of cells represent occupancy, type and lock from inside to outside. The filled center circle means that all CKB of this cell is used to store data.
+## Quick Start with `create-ccc-app`
 
-When cells share the same color, the same script governs them. They are owned by the same address (the outside ring) or the same type of assets (the inside ring). Check the script details in the "Scripts" tab.
-
-### Transaction Composing
-
-Here's an example for transferring CKB:
-
-```typescript
-const tx = ccc.Transaction.from({
-  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
-});
-```
-
-Tell CCC what you need, and then...
-
-```typescript
-await tx.completeInputsByCapacity(signer);
-await tx.completeFeeBy(signer); // Transaction fee rate is calculated automatically
-const txHash = await signer.sendTransaction(tx);
-```
-
-We have done everything!
-
-- [Use specified wallet in custom UI.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUi.ts)
-- [Use all supported wallets in custom UI.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUiWithController.ts)
-- [Sign and verify any message.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts)
-- [Transfer native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
-- [Transfer all native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts)
-- [Transfer UDT token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts)
-
-## Quick Start with `create-ccc-app` (Recommended)
-
-To quickly bootstrap a new CCC-based application, you can use our CLI tool `create-ccc-app`:
+Besides short testing, CCC is also suitable for building scalable applications. To get started quickly, you can use our CLI tool `create-ccc-app` to bootstrap a new CCC-based application:
 
 ```bash
 # Using npx
@@ -130,28 +79,62 @@ yarn create ccc-app my-ccc-app
 pnpm create ccc-app my-ccc-app
 ```
 
-Follow the prompts to select your preferred framework template and start building your CCC application.
+Follow the prompts to select your preferred framework template and begin building your CCC application.
 
 ## Manual Installation
 
-We design CCC for both front-end and back-end developers. You need only one package to fulfil all your needs:
+Whether you are a front-end or back-end developer, CCC provides helpful tools and capabilities:
 
 - [NodeJS](https://www.npmjs.com/package/@ckb-ccc/shell): `npm install @ckb-ccc/shell`
 - [Custom UI](https://www.npmjs.com/package/@ckb-ccc/ccc): `npm install @ckb-ccc/ccc`
 - [Web Component](https://www.npmjs.com/package/@ckb-ccc/connector): `npm install @ckb-ccc/connector`
-- [React](https://www.npmjs.com/package/@ckb-ccc/connector-react) ([Docs](https://docs.ckbccc.com/modules/_ckb_ccc_connector_react.html)): `npm install @ckb-ccc/connector-react`
+- [React](https://www.npmjs.com/package/@ckb-ccc/connector-react) ([Docs](https://api.ckbccc.com/modules/_ckb_ccc_connector_react.html)): `npm install @ckb-ccc/connector-react`
 
-CCC exports everything on the `ccc` object:
+All exports from CCC are available on the `ccc` object to help with code completion:
 
 ```typescript
 import { ccc } from "@ckb-ccc/<package-name>";
 ```
 
-For advanced developers, we provided the `cccA` object to fulfil all your needs. You should notice that these interfaces are not stable:
+If you are an advanced developer and wish to customize your code heavily, the `<package-name>/advanced` entry point exports `cccA`, which contains almost everything else. Be aware that these interfaces are not stable:
 
 ```typescript
 import { cccA } from "@ckb-ccc/<package-name>/advanced";
 ```
+
+## Examples
+
+<p align="center">
+  <a href="https://app.ckbccc.com/">
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/appPreview.png" width="50%" />
+  </a>
+</p>
+
+The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. To learn more about the app's features, visit [the documentation](https://docs.ckbccc.com/docs/ccc-app).
+
+### Transaction Composing
+
+Let's start with a minimal example for transferring CKB:
+
+```typescript
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+});
+```
+
+Define the essential outputs of the transaction, and then...
+
+```typescript
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer); // Transaction fee rate is calculated automatically
+const txHash = await signer.sendTransaction(tx);
+```
+
+That's it! The transaction is sent.
+
+[Click here to read the full example of transferring native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
+
+Additional examples can be found in [the documentation](https://docs.ckbccc.com/docs/code-examples).
 
 ## Build and Run
 

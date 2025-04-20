@@ -25,6 +25,8 @@
   "navigationLinks": {
     "GitHub": "https://github.com/ckb-devrel/ccc",
     "App": "https://app.ckbccc.com",
+    "Docs": "https://docs.ckbccc.com",
+    "Playground": "https://live.ckbccc.com",
   },
   "hostedBaseUrl": "https://api.ckbccc.com",
   "customCss": "./assets/typedoc.css",

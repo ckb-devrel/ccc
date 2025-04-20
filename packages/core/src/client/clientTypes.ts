@@ -555,7 +555,7 @@ export class ErrorClientMaxFeeRateExceeded extends ErrorClientBase {
     const limit = numFrom(limitLike).toString();
     const actual = numFrom(actualLike).toString();
     super({
-      message: `Max fee rate exceeded limit ${limit}, actual ${actual}. Developer might forgot to complete transaction fee before sending. See https://docs.ckbccc.com/classes/_ckb_ccc_core.index.ccc.Transaction.html#completeFeeBy.`,
+      message: `Max fee rate exceeded limit ${limit}, actual ${actual}. Developer might forgot to complete transaction fee before sending. See https://api.ckbccc.com/classes/_ckb_ccc_core.index.ccc.Transaction.html#completeFeeBy.`,
       data: JSON.stringify({ limit, actual }),
     });
   }

@@ -44,7 +44,7 @@ Before using the Connector, wrap your UI with the CCC Provider:
 <ccc.Provider>{/* Your application */}</ccc.Provider>
 ```
 
-Check [the document for @ckb-ccc/connector-react](https://docs.ckbccc.com/modules/_ckb_ccc_connector_react.index.ccc.html) for more information.
+Check [the document for @ckb-ccc/connector-react](https://api.ckbccc.com/modules/_ckb_ccc_connector_react.index.ccc.html) for more information.
 
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.

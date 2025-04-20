@@ -47,7 +47,8 @@ This project is still under active development, and we are looking forward to yo
 ## Documents
 
 - Check [the repo of project CCC](https://github.com/ckb-devrel/ccc) for detailed introduction.
-- Check our [full documents for all detailed APIs](https://docs.ckbccc.com).
+- [Documents site](https://docs.ckbccc.com).
+- [API reference](https://api.ckbccc.com).
 
 ## Run Locally
 

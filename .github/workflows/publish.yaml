@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - master
-      - 'releases/**'
+      - "releases/**"
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 

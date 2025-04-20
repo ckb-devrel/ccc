@@ -87,6 +87,11 @@ const config: Config = {
           position: "right",
         },
         {
+          href: "https://app.ckbccc.com",
+          html: "App",
+          position: "right",
+        },
+        {
           href: "https://api.ckbccc.com",
           html: "API",
           position: "right",
@@ -100,6 +105,7 @@ const config: Config = {
       ],
     },
     prism: {
+      additionalLanguages: ["bash"],
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },

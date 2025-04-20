@@ -1,0 +1,31 @@
+---
+sidebar-position: 4
+title: Playground
+description: The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing.
+---
+
+import PlaygroundCellImage from "../assets/playgroundCell.png";
+
+<p align="center">
+  <a href="https://live.ckbccc.com/">
+    <img
+      src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png"
+      width="70%"
+    />
+  </a>
+</p>
+
+The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing. [Click the link](https://live.ckbccc.com/) to run your code without the annoying preparation and watch how the code works, exploring CCC's capabilities.
+
+<p align="center">
+  <a href="https://live.ckbccc.com/">
+    <img
+      src={PlaygroundCellImage}
+      style={{ maxWidth: "40%", maxHeight: "10rem" }}
+    />
+  </a>
+</p>
+
+Cells are represented graphically in the playground. The three layers of cells represent occupancy, type and lock from inside to outside. The filled center circle means that all CKB of this cell is used to store data.
+
+Color indicates shared scripts for the lock and type layers. Cells with the same outer ring color share the same lock script (representing ownership). Cells with the same inner ring color share the same type script (representing asset type). If a cell has the same outer and inner ring color, its lock and type script are the same. Click on a cell to check its details.
