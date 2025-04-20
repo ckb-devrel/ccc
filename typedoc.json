@@ -26,7 +26,7 @@
     "GitHub": "https://github.com/ckb-devrel/ccc",
     "App": "https://app.ckbccc.com",
   },
-  "hostedBaseUrl": "https://docs.ckbccc.com",
+  "hostedBaseUrl": "https://api.ckbccc.com",
   "customCss": "./assets/typedoc.css",
   "plugin": [
     "typedoc-material-theme",

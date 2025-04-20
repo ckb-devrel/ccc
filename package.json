@@ -31,6 +31,13 @@
   "pnpm": {
     "patchedDependencies": {
       "bs58check@4.0.0": "patches/bs58check@4.0.0.patch"
-    }
-  }
+    },
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "core-js",
+      "core-js-pure",
+      "secp256k1"
+    ]
+  },
+  "packageManager": "pnpm@10.8.1"
 }

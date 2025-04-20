@@ -1,4 +1,4 @@
-docs/
+docs/*
 
 lerna-debug.log
 .nx/

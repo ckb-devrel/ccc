@@ -32,5 +32,6 @@
   "dependencies": {
     "@ckb-ccc/ccc": "workspace:*",
     "@ckb-ccc/playground": "file:./src/playground"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }

@@ -34,5 +34,6 @@
   },
   "dependencies": {
     "@ckb-ccc/ccc": "workspace:*"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }

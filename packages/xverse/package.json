@@ -58,5 +58,6 @@
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
     "valibot": "^0.42.1"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }

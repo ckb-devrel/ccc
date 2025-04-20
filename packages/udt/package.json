@@ -50,5 +50,6 @@
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }

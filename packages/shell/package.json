@@ -60,5 +60,6 @@
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }

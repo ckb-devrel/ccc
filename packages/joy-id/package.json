@@ -44,5 +44,6 @@
     "@ckb-ccc/core": "workspace:*",
     "@joyid/ckb": "^1.1.1",
     "@joyid/common": "^0.2.0"
-  }
+  },
+  "packageManager": "pnpm@10.8.1"
 }
