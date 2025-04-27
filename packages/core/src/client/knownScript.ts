@@ -5,6 +5,7 @@ export enum KnownScript {
   NervosDao = "NervosDao",
   Secp256k1Blake160 = "Secp256k1Blake160",
   Secp256k1Multisig = "Secp256k1Multisig",
+  Secp256k1MultisigV2 = "Secp256k1MultisigV2", // Enhanced since handling (https://github.com/nervosnetwork/ckb-system-scripts/pull/99)
   AnyoneCanPay = "AnyoneCanPay",
   TypeId = "TypeId",
   XUdt = "XUdt",
