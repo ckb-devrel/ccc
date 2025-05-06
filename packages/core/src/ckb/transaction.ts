@@ -1193,6 +1193,91 @@ export class Transaction extends mol.Entity.Base<
       position,
     };
   }
+  /**
+   * Computes the signing hash information for a given script, specified in the spec:
+   * https://github.com/nervosnetwork/rfcs/pull/446
+   *
+   * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
+   * @param client - The client for complete extra infos in the transaction.
+   * @returns A promise that resolves to an object containing the signing message and the witness position,
+   *          or undefined if no matching input is found.
+   *
+   * @example
+   * ```typescript
+   * const signHashInfo = await tx.getTxMessageAll(scriptLike, client);
+   * if (signHashInfo) {
+   *   console.log(signHashInfo.message); // Outputs the signing message
+   *   console.log(signHashInfo.position); // Outputs the witness position
+   * }
+   * ```
+   */
+  async getTxMessageAll(
+    scriptLike: ScriptLike,
+    client: Client,
+    hasher: Hasher = new HasherCkb(),
+  ): Promise<{ message: Hex; position: number } | undefined> {
+    const script = Script.from(scriptLike);
+    let position = -1;
+    hasher.update(this.hash());
+
+    for (let i = 0; i < this.inputs.length; i += 1) {
+      const { cellOutput, outputData } = await this.inputs[i].getCell(client);
+      hasher.update(cellOutput.toBytes());
+      hasher.update(numToBytes(outputData.length, 4));
+      hasher.update(outputData);
+    }
+
+    for (let i = 0; i < this.witnesses.length; i += 1) {
+      const input = this.inputs[i];
+      if (input) {
+        const { cellOutput } = await input.getCell(client);
+
+        if (!script.eq(cellOutput.lock)) {
+          continue;
+        }
+
+        if (position === -1) {
+          position = i;
+        }
+      }
+
+      if (position === -1) {
+        return undefined;
+      }
+      if (i == position) {
+        // the first witness field in current script group
+
+        // The spec requires that:
+        // The first witness field of the current running script group, must be a valid WitnessArgs structure serialized
+        // in the molecule serialization format, with compatible mode turned off.
+        // The molecule in ccc is by default in compatible mode off.
+        const witnessArgs = this.getWitnessArgsAt(i);
+
+        const inputType: BytesLike = witnessArgs?.inputType ?? "0x";
+        hasher.update(numToBytes(inputType.length, 4));
+        hasher.update(inputType);
+
+        const outputType: BytesLike = witnessArgs?.outputType ?? "0x";
+        hasher.update(numToBytes(outputType.length, 4));
+        hasher.update(outputType);
+      } else {
+        // 1. Starting from the second witness field in current script group
+        // 2. Starting from the first witness that do not have an input cell of the same index
+        const raw = bytesFrom(hexFrom(this.witnesses[i]));
+        hasher.update(numToBytes(raw.length, 4));
+        hasher.update(raw);
+      }
+    }
+
+    if (position === -1) {
+      return undefined;
+    }
+
+    return {
+      message: hasher.digest(),
+      position,
+    };
+  }
 
   /**
    * Find the first occurrence of a input with the specified lock id
