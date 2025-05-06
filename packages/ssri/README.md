@@ -40,13 +40,14 @@
 
 Read more about SSRI on [[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256).
 
+Try out the [Live Demo - SSRI](https://app.ckbccc.com/connected/SSRI)!
+
 NOTE: This is the base package for interaction with SSRI-Compliant scripts.
 
 If you are looking for UDT support, please refer directly to [@ckb-ccc/udt](https://www.npmjs.com/package/@ckb-ccc/udt) which supports both SSRI-compliant UDT and falling back to xUDT.
 
 ### Related Projects
 
-- [`ssri-server`](https://github.com/ckb-devrel/ssri-server): Server for calling SSRI methods.
 - [`ckb_ssri_sdk`](https://github.com/ckb-devrel/ckb_ssri_sdk): A toolkit to help developers build SSRI-Compliant scripts on CKB with production level example script `pausable-udt` for reference.
 
 <h3 align="center">

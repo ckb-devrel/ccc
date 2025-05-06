@@ -38,19 +38,20 @@
 
 ## Quick Start
 
+- Try out the [Live Demo - UDT](https://app.ckbccc.com/connected/UDT)!
 - At the moment, `UDT` and `UDTPausable` from `@ckb-ccc/udt` are fully supported through SSRI. In the future, there will be built in TypeScript generation directly based on the Rust source code on compilation.
 - To instantiate a `UDT` script compliant with SSRI, you can provide the SSRI server url and also specify the OutPoint of the script code.
 - You can also instantiate a `UDTPausable` script or other scripts that extends from `UDT`.
 
 ```ts
-import { Server } from "@ckb-ccc/ssri";
+import { ExecutorWASM } from "@ckb-ccc/ssri";
 import { Udt, UdtPausable } from "@ckb-ccc/udt";
 
 const { signer } = useApp();
-const server = new Server("https://localhost:9090");
+const executor = new ExecutorWASM("https://testnet.ckb.dev/", true, 10, 300)
 
 const udt = new Udt(
-  server,
+  executor,
   {
     txHash: "0x...",
     index: 0,
@@ -63,7 +64,7 @@ const udt = new Udt(
 );
 
 const udtPausable = new UdtPausable(
-  server,
+  executor,
   {
     txHash: "0x...",
     index: 0,

@@ -7,7 +7,7 @@ import { APP_CONTEXT } from "../context";
 
 export class Background extends Component {
   static contextType = APP_CONTEXT;
-  context: React.ContextType<typeof APP_CONTEXT>;
+  declare context: React.ContextType<typeof APP_CONTEXT>;
 
   refBg: RefObject<HTMLDivElement> = createRef();
   ref0: RefObject<RandomWalk> = createRef();

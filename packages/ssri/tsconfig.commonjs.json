@@ -3,6 +3,11 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "outDir": "./dist.commonjs"
+    "outDir": "./dist.commonjs",
+    "lib": [
+      "ES2024",
+      "WebWorker",
+      "ESNext"
+    ]
   }
 }
