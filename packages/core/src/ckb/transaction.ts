@@ -1137,6 +1137,21 @@ export class Transaction extends mol.Entity.Base<
     hasher.update(raw);
   }
 
+  static hashBytesToHasher(bytes: BytesLike, hasher: Hasher) {
+    const raw = bytesFrom(hexFrom(bytes));
+    hasher.update(numToBytes(raw.length, 4));
+    hasher.update(raw);
+  }
+  static hashBytesOptToHasher(bytes: BytesLike | undefined, hasher: Hasher) {
+    if (bytes) {
+      const raw = bytesFrom(hexFrom(bytes));
+      hasher.update(numToBytes(raw.length + 4, 4));
+      hasher.update(numToBytes(raw.length, 4));
+      hasher.update(raw);
+    } else {
+      hasher.update(numToBytes(0, 4));
+    }
+  }
   /**
    * Computes the signing hash information for a given script.
    *
@@ -1223,8 +1238,7 @@ export class Transaction extends mol.Entity.Base<
     for (let i = 0; i < this.inputs.length; i += 1) {
       const { cellOutput, outputData } = await this.inputs[i].getCell(client);
       hasher.update(cellOutput.toBytes());
-      hasher.update(numToBytes(outputData.length, 4));
-      hasher.update(outputData);
+      Transaction.hashBytesToHasher(outputData, hasher);
     }
 
     for (let i = 0; i < this.witnesses.length; i += 1) {
@@ -1253,19 +1267,12 @@ export class Transaction extends mol.Entity.Base<
         // The molecule in ccc is by default in compatible mode off.
         const witnessArgs = this.getWitnessArgsAt(i);
 
-        const inputType: BytesLike = witnessArgs?.inputType ?? "0x";
-        hasher.update(numToBytes(inputType.length, 4));
-        hasher.update(inputType);
-
-        const outputType: BytesLike = witnessArgs?.outputType ?? "0x";
-        hasher.update(numToBytes(outputType.length, 4));
-        hasher.update(outputType);
+        Transaction.hashBytesOptToHasher(witnessArgs?.inputType, hasher);
+        Transaction.hashBytesOptToHasher(witnessArgs?.outputType, hasher);
       } else {
         // 1. Starting from the second witness field in current script group
         // 2. Starting from the first witness that do not have an input cell of the same index
-        const raw = bytesFrom(hexFrom(this.witnesses[i]));
-        hasher.update(numToBytes(raw.length, 4));
-        hasher.update(raw);
+        Transaction.hashBytesToHasher(this.witnesses[i], hasher);
       }
     }
 
