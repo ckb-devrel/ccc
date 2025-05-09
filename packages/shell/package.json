@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/shell",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Backend Shell of CCC - CKBer's Codebase. Common Chains Connector.",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
