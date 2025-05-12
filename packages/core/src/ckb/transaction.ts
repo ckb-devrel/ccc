@@ -1137,14 +1137,17 @@ export class Transaction extends mol.Entity.Base<
     hasher.update(raw);
   }
 
-  static hashBytesToHasher(bytes: BytesLike, hasher: Hasher) {
+  private static hashBytesToHasher(bytes: BytesLike, hasher: Hasher) {
     const raw = bytesFrom(hexFrom(bytes));
     hasher.update(numToBytes(raw.length, 4));
     hasher.update(raw);
   }
-  static hashBytesOptToHasher(bytes: BytesLike | undefined, hasher: Hasher) {
+  private static hashBytesOptToHasher(
+    bytes: BytesLike | undefined | null,
+    hasher: Hasher,
+  ) {
     if (bytes) {
-      const raw = bytesFrom(hexFrom(bytes));
+      const raw = bytesFrom(bytes);
       hasher.update(numToBytes(raw.length + 4, 4));
       hasher.update(numToBytes(raw.length, 4));
       hasher.update(raw);
@@ -1258,7 +1261,7 @@ export class Transaction extends mol.Entity.Base<
       if (position === -1) {
         return undefined;
       }
-      if (i == position) {
+      if (i === position) {
         // the first witness field in current script group
 
         // The spec requires that:
