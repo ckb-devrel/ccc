@@ -1137,20 +1137,20 @@ export class Transaction extends mol.Entity.Base<
     hasher.update(raw);
   }
 
-  private static hashBytesToHasher(bytes: BytesLike, hasher: Hasher) {
+  private static hashBytesToHasher(bytes: HexLike, hasher: Hasher) {
     const raw = bytesFrom(hexFrom(bytes));
     hasher.update(numToBytes(raw.length, 4));
     hasher.update(raw);
   }
   private static hashBytesOptToHasher(
-    bytes: BytesLike | undefined | null,
+    bytes: HexLike | undefined | null,
     hasher: Hasher,
   ) {
     if (bytes) {
-      const raw = bytesFrom(bytes);
-      hasher.update(numToBytes(raw.length + 4, 4));
-      hasher.update(numToBytes(raw.length, 4));
-      hasher.update(raw);
+      const raw = bytesFrom(hexFrom(bytes));
+      const moleculeBytes = mol.Bytes.encode(raw);
+      hasher.update(numToBytes(moleculeBytes.length, 4));
+      hasher.update(moleculeBytes);
     } else {
       hasher.update(numToBytes(0, 4));
     }
