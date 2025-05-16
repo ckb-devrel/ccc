@@ -250,7 +250,7 @@ export function option<Encodable, Decoded>(
 ): Codec<Encodable | undefined | null, Decoded | undefined> {
   return Codec.from({
     encode(userDefinedOrNull) {
-      if (!userDefinedOrNull) {
+      if (userDefinedOrNull == null) {
         return bytesFrom([]);
       }
       try {
