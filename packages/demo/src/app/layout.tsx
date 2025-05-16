@@ -6,6 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.ckbccc.com/"),
   title: "CCC App",
   description: "An app based on the CCC library",
   icons: "/favicon.svg",

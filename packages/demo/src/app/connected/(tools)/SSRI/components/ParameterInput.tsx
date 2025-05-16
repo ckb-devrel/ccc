@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";

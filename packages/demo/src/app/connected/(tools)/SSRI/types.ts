@@ -1,3 +1,5 @@
+"use client";
+
 import { ScriptAmountType } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import { ccc } from "@ckb-ccc/connector-react";
 export type ParamValue =
