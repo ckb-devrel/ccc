@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/utxo-global",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "Common Chains Connector's support for UTXO Global",
   "author": "Trong Dinh <trong@nexm.io>",
   "license": "MIT",

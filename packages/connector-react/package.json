@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/connector-react",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "CCC - CKBer's Codebase. Common Chains Connector UI Component for React",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",

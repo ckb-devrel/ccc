@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.8.1
+
+### Patch Changes
+
+- [#205](https://github.com/ckb-devrel/ccc/pull/205) [`2e37ad7`](https://github.com/ckb-devrel/ccc/commit/2e37ad72fb98f3d7dc059299dafc9bba84dcb846) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): falsy value is not empty in mol.Option
+
 ## 1.8.0
 
 ### Minor Changes
