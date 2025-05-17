@@ -57,6 +57,13 @@ export const Bool: Codec<boolean> = Codec.from({
 export const BoolOpt = option(Bool);
 export const BoolVec = vector(Bool);
 
+export const Byte: Codec<HexLike, Hex> = Codec.from({
+  byteLength: 1,
+  encode: (value) => bytesFrom(value),
+  decode: (buffer) => hexFrom(buffer),
+});
+export const ByteOpt = option(Byte);
+
 export const Byte4: Codec<HexLike, Hex> = Codec.from({
   byteLength: 4,
   encode: (value) => bytesFrom(value),
