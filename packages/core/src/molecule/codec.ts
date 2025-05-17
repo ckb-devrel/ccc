@@ -18,13 +18,19 @@ import {
 
 export type CodecLike<Encodable, Decoded = Encodable> = {
   readonly encode: (encodable: Encodable) => Bytes;
-  readonly decode: (decodable: BytesLike) => Decoded;
+  readonly decode: (
+    decodable: BytesLike,
+    config?: { compatible?: boolean },
+  ) => Decoded;
   readonly byteLength?: number;
 };
 export class Codec<Encodable, Decoded = Encodable> {
   constructor(
     public readonly encode: (encodable: Encodable) => Bytes,
-    public readonly decode: (decodable: BytesLike) => Decoded,
+    public readonly decode: (
+      decodable: BytesLike,
+      config?: { compatible?: boolean },
+    ) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
   ) {}
 
@@ -43,7 +49,7 @@ export class Codec<Encodable, Decoded = Encodable> {
         }
         return encoded;
       },
-      (decodable) => {
+      (decodable, config = { compatible: false }) => {
         const decodableBytes = bytesFrom(decodable);
         if (
           byteLength !== undefined &&
@@ -53,7 +59,7 @@ export class Codec<Encodable, Decoded = Encodable> {
             `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
           );
         }
-        return decode(decodable);
+        return decode(decodable, config);
       },
       byteLength,
     );
@@ -69,10 +75,10 @@ export class Codec<Encodable, Decoded = Encodable> {
     return new Codec(
       (encodable) =>
         this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer) =>
+      (buffer, config = { compatible: false }) =>
         (outMap
-          ? outMap(this.decode(buffer))
-          : this.decode(buffer)) as NewDecoded,
+          ? outMap(this.decode(buffer, config))
+          : this.decode(buffer, config)) as NewDecoded,
       this.byteLength,
     );
   }
@@ -128,7 +134,7 @@ export function fixedItemVec<Encodable, Decoded>(
         throw new Error(`fixedItemVec(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength < 4) {
         throw new Error(
@@ -147,7 +153,10 @@ export function fixedItemVec<Encodable, Decoded>(
         const decodedArray: Array<Decoded> = [];
         for (let offset = 4; offset < byteLength; offset += itemByteLength) {
           decodedArray.push(
-            itemCodec.decode(value.slice(offset, offset + itemByteLength)),
+            itemCodec.decode(
+              value.slice(offset, offset + itemByteLength),
+              config,
+            ),
           );
         }
         return decodedArray;
@@ -185,7 +194,7 @@ export function dynItemVec<Encodable, Decoded>(
         throw new Error(`dynItemVec(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength < 4) {
         throw new Error(
@@ -215,7 +224,7 @@ export function dynItemVec<Encodable, Decoded>(
           const start = offsets[index];
           const end = offsets[index + 1];
           const itemBuffer = value.slice(start, end);
-          decodedArray.push(itemCodec.decode(itemBuffer));
+          decodedArray.push(itemCodec.decode(itemBuffer, config));
         }
         return decodedArray;
       } catch (e) {
@@ -259,13 +268,13 @@ export function option<Encodable, Decoded>(
         throw new Error(`option(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength === 0) {
         return undefined;
       }
       try {
-        return innerCodec.decode(buffer);
+        return innerCodec.decode(buffer, config);
       } catch (e) {
         throw new Error(`option(${e?.toString()})`);
       }
@@ -290,7 +299,7 @@ export function byteVec<Encodable, Decoded>(
         throw new Error(`byteVec(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength < 4) {
         throw new Error(
@@ -304,7 +313,7 @@ export function byteVec<Encodable, Decoded>(
         );
       }
       try {
-        return codec.decode(value.slice(4));
+        return codec.decode(value.slice(4), config);
       } catch (e: unknown) {
         throw new Error(`byteVec(${e?.toString()})`);
       }
@@ -371,7 +380,7 @@ export function table<
       const packedTotalSize = uint32To(header.length + body.length + 4);
       return bytesConcat(packedTotalSize, header, body);
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength < 4) {
         throw new Error(
@@ -379,7 +388,7 @@ export function table<
         );
       }
       const byteLength = uint32From(value.slice(0, 4));
-      if (byteLength !== value.byteLength) {
+      if (byteLength !== value.byteLength && !config?.compatible) {
         throw new Error(
           `table: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
@@ -397,9 +406,13 @@ export function table<
         const payload = value.slice(start, end);
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          Object.assign(object, { [field]: codec.decode(payload) });
-        } catch (e: unknown) {
-          throw new Error(`table.${field}(${e?.toString()})`);
+          Object.assign(object, { [field]: codec.decode(payload, config) });
+        } catch (_e: unknown) {
+          if (config?.compatible) {
+            Object.assign(object, { [field]: null });
+          } else {
+            throw new Error(`table.${field}(${_e?.toString()})`);
+          }
         }
       }
       return object as Decoded;
@@ -466,7 +479,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         throw new Error(`union.(${typeStr})(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       const fieldIndex = uint32From(value.slice(0, 4));
       const keys = Object.keys(codecLayout);
@@ -496,7 +509,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
       return {
         type: field,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        value: codecLayout[field].decode(value.slice(4)),
+        value: codecLayout[field].decode(value.slice(4), config),
       } as UnionDecoded<T>;
     },
   });
@@ -535,7 +548,7 @@ export function struct<
 
       return bytesFrom(bytes);
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       const object = {};
       let offset = 0;
@@ -543,7 +556,7 @@ export function struct<
         const payload = value.slice(offset, offset + codec.byteLength!);
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          Object.assign(object, { [key]: codec.decode(payload) });
+          Object.assign(object, { [key]: codec.decode(payload, config) });
         } catch (e: unknown) {
           throw new Error(`struct.${key}(${(e as Error).toString()})`);
         }
@@ -583,7 +596,7 @@ export function array<Encodable, Decoded>(
         throw new Error(`array(${e?.toString()})`);
       }
     },
-    decode(buffer) {
+    decode(buffer, config) {
       const value = bytesFrom(buffer);
       if (value.byteLength != byteLength) {
         throw new Error(
@@ -594,7 +607,7 @@ export function array<Encodable, Decoded>(
         const result: Array<Decoded> = [];
         for (let i = 0; i < value.byteLength; i += itemCodec.byteLength!) {
           result.push(
-            itemCodec.decode(value.slice(i, i + itemCodec.byteLength!)),
+            itemCodec.decode(value.slice(i, i + itemCodec.byteLength!), config),
           );
         }
         return result;
