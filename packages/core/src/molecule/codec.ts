@@ -20,7 +20,7 @@ export type CodecLike<Encodable, Decoded = Encodable> = {
   readonly encode: (encodable: Encodable) => Bytes;
   readonly decode: (
     decodable: BytesLike,
-    config?: { compatible?: boolean },
+    config?: { isExtraFieldIgnored?: boolean },
   ) => Decoded;
   readonly byteLength?: number;
 };
@@ -29,7 +29,7 @@ export class Codec<Encodable, Decoded = Encodable> {
     public readonly encode: (encodable: Encodable) => Bytes,
     public readonly decode: (
       decodable: BytesLike,
-      config?: { compatible?: boolean },
+      config?: { isExtraFieldIgnored?: boolean },
     ) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
   ) {}
@@ -49,7 +49,7 @@ export class Codec<Encodable, Decoded = Encodable> {
         }
         return encoded;
       },
-      (decodable, config = { compatible: false }) => {
+      (decodable, config = { isExtraFieldIgnored: false }) => {
         const decodableBytes = bytesFrom(decodable);
         if (
           byteLength !== undefined &&
@@ -75,7 +75,7 @@ export class Codec<Encodable, Decoded = Encodable> {
     return new Codec(
       (encodable) =>
         this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer, config = { compatible: false }) =>
+      (buffer, config = { isExtraFieldIgnored: false }) =>
         (outMap
           ? outMap(this.decode(buffer, config))
           : this.decode(buffer, config)) as NewDecoded,
@@ -388,7 +388,7 @@ export function table<
         );
       }
       const byteLength = uint32From(value.slice(0, 4));
-      if (byteLength !== value.byteLength && !config?.compatible) {
+      if (byteLength !== value.byteLength) {
         throw new Error(
           `table: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
@@ -408,7 +408,7 @@ export function table<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [field]: codec.decode(payload, config) });
         } catch (_e: unknown) {
-          if (config?.compatible) {
+          if (config?.isExtraFieldIgnored) {
             Object.assign(object, { [field]: null });
           } else {
             throw new Error(`table.${field}(${_e?.toString()})`);
