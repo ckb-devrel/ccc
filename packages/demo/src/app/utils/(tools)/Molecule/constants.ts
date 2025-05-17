@@ -3,7 +3,7 @@ import { ccc } from "@ckb-ccc/connector-react";
 /**
  * built-in re-writable codecs
  */
-export const builtinCodecs: ccc.molecule.CodecMap = {
+export const builtinCodecs: ccc.molecule.CodecRecord = {
   Uint8: ccc.mol.Uint8,
   Uint16: ccc.mol.Uint16,
   Uint32: ccc.mol.Uint32,
@@ -26,8 +26,8 @@ export const builtinCodecs: ccc.molecule.CodecMap = {
  * @param userTokens
  */
 export const mergeBuiltinCodecs = (
-  userCodecs: ccc.molecule.CodecMap,
-): ccc.molecule.CodecMap => {
+  userCodecs: ccc.molecule.CodecRecord,
+): ccc.molecule.CodecRecord => {
   return { ...userCodecs, ...builtinCodecs };
 };
 

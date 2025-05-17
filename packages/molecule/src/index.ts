@@ -1,2 +1,2 @@
-export * from "./barrel";
-export * as molecule from "./barrel";
+export * from "./barrel.js";
+export * as molecule from "./barrel.js";

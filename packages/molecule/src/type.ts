@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { mol } from "@ckb-ccc/core";
 
-export const byte = "byte";
+export const BYTE = "byte";
 
 export type BaseType = {
   name: string;
@@ -44,23 +44,18 @@ export type Table = {
   fields: Field[];
 };
 
-// mol types
-export type MolType = Array | Vector | Option | Union | Struct | Table;
+// mol type definitions
+export type MolTypeDefinition =
+  | Array
+  | Vector
+  | Option
+  | Union
+  | Struct
+  | Table;
 
-// key is type name
-export type MolTypeMap = Record<string, MolType>;
-
-// key is type name
-export type CodecMap = Record<string, mol.Codec<any, any>>;
+export type CodecRecord = Record<string, mol.Codec<any, any>>;
 
 export type ParseOptions = {
-  skipDependenciesCheck?: boolean;
-  refs: Record<string, mol.Codec<any, any>>;
+  skipValidation?: boolean;
+  extraReferences?: CodecRecord; // overriding extra references to be used in the codec definitions
 };
-
-export interface Parser {
-  parse(
-    data: string,
-    option?: ParseOptions,
-  ): Record<string, mol.Codec<any, any>>;
-}

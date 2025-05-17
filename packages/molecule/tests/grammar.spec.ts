@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { ccc } from "@ckb-ccc/core";
-import { getCodecMapFromMol } from "../src/barrel";
+import { parseMoleculeSchema } from "../src/barrel";
 
 test("should parse sample", () => {
-  const result = getCodecMapFromMol(`
+  const result = parseMoleculeSchema(`
     /* Basic Types */
     array Uint8 [byte; 1]; // one byte Uint
   `);
@@ -12,11 +12,11 @@ test("should parse sample", () => {
 
 test("should parse sample wrong refs", () => {
   expect(() => {
-    getCodecMapFromMol(`
+    parseMoleculeSchema(`
     vector OutPointVec <OutPoint>;
   `,
       {
-        refs: {
+        extraReferences: {
           Script: ccc.mol.Codec.from({
             encode: (value) => ccc.Script.encode(value),
             decode: (buffer) => ccc.Script.decode(buffer),
@@ -28,11 +28,11 @@ test("should parse sample wrong refs", () => {
 });
 
 test("should parse sample with refs", () => {
-  const result = getCodecMapFromMol(`
+  const result = parseMoleculeSchema(`
     vector OutPointVec <OutPoint>;
   `,
     {
-      refs: {
+      extraReferences: {
         OutPoint: ccc.mol.Codec.from({
           byteLength: ccc.OutPoint.byteLength,
           encode: (value) => ccc.OutPoint.encode(value),
@@ -55,7 +55,7 @@ test("should parse sample with refs", () => {
 });
 
 test("union with custom id", () => {
-  const withCustomId = getCodecMapFromMol(`
+  const withCustomId = parseMoleculeSchema(`
     array Uint8 [byte; 1];
     array Uint16 [byte; 2];
     array Uint32 [byte; 4];
@@ -75,7 +75,7 @@ test("union with custom id", () => {
     ]),
   );
 
-  const withoutCustomId = getCodecMapFromMol(`
+  const withoutCustomId = parseMoleculeSchema(`
     array Uint8 [byte; 1];
     array Uint16 [byte; 2];
     array Uint32 [byte; 4];
@@ -98,7 +98,7 @@ test("union with custom id", () => {
 
 test("should parse blockchain.mol", () => {
   // https://github.com/nervosnetwork/ckb/blob/5a7efe7a0b720de79ff3761dc6e8424b8d5b22ea/util/types/schemas/blockchain.mol
-  const result = getCodecMapFromMol(`
+  const result = parseMoleculeSchema(`
   /* Basic Types */
 
   // as a byte array in little endian.
@@ -219,7 +219,7 @@ test("should parse blockchain.mol", () => {
       output_type:            BytesOpt,          // Type args for output
   }
   `,
-    { refs: {}, skipDependenciesCheck: false },
+    { extraReferences: {}, skipValidation: false },
   );
   expect(result.Uint8.decode("0x01")).toEqual(1);
 });

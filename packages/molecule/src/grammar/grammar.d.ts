@@ -1,7 +1,7 @@
-import { MolType } from "../type";
+import { MolTypeDefinition } from "../type";
 
 type ParseResult = {
-  declares: MolType[];
+  declares: MolTypeDefinition[];
   imports: string[];
   syntaxVersion: string | null;
 };

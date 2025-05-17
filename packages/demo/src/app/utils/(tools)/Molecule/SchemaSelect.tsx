@@ -3,7 +3,7 @@ import { ccc } from "@ckb-ccc/connector-react";
 import { Dropdown } from "@/src/components/Dropdown";
 
 type Props = {
-  codecMap: ccc.molecule.CodecMap;
+  codecRecord: ccc.molecule.CodecRecord;
   selectedCodecName: string;
   onSelectCodec: (name: string) => void;
   mode: "decode" | "encode";
@@ -11,26 +11,28 @@ type Props = {
 };
 
 const createCodecOptionsFromMap = (
-  codecMap: ccc.molecule.CodecMap,
+  codecRecord: ccc.molecule.CodecRecord,
 ): string[] => {
-  return Object.keys(codecMap);
+  return Object.keys(codecRecord);
 };
 
 export const SchemaSelect: React.FC<Props> = ({
   onSelectCodec,
   selectedCodecName,
-  codecMap,
+  codecRecord,
   mode,
   onSelectMode,
 }) => {
   const handleChange = (newValue: string | null) => {
     onSelectCodec(newValue as string);
   };
-  const schemaOptions = createCodecOptionsFromMap(codecMap).map((schema) => ({
-    name: schema,
-    displayName: schema,
-    iconName: "Hash" as const,
-  }));
+  const schemaOptions = createCodecOptionsFromMap(codecRecord).map(
+    (schema) => ({
+      name: schema,
+      displayName: schema,
+      iconName: "Hash" as const,
+    }),
+  );
 
   return (
     <div className="flex flex-row items-center gap-4">
