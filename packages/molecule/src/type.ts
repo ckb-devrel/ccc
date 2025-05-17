@@ -48,19 +48,12 @@ export type Table = {
 export type MolType = Array | Vector | Option | Union | Struct | Table;
 
 // key is type name
-export type MolTypeMap = Record<string, MolType>;
+export type MolDefinitions = Record<string, MolType>;
 
 // key is type name
-export type CodecMap = Record<string, mol.Codec<any, any>>;
+export type CodecDefinitions = Record<string, mol.Codec<any, any>>;
 
 export type ParseOptions = {
   skipDependenciesCheck?: boolean;
-  refs: Record<string, mol.Codec<any, any>>;
+  extraReferences?: CodecDefinitions; // overriding extra references to be used in the codec definitions
 };
-
-export interface Parser {
-  parse(
-    data: string,
-    option?: ParseOptions,
-  ): Record<string, mol.Codec<any, any>>;
-}

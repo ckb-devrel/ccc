@@ -18,15 +18,16 @@ export default function Molecule() {
   const { createSender } = useApp();
   const { log } = createSender("Molecule");
 
-  const [codecMap, setCodecMap] = useState<ccc.molecule.CodecMap>({});
+  const [CodecDefinitions, setCodecDefinitions] =
+    useState<ccc.molecule.CodecDefinitions>({});
   const [selectedCodecName, setSelectedCodecName] = useState<string>("");
   const [mode, setMode] = useState<"decode" | "encode">("decode");
-  const handleCodecMap = useCallback(
-    (codecMap: ccc.molecule.CodecMap) => {
-      setCodecMap(codecMap);
-      setSelectedCodecName(Object.keys(codecMap)[0]);
+  const handleCodecDefinitions = useCallback(
+    (CodecDefinitions: ccc.molecule.CodecDefinitions) => {
+      setCodecDefinitions(CodecDefinitions);
+      setSelectedCodecName(Object.keys(CodecDefinitions)[0]);
     },
-    [setCodecMap, setSelectedCodecName],
+    [setCodecDefinitions, setSelectedCodecName],
   );
 
   const handleSelectCodec = (name: string) => {
@@ -40,30 +41,30 @@ export default function Molecule() {
       cachedMol = "";
     }
 
-    const userCodecMap = ccc.molecule.getCodecMapFromMol(
+    const userCodecDefinitions = ccc.molecule.parseMolecule(
       cachedMol + blockchainSchema,
       {
-        refs: builtinCodecs,
+        extraReferences: builtinCodecs,
       },
     );
-    const codecMap = mergeBuiltinCodecs(userCodecMap);
-    handleCodecMap(codecMap);
-  }, [handleCodecMap]);
+    const CodecDefinitions = mergeBuiltinCodecs(userCodecDefinitions);
+    handleCodecDefinitions(CodecDefinitions);
+  }, [handleCodecDefinitions]);
 
   return (
     <div className="flex w-full flex-col items-stretch">
-      <MoleculeParser updateCodecMap={handleCodecMap} />
-      {Object.keys(codecMap).length > 0 && (
+      <MoleculeParser updateCodecDefinitions={handleCodecDefinitions} />
+      {Object.keys(CodecDefinitions).length > 0 && (
         <SchemaSelect
           selectedCodecName={selectedCodecName}
-          codecMap={codecMap}
+          CodecDefinitions={CodecDefinitions}
           onSelectCodec={handleSelectCodec}
           mode={mode}
           onSelectMode={setMode}
         />
       )}
-      {Object.keys(codecMap).length > 0 && selectedCodecName !== "" && (
-        <DataInput codec={codecMap[selectedCodecName]} mode={mode} />
+      {Object.keys(CodecDefinitions).length > 0 && selectedCodecName !== "" && (
+        <DataInput codec={CodecDefinitions[selectedCodecName]} mode={mode} />
       )}
     </div>
   );

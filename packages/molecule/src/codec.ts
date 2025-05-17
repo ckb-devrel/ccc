@@ -1,69 +1,74 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { bytesFrom, hexFrom, mol } from "@ckb-ccc/core";
-import { byte, CodecMap, MolType, MolTypeMap } from "./type";
-import { nonNull, toMolTypeMap } from "./utils";
+import { ccc, mol } from "@ckb-ccc/core";
+import { byte, CodecDefinitions, MolDefinitions, MolType } from "./type.js";
+import { nonNull, toMolDefinitions } from "./utils.js";
+
+const BUILT_IN_ARRAY_CODECS = {
+  Uint8: mol.Uint8,
+  Uint16: mol.Uint16,
+  Uint32: mol.Uint32,
+  Uint64: mol.Uint64,
+  Uint128: mol.Uint128,
+  Uint256: mol.Uint256,
+  Uint512: mol.Uint512,
+  Byte4: mol.Byte4,
+  Byte8: mol.Byte8,
+  Byte16: mol.Byte16,
+  Byte32: mol.Byte32,
+};
 
 /**
- * Add corresponding type and its dependencies to result, then return corresponding codec
- * @param key
- * @param molTypeMap
- * @param result
- * @returns codec
+ * Returns the codec for the specified type, resolving dependencies as needed, without mutating or adding to outputCodecDefinitions.
+ * @param key - The name of the mol type to build a codec for.
+ * @param MolDefinitions - The full set of mol type definitions.
+ * @param outputCodecDefinitions - Preexisting accumulated codec definitions that can be reused if present.
+ * @param extraReferences - (Optional) External codec definitions that can be reused if present.
+ * @returns The codec for the specified mol type.
  */
 function toCodec(
   key: string,
-  molTypeMap: MolTypeMap,
-  result: CodecMap,
-  refs?: CodecMap,
+  MolDefinitions: MolDefinitions,
+  outputCodecDefinitions: CodecDefinitions,
+  extraReferences?: CodecDefinitions,
 ): mol.Codec<any, any> {
-  if (result[key]) {
-    return result[key];
+  if (outputCodecDefinitions[key]) {
+    return outputCodecDefinitions[key];
   }
-  if (refs && refs[key]) {
-    return refs[key];
+  if (extraReferences?.[key]) {
+    return extraReferences[key];
   }
-  const molType: MolType = molTypeMap[key];
+  const molType: MolType = MolDefinitions[key];
   nonNull(molType);
   let codec: mol.Codec<any, any> | null = null;
   switch (molType.type) {
     case "array": {
+      const builtInCodec =
+        BUILT_IN_ARRAY_CODECS[
+          molType.name as keyof typeof BUILT_IN_ARRAY_CODECS
+        ];
+      // if the molType is a built-in array, use the built-in codec
+      if (builtInCodec) {
+        return builtInCodec;
+      }
       if (molType.name.startsWith("Uint")) {
-        switch (molType.name) {
-          case "Uint8":
-            codec = mol.Uint8;
-            break;
-          case "Uint16":
-            codec = mol.Uint16;
-            break;
-          case "Uint32":
-            codec = mol.Uint32;
-            break;
-          case "Uint64":
-            codec = mol.Uint64;
-            break;
-          case "Uint128":
-            codec = mol.Uint128;
-            break;
-          case "Uint256":
-            codec = mol.Uint256;
-            break;
-          case "Uint512":
-            codec = mol.Uint512;
-            break;
-          default:
-            throw new Error(
-              `Number codecs should be among Uint8,Uint8,Uint8,Uint8,Uint8,Uint8,Uint8 but got ${molType.name}.`,
-            );
-        }
-      } else if (molType.item === byte) {
+        throw new Error(
+          `Number codecs should be among Uint8, Uint16, Uint32, Uint64, Uint128, Uint256, Uint512 but got ${molType.name}.`,
+        );
+      }
+      if (molType.item === byte) {
         codec = mol.Codec.from({
           byteLength: molType.item_count,
-          encode: (value) => bytesFrom(value),
-          decode: (buffer) => hexFrom(buffer),
+          encode: (value) => ccc.bytesFrom(value),
+          decode: (buffer) => ccc.hexFrom(buffer),
         });
       } else {
-        const itemMolType = toCodec(molType.item, molTypeMap, result, refs);
+        const itemMolType = toCodec(
+          molType.item,
+          MolDefinitions,
+          outputCodecDefinitions,
+          extraReferences,
+        );
         codec = mol.array(itemMolType, molType.item_count);
       }
       break;
@@ -72,7 +77,12 @@ function toCodec(
       if (molType.item === byte) {
         codec = mol.Bytes;
       } else {
-        const itemMolType = toCodec(molType.item, molTypeMap, result, refs);
+        const itemMolType = toCodec(
+          molType.item,
+          MolDefinitions,
+          outputCodecDefinitions,
+          extraReferences,
+        );
         codec = mol.vector(itemMolType);
       }
       break;
@@ -81,7 +91,12 @@ function toCodec(
       if (molType.item === byte) {
         codec = mol.ByteOpt;
       } else {
-        const itemMolType = toCodec(molType.item, molTypeMap, result, refs);
+        const itemMolType = toCodec(
+          molType.item,
+          MolDefinitions,
+          outputCodecDefinitions,
+          extraReferences,
+        );
         codec = mol.option(itemMolType);
       }
       break;
@@ -97,15 +112,20 @@ function toCodec(
           if (typeof unionTypeItem === "string") {
             const itemMolType = toCodec(
               unionTypeItem,
-              molTypeMap,
-              result,
-              refs,
+              MolDefinitions,
+              outputCodecDefinitions,
+              extraReferences,
             );
             unionCodecs.push([unionTypeItem, index, itemMolType]);
           } else if (Array.isArray(unionTypeItem)) {
             const [key, fieldId] = unionTypeItem;
 
-            const itemMolType = toCodec(key, molTypeMap, result, refs);
+            const itemMolType = toCodec(
+              key,
+              MolDefinitions,
+              outputCodecDefinitions,
+              extraReferences,
+            );
             unionCodecs.push([key, fieldId, itemMolType]);
           }
         }
@@ -115,8 +135,8 @@ function toCodec(
         string,
         mol.Codec<any, any>
       > = unionCodecs.reduce(
-        (codecMap, [fieldName, _fieldId, fieldCodec]) =>
-          Object.assign(codecMap, { [fieldName]: fieldCodec }),
+        (CodecDefinitions, [fieldName, _fieldId, fieldCodec]) =>
+          Object.assign(CodecDefinitions, { [fieldName]: fieldCodec }),
         {},
       );
       const unionFieldIds: Record<string, number> = unionCodecs.reduce(
@@ -135,7 +155,12 @@ function toCodec(
         if (field.type === byte) {
           tableCodecs[field.name] = mol.Byte;
         } else {
-          const itemMolType = toCodec(field.type, molTypeMap, result, refs);
+          const itemMolType = toCodec(
+            field.type,
+            MolDefinitions,
+            outputCodecDefinitions,
+            extraReferences,
+          );
           tableCodecs[field.name] = itemMolType;
         }
       });
@@ -149,7 +174,12 @@ function toCodec(
         if (field.type === byte) {
           structCodecs[field.name] = mol.Byte;
         } else {
-          const itemMolType = toCodec(field.type, molTypeMap, result, refs);
+          const itemMolType = toCodec(
+            field.type,
+            MolDefinitions,
+            outputCodecDefinitions,
+            extraReferences,
+          );
           structCodecs[field.name] = itemMolType;
         }
       });
@@ -158,32 +188,34 @@ function toCodec(
     }
   }
   nonNull(codec);
-  if (!result[key]) {
-    result[key] = codec;
-  } else {
-    console.error(`Existing codec: ${key} has been added to result.`);
-  }
   return codec;
 }
 
 /**
- * create Codecs from tokens
- * @param molTypeMap
- * @returns
+ * Creates codec definitions for all provided mol types, resolving dependencies as needed.
+ * @param molTypeInfo - The mol type definitions, either as an array or a Record.
+ * @param extraReferences - (Optional) External codec definitions that can be reused if present.
+ * @returns An object Record<string, mol.Codec<any, any>> mapping mol type names to their corresponding codecs.
  */
-export function createCodecMap(
-  molTypeInfo: MolTypeMap | MolType[],
-  refs?: CodecMap,
-): CodecMap {
-  const molTypeMap = ((data) => {
+export function createCodecDefinitions(
+  molTypeInfo: MolDefinitions | MolType[],
+  extraReferences?: CodecDefinitions,
+): CodecDefinitions {
+  const MolDefinitions = ((data) => {
     if (Array.isArray(data)) {
-      return toMolTypeMap(data);
+      return toMolDefinitions(data);
     }
     return data;
   })(molTypeInfo);
-  const result: CodecMap = {};
-  for (const key in molTypeMap) {
-    result[key] = toCodec(key, molTypeMap, result, refs);
+  const outputCodecDefinitions: CodecDefinitions = {};
+  for (const key in MolDefinitions) {
+    const newCodec = toCodec(
+      key,
+      MolDefinitions,
+      outputCodecDefinitions,
+      extraReferences,
+    );
+    outputCodecDefinitions[key] = newCodec;
   }
-  return result;
+  return outputCodecDefinitions;
 }

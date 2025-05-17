@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { ccc, mol } from "@ckb-ccc/core";
 import JSBI from "jsbi";
-import { createCodecMap } from "../src/codec";
-import { CodecMap, MolType } from "../src/type";
-import { checkDependencies, toMolTypeMap } from "../src/utils";
+import { createCodecDefinitions } from "../src/codec";
+import { CodecDefinitions, MolType } from "../src/type";
+import { checkDependencies, toMolDefinitions } from "../src/utils";
 
 beforeAll(() => {
   // override valueOf of jsbi to make it comparable under test environment
@@ -19,23 +19,23 @@ test("test simple codec", () => {
     { type: "option", name: "NumberOpt", item: "byte" },
     { type: "union", name: "PingPayload", items: ["byte", "Uint8"] },
   ];
-  const codecMap = createCodecMap(toMolTypeMap(tokens));
-  expect(codecMap["Uint8"].decode("0x01") === 1).toBeTruthy();
+  const CodecDefinitions = createCodecDefinitions(toMolDefinitions(tokens));
+  expect(CodecDefinitions["Uint8"].decode("0x01") === 1).toBeTruthy();
   expect(
-    codecMap["Uint512"].decode(
+    CodecDefinitions["Uint512"].decode(
       "0x01000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
     ) === 1n,
   ).toBeTruthy();
-  expect(codecMap["Uint8"].decode("0xff") === 255).toBeTruthy();
+  expect(CodecDefinitions["Uint8"].decode("0xff") === 255).toBeTruthy();
 });
 
-test("should UnitXX throw error if decimals not supported", () => {
+test("should Uint throw error if decimals not supported", () => {
   const tokens: MolType[] = [
     { item: "byte", item_count: 1, name: "Uint88", type: "array" },
   ];
 
   expect(() => {
-    createCodecMap(toMolTypeMap(tokens));
+    createCodecDefinitions(toMolDefinitions(tokens));
   }).toThrow();
 });
 
@@ -43,9 +43,9 @@ test("test codec with refs", () => {
   const tokens: MolType[] = [
     { item: "Bytes", name: "BytesVec", type: "vector" },
   ];
-  const refs: CodecMap = { Bytes: mol.Bytes };
-  const codecMap = createCodecMap(tokens, refs);
-  expect(codecMap["BytesVec"].decode("0x0e00000008000000020000001234")).toEqual(
+  const refs: CodecDefinitions = { Bytes: mol.Bytes };
+  const CodecDefinitions = createCodecDefinitions(tokens, refs);
+  expect(CodecDefinitions["BytesVec"].decode("0x0e00000008000000020000001234")).toEqual(
     ["0x1234"],
   );
 });
@@ -203,12 +203,12 @@ const ast: MolType[] = [
   },
 ];
 checkDependencies(ast);
-const codecMap = createCodecMap(toMolTypeMap(ast));
+const CodecDefinitions = createCodecDefinitions(toMolDefinitions(ast));
 // below test cases come from:
 // https://github.com/ckb-js/lumos/blob/e33aaa10d831edd58e904cb2215ea3148c37fba3/packages/base/tests/serialize.test.ts
 test("should unpack Script", () => {
   expect(
-    codecMap["Script"].decode(
+    CodecDefinitions["Script"].decode(
       "0x3d0000001000000030000000310000009bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce80108000000aabbccdd44332211",
     ),
   ).toEqual({
@@ -220,7 +220,7 @@ test("should unpack Script", () => {
 });
 test("should unpack OutPoint", () => {
   expect(
-    codecMap["OutPoint"].decode(
+    CodecDefinitions["OutPoint"].decode(
       "0x4565f957aa65ca5d094ede05cbeaedcee70f5a71200ae2e31b643d2952c929bc03000000",
     ),
   ).toEqual({
@@ -231,7 +231,7 @@ test("should unpack OutPoint", () => {
 });
 test("should unpack CellInput", () => {
   expect(
-    codecMap["CellInput"].decode(
+    CodecDefinitions["CellInput"].decode(
       "0x341200a060000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73da10000000",
     ),
   ).toEqual({
@@ -246,7 +246,7 @@ test("should unpack CellInput", () => {
 
 test("should unpack CellOutput", () => {
   expect(
-    codecMap["CellOutput"].decode(
+    CodecDefinitions["CellOutput"].decode(
       "0x8400000010000000180000004f000000100000000000000037000000100000003000000031000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73da0002000000123435000000100000003000000031000000a98c57135830e1b900000000f6c4b8870828199a786b26f09f7dec4bc27a73db0100000000",
     ),
   ).toEqual({
@@ -268,7 +268,7 @@ test("should unpack CellOutput", () => {
 
 test("should unpack CellOutput without type", () => {
   expect(
-    codecMap["CellOutput"].decode(
+    CodecDefinitions["CellOutput"].decode(
       "0x4f00000010000000180000004f000000100000000000000037000000100000003000000031000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73da00020000001234",
     ),
   ).toEqual({
@@ -285,7 +285,7 @@ test("should unpack CellOutput without type", () => {
 
 test("should unpack CellDep", () => {
   expect(
-    codecMap["CellDep"].decode(
+    CodecDefinitions["CellDep"].decode(
       "0xa98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73da1100000000",
     ),
   ).toEqual({
@@ -299,7 +299,7 @@ test("should unpack CellDep", () => {
 });
 test("should unpack Transaction", () => {
   expect(
-    codecMap["Transaction"].decode(
+    CodecDefinitions["Transaction"].decode(
       "0x1f0100000c0000000f010000030100001c00000020000000490000006d0000009d000000f40000000000000001000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a7300000000000001000000b39d53656421d1532dd995a0924441ca8f43052bc2b7740a0e814a488a8214d6010000001000000000000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73010200000057000000080000004f00000010000000180000004f000000341200000000000037000000100000003000000031000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a7302000200000012340f0000000800000003000000abcdef10000000080000000400000031313131",
     ),
   ).toEqual({
@@ -348,7 +348,7 @@ test("should unpack Transaction", () => {
 
 test("should unpack Header", () => {
   expect(
-    codecMap["Header"].decode(
+    CodecDefinitions["Header"].decode(
       "0x0000000094342d1ac363a6ab70010000bcb10f000000000087020012060807003134874027b9b2b17391d2fa545344b10bd8b8c49d9ea47d55a447d01142b21b68a83c880eb942396d22020aa83343906986f66418e9b8a4488f2866ecc4e86a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040b4d9a3ddc9e730736c7342a2f023001240f362253b780000b6ca2f1e7901070001a084150000001a13af4950389b44",
     ),
   ).toEqual({
@@ -374,7 +374,7 @@ test("should unpack Header", () => {
 
 test("should unpack UncleBlock", () => {
   expect(
-    codecMap["UncleBlock"].decode(
+    CodecDefinitions["UncleBlock"].decode(
       "0xf40000000c000000dc0000000000000094342d1ac363a6ab70010000bcb10f000000000087020012060807003134874027b9b2b17391d2fa545344b10bd8b8c49d9ea47d55a447d01142b21b68a83c880eb942396d22020aa83343906986f66418e9b8a4488f2866ecc4e86a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040b4d9a3ddc9e730736c7342a2f023001240f362253b780000b6ca2f1e7901070001a084150000001a13af4950389b440200000012345678901234567890abcdeabcdeabcdeabcde",
     ),
   ).toEqual({
@@ -403,7 +403,7 @@ test("should unpack UncleBlock", () => {
 
 test("should unpack Block", () => {
   expect(
-    codecMap["Block"].decode(
+    CodecDefinitions["Block"].decode(
       "0x2502000014000000e4000000e80000000d0200000000000094342d1ac363a6ab70010000bcb10f000000000087020012060807003134874027b9b2b17391d2fa545344b10bd8b8c49d9ea47d55a447d01142b21b68a83c880eb942396d22020aa83343906986f66418e9b8a4488f2866ecc4e86a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040b4d9a3ddc9e730736c7342a2f023001240f362253b780000b6ca2f1e7901070001a084150000001a13af4950389b440400000025010000080000001d0100000c0000000f010000030100001c00000020000000490000006d0000009d000000f40000000000000001000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a7300000000000001000000b39d53656421d1532dd995a0924441ca8f43052bc2b7740a0e814a488a8214d6010000001000000000000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a73010200000057000000080000004f00000010000000180000004f000000341200000000000037000000100000003000000031000000a98c57135830e1b91345948df6c4b8870828199a786b26f09f7dec4bc27a7302000200000012340f0000000800000003000000abcdef0e000000080000000200000011110200000012345678901234567890abcdeabcdeabcdeabcde",
     ),
   ).toEqual({
@@ -477,7 +477,7 @@ test("should unpack Block", () => {
 
 test("should unpack WitnessArgs", () => {
   expect(
-    codecMap["WitnessArgs"].decode(
+    CodecDefinitions["WitnessArgs"].decode(
       "0x2200000010000000160000001c000000020000001234020000004678020000002312",
     ),
   ).toEqual({
@@ -489,7 +489,7 @@ test("should unpack WitnessArgs", () => {
 
 test("should unpack empty WitnessArgs", () => {
   expect(
-    codecMap["WitnessArgs"].decode("0x10000000100000001000000010000000"),
+    CodecDefinitions["WitnessArgs"].decode("0x10000000100000001000000010000000"),
   ).toEqual({
     lock: undefined,
     inputType: undefined,
@@ -499,7 +499,7 @@ test("should unpack empty WitnessArgs", () => {
 
 test("should unpack only one WitnessArgs", () => {
   expect(
-    codecMap["WitnessArgs"].decode(
+    CodecDefinitions["WitnessArgs"].decode(
       "0x16000000100000001600000016000000020000001234",
     ),
   ).toEqual({

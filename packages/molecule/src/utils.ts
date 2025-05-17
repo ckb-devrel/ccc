@@ -2,61 +2,64 @@ import { mol } from "@ckb-ccc/core";
 import {
   byte,
   Field,
+  MolDefinitions,
   MolType,
-  MolTypeMap,
   ParseOptions,
   Struct,
   Vector,
-} from "./type";
+} from "./type.js";
 
 export function nonNull<T>(data: T): asserts data is NonNullable<T> {
   if (data === null || data === undefined) throw new Error("NonNullable");
 }
 
-export function toMolTypeMap(results: MolType[]): MolTypeMap {
-  const map: MolTypeMap = {};
-  results.forEach((result) => {
-    map[result.name] = result;
+export function toMolDefinitions(molTypes: MolType[]): MolDefinitions {
+  const map: MolDefinitions = {};
+  molTypes.forEach((molType) => {
+    map[molType.name] = molType;
   });
   return map;
 }
 
 export function validateParsedResults(
-  results: MolType[],
+  molTypes: MolType[],
   option: ParseOptions,
 ) {
-  checkDuplicateNames(results);
-  // skip check is refs presents
-  if (!option.skipDependenciesCheck && !option.refs) {
-    checkDependencies(results);
+  checkDuplicateNames(molTypes);
+  // skip check if extraReferences presents
+  if (!option.skipDependenciesCheck && !option.extraReferences) {
+    checkDependencies(molTypes);
   }
 }
 
-function checkDuplicateNames(results: MolType[]) {
+function checkDuplicateNames(molTypes: MolType[]) {
   const names = new Set<string>();
-  results.forEach((result) => {
-    const currentName = result.name;
+  molTypes.forEach((molType) => {
+    const currentName = molType.name;
     if (names.has(currentName)) {
       throw new Error(`Duplicate name: ${currentName}`);
     }
     names.add(currentName);
-    const currentType = result.type;
+    const currentType = molType.type;
     // check duplicate field names in `struct` and `table`
-    if (currentType === "struct" || currentType === "table") {
-      const fieldNames = new Set<string>();
-      (result as Struct).fields.forEach((field: Field) => {
-        const currentFieldName = field.name;
-        if (fieldNames.has(currentFieldName)) {
-          throw new Error(`Duplicate field name: ${currentFieldName}`);
-        }
-        fieldNames.add(currentFieldName);
-      });
+    if (currentType !== "struct" && currentType !== "table") {
+      return;
     }
+    const fieldNames = new Set<string>();
+    (molType as Struct).fields.forEach((field: Field) => {
+      const currentFieldName = field.name;
+      if (fieldNames.has(currentFieldName)) {
+        throw new Error(
+          `Duplicate field name: ${currentName}.${currentFieldName}`,
+        );
+      }
+      fieldNames.add(currentFieldName);
+    });
   });
 }
 
-export function checkDependencies(results: MolType[]): void {
-  const map = toMolTypeMap(results);
+export function checkDependencies(molTypes: MolType[]): void {
+  const map = toMolDefinitions(molTypes);
   for (const key in map) {
     const molItem = map[key];
     nonNull(molItem);
@@ -96,7 +99,6 @@ export function checkDependencies(results: MolType[]): void {
             nonNull(map[dep]);
           }
         });
-
         break;
       }
       default:
@@ -108,14 +110,17 @@ export function checkDependencies(results: MolType[]): void {
 /**
  * mol type `array` and `struct` should have fixed byte length
  */
-function assertFixedMolType(name: string, map: MolTypeMap): void {
-  const molItem = map[name];
+function assertFixedMolType(
+  name: string,
+  outputDefinitions: MolDefinitions,
+): void {
+  const molItem = outputDefinitions[name];
   nonNull(molItem);
   const type = molItem.type;
   switch (type) {
     case "array": {
       if (molItem.item !== byte) {
-        assertFixedMolType(molItem.name, map);
+        assertFixedMolType(molItem.item, outputDefinitions);
       }
       break;
     }
@@ -123,7 +128,7 @@ function assertFixedMolType(name: string, map: MolTypeMap): void {
       const fields = molItem.fields;
       fields.forEach((field: Field) => {
         if (field.type !== byte) {
-          assertFixedMolType(field.type, map);
+          assertFixedMolType(field.type, outputDefinitions);
         }
       });
       break;
@@ -131,101 +136,4 @@ function assertFixedMolType(name: string, map: MolTypeMap): void {
     default:
       throw new Error(`Type ${name} should be fixed length.`);
   }
-}
-
-type ID = string | number;
-
-interface Node {
-  id: ID;
-  dependencies: ID[];
-}
-
-/**
- * topological sort with circular check
- * @param graph
- */
-export function topologySort<T extends Node>(graph: T[]): T[];
-/**
- * topological sort with circular check and custom node transformation
- * @param graph
- * @param cb
- */
-export function topologySort<T>(graph: T[], cb: (element: T) => Node): T[];
-// topological sort with circular check
-export function topologySort<T>(graph: T[], cb?: (element: T) => Node): T[] {
-  const sorted: T[] = [];
-  const visited: Set<ID> = new Set();
-  const visiting: Set<ID> = new Set();
-
-  const toNode = (cb ? cb : id) as (value: T) => Node;
-
-  function visit(node: T, path: ID[]) {
-    const { id, dependencies } = toNode(node);
-
-    if (visiting.has(id)) {
-      const cycle = path.slice(path.indexOf(id)).concat(id).join(" -> ");
-      throw new Error(`Circular dependency detected: ${cycle}`);
-    }
-
-    if (!visited.has(id)) {
-      visiting.add(id);
-      path.push(id);
-
-      for (const depId of dependencies) {
-        const dependency = graph.find((n) => toNode(n).id === depId);
-
-        if (dependency) {
-          visit(dependency, [...path]);
-        } else {
-          throw new Error(`Dependency not found: ${depId}`);
-        }
-      }
-
-      visited.add(id);
-      visiting.delete(id);
-      sorted.push(node);
-    }
-  }
-
-  for (const node of graph) {
-    visit(node, []);
-  }
-
-  return sorted;
-}
-
-function id<T>(value: T): T {
-  return value;
-}
-
-type CircularIterator<T> = {
-  current(): T | undefined;
-  // move to the next point and return it
-  next(): T | undefined;
-  // delete the current element, move and return the next element
-  removeAndNext(): T | undefined;
-  hasNext(): boolean;
-};
-
-export function circularIterator<T extends object>(
-  elems: T[],
-): CircularIterator<T> {
-  const items = [...elems];
-  let current = items[0];
-
-  return {
-    current: () => current,
-    next: () => {
-      const index = items.indexOf(current);
-      current = items[(index + 1) % items.length];
-      return current;
-    },
-    removeAndNext() {
-      const index = items.indexOf(current);
-      items.splice(index, 1);
-      current = items[index % items.length];
-      return current;
-    },
-    hasNext: () => items.length > 0,
-  };
 }

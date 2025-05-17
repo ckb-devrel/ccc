@@ -1,18 +1,22 @@
-import { createCodecMap } from "./codec";
-import grammar from "./grammar/grammar";
-import { CodecMap } from "./type";
+import { createCodecDefinitions } from "./codec.js";
+import grammar from "./grammar/grammar.js";
+import { CodecDefinitions, ParseOptions } from "./type.js";
+import { validateParsedResults } from "./utils.js";
 
-import { ParseOptions } from "./type";
-import { validateParsedResults } from "./utils";
-
-export function getCodecMapFromMol(
-  molString: string,
+/**
+ * Parses a molecule schema source string and returns codec definitions for all declared types.
+ * @param molSrc - The molecule schema source as a string.
+ * @param option - (Optional) Parse options, including extraReferences and skipDependenciesCheck.
+ * @returns Codec definitions mapping type names to their corresponding codecs.
+ */
+export function parseMolecule(
+  molSrc: string,
   option: ParseOptions = {
-    refs: {},
+    extraReferences: {},
     skipDependenciesCheck: false,
   },
-): CodecMap {
-  const { declares: results } = grammar.parse(molString);
+): CodecDefinitions {
+  const { declares: results } = grammar.parse(molSrc);
   validateParsedResults(results, option);
-  return createCodecMap(results, option.refs);
+  return createCodecDefinitions(results, option.extraReferences);
 }
