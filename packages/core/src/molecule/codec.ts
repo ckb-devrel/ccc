@@ -29,7 +29,7 @@ export class Codec<Encodable, Decoded = Encodable> {
     public readonly encode: (encodable: Encodable) => Bytes,
     public readonly decode: (
       decodable: BytesLike,
-      config?: { isExtraFieldIgnored?: boolean },
+      config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
     ) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
   ) {}
