@@ -36,7 +36,7 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-Get `CodecMap` from Molecule schema.
+Get `CodecRecord` from Molecule schema.
 
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.

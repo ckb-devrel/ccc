@@ -10,10 +10,10 @@ import { Textarea } from "@/src/components/Textarea";
 import { Button } from "@/src/components/Button";
 
 type Props = {
-  updateCodecMap: (token: any) => void;
+  updateCodecRecord: (codecRecord: ccc.molecule.CodecRecord) => void;
 };
 
-export const MoleculeParser: React.FC<Props> = ({ updateCodecMap }) => {
+export const MoleculeParser: React.FC<Props> = ({ updateCodecRecord }) => {
   const [inputMol, setInputMol] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("cachedMol") || "";
@@ -27,25 +27,25 @@ export const MoleculeParser: React.FC<Props> = ({ updateCodecMap }) => {
   const handleConfirm = useCallback(() => {
     try {
       // get user input schema, and append with primitive schema
-      const userCodecMap = ccc.molecule.getCodecMapFromMol(
+      const userCodecRecord = ccc.molecule.parseMoleculeSchema(
         inputMol + blockchainSchema,
         {
-          refs: builtinCodecs,
+          extraReferences: builtinCodecs,
         },
       );
-      const codecMap = mergeBuiltinCodecs(userCodecMap);
+      const codecRecord = mergeBuiltinCodecs(userCodecRecord);
       setParseSuccess(true);
-      updateCodecMap(codecMap);
+      updateCodecRecord(codecRecord);
       log("Successfully parsed schema");
       if (typeof window !== "undefined") {
         localStorage.setItem("cachedMol", inputMol);
       }
-    } catch (error: any) {
+    } catch (e: any) {
       setParseSuccess(false);
-      updateCodecMap({});
-      error(error.message);
+      updateCodecRecord({});
+      error(e.message);
     }
-  }, [inputMol, log, updateCodecMap]);
+  }, [error, inputMol, log, updateCodecRecord]);
 
   return (
     <div style={{ marginBottom: 16 }}>
