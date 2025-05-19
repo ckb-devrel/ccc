@@ -49,7 +49,7 @@ export class Codec<Encodable, Decoded = Encodable> {
         }
         return encoded;
       },
-      (decodable, config = { isExtraFieldIgnored: false }) => {
+      (decodable, config) => {
         const decodableBytes = bytesFrom(decodable);
         if (
           byteLength !== undefined &&
@@ -75,7 +75,7 @@ export class Codec<Encodable, Decoded = Encodable> {
     return new Codec(
       (encodable) =>
         this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer, config = { isExtraFieldIgnored: false }) =>
+      (buffer, config) =>
         (outMap
           ? outMap(this.decode(buffer, config))
           : this.decode(buffer, config)) as NewDecoded,
@@ -388,15 +388,38 @@ export function table<
         );
       }
       const byteLength = uint32From(value.slice(0, 4));
+      const headerLength = uint32From(value.slice(4, 8));
+      const actualFieldCount = (headerLength - 4) / 4;
+
       if (byteLength !== value.byteLength) {
         throw new Error(
           `table: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
+
+      if (actualFieldCount < keys.length) {
+        throw new Error(
+          `table: invalid field count, expected ${keys.length}, but got ${actualFieldCount}`,
+        );
+      }
+
+      if (actualFieldCount > keys.length && !config?.isExtraFieldIgnored) {
+        throw new Error(
+          `table: invalid field count, expected ${keys.length}, but got ${actualFieldCount}, and extra fields are not allowed in the current configuration. If you want to ignore extra fields, set isExtraFieldIgnored to true.`,
+        );
+      }
       const offsets = keys.map((_, index) =>
         uint32From(value.slice(4 + index * 4, 8 + index * 4)),
       );
-      offsets.push(byteLength);
+      // If there are extra fields, add the last offset to the offsets array
+      if (actualFieldCount > keys.length) {
+        offsets.push(
+          uint32From(value.slice(4 + keys.length * 4, 8 + keys.length * 4)),
+        );
+      } else {
+        // If there are no extra fields, add the byte length to the offsets array
+        offsets.push(byteLength);
+      }
       const object = {};
       for (let i = 0; i < offsets.length - 1; i++) {
         const start = offsets[i];
@@ -407,12 +430,8 @@ export function table<
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [field]: codec.decode(payload, config) });
-        } catch (_e: unknown) {
-          if (config?.isExtraFieldIgnored) {
-            Object.assign(object, { [field]: null });
-          } else {
-            throw new Error(`table.${field}(${_e?.toString()})`);
-          }
+        } catch (e: unknown) {
+          throw new Error(`table.${field}(${e?.toString()})`);
         }
       }
       return object as Decoded;
