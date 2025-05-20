@@ -112,21 +112,21 @@ export function validateMolTypeDefinitions(
       }
       case "union": {
         const unionDeps = molTypeDefinition.items;
-        unionDeps.forEach((dep) => {
-          if (typeof dep === "string" && dep !== BYTE) {
+        unionDeps.forEach((dependency) => {
+          if (typeof dependency === "string" && dependency !== BYTE) {
             if (
               !molTypeDefinitions.find(
-                (molTypeDefinition) => molTypeDefinition.name === dep,
+                (molTypeDefinition) => molTypeDefinition.name === dependency,
               ) &&
-              !(extraReferences && dep in extraReferences)
+              !(extraReferences && dependency in extraReferences)
             ) {
               throw new Error(
-                `Dependency ${dep} not found for union type ${molTypeDefinition.name}`,
+                `Dependency ${dependency} not found for union type ${molTypeDefinition.name}`,
               );
             }
           }
-          if (Array.isArray(dep)) {
-            const [key, id] = dep;
+          if (Array.isArray(dependency)) {
+            const [key, id] = dependency;
             // check if the id is a valid uint32
             mol.Uint32.encode(id);
             if (
@@ -147,16 +147,16 @@ export function validateMolTypeDefinitions(
         const tableDeps = molTypeDefinition.fields.map(
           (field: Field) => field.type,
         );
-        tableDeps.forEach((dep: string) => {
-          if (dep !== BYTE) {
+        tableDeps.forEach((dependency: string) => {
+          if (dependency !== BYTE) {
             if (
               !molTypeDefinitions.find(
-                (molTypeDefinition) => molTypeDefinition.name === dep,
+                (molTypeDefinition) => molTypeDefinition.name === dependency,
               ) &&
-              !(extraReferences && dep in extraReferences)
+              !(extraReferences && dependency in extraReferences)
             ) {
               throw new Error(
-                `Dependency ${dep} not found for table type ${molTypeDefinition.name}`,
+                `Dependency ${dependency} not found for table type ${molTypeDefinition.name}`,
               );
             }
           }
@@ -185,22 +185,21 @@ export function validateMolTypeDefinitions(
  * - If a field is not BYTE, its type must be a fixed-length type
  *
  * @param molTypeDefinition - The molecule type definition to validate
- * @param molTypeDefinitionsAsReferences - Available type definitions that can be referenced
+ * @param molTypeDefinitions - Available type definitions that can be referenced
  * @throws Error if the type is not fixed length or if required dependencies are not found
  */
 function assertFixedLengthMolType(
   molTypeDefinition: MolTypeDefinition,
-  molTypeDefinitionsAsReferences: MolTypeDefinition[],
+  molTypeDefinitions: MolTypeDefinition[],
   extraReferences?: CodecRecord,
 ): void {
   switch (molTypeDefinition.type) {
     case "array": {
       if (molTypeDefinition.item !== BYTE) {
-        const matchingItemMolTypeDefinition =
-          molTypeDefinitionsAsReferences.find(
-            (molTypeDefinitionAsReference) =>
-              molTypeDefinitionAsReference.name === molTypeDefinition.item,
-          );
+        const matchingItemMolTypeDefinition = molTypeDefinitions.find(
+          (singleMolTypeDefinition) =>
+            singleMolTypeDefinition.name === molTypeDefinition.item,
+        );
         if (!matchingItemMolTypeDefinition) {
           const matchingExtraReference =
             extraReferences?.[molTypeDefinition.item];
@@ -216,7 +215,7 @@ function assertFixedLengthMolType(
         } else {
           assertFixedLengthMolType(
             matchingItemMolTypeDefinition,
-            molTypeDefinitionsAsReferences,
+            molTypeDefinitions,
             extraReferences,
           );
         }
@@ -227,11 +226,10 @@ function assertFixedLengthMolType(
       const fields = molTypeDefinition.fields;
       fields.forEach((field: Field) => {
         if (field.type !== BYTE) {
-          const matchingFieldMolTypeDefinition =
-            molTypeDefinitionsAsReferences.find(
-              (molTypeDefinitionAsReference) =>
-                molTypeDefinitionAsReference.name === field.type,
-            );
+          const matchingFieldMolTypeDefinition = molTypeDefinitions.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === field.type,
+          );
           if (!matchingFieldMolTypeDefinition) {
             const matchingExtraReference = extraReferences?.[field.type];
             if (!matchingExtraReference) {
@@ -246,7 +244,7 @@ function assertFixedLengthMolType(
           } else {
             assertFixedLengthMolType(
               matchingFieldMolTypeDefinition,
-              molTypeDefinitionsAsReferences,
+              molTypeDefinitions,
               extraReferences,
             );
           }
