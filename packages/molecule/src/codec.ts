@@ -34,7 +34,7 @@ function toCodec(
   if (outputCodecRecord[molTypeDefinition.name]) {
     return outputCodecRecord[molTypeDefinition.name];
   }
-  let codec: mol.Codec<any, any> | null = null;
+  let codec: mol.Codec<any, any> | undefined = undefined;
   switch (molTypeDefinition.type) {
     case "array": {
       const builtInCodec =
@@ -96,26 +96,24 @@ function toCodec(
       molTypeDefinition.items.forEach((unionTypeItem, index) => {
         if (unionTypeItem === BYTE) {
           unionCodecs.push([unionTypeItem, index, mol.Byte]);
-        } else {
-          if (typeof unionTypeItem === "string") {
-            const itemCodec = outputCodecRecord[unionTypeItem];
-            if (!itemCodec) {
-              throw new Error(
-                `Codec not found for item type: ${unionTypeItem} in union type: ${molTypeDefinition.name}`,
-              );
-            }
-            unionCodecs.push([unionTypeItem, index, itemCodec]);
-          } else if (Array.isArray(unionTypeItem)) {
-            const [key, fieldId] = unionTypeItem;
-
-            const itemCodec = outputCodecRecord[key];
-            if (!itemCodec) {
-              throw new Error(
-                `Codec not found for item type: ${key} in union type: ${molTypeDefinition.name}`,
-              );
-            }
-            unionCodecs.push([key, fieldId, itemCodec]);
+        } else if (typeof unionTypeItem === "string") {
+          const itemCodec = outputCodecRecord[unionTypeItem];
+          if (!itemCodec) {
+            throw new Error(
+              `Codec not found for item type: ${unionTypeItem} in union type: ${molTypeDefinition.name}`,
+            );
           }
+          unionCodecs.push([unionTypeItem, index, itemCodec]);
+        } else if (Array.isArray(unionTypeItem)) {
+          const [key, fieldId] = unionTypeItem;
+
+          const itemCodec = key == "byte" ? mol.Byte : outputCodecRecord[key];
+          if (!itemCodec) {
+            throw new Error(
+              `Codec not found for item type: ${key} in union type: ${molTypeDefinition.name}`,
+            );
+          }
+          unionCodecs.push([key, fieldId, itemCodec]);
         }
       });
 
@@ -197,29 +195,46 @@ export function toCodecRecord(
   molTypeDefinitions: MolTypeDefinition[],
   extraReferences?: CodecRecord,
 ): CodecRecord {
-  const outputCodecRecord: CodecRecord = extraReferences || {};
+  const outputCodecRecord: CodecRecord = extraReferences ?? {};
   const processed = new Set<string>();
 
   function process(definition: MolTypeDefinition) {
-    if (processed.has(definition.name)) return;
+    if (processed.has(definition.name)) {
+      return;
+    }
 
     // Process dependencies based on type
     if ("item" in definition && definition.item !== BYTE) {
-      const dep = molTypeDefinitions.find((d) => d.name === definition.item);
-      if (dep) process(dep);
+      const dependency = molTypeDefinitions.find(
+        (currentMolTypeDefinition) =>
+          currentMolTypeDefinition.name === definition.item,
+      );
+      if (dependency) {
+        process(dependency);
+      }
     } else if ("fields" in definition) {
       definition.fields.forEach((field) => {
         if (field.type !== BYTE) {
-          const dep = molTypeDefinitions.find((d) => d.name === field.type);
-          if (dep) process(dep);
+          const dependency = molTypeDefinitions.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === field.type,
+          );
+          if (dependency) {
+            process(dependency);
+          }
         }
       });
     } else if (definition.type === "union") {
       definition.items.forEach((item) => {
         const name = typeof item === "string" ? item : item[0];
         if (name !== BYTE) {
-          const dep = molTypeDefinitions.find((d) => d.name === name);
-          if (dep) process(dep);
+          const dependency = molTypeDefinitions.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === name,
+          );
+          if (dependency) {
+            process(dependency);
+          }
         }
       });
     }
