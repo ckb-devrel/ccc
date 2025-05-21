@@ -8,24 +8,13 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { FiberSDK } from "@ckb-ccc/fiber";
 import { useFiber } from "./context/FiberContext";
 import { BigButton } from "@/src/components/BigButton";
-
-interface OpenChannelForm {
-  peerAddress: string;
-  fundingAmount: string;
-  feeRate: string;
-  tlcExpiryDelta: string;
-  tlcMinValue: string;
-  tlcFeeProportionalMillionths: string;
-  isPublic: boolean;
-  isEnabled: boolean;
-}
+import { shannonToCKB } from "./utils/numbers"
 
 export default function Page() {
   const router = useRouter();
   const { fiber, setFiber } = useFiber();
   const [endpoint, setEndpoint] = useState("");
   const [nodeInfo, setNodeInfo] = useState<any>(null);
-
   const initSdk = () => {
     const newFiber = new FiberSDK({
       endpoint: endpoint || `/api/fiber`,
@@ -115,27 +104,127 @@ export default function Page() {
       {nodeInfo && (
         <div className="mt-4 w-full rounded-lg border bg-white p-4">
           <h2 className="mb-2 text-lg font-bold">Node Information</h2>
-          <div className="space-y-2">
-            <p>
-              <span className="font-semibold">Version:</span> {nodeInfo.version}
-            </p>
-            <p>
-              <span className="font-semibold">Commit Hash:</span>{" "}
-              {nodeInfo.commit_hash}
-            </p>
-            <p>
-              <span className="font-semibold">Node ID:</span> {nodeInfo.node_id}
-            </p>
-            <p>
-              <span className="font-semibold">Node Name:</span>{" "}
-              {nodeInfo.node_name || "Not set"}
-            </p>
-            <p>
-              <span className="font-semibold">Addresses:</span>{" "}
-              {nodeInfo.addresses.length > 0
-                ? nodeInfo.addresses.join(", ")
-                : "No addresses"}
-            </p>
+          <div className="space-y-4">
+            {/* 基本信息 */}
+            <div>
+              <div className="grid grid-cols-1">
+                <p>
+                  <span className="font-semibold">Node Name:</span>{" "}
+                  {nodeInfo.node_name || "Not set"}
+                </p>
+                <p>
+                  <span className="font-semibold">Node ID:</span>{" "}
+                  {nodeInfo.node_id}
+                </p>
+                <p>
+                  <span className="font-semibold">Chain Hash:</span>{" "}
+                  {nodeInfo.chain_hash}
+                </p>
+                <p>
+                  <span className="font-semibold">Timestamp:</span>{" "}
+                  {new Date(Number(nodeInfo.timestamp)).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* 网络统计 */}
+            <div>
+              <h3 className="mb-2 font-semibold">Network Statistics</h3>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                <p>
+                  <span className="font-semibold">Channel Count:</span>{" "}
+                  {nodeInfo.channel_count || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">Pending Channels:</span>{" "}
+                  {nodeInfo.pending_channel_count || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">Connected Peers:</span>{" "}
+                  {nodeInfo.peers_count || "0"}
+                </p>
+              </div>
+            </div>
+
+            {/* 通道配置 */}
+            <div>
+              <h3 className="mb-2 font-semibold">Channel Configuration</h3>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <p>
+                  <span className="font-semibold">Min CKB Funding Amount:</span>{" "}
+                  {shannonToCKB(nodeInfo.auto_accept_min_ckb_funding_amount) || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">
+                    Channel CKB Funding Amount:
+                  </span>{" "}
+                  {shannonToCKB(nodeInfo.auto_accept_channel_ckb_funding_amount) || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">TLC Expiry Delta:</span>{" "}
+                  {shannonToCKB(nodeInfo.tlc_expiry_delta) || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">TLC Min Value:</span>{" "}
+                  {shannonToCKB(nodeInfo.tlc_min_value) || "0"}
+                </p>
+                <p>
+                  <span className="font-semibold">
+                    TLC Fee Proportional Millionths:
+                  </span>{" "}
+                  {nodeInfo.tlc_fee_proportional_millionths
+                    ? `${shannonToCKB(nodeInfo.tlc_fee_proportional_millionths)}`
+                    : "0%"}
+                </p>
+              </div>
+            </div>
+
+            {/* 节点地址 */}
+            <div>
+              <h3 className="mb-2 font-semibold">Node Addresses</h3>
+              <div className="space-y-1">
+                {nodeInfo.addresses && nodeInfo.addresses.length > 0 ? (
+                  nodeInfo.addresses.map((address: string, index: number) => (
+                    <p key={index} className="break-all">
+                      {address}
+                    </p>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No addresses configured</p>
+                )}
+              </div>
+            </div>
+
+            {/* 默认资金锁定脚本 */}
+            {nodeInfo.default_funding_lock_script && (
+              <div>
+                <h3 className="mb-2 font-semibold">Default Funding Lock Script</h3>
+                <div className="space-y-2">
+                  <p>
+                    <span className="font-semibold">Code Hash:</span>{" "}
+                    {nodeInfo.default_funding_lock_script.code_hash}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Hash Type:</span>{" "}
+                    {nodeInfo.default_funding_lock_script.hash_type}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Args:</span>{" "}
+                    {nodeInfo.default_funding_lock_script.args}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* UDT配置 */}
+            {nodeInfo.udt_cfg_infos && Object.keys(nodeInfo.udt_cfg_infos).length > 0 && (
+              <div>
+                <h3 className="mb-2 font-semibold">UDT Configuration</h3>
+                <pre className="whitespace-pre-wrap rounded bg-gray-50 p-2">
+                  {JSON.stringify(nodeInfo.udt_cfg_infos, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </div>
       )}
