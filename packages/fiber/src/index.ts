@@ -71,18 +71,18 @@ export class FiberSDK {
    */
   async openChannel(params: {
     peer_id: string;
-    funding_amount: bigint;
+    funding_amount: string;
     public?: boolean;
     funding_udt_type_script?: Script;
     shutdown_script?: Script;
-    commitment_delay_epoch?: bigint;
-    commitment_fee_rate?: bigint;
-    funding_fee_rate?: bigint;
-    tlc_expiry_delta?: bigint;
-    tlc_min_value?: bigint;
-    tlc_fee_proportional_millionths?: bigint;
-    max_tlc_value_in_flight?: bigint;
-    max_tlc_number_in_flight?: bigint;
+    commitment_delay_epoch?: string;
+    commitment_fee_rate?: string;
+    funding_fee_rate?: string;
+    tlc_expiry_delta?: string;
+    tlc_min_value?: string;
+    tlc_fee_proportional_millionths?: string;
+    max_tlc_value_in_flight?: string;
+    max_tlc_number_in_flight?: string;
   }): Promise<Hash256> {
     return this.channel.openChannel(params);
   }

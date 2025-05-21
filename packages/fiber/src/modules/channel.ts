@@ -1,5 +1,11 @@
 import { FiberClient } from "../client.js";
 import { Channel, Hash256, Script } from "../types.js";
+import {
+  decimalToU128,
+  decimalToU64,
+  u128ToDecimal,
+  u64ToDecimal,
+} from "../utils/number.js";
 
 export class ChannelModule {
   constructor(private client: FiberClient) {}
@@ -9,20 +15,45 @@ export class ChannelModule {
    */
   async openChannel(params: {
     peer_id: string;
-    funding_amount: bigint;
+    funding_amount: string;
     public?: boolean;
     funding_udt_type_script?: Script;
     shutdown_script?: Script;
-    commitment_delay_epoch?: bigint;
-    commitment_fee_rate?: bigint;
-    funding_fee_rate?: bigint;
-    tlc_expiry_delta?: bigint;
-    tlc_min_value?: bigint;
-    tlc_fee_proportional_millionths?: bigint;
-    max_tlc_value_in_flight?: bigint;
-    max_tlc_number_in_flight?: bigint;
+    commitment_delay_epoch?: string;
+    commitment_fee_rate?: string;
+    funding_fee_rate?: string;
+    tlc_expiry_delta?: string;
+    tlc_min_value?: string;
+    tlc_fee_proportional_millionths?: string;
+    max_tlc_value_in_flight?: string;
+    max_tlc_number_in_flight?: string;
   }): Promise<Hash256> {
-    return this.client.call("open_channel", [params]);
+    const u128Params = {
+      ...params,
+      funding_amount: decimalToU128(params.funding_amount),
+      commitment_delay_epoch: params.commitment_delay_epoch
+        ? decimalToU128(params.commitment_delay_epoch)
+        : undefined,
+      commitment_fee_rate: params.commitment_fee_rate
+        ? decimalToU128(params.commitment_fee_rate)
+        : undefined,
+      funding_fee_rate: params.funding_fee_rate
+        ? decimalToU64(params.funding_fee_rate)
+        : undefined,
+      tlc_expiry_delta: params.tlc_expiry_delta
+        ? decimalToU64(params.tlc_expiry_delta)
+        : undefined,
+      tlc_min_value: params.tlc_min_value
+        ? decimalToU128(params.tlc_min_value)
+        : undefined,
+      tlc_fee_proportional_millionths: params.tlc_fee_proportional_millionths
+        ? decimalToU128(params.tlc_fee_proportional_millionths)
+        : undefined,
+      max_tlc_value_in_flight: params.max_tlc_value_in_flight
+        ? decimalToU64(params.max_tlc_value_in_flight)
+        : undefined,
+    };
+    return this.client.call("open_channel", [u128Params]);
   }
 
   /**
@@ -30,14 +61,25 @@ export class ChannelModule {
    */
   async acceptChannel(params: {
     temporary_channel_id: string;
-    funding_amount: bigint;
-    max_tlc_value_in_flight: bigint;
-    max_tlc_number_in_flight: bigint;
-    tlc_min_value: bigint;
-    tlc_fee_proportional_millionths: bigint;
-    tlc_expiry_delta: bigint;
+    funding_amount: string;
+    max_tlc_value_in_flight: string;
+    max_tlc_number_in_flight: string;
+    tlc_min_value: string;
+    tlc_fee_proportional_millionths: string;
+    tlc_expiry_delta: string;
   }): Promise<void> {
-    return this.client.call("accept_channel", [params]);
+    const u128Params = {
+      ...params,
+      funding_amount: decimalToU128(params.funding_amount),
+      max_tlc_value_in_flight: decimalToU128(params.max_tlc_value_in_flight),
+      max_tlc_number_in_flight: decimalToU128(params.max_tlc_number_in_flight),
+      tlc_min_value: decimalToU128(params.tlc_min_value),
+      tlc_fee_proportional_millionths: decimalToU128(
+        params.tlc_fee_proportional_millionths,
+      ),
+      tlc_expiry_delta: decimalToU128(params.tlc_expiry_delta),
+    };
+    return this.client.call("accept_channel", [u128Params]);
   }
 
   /**
@@ -47,7 +89,6 @@ export class ChannelModule {
    * @returns Promise<void>
    */
   async abandonChannel(channelId: Hash256): Promise<void> {
-    console.log(11111, channelId);
     if (!channelId) {
       throw new Error("Channel ID cannot be empty");
     }
@@ -89,7 +130,21 @@ export class ChannelModule {
       "list_channels",
       [{}],
     );
-    return response.channels;
+    return response.channels.map((channel) => ({
+      ...channel,
+      local_balance: u128ToDecimal(channel.local_balance),
+      remote_balance: u128ToDecimal(channel.remote_balance),
+      offered_tlc_balance: u128ToDecimal(channel.offered_tlc_balance),
+      received_tlc_balance: u128ToDecimal(channel.received_tlc_balance),
+      tlc_expiry_delta: u128ToDecimal(channel.tlc_expiry_delta),
+      tlc_fee_proportional_millionths: u128ToDecimal(
+        channel.tlc_fee_proportional_millionths,
+      ),
+      created_at: u64ToDecimal(channel.created_at, true),
+      last_updated_at: channel.last_updated_at
+        ? u64ToDecimal(channel.last_updated_at, true)
+        : "",
+    }));
   }
 
   /**
