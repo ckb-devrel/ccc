@@ -3,7 +3,6 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import React, { useEffect } from "react";
-import { Key, Wallet } from "lucide-react";
 import { BigButton } from "@/src/components/BigButton";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/src/context";

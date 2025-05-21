@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { useFiber } from "../context/FiberContext";
+import { useFiber } from "../../context/FiberContext";
 import { hexToDecimal, decimalToHex } from '@/src/utils/hex';
-import { shannonToCKB } from "../utils/numbers"
+import { shannonToCKB } from "../../utils/numbers"
 
 interface ChannelState {
   fundingAmount: string;
@@ -19,29 +20,16 @@ interface ChannelState {
   forceClose: boolean;
 }
 
-interface OpenChannelForm {
-  peerAddress: string;
-  fundingAmount: string;
-  isPublic: boolean;
-}
-
-export default function Channel() {
+export default function peerDetail() {
+  const params = useParams();
+  const peerId = params?.peerid as string;
   const { fiber } = useFiber();
-  const [nodeInfo, setNodeInfo] = useState<any>(null);
   const [channels, setChannels] = useState<any[]>([]);
-  const [peers, setPeers] = useState<any[]>([]);
-  const [peerAddress, setPeerAddress] = useState("");
   const [channelStates, setChannelStates] = useState<Record<string, ChannelState>>({});
   const [isLoading, setIsLoading] = useState(false);
   const channelStatesRef = useRef(channelStates);
   const initialized = useRef(false);
-  const [openChannelForm, setOpenChannelForm] = useState<OpenChannelForm>({
-    peerAddress:
-      "/ip4/18.162.235.225/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo",
-    fundingAmount: "50000000000",
-    isPublic: true,
-  });
-
+ 
   // 更新 ref 当 channelStates 改变时
   useEffect(() => {
     channelStatesRef.current = channelStates;
@@ -52,7 +40,8 @@ export default function Channel() {
     setIsLoading(true);
     try {
       const channelList = await fiber.listChannels();
-      setChannels(channelList);
+      const filteredChannelList = channelList.filter((channel: any) => channel.peer_id === peerId);
+      setChannels(filteredChannelList);
       
       // 只在需要时更新 channelStates
       const newChannelStates: Record<string, ChannelState> = {};
@@ -143,75 +132,43 @@ export default function Channel() {
       console.error("Failed to abandon channel:", error);
     }
   };
-
   const shutdownChannel = async (channelId: string) => {
     if (!fiber || !channelId) return;
     const state = channelStates[channelId];
     if (!state) return;
     try {
-      // 确保channelId是有效的十六进制字符串
-      if (!channelId.startsWith('0x')) {
-        channelId = '0x' + channelId;
+      if (state.forceClose) {
+        await fiber.channel.shutdownChannel({
+          channel_id: channelId,
+          close_script: {
+            code_hash:
+              "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+            hash_type: "type",
+            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
+          },
+          force: true,
+          fee_rate: BigInt(state.feeRate),
+        });
+      } else {
+        await fiber.channel.shutdownChannel({
+          channel_id: channelId,
+          close_script: {
+            code_hash:
+              "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+            hash_type: "type",
+            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
+          },
+          force: false,
+          fee_rate: BigInt(state.feeRate),
+        });
       }
-
-      const params = {
-        channel_id: channelId,
-        close_script: {
-          code_hash:
-            "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-          hash_type: "type",
-          args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
-        },
-        force: state.forceClose,
-        fee_rate: state.feeRate,
-      };
-
-      console.log("Shutdown channel params:", JSON.stringify(params, null, 2));
-      console.log("Fee rate type:", typeof state.feeRate);
-      console.log("Fee rate value:", state.feeRate);
-
-      await fiber.channel.shutdownChannel(params);
       console.log("Channel shutdown initiated successfully");
       // Refresh channel list
       await listChannels();
     } catch (error) {
       console.error("Failed to shutdown channel:", error);
-      if (error instanceof Error) {
-        alert(`关闭通道失败: ${error.message}`);
-      } else {
-        alert("关闭通道失败，请检查通道状态");
-      }
     }
   };
-
-
-  const handleOpenChannel = async () => {
-    if (!fiber) return;
-    try {
-      // 先连接 peer
-      await fiber.connectPeer(openChannelForm.peerAddress);
-      console.log("Peer connected successfully");
-
-      // 然后创建通道
-      const peerId = openChannelForm.peerAddress.split("/p2p/")[1];
-      await fiber.channel.openChannel({
-        peer_id: peerId,
-        funding_amount: openChannelForm.fundingAmount,
-        public: openChannelForm.isPublic,
-      });
-      console.log("Channel opened successfully");
-      // 刷新通道列表
-      await listChannels();
-    } catch (error) {
-      console.error("Failed to open channel:", error);
-      if (error instanceof Error) {
-        alert(`创建通道失败: ${error.message}`);
-      } else {
-        alert("创建通道失败，请检查网络连接");
-      }
-    }
-  };
-
   useEffect(() => {
     if (fiber && !initialized.current) {
       initialized.current = true;
@@ -221,60 +178,10 @@ export default function Channel() {
 
   return (
     <div className="flex w-9/12 flex-col items-center items-stretch gap-2">
-      <div className="mb-4">
-        <h2 className="mb-2 text-xl font-bold">通道管理</h2>
-        <Button onClick={listChannels} disabled={isLoading}>
-          刷新列表
-        </Button>
-      </div>
-
-      <div className="mb-4">
-        <h3 className="mb-2 text-lg font-semibold">创建新通道</h3>
-        <div className="space-y-4">
-          <TextInput
-            label="Peer Address"
-            state={[
-              openChannelForm.peerAddress,
-              (value) =>
-                setOpenChannelForm((prev) => ({
-                  ...prev,
-                  peerAddress: value,
-                })),
-            ]}
-            placeholder="输入 peer 地址"
-          />
-          <TextInput
-            label="Funding Amount (CKB)"
-            state={[
-              openChannelForm.fundingAmount,
-              (value) =>
-                setOpenChannelForm((prev) => ({
-                  ...prev,
-                  fundingAmount: value,
-                })),
-            ]}
-            placeholder="输入资金数量（单位：CKB）"
-            type="number"
-          />
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={openChannelForm.isPublic}
-                onChange={(e) =>
-                  setOpenChannelForm((prev) => ({
-                    ...prev,
-                    isPublic: e.target.checked,
-                  }))
-                }
-                className="mr-2"
-              />
-              公开通道
-            </label>
-          </div>
-          <Button onClick={handleOpenChannel}>创建通道</Button>
-        </div>
-      </div>
+        <>
+        <h2 className="mb-2 text-lg font-bold">Peer Info</h2>
+        <p>{peerId}</p>
+        </>
 
       {channels.length > 0 && (
         <div className="mt-4 w-full rounded-lg border bg-white p-4">
@@ -297,11 +204,11 @@ export default function Channel() {
                   </p>
                   <p>
                     <span className="font-semibold">Local Balance:</span>{" "}
-                    {hexToDecimal(channel.local_balance).toString()}
+                    {shannonToCKB(hexToDecimal(channel.local_balance).toString())}
                   </p>
                   <p>
                     <span className="font-semibold">Remote Balance:</span>{" "}
-                    {hexToDecimal(channel.remote_balance).toString()}
+                    {shannonToCKB(hexToDecimal(channel.remote_balance).toString())}
                   </p>
                 </div>
                 <div>
@@ -309,11 +216,11 @@ export default function Channel() {
                     <TextInput
                       label="Funding Amount (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.fundingAmount || "0xba43b7400").toString(),
+                        shannonToCKB(hexToDecimal(channelStates[channel.channel_id]?.fundingAmount || "0xba43b7400").toString()),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
-                            fundingAmount: decimalToHex(parseInt(value) || 0),
+                            fundingAmount: shannonToCKB(decimalToHex(parseInt(value) || 0)),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
@@ -321,7 +228,7 @@ export default function Channel() {
                           }));
                         },
                       ]}
-                      placeholder="50000000000"
+                      placeholder="500"
                       type="number"
                     />
                   </div>
@@ -502,17 +409,7 @@ export default function Channel() {
         </div>
       )}
 
-      {nodeInfo && (
-        <>
-          <div className="mt-4">
-            <TextInput
-              label="Peer Address"
-              state={[peerAddress, setPeerAddress]}
-              placeholder="/ip4/127.0.0.1/tcp/8119/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo"
-            />
-          </div>
-        </>
-      )}
+     
 
       <ButtonsPanel>
         {fiber && (
@@ -522,7 +419,7 @@ export default function Channel() {
               onClick={listChannels}
               disabled={isLoading}
             >
-              List Channels
+              刷新列表
             </Button>
           </>
         )}
