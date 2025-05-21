@@ -83,7 +83,7 @@ export enum RemoveTlcReason {
 export interface Script {
   code_hash: string;
   hash_type: string;
-  args: string[];
+  args: string;
 }
 
 export interface Channel {
@@ -91,15 +91,16 @@ export interface Channel {
   peer_id: Pubkey;
   funding_udt_type_script?: Script;
   state: string;
-  local_balance: bigint;
-  offered_tlc_balance: bigint;
-  remote_balance: bigint;
-  received_tlc_balance: bigint;
+  local_balance: string;
+  offered_tlc_balance: string;
+  remote_balance: string;
+  received_tlc_balance: string;
   latest_commitment_transaction_hash?: Hash256;
-  created_at: bigint;
+  created_at: string;
+  last_updated_at: string;
   enabled: boolean;
-  tlc_expiry_delta: bigint;
-  tlc_fee_proportional_millionths: bigint;
+  tlc_expiry_delta: string;
+  tlc_fee_proportional_millionths: string;
 }
 
 export interface ChannelInfo {
@@ -150,9 +151,16 @@ export interface NodeInfo {
   node_name: string;
   addresses: string[];
   node_id: Pubkey;
-  timestamp: bigint;
+  timestamp: string;
   chain_hash: Hash256;
-  auto_accept_min_ckb_funding_amount: bigint;
+  auto_accept_min_ckb_funding_amount: string;
+  auto_accept_channel_ckb_funding_amount: string;
+  tlc_expiry_delta: string;
+  tlc_min_value: string;
+  tlc_fee_proportional_millionths: string;
+  channel_count: string;
+  pending_channel_count: string;
+  peers_count: string;
   udt_cfg_infos: Record<string, unknown>;
   default_funding_lock_script?: {
     code_hash: string;
