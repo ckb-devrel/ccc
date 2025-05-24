@@ -184,38 +184,38 @@ export function validateMolTypeDefinitions(
  * - All fields must be fixed-length types
  * - If a field is not BYTE, its type must be a fixed-length type
  *
- * @param molTypeDefinition - The molecule type definition to validate
- * @param molTypeDefinitions - Available type definitions that can be referenced
+ * @param definition - The molecule type definition to validate
+ * @param references - Available type definitions that can be referenced
+ * @param extraReferences - Extra references to be used for validating the mol type definitions
  * @throws Error if the type is not fixed length or if required dependencies are not found
  */
 function assertFixedLengthMolType(
-  molTypeDefinition: MolTypeDefinition,
-  molTypeDefinitions: MolTypeDefinition[],
+  definition: MolTypeDefinition,
+  references: MolTypeDefinition[],
   extraReferences?: CodecRecord,
 ): void {
-  switch (molTypeDefinition.type) {
+  switch (definition.type) {
     case "array": {
-      if (molTypeDefinition.item !== BYTE) {
-        const matchingItemMolTypeDefinition = molTypeDefinitions.find(
+      if (definition.item !== BYTE) {
+        const matchingItemMolTypeDefinition = references.find(
           (singleMolTypeDefinition) =>
-            singleMolTypeDefinition.name === molTypeDefinition.item,
+            singleMolTypeDefinition.name === definition.item,
         );
         if (!matchingItemMolTypeDefinition) {
-          const matchingExtraReference =
-            extraReferences?.[molTypeDefinition.item];
+          const matchingExtraReference = extraReferences?.[definition.item];
           if (!matchingExtraReference) {
             throw new Error(
-              `Dependency ${molTypeDefinition.item} not found for array type ${molTypeDefinition.name}`,
+              `Dependency ${definition.item} not found for array type ${definition.name}`,
             );
           } else if (!matchingExtraReference.byteLength) {
             throw new Error(
-              `Dependency ${molTypeDefinition.item} is not fixed length for array type ${molTypeDefinition.name}`,
+              `Dependency ${definition.item} is not fixed length for array type ${definition.name}`,
             );
           }
         } else {
           assertFixedLengthMolType(
             matchingItemMolTypeDefinition,
-            molTypeDefinitions,
+            references,
             extraReferences,
           );
         }
@@ -223,28 +223,28 @@ function assertFixedLengthMolType(
       break;
     }
     case "struct": {
-      const fields = molTypeDefinition.fields;
+      const fields = definition.fields;
       fields.forEach((field: Field) => {
         if (field.type !== BYTE) {
-          const matchingFieldMolTypeDefinition = molTypeDefinitions.find(
-            (currentMolTypeDefinition) =>
-              currentMolTypeDefinition.name === field.type,
+          const matchingFieldMolTypeDefinition = references.find(
+            (singleMolTypeDefinition) =>
+              singleMolTypeDefinition.name === field.type,
           );
           if (!matchingFieldMolTypeDefinition) {
             const matchingExtraReference = extraReferences?.[field.type];
             if (!matchingExtraReference) {
               throw new Error(
-                `Dependency ${field.type} not found for struct type ${molTypeDefinition.name}`,
+                `Dependency ${field.type} not found for struct type ${definition.name}`,
               );
             } else if (!matchingExtraReference.byteLength) {
               throw new Error(
-                `Dependency ${field.type} is not fixed length for struct type ${molTypeDefinition.name}`,
+                `Dependency ${field.type} is not fixed length for struct type ${definition.name}`,
               );
             }
           } else {
             assertFixedLengthMolType(
               matchingFieldMolTypeDefinition,
-              molTypeDefinitions,
+              references,
               extraReferences,
             );
           }
@@ -253,6 +253,6 @@ function assertFixedLengthMolType(
       break;
     }
     default:
-      throw new Error(`Type ${molTypeDefinition.type} should be fixed length.`);
+      throw new Error(`Type ${definition.type} should be fixed length.`);
   }
 }

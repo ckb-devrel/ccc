@@ -23,12 +23,13 @@ const BUILT_IN_ARRAY_CODECS = {
  * This function builds a codec that can encode/decode values according to the molecule specification.
  *
  * @param molTypeDefinition - The molecule type definition to create a codec for
- * @param outputCodecRecord - Preexisting accumulated codec definitions that might be used as dependencies
+ * @param outputCodecRecord - Preexisting accumulated codec definitions that might be used as dependencies. New codec would also be added to this record.
  * @returns A codec that can encode/decode values of the specified type
  * @throws Error if required dependencies are not found
  */
 function toCodec(
   molTypeDefinition: MolTypeDefinition,
+  references: MolTypeDefinition[],
   outputCodecRecord: CodecRecord,
 ): mol.Codec<any, any> {
   if (outputCodecRecord[molTypeDefinition.name]) {
@@ -52,10 +53,21 @@ function toCodec(
           decode: (buffer) => ccc.hexFrom(buffer),
         });
       } else {
-        const itemCodec = outputCodecRecord[molTypeDefinition.item];
+        let itemCodec = outputCodecRecord[molTypeDefinition.item];
         if (!itemCodec) {
-          throw new Error(
-            `Codec not found for item type: ${molTypeDefinition.item} in array type: ${molTypeDefinition.name}`,
+          const itemMolTypeDefinition = references.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === molTypeDefinition.item,
+          );
+          if (!itemMolTypeDefinition) {
+            throw new Error(
+              `Codec not found for item type: ${molTypeDefinition.item} in array type: ${molTypeDefinition.name}`,
+            );
+          }
+          itemCodec = toCodec(
+            itemMolTypeDefinition,
+            references,
+            outputCodecRecord,
           );
         }
         codec = mol.array(itemCodec, molTypeDefinition.item_count);
@@ -66,10 +78,21 @@ function toCodec(
       if (molTypeDefinition.item === BYTE) {
         codec = mol.Bytes;
       } else {
-        const itemCodec = outputCodecRecord[molTypeDefinition.item];
+        let itemCodec = outputCodecRecord[molTypeDefinition.item];
         if (!itemCodec) {
-          throw new Error(
-            `Codec not found for item type: ${molTypeDefinition.item} in vector type: ${molTypeDefinition.name}`,
+          const itemMolTypeDefinition = references.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === molTypeDefinition.item,
+          );
+          if (!itemMolTypeDefinition) {
+            throw new Error(
+              `Codec not found for item type: ${molTypeDefinition.item} in vector type: ${molTypeDefinition.name}`,
+            );
+          }
+          itemCodec = toCodec(
+            itemMolTypeDefinition,
+            references,
+            outputCodecRecord,
           );
         }
         codec = mol.vector(itemCodec);
@@ -80,10 +103,21 @@ function toCodec(
       if (molTypeDefinition.item === BYTE) {
         codec = mol.ByteOpt;
       } else {
-        const itemCodec = outputCodecRecord[molTypeDefinition.item];
+        let itemCodec = outputCodecRecord[molTypeDefinition.item];
         if (!itemCodec) {
-          throw new Error(
-            `Codec not found for item type: ${molTypeDefinition.item} in option type: ${molTypeDefinition.name}`,
+          const itemMolTypeDefinition = references.find(
+            (currentMolTypeDefinition) =>
+              currentMolTypeDefinition.name === molTypeDefinition.item,
+          );
+          if (!itemMolTypeDefinition) {
+            throw new Error(
+              `Codec not found for item type: ${molTypeDefinition.item} in option type: ${molTypeDefinition.name}`,
+            );
+          }
+          itemCodec = toCodec(
+            itemMolTypeDefinition,
+            references,
+            outputCodecRecord,
           );
         }
         codec = mol.option(itemCodec);
@@ -97,10 +131,21 @@ function toCodec(
         if (unionTypeItem === BYTE) {
           unionCodecs.push([unionTypeItem, index, mol.Byte]);
         } else if (typeof unionTypeItem === "string") {
-          const itemCodec = outputCodecRecord[unionTypeItem];
+          let itemCodec = outputCodecRecord[unionTypeItem];
           if (!itemCodec) {
-            throw new Error(
-              `Codec not found for item type: ${unionTypeItem} in union type: ${molTypeDefinition.name}`,
+            const itemMolTypeDefinition = references.find(
+              (currentMolTypeDefinition) =>
+                currentMolTypeDefinition.name === unionTypeItem,
+            );
+            if (!itemMolTypeDefinition) {
+              throw new Error(
+                `Codec not found for item type: ${unionTypeItem} in union type: ${molTypeDefinition.name}`,
+              );
+            }
+            itemCodec = toCodec(
+              itemMolTypeDefinition,
+              references,
+              outputCodecRecord,
             );
           }
           unionCodecs.push([unionTypeItem, index, itemCodec]);
@@ -141,7 +186,23 @@ function toCodec(
         if (field.type === BYTE) {
           tableCodecs[field.name] = mol.Byte;
         } else {
-          const itemCodec = outputCodecRecord[field.type];
+          let itemCodec = outputCodecRecord[field.type];
+          if (!itemCodec) {
+            const itemMolTypeDefinition = references.find(
+              (currentMolTypeDefinition) =>
+                currentMolTypeDefinition.name === field.type,
+            );
+            if (!itemMolTypeDefinition) {
+              throw new Error(
+                `Codec not found for item type: ${field.type} in table type: ${molTypeDefinition.name}`,
+              );
+            }
+            itemCodec = toCodec(
+              itemMolTypeDefinition,
+              references,
+              outputCodecRecord,
+            );
+          }
           if (!itemCodec) {
             throw new Error(
               `Codec not found for item type: ${field.type} in table type: ${molTypeDefinition.name}`,
@@ -160,10 +221,21 @@ function toCodec(
         if (field.type === BYTE) {
           structCodecs[field.name] = mol.Byte;
         } else {
-          const itemCodec = outputCodecRecord[field.type];
+          let itemCodec = outputCodecRecord[field.type];
           if (!itemCodec) {
-            throw new Error(
-              `Codec not found for field type: ${field.type} in struct type: ${molTypeDefinition.name}`,
+            const itemMolTypeDefinition = references.find(
+              (currentMolTypeDefinition) =>
+                currentMolTypeDefinition.name === field.type,
+            );
+            if (!itemMolTypeDefinition) {
+              throw new Error(
+                `Codec not found for field type: ${field.type} in struct type: ${molTypeDefinition.name}`,
+              );
+            }
+            itemCodec = toCodec(
+              itemMolTypeDefinition,
+              references,
+              outputCodecRecord,
             );
           }
           structCodecs[field.name] = itemCodec;
@@ -176,6 +248,7 @@ function toCodec(
   if (!codec) {
     throw new Error(`Codec not found for type: ${molTypeDefinition.name}`);
   }
+  outputCodecRecord[molTypeDefinition.name] = codec;
   return codec;
 }
 
@@ -196,53 +269,14 @@ export function toCodecRecord(
   extraReferences?: CodecRecord,
 ): CodecRecord {
   const outputCodecRecord: CodecRecord = extraReferences ?? {};
-  const processed = new Set<string>();
 
-  function process(definition: MolTypeDefinition) {
-    if (processed.has(definition.name)) {
-      return;
-    }
-
-    // Process dependencies based on type
-    if ("item" in definition && definition.item !== BYTE) {
-      const dependency = molTypeDefinitions.find(
-        (currentMolTypeDefinition) =>
-          currentMolTypeDefinition.name === definition.item,
-      );
-      if (dependency) {
-        process(dependency);
-      }
-    } else if ("fields" in definition) {
-      definition.fields.forEach((field) => {
-        if (field.type !== BYTE) {
-          const dependency = molTypeDefinitions.find(
-            (currentMolTypeDefinition) =>
-              currentMolTypeDefinition.name === field.type,
-          );
-          if (dependency) {
-            process(dependency);
-          }
-        }
-      });
-    } else if (definition.type === "union") {
-      definition.items.forEach((item) => {
-        const name = typeof item === "string" ? item : item[0];
-        if (name !== BYTE) {
-          const dependency = molTypeDefinitions.find(
-            (currentMolTypeDefinition) =>
-              currentMolTypeDefinition.name === name,
-          );
-          if (dependency) {
-            process(dependency);
-          }
-        }
-      });
-    }
-
-    outputCodecRecord[definition.name] = toCodec(definition, outputCodecRecord);
-    processed.add(definition.name);
+  for (const definition of molTypeDefinitions) {
+    outputCodecRecord[definition.name] = toCodec(
+      definition,
+      molTypeDefinitions,
+      outputCodecRecord,
+    );
   }
 
-  molTypeDefinitions.forEach(process);
   return outputCodecRecord;
 }
