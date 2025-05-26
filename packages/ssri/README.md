@@ -48,7 +48,7 @@
 ## Additional Note
 
 - Currently `ExecutorJsonRpc` is the only supported `Executor`. There will be more in the future and legacy support for `xUDT` will be added through `ckb-asset-indexer`.
-- A public SSRI Executor JSON RPC Point is being scheduled, and efforts are being made to make to provide in-browser SSRI execution with WASM.
+- A public SSRI Executor JSON RPC Point is being scheduled, and efforts to make to provide in-browser SSRI execution with WASM are under review at the moment.
 
 ## Related Projects
 
