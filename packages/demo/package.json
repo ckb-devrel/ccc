@@ -27,6 +27,7 @@
     "@ckb-ccc/lumos-patches": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
+    "@ckb-ccc/rgbpp": "workspace:*",
     "@ckb-lumos/ckb-indexer": "^0.24.0-next.1",
     "@ckb-lumos/common-scripts": "^0.24.0-next.1",
     "@ckb-lumos/config-manager": "^0.24.0-next.1",

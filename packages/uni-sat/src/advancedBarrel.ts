@@ -2,6 +2,13 @@
  * Interface representing a provider for interacting with accounts and signing messages.
  */
 export interface Provider {
+  // TODO: tweaked signer for taproot
+  signPsbt(psbtHex: string): Promise<string>;
+
+  pushTx({ rawtx }: { rawtx: string }): Promise<string>;
+
+  pushPsbt(psbtHex: string): Promise<string>;
+
   /**
    * Requests user accounts.
    * @returns A promise that resolves to an array of account addresses.
