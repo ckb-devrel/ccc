@@ -1,6 +1,6 @@
 import { Client } from "../../client/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
-import { SignerBtc } from "./signerBtc.js";
+import { Provider, SignerBtc } from "./signerBtc.js";
 
 /**
  * A class extending SignerBtc that provides read-only access to a Bitcoin public key and account.
@@ -25,6 +25,10 @@ export class SignerBtcPublicKeyReadonly extends SignerBtc {
     super(client);
 
     this.publicKey = hexFrom(publicKey);
+  }
+
+  protected getProvider(): Provider {
+    throw new Error("Read-only signer does not support provider operations");
   }
 
   /**

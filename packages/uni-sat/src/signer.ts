@@ -30,6 +30,10 @@ export class Signer extends ccc.SignerBtc {
     super(client);
   }
 
+  getProvider(): Provider {
+    return this.provider;
+  }
+
   async _getNetworkToChange(): Promise<string | undefined> {
     const currentNetwork = await (async () => {
       if (this.provider.getChain) {
@@ -153,40 +157,5 @@ export class Signer extends ccc.SignerBtc {
       typeof message === "string" ? message : ccc.hexFrom(message).slice(2);
 
     return this.provider.signMessage(challenge, "ecdsa");
-  }
-
-  // TODO: move to SignerBtc
-  async signTransaction(tx_: ccc.TransactionLike): Promise<ccc.Transaction> {
-    const tx = ccc.Transaction.from(tx_);
-    if (tx.version !== 1010101n) {
-      console.log("signing normal ckb tx");
-      return super.signTransaction(tx);
-    }
-
-    console.log("signing btc tx");
-    const psbtHex = tx.outputsData[0].slice(2);
-    console.log("psbtHex uni-sat before signing\n", psbtHex);
-    const signedPsbtHex = await this.provider.signPsbt(psbtHex);
-    console.log("signedPsbtHex uni-sat\n", signedPsbtHex);
-    tx.outputsData[0] = signedPsbtHex as ccc.Hex;
-    return tx;
-  }
-
-  // TODO: align with other signers: sign and send
-  async sendTransaction(tx_: ccc.TransactionLike): Promise<ccc.Hex> {
-    const tx = ccc.Transaction.from(tx_);
-    if (tx.version !== 1010101n) {
-      console.log("send normal ckb tx");
-      return super.sendTransaction(tx);
-    }
-
-    console.log("send btc tx", tx.outputsData[0]);
-    try {
-      const txHash = await this.provider.pushPsbt(tx.outputsData[0]);
-      return txHash as ccc.Hex;
-    } catch (error: any) {
-      console.error("Push transaction error:", JSON.stringify(error, null, 2));
-      throw error;
-    }
   }
 }

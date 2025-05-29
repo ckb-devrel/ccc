@@ -1,11 +1,18 @@
 import { Address } from "../../address/index.js";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { Transaction, TransactionLike, WitnessArgs } from "../../ckb/index.js";
-import { KnownScript } from "../../client/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { Client, KnownScript } from "../../client/index.js";
+import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 import { btcEcdsaPublicKeyHash } from "./verify.js";
+
+export interface Provider {
+  // TODO: tweaked signer for taproot
+  signPsbt(psbtHex: string): Promise<string>;
+
+  pushPsbt(psbtHex: string): Promise<string>;
+}
 
 /**
  * An abstract class extending the Signer class for Bitcoin-like signing operations.
@@ -14,6 +21,12 @@ import { btcEcdsaPublicKeyHash } from "./verify.js";
  * @public
  */
 export abstract class SignerBtc extends Signer {
+  constructor(client: Client) {
+    super(client);
+  }
+
+  protected abstract getProvider(): Provider;
+
   get type(): SignerType {
     return SignerType.BTC;
   }
@@ -122,5 +135,41 @@ export abstract class SignerBtc extends Signer {
 
     tx.setWitnessArgsAt(info.position, witness);
     return tx;
+  }
+
+  async signTransaction(tx_: TransactionLike): Promise<Transaction> {
+    const tx = Transaction.from(tx_);
+
+    console.log("signTransaction, tx version", tx.version);
+
+    if (tx.version !== 668467n) {
+      const preparedTx = await this.prepareTransaction(tx_);
+      return this.signOnlyTransaction(preparedTx);
+    }
+
+    console.log("signing btc tx");
+    const psbtHex = tx.outputsData[0].slice(2);
+    const signedPsbtHex = await this.getProvider().signPsbt(psbtHex);
+    tx.outputsData[0] = signedPsbtHex as Hex;
+    return tx;
+  }
+
+  async sendTransaction(tx_: TransactionLike): Promise<Hex> {
+    const tx = Transaction.from(tx_);
+
+    console.log("sendTransaction, tx version", tx.version);
+
+    if (tx.version !== 668467n) {
+      return super.sendTransaction(tx_);
+    }
+
+    console.log("sending btc tx", tx.outputsData[0]);
+    try {
+      const txHash = await this.getProvider().pushPsbt(tx.outputsData[0]);
+      return txHash as Hex;
+    } catch (error: any) {
+      console.error("Push transaction error:", JSON.stringify(error, null, 2));
+      throw error;
+    }
   }
 }

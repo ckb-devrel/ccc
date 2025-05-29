@@ -5,8 +5,6 @@ export interface Provider {
   // TODO: tweaked signer for taproot
   signPsbt(psbtHex: string): Promise<string>;
 
-  pushTx({ rawtx }: { rawtx: string }): Promise<string>;
-
   pushPsbt(psbtHex: string): Promise<string>;
 
   /**

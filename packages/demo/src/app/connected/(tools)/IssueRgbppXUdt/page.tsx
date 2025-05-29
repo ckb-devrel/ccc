@@ -16,51 +16,12 @@ import { initializeRgbppEnv, issuanceAmount, prepareRgbppCells, udtToken, UtxoSe
 export default function IssueRGBPPXUdt() {
   const { signer, createSender } = useApp();
   const { log, warn } = createSender("Issue RGB++ xUDT");
-  const { explorerTransaction } = useGetExplorerLink();
-  const [contentType, setContentType] = useState<string>("dob/1");
-  const [content, setContent] = useState<string>(
-    '{ "dna": "0123456789abcdef" }',
-  );
-  const [clusterId, setClusterId] = useState<string>("");
-  const [clusterList, setClusterList] = useState([
-    {
-      id: "",
-      name: "Mint Without Cluster",
-    },
-  ]);
+  const [rgbppBtcTxId, setRgbppBtcTxId] = useState<string>("");
 
   useEffect(() => {
     if (!signer) {
       return;
     }
-
-    (async () => {
-      const list = [
-        {
-          id: "",
-          name: "Mint Without Cluster",
-        },
-      ];
-
-      for await (const {
-        cluster,
-        clusterData,
-      } of spore.findSporeClustersBySigner({
-        signer,
-        order: "desc",
-      })) {
-        if (!cluster.cellOutput.type?.args) {
-          continue;
-        }
-
-        list.push({
-          id: cluster.cellOutput.type.args,
-          name: `${clusterData.name} (${cluster.cellOutput.type.args.slice(0, 10)})`,
-        });
-      }
-
-      setClusterList(list);
-    })();
   }, [signer]);
 
   const {
@@ -70,7 +31,7 @@ export default function IssueRGBPPXUdt() {
     ckbRgbppUnlockSinger,
   } = initializeRgbppEnv();
   const utxoSeal: UtxoSeal = {
-    txId: "a01064157fa765ceabf5673bcbd9781ed54a66b78274480d9c63e7c94c3b093c",
+    txId: "6cabb6b0c75b8f3331976d7cf8e3ee7915b77e0b0b26331e0dfd3681752a7a6465cc2b7d4931d564667581db9ab46110ca447664112c28ee4d0fc7f66be812ff",
     index: 2,
   }
 
@@ -111,28 +72,23 @@ export default function IssueRGBPPXUdt() {
   });
 
   const psbtHex = psbt.toHex();
-  console.log("psbt hex demo page\n", psbtHex);
 
-  // const signedTx_ = await rgbppBtcWallet.signTx(psbt);
-  // const signedTxHex_ = signedTx_.toHex();
-  // console.log("signedTxHex RGB++\n", signedTxHex_);
-
+  //*  668467 is the ASCII decimal representation of "BTC" (66, 84, 67)
   const pseudoCkbTx = ccc.Transaction.from({
-    version: 1010101,
+    version: 668467,
     outputsData: [psbtHex],
   });
 
   const signedTx = await signer.signTransaction(pseudoCkbTx);
   const txHash = await signer.sendTransaction(signedTx);
-  console.log("txHash uni-sat\n", txHash);
-
-  // const txHash = await rgbppBtcWallet.sendTransaction(signedTx.outputsData[0]);
-  // console.log("btc tx id:", txHash);
-
+  setRgbppBtcTxId(txHash);
   }, [signer]);
 
   return (
     <div className="flex w-full flex-col items-stretch">
+
+      {rgbppBtcTxId && <div>Waiting for RGB++ BTC Transaction {rgbppBtcTxId} to be confirmed...</div>}
+      
       <ButtonsPanel>
         <Button onClick={signRgbppBtcTx}>Sign RGB++ BTC Transaction</Button>
       </ButtonsPanel>
