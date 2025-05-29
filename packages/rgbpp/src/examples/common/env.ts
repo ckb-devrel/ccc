@@ -29,9 +29,13 @@ const ckbPrivateKey =
 const utxoBasedChainPrivateKey =
   "4f2d2b8c36634c1fa14494951a2d70d12883dec0f400d2adfb55f04d4fc4f7ea";
 const utxoBasedChainAddressType = "P2WPKH";
-const btcAssetsApiUrl = "http://localhost:3003";
+// const btcAssetsApiUrl = "http://localhost:3003";
+// const btcAssetsApiToken =
+//   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpbnRlZ3JhdGlvbi10ZXN0IiwiYXVkIjoibG9jYWxob3N0IiwianRpIjoiN2I2ODNkNzgtY2U4My00NWFlLTgxZTQtNTBhYWM4MWI1MThhIiwiaWF0IjoxNzQ4NDE3MjY1fQ.vN9jFiJJy_dzIMJKltfrAWxd4TmaJD-v8a5q-t7Qqew";
+// const btcAssetsApiOrigin = "localhost";
+const btcAssetsApiUrl = "https://api.testnet.rgbpp.io";
 const btcAssetsApiToken =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpbnRlZ3JhdGlvbi10ZXN0IiwiYXVkIjoibG9jYWxob3N0IiwianRpIjoiN2I2ODNkNzgtY2U4My00NWFlLTgxZTQtNTBhYWM4MWI1MThhIiwiaWF0IjoxNzQ4NDE3MjY1fQ.vN9jFiJJy_dzIMJKltfrAWxd4TmaJD-v8a5q-t7Qqew";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJpbnRlZ3JhdGlvbi10ZXN0IiwiYXVkIjoibG9jYWxob3N0IiwianRpIjoiM2VjMTY2OTYtOTE4Yy00NWYzLTkzZjAtNjQ3ZGNlMTc1MjlkIiwiaWF0IjoxNzQ4NTUwODc5fQ.0SA2UHjluxsHZxHw4EYJxVUIuxuVflVaRrkucocg6Og";
 const btcAssetsApiOrigin = "localhost";
 
 export const ckbClient = isMainnet(utxoBasedChainName)

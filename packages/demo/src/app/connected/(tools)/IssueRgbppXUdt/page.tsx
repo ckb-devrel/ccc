@@ -40,7 +40,6 @@ export default function IssueRGBPPXUdt() {
       txId: utxoSealTxId,
       index: parseInt(utxoSealIndex),
     }
-    console.log("utxoSeal", utxoSeal);
     const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
     const rgbppCellsGen = await signer.client.findCellsByLock(rgbppLockScript);
@@ -93,6 +92,7 @@ export default function IssueRGBPPXUdt() {
       ckbPartialTx.outputs[0].type!.args,
     );
 
+    // ! indexedCkbPartialTx should be cached in the server side
     const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({
       ckbPartialTx,
       ckbClient: signer.client,
@@ -123,6 +123,8 @@ export default function IssueRGBPPXUdt() {
     const ckbFinalTxId = await signer.sendTransaction(rgbppSignedCkbTx);
     await signer.client.waitTransaction(ckbFinalTxId);
     setRgbppCkbTxId(ckbFinalTxId);
+    setUtxoSealTxId("");
+    setUtxoSealIndex("");
   }, [signer, utxoSealTxId, utxoSealIndex]);
 
   useEffect(() => {
@@ -136,7 +138,6 @@ export default function IssueRGBPPXUdt() {
       <Message title="Hint" type="info">
         You will need to sign 2 to 4 transactions.
         <br />
-        Learn more on{" "}
       </Message>
 
       <TextInput
