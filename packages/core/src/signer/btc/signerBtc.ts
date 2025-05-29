@@ -140,14 +140,11 @@ export abstract class SignerBtc extends Signer {
   async signTransaction(tx_: TransactionLike): Promise<Transaction> {
     const tx = Transaction.from(tx_);
 
-    console.log("signTransaction, tx version", tx.version);
-
     if (tx.version !== 668467n) {
       const preparedTx = await this.prepareTransaction(tx_);
       return this.signOnlyTransaction(preparedTx);
     }
 
-    console.log("signing btc tx");
     const psbtHex = tx.outputsData[0].slice(2);
     const signedPsbtHex = await this.getProvider().signPsbt(psbtHex);
     tx.outputsData[0] = signedPsbtHex as Hex;
@@ -157,19 +154,11 @@ export abstract class SignerBtc extends Signer {
   async sendTransaction(tx_: TransactionLike): Promise<Hex> {
     const tx = Transaction.from(tx_);
 
-    console.log("sendTransaction, tx version", tx.version);
-
     if (tx.version !== 668467n) {
       return super.sendTransaction(tx_);
     }
 
-    console.log("sending btc tx", tx.outputsData[0]);
-    try {
-      const txHash = await this.getProvider().pushPsbt(tx.outputsData[0]);
-      return txHash as Hex;
-    } catch (error: any) {
-      console.error("Push transaction error:", JSON.stringify(error, null, 2));
-      throw error;
-    }
+    const txHash = await this.getProvider().pushPsbt(tx.outputsData[0]);
+    return txHash as Hex;
   }
 }
