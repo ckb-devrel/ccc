@@ -5,41 +5,37 @@ import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
 import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { ccc } from "@ckb-ccc/connector-react";
+import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
 import { Message } from "@/src/components/Message";
 
-
-import { initializeRgbppEnv, issuanceAmount, udtToken, UtxoSeal } from "@ckb-ccc/rgbpp";
+import {
+  initializeRgbppEnv,
+  issuanceAmount,
+  udtToken,
+  UtxoSeal,
+} from "@ckb-ccc/rgbpp";
 
 export default function IssueRGBPPXUdt() {
   const { signer, createSender } = useApp();
-  const { log, warn } = createSender("Issue RGB++ xUDT");
+  // const { log, warn } = createSender("Issue RGB++ xUDT");
   const [rgbppBtcTxId, setRgbppBtcTxId] = useState<string>("");
   const [rgbppCkbTxId, setRgbppCkbTxId] = useState<string>("");
   const [utxoSealTxId, setUtxoSealTxId] = useState<string>("");
   const [utxoSealIndex, setUtxoSealIndex] = useState<string>("");
 
-  useEffect(() => {
-    if (!signer) {
-      return;
-    }
-  }, [signer]);
-
-  const {
-    rgbppBtcWallet,
-    rgbppUdtClient,
-    utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
+  const { rgbppBtcWallet, rgbppUdtClient, ckbRgbppUnlockSinger } =
+    initializeRgbppEnv();
   const signRgbppBtcTx = useCallback(async () => {
-    if (!signer) {
+    if (!signer || !(signer instanceof SignerBtc)) {
       return;
     }
+
+    const btcAccount = await signer.getBtcAccount();
 
     const utxoSeal: UtxoSeal = {
       txId: utxoSealTxId,
       index: parseInt(utxoSealIndex),
-    }
+    };
     const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
     const rgbppCellsGen = await signer.client.findCellsByLock(rgbppLockScript);
@@ -77,15 +73,15 @@ export default function IssueRGBPPXUdt() {
       amount: issuanceAmount,
       rgbppLiveCells: rgbppIssuanceCells,
       udtScriptInfo: {
-          name: ccc.KnownScript.XUdt,
-          script: await ccc.Script.fromKnownScript(
-            signer.client,
-            ccc.KnownScript.XUdt,
-            "",
-          ),
-          cellDep: (await signer.client.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-            .cellDep,
-        },
+        name: ccc.KnownScript.XUdt,
+        script: await ccc.Script.fromKnownScript(
+          signer.client,
+          ccc.KnownScript.XUdt,
+          "",
+        ),
+        cellDep: (await signer.client.getKnownScript(ccc.KnownScript.XUdt))
+          .cellDeps[0].cellDep,
+      },
     });
     console.log(
       "Unique ID of issued udt token",
@@ -97,41 +93,36 @@ export default function IssueRGBPPXUdt() {
       ckbPartialTx,
       ckbClient: signer.client,
       rgbppUdtClient,
-      btcChangeAddress: utxoBasedAccountAddress,
-      receiverBtcAddresses: [utxoBasedAccountAddress],
+      btcChangeAddress: btcAccount,
+      receiverBtcAddresses: [btcAccount],
       feeRate: 28,
     });
 
-    const psbtHex = psbt.toHex();
+    const signedPsbtHex = await signer.signPsbt(psbt.toHex());
+    const btcTxId = await signer.pushPsbt(signedPsbtHex);
 
-    //*  668467 is the ASCII decimal representation of "BTC" (66, 84, 67)
-    const pseudoCkbTx = ccc.Transaction.from({
-      version: 668467,
-      outputsData: [psbtHex],
-    });
-
-    const signedTx = await signer.signTransaction(pseudoCkbTx);
-    const btcTxId = await signer.sendTransaction(signedTx);
     setRgbppBtcTxId(btcTxId);
+
     const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
       indexedCkbPartialTx,
       btcTxId,
     );
     const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+      await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
     await rgbppSignedCkbTx.completeFeeBy(signer);
     const ckbFinalTxId = await signer.sendTransaction(rgbppSignedCkbTx);
     await signer.client.waitTransaction(ckbFinalTxId);
     setRgbppCkbTxId(ckbFinalTxId);
     setUtxoSealTxId("");
     setUtxoSealIndex("");
-  }, [signer, utxoSealTxId, utxoSealIndex]);
-
-  useEffect(() => {
-    if (!rgbppBtcTxId) {
-      return;
-    }
-  }, [rgbppBtcTxId]);
+  }, [
+    signer,
+    utxoSealTxId,
+    utxoSealIndex,
+    rgbppBtcWallet,
+    rgbppUdtClient,
+    ckbRgbppUnlockSinger,
+  ]);
 
   return (
     <div className="flex w-full flex-col items-stretch">
@@ -151,10 +142,13 @@ export default function IssueRGBPPXUdt() {
         state={[utxoSealIndex, setUtxoSealIndex]}
       />
 
-      {rgbppBtcTxId && !rgbppCkbTxId && <div>Waiting for RGB++ BTC Transaction {rgbppBtcTxId} to be confirmed...</div>}
+      {rgbppBtcTxId && !rgbppCkbTxId && (
+        <div>
+          Waiting for RGB++ BTC Transaction {rgbppBtcTxId} to be confirmed...
+        </div>
+      )}
 
-      {
-        rgbppBtcTxId && rgbppCkbTxId && (
+      {rgbppBtcTxId && rgbppCkbTxId && (
         <div>
           RGB++ xUDT is issued successfully.
           <br />

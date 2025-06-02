@@ -127,4 +127,12 @@ export class SignerBtc extends ccc.SignerBtc {
       this.accountCache ?? (await this.getBtcAccount()),
     );
   }
+
+  async signPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+
+  async pushPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
 }

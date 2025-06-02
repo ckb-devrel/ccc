@@ -30,10 +30,6 @@ export class Signer extends ccc.SignerBtc {
     super(client);
   }
 
-  getProvider(): Provider {
-    return this.provider;
-  }
-
   async _getNetworkToChange(): Promise<string | undefined> {
     const currentNetwork = await (async () => {
       if (this.provider.getChain) {
@@ -157,5 +153,13 @@ export class Signer extends ccc.SignerBtc {
       typeof message === "string" ? message : ccc.hexFrom(message).slice(2);
 
     return this.provider.signMessage(challenge, "ecdsa");
+  }
+
+  async signPsbt(psbtHex: string): Promise<string> {
+    return this.provider.signPsbt(psbtHex);
+  }
+
+  async pushPsbt(psbtHex: string): Promise<string> {
+    return this.provider.pushPsbt(psbtHex);
   }
 }

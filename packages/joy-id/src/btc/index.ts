@@ -198,4 +198,12 @@ export class BitcoinSigner extends ccc.SignerBtc {
     );
     return signature;
   }
+
+  async signPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+
+  async pushPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
 }

@@ -176,4 +176,12 @@ export class BitcoinSigner extends ccc.SignerBtc {
 
     return this.provider.signMessage(challenge, "ecdsa");
   }
+
+  async signPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+
+  async pushPsbt(_: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
 }
