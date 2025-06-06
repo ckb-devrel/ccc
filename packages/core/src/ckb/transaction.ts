@@ -1673,10 +1673,10 @@ export class Transaction extends mol.Entity.Base<
     capacityTweak?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    const exceptedCapacity =
+    const expectedCapacity =
       this.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
     const inputsCapacity = await this.getInputsCapacity(from.client);
-    if (inputsCapacity >= exceptedCapacity) {
+    if (inputsCapacity >= expectedCapacity) {
       return 0;
     }
 
@@ -1688,7 +1688,7 @@ export class Transaction extends mol.Entity.Base<
       },
       (acc, { cellOutput: { capacity } }) => {
         const sum = acc + capacity;
-        return sum >= exceptedCapacity ? undefined : sum;
+        return sum >= expectedCapacity ? undefined : sum;
       },
       inputsCapacity,
     );
@@ -1698,7 +1698,7 @@ export class Transaction extends mol.Entity.Base<
     }
 
     throw new Error(
-      `Insufficient CKB, need ${fixedPointToString(exceptedCapacity - accumulated)} extra CKB`,
+      `Insufficient CKB, need ${fixedPointToString(expectedCapacity - accumulated)} extra CKB`,
     );
   }
 
@@ -1719,15 +1719,45 @@ export class Transaction extends mol.Entity.Base<
     return addedCount;
   }
 
+  /**
+   * Complete inputs by UDT balance
+   *
+   * This method succeeds only if enough balance is collected.
+   *
+   * It will try to collect at least two inputs, even when the first input already contains enough balance, to avoid extra occupation fees introduced by the change cell. An edge case: If the first cell has the same amount as the output, a new cell is not needed.
+   * @param from - The signer to complete the inputs.
+   * @param type - The type script of the UDT.
+   * @param balanceTweak - The tweak of the balance.
+   * @returns A promise that resolves to the number of inputs added.
+   */
   async completeInputsByUdt(
     from: Signer,
     type: ScriptLike,
     balanceTweak?: NumLike,
   ): Promise<number> {
-    const exceptedBalance =
+    const expectedBalance =
       this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
-    const inputsBalance = await this.getInputsUdtBalance(from.client, type);
-    if (inputsBalance >= exceptedBalance) {
+    if (expectedBalance === numFrom(0)) {
+      return 0;
+    }
+
+    const [inputsBalance, inputsCount] = await reduceAsync(
+      this.inputs,
+      async ([balanceAcc, countAcc], input) => {
+        const { cellOutput, outputData } = await input.getCell(from.client);
+        if (!cellOutput.type?.eq(type)) {
+          return;
+        }
+
+        return [balanceAcc + udtBalanceFrom(outputData), countAcc + 1];
+      },
+      [numFrom(0), 0],
+    );
+
+    if (
+      inputsBalance === expectedBalance ||
+      (inputsBalance >= expectedBalance && inputsCount >= 2)
+    ) {
       return 0;
     }
 
@@ -1737,20 +1767,23 @@ export class Transaction extends mol.Entity.Base<
         script: type,
         outputDataLenRange: [16, numFrom("0xffffffff")],
       },
-      (acc, { outputData }) => {
+      (acc, { outputData }, _i, collected) => {
         const balance = udtBalanceFrom(outputData);
         const sum = acc + balance;
-        return sum >= exceptedBalance ? undefined : sum;
+        return sum === expectedBalance ||
+          (sum >= expectedBalance && inputsCount + collected.length >= 2)
+          ? undefined
+          : sum;
       },
       inputsBalance,
     );
 
-    if (accumulated === undefined) {
+    if (accumulated === undefined || accumulated >= expectedBalance) {
       return addedCount;
     }
 
     throw new Error(
-      `Insufficient coin, need ${exceptedBalance - accumulated} extra coin`,
+      `Insufficient coin, need ${expectedBalance - accumulated} extra coin`,
     );
   }
 
