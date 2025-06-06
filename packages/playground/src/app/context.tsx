@@ -123,13 +123,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { name, message, stack, cause } = event.reason;
         sendMessage(
           "error",
-          `${formatTimestamp(Date.now())} ${name ?? "Unknown Error"}`,
+          `${formatTimestamp(Date.now())} ${name?.toString() ?? "Unknown Error"}`,
           [
             <div key="0">
-              <div className="whitespace-pre-line">{message}</div>
-              <div className="whitespace-pre-line">{cause}</div>
+              <div className="whitespace-pre-line">{message.toString()}</div>
+              <div className="whitespace-pre-line">{cause.toString()}</div>
               <div className="whitespace-pre-line text-sm text-gray-300/75">
-                {stack}
+                {stack.toString()}
               </div>
             </div>,
           ],
