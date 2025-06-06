@@ -1,9 +1,13 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { formatString, getScriptColor, useGetExplorerLink } from "../utils";
+import {
+  formatString,
+  formatTimestamp,
+  getScriptColor,
+  useGetExplorerLink,
+} from "../utils";
 import { useEffect, useMemo, useState } from "react";
 import { RandomWalk } from "./RandomWalk";
 import { useApp } from "../context";
-import { enhanceDisplay } from "./enhanceDisplay";
 import { Address } from "./Address";
 
 function Capacity({
@@ -136,7 +140,6 @@ export function Cell({
   const { client } = ccc.useCcc();
 
   const { sendMessage } = useApp();
-  const display = enhanceDisplay(sendMessage, client);
 
   const { previousOutput } = cell;
   const [cellOutput, setCellOutput] = useState(cell.cellOutput);
@@ -210,7 +213,7 @@ export function Cell({
         backgroundColor: lockColor,
       }}
       onClick={() => {
-        display("info", [
+        sendMessage("info", formatTimestamp(Date.now()), [
           <CellInfo
             key="0"
             cell={{ outPoint: previousOutput, outputData, cellOutput }}

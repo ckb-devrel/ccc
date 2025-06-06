@@ -5,7 +5,7 @@ import * as dobRenderLib from "@nervina-labs/dob-render";
 import * as React from "react";
 import ts from "typescript";
 import { vlqDecode } from "./vlq";
-import { enhanceDisplay } from "../components/enhanceDisplay";
+import { formatTimestamp } from "../utils";
 
 function findSourcePos(
   sourceMap: string | undefined,
@@ -48,7 +48,6 @@ export async function execute(
   signer: ccc.Signer,
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
 ) {
-  const display = enhanceDisplay(log, signer.client);
   const compiled = ts.transpileModule(source, {
     compilerOptions: { sourceMap: true, jsx: ts.JsxEmit.React },
   });
@@ -63,7 +62,7 @@ export async function execute(
       "@nervina-labs/dob-render": dobRenderLib,
       "@ckb-ccc/playground": {
         render: async (...msgs: unknown[]) => {
-          display("info", msgs);
+          log("info", formatTimestamp(Date.now()), msgs);
 
           const stack = new Error().stack;
           if (!stack) {
@@ -109,8 +108,10 @@ export async function execute(
       "console",
       `return (async () => {\n${compiled.outputText}\n})();`,
     )(exports, require, React, {
-      log: (...msgs: unknown[]) => display("info", msgs),
-      error: (...msgs: unknown[]) => display("error", msgs),
+      log: (...msgs: unknown[]) =>
+        log("info", formatTimestamp(Date.now()), msgs),
+      error: (...msgs: unknown[]) =>
+        log("error", formatTimestamp(Date.now()), msgs),
     });
   } finally {
     await onUpdate(undefined);

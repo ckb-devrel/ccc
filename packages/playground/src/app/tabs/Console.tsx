@@ -1,15 +1,38 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context";
 import { Info, Play, X } from "lucide-react";
 import React from "react";
+import { enhanceDisplay } from "./enhanceDisplay";
+import { ccc } from "@ckb-ccc/connector-react";
 
 export function Console({ onRun }: { onRun?: () => void }) {
   const { messages } = useApp();
+  const { client } = ccc.useCcc();
+  const [flag, setFlag] = useState(0);
+
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (message[3]) {
+        return;
+      }
+
+      (async () => {
+        message[3] = await Promise.all(
+          message[2].map(async (m, i) => (
+            <React.Fragment key={i}>
+              {await enhanceDisplay(m, client)}
+            </React.Fragment>
+          )),
+        );
+        setFlag((f) => f + 1);
+      })();
+    });
+  }, [messages, client]);
 
   const consoles = useMemo(
     () =>
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      messages.map(([level, title, message], i) => {
+      messages.map(([level, title, _, message], i) => {
         return (
           <div
             key={i}
@@ -30,11 +53,12 @@ export function Console({ onRun }: { onRun?: () => void }) {
               </div>
               <div className="leading-none text-gray-500">{title}</div>
             </div>
-            {message}
+            {message ?? "Loading..."}
           </div>
         );
       }),
-    [messages],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [messages, flag],
   );
 
   if (consoles.length === 0) {

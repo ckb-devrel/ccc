@@ -41,7 +41,7 @@ export const APP_CONTEXT = createContext<
       disconnect: () => void;
       openAction: ReactNode;
 
-      messages: ["error" | "info", string, ReactNode][];
+      messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
       clearMessage: () => void;
       sendMessage: (
         level: "error" | "info",
@@ -84,7 +84,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [signer]);
 
   const [messages, setMessages] = useState<
-    ["error" | "info", string, ReactNode][]
+    ["error" | "info", string, unknown[], ReactNode | undefined][]
   >([]);
 
   const sendMessage = (
@@ -92,61 +92,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     title: string,
     msgs: unknown[],
   ) =>
-    setMessages((messages) => [
-      ...messages,
-      [
-        level,
-        title,
-        msgs.map((msg, i) => {
-          if (React.isValidElement(msg)) {
-            return msg;
-          }
-
-          return (
-            <React.Fragment key={i}>
-              {i === 0 ? "" : " "}
-              {JSON.stringify(msg, (_, value) => {
-                if (typeof value === "bigint") {
-                  return value.toString();
-                }
-                return value;
-              })}
-            </React.Fragment>
-          );
-        }),
-      ],
-    ]);
+    setMessages((messages) => [...messages, [level, title, msgs, undefined]]);
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
-      if (typeof event.reason === "object" && event.reason !== null) {
-        const { name, message, stack, cause } = event.reason;
-        sendMessage(
-          "error",
-          `${formatTimestamp(Date.now())} ${name?.toString() ?? "Unknown Error"}`,
-          [
-            <div key="0">
-              <div className="whitespace-pre-line">{message.toString()}</div>
-              <div className="whitespace-pre-line">{cause.toString()}</div>
-              <div className="whitespace-pre-line text-sm text-gray-300/75">
-                {stack.toString()}
-              </div>
-            </div>,
-          ],
-        );
-      } else if (typeof event.reason === "string") {
-        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
-          <div key="0" className="whitespace-pre-line">
-            {event.reason}
-          </div>,
-        ]);
-      } else {
-        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
-          <div key="0" className="whitespace-pre-line">
-            {JSON.stringify(event)}
-          </div>,
-        ]);
-      }
+      const { name } = event.reason;
+      sendMessage(
+        "error",
+        `${formatTimestamp(Date.now())} ${name?.toString() ?? "Unknown Error"}`,
+        [event.reason],
+      );
     };
 
     window.addEventListener("unhandledrejection", handler);
