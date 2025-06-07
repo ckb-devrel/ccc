@@ -1,5 +1,11 @@
 # @ckb-ccc/nip07
 
+## 1.0.18
+### Patch Changes
+
+- Updated dependencies [[`0f3aa3f`](https://github.com/ckb-devrel/ccc/commit/0f3aa3fe7798826e57fb8092a679320fb4dfc140), [`34fc83d`](https://github.com/ckb-devrel/ccc/commit/34fc83d316a99889f3019d8069c478113506fe7a), [`77865cd`](https://github.com/ckb-devrel/ccc/commit/77865cd2953e5e01d6dc610823ad3eb13e128902), [`46f1760`](https://github.com/ckb-devrel/ccc/commit/46f1760cdd5d6cf3d843e9fe8682f9cd4f31930d), [`2da4dc5`](https://github.com/ckb-devrel/ccc/commit/2da4dc5b5637b307c8010ccc22ef3f79c7dcca83)]:
+  - @ckb-ccc/core@1.9.0
+
 ## 1.0.17
 
 ### Patch Changes

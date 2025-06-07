@@ -1,5 +1,11 @@
 # ckb-ccc
 
+## 1.0.18
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.10
+
 ## 1.0.17
 
 ### Patch Changes

@@ -1,5 +1,32 @@
 # @ckb-ccc/core
 
+## 1.9.0
+### Minor Changes
+
+
+
+- [#209](https://github.com/ckb-devrel/ccc/pull/209) [`77865cd`](https://github.com/ckb-devrel/ccc/commit/77865cd2953e5e01d6dc610823ad3eb13e128902) Thanks [@Alive24](https://github.com/Alive24)! - feat: compatible mode for molecule decode
+
+
+
+- [#216](https://github.com/ckb-devrel/ccc/pull/216) [`46f1760`](https://github.com/ckb-devrel/ccc/commit/46f1760cdd5d6cf3d843e9fe8682f9cd4f31930d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): try to avoid extra udt occupation
+
+
+
+- [#197](https://github.com/ckb-devrel/ccc/pull/197) [`2da4dc5`](https://github.com/ckb-devrel/ccc/commit/2da4dc5b5637b307c8010ccc22ef3f79c7dcca83) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: add support for multisig script v2
+  
+  Add support for the updated CKB system scripts, specifically the multisig script v2 that enhances handling for optional since value (PR nervosnetwork/ckb-system-scripts#99). This update addresses functional defects that caused transaction validation failures.
+
+### Patch Changes
+
+
+
+- [#195](https://github.com/ckb-devrel/ccc/pull/195) [`0f3aa3f`](https://github.com/ckb-devrel/ccc/commit/0f3aa3fe7798826e57fb8092a679320fb4dfc140) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): keep molecule entity class name
+
+
+
+- [#188](https://github.com/ckb-devrel/ccc/pull/188) [`34fc83d`](https://github.com/ckb-devrel/ccc/commit/34fc83d316a99889f3019d8069c478113506fe7a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): SignerNostrPrivateKey support nsec key
+
 ## 1.8.1
 
 ### Patch Changes

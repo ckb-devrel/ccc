@@ -1,5 +1,11 @@
 # @ckb-ccc/examples
 
+## 1.0.16
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.10
+
 ## 1.0.15
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ckb-ccc/ccc-playground
 
+## 1.0.16
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.10
+  - @ckb-ccc/connector-react@1.0.18
+
 ## 1.0.11
 
 ### Patch Changes

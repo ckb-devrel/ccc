@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/uni-sat",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for UniSat",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
