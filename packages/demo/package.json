@@ -18,7 +18,7 @@
     "@lit/react": "^1.0.5",
     "@uiw/react-json-view": "2.0.0-alpha.30",
     "lucide-react": "^0.427.0",
-    "next": "14.2.10",
+    "next": "15.3.3",
     "react": "^18",
     "react-dom": "^18"
   },
@@ -44,6 +44,7 @@
     "eslint-plugin-prettier": "^5.2.3",
     "postcss": "^8",
     "prettier": "^3.2.5",
+    "prettier-plugin-organize-imports": "^3.2.4",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

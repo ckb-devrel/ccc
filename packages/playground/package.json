@@ -20,7 +20,7 @@
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.438.0",
     "monaco-editor": "^0.51.0",
-    "next": "14.2.8",
+    "next": "15.3.3",
     "prettier": "^3.5.1",
     "react": "^18",
     "react-dom": "^18",
@@ -37,6 +37,7 @@
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.3",
     "postcss": "^8",
+    "prettier-plugin-organize-imports": "^3.2.4",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "raw-loader": "^4.0.2",
     "tailwindcss": "^3.4.1"
