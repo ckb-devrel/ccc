@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { describe, expect, it } from "vitest";
 import { findSporeClustersBySigner } from "../cluster";
 
 describe("searchClusters [testnet]", () => {

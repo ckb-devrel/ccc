@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
+import { describe, expect, it } from "vitest";
 import { createSporeCluster, dob } from "../index.js";
 
 function generateClusterDescriptionUnderDobProtocol(

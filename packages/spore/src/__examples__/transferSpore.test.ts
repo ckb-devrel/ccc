@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
+import { describe, expect, it } from "vitest";
 import { transferSpore } from "../index.js";
 
 describe("transferSpore [testnet]", () => {
