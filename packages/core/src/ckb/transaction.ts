@@ -702,7 +702,7 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
 
   clone(): CellInput {
     const cloned = super.clone();
-    cloned.cellOutput = this.cellOutput;
+    cloned.cellOutput = this.cellOutput?.clone();
     cloned.outputData = this.outputData;
 
     return cloned;
@@ -739,21 +739,6 @@ export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
     public depType: DepType,
   ) {
     super();
-  }
-
-  /**
-   * Clone a CellDep.
-   *
-   * @returns A cloned CellDep instance.
-   *
-   * @example
-   * ```typescript
-   * const cellDep1 = cellDep0.clone();
-   * ```
-   */
-
-  clone(): CellDep {
-    return new CellDep(this.outPoint.clone(), this.depType);
   }
 
   /**
@@ -962,6 +947,55 @@ export class Transaction extends mol.Entity.Base<
     this.outputs = tx.outputs;
     this.outputsData = tx.outputsData;
     this.witnesses = tx.witnesses;
+  }
+
+  /**
+   * Creates a deep copy of the transaction.
+   * This method creates a new Transaction instance with all nested objects cloned,
+   * ensuring that modifications to the cloned transaction do not affect the original.
+   *
+   * @returns A new Transaction instance that is a deep copy of the current transaction.
+   *
+   * @example
+   * ```typescript
+   * const originalTx = Transaction.from({
+   *   version: 0,
+   *   inputs: [{ previousOutput: { txHash: "0x...", index: 0 } }],
+   *   outputs: [{ capacity: 1000n, lock: lockScript }],
+   *   outputsData: ["0x"],
+   *   witnesses: ["0x"]
+   * });
+   *
+   * const clonedTx = originalTx.clone();
+   *
+   * // Modifications to clonedTx won't affect originalTx
+   * clonedTx.addOutput({ capacity: 2000n, lock: anotherLockScript });
+   * console.log(originalTx.outputs.length); // Still 1
+   * console.log(clonedTx.outputs.length);   // Now 2
+   * ```
+   *
+   * @remarks
+   * The clone operation performs deep copying for:
+   * - Cell dependencies (cellDeps) - each CellDep is cloned
+   * - Inputs - each CellInput is cloned
+   * - Outputs - each CellOutput is cloned
+   *
+   * The following are shallow copied (references to immutable data):
+   * - Header dependencies (headerDeps) - Hex strings are immutable
+   * - Output data (outputsData) - Hex strings are immutable
+   * - Witnesses - Hex strings are immutable
+   * - Version - bigint is immutable
+   */
+  clone(): Transaction {
+    return new Transaction(
+      this.version,
+      this.cellDeps.map((c) => c.clone()),
+      this.headerDeps.map((h) => h),
+      this.inputs.map((i) => i.clone()),
+      this.outputs.map((o) => o.clone()),
+      this.outputsData.map((o) => o),
+      this.witnesses.map((w) => w),
+    );
   }
 
   /**
