@@ -2,13 +2,21 @@
   "name": "@ckb-ccc/rgbpp",
   "version": "1.0.0",
   "description": "RGB++ for CKB",
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "source": "src/index.ts",
   "type": "module",
+  "main": "dist.commonjs/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
+      "default": "./dist.commonjs/index.js"
+    }
+  },
   "scripts": {
     "test": "jest",
-    "build": "rimraf ./dist && tsc"
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* ."
   },
   "keywords": [],
   "author": "",
@@ -17,6 +25,7 @@
     "@types/jest": "^29.5.14",
     "@types/lodash": "^4.17.14",
     "@types/node": "^22.10.6",
+    "copyfiles": "^2.4.1",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.1",

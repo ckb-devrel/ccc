@@ -7,6 +7,8 @@ export interface Provider {
 
   pushPsbt(psbtHex: string): Promise<string>;
 
+  pushTx(tx: { rawtx: string }): Promise<string>;
+
   /**
    * Requests user accounts.
    * @returns A promise that resolves to an array of account addresses.

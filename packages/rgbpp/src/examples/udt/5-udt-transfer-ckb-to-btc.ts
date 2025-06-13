@@ -2,9 +2,12 @@ import { ccc } from "@ckb-ccc/shell";
 
 import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
 
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 
 import { RgbppTxLogger } from "../common/logger.js";
+
+const { rgbppBtcWallet, rgbppUdtClient, ckbClient, ckbSigner } =
+  await initializeRgbppEnv();
 
 async function ckbUdtToBtc({
   utxoSeal,
@@ -16,8 +19,6 @@ async function ckbUdtToBtc({
 
   amount: bigint;
 }) {
-  const { rgbppBtcWallet, rgbppUdtClient } = initializeRgbppEnv();
-
   if (!utxoSeal) {
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
   }

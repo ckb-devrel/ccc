@@ -2,14 +2,14 @@ import ecc from "@bitcoinerlab/secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 
-import { trimHexPrefix } from "../../utils/index.js";
-import { AddressType } from "../types/tx.js";
+import { trimHexPrefix } from "../../../utils/index.js";
+import { AddressType } from "../../types/tx.js";
 import {
   isSupportedAddressType,
   SUPPORTED_ADDRESS_TYPES,
   toBtcNetwork,
   toXOnly,
-} from "../utils/index.js";
+} from "../../utils/index.js";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);

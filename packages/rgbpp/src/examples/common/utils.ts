@@ -3,9 +3,9 @@ import { ccc } from "@ckb-ccc/shell";
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 import { RgbppUdtClient } from "../../udt/index.js";
 
-import { ckbClient, ckbSigner } from "./env.js";
-
 export async function prepareRgbppCells(
+  ckbClient: ccc.Client,
+  ckbSigner: ccc.SignerCkbPrivateKey,
   utxoSeal: UtxoSeal,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
@@ -49,6 +49,7 @@ export async function prepareRgbppCells(
 }
 
 export async function collectRgbppCells(
+  ckbClient: ccc.Client,
   utxoSeals: UtxoSeal[],
   typeScript: ccc.Script,
   rgbppUdtClient: RgbppUdtClient,
@@ -76,6 +77,7 @@ export async function collectRgbppCells(
 }
 
 export async function collectBtcTimeLockCells(
+  ckbClient: ccc.Client,
   btcTimeLockArgs: string,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
@@ -91,6 +93,7 @@ export async function collectBtcTimeLockCells(
 }
 
 export async function collectUdtCells(
+  ckbClient: ccc.Client,
   ckbAddress: string,
   udtTypeScript: ccc.Script,
 ): Promise<ccc.Cell[]> {

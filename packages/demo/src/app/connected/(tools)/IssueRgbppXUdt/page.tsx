@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
 import { useApp } from "@/src/context";
@@ -8,12 +8,45 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
 import { Message } from "@/src/components/Message";
 
+import { Psbt, Transaction } from "bitcoinjs-lib";
+
 import {
-  initializeRgbppEnv,
+  buildNetworkConfig,
+  PredefinedNetwork,
+  RgbppUdtClient,
+  isMainnet,
+  RgbppBtcWallet,
+  BtcAssetApiConfig,
+  NetworkConfig,
+  CkbRgbppUnlockSinger,
   issuanceAmount,
   udtToken,
   UtxoSeal,
 } from "@ckb-ccc/rgbpp";
+
+class UnisatRgbppWallet extends RgbppBtcWallet {
+  constructor(
+    private signer: SignerBtc,
+    networkConfig: NetworkConfig,
+    btcAssetApiConfig: BtcAssetApiConfig,
+  ) {
+    super(networkConfig, btcAssetApiConfig);
+  }
+
+  async getAddress(): Promise<string> {
+    return this.signer.getBtcAccount();
+  }
+
+  async signTx(psbt: Psbt): Promise<Transaction> {
+    const signedPsbtHex = await this.signer.signPsbt(psbt.toHex());
+    const signedPsbt = Psbt.fromHex(signedPsbtHex);
+    return signedPsbt.extractTransaction(true);
+  }
+
+  async sendTx(tx: Transaction): Promise<string> {
+    return this.signer.pushTx(tx.toHex());
+  }
+}
 
 export default function IssueRGBPPXUdt() {
   const { signer, createSender } = useApp();
@@ -23,12 +56,70 @@ export default function IssueRGBPPXUdt() {
   const [utxoSealTxId, setUtxoSealTxId] = useState<string>("");
   const [utxoSealIndex, setUtxoSealIndex] = useState<string>("");
 
-  const { rgbppBtcWallet, rgbppUdtClient, ckbRgbppUnlockSinger } =
-    initializeRgbppEnv();
-  const signRgbppBtcTx = useCallback(async () => {
+  const ckbClient = useMemo(
+    () =>
+      isMainnet(
+        process.env.NEXT_PUBLIC_UTXO_BASED_CHAIN_NAME as PredefinedNetwork,
+      )
+        ? new ccc.ClientPublicMainnet()
+        : new ccc.ClientPublicTestnet(),
+    [],
+  );
+  const networkConfig = useMemo(
+    () =>
+      buildNetworkConfig(
+        process.env.NEXT_PUBLIC_UTXO_BASED_CHAIN_NAME as PredefinedNetwork,
+      ),
+    [],
+  );
+  const rgbppUdtClient = useMemo(
+    () => new RgbppUdtClient(networkConfig, ckbClient),
+    [networkConfig, ckbClient],
+  );
+  const rgbppBtcWallet = useMemo(() => {
     if (!signer || !(signer instanceof SignerBtc)) {
+      return null;
+    }
+    return new UnisatRgbppWallet(signer, networkConfig, {
+      url: process.env.NEXT_PUBLIC_BTC_ASSETS_API_URL!,
+      token: process.env.NEXT_PUBLIC_BTC_ASSETS_API_TOKEN!,
+      origin: process.env.NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN!,
+    });
+  }, [signer, networkConfig]);
+  const [ckbRgbppUnlockSinger, setCkbRgbppUnlockSinger] =
+    useState<CkbRgbppUnlockSinger>();
+
+  useEffect(() => {
+    let mounted = true;
+    rgbppBtcWallet?.getAddress().then((address) => {
+      if (mounted) {
+        setCkbRgbppUnlockSinger(
+          new CkbRgbppUnlockSinger(
+            ckbClient,
+            address,
+            rgbppBtcWallet,
+            rgbppBtcWallet,
+            rgbppUdtClient.getRgbppScriptInfos(),
+          ),
+        );
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [ckbClient, rgbppBtcWallet, rgbppUdtClient]);
+
+  const signRgbppBtcTx = useCallback(async () => {
+    if (
+      !signer ||
+      !(signer instanceof SignerBtc) ||
+      !rgbppBtcWallet ||
+      !ckbRgbppUnlockSinger
+    ) {
       return;
     }
+    setRgbppBtcTxId("");
+    setRgbppCkbTxId("");
 
     const btcAccount = await signer.getBtcAccount();
 

@@ -2,10 +2,19 @@ import { ccc } from "@ckb-ccc/shell";
 
 import { ScriptInfo } from "../../types/rgbpp/index.js";
 
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 
 import { testnetSudtInfo } from "../common/assets.js";
 import { RgbppTxLogger } from "../common/logger.js";
+
+const {
+  rgbppBtcWallet,
+  rgbppUdtClient,
+  utxoBasedAccountAddress,
+  ckbRgbppUnlockSinger,
+  ckbClient,
+  ckbSigner,
+} = await initializeRgbppEnv();
 
 async function btcUdtToCkb({
   udtScriptInfo,
@@ -14,13 +23,6 @@ async function btcUdtToCkb({
   udtScriptInfo: ScriptInfo;
   receivers: { address: string; amount: bigint }[];
 }) {
-  const {
-    rgbppBtcWallet,
-    rgbppUdtClient,
-    utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
-
   const udt = new ccc.udt.Udt(
     udtScriptInfo.cellDep.outPoint,
     udtScriptInfo.script,

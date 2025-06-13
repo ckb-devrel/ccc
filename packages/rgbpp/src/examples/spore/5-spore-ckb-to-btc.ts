@@ -2,7 +2,7 @@ import { spore } from "@ckb-ccc/shell";
 
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 
-import { ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 
 import { RgbppTxLogger } from "../common/logger.js";
 
@@ -13,7 +13,8 @@ async function ckbSporeToBtc({
   utxoSeal?: UtxoSeal;
   sporeTypeArgs: string;
 }) {
-  const { rgbppBtcWallet, rgbppUdtClient } = initializeRgbppEnv();
+  const { rgbppBtcWallet, rgbppUdtClient, ckbSigner } =
+    await initializeRgbppEnv();
 
   if (!utxoSeal) {
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });

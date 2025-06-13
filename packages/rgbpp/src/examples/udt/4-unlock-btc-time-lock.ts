@@ -10,14 +10,16 @@ import {
 import { PredefinedScriptName } from "../../types/script.js";
 
 import { testnetSudtCellDep } from "../common/assets.js";
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
 import { collectBtcTimeLockCells } from "../common/utils.js";
 
 async function unlockBtcTimeLock(btcTimeLockArgs: string) {
-  const { rgbppBtcWallet, rgbppUdtClient } = initializeRgbppEnv();
+  const { rgbppBtcWallet, rgbppUdtClient, ckbClient, ckbSigner } =
+    await initializeRgbppEnv();
 
   const btcTimeLockCells = await collectBtcTimeLockCells(
+    ckbClient,
     btcTimeLockArgs,
     rgbppUdtClient,
   );

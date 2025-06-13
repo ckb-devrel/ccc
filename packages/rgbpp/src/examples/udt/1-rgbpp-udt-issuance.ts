@@ -1,9 +1,21 @@
 import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
 
-import { issuanceAmount, testnetSudtInfo, udtToken } from "../common/assets.js";
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import "../common/load-env.js";
+
+import { ccc } from "@ckb-ccc/shell";
+import { issuanceAmount, udtToken } from "../common/assets.js";
+import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
 import { prepareRgbppCells } from "../common/utils.js";
+
+const {
+  rgbppBtcWallet,
+  rgbppUdtClient,
+  utxoBasedAccountAddress,
+  ckbRgbppUnlockSinger,
+  ckbClient,
+  ckbSigner,
+} = await initializeRgbppEnv();
 
 async function issueUdt({
   udtScriptInfo,
@@ -12,18 +24,16 @@ async function issueUdt({
   udtScriptInfo: ScriptInfo;
   utxoSeal?: UtxoSeal;
 }) {
-  const {
-    rgbppBtcWallet,
-    rgbppUdtClient,
-    utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
-
   if (!utxoSeal) {
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 10 });
   }
 
-  const rgbppIssuanceCells = await prepareRgbppCells(utxoSeal, rgbppUdtClient);
+  const rgbppIssuanceCells = await prepareRgbppCells(
+    ckbClient,
+    ckbSigner,
+    utxoSeal,
+    rgbppUdtClient,
+  );
 
   const ckbPartialTx = await rgbppUdtClient.issuanceCkbPartialTx({
     token: udtToken,
@@ -69,21 +79,21 @@ async function issueUdt({
 const logger = new RgbppTxLogger({ opType: "udt-issuance" });
 
 issueUdt({
-  // udtScriptInfo: {
-  //   name: ccc.KnownScript.XUdt,
-  //   script: await ccc.Script.fromKnownScript(
-  //     ckbClient,
-  //     ccc.KnownScript.XUdt,
-  //     "",
-  //   ),
-  //   cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-  //     .cellDep,
-  // },
+  udtScriptInfo: {
+    name: ccc.KnownScript.XUdt,
+    script: await ccc.Script.fromKnownScript(
+      ckbClient,
+      ccc.KnownScript.XUdt,
+      "",
+    ),
+    cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
+      .cellDep,
+  },
 
-  udtScriptInfo: testnetSudtInfo,
+  // udtScriptInfo: testnetSudtInfo,
 
   utxoSeal: {
-    txId: "f4714d1c4a6d2528a3949db56977f569b62b9735dc008a65d922940ab3580bcd",
+    txId: "7cc7de993804bf7b18e12c40d3bfd65545e2d1317f2768771405847889632765",
     index: 2,
   },
 })

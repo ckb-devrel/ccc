@@ -131,4 +131,6 @@ export abstract class SignerBtc extends Signer {
   abstract signPsbt(psbtHex: string): Promise<string>;
 
   abstract pushPsbt(psbtHex: string): Promise<string>;
+
+  abstract pushTx(txHex: string): Promise<string>;
 }

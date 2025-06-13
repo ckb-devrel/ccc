@@ -21,17 +21,10 @@ import {
 
 import { UtxoSeal } from "../../types/rgbpp/rgbpp.js";
 
-import {
-  BtcAccount,
-  createBtcAccount,
-  signPsbt,
-  transactionToHex,
-} from "../index.js";
 import { BtcAssetsApiBase } from "../service/base.js";
 import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
 import { RgbppBtcTxParams } from "../types/rgbpp.js";
 import {
-  AddressType,
   BtcApiRecommendedFeeRates,
   BtcApiSentTransaction,
   BtcApiTransaction,
@@ -49,32 +42,22 @@ import {
   toBtcNetwork,
   utxoToInputData,
 } from "../utils/index.js";
+import { transactionToHex } from "./privateKey/account.js";
 
 import { NetworkConfig } from "../../types/network.js";
 import { RgbppApiSpvProof } from "../../types/spv.js";
 
 const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
 
-export class RgbppBtcWallet extends BtcAssetsApiBase {
-  private account: BtcAccount;
-
+export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   constructor(
-    privateKey: string,
-    addressType: AddressType,
-    private networkConfig: NetworkConfig,
+    protected networkConfig: NetworkConfig,
     btcAssetApiConfig: BtcAssetApiConfig,
   ) {
     super(btcAssetApiConfig);
-    this.account = createBtcAccount(
-      privateKey,
-      addressType,
-      networkConfig.name,
-    );
   }
 
-  getAddress() {
-    return this.account.from;
-  }
+  abstract getAddress(): Promise<string>;
 
   async buildPsbt(
     params: RgbppBtcTxParams,
@@ -190,11 +173,7 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
     return { psbt, indexedCkbPartialTx: indexedTx };
   }
 
-  async signTx(psbt: Psbt): Promise<Transaction> {
-    signPsbt(psbt, this.account);
-    psbt.finalizeAllInputs();
-    return psbt.extractTransaction(true);
-  }
+  abstract signTx(psbt: Psbt): Promise<Transaction>;
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
     const inputs: TxInputData[] = [];
@@ -236,10 +215,7 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
     return inputs;
   }
 
-  async sendTx(tx: Transaction): Promise<string> {
-    const txHex = tx.toHex();
-    return this.sendTransaction(txHex);
-  }
+  abstract sendTx(tx: Transaction): Promise<string>;
 
   rawTxHex(tx: Transaction): string {
     return transactionToHex(tx, false);
@@ -289,7 +265,7 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
 
     if (changeValue >= this.networkConfig.btcDustLimit) {
       outputs.push({
-        address: this.account.from,
+        address: await this.getAddress(),
         value: changeValue,
       });
     }
@@ -305,7 +281,7 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
     params?: BtcApiUtxoParams,
     knownInputs?: TxInputData[],
   ): Promise<{ inputs: TxInputData[]; changeValue: number }> {
-    const utxos = await this.getUtxos(this.account.from, params);
+    const utxos = await this.getUtxos(await this.getAddress(), params);
 
     let filteredUtxos = utxos;
     if (knownInputs) {
@@ -349,6 +325,8 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
     };
   }
 
+  // TODO: FIX THIS, in extension wallet case, a popup window will be shown to the user to confirm the transaction.
+  // TODO: API for Sign & Pay
   async estimateFee(
     inputs: TxInputData[],
     outputs: TxOutput[],
@@ -431,12 +409,12 @@ export class RgbppBtcWallet extends BtcAssetsApiBase {
 
     const outputs = [
       {
-        address: this.account.from,
+        address: await this.getAddress(),
         value: targetValue,
       },
     ];
 
-    const utxos = await this.getUtxos(this.account.from, btcUtxoParams);
+    const utxos = await this.getUtxos(await this.getAddress(), btcUtxoParams);
     if (utxos.length === 0) {
       throw new Error("Insufficient funds");
     }

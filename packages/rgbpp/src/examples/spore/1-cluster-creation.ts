@@ -3,7 +3,7 @@ import { ccc, spore } from "@ckb-ccc/shell";
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 
 import { clusterData } from "../common/assets.js";
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
 import { prepareRgbppCells } from "../common/utils.js";
 
@@ -13,13 +13,20 @@ async function createSporeCluster(utxoSeal?: UtxoSeal) {
     rgbppUdtClient,
     utxoBasedAccountAddress,
     ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
+    ckbClient,
+    ckbSigner,
+  } = await initializeRgbppEnv();
 
   if (!utxoSeal) {
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
   }
 
-  const rgbppCells = await prepareRgbppCells(utxoSeal, rgbppUdtClient);
+  const rgbppCells = await prepareRgbppCells(
+    ckbClient,
+    ckbSigner,
+    utxoSeal,
+    rgbppUdtClient,
+  );
   const tx = ccc.Transaction.default();
   // manually add specified inputs
   rgbppCells.forEach((cell) => {

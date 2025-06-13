@@ -1,6 +1,6 @@
 import { spore } from "@ckb-ccc/shell";
 
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 
 import { RgbppTxLogger } from "../common/logger.js";
 
@@ -16,7 +16,9 @@ async function transferSpore({
     rgbppUdtClient,
     utxoBasedAccountAddress,
     ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
+    ckbClient,
+    ckbSigner,
+  } = await initializeRgbppEnv();
 
   const { tx: ckbPartialTx } = await spore.transferSpore({
     signer: ckbSigner,

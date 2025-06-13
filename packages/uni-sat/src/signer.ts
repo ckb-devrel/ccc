@@ -162,4 +162,10 @@ export class Signer extends ccc.SignerBtc {
   async pushPsbt(psbtHex: string): Promise<string> {
     return this.provider.pushPsbt(psbtHex);
   }
+
+  async pushTx(txHex: string): Promise<string> {
+    return this.provider.pushTx({
+      rawtx: txHex,
+    });
+  }
 }

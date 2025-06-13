@@ -1,7 +1,7 @@
 import { ccc, spore } from "@ckb-ccc/shell";
 import { SporeDataView } from "@ckb-ccc/spore/advanced";
 
-import { ckbClient, ckbSigner, initializeRgbppEnv } from "../common/env.js";
+import { initializeRgbppEnv } from "../common/env.js";
 
 import { inspect } from "util";
 import { RgbppTxLogger } from "../common/logger.js";
@@ -19,7 +19,9 @@ async function createSpore({
     rgbppUdtClient,
     utxoBasedAccountAddress,
     ckbRgbppUnlockSinger,
-  } = initializeRgbppEnv();
+    ckbClient,
+    ckbSigner,
+  } = await initializeRgbppEnv();
 
   const { tx: transferClusterTx } = await spore.transferSporeCluster({
     signer: ckbSigner,
