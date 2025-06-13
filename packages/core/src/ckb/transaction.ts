@@ -7,11 +7,7 @@ import {
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
-import {
-  Zero,
-  fixedPointFrom,
-  fixedPointToString,
-} from "../fixedPoint/index.js";
+import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
@@ -27,6 +23,10 @@ import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
+import {
+  ErrorTransactionInsufficientCapacity,
+  ErrorTransactionInsufficientCoin,
+} from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
 export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
@@ -1697,8 +1697,8 @@ export class Transaction extends mol.Entity.Base<
       return addedCount;
     }
 
-    throw new Error(
-      `Insufficient CKB, need ${fixedPointToString(expectedCapacity - accumulated)} extra CKB`,
+    throw new ErrorTransactionInsufficientCapacity(
+      expectedCapacity - accumulated,
     );
   }
 
@@ -1782,8 +1782,9 @@ export class Transaction extends mol.Entity.Base<
       return addedCount;
     }
 
-    throw new Error(
-      `Insufficient coin, need ${expectedBalance - accumulated} extra coin`,
+    throw new ErrorTransactionInsufficientCoin(
+      expectedBalance - accumulated,
+      type,
     );
   }
 
@@ -1836,12 +1837,54 @@ export class Transaction extends mol.Entity.Base<
     return (numFrom(txSize) * numFrom(feeRate) + numFrom(999)) / numFrom(1000);
   }
 
+  /**
+   * Completes the transaction fee by adding inputs and handling change outputs.
+   * This method automatically calculates the required fee based on the transaction size and fee rate,
+   * adds necessary inputs to cover the fee, and handles change outputs through the provided change function.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param change - A function that handles change capacity. It receives the transaction and excess capacity,
+   *                 and should return the additional capacity needed (0 if change is handled successfully,
+   *                 positive number if more capacity is needed for change cell creation).
+   * @param expectedFeeRate - The expected fee rate in shannons per 1000 bytes. If not provided,
+   *                          it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when expectedFeeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @throws {ErrorTransactionInsufficientCapacity} When there's not enough capacity to cover the fee.
+   * @throws {Error} When the change function doesn't properly handle the available capacity.
+   *
+   * @example
+   * ```typescript
+   * const [addedInputs, hasChange] = await tx.completeFee(
+   *   signer,
+   *   (tx, capacity) => {
+   *     if (capacity >= 61_00000000n) { // Minimum for a change cell
+   *       tx.addOutput({ capacity, lock: changeScript });
+   *       return 0;
+   *     }
+   *     return 61_00000000n; // Need more capacity for change cell
+   *   },
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   async completeFee(
     from: Signer,
     change: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike,
     expectedFeeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
-    options?: { feeRateBlockRange?: NumLike; maxFeeRate?: NumLike },
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const feeRate =
       expectedFeeRate ??
@@ -1856,6 +1899,15 @@ export class Transaction extends mol.Entity.Base<
     while (true) {
       const tx = this.clone();
       const collected = await (async () => {
+        if (!(options?.shouldAddInputs ?? true)) {
+          const fee =
+            (await tx.getFee(from.client)) - leastFee - leastExtraCapacity;
+          if (fee < Zero) {
+            throw new ErrorTransactionInsufficientCapacity(-fee);
+          }
+          return 0;
+        }
+
         try {
           return await tx.completeInputsByCapacity(
             from,
@@ -1863,8 +1915,13 @@ export class Transaction extends mol.Entity.Base<
             filter,
           );
         } catch (err) {
-          if (leastExtraCapacity !== Zero) {
-            throw new Error("Not enough capacity for the change cell");
+          if (
+            err instanceof ErrorTransactionInsufficientCapacity &&
+            leastExtraCapacity !== Zero
+          ) {
+            throw new ErrorTransactionInsufficientCapacity(err.amount, {
+              isForChange: true,
+            });
           }
 
           throw err;
@@ -1918,6 +1975,11 @@ export class Transaction extends mol.Entity.Base<
     change: ScriptLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const script = Script.from(change);
 
@@ -1935,6 +1997,7 @@ export class Transaction extends mol.Entity.Base<
       },
       feeRate,
       filter,
+      options,
     );
   }
 
@@ -1942,10 +2005,15 @@ export class Transaction extends mol.Entity.Base<
     from: Signer,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const { script } = await from.getRecommendedAddressObj();
 
-    return this.completeFeeChangeToLock(from, script, feeRate, filter);
+    return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
   completeFeeChangeToOutput(
@@ -1953,6 +2021,11 @@ export class Transaction extends mol.Entity.Base<
     index: NumLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const change = Number(numFrom(index));
     if (!this.outputs[change]) {
@@ -1966,6 +2039,7 @@ export class Transaction extends mol.Entity.Base<
       },
       feeRate,
       filter,
+      options,
     );
   }
 }
