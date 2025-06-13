@@ -11,3 +11,5 @@ prettier.config.*
 
 tsconfig.tsbuildinfo
 .github/
+
+CHANGELOG.md
