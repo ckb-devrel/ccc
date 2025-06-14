@@ -235,29 +235,58 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
 
   /**
    * Creates a CellOutput instance from a CellOutputLike object.
+   * This method supports automatic capacity calculation when capacity is 0 or omitted.
    *
    * @param cellOutput - A CellOutputLike object or an instance of CellOutput.
+   *                     Can also be an object without capacity when outputData is provided.
+   * @param outputData - Optional output data used for automatic capacity calculation.
+   *                     When provided and capacity is 0, the capacity will be calculated
+   *                     as occupiedSize + outputData.length.
    * @returns A CellOutput instance.
    *
    * @example
    * ```typescript
-   * const cellOutput = CellOutput.from({
+   * // Basic usage with explicit capacity
+   * const cellOutput1 = CellOutput.from({
    *   capacity: 1000n,
    *   lock: { codeHash: "0x...", hashType: "type", args: "0x..." },
    *   type: { codeHash: "0x...", hashType: "type", args: "0x..." }
    * });
+   *
+   * // Automatic capacity calculation
+   * const cellOutput2 = CellOutput.from({
+   *   lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   * }, "0x1234"); // Capacity will be calculated automatically
    * ```
    */
-  static from(cellOutput: CellOutputLike): CellOutput {
+  static from(cellOutput: CellOutputLike, outputData?: HexLike): CellOutput;
+  static from(
+    cellOutput: Omit<CellOutputLike, "capacity"> &
+      Partial<Pick<CellOutputLike, "capacity">>,
+    outputData: HexLike,
+  ): CellOutput;
+  static from(
+    cellOutput: Omit<CellOutputLike, "capacity"> &
+      Partial<Pick<CellOutputLike, "capacity">>,
+    outputData?: HexLike,
+  ): CellOutput {
     if (cellOutput instanceof CellOutput) {
       return cellOutput;
     }
 
-    return new CellOutput(
-      numFrom(cellOutput.capacity),
+    const output = new CellOutput(
+      numFrom(cellOutput.capacity ?? 0),
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
     );
+
+    if (output.capacity === Zero) {
+      output.capacity = fixedPointFrom(
+        output.occupiedSize + bytesFrom(outputData ?? "0x").length,
+      );
+    }
+
+    return output;
   }
 
   /**
@@ -308,9 +337,37 @@ export class Cell {
 
   /**
    * Creates a Cell instance from a CellLike object.
+   * This method accepts either `outPoint` or `previousOutput` to specify the cell's location,
+   * and supports automatic capacity calculation for the cell output.
    *
-   * @param cell - A CellLike object or an instance of Cell.
+   * @param cell - A CellLike object or an instance of Cell. The object can use either:
+   *               - `outPoint`: For referencing a cell output
+   *               - `previousOutput`: For referencing a cell input (alternative name for outPoint)
+   *               The cellOutput can omit capacity for automatic calculation.
    * @returns A Cell instance.
+   *
+   * @example
+   * ```typescript
+   * // Using outPoint with explicit capacity
+   * const cell1 = Cell.from({
+   *   outPoint: { txHash: "0x...", index: 0 },
+   *   cellOutput: {
+   *     capacity: 1000n,
+   *     lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   *   },
+   *   outputData: "0x"
+   * });
+   *
+   * // Using previousOutput with automatic capacity calculation
+   * const cell2 = Cell.from({
+   *   previousOutput: { txHash: "0x...", index: 0 },
+   *   cellOutput: {
+   *     lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   *     // capacity will be calculated automatically
+   *   },
+   *   outputData: "0x1234"
+   * });
+   * ```
    */
 
   static from(cell: CellLike): Cell {
@@ -320,7 +377,7 @@ export class Cell {
 
     return new Cell(
       OutPoint.from("outPoint" in cell ? cell.outPoint : cell.previousOutput),
-      CellOutput.from(cell.cellOutput),
+      CellOutput.from(cell.cellOutput, cell.outputData),
       hexFrom(cell.outputData),
     );
   }
@@ -1001,6 +1058,9 @@ export class Transaction extends mol.Entity.Base<
 
   /**
    * Copy every properties from another transaction.
+   * This method replaces all properties of the current transaction with those from the provided transaction.
+   *
+   * @param txLike - The transaction-like object to copy properties from.
    *
    * @example
    * ```typescript
@@ -1092,19 +1152,9 @@ export class Transaction extends mol.Entity.Base<
       return tx;
     }
     const outputs =
-      tx.outputs?.map((output, i) => {
-        const o = CellOutput.from({
-          ...output,
-          capacity: output.capacity ?? 0,
-        });
-        if (o.capacity === Zero) {
-          o.capacity = fixedPointFrom(
-            o.occupiedSize +
-              (apply(bytesFrom, tx.outputsData?.[i])?.length ?? 0),
-          );
-        }
-        return o;
-      }) ?? [];
+      tx.outputs?.map((output, i) =>
+        CellOutput.from(output, tx.outputsData?.[i] ?? []),
+      ) ?? [];
     const outputsData = outputs.map((_, i) =>
       hexFrom(tx.outputsData?.[i] ?? "0x"),
     );
@@ -1332,7 +1382,7 @@ export class Transaction extends mol.Entity.Base<
    *
    * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
    * @param client - The client for complete extra infos in the transaction.
-   * @returns A promise that resolves to the prepared transaction
+   * @returns A promise that resolves to the found index, or undefined if no matching input is found.
    *
    * @example
    * ```typescript
@@ -1359,7 +1409,7 @@ export class Transaction extends mol.Entity.Base<
    *
    * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
    * @param client - The client for complete extra infos in the transaction.
-   * @returns A promise that resolves to the prepared transaction
+   * @returns A promise that resolves to the found index, or undefined if no matching input is found.
    *
    * @example
    * ```typescript
@@ -1472,14 +1522,14 @@ export class Transaction extends mol.Entity.Base<
    * Set output data at index.
    *
    * @param index - The index of the output data.
-   * @param witness - The data to set.
+   * @param data - The data to set.
    *
    * @example
    * ```typescript
-   * await tx.setOutputDataAt(0, "0x00");
+   * tx.setOutputDataAt(0, "0x00");
    * ```
    */
-  setOutputDataAt(index: number, witness: HexLike): void {
+  setOutputDataAt(index: number, data: HexLike): void {
     if (this.outputsData.length < index) {
       this.outputsData.push(
         ...Array.from(
@@ -1489,7 +1539,7 @@ export class Transaction extends mol.Entity.Base<
       );
     }
 
-    this.outputsData[index] = hexFrom(witness);
+    this.outputsData[index] = hexFrom(data);
   }
 
   /**
@@ -1564,16 +1614,7 @@ export class Transaction extends mol.Entity.Base<
       Partial<Pick<CellOutputLike, "capacity">>,
     outputData: HexLike = "0x",
   ): number {
-    const output = CellOutput.from({
-      ...outputLike,
-      capacity: outputLike.capacity ?? 0,
-    });
-    if (output.capacity === Zero) {
-      output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData).length,
-      );
-    }
-    const len = this.outputs.push(output);
+    const len = this.outputs.push(CellOutput.from(outputLike, outputData));
     this.setOutputDataAt(len - 1, outputData);
 
     return len;
@@ -2073,6 +2114,38 @@ export class Transaction extends mol.Entity.Base<
     }
   }
 
+  /**
+   * Completes the transaction fee by adding inputs and creating a change output with the specified lock script.
+   * This is a convenience method that automatically creates a change cell with the provided lock script
+   * when there's excess capacity after paying the transaction fee.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param change - The lock script for the change output cell.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @example
+   * ```typescript
+   * const changeScript = Script.from({
+   *   codeHash: "0x...",
+   *   hashType: "type",
+   *   args: "0x..."
+   * });
+   *
+   * const [addedInputs, hasChange] = await tx.completeFeeChangeToLock(
+   *   signer,
+   *   changeScript,
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   completeFeeChangeToLock(
     from: Signer,
     change: ScriptLike,
@@ -2104,6 +2177,33 @@ export class Transaction extends mol.Entity.Base<
     );
   }
 
+  /**
+   * Completes the transaction fee using the signer's recommended address for change.
+   * This is a convenience method that automatically uses the signer's recommended
+   * address as the change destination, making it easier to complete transactions
+   * without manually specifying a change address.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @example
+   * ```typescript
+   * const [addedInputs, hasChange] = await tx.completeFeeBy(
+   *   signer,
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   *
+   * // Change will automatically go to signer's recommended address
+   * ```
+   */
   async completeFeeBy(
     from: Signer,
     feeRate?: NumLike,
@@ -2119,6 +2219,35 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
+  /**
+   * Completes the transaction fee by adding excess capacity to an existing output.
+   * Instead of creating a new change output, this method adds any excess capacity
+   * to the specified existing output in the transaction.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param index - The index of the existing output to add excess capacity to.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change was applied (true) or fee was paid without change (false)
+   *
+   * @throws {Error} When the specified output index doesn't exist.
+   *
+   * @example
+   * ```typescript
+   * // Add excess capacity to the first output (index 0)
+   * const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+   *   signer,
+   *   0, // Output index
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   completeFeeChangeToOutput(
     from: Signer,
     index: NumLike,
@@ -2148,7 +2277,26 @@ export class Transaction extends mol.Entity.Base<
 }
 
 /**
- * Calculate Nervos DAO profit between two blocks
+ * Calculate Nervos DAO profit between two blocks.
+ * This function computes the profit earned from a Nervos DAO deposit
+ * based on the capacity and the time period between deposit and withdrawal.
+ *
+ * @param profitableCapacity - The capacity that earns profit (total capacity minus occupied capacity).
+ * @param depositHeaderLike - The block header when the DAO deposit was made.
+ * @param withdrawHeaderLike - The block header when the DAO withdrawal is made.
+ * @returns The profit amount in CKB (capacity units).
+ *
+ * @example
+ * ```typescript
+ * const profit = calcDaoProfit(
+ *   ccc.fixedPointFrom(100), // 100 CKB profitable capacity
+ *   depositHeader,
+ *   withdrawHeader
+ * );
+ * console.log(`Profit: ${profit} shannons`);
+ * ```
+ *
+ * @see {@link https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md | Nervos DAO RFC}
  */
 export function calcDaoProfit(
   profitableCapacity: NumLike,
@@ -2167,8 +2315,26 @@ export function calcDaoProfit(
 }
 
 /**
- * Calculate claimable epoch for Nervos DAO withdrawal
- * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+ * Calculate claimable epoch for Nervos DAO withdrawal.
+ * This function determines the earliest epoch when a Nervos DAO withdrawal
+ * can be claimed based on the deposit and withdrawal epochs.
+ *
+ * @param depositHeader - The block header when the DAO deposit was made.
+ * @param withdrawHeader - The block header when the DAO withdrawal was initiated.
+ * @returns The epoch when the withdrawal can be claimed, represented as [number, index, length].
+ *
+ * @example
+ * ```typescript
+ * const claimEpoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
+ * console.log(`Can claim at epoch: ${claimEpoch[0]}, index: ${claimEpoch[1]}, length: ${claimEpoch[2]}`);
+ * ```
+ *
+ * @remarks
+ * The Nervos DAO has a minimum lock period of 180 epochs (~30 days).
+ * This function calculates the exact epoch when the withdrawal becomes claimable
+ * based on the deposit epoch and withdrawal epoch timing.
+ *
+ * @see {@link https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md | Nervos DAO RFC}
  */
 export function calcDaoClaimEpoch(
   depositHeader: ClientBlockHeaderLike,

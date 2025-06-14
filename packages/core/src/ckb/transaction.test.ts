@@ -644,4 +644,488 @@ describe("Transaction", () => {
       );
     });
   });
+
+  describe("Automatic Capacity Completion", () => {
+    describe("CellOutput.from", () => {
+      it("should use explicit capacity when provided", () => {
+        const cellOutput = ccc.CellOutput.from({
+          capacity: 1000n,
+          lock,
+        });
+
+        expect(cellOutput.capacity).toBe(1000n);
+      });
+
+      it("should calculate capacity automatically when capacity is 0", () => {
+        const outputData = "0x1234"; // 2 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            capacity: 0n,
+            lock,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 2; // occupiedSize + outputData length
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should calculate capacity automatically when capacity is omitted", () => {
+        const outputData = "0x5678"; // 2 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 2; // occupiedSize + outputData length
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should handle empty outputData in automatic calculation", () => {
+        const outputData = "0x"; // 0 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize; // occupiedSize + 0
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should handle long outputData in automatic calculation", () => {
+        const outputData = "0x" + "12".repeat(100); // 100 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 100; // occupiedSize + outputData length
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should calculate capacity with type script", () => {
+        const outputData = "0x1234"; // 2 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+            type,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 2; // occupiedSize (including type) + outputData length
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should not auto-calculate when capacity is explicitly provided even with outputData", () => {
+        const outputData = "0x1234"; // 2 bytes
+        const explicitCapacity = 5000n;
+        const cellOutput = ccc.CellOutput.from(
+          {
+            capacity: explicitCapacity,
+            lock,
+          },
+          outputData,
+        );
+
+        expect(cellOutput.capacity).toBe(explicitCapacity);
+      });
+
+      it("should handle the overloaded signature correctly", () => {
+        // Test the overloaded signature where capacity is omitted and outputData is required
+        const outputData = "0xabcd";
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+            type,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 2;
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+    });
+
+    describe("Transaction.from", () => {
+      it("should create transaction with automatic capacity calculation for outputs", () => {
+        const outputsData = ["0x1234", "0x567890"];
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              lock,
+            },
+            {
+              lock,
+              type,
+            },
+          ],
+          outputsData,
+        });
+
+        // First output: lock only + 2 bytes data
+        const expectedCapacity1 = 8 + lock.occupiedSize + 2; // capacity field + lock + outputData
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity1),
+        );
+
+        // Second output: lock + type + 3 bytes data
+        const expectedCapacity2 = 8 + lock.occupiedSize + type.occupiedSize + 3; // capacity field + lock + type + outputData
+        expect(tx.outputs[1].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity2),
+        );
+
+        expect(tx.outputsData).toEqual([
+          ccc.hexFrom("0x1234"),
+          ccc.hexFrom("0x567890"),
+        ]);
+      });
+
+      it("should handle mixed explicit and automatic capacity calculation", () => {
+        const outputsData = ["0x12", "0x3456"];
+        const explicitCapacity = 5000n;
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: explicitCapacity,
+              lock,
+            },
+            {
+              lock,
+            },
+          ],
+          outputsData,
+        });
+
+        // First output: explicit capacity
+        expect(tx.outputs[0].capacity).toBe(explicitCapacity);
+
+        // Second output: automatic calculation
+        const expectedCapacity2 = 8 + lock.occupiedSize + 2;
+        expect(tx.outputs[1].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity2),
+        );
+      });
+
+      it("should handle empty outputsData array", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              lock,
+            },
+          ],
+          outputsData: [],
+        });
+
+        // Should use empty data for calculation
+        const expectedCapacity = 8 + lock.occupiedSize + 0;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+        expect(tx.outputsData).toEqual([ccc.hexFrom("0x")]);
+      });
+
+      it("should handle missing outputsData", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              lock,
+            },
+          ],
+        });
+
+        // Should use empty data for calculation
+        const expectedCapacity = 8 + lock.occupiedSize + 0;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+        expect(tx.outputsData).toEqual([ccc.hexFrom("0x")]);
+      });
+
+      it("should handle more outputsData than outputs", () => {
+        const outputsData = ["0x12", "0x34", "0x56"];
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              lock,
+            },
+          ],
+          outputsData,
+        });
+
+        // First output should use first outputData
+        const expectedCapacity = 8 + lock.occupiedSize + 1;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+
+        // All outputsData should be preserved
+        expect(tx.outputsData).toEqual([
+          ccc.hexFrom("0x12"),
+          ccc.hexFrom("0x34"),
+          ccc.hexFrom("0x56"),
+        ]);
+      });
+    });
+
+    describe("Transaction.addOutput", () => {
+      it("should add output with automatic capacity calculation", () => {
+        const tx = ccc.Transaction.default();
+        const outputData = "0x1234";
+
+        const outputCount = tx.addOutput(
+          {
+            lock,
+          },
+          outputData,
+        );
+
+        expect(outputCount).toBe(1);
+        expect(tx.outputs.length).toBe(1);
+
+        const expectedCapacity = 8 + lock.occupiedSize + 2;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+        expect(tx.outputsData[0]).toBe(ccc.hexFrom(outputData));
+      });
+
+      it("should add output with type script and automatic capacity calculation", () => {
+        const tx = ccc.Transaction.default();
+        const outputData = "0x567890";
+
+        tx.addOutput(
+          {
+            lock,
+            type,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = 8 + lock.occupiedSize + type.occupiedSize + 3;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+        expect(tx.outputsData[0]).toBe(ccc.hexFrom(outputData));
+      });
+
+      it("should add output with explicit capacity", () => {
+        const tx = ccc.Transaction.default();
+        const outputData = "0x12";
+        const explicitCapacity = 10000n;
+
+        tx.addOutput(
+          {
+            capacity: explicitCapacity,
+            lock,
+          },
+          outputData,
+        );
+
+        expect(tx.outputs[0].capacity).toBe(explicitCapacity);
+        expect(tx.outputsData[0]).toBe(ccc.hexFrom(outputData));
+      });
+
+      it("should add output with default empty outputData", () => {
+        const tx = ccc.Transaction.default();
+
+        tx.addOutput({
+          lock,
+        });
+
+        const expectedCapacity = 8 + lock.occupiedSize + 0;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
+        );
+        expect(tx.outputsData[0]).toBe(ccc.hexFrom("0x"));
+      });
+
+      it("should add multiple outputs with automatic capacity calculation", () => {
+        const tx = ccc.Transaction.default();
+
+        tx.addOutput({ lock }, "0x12");
+        tx.addOutput({ lock, type }, "0x3456");
+
+        expect(tx.outputs.length).toBe(2);
+
+        // First output
+        const expectedCapacity1 = 8 + lock.occupiedSize + 1;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity1),
+        );
+
+        // Second output
+        const expectedCapacity2 = 8 + lock.occupiedSize + type.occupiedSize + 2;
+        expect(tx.outputs[1].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity2),
+        );
+
+        expect(tx.outputsData).toEqual([
+          ccc.hexFrom("0x12"),
+          ccc.hexFrom("0x3456"),
+        ]);
+      });
+    });
+
+    describe("Edge Cases and Error Handling", () => {
+      it("should handle CellOutput instance passed to CellOutput.from", () => {
+        const originalOutput = ccc.CellOutput.from({
+          capacity: 1000n,
+          lock,
+        });
+
+        const result = ccc.CellOutput.from(originalOutput);
+        expect(result).toBe(originalOutput); // Should return the same instance
+      });
+
+      it("should handle Cell instance passed to Cell.from", () => {
+        const originalCell = ccc.Cell.from({
+          outPoint: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          cellOutput: {
+            capacity: 1000n,
+            lock,
+          },
+          outputData: "0x",
+        });
+
+        const result = ccc.Cell.from(originalCell);
+        expect(result).toBe(originalCell); // Should return the same instance
+      });
+
+      it("should handle Transaction instance passed to Transaction.from", () => {
+        const originalTx = ccc.Transaction.from({
+          outputs: [{ capacity: 1000n, lock }],
+          outputsData: ["0x"],
+        });
+
+        const result = ccc.Transaction.from(originalTx);
+        expect(result).toBe(originalTx); // Should return the same instance
+      });
+
+      it("should calculate minimum capacity correctly", () => {
+        // Test with minimal lock script
+        const minimalLock = ccc.Script.from({
+          codeHash: "0x" + "0".repeat(64),
+          hashType: "data",
+          args: "0x",
+        });
+
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock: minimalLock,
+          },
+          "0x",
+        );
+
+        // Minimum capacity should be 8 (capacity field) + lock.occupiedSize + 0 (empty data)
+        const expectedMinCapacity = 8 + minimalLock.occupiedSize;
+        expect(cellOutput.capacity).toBe(
+          ccc.fixedPointFrom(expectedMinCapacity),
+        );
+      });
+
+      it("should handle very large outputData", () => {
+        // Create 1KB of data
+        const largeData = "0x" + "ff".repeat(1024);
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+          },
+          largeData,
+        );
+
+        const expectedCapacity = 8 + lock.occupiedSize + 1024;
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should handle null type script correctly", () => {
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+            type: null,
+          },
+          "0x1234",
+        );
+
+        // Should not include type script in calculation
+        const expectedCapacity = 8 + lock.occupiedSize + 2;
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+        expect(cellOutput.type).toBeUndefined();
+      });
+
+      it("should handle empty outputData in overloaded signature", () => {
+        // This tests the overloaded signature where outputData is required
+        const cellOutput = ccc.CellOutput.from(
+          {
+            lock,
+          },
+          "0x", // Empty data
+        );
+
+        // Should treat empty outputData as 0 bytes
+        const expectedCapacity = 8 + lock.occupiedSize + 0;
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should verify occupiedSize calculation includes all components", () => {
+        const cellOutput = ccc.CellOutput.from({
+          capacity: 1000n,
+          lock,
+          type,
+        });
+
+        // occupiedSize should include capacity field (8 bytes) + lock + type
+        const expectedOccupiedSize = 8 + lock.occupiedSize + type.occupiedSize;
+        expect(cellOutput.occupiedSize).toBe(expectedOccupiedSize);
+      });
+
+      it("should verify Cell occupiedSize includes outputData", () => {
+        const outputData = "0x123456";
+        const cell = ccc.Cell.from({
+          outPoint: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          cellOutput: {
+            capacity: 1000n,
+            lock,
+          },
+          outputData,
+        });
+
+        // Cell occupiedSize should include CellOutput occupiedSize + outputData length
+        const expectedOccupiedSize = cell.cellOutput.occupiedSize + 3; // 3 bytes of data
+        expect(cell.occupiedSize).toBe(expectedOccupiedSize);
+      });
+
+      it("should calculate capacityFree correctly", () => {
+        const outputData = "0x1234";
+        const explicitCapacity = 1000n;
+        const cell = ccc.Cell.from({
+          outPoint: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          cellOutput: {
+            capacity: explicitCapacity,
+            lock,
+          },
+          outputData,
+        });
+
+        const expectedFreeCapacity =
+          explicitCapacity - ccc.fixedPointFrom(cell.occupiedSize);
+        expect(cell.capacityFree).toBe(expectedFreeCapacity);
+      });
+    });
+  });
 });
