@@ -102,7 +102,7 @@ describe("Udt", () => {
       expect(tx.inputs.length).toBe(2);
 
       // Verify the inputs are UDT cells
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(200));
     });
 
@@ -123,7 +123,7 @@ describe("Udt", () => {
       expect(addedCount).toBe(1);
       expect(tx.inputs.length).toBe(1);
 
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(100));
     });
 
@@ -145,7 +145,7 @@ describe("Udt", () => {
       expect(addedCount).toBe(2);
       expect(tx.inputs.length).toBe(2);
 
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(200));
     });
 
@@ -215,10 +215,10 @@ describe("Udt", () => {
       expect(addedCount).toBe(3);
       expect(tx.inputs.length).toBe(3);
 
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(300));
 
-      const outputBalance = await udt.getOutputsBalance(tx, client);
+      const outputBalance = await udt.getOutputsBalance(client, tx);
       expect(outputBalance).toBe(ccc.numFrom(250));
     });
 
@@ -245,7 +245,7 @@ describe("Udt", () => {
       expect(addedCount).toBe(1);
       expect(tx.inputs.length).toBe(2);
 
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(200));
     });
 
@@ -266,7 +266,7 @@ describe("Udt", () => {
       expect(addedCount).toBe(1);
       expect(tx.inputs.length).toBe(1);
 
-      const inputBalance = await udt.getInputsBalance(tx, client);
+      const inputBalance = await udt.getInputsBalance(client, tx);
       expect(inputBalance).toBe(ccc.numFrom(100));
     });
   });
@@ -327,7 +327,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(5);
 
       // Verify total UDT balance is 500 (5 cells × 100 UDT each)
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(500));
 
       // Verify all cells were added by checking outpoints
@@ -361,15 +361,15 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(5);
 
       // Verify total UDT balance is 500 (all available)
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(500));
 
       // Verify output balance is still 350
-      const outputBalance = await udt.getOutputsBalance(completedTx, client);
+      const outputBalance = await udt.getOutputsBalance(client, completedTx);
       expect(outputBalance).toBe(ccc.numFrom(350));
 
       // Should have 150 UDT excess balance (500 - 350)
-      const balanceBurned = await udt.getBalanceBurned(completedTx, client);
+      const balanceBurned = await udt.getBalanceBurned(client, completedTx);
       expect(balanceBurned).toBe(ccc.numFrom(150));
     });
 
@@ -394,7 +394,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(5); // 2 existing + 3 added
 
       // Verify total UDT balance is still 500 (all 5 cells)
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(500));
     });
 
@@ -416,7 +416,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(5); // Same as before
 
       // Verify total UDT balance is still 500
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(500));
     });
 
@@ -438,7 +438,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(5);
 
       // All 500 UDT will be "burned" since no UDT outputs
-      const balanceBurned = await udt.getBalanceBurned(completedTx, client);
+      const balanceBurned = await udt.getBalanceBurned(client, completedTx);
       expect(balanceBurned).toBe(ccc.numFrom(500));
     });
 
@@ -480,7 +480,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(6); // 1 non-UDT + 5 UDT
 
       // Verify only UDT balance is counted
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(500));
     });
 
@@ -505,7 +505,7 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(0);
 
       // UDT balance should be 0
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(inputBalance).toBe(ccc.numFrom(0));
     });
   });
@@ -536,7 +536,7 @@ describe("Udt", () => {
         ],
       });
 
-      const balance = await udt.getInputsBalance(tx, client);
+      const balance = await udt.getInputsBalance(client, tx);
       expect(balance).toBe(ccc.numFrom(300)); // 100 + 200
     });
 
@@ -565,7 +565,7 @@ describe("Udt", () => {
         ],
       });
 
-      const balance = await udt.getInputsBalance(tx, client);
+      const balance = await udt.getInputsBalance(client, tx);
       expect(balance).toBe(ccc.numFrom(100)); // Only the UDT cell
     });
   });
@@ -585,7 +585,7 @@ describe("Udt", () => {
         ],
       });
 
-      const balance = await udt.getOutputsBalance(tx, client);
+      const balance = await udt.getOutputsBalance(client, tx);
       expect(balance).toBe(ccc.numFrom(300)); // 100 + 200, ignoring non-UDT output
     });
 
@@ -595,7 +595,7 @@ describe("Udt", () => {
         outputsData: ["0x"],
       });
 
-      const balance = await udt.getOutputsBalance(tx, client);
+      const balance = await udt.getOutputsBalance(client, tx);
       expect(balance).toBe(ccc.numFrom(0));
     });
   });
@@ -654,7 +654,10 @@ describe("Udt", () => {
       expect(completedTx.outputs[1].type?.eq(type)).toBe(true);
 
       // Change should be 50 UDT (200 input - 150 output)
-      const changeAmount = ccc.udtBalanceFrom(completedTx.outputsData[1]);
+      const changeAmount = await udt.balanceFrom(
+        client,
+        completedTx.getOutput(1)!,
+      );
       expect(changeAmount).toBe(ccc.numFrom(50));
     });
 
@@ -788,8 +791,11 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBe(2);
 
       // Check that change output has correct UDT balance (should be input - 50)
-      const changeAmount = ccc.udtBalanceFrom(completedTx.outputsData[1]);
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const changeAmount = await udt.balanceFrom(
+        client,
+        completedTx.getOutput(1)!,
+      );
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
       expect(changeAmount).toBe(inputBalance - ccc.numFrom(50));
 
       // Verify change output has correct type script
@@ -820,7 +826,7 @@ describe("Udt", () => {
       expect(addedCount).toBeGreaterThan(2);
 
       // Should have added at least one cell with capacity
-      expect(await udt.getInputsBalance(tx, client)).toBeGreaterThan(ccc.Zero);
+      expect(await udt.getInputsBalance(client, tx)).toBeGreaterThan(ccc.Zero);
     });
 
     it("should handle the two-phase capacity completion in complete method", async () => {
@@ -860,9 +866,12 @@ describe("Udt", () => {
 
       // Should have change output
       expect(completedTx.outputs.length).toBe(2);
-      const changeAmount = ccc.udtBalanceFrom(completedTx.outputsData[1]);
+      const changeAmount = await udt.balanceFrom(
+        client,
+        completedTx.getOutput(1)!,
+      );
       expect(changeAmount).toBe(
-        (await udt.getInputsBalance(completedTx, client)) - ccc.numFrom(50),
+        (await udt.getInputsBalance(client, completedTx)) - ccc.numFrom(50),
       ); // 100 input - 50 output = 50 change
 
       completeInputsByBalanceSpy.mockRestore();
@@ -885,8 +894,11 @@ describe("Udt", () => {
       expect(completedTx.inputs.length).toBeGreaterThan(0);
 
       // The first output should now contain the original amount plus any excess from inputs
-      const changeAmount = ccc.udtBalanceFrom(completedTx.outputsData[0]);
-      const inputBalance = await udt.getInputsBalance(completedTx, client);
+      const changeAmount = await udt.balanceFrom(
+        client,
+        completedTx.getOutput(0)!,
+      );
+      const inputBalance = await udt.getInputsBalance(client, completedTx);
 
       // Change output should have: original amount + excess from inputs
       // Since we only have one output, all input balance should go to it
@@ -994,8 +1006,135 @@ describe("Udt", () => {
       expect(resultTx.inputs.length).toBe(3); // 1 non-UDT + 2 UDT
 
       // Verify UDT balance is satisfied
-      const inputBalance = await udt.getInputsBalance(resultTx, client);
+      const inputBalance = await udt.getInputsBalance(client, resultTx);
       expect(inputBalance).toBe(ccc.numFrom(200));
+    });
+  });
+
+  describe("infoFrom", () => {
+    let validUdtCell1: ccc.CellAny;
+    let validUdtCell2: ccc.CellAny;
+    let nonUdtCell: ccc.CellAny;
+    let otherUdtCell: ccc.CellAny;
+
+    beforeEach(async () => {
+      validUdtCell1 = ccc.CellAny.from({
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(142),
+          lock,
+          type,
+        },
+        outputData: ccc.numLeToBytes(100, 16), // 100 UDT
+      });
+
+      validUdtCell2 = ccc.CellAny.from({
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(200),
+          lock,
+          type,
+        },
+        outputData: ccc.numLeToBytes(250, 16), // 250 UDT
+      });
+
+      nonUdtCell = ccc.CellAny.from({
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(500),
+          lock,
+        },
+        outputData: "0x",
+      });
+
+      const otherUdtScript = await ccc.Script.fromKnownScript(
+        client,
+        ccc.KnownScript.XUdt,
+        "0x" + "1".repeat(64),
+      );
+      otherUdtCell = ccc.CellAny.from({
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(142),
+          lock,
+          type: otherUdtScript,
+        },
+        outputData: ccc.numLeToBytes(1000, 16), // 1000 other UDT
+      });
+    });
+
+    it("should return zero for an empty list of cells", async () => {
+      const info = await udt.infoFrom(client, []);
+      expect(info.balance).toBe(ccc.Zero);
+      expect(info.capacity).toBe(ccc.Zero);
+      expect(info.count).toBe(0);
+    });
+
+    it("should correctly calculate info for a list of valid UDT cells", async () => {
+      const info = await udt.infoFrom(client, [validUdtCell1, validUdtCell2]);
+      expect(info.balance).toBe(ccc.numFrom(350)); // 100 + 250
+      expect(info.capacity).toBe(ccc.fixedPointFrom(342)); // 142 + 200
+      expect(info.count).toBe(2);
+    });
+
+    it("should ignore non-UDT cells and cells of other UDTs", async () => {
+      const info = await udt.infoFrom(client, [
+        validUdtCell1,
+        nonUdtCell,
+        otherUdtCell,
+      ]);
+      expect(info.balance).toBe(ccc.numFrom(100));
+      expect(info.capacity).toBe(ccc.fixedPointFrom(142));
+      expect(info.count).toBe(1);
+    });
+  });
+
+  describe("calculateInfo", () => {
+    let mockUdtCells: ccc.Cell[];
+
+    beforeEach(() => {
+      mockUdtCells = [
+        ccc.Cell.from({
+          outPoint: { txHash: "0x" + "a".repeat(64), index: 0 },
+          cellOutput: { capacity: ccc.fixedPointFrom(142), lock, type },
+          outputData: ccc.numLeToBytes(100, 16), // 100 UDT
+        }),
+        ccc.Cell.from({
+          outPoint: { txHash: "0x" + "b".repeat(64), index: 0 },
+          cellOutput: { capacity: ccc.fixedPointFrom(200), lock, type },
+          outputData: ccc.numLeToBytes(250, 16), // 250 UDT
+        }),
+      ];
+    });
+
+    it("should calculate info from local source", async () => {
+      const findCellsSpy = vi
+        .spyOn(signer, "findCells")
+        .mockImplementation(async function* () {
+          for (const cell of mockUdtCells) {
+            yield cell;
+          }
+        });
+
+      const info = await udt.calculateInfo(signer, { source: "local" });
+
+      expect(info.balance).toBe(ccc.numFrom(350));
+      expect(info.capacity).toBe(ccc.fixedPointFrom(342));
+      expect(info.count).toBe(2);
+      expect(findCellsSpy).toHaveBeenCalledWith(udt.filter);
+    });
+
+    it("should calculate info from chain source", async () => {
+      const findCellsOnChainSpy = vi
+        .spyOn(signer, "findCellsOnChain")
+        .mockImplementation(async function* () {
+          for (const cell of mockUdtCells) {
+            yield cell;
+          }
+        });
+
+      const info = await udt.calculateInfo(signer, { source: "chain" });
+
+      expect(info.balance).toBe(ccc.numFrom(350));
+      expect(info.capacity).toBe(ccc.fixedPointFrom(342));
+      expect(info.count).toBe(2);
+      expect(findCellsOnChainSpy).toHaveBeenCalledWith(udt.filter);
     });
   });
 });
