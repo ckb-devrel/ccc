@@ -1998,21 +1998,22 @@ export class Transaction extends mol.Entity.Base<
 
     let leastFee = Zero;
     let leastExtraCapacity = Zero;
+    let collected = 0;
 
+    // ===
+    // Usually, for the worst situation, three iterations are needed
+    // 1. First attempt to complete the transaction.
+    // 2. Not enough capacity for the change cell.
+    // 3. Fee increased by the change cell.
+    // ===
     while (true) {
-      const tx = this.clone();
-      const collected = await (async () => {
+      collected += await (async () => {
         if (!(options?.shouldAddInputs ?? true)) {
-          const fee =
-            (await tx.getFee(from.client)) - leastFee - leastExtraCapacity;
-          if (fee < Zero) {
-            throw new ErrorTransactionInsufficientCapacity(-fee);
-          }
           return 0;
         }
 
         try {
-          return await tx.completeInputsByCapacity(
+          return await this.completeInputsByCapacity(
             from,
             leastFee + leastExtraCapacity,
             filter,
@@ -2031,21 +2032,33 @@ export class Transaction extends mol.Entity.Base<
         }
       })();
 
-      await from.prepareTransaction(tx);
+      const fee = await this.getFee(from.client);
+      if (fee < leastFee + leastExtraCapacity) {
+        // Not enough capacity are collected, it should only happens when shouldAddInputs is false
+        throw new ErrorTransactionInsufficientCapacity(
+          leastFee + leastExtraCapacity - fee,
+          { isForChange: leastExtraCapacity !== Zero },
+        );
+      }
+
+      await from.prepareTransaction(this);
       if (leastFee === Zero) {
         // The initial fee is calculated based on prepared transaction
-        leastFee = tx.estimateFee(feeRate);
+        // This should only happens during the first iteration
+        leastFee = this.estimateFee(feeRate);
       }
-      const fee = await tx.getFee(from.client);
       // The extra capacity paid the fee without a change
+      // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
+      // So this only happens in the first iteration
       if (fee === leastFee) {
-        this.copy(tx);
         return [collected, false];
       }
 
+      // Invoke the change function on a transaction multiple times may cause problems, so we clone it
+      const tx = this.clone();
       const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
-      // No enough extra capacity to create new cells for change
       if (needed > Zero) {
+        // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
