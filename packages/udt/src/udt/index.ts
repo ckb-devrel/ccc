@@ -248,7 +248,7 @@ export class Udt extends ssri.Trait {
    *
    * // Manually find cells using the same filter
    * for await (const cell of signer.findCells(udt.filter)) {
-   *   console.log(`Found UDT cell with balance: ${ccc.udtBalanceFrom(cell.outputData)}`);
+   *   console.log(`Found UDT cell with balance: ${udt.balanceFrom(cell.outputData, cell.cellOutput)}`);
    * }
    * ```
    */
@@ -471,6 +471,179 @@ export class Udt extends ssri.Trait {
     }
 
     return ssri.ExecutorResponse.new(undefined);
+  }
+
+  static balanceFrom(outputData: ccc.HexLike): ccc.Num {
+    const data = ccc.bytesFrom(outputData).slice(0, 16);
+    return data.length === 0 ? ccc.Zero : ccc.numFromBytes(data);
+  }
+
+  balanceFrom(outputData: ccc.HexLike, _output?: ccc.CellOutputLike): ccc.Num {
+    return Udt.balanceFrom(outputData);
+  }
+
+  /**
+   * Calculates comprehensive information about all UDT cells controlled by the signer.
+   * This method scans through every UDT cell that the signer controls and aggregates
+   * their balance, capacity, and count information.
+   *
+   * ⚠️ **Performance Warning**: This is an expensive operation that scales with the number
+   * of UDT cells. For addresses with many UDT cells (hundreds or thousands), this method
+   * can take significant time and resources. Use sparingly and consider caching results.
+   *
+   * @param signer - The signer whose UDT cells to scan and analyze
+   * @param options - Optional configuration for the calculation
+   * @param options.source - Data source to use: "chain" (default) for on-chain data, "local" for local indexer cache
+   * @returns A promise resolving to an object containing:
+   *          - balance: Total UDT balance across all cells
+   *          - capacity: Total CKB capacity occupied by all UDT cells
+   *          - count: Number of UDT cells found
+   *
+   * @example
+   * ```typescript
+   * const udt = new Udt(codeOutPoint, scriptConfig);
+   *
+   * // Calculate comprehensive UDT information from chain (default)
+   * const info = await udt.calculateInfo(signer);
+   * console.log(`Total UDT balance: ${info.balance}`);
+   * console.log(`Total capacity used: ${info.capacity} CKB`);
+   * console.log(`Number of UDT cells: ${info.count}`);
+   *
+   * // Use local cache for faster response (may be less up-to-date)
+   * const localInfo = await udt.calculateInfo(signer, { source: "local" });
+   * console.log(`Local cached balance: ${localInfo.balance}`);
+   *
+   * // Use for wallet balance display
+   * const balanceInTokens = ccc.fixedPointToString(info.balance, 8); // Assuming 8 decimals
+   * console.log(`Balance: ${balanceInTokens} tokens in ${info.count} cells`);
+   * ```
+   *
+   * @remarks
+   * **Performance Considerations:**
+   * - Execution time is O(n) where n is the number of UDT cells
+   * - Network requests are made for each cell discovery when using "chain" source
+   * - "local" source is faster but may not reflect the most recent state
+   * - Consider implementing client-side caching for frequently accessed data
+   * - For transaction-specific calculations, use `getInputsInfo()` or `getOutputsInfo()` instead
+   *
+   * **Data Source Options:**
+   * - `"chain"` (default): Queries the blockchain directly for the most up-to-date information
+   * - `"local"`: Uses local indexer cache, faster but potentially stale data
+   *
+   * **Use Cases:**
+   * - Wallet balance display and portfolio overview
+   * - UDT cell consolidation planning
+   * - Comprehensive account analysis
+   * - Debugging and development tools
+   *
+   * **Alternative Methods:**
+   * - Use `calculateBalance()` if you only need the total balance
+   * - Use `completeInputsAll()` if you need to collect all cells for a transaction
+   * - Use transaction-specific methods for partial calculations
+   */
+  async calculateInfo(
+    signer: ccc.Signer,
+    options?: { source?: "chain" | "local" | null },
+  ): Promise<{
+    balance: ccc.Num;
+    capacity: ccc.Num;
+    count: number;
+  }> {
+    let balance = ccc.Zero;
+    let capacity = ccc.Zero;
+    let count = 0;
+    const isFromLocal = (options?.source ?? "chain") === "local";
+
+    for await (const cell of isFromLocal
+      ? signer.findCells(this.filter)
+      : signer.findCellsOnChain(this.filter)) {
+      balance += this.balanceFrom(cell.outputData, cell.cellOutput);
+      capacity += cell.cellOutput.capacity;
+      count += 1;
+    }
+
+    return {
+      balance,
+      capacity,
+      count,
+    };
+  }
+
+  /**
+   * Calculates the total UDT balance across all cells controlled by the signer.
+   * This method provides a convenient way to get the complete UDT balance without
+   * needing the additional capacity and count information.
+   *
+   * ⚠️ **Performance Warning**: This is an expensive operation that scans all UDT cells.
+   * For addresses with many UDT cells, this method can be slow and resource-intensive.
+   * Consider caching results and using sparingly in production applications.
+   *
+   * @param signer - The signer whose total UDT balance to calculate
+   * @param options - Optional configuration for the calculation
+   * @param options.source - Data source to use: "chain" (default) for on-chain data, "local" for local indexer cache
+   * @returns A promise resolving to the total UDT balance across all cells
+   *
+   * @example
+   * ```typescript
+   * const udt = new Udt(codeOutPoint, scriptConfig);
+   *
+   * // Get total balance for wallet display (from chain)
+   * const totalBalance = await udt.calculateBalance(signer);
+   * console.log(`Total UDT balance: ${totalBalance}`);
+   *
+   * // Get balance from local cache for faster response
+   * const cachedBalance = await udt.calculateBalance(signer, { source: "local" });
+   * console.log(`Cached UDT balance: ${cachedBalance}`);
+   *
+   * // Convert to human-readable format (assuming 8 decimals)
+   * const decimals = await udt.decimals();
+   * if (decimals.res !== undefined) {
+   *   const humanReadable = ccc.fixedPointToString(totalBalance, Number(decimals.res));
+   *   console.log(`Balance: ${humanReadable} tokens`);
+   * }
+   *
+   * // Check if user has sufficient balance for a transfer
+   * const requiredAmount = ccc.fixedPointFrom(100);
+   * if (totalBalance >= requiredAmount) {
+   *   console.log("Sufficient balance for transfer");
+   * } else {
+   *   console.log(`Insufficient balance. Need ${requiredAmount - totalBalance} more`);
+   * }
+   * ```
+   *
+   * @remarks
+   * **Performance Considerations:**
+   * - This method internally calls `calculateInfo()` and extracts only the balance
+   * - Execution time scales linearly with the number of UDT cells
+   * - Network overhead increases with cell count when using "chain" source
+   * - "local" source is faster but may not reflect the most recent state
+   * - Results should be cached when used multiple times
+   *
+   * **Data Source Options:**
+   * - `"chain"` (default): Queries the blockchain directly for the most up-to-date balance
+   * - `"local"`: Uses local indexer cache, faster but potentially stale data
+   *
+   * **When to Use:**
+   * - Wallet balance display
+   * - Transfer amount validation
+   * - Portfolio calculations
+   * - Simple balance checks
+   *
+   * **When NOT to Use:**
+   * - In transaction loops or frequent operations
+   * - When you also need capacity or count information (use `calculateInfo()` instead)
+   * - For transaction input/output analysis (use transaction-specific methods)
+   *
+   * **Alternative Methods:**
+   * - Use `calculateInfo()` if you need additional information beyond balance
+   * - Use `getInputsBalance()` for transaction input analysis
+   * - Use `getOutputsBalance()` for transaction output analysis
+   */
+  async calculateBalance(
+    signer: ccc.Signer,
+    options?: { source?: "chain" | "local" | null },
+  ): Promise<ccc.Num> {
+    return (await this.calculateInfo(signer, options)).balance;
   }
 
   /**
@@ -772,7 +945,7 @@ export class Udt extends ssri.Trait {
         }
 
         return [
-          acc[0] + ccc.udtBalanceFrom(outputData),
+          acc[0] + this.balanceFrom(outputData, cellOutput),
           acc[1] + cellOutput.capacity,
           acc[2] + 1,
         ];
@@ -873,7 +1046,7 @@ export class Udt extends ssri.Trait {
         }
 
         return [
-          acc[0] + ccc.udtBalanceFrom(tx.outputsData[i]),
+          acc[0] + this.balanceFrom(tx.outputsData[i], output),
           acc[1] + output.capacity,
           acc[2] + 1,
         ];
@@ -994,7 +1167,7 @@ export class Udt extends ssri.Trait {
    *   tx,
    *   signer,
    *   ([balanceAcc, capacityAcc], cell) => {
-   *     const balance = ccc.udtBalanceFrom(cell.outputData);
+   *     const balance = udt.balanceFrom(cell.outputData, cell.cellOutput);
    *     const newBalance = balanceAcc + balance;
    *     const newCapacity = capacityAcc + cell.cellOutput.capacity;
    *
@@ -1129,10 +1302,10 @@ export class Udt extends ssri.Trait {
     } = await this.completeInputs(
       tx,
       from,
-      ([balanceAcc, capacityAcc], { cellOutput: { capacity }, outputData }) => {
-        const balance = ccc.udtBalanceFrom(outputData);
+      ([balanceAcc, capacityAcc], { cellOutput, outputData }) => {
+        const balance = this.balanceFrom(outputData, cellOutput);
         const balanceBurned = balanceAcc + balance;
-        const capacityBurned = capacityAcc + capacity;
+        const capacityBurned = capacityAcc + cellOutput.capacity;
 
         // Try to provide enough capacity with UDT cells to avoid extra occupation
         return balanceBurned >= ccc.Zero && capacityBurned >= ccc.Zero
@@ -1354,6 +1527,7 @@ export class Udt extends ssri.Trait {
   ) {
     const tx = ccc.Transaction.from(txLike);
     const index = Number(ccc.numFrom(indexLike));
+    const output = tx.outputs[index];
     const outputData = ccc.bytesFrom(tx.outputsData[index]);
 
     if (!this.isUdt({ cellOutput: tx.outputs[index], outputData })) {
@@ -1366,7 +1540,7 @@ export class Udt extends ssri.Trait {
       (tx, balance, shouldModify) => {
         if (shouldModify) {
           const balanceData = ccc.numLeToBytes(
-            ccc.udtBalanceFrom(outputData) + balance,
+            this.balanceFrom(outputData, output) + balance,
             16,
           );
 
