@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -30,6 +31,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`flex grow flex-col ${inter.className}`}>
+        {process.env.NEXT_PUBLIC_ANALYTICS_ID ? (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_ANALYTICS_ID} />
+        ) : undefined}
         <LayoutProvider>{children}</LayoutProvider>
       </body>
     </html>

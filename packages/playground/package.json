@@ -15,6 +15,7 @@
     "@ckb-ccc/connector-react": "workspace:*",
     "@monaco-editor/react": "^4.6.0",
     "@nervina-labs/dob-render": "^0.2.3",
+    "@next/third-parties": "^15.3.4",
     "@shikijs/monaco": "^3.2.1",
     "axios": "^1.7.7",
     "bech32": "^2.0.0",

@@ -1,3 +1,4 @@
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -35,6 +36,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {process.env.NEXT_PUBLIC_ANALYTICS_ID ? (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_ANALYTICS_ID} />
+        ) : undefined}
         <LayoutProvider>{children}</LayoutProvider>
       </body>
     </html>
