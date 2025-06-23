@@ -39,7 +39,10 @@
       "@nestjs/core",
       "core-js",
       "core-js-pure",
-      "secp256k1"
+      "secp256k1",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
     ]
   },
   "packageManager": "pnpm@10.8.1"
