@@ -186,7 +186,7 @@ export default function IssueRGBPPXUdt() {
       rgbppUdtClient,
       btcChangeAddress: btcAccount,
       receiverBtcAddresses: [btcAccount],
-      feeRate: 28,
+      feeRate: 10,
     });
 
     const signedPsbtHex = await signer.signPsbt(psbt.toHex());
@@ -223,12 +223,12 @@ export default function IssueRGBPPXUdt() {
       </Message>
 
       <TextInput
-        label="BTC UTXO Seal Tx ID (optional)"
+        label="BTC UTXO Seal Tx ID (optional, required for now)"
         placeholder=""
         state={[utxoSealTxId, setUtxoSealTxId]}
       />
       <TextInput
-        label="BTC UTXO Seal Index (optional)"
+        label="BTC UTXO Seal Index (optional, required for now)"
         placeholder=""
         state={[utxoSealIndex, setUtxoSealIndex]}
       />
