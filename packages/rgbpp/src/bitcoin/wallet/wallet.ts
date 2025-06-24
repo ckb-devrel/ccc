@@ -325,19 +325,16 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     };
   }
 
-  // TODO: FIX THIS, in extension wallet case, a popup window will be shown to the user to confirm the transaction.
-  // TODO: API for Sign & Pay
+  /**
+   * Estimate transaction fee without requiring actual signing
+   * This avoids triggering wallet confirmation dialogs for fee estimation
+   */
   async estimateFee(
     inputs: TxInputData[],
     outputs: TxOutput[],
     feeRate?: number,
   ) {
-    // Create a temporary PSBT to calculate the fee
-    const psbt = new Psbt({ network: toBtcNetwork(this.networkConfig.name) });
-    inputs.forEach((input) => psbt.addInput(input));
-    outputs.forEach((output) => psbt.addOutput(output));
-
-    // * signTx will fail if inputs value is smaller than outputs value
+    // Ensure we have enough inputs to cover outputs
     let totalInputValue = inputs.reduce(
       (acc, input) => acc + input.witnessUtxo.value,
       0,
@@ -346,6 +343,8 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
       (acc, output) => acc + output.value,
       0,
     );
+
+    let balancedInputs = [...inputs];
     if (totalInputValue < totalOutputValue) {
       const { inputs: extraInputs } = await this.collectUtxos(
         totalOutputValue - totalInputValue,
@@ -354,16 +353,11 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
           min_satoshi: 1000,
         },
       );
-      extraInputs.forEach((input) => psbt.addInput(input));
+      balancedInputs = [...inputs, ...extraInputs];
     }
 
-    const tx = await this.signTx(psbt);
-
-    // Calculate virtual size
-    const weightWithWitness = tx.byteLength(true);
-    const weightWithoutWitness = tx.byteLength(false);
-    const weight = weightWithoutWitness * 3 + weightWithWitness + tx.ins.length;
-    const virtualSize = Math.ceil(weight / 4);
+    // Estimate transaction size based on input/output types without signing
+    const virtualSize = this.estimateVirtualSize(balancedInputs, outputs);
     const bufferedVirtualSize = virtualSize + DEFAULT_VIRTUAL_SIZE_BUFFER;
 
     if (!feeRate) {
@@ -378,6 +372,153 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     }
 
     return Math.ceil(bufferedVirtualSize * feeRate);
+  }
+
+  /**
+   * Estimate virtual size of a transaction
+   * Based on Bitcoin transaction structure and different address types
+   */
+  private estimateVirtualSize(
+    inputs: TxInputData[],
+    outputs: TxOutput[],
+  ): number {
+    // Base transaction size (version + locktime + input count + output count)
+    let baseSize =
+      4 +
+      4 +
+      this.getVarIntSize(inputs.length) +
+      this.getVarIntSize(outputs.length);
+
+    // Calculate input sizes
+    let witnessSize = 0;
+    for (const input of inputs) {
+      // Each input: txid (32) + vout (4) + scriptSig length + scriptSig + sequence (4)
+      baseSize += 32 + 4 + 4; // txid + vout + sequence
+
+      // Determine address type from the input
+      const addressType = this.getInputAddressType(input);
+
+      switch (addressType) {
+        case "P2WPKH":
+          // P2WPKH: scriptSig is empty, witness has 2 items (signature + pubkey)
+          baseSize += 1; // empty scriptSig
+          witnessSize += 1 + 1 + 72 + 1 + 33; // witness stack count + sig length + sig + pubkey length + pubkey
+          break;
+        case "P2TR":
+          // P2TR: scriptSig is empty, witness has 1 item (signature)
+          baseSize += 1; // empty scriptSig
+          witnessSize += 1 + 1 + 64; // witness stack count + sig length + sig
+          break;
+        case "P2PKH":
+          // P2PKH: scriptSig has signature + pubkey, no witness
+          baseSize += 1 + 72 + 33; // scriptSig length + sig + pubkey
+          break;
+        default:
+          // Default estimation for unknown types
+          baseSize += 1 + 107; // average scriptSig size
+          break;
+      }
+    }
+
+    // Calculate output sizes
+    for (const output of outputs) {
+      // Each output: value (8) + scriptPubKey length + scriptPubKey
+      baseSize += 8; // value
+
+      if ("address" in output && output.address) {
+        const addressType = this.getOutputAddressType(output.address);
+        switch (addressType) {
+          case "P2WPKH":
+            baseSize += 1 + 22; // length + scriptPubKey
+            break;
+          case "P2TR":
+            baseSize += 1 + 34; // length + scriptPubKey
+            break;
+          case "P2PKH":
+            baseSize += 1 + 25; // length + scriptPubKey
+            break;
+          default:
+            baseSize += 1 + 25; // default size
+            break;
+        }
+      } else if ("script" in output && output.script) {
+        // For script outputs, use the actual script length
+        baseSize +=
+          this.getVarIntSize(output.script.length) + output.script.length;
+      } else {
+        // Default for unknown output types
+        baseSize += 1 + 25;
+      }
+    }
+
+    // Add witness header if there are witness inputs
+    if (witnessSize > 0) {
+      witnessSize += 2; // witness marker + flag
+    }
+
+    // Calculate weight: base_size * 4 + witness_size
+    const weight = baseSize * 4 + witnessSize;
+
+    // Virtual size is weight / 4, rounded up
+    return Math.ceil(weight / 4);
+  }
+
+  /**
+   * Get the size of a variable integer
+   */
+  private getVarIntSize(value: number): number {
+    if (value < 0xfd) return 1;
+    if (value <= 0xffff) return 3;
+    if (value <= 0xffffffff) return 5;
+    return 9;
+  }
+
+  /**
+   * Determine address type from input data
+   */
+  private getInputAddressType(input: TxInputData): string {
+    // Check if it's a Taproot input
+    if (input.tapInternalKey) {
+      return "P2TR";
+    }
+
+    // Check if it has witness data (P2WPKH or P2WSH)
+    if (input.witnessUtxo) {
+      const script = input.witnessUtxo.script;
+      if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+        return "P2WPKH";
+      }
+      if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+        return "P2WSH";
+      }
+    }
+
+    // Default to P2PKH for legacy inputs
+    return "P2PKH";
+  }
+
+  /**
+   * Determine address type from output address
+   */
+  private getOutputAddressType(address: string): string {
+    if (
+      address.startsWith("bc1p") ||
+      address.startsWith("tb1p") ||
+      address.startsWith("bcrt1p")
+    ) {
+      return "P2TR";
+    }
+    if (
+      address.startsWith("bc1") ||
+      address.startsWith("tb1") ||
+      address.startsWith("bcrt1")
+    ) {
+      return "P2WPKH";
+    }
+    if (address.startsWith("3") || address.startsWith("2")) {
+      return "P2SH";
+    }
+    return "P2PKH";
   }
 
   isCommitmentMatched(
