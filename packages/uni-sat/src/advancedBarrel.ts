@@ -10,6 +10,23 @@ export interface Provider {
   pushTx(tx: { rawtx: string }): Promise<string>;
 
   /**
+   * Signs a PSBT using UniSat wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @returns A promise that resolves to the signed PSBT hex string
+   * @todo Add support for Taproot signing options (useTweakedSigner, etc.)
+   */
+  signPsbt(psbtHex: string): Promise<string>;
+
+  /**
+   * Broadcasts a signed PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string of signed PSBT to broadcast
+   * @returns A promise that resolves to the transaction ID
+   */
+  pushPsbt(psbtHex: string): Promise<string>;
+
+  /**
    * Requests user accounts.
    * @returns A promise that resolves to an array of account addresses.
    */
