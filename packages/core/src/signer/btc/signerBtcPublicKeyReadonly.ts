@@ -70,4 +70,12 @@ export class SignerBtcPublicKeyReadonly extends SignerBtc {
   async getBtcPublicKey(): Promise<Hex> {
     return this.publicKey;
   }
+
+  async signPsbt(_: string): Promise<string> {
+    throw new Error("Read-only signer does not support signPsbt");
+  }
+
+  async pushPsbt(_: string): Promise<string> {
+    throw new Error("Read-only signer does not support pushPsbt");
+  }
 }

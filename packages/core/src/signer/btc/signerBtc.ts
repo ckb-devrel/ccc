@@ -123,4 +123,21 @@ export abstract class SignerBtc extends Signer {
     tx.setWitnessArgsAt(info.position, witness);
     return tx;
   }
+
+  /**
+   * Signs a Partially Signed Bitcoin Transaction (PSBT).
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @returns A promise that resolves to the signed PSBT hex string
+   * @todo Add support for Taproot signing options (useTweakedSigner, etc.)
+   */
+  abstract signPsbt(psbtHex: string): Promise<string>;
+
+  /**
+   * Broadcasts a signed PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string of signed PSBT to broadcast
+   * @returns A promise that resolves to the transaction ID
+   */
+  abstract pushPsbt(psbtHex: string): Promise<string>;
 }
