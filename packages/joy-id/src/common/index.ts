@@ -25,10 +25,7 @@ export interface PopupReturnType {
   [DappRequestType.Auth]: AuthResponseData;
   [DappRequestType.SignMessage]: SignMessageResponseData;
   [DappRequestType.SignEvm]: SignEvmTxResponseData;
-  [DappRequestType.SignPsbt]: {
-    psbt: string;
-    txid?: string;
-  };
+  [DappRequestType.SignPsbt]: SignEvmTxResponseData;
   [DappRequestType.BatchSignPsbt]: {
     psbts: string[];
   };

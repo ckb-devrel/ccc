@@ -9,39 +9,6 @@ import {
 
 /**
  * Class representing a Bitcoin signer that extends SignerBtc
- *
- * JoyID Bitcoin PSBT Support:
- * - Supports both P2WPKH (Wrapped SegWit) and P2TR (Taproot) addresses
- * - Automatically detects and signs all inputs matching the current address
- * - Provides both simple and advanced signing methods
- * - Supports direct transaction broadcasting via sendPsbt
- *
- * Usage Examples:
- * ```typescript
- * // Basic PSBT signing (auto-finalized)
- * const signedPsbtHex = await signer.signPsbt(psbtHex);
- *
- * // Advanced PSBT signing with custom options
- * const signedPsbtHex = await signer.signPsbtAdvanced(psbtHex, {
- *   autoFinalized: false,
- *   toSignInputs: [
- *     {
- *       index: 0,
- *       address: "bc1qaddress...",
- *       sighashTypes: [1]
- *     },
- *     {
- *       index: 1,
- *       publicKey: "02062...8779693f",
- *       disableTweakSigner: true
- *     }
- *   ]
- * });
- *
- * // Sign and broadcast in one step
- * const txid = await signer.pushPsbt(psbtHex);
- * ```
- *
  * @public
  */
 export class BitcoinSigner extends ccc.SignerBtc {
@@ -56,6 +23,16 @@ export class BitcoinSigner extends ccc.SignerBtc {
   private async assertConnection(): Promise<Connection> {
     if (!(await this.isConnected()) || !this.connection) {
       throw new Error("Not connected");
+    }
+
+    // Additional validation to ensure connection has valid address
+    if (
+      !this.connection.address ||
+      typeof this.connection.address !== "string"
+    ) {
+      throw new Error(
+        "Invalid connection - missing or invalid Bitcoin address",
+      );
     }
 
     return this.connection;
@@ -235,74 +212,61 @@ export class BitcoinSigner extends ccc.SignerBtc {
   /**
    * Signs a PSBT using JoyID wallet.
    *
-   * This method follows JoyID's signPsbt API specification:
-   * - Automatically traverses all inputs that match the current address to sign
-   * - Uses autoFinalized: true by default (can be customized with signPsbtAdvanced)
-   * - Supports both P2WPKH and P2TR address types
-   *
    * @param psbtHex - The hex string of PSBT to sign
    * @returns A promise that resolves to the signed PSBT hex string
    */
-  async signPsbt(_: string): Promise<string> {
-    throw new Error("Not implemented");
+  async signPsbt(psbtHex: string): Promise<string> {
+    const { address } = await this.assertConnection();
 
-    // const { address } = await this.assertConnection();
+    const config = this.getConfig();
+    const { tx: signedPsbtHex } = await createPopup(
+      buildJoyIDURL(
+        {
+          ...config,
+          tx: psbtHex,
+          signerAddress: address,
+          autoFinalized: true,
+        },
+        "popup",
+        "/sign-psbt",
+      ),
+      { ...config, type: DappRequestType.SignPsbt },
+    );
 
-    // const config = this.getConfig();
-    // const result = await createPopup(
-    //   buildJoyIDURL(
-    //     {
-    //       ...config,
-    //       psbtHex,
-    //       address,
-    //       autoFinalized: true, // Default to finalized for simple usage
-    //     },
-    //     "popup",
-    //     "/sign-psbt",
-    //   ),
-    //   { ...config, type: DappRequestType.SignPsbt },
-    // );
-
-    // return result.psbt;
+    return signedPsbtHex;
   }
 
   /**
    * Signs and broadcasts a PSBT to the Bitcoin network using JoyID wallet.
    *
-   * This method follows JoyID's sendPsbt API specification:
-   * - Combines signPsbt and broadcast operations
-   * - Always uses autoFinalized: true
-   * - Returns the transaction ID upon successful broadcast
+   * This method combines both signing and broadcasting in a single operation.
    *
    * @param psbtHex - The hex string of PSBT to sign and broadcast
    * @returns A promise that resolves to the transaction ID
+   *
+   * @remarks
+   * Use this method directly for sign+broadcast operations to avoid double popups.
+   * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
    */
-  async pushPsbt(_: string): Promise<string> {
-    throw new Error("Not implemented");
+  async pushPsbt(psbtHex: string): Promise<string> {
+    const { address } = await this.assertConnection();
 
-    // const { address } = await this.assertConnection();
+    const config = this.getConfig();
+    const { tx: txid } = await createPopup(
+      buildJoyIDURL(
+        {
+          ...config,
+          tx: psbtHex,
+          signerAddress: address,
+          autoFinalized: true, // sendPsbt always finalizes
+          isSend: true,
+        },
+        "popup",
+        "/sign-psbt",
+      ),
+      { ...config, type: DappRequestType.SignPsbt }, // Use SignPsbt type for both operations
+    );
 
-    // const config = this.getConfig();
-    // const result = await createPopup(
-    //   buildJoyIDURL(
-    //     {
-    //       ...config,
-    //       psbtHex,
-    //       address,
-    //       autoFinalized: true, // sendPsbt always finalizes
-    //       broadcast: true, // This tells JoyID to broadcast after signing
-    //     },
-    //     "popup",
-    //     "/send-psbt",
-    //   ),
-    //   { ...config, type: DappRequestType.SignPsbt }, // Use SignPsbt type for both operations
-    // );
-
-    // // For sendPsbt, JoyID should return the transaction ID
-    // if (result.txid) {
-    //   return result.txid;
-    // }
-
-    // throw new Error("Failed to broadcast PSBT - no transaction ID returned");
+    return txid;
   }
 }
