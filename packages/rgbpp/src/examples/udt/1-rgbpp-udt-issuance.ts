@@ -56,7 +56,7 @@ async function issueUdt({
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
-  const btcTxId = await rgbppBtcWallet.signAndSendTx(psbt);
+  const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
   logger.add("btcTxId", btcTxId, true);
 
   const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
@@ -93,7 +93,7 @@ issueUdt({
   // udtScriptInfo: testnetSudtInfo,
 
   utxoSeal: {
-    txId: "7cc7de993804bf7b18e12c40d3bfd65545e2d1317f2768771405847889632765",
+    txId: "45a32a70556205a6f0523448406218ea12c1b61c10a2df8f844ec0a2609ccb6c",
     index: 2,
   },
 })

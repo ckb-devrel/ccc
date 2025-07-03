@@ -38,4 +38,8 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
     const txHex = tx.toHex();
     return this.sendTransaction(txHex);
   }
+
+  async signAndBroadcast(psbt: Psbt): Promise<string> {
+    return this.sendTx(await this.signTx(psbt));
+  }
 }

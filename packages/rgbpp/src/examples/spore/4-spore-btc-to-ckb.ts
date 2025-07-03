@@ -1,5 +1,7 @@
 import { spore } from "@ckb-ccc/shell";
 
+import "../common/load-env.js";
+
 import { initializeRgbppEnv } from "../common/env.js";
 
 import { RgbppTxLogger } from "../common/logger.js";
@@ -36,7 +38,7 @@ async function btcSporeToCkb({
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
-  const btcTxId = await rgbppBtcWallet.signAndSendTx(psbt);
+  const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
   logger.add("btcTxId", btcTxId, true);
 
   const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(

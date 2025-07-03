@@ -2,6 +2,8 @@ import { ccc, spore } from "@ckb-ccc/shell";
 
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 
+import "../common/load-env.js";
+
 import { clusterData } from "../common/assets.js";
 import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
@@ -57,7 +59,7 @@ async function createSporeCluster(utxoSeal?: UtxoSeal) {
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
-  const btcTxId = await rgbppBtcWallet.signAndSendTx(psbt);
+  const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
   logger.add("btcTxId", btcTxId, true);
 
   const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
@@ -77,8 +79,8 @@ async function createSporeCluster(utxoSeal?: UtxoSeal) {
 const logger = new RgbppTxLogger({ opType: "cluster-creation" });
 
 createSporeCluster({
-  txId: "a8598f3b9c6b8a15529ecfd2d6c7c2897b4d4efcf88414270bce0e16b961a404",
-  index: 3,
+  txId: "56dea2d2cf703e8f30dee51115419b5af54545878af39873de50ddbb1ec5596e",
+  index: 2,
 })
   .then(() => {
     logger.saveOnSuccess();
@@ -92,4 +94,8 @@ createSporeCluster({
 
 /* 
 pnpm tsx packages/rgbpp/src/examples/spore/1-cluster-creation.ts
+
+cluster id: 0x82993b95c82bd0734836a90912bbc46c1ddee4a7a7529eb889393647362105dc
+btcTxId: b78ba51aca245436cc94df592adcfd763e835f1916e63a56e0856558f3b3f475
+ckbTxId: 0xc7cf9f775e3fa3d49ed8e18ce5f97048177e6766558d677d07912eed9dc453d8
 */
