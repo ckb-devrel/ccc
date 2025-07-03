@@ -173,7 +173,7 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     return { psbt, indexedCkbPartialTx: indexedTx };
   }
 
-  abstract signTx(psbt: Psbt): Promise<Transaction>;
+  abstract signAndBroadcast(psbt: Psbt): Promise<string>;
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
     const inputs: TxInputData[] = [];
@@ -215,15 +215,8 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     return inputs;
   }
 
-  abstract sendTx(tx: Transaction): Promise<string>;
-
   rawTxHex(tx: Transaction): string {
     return transactionToHex(tx, false);
-  }
-
-  async signAndSendTx(psbt: Psbt): Promise<string> {
-    const tx = await this.signTx(psbt);
-    return this.sendTx(tx);
   }
 
   async balanceInputsOutputs(
@@ -580,18 +573,16 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
       psbt.addOutput(output);
     });
 
-    // TODO: separate construction, signing, and sending
-    const signedTx = await this.signTx(psbt);
-    const txId = await this.sendTx(signedTx);
+    const txId = await this.signAndBroadcast(psbt);
     console.log(`[prepareUtxoSeal] Transaction ${txId} sent`);
 
-    let tx = await this.getTransaction(txId);
-    while (!tx.status.confirmed) {
+    let btcTx = await this.getTransaction(txId);
+    while (!btcTx.status.confirmed) {
       console.log(
         `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting 30 seconds...`,
       );
       await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
-      tx = await this.getTransaction(txId);
+      btcTx = await this.getTransaction(txId);
     }
 
     return {

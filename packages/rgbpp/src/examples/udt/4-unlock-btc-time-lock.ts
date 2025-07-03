@@ -10,6 +10,9 @@ import {
 import { PredefinedScriptName } from "../../types/script.js";
 
 import { testnetSudtCellDep } from "../common/assets.js";
+
+import "../common/load-env.js";
+
 import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
 import { collectBtcTimeLockCells } from "../common/utils.js";

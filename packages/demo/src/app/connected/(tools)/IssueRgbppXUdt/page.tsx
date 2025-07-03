@@ -8,7 +8,7 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
 import { Message } from "@/src/components/Message";
 
-import { Psbt, Transaction } from "bitcoinjs-lib";
+import { Psbt } from "bitcoinjs-lib";
 
 import {
   buildNetworkConfig,
@@ -24,9 +24,9 @@ import {
   UtxoSeal,
 } from "@ckb-ccc/rgbpp";
 
-class UnisatRgbppWallet extends RgbppBtcWallet {
+abstract class BrowserRgbppWallet extends RgbppBtcWallet {
   constructor(
-    private signer: SignerBtc,
+    protected signer: SignerBtc,
     networkConfig: NetworkConfig,
     btcAssetApiConfig: BtcAssetApiConfig,
   ) {
@@ -36,15 +36,47 @@ class UnisatRgbppWallet extends RgbppBtcWallet {
   async getAddress(): Promise<string> {
     return this.signer.getBtcAccount();
   }
+}
 
-  async signTx(psbt: Psbt): Promise<Transaction> {
-    const signedPsbtHex = await this.signer.signPsbt(psbt.toHex());
-    const signedPsbt = Psbt.fromHex(signedPsbtHex);
-    return signedPsbt.extractTransaction(true);
+class UnisatRgbppWallet extends BrowserRgbppWallet {
+  constructor(
+    signer: SignerBtc,
+    networkConfig: NetworkConfig,
+    btcAssetApiConfig: BtcAssetApiConfig,
+  ) {
+    super(signer, networkConfig, btcAssetApiConfig);
   }
 
-  async sendTx(tx: Transaction): Promise<string> {
-    return this.signer.pushTx(tx.toHex());
+  async signAndBroadcast(psbt: Psbt): Promise<string> {
+    return this.signer.pushPsbt(await this.signer.signPsbt(psbt.toHex()));
+  }
+}
+
+class OkxRgbppWallet extends BrowserRgbppWallet {
+  constructor(
+    signer: SignerBtc,
+    networkConfig: NetworkConfig,
+    btcAssetApiConfig: BtcAssetApiConfig,
+  ) {
+    super(signer, networkConfig, btcAssetApiConfig);
+  }
+
+  async signAndBroadcast(psbt: Psbt): Promise<string> {
+    return this.signer.pushPsbt(await this.signer.signPsbt(psbt.toHex()));
+  }
+}
+
+class JoyidRgbppWallet extends BrowserRgbppWallet {
+  constructor(
+    signer: SignerBtc,
+    networkConfig: NetworkConfig,
+    btcAssetApiConfig: BtcAssetApiConfig,
+  ) {
+    super(signer, networkConfig, btcAssetApiConfig);
+  }
+
+  async signAndBroadcast(psbt: Psbt): Promise<string> {
+    return this.signer.pushPsbt(psbt.toHex());
   }
 }
 
@@ -80,18 +112,41 @@ export default function IssueRGBPPXUdt() {
     if (!signer || !(signer instanceof SignerBtc)) {
       return null;
     }
-    return new UnisatRgbppWallet(signer, networkConfig, {
+
+    const config = {
       url: process.env.NEXT_PUBLIC_BTC_ASSETS_API_URL!,
       token: process.env.NEXT_PUBLIC_BTC_ASSETS_API_TOKEN!,
       origin: process.env.NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN!,
-    });
+    };
+
+    // Check signer type and create appropriate wallet
+    if (signer.constructor.name === "Signer" && "provider" in signer) {
+      console.log("Unisat wallet");
+      return new UnisatRgbppWallet(signer, networkConfig, config);
+    } else if (
+      signer.constructor.name === "BitcoinSigner" &&
+      "providers" in signer
+    ) {
+      console.log("OKX wallet");
+      return new OkxRgbppWallet(signer, networkConfig, config);
+    } else if (
+      signer.constructor.name === "BitcoinSigner" &&
+      "name" in signer
+    ) {
+      console.log("JoyID wallet");
+      return new JoyidRgbppWallet(signer, networkConfig, config);
+    }
+
+    // Default fallback
+    return new UnisatRgbppWallet(signer, networkConfig, config);
   }, [signer, networkConfig]);
+
   const [ckbRgbppUnlockSinger, setCkbRgbppUnlockSinger] =
     useState<CkbRgbppUnlockSinger>();
 
   useEffect(() => {
     let mounted = true;
-    rgbppBtcWallet?.getAddress().then((address) => {
+    rgbppBtcWallet?.getAddress().then((address: string) => {
       if (mounted) {
         setCkbRgbppUnlockSinger(
           new CkbRgbppUnlockSinger(
@@ -189,8 +244,7 @@ export default function IssueRGBPPXUdt() {
       feeRate: 10,
     });
 
-    const signedPsbtHex = await signer.signPsbt(psbt.toHex());
-    const btcTxId = await signer.pushPsbt(signedPsbtHex);
+    const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
 
     setRgbppBtcTxId(btcTxId);
 

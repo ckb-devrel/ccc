@@ -1,5 +1,7 @@
 import { ccc } from "@ckb-ccc/shell";
 
+import "../common/load-env.js";
+
 import { RgbppBtcReceiver, ScriptInfo } from "../../types/rgbpp/index.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
@@ -55,7 +57,7 @@ async function transferUdt({
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
-  const btcTxId = await rgbppBtcWallet.signAndSendTx(psbt);
+  const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
   logger.add("btcTxId", btcTxId, true);
 
   const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(

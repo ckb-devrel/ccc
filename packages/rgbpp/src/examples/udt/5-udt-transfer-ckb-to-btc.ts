@@ -2,6 +2,8 @@ import { ccc } from "@ckb-ccc/shell";
 
 import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
 
+import "../common/load-env.js";
+
 import { initializeRgbppEnv } from "../common/env.js";
 
 import { RgbppTxLogger } from "../common/logger.js";
