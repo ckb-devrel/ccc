@@ -9,7 +9,7 @@ import {
 import { KnownScript } from "../client/knownScript.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
-import { Hex, HexLike, hexFrom } from "../hex/index.js";
+import { Hex, HexLike, hexConcat, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {
   Num,
@@ -1876,6 +1876,40 @@ export class Transaction extends mol.Entity.Base<
 
     const witness = this.getWitnessArgsAt(position) ?? WitnessArgs.from({});
     witness.lock = hexFrom(Array.from(new Array(lockLen), () => 0));
+    this.setWitnessArgsAt(position, witness);
+  }
+
+  /**
+   * Prepare multisig witness
+   *
+   * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
+   * @param multisigMetadata - The metadata of the multisig script.
+   * @param threshold - The threshold of the multisig script.
+   * @param client - The client for complete extra infos in the transaction.
+   * @returns A promise that resolves to the prepared transaction
+   *
+   * @example
+   * ```typescript
+   * await tx.prepareMultisigWitness(script, multisigMetadata, threshold, client);
+   * ```
+   */
+  async prepareMultisigWitness(
+    scriptLike: ScriptLike,
+    multisigMetadata: HexLike,
+    threshold: number,
+    client: Client,
+  ): Promise<void> {
+    const position = await this.findInputIndexByLock(scriptLike, client);
+    if (position === undefined) {
+      return;
+    }
+
+    const emptySignature = hexFrom(Array.from(new Array(65), () => 0));
+    const witness = this.getWitnessArgsAt(position) ?? WitnessArgs.from({});
+    witness.lock = hexConcat(
+      multisigMetadata,
+      ...Array.from(new Array(threshold), () => emptySignature),
+    );
     this.setWitnessArgsAt(position, witness);
   }
 

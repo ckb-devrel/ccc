@@ -1,4 +1,5 @@
 import WebSocket from "isomorphic-ws";
+import { Script, ScriptLike } from "../index.js";
 import { TESTNET_SCRIPTS } from "./clientPublicTestnet.advanced.js";
 import { ScriptInfo, ScriptInfoLike } from "./clientTypes.js";
 import { ClientJsonRpc, ClientJsonRpcConfig } from "./jsonRpc/index.js";
@@ -51,5 +52,20 @@ export class ClientPublicTestnet extends ClientJsonRpc {
       );
     }
     return ScriptInfo.from(found);
+  }
+
+  async findKnownScript(
+    scriptLike: ScriptLike,
+  ): Promise<ScriptInfo | undefined> {
+    const script = Script.from(scriptLike);
+    const scriptInfo = Object.values(this.scripts).find((scriptInfo) => {
+      if (
+        scriptInfo?.codeHash === script.codeHash &&
+        scriptInfo.hashType === script.hashType
+      ) {
+        return scriptInfo;
+      }
+    });
+    return scriptInfo ? ScriptInfo.from(scriptInfo) : undefined;
   }
 }

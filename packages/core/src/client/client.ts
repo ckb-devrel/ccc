@@ -52,6 +52,10 @@ export abstract class Client {
 
   abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
 
+  abstract findKnownScript(
+    scriptLike: ScriptLike,
+  ): Promise<ScriptInfo | undefined>;
+
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
   ): Promise<{ mean?: Num; median?: Num }>;
