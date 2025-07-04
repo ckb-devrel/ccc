@@ -1,14 +1,14 @@
 import { Address } from "../../address/index.js";
 import {
   multisigMetadataFromPubkeys,
-  SignerCkbPrivateKey,
+  Script,
   SinceLike,
   Transaction,
   TransactionLike,
-} from "../../barrel.js";
-import { Script } from "../../ckb/index.js";
+} from "../../ckb/index.js";
 import { CellDepInfo, Client, KnownScript } from "../../client/index.js";
 import { Hex, hexConcat, hexFrom, HexLike } from "../../hex/index.js";
+import { SignerCkbPrivateKey } from "./signerCkbPrivateKey.js";
 
 export interface MultisigInfo {
   pubkeys: HexLike[];
@@ -64,15 +64,15 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
   }
 
   async getAddressObjs(): Promise<Address[]> {
-    const secp256k1 = await this.getAddressObjSecp256k1();
-    return [secp256k1];
+    const multisig = await this.getAddressObjSecp256k1();
+    return [multisig];
   }
 
   async getRelatedScripts(
     txLike: TransactionLike,
   ): Promise<{ script: Script; cellDeps: CellDepInfo[] }[]> {
     const tx = Transaction.from(txLike);
-    const secp256k1 = await this.getAddressObjSecp256k1();
+    const multisig = await this.getAddressObjSecp256k1();
 
     const scripts: { script: Script; cellDeps: CellDepInfo[] }[] = [];
     for (const input of tx.inputs) {
@@ -84,7 +84,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
         continue;
       }
 
-      if (lock.eq(secp256k1.script)) {
+      if (lock.eq(multisig.script)) {
         const scriptInfo = await this.client.findKnownScript(lock);
         if (scriptInfo) {
           scripts.push({
@@ -104,6 +104,12 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
    * this method is not recommended to explicitly use.
    */
   async prepareTransaction(txLike: TransactionLike): Promise<Transaction> {
+    return Transaction.from(txLike);
+  }
+
+  private async _prepareTransaction(
+    txLike: TransactionLike,
+  ): Promise<Transaction> {
     const tx = Transaction.from(txLike);
     const metadata = this.getMultisigMetadata();
 
@@ -129,7 +135,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
 
     for (const { script } of await this.getRelatedScripts(tx)) {
       const index = await tx.findInputIndexByLock(script, this.client);
-      if (!index) {
+      if (index === undefined) {
         return tx;
       }
       if (index === lastIndex) {
@@ -140,7 +146,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
 
       let witness = tx.getWitnessArgsAt(index);
       if (!witness || !witness.lock?.startsWith(metadata)) {
-        tx = await this.prepareTransaction(tx);
+        tx = await this._prepareTransaction(tx);
       }
 
       witness = tx.getWitnessArgsAt(index);
@@ -159,7 +165,8 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
         throw new Error("Not enough signature slots to threshold");
       }
       if (insertIndex === -1) {
-        throw new Error("Signatures have been filled");
+        // Signatures have been filled
+        continue;
       }
 
       // Empty multisig witness for current signing
@@ -170,7 +177,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
       tx.setWitnessArgsAt(index, witness);
       const info = await tx.getSignHashInfo(script, this.client);
       if (!info) {
-        return tx;
+        continue;
       }
 
       const signature = await this._signMessage(info.message);
@@ -187,16 +194,23 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
    * Check if the multisig witness is fulfilled
    *
    * @param txLike - The transaction to check.
+   * @param restrict - If true, throw an error if the multisig script is not found in Inputs.
    * @returns A promise that resolves to true if the multisig witness is fulfilled, false otherwise.
    */
-  async signaturesFulfilled(txLike: TransactionLike): Promise<boolean> {
+  async signaturesFulfilled(
+    txLike: TransactionLike,
+    restrict: boolean = false,
+  ): Promise<boolean> {
     const tx = Transaction.from(txLike);
     const metadata = this.getMultisigMetadata();
     const emptySignature = hexFrom(Array.from(new Array(65), () => 0));
 
     for (const { script } of await this.getRelatedScripts(tx)) {
       const index = await tx.findInputIndexByLock(script, this.client);
-      if (!index) {
+      if (index === undefined) {
+        if (restrict) {
+          throw new Error("Multisig script not found in Inputs");
+        }
         return false;
       }
 
@@ -210,9 +224,17 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
           .slice(metadata.length)
           .match(/.{1,130}/g)
           ?.map(hexFrom) || [];
+      if (signatures.length !== this.multisig.threshold) {
+        if (restrict) {
+          throw new Error(
+            "Bad multisig witness: not enough signatures to threshold",
+          );
+        }
+        return false;
+      }
       if (
-        signatures.length < this.multisig.threshold ||
-        signatures.some((sig) => sig === emptySignature)
+        signatures.filter((sig) => sig !== emptySignature).length <
+        this.multisig.threshold
       ) {
         return false;
       }
