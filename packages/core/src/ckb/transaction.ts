@@ -1880,7 +1880,7 @@ export class Transaction extends mol.Entity.Base<
   }
 
   /**
-   * Prepare multisig witness
+   * Prepare multisig witness, if the existence of multisig witness is detected, nothing happens.
    *
    * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
    * @param multisigMetadata - The metadata of the multisig script.
@@ -1904,12 +1904,22 @@ export class Transaction extends mol.Entity.Base<
       return;
     }
 
+    const metadata = hexFrom(multisigMetadata);
     const emptySignature = hexFrom(Array.from(new Array(65), () => 0));
-    const witness = this.getWitnessArgsAt(position) ?? WitnessArgs.from({});
-    witness.lock = hexConcat(
-      multisigMetadata,
+    const signaturePlaceholder = hexConcat(
       ...Array.from(new Array(threshold), () => emptySignature),
     );
+
+    const witness = this.getWitnessArgsAt(position) ?? WitnessArgs.from({});
+    if (
+      witness.lock?.startsWith(metadata) &&
+      witness.lock.length ===
+        metadata.length + signaturePlaceholder.slice(2).length
+    ) {
+      return;
+    }
+
+    witness.lock = hexConcat(metadata, signaturePlaceholder);
     this.setWitnessArgsAt(position, witness);
   }
 

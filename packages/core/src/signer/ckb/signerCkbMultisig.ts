@@ -98,18 +98,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
     return scripts;
   }
 
-  /**
-   * @warning
-   * Since transaction preparation will be automatically done in signOnlyTransaction, so
-   * this method is not recommended to explicitly use.
-   */
   async prepareTransaction(txLike: TransactionLike): Promise<Transaction> {
-    return Transaction.from(txLike);
-  }
-
-  private async _prepareTransaction(
-    txLike: TransactionLike,
-  ): Promise<Transaction> {
     const tx = Transaction.from(txLike);
     const metadata = this.getMultisigMetadata();
 
@@ -146,7 +135,7 @@ export class SignerCkbMultisig extends SignerCkbPrivateKey {
 
       let witness = tx.getWitnessArgsAt(index);
       if (!witness || !witness.lock?.startsWith(metadata)) {
-        tx = await this._prepareTransaction(tx);
+        tx = await this.prepareTransaction(tx);
       }
 
       witness = tx.getWitnessArgsAt(index);
