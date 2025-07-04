@@ -138,14 +138,14 @@ export function multisigMetadataFromPubkeys(
     );
   }
   const pubkeyBlake160Hashes = pubkeys.map((pubkey) =>
-    hashCkb(hexFrom(pubkey)).slice(0, 20),
+    hashCkb(hexFrom(pubkey)).slice(0, 42),
   );
   return hexConcat(
     "0x00",
-    hexFrom(("00" + mustMatch.toString(16)).slice(-2)),
-    hexFrom(("00" + threshold.toString(16)).slice(-2)),
-    hexFrom(("00" + pubkeyBlake160Hashes.length.toString(16)).slice(-2)),
-    ...pubkeyBlake160Hashes.map((h) => h.slice(2)),
+    hexFrom(mustMatch.toString(16)),
+    hexFrom(threshold.toString(16)),
+    hexFrom(pubkeyBlake160Hashes.length.toString(16)),
+    ...pubkeyBlake160Hashes,
   );
 }
 
@@ -318,12 +318,12 @@ export class Script extends mol.Entity.Base<ScriptLike, Script>() {
       );
     }
     const args = (() => {
-      const metadataHash = hashCkb(metadata);
+      const metadataBlake160Hash = hashCkb(metadata).slice(0, 42);
       if (since) {
         const sinceBytes = Since.from(since).toBytes();
-        return hexConcat(metadataHash, hexFrom(sinceBytes));
+        return hexConcat(metadataBlake160Hash, hexFrom(sinceBytes));
       } else {
-        return metadataHash;
+        return metadataBlake160Hash;
       }
     })();
     return await Script.fromKnownScript(client, multisigScript, args);
