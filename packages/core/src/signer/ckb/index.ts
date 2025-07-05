@@ -1,4 +1,5 @@
 export * from "./signerCkbMultisig.js";
+export * from "./signerCkbMultisigReadonly.js";
 export * from "./signerCkbPrivateKey.js";
 export * from "./signerCkbPublicKey.js";
 export * from "./signerCkbScriptReadonly.js";
