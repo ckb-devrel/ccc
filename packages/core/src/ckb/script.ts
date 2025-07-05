@@ -1,8 +1,7 @@
-import { Since, SinceLike, hashCkb } from "../barrel.js";
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { Client } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
-import { Hex, HexLike, hexConcat, hexFrom } from "../hex/index.js";
+import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {
   HASH_TYPES,
@@ -97,58 +96,6 @@ export function hashTypeToBytes(hashType: HashTypeLike): Bytes {
 export function hashTypeFromBytes(bytes: BytesLike): HashType {
   return NUM_TO_HASH_TYPE[bytesFrom(bytes)[0]];
 }
-
-/**
- * Generate the metadata and script args of a multisig script.
- * @public
- *
- * @param pubkeys - The public keys engaged in the multisig script.
- * @param threshold - The threshold of the signatures.
- * @param mustMatch - The first nth must match of the public keys.
- * @returns The serialized multisig information, known as metadata.
- *
- * @example
- * ```typescript
- * const { metadata, scriptArgs } = multisigMetadataFromPubkeys({
- *   pubkeys: ["0x1234...", "0x5678...", "0x90ab...", "0xabcd..."],
- *   threshold: 2,
- *   mustMatch: 1,
- * });
- * ```
- */
-
-export function multisigMetadataFromPubkeys(
-  pubkeys: HexLike[],
-  threshold: number,
-  mustMatch: number,
-): Hex {
-  if (threshold < 0 || threshold > 255) {
-    throw new Error("`threshold` must be positive and less than 256!");
-  }
-  if (mustMatch < 0 || mustMatch > 255) {
-    throw new Error("`mustMatch` must be positive and less than 256!");
-  }
-  if (
-    pubkeys.length < mustMatch ||
-    pubkeys.length < threshold ||
-    pubkeys.length > 255
-  ) {
-    throw new Error(
-      "length of `pubkeys` must be greater than or equal to `mustMatch` and `threshold` and less than 256!",
-    );
-  }
-  const pubkeyBlake160Hashes = pubkeys.map((pubkey) =>
-    hashCkb(hexFrom(pubkey)).slice(0, 42),
-  );
-  return hexConcat(
-    "0x00",
-    hexFrom(mustMatch.toString(16)),
-    hexFrom(threshold.toString(16)),
-    hexFrom(pubkeyBlake160Hashes.length.toString(16)),
-    ...pubkeyBlake160Hashes,
-  );
-}
-
 /**
  * @public
  */
@@ -274,59 +221,6 @@ export class Script extends mol.Entity.Base<ScriptLike, Script>() {
   ): Promise<Script> {
     const script = await client.getKnownScript(knownScript);
     return new Script(script.codeHash, script.hashType, hexFrom(args));
-  }
-
-  /**
-   * Creates a Script instance from known multisig script.
-   *
-   * @param client - A Client instance.
-   * @param metadata - The metadata of the multisig script.
-   * @param since - The since of the multisig script.
-   * @param multisigScript - A KnownScript enum.
-   * @returns A promise that resolves to the script instance.
-   *
-   * @example
-   * ```typescript
-   * const metadata = multisigMetadataFromPubkeys(
-   *   ["0x1234...", "0x5678...", "0x90ab..."],
-   *   2,
-   *   1,
-   * );
-   * const script = await Script.fromKnownMultisigScript(
-   *   client,
-   *   metadata,
-   *   {
-   *     relative: "absolute",
-   *     metric: "blockNumber",
-   *     value: 1000,
-   *   }
-   * );
-   * ```
-   */
-
-  static async fromKnownMultisigScript(
-    client: Client,
-    metadata: HexLike,
-    since?: SinceLike,
-    multisigScript:
-      | KnownScript.Secp256k1Multisig
-      | KnownScript.Secp256k1MultisigV2 = KnownScript.Secp256k1MultisigV2,
-  ): Promise<Script> {
-    if (multisigScript === KnownScript.Secp256k1Multisig) {
-      console.warn(
-        "Secp256k1Multisig has detected bugs and marked as **Deprecated**. Please use Secp256k1MultisigV2 instead.",
-      );
-    }
-    const args = (() => {
-      const metadataBlake160Hash = hashCkb(metadata).slice(0, 42);
-      if (since) {
-        const sinceBytes = Since.from(since).toBytes();
-        return hexConcat(metadataBlake160Hash, hexFrom(sinceBytes));
-      } else {
-        return metadataBlake160Hash;
-      }
-    })();
-    return await Script.fromKnownScript(client, multisigScript, args);
   }
 }
 

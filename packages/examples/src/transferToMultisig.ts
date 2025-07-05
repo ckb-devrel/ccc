@@ -19,14 +19,13 @@ const threshold = 2;
 const firstNthMustMatch = 0;
 
 const publicKeys = signers.map((signer) => signer.publicKey);
-const metadata = ccc.multisigMetadataFromPubkeys(
-  publicKeys,
+const multisigInfo = ccc.MultisigInfo.from({
+  pubkeys: publicKeys,
   threshold,
-  firstNthMustMatch,
-);
-const multisigLockScript = await ccc.Script.fromKnownMultisigScript(
+  mustMatch: firstNthMustMatch,
+});
+const multisigLockScript = await multisigInfo.defaultMultisigScript(
   signer.client,
-  metadata,
 );
 
 // Check the multisig address
