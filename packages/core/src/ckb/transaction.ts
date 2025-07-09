@@ -386,19 +386,30 @@ export class Cell {
     }
 
     // Withdrew Nervos DAO cell
-    const [depositHeader, withdrawRes] = await Promise.all([
-      client.getHeaderByNumber(numFromBytes(this.outputData)),
-      client.getCellWithHeader(this.outPoint),
-    ]);
-    if (!withdrawRes?.header || !depositHeader) {
-      throw new Error(
-        `Unable to get headers of a Nervos DAO withdrew cell ${this.outPoint.txHash}:${this.outPoint.index.toString()}`,
-      );
+    const withdrawTx = await client.getTransaction(this.outPoint.txHash);
+    if (!withdrawTx) {
+      throw new Error(`Unable to retrieve withdraw transaction for txHash ${this.outPoint.txHash}`);
+    }
+
+    const withdrawHeader = await client.getHeaderByHash(withdrawTx.blockHash as Hex);
+    if (!withdrawHeader) {
+      throw new Error(`Unable to retrieve DAO withdrawing block header for block hash ${withdrawTx.blockHash}`);
+    }
+
+    const depositInput = withdrawTx.transaction.inputs[Number(this.outPoint.index)];
+    const depositTx = await client.getTransaction(depositInput.previousOutput.txHash);
+    if (!depositTx) {
+      throw new Error(`Unable to retrieve deposit transaction for txHash ${depositInput.previousOutput.txHash}`);
+    }
+
+    const depositHeader = await client.getHeaderByHash(depositTx.blockHash as Hex);
+    if (!depositHeader) {
+      throw new Error(`Unable to retrieve DAO deposit block header for block hash ${depositTx.blockHash}`);
     }
 
     return {
       depositHeader,
-      withdrawHeader: withdrawRes.header,
+      withdrawHeader,
     };
   }
 
