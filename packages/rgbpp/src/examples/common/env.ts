@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/shell";
 
-import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/privateKey/wallet.js";
+import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/pk/wallet.js";
 import { ScriptInfo } from "../../types/rgbpp/index.js";
 
 import { parseAddressType } from "../../bitcoin/index.js";

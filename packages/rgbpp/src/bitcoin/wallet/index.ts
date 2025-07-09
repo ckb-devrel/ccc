@@ -1,3 +1,4 @@
-export * from "./privateKey/account.js";
-export * from "./privateKey/wallet.js";
+export * from "./browser/index.js";
+export * from "./pk/account.js";
+export * from "./pk/wallet.js";
 export * from "./wallet.js";

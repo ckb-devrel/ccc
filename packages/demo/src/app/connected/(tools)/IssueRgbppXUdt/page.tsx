@@ -8,145 +8,110 @@ import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
 import { Message } from "@/src/components/Message";
 
-import { Psbt } from "bitcoinjs-lib";
-
 import {
   buildNetworkConfig,
   PredefinedNetwork,
   RgbppUdtClient,
   isMainnet,
-  RgbppBtcWallet,
   BtcAssetApiConfig,
   NetworkConfig,
   CkbRgbppUnlockSinger,
   issuanceAmount,
   udtToken,
   UtxoSeal,
+  createBrowserRgbppBtcWallet,
+  getSupportedWallets,
 } from "@ckb-ccc/rgbpp";
-
-abstract class BrowserRgbppWallet extends RgbppBtcWallet {
-  constructor(
-    protected signer: SignerBtc,
-    networkConfig: NetworkConfig,
-    btcAssetApiConfig: BtcAssetApiConfig,
-  ) {
-    super(networkConfig, btcAssetApiConfig);
-  }
-
-  async getAddress(): Promise<string> {
-    return this.signer.getBtcAccount();
-  }
-}
-
-class UnisatRgbppWallet extends BrowserRgbppWallet {
-  constructor(
-    signer: SignerBtc,
-    networkConfig: NetworkConfig,
-    btcAssetApiConfig: BtcAssetApiConfig,
-  ) {
-    super(signer, networkConfig, btcAssetApiConfig);
-  }
-
-  async signAndBroadcast(psbt: Psbt): Promise<string> {
-    return this.signer.pushPsbt(await this.signer.signPsbt(psbt.toHex()));
-  }
-}
-
-class OkxRgbppWallet extends BrowserRgbppWallet {
-  constructor(
-    signer: SignerBtc,
-    networkConfig: NetworkConfig,
-    btcAssetApiConfig: BtcAssetApiConfig,
-  ) {
-    super(signer, networkConfig, btcAssetApiConfig);
-  }
-
-  async signAndBroadcast(psbt: Psbt): Promise<string> {
-    return this.signer.pushPsbt(await this.signer.signPsbt(psbt.toHex()));
-  }
-}
-
-class JoyidRgbppWallet extends BrowserRgbppWallet {
-  constructor(
-    signer: SignerBtc,
-    networkConfig: NetworkConfig,
-    btcAssetApiConfig: BtcAssetApiConfig,
-  ) {
-    super(signer, networkConfig, btcAssetApiConfig);
-  }
-
-  async signAndBroadcast(psbt: Psbt): Promise<string> {
-    return this.signer.pushPsbt(psbt.toHex());
-  }
-}
 
 export default function IssueRGBPPXUdt() {
   const { signer, createSender } = useApp();
-  // const { log, warn } = createSender("Issue RGB++ xUDT");
+  const sender = useMemo(
+    () => createSender("Issue RGB++ xUDT"),
+    [createSender],
+  );
+  const { error } = sender;
   const [rgbppBtcTxId, setRgbppBtcTxId] = useState<string>("");
   const [rgbppCkbTxId, setRgbppCkbTxId] = useState<string>("");
   const [utxoSealTxId, setUtxoSealTxId] = useState<string>("");
   const [utxoSealIndex, setUtxoSealIndex] = useState<string>("");
 
-  const ckbClient = useMemo(
-    () =>
-      isMainnet(
-        process.env.NEXT_PUBLIC_UTXO_BASED_CHAIN_NAME as PredefinedNetwork,
-      )
-        ? new ccc.ClientPublicMainnet()
-        : new ccc.ClientPublicTestnet(),
-    [],
+  const [networkConfig, setNetworkConfig] = useState<NetworkConfig | null>(
+    null,
   );
-  const networkConfig = useMemo(
-    () =>
-      buildNetworkConfig(
-        process.env.NEXT_PUBLIC_UTXO_BASED_CHAIN_NAME as PredefinedNetwork,
-      ),
-    [],
+  const [ckbClient, setCkbClient] = useState<ccc.Client | null>(null);
+  const [rgbppUdtClient, setRgbppUdtClient] = useState<RgbppUdtClient | null>(
+    null,
   );
-  const rgbppUdtClient = useMemo(
-    () => new RgbppUdtClient(networkConfig, ckbClient),
-    [networkConfig, ckbClient],
-  );
+
+  useEffect(() => {
+    if (!signer) {
+      setNetworkConfig(null);
+      setCkbClient(null);
+      setRgbppUdtClient(null);
+      return;
+    }
+
+    let network: PredefinedNetwork;
+    if (signer.client.addressPrefix === "ckb") {
+      network = PredefinedNetwork.BitcoinMainnet;
+    } else if (signer.client.addressPrefix === "ckt") {
+      // * use Testnet3 as default
+      network = PredefinedNetwork.BitcoinTestnet3;
+    } else {
+      error(`Unsupported network prefix: ${signer.client.addressPrefix}`);
+      return;
+    }
+
+    const config = buildNetworkConfig(network);
+    setNetworkConfig(config);
+
+    const client = isMainnet(network)
+      ? new ccc.ClientPublicMainnet()
+      : new ccc.ClientPublicTestnet();
+    setCkbClient(client);
+
+    const udtClient = new RgbppUdtClient(config, client);
+    setRgbppUdtClient(udtClient);
+  }, [signer, error]);
+
   const rgbppBtcWallet = useMemo(() => {
-    if (!signer || !(signer instanceof SignerBtc)) {
+    if (!signer || !(signer instanceof SignerBtc) || !networkConfig) {
       return null;
     }
 
-    const config = {
+    const config: BtcAssetApiConfig = {
       url: process.env.NEXT_PUBLIC_BTC_ASSETS_API_URL!,
       token: process.env.NEXT_PUBLIC_BTC_ASSETS_API_TOKEN!,
       origin: process.env.NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN!,
     };
 
-    // Check signer type and create appropriate wallet
-    if (signer.constructor.name === "Signer" && "provider" in signer) {
-      console.log("Unisat wallet");
-      return new UnisatRgbppWallet(signer, networkConfig, config);
-    } else if (
-      signer.constructor.name === "BitcoinSigner" &&
-      "providers" in signer
-    ) {
-      console.log("OKX wallet");
-      return new OkxRgbppWallet(signer, networkConfig, config);
-    } else if (
-      signer.constructor.name === "BitcoinSigner" &&
-      "name" in signer
-    ) {
-      console.log("JoyID wallet");
-      return new JoyidRgbppWallet(signer, networkConfig, config);
-    }
-
-    // Default fallback
-    return new UnisatRgbppWallet(signer, networkConfig, config);
+    return createBrowserRgbppBtcWallet(signer, networkConfig, config);
   }, [signer, networkConfig]);
+
+  useEffect(() => {
+    if (
+      signer &&
+      signer instanceof SignerBtc &&
+      networkConfig &&
+      !rgbppBtcWallet
+    ) {
+      error(
+        `Unsupported wallet type: ${signer.constructor.name}. Supported wallets: ${getSupportedWallets().join(", ")}`,
+      );
+    }
+  }, [signer, networkConfig, rgbppBtcWallet, error]);
 
   const [ckbRgbppUnlockSinger, setCkbRgbppUnlockSinger] =
     useState<CkbRgbppUnlockSinger>();
 
   useEffect(() => {
+    if (!ckbClient || !rgbppBtcWallet || !rgbppUdtClient) {
+      setCkbRgbppUnlockSinger(undefined);
+      return;
+    }
+
     let mounted = true;
-    rgbppBtcWallet?.getAddress().then((address: string) => {
+    rgbppBtcWallet.getAddress().then((address: string) => {
       if (mounted) {
         setCkbRgbppUnlockSinger(
           new CkbRgbppUnlockSinger(
@@ -169,7 +134,8 @@ export default function IssueRGBPPXUdt() {
       !signer ||
       !(signer instanceof SignerBtc) ||
       !rgbppBtcWallet ||
-      !ckbRgbppUnlockSinger
+      !ckbRgbppUnlockSinger ||
+      !rgbppUdtClient
     ) {
       return;
     }
@@ -269,11 +235,39 @@ export default function IssueRGBPPXUdt() {
     ckbRgbppUnlockSinger,
   ]);
 
+  if (!networkConfig || !ckbClient || !rgbppUdtClient) {
+    return (
+      <div className="flex w-full flex-col items-center justify-center">
+        <div>Initializing network configuration...</div>
+      </div>
+    );
+  }
+
+  if (signer && signer instanceof SignerBtc && !rgbppBtcWallet) {
+    return (
+      <div className="flex w-full flex-col items-stretch">
+        <Message title="Unsupported Wallet" type="error">
+          This wallet is not supported for RGB++ operations.
+          <br />
+          <strong>Supported wallets:</strong> {getSupportedWallets().join(", ")}
+          <br />
+          Please connect with a supported wallet to continue.
+        </Message>
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-full flex-col items-stretch">
       <Message title="Hint" type="info">
         You will need to sign 2 to 4 transactions.
         <br />
+        <strong>
+          Current Network:{" "}
+          {networkConfig.isMainnet
+            ? "BTC Mainnet & CKB Mainnet"
+            : "BTC Testnet3 & CKB Testnet"}
+        </strong>
       </Message>
 
       <TextInput
@@ -304,7 +298,9 @@ export default function IssueRGBPPXUdt() {
       )}
 
       <ButtonsPanel>
-        <Button onClick={signRgbppBtcTx}>Issue RGB++ xUDT</Button>
+        <Button onClick={signRgbppBtcTx} disabled={!rgbppBtcWallet}>
+          Issue RGB++ xUDT
+        </Button>
       </ButtonsPanel>
     </div>
   );
