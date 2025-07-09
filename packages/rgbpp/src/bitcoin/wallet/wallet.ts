@@ -42,7 +42,7 @@ import {
   toBtcNetwork,
   utxoToInputData,
 } from "../utils/index.js";
-import { transactionToHex } from "./privateKey/account.js";
+import { transactionToHex } from "./pk/account.js";
 
 import { NetworkConfig } from "../../types/network.js";
 import { RgbppApiSpvProof } from "../../types/spv.js";
