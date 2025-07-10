@@ -5,6 +5,7 @@ import { Link } from "lucide-react";
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -83,16 +84,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     signer?.getInternalAddress().then((a) => setAddress(a));
   }, [signer]);
 
-  const [messages, setMessages] = useState<
-    ["error" | "info", string, unknown[], ReactNode | undefined][]
-  >([]);
+  const [{ messages }, setMessages] = useState<{
+    messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
+    cachedMessages: number;
+  }>({ messages: [], cachedMessages: 0 });
 
-  const sendMessage = (
-    level: "error" | "info",
-    title: string,
-    msgs: unknown[],
-  ) =>
-    setMessages((messages) => [...messages, [level, title, msgs, undefined]]);
+  const sendMessage = useCallback(
+    (level: "error" | "info", title: string, msgs: unknown[]) =>
+      messages.push([level, title, msgs, undefined]),
+    [messages],
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessages((messages) => {
+        if (messages.messages.length === messages.cachedMessages) {
+          return messages;
+        }
+
+        return {
+          messages: [...messages.messages],
+          cachedMessages: messages.messages.length,
+        };
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [setMessages]);
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
@@ -106,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener("unhandledrejection", handler);
     return () => window.removeEventListener("unhandledrejection", handler);
-  }, [setMessages]);
+  }, [sendMessage]);
 
   return (
     <APP_CONTEXT.Provider
@@ -136,7 +154,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
 
         messages,
-        clearMessage: () => setMessages([]),
+        clearMessage: () => setMessages({ messages: [], cachedMessages: 0 }),
         sendMessage,
         createSender: (title) => ({
           log: (...msgs) => sendMessage("info", title, msgs),

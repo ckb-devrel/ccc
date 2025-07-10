@@ -178,14 +178,8 @@ const DEFAULT_NOSTR_RELAYS = [
 ];
 
 export default function Home() {
-  const {
-    openSigner,
-    openAction,
-    signer,
-    messages,
-    sendMessage,
-    clearMessage,
-  } = useApp();
+  const { openSigner, openAction, signer, sendMessage, clearMessage } =
+    useApp();
   const { setClient, client } = ccc.useCcc();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -196,7 +190,6 @@ export default function Home() {
   );
 
   const [tab, setTab] = useState("Console");
-  const [readMsgCount, setReadMsgCount] = useState(0);
   const [highlight, setHighlight] = useState<number[] | undefined>(undefined);
 
   const [isTestnet, setIsTestnet] = useState(true);
@@ -292,17 +285,6 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
-
-  useEffect(() => {
-    if (tab === "Console") {
-      setReadMsgCount(messages.length);
-      return;
-    }
-
-    if (messages.slice(readMsgCount).some(([level]) => level === "error")) {
-      setTab("Console");
-    }
-  }, [messages, tab, readMsgCount]);
 
   return (
     <div className="flex min-h-dvh w-full flex-col lg:h-dvh lg:flex-row">
