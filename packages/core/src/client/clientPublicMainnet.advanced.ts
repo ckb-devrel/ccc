@@ -387,4 +387,72 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
         },
       ],
     },
+    [KnownScript.RgbppLock]: {
+      codeHash:
+        "0xbc6c568a1a0d0a09f6844dc9d74ddb4343c32143ff25f727c59edf4fb72d6936",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x68ad3d9e0bb9ea841a5d1fcd600137bd3f45401e759e353121f26cd0d981452f",
+          },
+        },
+        // Rgbpp lock config cell dep
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
+    [KnownScript.BtcTimeLock]: {
+      codeHash:
+        "0x70d64497a075bd651e98ac030455ea200637ee325a12ad08aff03f1a117e5a62",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x44b8253ae18e913a2845b0d548eaf6b3ba1099ed26835888932a754194028a8a",
+          },
+        },
+        // btc time lock config cell dep
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
   });

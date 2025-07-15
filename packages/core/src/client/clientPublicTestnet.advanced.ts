@@ -399,4 +399,167 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
         },
       ],
     },
+    [KnownScript.RgbppLock]: {
+      codeHash:
+        "0x61ca7a4796a4eb19ca4f0d065cb9b10ddcf002f10f7cbb810c706cb6bb5c3248",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xf1de59e973b85791ec32debbba08dff80c63197e895eb95d67fc1e9f6b413e00",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xa3bc8441df149def76cfe15fec7b1e51d949548bc27fb7a75e9d4b3ef1c12c7f",
+          },
+        },
+        // Rgbpp lock config cell dep for Bitcoin Testnet3
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xf1de59e973b85791ec32debbba08dff80c63197e895eb95d67fc1e9f6b413e00",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
+    [KnownScript.BtcTimeLock]: {
+      codeHash:
+        "0x00cdf8fab0f8ac638758ebf5ea5e4052b1d71e8a77b9f43139718621f6849326",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xde0f87878a97500f549418e5d46d2f7704c565a262aa17036c9c1c13ad638529",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xc9828585e6dd2afacb9e6e8ca7deb0975121aabee5c7983178a45509ffaec984",
+          },
+        },
+        // btc time lock config cell dep for Bitcoin Testnet3
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xde0f87878a97500f549418e5d46d2f7704c565a262aa17036c9c1c13ad638529",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
   });
+
+/**
+ * Bitcoin Signet specific script overrides for testnet
+ *
+ * Contains script configurations that differ when using Bitcoin Signet
+ * instead of Bitcoin Testnet3. Only RgbppLock and BtcTimeLock are affected.
+ *
+ * @example
+ * ```typescript
+ * import { ClientPublicTestnet } from "@ckb-ccc/core";
+ * import { TESTNET_SCRIPTS, TESTNET_SCRIPTS_BTC_SIGNET_OVERRIDES } from "@ckb-ccc/core/advanced";
+ *
+ * // Use Bitcoin Testnet3 scripts (default)
+ * const testnet3Client = new ClientPublicTestnet();
+ *
+ * // Use Bitcoin Signet scripts by merging overrides
+ * const signetClient = new ClientPublicTestnet({
+ *   scripts: {
+ *     ...TESTNET_SCRIPTS,
+ *     ...TESTNET_SCRIPTS_BTC_SIGNET_OVERRIDES
+ *   }
+ * });
+ */
+export const TESTNET_SCRIPTS_BTC_SIGNET_OVERRIDES: Partial<
+  Record<KnownScript, ScriptInfoLike>
+> = Object.freeze({
+  [KnownScript.RgbppLock]: {
+    codeHash:
+      "0xd07598deec7ce7b5665310386b4abd06a6d48843e953c5cc2112ad0d5a220364",
+    hashType: "type",
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              "0x61efdeddbaa0bb4132c0eb174b3e8002ff5ec430f61ba46f30768d683c516eec",
+            index: 0,
+          },
+          depType: "code",
+        },
+        type: {
+          codeHash:
+            "0x00000000000000000000000000000000000000000000000000545950455f4944",
+          hashType: "type",
+          args: "0xb69fe766ce3b7014a2a78ad1fe688d82f1679325805371d2856c3b8d18ebfa5a",
+        },
+      },
+      // Rgbpp lock config cell dep for Bitcoin Signet
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              "0x61efdeddbaa0bb4132c0eb174b3e8002ff5ec430f61ba46f30768d683c516eec",
+            index: 1,
+          },
+          depType: "code",
+        },
+      },
+    ],
+  },
+  [KnownScript.BtcTimeLock]: {
+    codeHash:
+      "0x80a09eca26d77cea1f5a69471c59481be7404febf40ee90f886c36a948385b55",
+    hashType: "type",
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              "0x5364b3535965e9eac9a35dd7af8e9e45a61d30a16e115923c032f80b28783e21",
+            index: 0,
+          },
+          depType: "code",
+        },
+        type: {
+          codeHash:
+            "0x00000000000000000000000000000000000000000000000000545950455f4944",
+          hashType: "type",
+          args: "0x32fc8c70a6451a1439fd91e214bba093f9cdd9276bc4ab223430dab5940aff92",
+        },
+      },
+      // btc time lock config cell dep for Bitcoin Signet
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              "0x5364b3535965e9eac9a35dd7af8e9e45a61d30a16e115923c032f80b28783e21",
+            index: 1,
+          },
+          depType: "code",
+        },
+      },
+    ],
+  },
+});
