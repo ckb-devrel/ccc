@@ -25,6 +25,8 @@ import { BtcAssetsApiBase } from "../service/base.js";
 import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
 import { RgbppBtcTxParams } from "../types/rgbpp.js";
 import {
+  BtcApiBalance,
+  BtcApiBalanceParams,
   BtcApiRecommendedFeeRates,
   BtcApiSentTransaction,
   BtcApiTransaction,
@@ -605,6 +607,21 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   getUtxos(address: string, params?: BtcApiUtxoParams) {
     return this.request<BtcApiUtxo[]>(
       `/bitcoin/v1/address/${address}/unspent`,
+      {
+        params,
+      },
+    );
+  }
+
+  /**
+   * Get the balance of a Bitcoin address
+   * @param address The Bitcoin address
+   * @param params Optional parameters for balance query
+   * @returns Balance information including total, available, pending, dust, and RGB++ satoshi amounts
+   */
+  getBalance(address: string, params?: BtcApiBalanceParams) {
+    return this.request<BtcApiBalance>(
+      `/bitcoin/v1/address/${address}/balance`,
       {
         params,
       },

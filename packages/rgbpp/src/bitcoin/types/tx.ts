@@ -34,6 +34,23 @@ export interface BtcApiUtxoParams {
   no_cache?: boolean;
 }
 
+export interface BtcApiBalanceParams {
+  min_satoshi?: number;
+  no_cache?: boolean;
+}
+
+export interface BtcApiBalance {
+  address: string;
+  total_satoshi: number;
+  pending_satoshi: number;
+  /** @deprecated Use available_satoshi instead */
+  satoshi: number;
+  available_satoshi: number;
+  dust_satoshi: number;
+  rgbpp_satoshi: number;
+  utxo_count: number;
+}
+
 export interface BtcApiRecommendedFeeRates {
   fastestFee: number;
   halfHourFee: number;
