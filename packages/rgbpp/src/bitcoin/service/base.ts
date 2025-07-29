@@ -5,7 +5,6 @@ import {
   BaseApiRequestOptions,
   BaseApis,
   BtcAssetsApiContext,
-  BtcAssetsApiToken,
   Json,
 } from "../types/index.js";
 import { isDomain } from "../utils/index.js";
@@ -18,6 +17,7 @@ export class BtcAssetsApiBase implements BaseApis {
   public domain?: string;
   public origin?: string;
   private token?: string;
+  private isMainnet: boolean;
 
   constructor(config: BtcAssetApiConfig) {
     this.url = config.url;
@@ -25,33 +25,32 @@ export class BtcAssetsApiBase implements BaseApis {
     this.domain = config.domain;
     this.origin = config.origin;
     this.token = config.token;
+    this.isMainnet = config.isMainnet ?? true;
 
     // Validation
     if (this.domain && !isDomain(this.domain, true)) {
       throw BtcAssetsApiError.withComment(
         ErrorCodes.ASSETS_API_INVALID_PARAM,
-        "domain",
+        `Invalid domain format: "${this.domain}". Please provide a valid domain (e.g., "example.com")`,
       );
     }
   }
 
   async request<T>(route: string, options?: BaseApiRequestOptions): Promise<T> {
     const {
-      requireToken = true,
+      requireToken = this.isMainnet,
       allow404 = false,
       method = "GET",
       headers,
       params,
       ...otherOptions
     } = options ?? {};
-    if (requireToken && !this.token && !(this.app && this.domain)) {
+
+    if (requireToken && (!this.token || !this.origin)) {
       throw BtcAssetsApiError.withComment(
         ErrorCodes.ASSETS_API_INVALID_PARAM,
-        "app, domain",
+        "Missing required parameters: both token and origin are required",
       );
-    }
-    if (requireToken && !this.token) {
-      await this.init();
     }
 
     const pickedParams = pickBy(params, (val) => val !== undefined);
@@ -59,12 +58,18 @@ export class BtcAssetsApiBase implements BaseApis {
       ? "?" + new URLSearchParams(pickedParams).toString()
       : "";
     const url = `${this.url}${route}${packedParams}`;
+
+    const authHeaders: Record<string, string> = {};
+    if (requireToken) {
+      authHeaders.authorization = `Bearer ${this.token}`;
+      authHeaders.origin = this.origin!;
+    }
+
     const res = await fetch(url, {
       method,
       headers: {
-        authorization: this.token ? `Bearer ${this.token}` : undefined,
-        origin: this.origin,
-        ...headers,
+        ...authHeaders,
+        ...(headers || {}),
       },
       ...otherOptions,
     } as RequestInit);
@@ -156,33 +161,6 @@ export class BtcAssetsApiBase implements BaseApis {
         ...options?.headers,
       },
     } as BaseApiRequestOptions);
-  }
-
-  async generateToken() {
-    if (!this.app || !this.domain) {
-      throw BtcAssetsApiError.withComment(
-        ErrorCodes.ASSETS_API_INVALID_PARAM,
-        "app, domain",
-      );
-    }
-
-    return this.post<BtcAssetsApiToken>("/token/generate", {
-      requireToken: false,
-      body: JSON.stringify({
-        app: this.app!,
-        domain: this.domain!,
-      }),
-    });
-  }
-
-  async init(force?: boolean) {
-    // If the token exists and not a force action, do nothing
-    if (this.token && !force) {
-      return;
-    }
-
-    const token = await this.generateToken();
-    this.token = token.token;
   }
 }
 

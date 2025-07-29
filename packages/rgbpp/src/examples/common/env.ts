@@ -58,6 +58,7 @@ export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
       url: btcAssetsApiUrl,
       token: btcAssetsApiToken,
       origin: btcAssetsApiOrigin,
+      isMainnet: networkConfig.isMainnet,
     },
   );
 
