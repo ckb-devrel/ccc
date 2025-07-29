@@ -122,8 +122,9 @@ export default function IssueRGBPPXUdt() {
 
     const config: BtcAssetApiConfig = {
       url: process.env.NEXT_PUBLIC_BTC_ASSETS_API_URL!,
-      token: process.env.NEXT_PUBLIC_BTC_ASSETS_API_TOKEN!,
-      origin: process.env.NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN!,
+      token: process.env.NEXT_PUBLIC_BTC_ASSETS_API_TOKEN,
+      origin: process.env.NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN,
+      isMainnet: networkConfig.isMainnet,
     };
 
     return createBrowserRgbppBtcWallet(signer, networkConfig, config);
