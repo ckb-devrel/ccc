@@ -15,9 +15,6 @@ export default defineConfig({
         "**/dist.commonjs/**",
         ...coverageConfigDefaults.exclude,
       ],
-    },
-    env: {
-      PRIVATE_KEY: process.env.PRIVATE_KEY,
-    },
+    }
   },
 });
