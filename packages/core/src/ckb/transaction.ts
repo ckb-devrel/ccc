@@ -231,7 +231,7 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
   }
 
   margin(dataLen: NumLike = 0): Num {
-    return this.capacity - fixedPointFrom(this.occupiedSize) + numFrom(dataLen);
+    return this.capacity - fixedPointFrom(this.occupiedSize) - numFrom(dataLen);
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -1681,51 +1681,41 @@ export class Transaction extends mol.Entity.Base<
     marginCapacity: Num;
     collectedOutputIndices: Array<number>;
   } {
-    let marginCapacity: Num = numFrom(0);
-    const collectedOutputIndices: Array<number> = [];
-
     const marginOutputs = this.outputs
-      .map((output, i) => {
-        return {
-          script: output.type,
-          margin: this.getOutputCapacityMargin(i),
-          index: i,
-        };
-      })
+      .map((output, i) => ({
+        script: output.type,
+        margin: this.getOutputCapacityMargin(i),
+        index: i,
+      }))
       .filter((output) => output.margin > 0);
 
+    let predicate: (output: { script?: Script; index: number }) => boolean;
+
     if (filter.length === 0) {
-      marginCapacity = marginOutputs.reduce((acc, output) => {
+      predicate = () => true;
+    } else if (typeof filter[0] === "number") {
+      const indices = filter as Array<number>;
+      predicate = (output) => indices.includes(output.index);
+    } else {
+      const scripts = filter as Array<ScriptLike>;
+      predicate = (output) =>
+        scripts.some(
+          (script) =>
+            hexFrom(script.codeHash) === output.script?.codeHash &&
+            hashTypeFrom(script.hashType) === output.script?.hashType &&
+            (script.args === undefined ||
+              output.script?.args.startsWith(hexFrom(script.args))),
+        );
+    }
+
+    const collectedOutputIndices: Array<number> = [];
+    const marginCapacity = marginOutputs.reduce((acc, output) => {
+      if (predicate(output)) {
         collectedOutputIndices.push(output.index);
         return acc + output.margin;
-      }, numFrom(0));
-    } else if (typeof filter[0] === "number") {
-      // filter is array of output indices
-      marginCapacity = marginOutputs.reduce((acc, output) => {
-        if ((filter as Array<number>).includes(output.index)) {
-          collectedOutputIndices.push(output.index);
-          return acc + output.margin;
-        }
-        return acc;
-      }, numFrom(0));
-    } else {
-      // filter is array of ScriptLike
-      marginCapacity = marginOutputs.reduce((acc, output) => {
-        if (
-          (filter as Array<ScriptLike>).some(
-            (script) =>
-              hexFrom(script.codeHash) === output.script?.codeHash &&
-              hashTypeFrom(script.hashType) === output.script?.hashType &&
-              (script.args === undefined ||
-                output.script?.args.startsWith(hexFrom(script.args))),
-          )
-        ) {
-          collectedOutputIndices.push(output.index);
-          return acc + output.margin;
-        }
-        return acc;
-      }, numFrom(0));
-    }
+      }
+      return acc;
+    }, numFrom(0));
 
     return {
       marginCapacity,
@@ -2065,7 +2055,9 @@ export class Transaction extends mol.Entity.Base<
               break;
             } else {
               leastExtraCapacity -= margin;
-              output.capacity = fixedPointFrom(output.occupiedSize);
+              output.capacity = fixedPointFrom(
+                output.occupiedSize + bytesFrom(tx.outputsData[index]).length,
+              );
               tx.outputs[index] = output;
             }
           }
