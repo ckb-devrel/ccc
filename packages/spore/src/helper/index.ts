@@ -1,6 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 import { SporeScriptInfo, SporeScriptInfoLike } from "../predefined/index.js";
 
+export const ONE_CKB = ccc.numFrom(10 ** 8);
+
 export async function findSingletonCellByArgs(
   client: ccc.Client,
   args: ccc.HexLike,

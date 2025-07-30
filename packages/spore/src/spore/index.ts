@@ -10,7 +10,7 @@ import {
   packRawSporeData,
   unpackToRawSporeData,
 } from "../codec/index.js";
-import { findSingletonCellByArgs } from "../helper/index.js";
+import { ONE_CKB, findSingletonCellByArgs } from "../helper/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -80,6 +80,7 @@ export async function assertSpore(
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of Spore cell, if not provided, the default script info will be used
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.marginCapacity the extra capacity added into spore cell to enable the zero-transfer fee feature, default sets to 1 CKB
  * @returns
  *  - **tx**: a new transaction that contains created Spore cells
  *  - **id**: the sporeId of created Spore cell
@@ -92,11 +93,13 @@ export async function createSpore(params: {
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
   scriptInfoHash?: ccc.HexLike;
+  marginCapacity?: ccc.NumLike;
 }): Promise<{
   tx: ccc.Transaction;
   id: ccc.Hex;
 }> {
-  const { signer, data, to, clusterMode, scriptInfoHash } = params;
+  const { signer, data, to, clusterMode, scriptInfoHash, marginCapacity } =
+    params;
   const scriptInfo = params.scriptInfo ?? getSporeScriptInfo(signer.client);
 
   // prepare transaction
@@ -121,6 +124,7 @@ export async function createSpore(params: {
       },
     },
     packedData,
+    marginCapacity ? ccc.numFrom(marginCapacity) : ONE_CKB,
   );
 
   // create spore action
@@ -179,6 +183,17 @@ export async function transferSpore(params: {
     id,
     scripts,
   );
+  const signerAddress = await signer.getRecommendedAddressObj();
+  if (!sporeCell.cellOutput.lock.eq(signerAddress.script)) {
+    const sporeOwner = ccc.Address.fromScript(
+      sporeCell.cellOutput.lock,
+      signer.client,
+    );
+    throw new Error(
+      `Spore cell's owner is not the same as signer's address, spore owner: ${sporeOwner.toString()}, signer: ${signerAddress.toString()}`,
+    );
+  }
+
   await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
   tx.addInput(sporeCell);
   tx.addOutput(
@@ -188,6 +203,12 @@ export async function transferSpore(params: {
     },
     sporeCell.outputData,
   );
+
+  // adjust capacity to cover previous margin
+  const outputIndex = tx.outputs.length - 1;
+  if (tx.outputs[outputIndex].capacity < sporeCell.cellOutput.capacity) {
+    tx.outputs[outputIndex].capacity = sporeCell.cellOutput.capacity;
+  }
 
   const actions = sporeScriptInfo.cobuild
     ? [
