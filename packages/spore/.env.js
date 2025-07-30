@@ -1,0 +1,2 @@
+process.env.PRIVATE_KEY =
+  "0xd6013cd867d286ef84cc300ac6546013837df2b06c9f53c83b4c33c2417f6a07";

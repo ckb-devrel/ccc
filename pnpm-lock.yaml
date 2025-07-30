@@ -25,6 +25,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 3.2.2
         version: 3.2.2(vitest@3.2.4(@types/debug@4.1.12)(@types/node@24.3.0)(jiti@1.21.7)(terser@5.43.1)(tsx@4.20.5)(yaml@2.8.1))
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.6.1
       jest:
         specifier: 30.0.0-alpha.6
         version: 30.0.0-alpha.6(@types/node@24.3.0)(ts-node@10.9.2(@types/node@24.3.0)(typescript@5.9.2))
