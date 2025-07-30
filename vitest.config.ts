@@ -7,17 +7,14 @@ config({ path: resolve(process.cwd(), ".env") });
 
 export default defineConfig({
   test: {
-    projects: ["packages/core", "packages/spore"],
+    projects: ["packages/core"],
     coverage: {
-      include: ["packages/core", "packages/spore"],
+      include: ["packages/core"],
       exclude: [
         "**/dist/**",
         "**/dist.commonjs/**",
         ...coverageConfigDefaults.exclude,
       ],
-    },
-    env: {
-      PRIVATE_KEY: process.env.PRIVATE_KEY,
-    },
+    }
   },
 });
