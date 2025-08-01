@@ -2,7 +2,7 @@
 
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { TextInput } from "@/src/components/Input";
+import { Textarea } from "@/src/components/Textarea";
 import { useApp } from "@/src/context";
 import { ccc } from "@ckb-ccc/connector-react";
 import { useState } from "react";
@@ -16,7 +16,7 @@ export default function Sign() {
 
   return (
     <div className="flex w-full flex-col items-stretch">
-      <TextInput
+      <Textarea
         label="Message"
         placeholder="Message to sign and verify"
         state={[messageToSign, setMessageToSign]}
