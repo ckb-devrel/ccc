@@ -21,7 +21,7 @@ import {
 } from "../num/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
-import { Script, ScriptLike, ScriptOpt } from "./script.js";
+import { Script, ScriptLike, ScriptOpt, hashTypeFrom } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
 import {
   ErrorTransactionInsufficientCapacity,
@@ -228,6 +228,10 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
     );
+  }
+
+  margin(dataLen: NumLike = 0): Num {
+    return this.capacity - fixedPointFrom(this.occupiedSize) - numFrom(dataLen);
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -1494,15 +1498,16 @@ export class Transaction extends mol.Entity.Base<
     outputLike: Omit<CellOutputLike, "capacity"> &
       Partial<Pick<CellOutputLike, "capacity">>,
     outputData: HexLike = "0x",
+    marginCapacity: Num = numFrom(0),
   ): number {
     const output = CellOutput.from({
       ...outputLike,
       capacity: outputLike.capacity ?? 0,
     });
     if (output.capacity === Zero) {
-      output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData).length,
-      );
+      output.capacity =
+        fixedPointFrom(output.occupiedSize + bytesFrom(outputData).length) +
+        marginCapacity;
     }
     const len = this.outputs.push(output);
     this.setOutputDataAt(len - 1, outputData);
@@ -1650,6 +1655,72 @@ export class Transaction extends mol.Entity.Base<
 
       return acc + udtBalanceFrom(this.outputsData[i]);
     }, numFrom(0));
+  }
+
+  getOutputCapacityMargin(index: number): Num {
+    const output = this.outputs[index];
+    if (output === undefined) {
+      return Zero;
+    }
+    return output.margin(bytesFrom(this.outputsData[index]).length);
+  }
+
+  /**
+   * Get the margin information from outputs
+   *
+   * @param filter - The filter to apply to the outputs.
+   *               - `Array<ScriptLike>`: Filter outputs by type script equality.
+   *               - `Array<number>`: Filter outputs by index.
+   * @returns The margin capacity of the outputs and the collected output cells.
+   */
+  getOutputsCapacityMargin(
+    filter:
+      | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
+      | Array<number> = [],
+  ): {
+    marginCapacity: Num;
+    collectedOutputIndices: Array<number>;
+  } {
+    const marginOutputs = this.outputs
+      .map((output, i) => ({
+        script: output.type,
+        margin: this.getOutputCapacityMargin(i),
+        index: i,
+      }))
+      .filter((output) => output.margin > 0);
+
+    let predicate: (output: { script?: Script; index: number }) => boolean;
+
+    if (filter.length === 0) {
+      predicate = () => true;
+    } else if (typeof filter[0] === "number") {
+      const indices = filter as Array<number>;
+      predicate = (output) => indices.includes(output.index);
+    } else {
+      const scripts = filter as Array<ScriptLike>;
+      predicate = (output) =>
+        scripts.some(
+          (script) =>
+            hexFrom(script.codeHash) === output.script?.codeHash &&
+            hashTypeFrom(script.hashType) === output.script?.hashType &&
+            (script.args === undefined ||
+              output.script?.args.startsWith(hexFrom(script.args))),
+        );
+    }
+
+    const collectedOutputIndices: Array<number> = [];
+    const marginCapacity = marginOutputs.reduce((acc, output) => {
+      if (predicate(output)) {
+        collectedOutputIndices.push(output.index);
+        return acc + output.margin;
+      }
+      return acc;
+    }, numFrom(0));
+
+    return {
+      marginCapacity,
+      collectedOutputIndices,
+    };
   }
 
   async completeInputs<T>(
@@ -1887,6 +1958,7 @@ export class Transaction extends mol.Entity.Base<
    * @param options.feeRateBlockRange - Block range for fee rate calculation when expectedFeeRate is not provided.
    * @param options.maxFeeRate - Maximum allowed fee rate.
    * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @param options.payFeeFromMargin - The outputs to pay fee from margin.
    * @returns A promise that resolves to a tuple containing:
    *          - The number of inputs added during the process
    *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
@@ -1918,6 +1990,9 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
+      payFeeFromMargin?:
+        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
+        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const feeRate =
@@ -1933,6 +2008,10 @@ export class Transaction extends mol.Entity.Base<
     while (true) {
       const tx = this.clone();
       const collected = await (async () => {
+        if (options?.payFeeFromMargin) {
+          return 0;
+        }
+
         if (!(options?.shouldAddInputs ?? true)) {
           const fee =
             (await tx.getFee(from.client)) - leastFee - leastExtraCapacity;
@@ -1961,6 +2040,38 @@ export class Transaction extends mol.Entity.Base<
           throw err;
         }
       })();
+
+      // Try to extract fee from outputs' margin in the collected order
+      if (options?.payFeeFromMargin && leastExtraCapacity > 0) {
+        const margins = tx.getOutputsCapacityMargin(options.payFeeFromMargin);
+        if (margins.marginCapacity >= leastExtraCapacity) {
+          for (const index of margins.collectedOutputIndices) {
+            const output = tx.outputs[index];
+            const margin = tx.getOutputCapacityMargin(index);
+            if (margin >= leastExtraCapacity) {
+              output.capacity -= leastExtraCapacity;
+              tx.outputs[index] = output;
+              leastExtraCapacity = Zero;
+              break;
+            } else {
+              leastExtraCapacity -= margin;
+              output.capacity = fixedPointFrom(
+                output.occupiedSize + bytesFrom(tx.outputsData[index]).length,
+              );
+              tx.outputs[index] = output;
+            }
+          }
+          if (leastExtraCapacity !== Zero) {
+            throw new Error(
+              "Something wrong with collected outputs with margin",
+            );
+          }
+        } else {
+          throw new Error(
+            `Insufficient margin capacity to pay fee, need ${leastExtraCapacity}, actual ${margins.marginCapacity}`,
+          );
+        }
+      }
 
       await from.prepareTransaction(tx);
       if (leastFee === Zero) {
@@ -2013,6 +2124,7 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
+      payFeeFromMargin?: Array<Omit<ScriptLike, "args">> | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const script = Script.from(change);
@@ -2020,14 +2132,22 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFee(
       from,
       (tx, capacity) => {
-        const changeCell = CellOutput.from({ capacity: 0, lock: script });
-        const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
-        if (capacity < occupiedCapacity) {
-          return occupiedCapacity;
+        if (options?.payFeeFromMargin === undefined) {
+          const changeCell = CellOutput.from({ capacity: 0, lock: script });
+          const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
+          if (capacity < occupiedCapacity) {
+            return occupiedCapacity;
+          }
+          changeCell.capacity = capacity;
+          tx.addOutput(changeCell);
+          return 0;
+        } else {
+          if (capacity < Zero) {
+            return -capacity;
+          } else {
+            return 0;
+          }
         }
-        changeCell.capacity = capacity;
-        tx.addOutput(changeCell);
-        return 0;
       },
       feeRate,
       filter,
@@ -2043,6 +2163,9 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
+      payFeeFromMargin?:
+        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
+        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const { script } = await from.getRecommendedAddressObj();
@@ -2059,6 +2182,9 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
+      payFeeFromMargin?:
+        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
+        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const change = Number(numFrom(index));
