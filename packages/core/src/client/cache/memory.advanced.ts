@@ -182,7 +182,8 @@ export class MapLru<K, V> extends Map<K, NonNullable<V>> {
     }
 
     // Move to most-recently-used position
-    this.set(key, value);
+super.delete(key);
+super.set(key, value);
 
     return value;
   }
@@ -199,7 +200,7 @@ export class MapLru<K, V> extends Map<K, NonNullable<V>> {
    * @returns This MapLru instance.
    */
   override set(key: K, value: NonNullable<V>): this {
-    // If already present, delete so that re-insertion goes to the end
+// Delete and re-insert to move key to the end (most-recently-used)
     super.delete(key);
     super.set(key, value);
 
