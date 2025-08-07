@@ -179,7 +179,7 @@ export class MapLru<K, V> extends Map<K, V> {
       return undefined;
     }
 
-    const value = super.get(key)!;
+    const value = super.get(key) as V;
 
     // Move to most-recently-used position
     super.delete(key);
