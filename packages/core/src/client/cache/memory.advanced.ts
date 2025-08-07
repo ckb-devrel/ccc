@@ -142,49 +142,73 @@ export function filterCell(
   return true;
 }
 
-export class MapLru<K, V> extends Map<K, V> {
-  private readonly lru: K[] = [];
-
+/**
+ * A Least Recently Used (LRU) cache implemented using a Map.
+ *
+ * This class extends the built-in Map to provide an LRU cache with a fixed capacity.
+ * When the cache is full, the least recently used entry is automatically evicted.
+ *
+ * @template K The type of the keys in the cache.
+ * @template V The type of the values in the cache. Values are guaranteed to be non-nullable.
+ */
+export class MapLru<K, V> extends Map<K, NonNullable<V>> {
+  /**
+   * Constructs a new MapLru instance.
+   *
+   * @param capacity The maximum number of entries the cache can hold. Must be a positive integer.
+   * @throws {Error} If the capacity is not a positive integer.
+   */
   constructor(private readonly capacity: number) {
     super();
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      throw new Error("Capacity must be a positive integer");
+    }
   }
 
-  get(key: K) {
-    const val = super.get(key);
-    if (val === undefined) {
-      return;
+  /**
+   * Retrieves a value from the cache.
+   *
+   * If the key is present in the cache, the value is moved to the most-recently-used position.
+   *
+   * @param key The key of the value to retrieve.
+   * @returns The value associated with the key, or undefined if the key is not present.
+   */
+  override get(key: K): NonNullable<V> | undefined {
+    const value = super.get(key);
+
+    // value is NonNullable if defined
+    if (value === undefined) {
+      return undefined;
     }
 
-    const index = this.lru.indexOf(key);
-    if (index !== -1) {
-      this.lru.splice(index, 1);
-    }
-    this.lru.push(key);
-    if (this.lru.length > this.capacity) {
-      this.delete(this.lru[0]);
-      this.lru.shift();
-    }
+    // Move to most-recently-used position
+    this.set(key, value);
 
-    return val;
+    return value;
   }
 
-  set(key: K, value: V) {
-    this.get(key);
-
+  /**
+   * Inserts a new value into the cache, or updates an existing value.
+   *
+   * If the key is already present in the cache, it is first deleted so that the re-insertion
+   * moves it to the most-recently-used position.
+   * If the cache is over capacity after the insertion, the least recently used entry is evicted.
+   *
+   * @param key The key of the value to insert or update.
+   * @param value The value to associate with the key.  Must be non-nullable.
+   * @returns This MapLru instance.
+   */
+  override set(key: K, value: NonNullable<V>): this {
+    // If already present, delete so that re-insertion goes to the end
+    super.delete(key);
     super.set(key, value);
+
+    // Evict oldest if over capacity
+    if (super.size > this.capacity) {
+      const oldestKey = super.keys().next().value!;
+      super.delete(oldestKey);
+    }
+
     return this;
-  }
-
-  delete(key: K): boolean {
-    if (!super.delete(key)) {
-      return false;
-    }
-
-    const index = this.lru.indexOf(key);
-    if (index !== -1) {
-      this.lru.splice(index, 1);
-    }
-
-    return true;
   }
 }
