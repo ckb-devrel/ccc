@@ -14,7 +14,6 @@ import { reduceAsync, sleep } from "../utils/index.js";
 import { ClientCache } from "./cache/index.js";
 import { ClientCacheMemory } from "./cache/memory.js";
 import {
-  CONFIRMED_BLOCK_TIME,
   ClientCollectableSearchKeyLike,
   DEFAULT_MAX_FEE_RATE,
   DEFAULT_MIN_FEE_RATE,
@@ -37,10 +36,6 @@ import {
   ScriptInfo,
 } from "./clientTypes.js";
 import { KnownScript } from "./knownScript.js";
-
-function hasHeaderConfirmed(header: ClientBlockHeader): boolean {
-  return numFrom(Date.now()) - header.timestamp >= CONFIRMED_BLOCK_TIME;
-}
 
 /**
  * @public
@@ -112,7 +107,7 @@ export abstract class Client {
       verbosity,
       withCycles,
     );
-    if (res && hasHeaderConfirmed(res.header)) {
+    if (res && this.cache.hasHeaderConfirmed(res.header)) {
       await this.cache.recordBlocks(res);
     }
     return res;
@@ -132,7 +127,7 @@ export abstract class Client {
       verbosity,
       withCycles,
     );
-    if (res && hasHeaderConfirmed(res.header)) {
+    if (res && this.cache.hasHeaderConfirmed(res.header)) {
       await this.cache.recordBlocks(res);
     }
     return res;
@@ -147,7 +142,7 @@ export abstract class Client {
     }
 
     const res = await this.getHeaderByNumberNoCache(blockNumber, verbosity);
-    if (res && hasHeaderConfirmed(res)) {
+    if (res && this.cache.hasHeaderConfirmed(res)) {
       await this.cache.recordHeaders(res);
     }
     return res;
@@ -162,7 +157,7 @@ export abstract class Client {
     }
 
     const res = await this.getHeaderByHashNoCache(blockHash, verbosity);
-    if (res && hasHeaderConfirmed(res)) {
+    if (res && this.cache.hasHeaderConfirmed(res)) {
       await this.cache.recordHeaders(res);
     }
     return res;
@@ -636,7 +631,7 @@ export abstract class Client {
     const tx = await this.cache.getTransactionResponse(txHash);
     if (tx?.blockHash) {
       const header = await this.getHeaderByHash(tx.blockHash);
-      if (header && hasHeaderConfirmed(header)) {
+      if (header && this.cache.hasHeaderConfirmed(header)) {
         return {
           transaction: tx,
           header,

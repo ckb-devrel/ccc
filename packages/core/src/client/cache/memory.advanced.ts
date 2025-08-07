@@ -8,6 +8,8 @@ import {
 } from "../clientTypes.advanced.js";
 import { ClientIndexerSearchKey } from "../clientTypes.js";
 
+export const DEFAULT_CONFIRMED_BLOCK_TIME = numFrom(1000 * 10 * 50); // 50 blocks * 10s
+
 // [isLive, Cell | OutPoint]
 export type CellRecord =
   | [

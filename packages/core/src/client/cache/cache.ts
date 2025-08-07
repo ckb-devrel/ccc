@@ -6,7 +6,7 @@ import {
   TransactionLike,
 } from "../../ckb/index.js";
 import { HexLike } from "../../hex/index.js";
-import { NumLike } from "../../num/index.js";
+import { numFrom, NumLike } from "../../num/index.js";
 import { ClientCollectableSearchKeyLike } from "../clientTypes.advanced.js";
 import {
   ClientBlock,
@@ -16,6 +16,7 @@ import {
   ClientTransactionResponse,
   ClientTransactionResponseLike,
 } from "../clientTypes.js";
+import { DEFAULT_CONFIRMED_BLOCK_TIME } from "./memory.advanced.js";
 
 /**
  * @public
@@ -184,5 +185,17 @@ export abstract class ClientCache {
    */
   async getBlockByNumber(_number: NumLike): Promise<ClientBlock | undefined> {
     return;
+  }
+
+  /**
+   * Checks if a block header is considered confirmed.
+   * The default implementation compares the header's timestamp against the current time
+   * and a configured confirmation time. Override this method for custom confirmation logic.
+   * @param header
+   */
+  hasHeaderConfirmed(header: ClientBlockHeader): boolean {
+    return (
+      numFrom(Date.now()) - header.timestamp >= DEFAULT_CONFIRMED_BLOCK_TIME
+    );
   }
 }
