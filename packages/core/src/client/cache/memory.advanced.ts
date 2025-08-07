@@ -149,9 +149,9 @@ export function filterCell(
  * When the cache is full, the least recently used entry is automatically evicted.
  *
  * @template K The type of the keys in the cache.
- * @template V The type of the values in the cache. Values are guaranteed to be non-nullable.
+ * @template V The type of the values in the cache.
  */
-export class MapLru<K, V> extends Map<K, NonNullable<V>> {
+export class MapLru<K, V> extends Map<K, V> {
   /**
    * Constructs a new MapLru instance.
    *
@@ -173,17 +173,17 @@ export class MapLru<K, V> extends Map<K, NonNullable<V>> {
    * @param key The key of the value to retrieve.
    * @returns The value associated with the key, or undefined if the key is not present.
    */
-  override get(key: K): NonNullable<V> | undefined {
-    const value = super.get(key);
-
-    // value is NonNullable if defined
-    if (value === undefined) {
+  override get(key: K): V | undefined {
+    // Check if the key exists. If not, return undefined.
+    if (!super.has(key)) {
       return undefined;
     }
 
+    const value = super.get(key)!;
+
     // Move to most-recently-used position
-super.delete(key);
-super.set(key, value);
+    super.delete(key);
+    super.set(key, value);
 
     return value;
   }
@@ -196,11 +196,11 @@ super.set(key, value);
    * If the cache is over capacity after the insertion, the least recently used entry is evicted.
    *
    * @param key The key of the value to insert or update.
-   * @param value The value to associate with the key.  Must be non-nullable.
+   * @param value The value to associate with the key.
    * @returns This MapLru instance.
    */
-  override set(key: K, value: NonNullable<V>): this {
-// Delete and re-insert to move key to the end (most-recently-used)
+  override set(key: K, value: V): this {
+    // Delete and re-insert to move key to the end (most-recently-used)
     super.delete(key);
     super.set(key, value);
 
