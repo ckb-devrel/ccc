@@ -259,7 +259,38 @@ export abstract class Client {
     limit?: NumLike,
     after?: string,
   ): Promise<ClientFindCellsResponse> {
-    const res = await this.findCellsPagedNoCache(key, order, limit, after);
+    const myKey = ClientIndexerSearchKey.from(key);
+    const res = await this.findCellsPagedNoCache(myKey, order, limit, after);
+
+    // If no cells are returned, exit early.
+    if (res.cells.length === 0) {
+      return res;
+    }
+
+    // Assign type and lock scripts based on scriptType.
+    let type = myKey.filter?.script;
+    let lock: typeof type = myKey.script;
+    if (myKey.scriptType === "type") {
+      [lock, type] = [type, lock];
+    }
+
+    // Iterate through the returned cells to intern scripts hex fields from the source.
+    for (const { cellOutput } of res.cells) {
+      for (const [destination, source] of [
+        // Iterate over lock and type
+        [cellOutput.lock, lock],
+        [cellOutput.type, type],
+      ]) {
+        // Intern the hex fields of the Scripts for instant future equality.
+        if (source && destination?.eq(source)) {
+          destination.codeHash = source.codeHash;
+          destination.hashType = source.hashType;
+          destination.args = source.args;
+        }
+      }
+    }
+
+    // Record cells to the cache and return.
     await this.cache.recordCells(res.cells);
     return res;
   }
