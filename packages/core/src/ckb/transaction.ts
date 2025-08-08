@@ -178,14 +178,14 @@ export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
   }
 
   /**
-   * Check if the script is equal to another script.
+   * Check if the OutPoint is equal to another OutPoint.
    * @public
-   * @param other - The other script to compare with
-   * @returns True if the scripts are equal, false otherwise
+   * @param other - The other OutPoint to compare with
+   * @returns True if the OutPoints are equal, false otherwise
    *
    * @example
    * ```typescript
-   * const isEqual = script0.eq(script1);
+   * const isEqual = outPoint0.eq(outPoint1);
    * ```
    */
   eq(other: OutPointLike): boolean {
