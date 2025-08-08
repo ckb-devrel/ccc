@@ -1,5 +1,23 @@
 # @ckb-ccc/core
 
+## 1.10.0
+### Minor Changes
+
+
+
+- [#225](https://github.com/ckb-devrel/ccc/pull/225) [`c67e096`](https://github.com/ckb-devrel/ccc/commit/c67e096cc59a5685046cd5ad67676d0cf2d45dc3) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): optional `shouldAddInputs` for `Transaction.completeFee`
+
+
+### Patch Changes
+
+
+
+- [#244](https://github.com/ckb-devrel/ccc/pull/244) [`2d23b47`](https://github.com/ckb-devrel/ccc/commit/2d23b477460f0f07c80c8e3e7641e35069788b70) Thanks [@phroi](https://github.com/phroi)! - Simplify MapLru, while improving Complexity
+
+
+
+- [#225](https://github.com/ckb-devrel/ccc/pull/225) [`996e117`](https://github.com/ckb-devrel/ccc/commit/996e117c56fc5f3d4bb9b2adeac5c9da87128688) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `Transaction.clone` should clone inputs' cache
+
 ## 1.9.0
 ### Minor Changes
 
