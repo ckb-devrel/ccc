@@ -162,6 +162,36 @@ export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
     }
     return new OutPoint(hexFrom(outPoint.txHash), numFrom(outPoint.index));
   }
+
+  /**
+   * Clone a OutPoint.
+   *
+   * @returns A cloned OutPoint instance.
+   *
+   * @example
+   * ```typescript
+   * const outPoint1 = outPoint0.clone();
+   * ```
+   */
+  clone(): OutPoint {
+    return new OutPoint(this.txHash, this.index);
+  }
+
+  /**
+   * Check if the OutPoint is equal to another OutPoint.
+   * @public
+   * @param other - The other OutPoint to compare with
+   * @returns True if the OutPoints are equal, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const isEqual = outPoint0.eq(outPoint1);
+   * ```
+   */
+  eq(other: OutPointLike): boolean {
+    other = OutPoint.from(other);
+    return this.txHash === other.txHash && this.index === other.index;
+  }
 }
 
 /**
@@ -228,6 +258,20 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
     );
+  }
+
+  /**
+   * Clone a CellOutput.
+   *
+   * @returns A cloned CellOutput instance.
+   *
+   * @example
+   * ```typescript
+   * const cellOutput1 = cellOutput0.clone();
+   * ```
+   */
+  clone(): CellOutput {
+    return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -700,12 +744,23 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     return (await this.getCell(client)).getDaoProfit(client);
   }
 
+  /**
+   * Clone a CellInput.
+   *
+   * @returns A cloned CellInput instance.
+   *
+   * @example
+   * ```typescript
+   * const cellInput1 = cellInput0.clone();
+   * ```
+   */
   clone(): CellInput {
-    const cloned = super.clone();
-    cloned.cellOutput = this.cellOutput?.clone();
-    cloned.outputData = this.outputData;
-
-    return cloned;
+    return new CellInput(
+      this.previousOutput.clone(),
+      this.since,
+      this.cellOutput?.clone(),
+      this.outputData,
+    );
   }
 }
 export const CellInputVec = mol.vector(CellInput);
@@ -765,6 +820,20 @@ export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
       OutPoint.from(cellDep.outPoint),
       depTypeFrom(cellDep.depType),
     );
+  }
+
+  /**
+   * Clone a CellDep.
+   *
+   * @returns A cloned CellDep instance.
+   *
+   * @example
+   * ```typescript
+   * const cellDep1 = cellDep0.clone();
+   * ```
+   */
+  clone(): CellDep {
+    return new CellDep(this.outPoint.clone(), this.depType);
   }
 }
 export const CellDepVec = mol.vector(CellDep);

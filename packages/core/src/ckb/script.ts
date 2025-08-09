@@ -150,6 +150,26 @@ export class Script extends mol.Entity.Base<ScriptLike, Script>() {
   }
 
   /**
+   * Check if the script is equal to another script.
+   * @public
+   * @param other - The other script to compare with
+   * @returns True if the scripts are equal, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const isEqual = script0.eq(script1);
+   * ```
+   */
+  eq(other: ScriptLike): boolean {
+    other = Script.from(other);
+    return (
+      this.args === other.args &&
+      this.codeHash === other.codeHash &&
+      this.hashType === other.hashType
+    );
+  }
+
+  /**
    * Creates a Script instance from a ScriptLike object.
    *
    * @param script - A ScriptLike object or an instance of Script.
