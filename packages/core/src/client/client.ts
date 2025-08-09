@@ -274,19 +274,35 @@ export abstract class Client {
       [lock, type] = [type, lock];
     }
 
-    // Iterate through the returned cells to intern scripts hex fields from the source.
+    // This loop performs string interning on the script fields (codeHash, hashType, args)
+    // for all returned cells. By ensuring that any script component identical to the
+    // source script points to the same string object in memory, we achieve two key benefits:
+    // 1. Memory Reduction: Avoids storing thousands of duplicate strings for common scripts.
+    // 2. Performance Boost: Future equality checks on these fields can become much faster
+    //    (a simple reference check instead of a character-by-character comparison).
     for (const { cellOutput } of res.cells) {
       for (const [destination, source] of [
-        // Iterate over lock and type
         [cellOutput.lock, lock],
         [cellOutput.type, type],
       ]) {
-        // Intern the hex fields of the Scripts for instant future equality.
-        if (source && destination?.eq(source)) {
-          destination.codeHash = source.codeHash;
-          destination.hashType = source.hashType;
-          destination.args = source.args;
+        if (!source || !destination) {
+          continue;
         }
+
+        if (destination.codeHash !== source.codeHash) {
+          continue;
+        }
+        destination.codeHash = source.codeHash;
+
+        if (destination.hashType !== source.hashType) {
+          continue;
+        }
+        destination.hashType = source.hashType;
+
+        if (destination.args !== source.args) {
+          continue;
+        }
+        destination.args = source.args;
       }
     }
 
