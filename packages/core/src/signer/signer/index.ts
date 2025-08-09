@@ -6,6 +6,7 @@ import {
   Client,
   ClientFindTransactionsGroupedResponse,
   ClientFindTransactionsResponse,
+  ClientIndexerSearchKeyFilterLike,
 } from "../../client/index.js";
 import { Hex } from "../../hex/index.js";
 import { Num } from "../../num/index.js";
@@ -237,6 +238,35 @@ export abstract class Signer {
     return this.getAddressObjs().then((addresses) =>
       addresses.map((address) => address.toString()),
     );
+  }
+
+  /**
+   * Find cells of this signer
+   *
+   * @returns A async generator that yields all matches cells
+   */
+  async *findCellsOnChain(
+    filter: ClientIndexerSearchKeyFilterLike,
+    withData?: boolean | null,
+    order?: "asc" | "desc",
+    limit?: number,
+  ): AsyncGenerator<Cell> {
+    const scripts = await this.getAddressObjs();
+    for (const { script } of scripts) {
+      for await (const cell of this.client.findCellsOnChain(
+        {
+          script,
+          scriptType: "lock",
+          filter,
+          scriptSearchMode: "exact",
+          withData,
+        },
+        order,
+        limit,
+      )) {
+        yield cell;
+      }
+    }
   }
 
   /**

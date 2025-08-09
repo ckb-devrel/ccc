@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { ssri } from "@ckb-ccc/ssri";
-import { Udt } from "../udt/index.js";
+import { Udt, UdtConfigLike } from "../udt/index.js";
 
 /**
  * Represents a UDT (User Defined Token) with pausable functionality.
@@ -11,9 +11,7 @@ export class UdtPausable extends Udt {
   constructor(
     code: ccc.OutPointLike,
     script: ccc.ScriptLike,
-    config: {
-      executor: ssri.Executor;
-    },
+    config: UdtConfigLike & { executor: ssri.Executor },
   ) {
     super(code, script, config);
   }
