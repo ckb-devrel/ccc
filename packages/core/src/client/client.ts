@@ -259,54 +259,7 @@ export abstract class Client {
     limit?: NumLike,
     after?: string,
   ): Promise<ClientFindCellsResponse> {
-    const myKey = ClientIndexerSearchKey.from(key);
-    const res = await this.findCellsPagedNoCache(myKey, order, limit, after);
-
-    // If no cells are returned, exit early.
-    if (res.cells.length === 0) {
-      return res;
-    }
-
-    // Assign type and lock scripts based on scriptType.
-    let type = myKey.filter?.script;
-    let lock: typeof type = myKey.script;
-    if (myKey.scriptType === "type") {
-      [lock, type] = [type, lock];
-    }
-
-    // This loop performs string interning on the script fields (codeHash, hashType, args)
-    // for all returned cells. By ensuring that any script component identical to the
-    // source script points to the same string object in memory, we achieve two key benefits:
-    // 1. Memory Reduction: Avoids storing thousands of duplicate strings for common scripts.
-    // 2. Performance Boost: Future equality checks on these fields can become much faster
-    //    (a simple reference check instead of a character-by-character comparison).
-    for (const { cellOutput } of res.cells) {
-      for (const [destination, source] of [
-        [cellOutput.lock, lock],
-        [cellOutput.type, type],
-      ]) {
-        if (!source || !destination) {
-          continue;
-        }
-
-        if (destination.codeHash !== source.codeHash) {
-          continue;
-        }
-        destination.codeHash = source.codeHash;
-
-        if (destination.hashType !== source.hashType) {
-          continue;
-        }
-        destination.hashType = source.hashType;
-
-        if (destination.args !== source.args) {
-          continue;
-        }
-        destination.args = source.args;
-      }
-    }
-
-    // Record cells to the cache and return.
+    const res = await this.findCellsPagedNoCache(key, order, limit, after);
     await this.cache.recordCells(res.cells);
     return res;
   }
