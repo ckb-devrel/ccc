@@ -112,28 +112,35 @@ export class ConnectionsRepoLocalStorage implements ConnectionsRepo {
     selector: AccountSelector,
     connection: Connection | undefined,
   ): Promise<void> {
-    // Use a lock to prevent race conditions during concurrent set operations
-    this.operationLock = this.operationLock.then(async () => {
-      const connections = await this.readConnections();
+    const operation = this.operationLock
+      .catch(() => undefined)
+      .then(async () => {
+        const connections = await this.readConnections();
 
-      if (connection) {
-        const existed = connections.find(([s]) => isSelectorMatch(s, selector));
-        if (existed) {
-          existed[1] = connection;
+        if (connection) {
+          const existed = connections.find(([s]) =>
+            isSelectorMatch(s, selector),
+          );
+          if (existed) {
+            existed[1] = connection;
+          } else {
+            connections.push([selector, connection]);
+          }
+          window.localStorage.setItem(
+            this.storageKey,
+            JSON.stringify(connections),
+          );
         } else {
-          connections.push([selector, connection]);
+          window.localStorage.setItem(
+            this.storageKey,
+            JSON.stringify(
+              connections.filter(([s]) => !isSelectorMatch(s, selector)),
+            ),
+          );
         }
-        window.localStorage.setItem(this.storageKey, JSON.stringify(connections));
-      } else {
-        window.localStorage.setItem(
-          this.storageKey,
-          JSON.stringify(
-            connections.filter(([s]) => !isSelectorMatch(s, selector)),
-          ),
-        );
-      }
-    });
+      });
 
-    await this.operationLock;
+    this.operationLock = operation;
+    await operation;
   }
 }
