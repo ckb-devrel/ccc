@@ -145,7 +145,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
     };
     await Promise.all([
       this.connectionsRepo.set(
-        { uri: config.joyidAppURL, addressType: `btc-${res.btcAddressType}` },
+        { uri: config.joyidAppURL, addressType: `btc-${this.addressType}` },
         this.connection,
       ),
       this.connectionsRepo.set(

@@ -72,6 +72,8 @@ export interface ConnectionsRepo {
  * Class representing a local storage-based repository for managing connections.
  */
 export class ConnectionsRepoLocalStorage implements ConnectionsRepo {
+  private operationLock: Promise<void> = Promise.resolve();
+
   /**
    * Creates an instance of ConnectionsRepoLocalStorage.
    * @param [storageKey="ccc-joy-id-signer"] - The local storage key.
@@ -110,23 +112,28 @@ export class ConnectionsRepoLocalStorage implements ConnectionsRepo {
     selector: AccountSelector,
     connection: Connection | undefined,
   ): Promise<void> {
-    const connections = await this.readConnections();
+    // Use a lock to prevent race conditions during concurrent set operations
+    this.operationLock = this.operationLock.then(async () => {
+      const connections = await this.readConnections();
 
-    if (connection) {
-      const existed = connections.find(([s]) => isSelectorMatch(s, selector));
-      if (existed) {
-        existed[1] = connection;
+      if (connection) {
+        const existed = connections.find(([s]) => isSelectorMatch(s, selector));
+        if (existed) {
+          existed[1] = connection;
+        } else {
+          connections.push([selector, connection]);
+        }
+        window.localStorage.setItem(this.storageKey, JSON.stringify(connections));
       } else {
-        connections.push([selector, connection]);
+        window.localStorage.setItem(
+          this.storageKey,
+          JSON.stringify(
+            connections.filter(([s]) => !isSelectorMatch(s, selector)),
+          ),
+        );
       }
-      window.localStorage.setItem(this.storageKey, JSON.stringify(connections));
-    } else {
-      window.localStorage.setItem(
-        this.storageKey,
-        JSON.stringify(
-          connections.filter(([s]) => !isSelectorMatch(s, selector)),
-        ),
-      );
-    }
+    });
+
+    await this.operationLock;
   }
 }
