@@ -1,306 +1,397 @@
-import { ccc } from "@ckb-ccc/core";
-import { ssri } from "@ckb-ccc/ssri";
+import { ccc, mol } from "@ckb-ccc/core";
 
-/**
- * Represents a User Defined Token (UDT) script compliant with the SSRI protocol.
- *
- * This class provides a comprehensive implementation for interacting with User Defined Tokens,
- * supporting various token operations such as querying metadata, checking balances, and performing transfers.
- * It supports both SSRI-compliant UDTs and legacy sUDT/xUDT standard tokens.
- *
- * @public
- * @category Blockchain
- * @category Token
- */
-export class Udt extends ssri.Trait {
-  public readonly script: ccc.Script;
-
-  /**
-   * Constructs a new UDT (User Defined Token) script instance.
-   * By default it is a SSRI-compliant UDT. By providing `xudtType`, it is compatible with the legacy xUDT.
-   *
-   * @param executor - The SSRI executor instance.
-   * @param code - The script code cell of the UDT.
-   * @param script - The type script of the UDT.
-   * @example
-   * ```typescript
-   * const udt = new Udt(executor, code, script);
-   * ```
-   */
+export class ErrorUdtInsufficientCoin extends Error {
   constructor(
-    code: ccc.OutPointLike,
-    script: ccc.ScriptLike,
-    config?: {
-      executor?: ssri.Executor | null;
-    } | null,
+    public readonly amount: ccc.FixedPoint,
+    public readonly udtManager: UdtManager,
   ) {
-    super(code, config?.executor);
-    this.script = ccc.Script.from(script);
+    super(
+      `Insufficient coin, need ${ccc.fixedPointToString(amount, udtManager.decimals)} extra ${udtManager.symbol} coin`,
+    );
   }
+}
 
-  /**
-   * Retrieves the human-readable name of the User Defined Token.
-   *
-   * @returns A promise resolving to the token's name.
-   */
-  async name(
-    context?: ssri.ContextScript,
-  ): Promise<ssri.ExecutorResponse<string | undefined>> {
-    if (this.executor) {
-      const res = await this.executor.runScriptTry(this.code, "UDT.name", [], {
-        script: this.script,
-        ...context,
-      });
-      if (res) {
-        return res.map((res) => ccc.bytesTo(res, "utf8"));
+export class UdtManager {
+  constructor(
+    public readonly script: ccc.Script,
+    public readonly cellDeps: ccc.CellDep[],
+    public readonly dataLenRange: [number, number],
+    public readonly name: string,
+    public readonly symbol: string,
+    public readonly decimals: number,
+    public readonly icon: string,
+  ) {}
+
+  async *find(
+    client: ccc.Client,
+    locks: ccc.Script[],
+    options?: {
+      source?: "local" | "chain";
+    },
+  ): AsyncGenerator<ccc.Cell> {
+    const isOnChain = options?.source === "chain";
+    const processedLocks = new Set<ccc.Hex>();
+    for (const lock of locks) {
+      const lockHash = lock.hash();
+      if (processedLocks.has(lockHash)) {
+        continue;
       }
-    }
+      processedLocks.add(lockHash);
 
-    return ssri.ExecutorResponse.new(undefined);
-  }
-
-  /**
-   * Retrieves the symbol of the UDT.
-   * @returns The symbol of the UDT.
-   */
-  async symbol(
-    context?: ssri.ContextScript,
-  ): Promise<ssri.ExecutorResponse<string | undefined>> {
-    if (this.executor) {
-      const res = await this.executor.runScriptTry(
-        this.code,
-        "UDT.symbol",
-        [],
+      const findCellsArgs = [
         {
-          script: this.script,
-          ...context,
-        },
-      );
-      if (res) {
-        return res.map((res) => ccc.bytesTo(res, "utf8"));
-      }
-    }
-
-    return ssri.ExecutorResponse.new(undefined);
-  }
-
-  /**
-   * Retrieves the decimals of the UDT.
-   * @returns The decimals of the UDT.
-   */
-  async decimals(
-    context?: ssri.ContextScript,
-  ): Promise<ssri.ExecutorResponse<ccc.Num | undefined>> {
-    if (this.executor) {
-      const res = await this.executor.runScriptTry(
-        this.code,
-        "UDT.decimals",
-        [],
-        {
-          script: this.script,
-          ...context,
-        },
-      );
-      if (res) {
-        return res.map((res) => ccc.numFromBytes(res));
-      }
-    }
-
-    return ssri.ExecutorResponse.new(undefined);
-  }
-
-  /**
-   * Retrieves the icon of the UDT
-   * @returns The icon of the UDT.
-   */
-  async icon(
-    context?: ssri.ContextScript,
-  ): Promise<ssri.ExecutorResponse<string | undefined>> {
-    if (this.executor) {
-      const res = await this.executor.runScriptTry(this.code, "UDT.icon", [], {
-        script: this.script,
-        ...context,
-      });
-      if (res) {
-        return res.map((res) => ccc.bytesTo(res, "utf8"));
-      }
-    }
-
-    return ssri.ExecutorResponse.new(undefined);
-  }
-
-  /**
-   * Transfers UDT to specified addresses.
-   * @param tx - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
-   * @param transfers - The array of transfers.
-   * @param transfers.to - The receiver of token.
-   * @param transfers.amount - The amount of token to the receiver.
-   * @returns The transaction result.
-   * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction object.
-   * @example
-   * ```typescript
-   * const { script: change } = await signer.getRecommendedAddressObj();
-   * const { script: to } = await ccc.Address.fromString(receiver, signer.client);
-   *
-   * const udt = new Udt(
-   *   {
-   *     txHash: "0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269",
-   *     index: 0,
-   *   },
-   *   {
-   *     codeHash: "0xcc9dc33ef234e14bc788c43a4848556a5fb16401a04662fc55db9bb201987037",
-   *     hashType: "type",
-   *     args: "0x71fd1985b2971a9903e4d8ed0d59e6710166985217ca0681437883837b86162f"
-   *   },
-   * );
-   *
-   * const { res: tx } = await udtTrait.transfer(
-   *   signer,
-   *   [{ to, amount: 100 }],
-   * );
-   *
-   * const completedTx = udt.completeUdtBy(tx, signer);
-   * await completedTx.completeInputsByCapacity(signer);
-   * await completedTx.completeFeeBy(signer);
-   * const transferTxHash = await signer.sendTransaction(completedTx);
-   * ```
-   */
-  async transfer(
-    signer: ccc.Signer,
-    transfers: {
-      to: ccc.ScriptLike;
-      amount: ccc.NumLike;
-    }[],
-    tx?: ccc.TransactionLike | null,
-  ): Promise<ssri.ExecutorResponse<ccc.Transaction>> {
-    let resTx;
-    if (this.executor) {
-      const txReq = ccc.Transaction.from(tx ?? {});
-      await txReq.completeInputsAtLeastOne(signer);
-
-      const res = await this.executor.runScriptTry(
-        this.code,
-        "UDT.transfer",
-        [
-          txReq.toBytes(),
-          ccc.ScriptVec.encode(transfers.map(({ to }) => to)),
-          ccc.mol.Uint128Vec.encode(transfers.map(({ amount }) => amount)),
-        ],
-        {
-          script: this.script,
-        },
-      );
-      if (res) {
-        resTx = res.map((res) => ccc.Transaction.fromBytes(res));
-      }
-    }
-
-    if (!resTx) {
-      const transfer = ccc.Transaction.from(tx ?? {});
-      for (const { to, amount } of transfers) {
-        transfer.addOutput(
-          {
-            lock: to,
-            type: this.script,
+          script: lock,
+          scriptType: "lock",
+          filter: {
+            script: this.script,
+            outputDataLenRange: this.dataLenRange,
           },
-          ccc.numLeToBytes(amount, 16),
-        );
-      }
-      resTx = ssri.ExecutorResponse.new(transfer);
-    }
-    resTx.res.addCellDeps({
-      outPoint: this.code,
-      depType: "code",
-    });
-    return resTx;
-  }
-
-  /**
-   * Mints new tokens to specified addresses. See the example in `transfer` as they are similar.
-   * @param tx - Optional existing transaction to build upon
-   * @param mints - Array of mints
-   * @param mints.to - receiver of token
-   * @param mints.amount - amount to the receiver
-   * @returns The transaction containing the mint operation
-   * @tag Mutation - This method represents a mutation of the onchain state
-   */
-  async mint(
-    signer: ccc.Signer,
-    mints: {
-      to: ccc.ScriptLike;
-      amount: ccc.NumLike;
-    }[],
-    tx?: ccc.TransactionLike | null,
-  ): Promise<ssri.ExecutorResponse<ccc.Transaction>> {
-    let resTx;
-    if (this.executor) {
-      const txReq = ccc.Transaction.from(tx ?? {});
-      await txReq.completeInputsAtLeastOne(signer);
-
-      const res = await this.executor.runScriptTry(
-        this.code,
-        "UDT.mint",
-        [
-          txReq.toBytes(),
-          ccc.ScriptVec.encode(mints.map(({ to }) => to)),
-          ccc.mol.Uint128Vec.encode(mints.map(({ amount }) => amount)),
-        ],
-        {
-          script: this.script,
+          scriptSearchMode: "exact",
+          withData: true,
         },
-      );
-      if (res) {
-        resTx = res.map((res) => ccc.Transaction.fromBytes(res));
-      }
-    }
+      ] as const;
 
-    if (!resTx) {
-      const mint = ccc.Transaction.from(tx ?? {});
-      for (const { to, amount } of mints) {
-        mint.addOutput(
-          {
-            lock: to,
-            type: this.script,
-          },
-          ccc.numLeToBytes(amount),
-        );
+      for await (const cell of isOnChain
+        ? client.findCellsOnChain(...findCellsArgs)
+        : client.findCells(...findCellsArgs)) {
+        yield cell;
       }
-      resTx = ssri.ExecutorResponse.new(mint);
     }
-    resTx.res.addCellDeps({
-      outPoint: this.code,
-      depType: "code",
-    });
-    return resTx;
   }
 
-  async completeChangeToLock(
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async infoFrom(
+    _client: ccc.Client,
+    initialInfo = {
+      balance: ccc.Zero,
+      capacity: ccc.Zero,
+      count: 0,
+    },
+    ...cells: {
+      cellOutput: ccc.CellOutput;
+      outputData: ccc.Hex;
+      outPoint?: ccc.OutPoint;
+    }[]
+  ): Promise<Info> {
+    let { balance, capacity, count } = initialInfo;
+
+    for (const { cellOutput, outputData } of cells) {
+      if (cellOutput.type?.eq(this.script)) {
+        let dataLen = (outputData.length - 2) >> 1;
+
+        if (dataLen < this.dataLenRange[0] || dataLen >= this.dataLenRange[1]) {
+          throw new Error("Invalid data length");
+        }
+
+        balance += ccc.udtBalanceFrom(outputData);
+        // Note: Not a NervosDAO cell, type slot is already used by udt
+        capacity += cellOutput.capacity;
+        count += 1;
+      }
+    }
+
+    return { balance, capacity, count };
+  }
+
+  async addInput(
+    client: ccc.Client,
+    tx: ccc.Transaction,
+    initialInfo = {
+      balance: ccc.Zero,
+      capacity: ccc.Zero,
+      count: 0,
+    },
+    ...cells: ccc.Cell[]
+  ): Promise<Info> {
+    let info = initialInfo;
+    for (const cell of cells) {
+      info = await this.infoFrom(client, info, cell);
+      if (info.count > 0) {
+        tx.addInput(cell);
+      }
+    }
+    return info;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async addOutput(
+    client: ccc.Client,
+    tx: ccc.Transaction,
+    lock: ccc.Script,
+    amount: ccc.FixedPoint,
+    extraData: ccc.BytesLike = [],
+  ): Promise<number> {
+    const outputData = ccc.hexFrom(
+      ccc.bytesConcat(mol.Uint128.encode(amount), extraData),
+    );
+    const cellOutput = ccc.CellOutput.from(
+      {
+        capacity: amount,
+        lock,
+        type: this.script,
+      },
+      outputData,
+    );
+
+    const cell = { cellOutput, outputData };
+    if ((await this.infoFrom(client, undefined, cell)).balance !== amount) {
+      throw new Error("Internal Error: amount mismatch");
+    }
+
+    return tx.addOutput(cellOutput, outputData);
+  }
+
+  async updateOutput(
+    client: ccc.Client,
+    tx: ccc.Transaction,
+    index: number,
+    additionalAmount: ccc.FixedPoint,
+  ): Promise<void> {
+    let cell = tx.getOutput(index);
+    if (!cell) {
+      throw Error("Cell not found");
+    }
+
+    const info = await this.infoFrom(client, undefined, cell);
+    if (!info) {
+      throw Error("Change output must be a UDT cell");
+    }
+
+    const amount = info.balance + additionalAmount;
+    const outputData = ccc.hexFrom(
+      ccc.bytesConcat(mol.Uint128.encode(amount), cell.outputData.slice(34)),
+    );
+
+    cell = { ...cell, outputData };
+    if ((await this.infoFrom(client, undefined, cell)).balance !== amount) {
+      throw new Error("Internal Error: amount mismatch");
+    }
+
+    tx.outputsData[index] = outputData;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async addCellDeps(tx: ccc.Transaction): Promise<void> {
+    tx.addCellDeps(this.cellDeps);
+  }
+
+  async getInfo(
+    client: ccc.Client,
+    locks: ccc.Script[],
+    options?: {
+      source?: "chain" | "local";
+    },
+  ): Promise<Info> {
+    let info = await this.infoFrom(client);
+    for await (const cell of this.find(client, locks, options)) {
+      info = await this.infoFrom(client, info, cell);
+    }
+    return info;
+  }
+
+  async getBalance(
+    from: ccc.Signer,
+    options?: {
+      source?: "chain" | "local";
+    },
+  ): Promise<ccc.FixedPoint> {
+    const { client } = from;
+    const locks = (await from.getAddressObjs()).map((a) => a.script);
+    return (await this.getInfo(client, locks, options)).balance;
+  }
+
+  async getInputsInfo(client: ccc.Client, tx: ccc.Transaction): Promise<Info> {
+    const cells = await Promise.all(tx.inputs.map((i) => i.getCell(client)));
+    return this.infoFrom(client, undefined, ...cells);
+  }
+
+  async getInputsBalance(
+    client: ccc.Client,
     txLike: ccc.TransactionLike,
-    signer: ccc.Signer,
-    change: ccc.ScriptLike,
-  ) {
+  ): Promise<ccc.FixedPoint> {
     const tx = ccc.Transaction.from(txLike);
+    return (await this.getInputsInfo(client, tx)).balance;
+  }
 
-    await tx.completeInputsByUdt(signer, this.script);
-    const balanceDiff =
-      (await tx.getInputsUdtBalance(signer.client, this.script)) -
-      tx.getOutputsUdtBalance(this.script);
-    if (balanceDiff > ccc.Zero) {
-      tx.addOutput(
-        {
-          lock: change,
-          type: this.script,
-        },
-        ccc.numLeToBytes(balanceDiff, 16),
-      );
+  async getOutputsInfo(client: ccc.Client, tx: ccc.Transaction): Promise<Info> {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const cells = tx.outputs.map((_, index) => tx.getOutput(index)!);
+    return this.infoFrom(client, undefined, ...cells);
+  }
+
+  async getOutputsBalance(
+    client: ccc.Client,
+    txLike: ccc.TransactionLike,
+  ): Promise<ccc.FixedPoint> {
+    const tx = ccc.Transaction.from(txLike);
+    return (await this.getOutputsInfo(client, tx)).balance;
+  }
+
+  async *completeInputsByBalance(
+    client: ccc.Client,
+    tx: ccc.Transaction,
+    locks: ccc.Script[],
+    options?: {
+      source?: "chain" | "local";
+    },
+  ): AsyncGenerator<{ addedInput: Info; initialInput: Info; output: Info }> {
+    const initialInput = await this.getInputsInfo(client, tx);
+    let addedInput = await this.infoFrom(client);
+    const output = await this.getOutputsInfo(client, tx);
+
+    const minBalance = output.balance - initialInput.balance;
+    const minCapacity = ccc.numMin(
+      output.capacity - initialInput.capacity,
+      -(await tx.getFee(client)),
+    );
+
+    if (
+      (initialInput.count === 0 && output.count === 0) ||
+      (addedInput.balance >= minBalance && addedInput.capacity >= minCapacity)
+    ) {
+      yield { addedInput, initialInput, output };
     }
 
-    return tx;
+    for await (const cell of this.find(client, locks, options)) {
+      addedInput = await this.addInput(client, tx, addedInput, cell);
+
+      if (
+        addedInput.balance >= minBalance &&
+        addedInput.capacity >= minCapacity
+      ) {
+        yield { addedInput, initialInput, output };
+      }
+    }
+
+    if (addedInput.balance >= minBalance && addedInput.capacity < minCapacity) {
+      yield { addedInput, initialInput, output };
+    }
+
+    throw new ErrorUdtInsufficientCoin(
+      output.balance - addedInput.balance,
+      this,
+    );
   }
 
-  async completeBy(tx: ccc.TransactionLike, from: ccc.Signer) {
-    const { script } = await from.getRecommendedAddressObj();
+  async completeChangeTo(
+    client: ccc.Client,
+    tx: ccc.Transaction,
+    locks: ccc.Script[],
+    options: (
+      | { lock: ccc.Script; extraData?: ccc.BytesLike }
+      | {
+          index: number;
+        }
+    ) & {
+      shouldAddInputs?: boolean;
+      source?: "chain" | "local";
+    },
+  ): Promise<{
+    addedInputs: number;
+    addedOutputs: number;
+  }> {
+    const needed =
+      "lock" in options
+        ? await this.getChangeCapacity(client, options.lock, options.extraData)
+        : ccc.Zero;
 
-    return this.completeChangeToLock(tx, from, script);
+    let addedInput = await this.infoFrom(client);
+    let initialInput = addedInput;
+    let output = addedInput;
+    if (options.shouldAddInputs) {
+      for await ({
+        addedInput,
+        initialInput,
+        output,
+      } of this.completeInputsByBalance(client, tx, locks, options)) {
+        const inputBalance = initialInput.balance + addedInput.balance;
+        const inputCapacity = initialInput.capacity + addedInput.capacity;
+
+        if (
+          (inputBalance === output.balance &&
+            inputCapacity >= output.capacity) ||
+          (inputBalance > output.balance &&
+            inputCapacity >= output.capacity + needed)
+        ) {
+          break;
+        }
+      }
+    } else {
+      initialInput = await this.getInputsInfo(client, tx);
+      output = await this.getOutputsInfo(client, tx);
+    }
+
+    if (initialInput.count + addedInput.count === 0 && output.count === 0) {
+      return {
+        addedInputs: 0,
+        addedOutputs: 0,
+      };
+    }
+
+    const burned = initialInput.balance + addedInput.balance - output.balance;
+    if (burned < ccc.Zero) {
+      throw new ErrorUdtInsufficientCoin(-burned, this);
+    }
+
+    await this.addCellDeps(tx);
+
+    if (burned === ccc.Zero) {
+      return {
+        addedInputs: addedInput.count,
+        addedOutputs: 0,
+      };
+    }
+
+    if ("lock" in options) {
+      await this.addOutput(client, tx, options.lock, burned, options.extraData);
+      return {
+        addedInputs: addedInput.count,
+        addedOutputs: 1,
+      };
+    }
+
+    await this.updateOutput(client, tx, options.index, burned);
+    return {
+      addedInputs: addedInput.count,
+      addedOutputs: 0,
+    };
   }
+
+  protected async getChangeCapacity(
+    client: ccc.Client,
+    lock: ccc.Script,
+    extraData: ccc.BytesLike = [],
+  ): Promise<ccc.FixedPoint> {
+    const tx = ccc.Transaction.default();
+    await this.addOutput(client, tx, lock, ccc.One, extraData);
+    return -(await tx.getFee(client));
+  }
+
+  async completeBy(
+    signer: ccc.Signer,
+    tx: ccc.Transaction,
+    options?: {
+      shouldAddInputs?: boolean;
+      source?: "chain" | "local"; // should be added also to Transaction.completeFee!
+    },
+  ): Promise<{
+    addedInputs: number;
+    addedOutputs: number;
+  }> {
+    return this.completeChangeTo(
+      signer.client,
+      tx,
+      (await signer.getAddressObjs()).map((a) => a.script),
+      {
+        ...options,
+        lock: (await signer.getRecommendedAddressObj()).script,
+      },
+    );
+  }
+}
+
+export interface Info {
+  balance: ccc.FixedPoint;
+  capacity: ccc.FixedPoint;
+  count: number;
 }
