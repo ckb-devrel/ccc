@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.9.1
+### Patch Changes
+
+
+
+- [`a4d1a08`](https://github.com/ckb-devrel/ccc/commit/a4d1a08700cb861e49fbd961e8e6d6b26c06dfb6) Thanks [@ashuralyk](https://github.com/ashuralyk)! - Update JoyId celldep information on testnet
+
 ## 1.9.0
 ### Minor Changes
 
