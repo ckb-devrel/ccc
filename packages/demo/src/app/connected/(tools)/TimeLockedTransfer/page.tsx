@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { TextInput } from "@/src/components/Input";
-import { Button } from "@/src/components/Button";
-import { ccc } from "@ckb-ccc/connector-react";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { BigButton } from "@/src/components/BigButton";
+import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc } from "@ckb-ccc/connector-react";
+import { useCallback, useEffect, useState } from "react";
 
 function ClaimButton({ cell, lock }: { cell: ccc.Cell; lock: ccc.Script }) {
   const { signer, createSender } = useApp();

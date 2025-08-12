@@ -1,15 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
-import { ccc } from "@ckb-ccc/connector-react";
-import { tokenInfoToBytes, useGetExplorerLink } from "@/src/utils";
-import { Message } from "@/src/components/Message";
-import React from "react";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { Message } from "@/src/components/Message";
+import { useApp } from "@/src/context";
+import { tokenInfoToBytes, useGetExplorerLink } from "@/src/utils";
+import { ccc } from "@ckb-ccc/connector-react";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function IssueXUdtSul() {
   const { signer, createSender } = useApp();

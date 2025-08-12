@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { useEffect, useMemo, useState } from "react";
-import { Cell } from "./Cell";
 import { Button } from "./Button";
+import { Cell } from "./Cell";
 
 export function Transaction({
   tx,

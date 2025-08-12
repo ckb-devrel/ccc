@@ -11,7 +11,12 @@ import {
   ClientTransactionResponseLike,
 } from "../clientTypes.js";
 import { ClientCache } from "./cache.js";
-import { CellRecord, filterCell, MapLru } from "./memory.advanced.js";
+import {
+  CellRecord,
+  DEFAULT_CONFIRMED_BLOCK_TIME,
+  filterCell,
+  MapLru,
+} from "./memory.advanced.js";
 
 export class ClientCacheMemory extends ClientCache {
   /**
@@ -37,10 +42,18 @@ export class ClientCacheMemory extends ClientCache {
     Pick<ClientBlock, "header"> | ClientBlock
   >;
 
+  /**
+   * @param maxCells - Maximum number of cells to store in the cache. Defaults to 512.
+   * @param maxTxs - Maximum number of transactions to store in the cache. Defaults to 256.
+   * @param maxBlocks - Maximum number of blocks to store in the cache. Defaults to 128.
+   * @param confirmedBlockTime - Time in milliseconds after which a block is considered confirmed.
+   *                              Defaults to DEFAULT_CONFIRMED_BLOCK_TIME (50 blocks * 10s).
+   */
   constructor(
     private readonly maxCells = 512,
     private readonly maxTxs = 256,
     private readonly maxBlocks = 128,
+    private readonly confirmedBlockTime = DEFAULT_CONFIRMED_BLOCK_TIME,
   ) {
     super();
 
@@ -215,5 +228,9 @@ export class ClientCacheMemory extends ClientCache {
       return;
     }
     return this.getBlockByHash(hash);
+  }
+
+  hasHeaderConfirmed(header: ClientBlockHeader): boolean {
+    return numFrom(Date.now()) - header.timestamp >= this.confirmedBlockTime;
   }
 }

@@ -32,8 +32,8 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          title: "chore: bump packages version"
-          commit: "chore: bump packages version"
+          title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
+          commit: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
           version: pnpm run version
           publish: pnpm changeset publish
         env:

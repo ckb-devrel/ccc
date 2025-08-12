@@ -56,6 +56,11 @@ const config: Config = {
         theme: {
           customCss: "./src/css/custom.css",
         },
+        gtag: process.env.ANALYTICS_ID
+          ? {
+              trackingID: process.env.ANALYTICS_ID,
+            }
+          : undefined,
       } satisfies Preset.Options,
     ],
   ],

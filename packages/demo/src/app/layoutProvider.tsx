@@ -1,10 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import { ReactNode, useEffect, useState } from "react";
 import { Background } from "@/src/components/Background";
+import { Button } from "@/src/components/Button";
+import { Dropdown } from "@/src/components/Dropdown";
+import { AppProvider, useApp } from "@/src/context";
 import { formatString, useGetExplorerLink } from "@/src/utils";
+import { ccc } from "@ckb-ccc/connector-react";
 import {
   Camera,
   CameraOff,
@@ -17,9 +19,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { AppProvider, useApp } from "@/src/context";
-import { Button } from "@/src/components/Button";
-import { Dropdown } from "@/src/components/Dropdown";
+import { ReactNode, useEffect, useState } from "react";
 
 function Links(props: React.ComponentPropsWithoutRef<"div">) {
   const { index } = useGetExplorerLink();

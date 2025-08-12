@@ -1,20 +1,18 @@
-import React from "react";
-import { TextInput } from "@/src/components/Input";
-import { Button } from "@/src/components/Button";
-import {
-  ScriptAmountArrayInput,
-  ScriptAmountInput,
-} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import {
   HexArrayInput,
   HexInput,
 } from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
+import {
+  ScriptAmountArrayInput,
+  ScriptAmountInput,
+  ScriptAmountType,
+} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
+import { Button } from "@/src/components/Button";
 import { Icon } from "@/src/components/Icon";
-import { MethodParam, ParamValue } from "../types";
-import { PARAM_TYPE_OPTIONS } from "../types";
+import { TextInput } from "@/src/components/Input";
 import { ccc } from "@ckb-ccc/connector-react";
 import { ssri } from "@ckb-ccc/ssri";
-import { ScriptAmountType } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
+import { MethodParam, PARAM_TYPE_OPTIONS, ParamValue } from "../types";
 
 interface ParameterInputProps {
   param: MethodParam;
@@ -39,6 +37,7 @@ export function ParameterInput({
   setMethodPathInput,
   onDelete,
 }: ParameterInputProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateParamValue = (value: any) => {
     setParamValues({
       ...paramValues,

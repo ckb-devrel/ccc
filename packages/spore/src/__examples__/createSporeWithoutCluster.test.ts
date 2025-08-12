@@ -1,6 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
 import "dotenv/config";
+import { describe, expect, it } from "vitest";
 import { createSpore } from "../index.js";
 
 describe("createSpore [testnet]", () => {

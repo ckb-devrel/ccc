@@ -1,11 +1,11 @@
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import React, { useState } from "react";
 import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { ccc } from "@ckb-ccc/connector-react";
+import { useState } from "react";
 
 export default function Hash() {
   const { createSender } = useApp();

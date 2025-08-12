@@ -1,13 +1,13 @@
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import React, { useCallback, useEffect, useState } from "react";
 import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
-import { HDKey } from "@scure/bip32";
 import { Textarea } from "@/src/components/Textarea";
 import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { ccc } from "@ckb-ccc/connector-react";
+import { HDKey } from "@scure/bip32";
+import { useCallback, useEffect, useState } from "react";
 
 export default function Keystore() {
   const { client } = ccc.useCcc();

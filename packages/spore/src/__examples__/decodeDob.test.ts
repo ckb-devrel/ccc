@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { describe, it } from "vitest";
 import { decodeDobBySporeId } from "../dob/index.js";
 
 describe("decodeDob [testnet]", () => {

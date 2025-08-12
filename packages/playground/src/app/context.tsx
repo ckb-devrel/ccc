@@ -1,15 +1,16 @@
 "use client";
 
+import { ccc } from "@ckb-ccc/connector-react";
+import { Link } from "lucide-react";
 import React, {
   createContext,
   ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import { ccc } from "@ckb-ccc/connector-react";
 import { formatString, formatTimestamp } from "./utils";
-import { Link } from "lucide-react";
 
 function WalletIcon({
   wallet,
@@ -41,7 +42,7 @@ export const APP_CONTEXT = createContext<
       disconnect: () => void;
       openAction: ReactNode;
 
-      messages: ["error" | "info", string, ReactNode][];
+      messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
       clearMessage: () => void;
       sendMessage: (
         level: "error" | "info",
@@ -83,75 +84,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     signer?.getInternalAddress().then((a) => setAddress(a));
   }, [signer]);
 
-  const [messages, setMessages] = useState<
-    ["error" | "info", string, ReactNode][]
-  >([]);
+  const [{ messages }, setMessages] = useState<{
+    messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
+    cachedMessages: number;
+  }>({ messages: [], cachedMessages: 0 });
 
-  const sendMessage = (
-    level: "error" | "info",
-    title: string,
-    msgs: unknown[],
-  ) =>
-    setMessages((messages) => [
-      ...messages,
-      [
-        level,
-        title,
-        msgs.map((msg, i) => {
-          if (React.isValidElement(msg)) {
-            return msg;
-          }
+  const sendMessage = useCallback(
+    (level: "error" | "info", title: string, msgs: unknown[]) =>
+      messages.push([level, title, msgs, undefined]),
+    [messages],
+  );
 
-          return (
-            <React.Fragment key={i}>
-              {i === 0 ? "" : " "}
-              {JSON.stringify(msg, (_, value) => {
-                if (typeof value === "bigint") {
-                  return value.toString();
-                }
-                return value;
-              })}
-            </React.Fragment>
-          );
-        }),
-      ],
-    ]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessages((messages) => {
+        if (messages.messages.length === messages.cachedMessages) {
+          return messages;
+        }
+
+        return {
+          messages: [...messages.messages],
+          cachedMessages: messages.messages.length,
+        };
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [setMessages]);
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
-      if (typeof event.reason === "object" && event.reason !== null) {
-        const { name, message, stack, cause } = event.reason;
-        sendMessage(
-          "error",
-          `${formatTimestamp(Date.now())} ${name ?? "Unknown Error"}`,
-          [
-            <div key="0">
-              <div className="whitespace-pre-line">{message}</div>
-              <div className="whitespace-pre-line">{cause}</div>
-              <div className="whitespace-pre-line text-sm text-gray-300/75">
-                {stack}
-              </div>
-            </div>,
-          ],
-        );
-      } else if (typeof event.reason === "string") {
-        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
-          <div key="0" className="whitespace-pre-line">
-            {event.reason}
-          </div>,
-        ]);
-      } else {
-        sendMessage("error", `${formatTimestamp(Date.now())} Unknown Error`, [
-          <div key="0" className="whitespace-pre-line">
-            {JSON.stringify(event)}
-          </div>,
-        ]);
-      }
+      const { name } = event.reason;
+      sendMessage(
+        "error",
+        `${formatTimestamp(Date.now())} ${name?.toString() ?? "Unknown Error"}`,
+        [event.reason],
+      );
     };
 
     window.addEventListener("unhandledrejection", handler);
     return () => window.removeEventListener("unhandledrejection", handler);
-  }, [setMessages]);
+  }, [sendMessage]);
 
   return (
     <APP_CONTEXT.Provider
@@ -181,7 +154,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
 
         messages,
-        clearMessage: () => setMessages([]),
+        clearMessage: () => setMessages({ messages: [], cachedMessages: 0 }),
         sendMessage,
         createSender: (title) => ({
           log: (...msgs) => sendMessage("info", title, msgs),

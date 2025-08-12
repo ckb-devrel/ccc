@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { describe, expect, it } from "vitest";
 import { findSporesBySigner } from "../spore";
 
 describe("searchSpores [testnet]", () => {

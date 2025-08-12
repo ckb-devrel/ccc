@@ -1,10 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { ReactNode, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { icons } from "lucide-react";
 import { BigButton } from "@/src/components/BigButton";
+import { icons } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect } from "react";
 
 /* eslint-disable react/jsx-key */
 const TABS: [ReactNode, string, keyof typeof icons, string][] = [

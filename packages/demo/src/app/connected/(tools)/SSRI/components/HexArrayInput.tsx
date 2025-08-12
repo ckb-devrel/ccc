@@ -1,7 +1,7 @@
 "use client";
 
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
+import { TextInput } from "@/src/components/Input";
 
 interface HexInputProps {
   value: string;

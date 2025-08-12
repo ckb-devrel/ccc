@@ -2,7 +2,6 @@ import { ScriptLike } from "../ckb/index.js";
 import { HexLike } from "../hex/index.js";
 import { Num, numFrom, NumLike } from "../num/index.js";
 
-export const CONFIRMED_BLOCK_TIME = numFrom(1000 * 10 * 50); // 50 blocks * 10s
 export const DEFAULT_MAX_FEE_RATE = numFrom(10000000);
 export const DEFAULT_MIN_FEE_RATE = numFrom(1000);
 

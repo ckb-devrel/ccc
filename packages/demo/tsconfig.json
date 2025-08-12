@@ -21,7 +21,8 @@
       "@/*": ["./*"]
     },
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",

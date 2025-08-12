@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/okx",
-  "version": "1.0.16",
+  "version": "1.0.19",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for OKX",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -34,10 +34,10 @@
     "@eslint/js": "^9.1.1",
     "copyfiles": "^2.4.1",
     "eslint": "^9.1.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-prettier": "^5.1.3",
-    "prettier": "^3.2.5",
-    "prettier-plugin-organize-imports": "^3.2.4",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.1.0",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.7.0"

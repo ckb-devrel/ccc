@@ -1,10 +1,10 @@
 "use client";
 
-import React, { createContext, ReactNode, useEffect, useState } from "react";
 import { ccc } from "@ckb-ccc/connector-react";
+import { Key } from "lucide-react";
+import React, { createContext, ReactNode, useEffect, useState } from "react";
 import { Notifications } from "./components/Notifications";
 import { formatString, useGetExplorerLink } from "./utils";
-import { Key } from "lucide-react";
 
 function WalletIcon({
   wallet,
@@ -117,7 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const handler = (event: PromiseRejectionEvent) => {
       const msg = (() => {
         if (typeof event.reason === "object" && event.reason !== null) {
-          const { name, message, stack, cause } = (event as any).reason;
+          const { name, message, stack, cause } = event.reason;
           return JSON.stringify({ name, message, stack, cause });
         }
         if (typeof event.reason === "string") {

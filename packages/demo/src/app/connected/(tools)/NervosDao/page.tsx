@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { TextInput } from "@/src/components/Input";
-import { Button } from "@/src/components/Button";
-import { ccc } from "@ckb-ccc/connector-react";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { BigButton } from "@/src/components/BigButton";
+import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc } from "@ckb-ccc/connector-react";
+import { useEffect, useMemo, useState } from "react";
 
 function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
   return (
@@ -19,7 +19,7 @@ function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
 
 function DaoButton({ dao }: { dao: ccc.Cell }) {
   const { signer, createSender } = useApp();
-  const { log, error } = createSender("Transfer");
+  const { log } = createSender("Transfer");
 
   const { explorerTransaction } = useGetExplorerLink();
 

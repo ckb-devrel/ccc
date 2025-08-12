@@ -1,13 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import React, { useEffect } from "react";
-import { Key, Wallet } from "lucide-react";
 import { BigButton } from "@/src/components/BigButton";
-import { useRouter } from "next/navigation";
 import { useApp } from "@/src/context";
+import { ccc } from "@ckb-ccc/connector-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();

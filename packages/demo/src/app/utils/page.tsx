@@ -1,11 +1,10 @@
 "use client";
 
-import { useApp } from "@/src/context";
-import { Dropdown } from "@/src/components/Dropdown";
-import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { icons } from "lucide-react";
 import { BigButton } from "@/src/components/BigButton";
+import { useApp } from "@/src/context";
+import { icons } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const TABS: [string, string, keyof typeof icons, string][] = [
   ["Hash", "/utils/Hash", "Barcode", "text-violet-500"],

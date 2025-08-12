@@ -1,10 +1,9 @@
 "use client";
 
+import { ccc } from "@ckb-ccc/connector-react";
+import axios from "axios";
 import { bech32 } from "bech32";
 import WebSocket from "isomorphic-ws";
-import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useState, useCallback } from "react";
-import { useApp } from "./context";
 import {
   Braces,
   Bug,
@@ -18,16 +17,17 @@ import {
   StepForward,
   Trash,
 } from "lucide-react";
-import { Button } from "./components/Button";
-import { DEFAULT_TRANSFER } from "./examples";
-import { About } from "./tabs/About";
-import { Console } from "./tabs/Console";
-import axios from "axios";
-import { execute } from "./execute";
-import { Editor } from "./components/Editor";
-import * as prettier from "prettier/standalone";
 import * as prettierTs from "prettier/parser-typescript";
 import * as prettierEstree from "prettier/plugins/estree";
+import * as prettier from "prettier/standalone";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "./components/Button";
+import { Editor } from "./components/Editor";
+import { useApp } from "./context";
+import { DEFAULT_TRANSFER } from "./examples";
+import { execute } from "./execute";
+import { About } from "./tabs/About";
+import { Console } from "./tabs/Console";
 
 async function shareToNostr(
   client: ccc.Client,
@@ -178,14 +178,8 @@ const DEFAULT_NOSTR_RELAYS = [
 ];
 
 export default function Home() {
-  const {
-    openSigner,
-    openAction,
-    signer,
-    messages,
-    sendMessage,
-    clearMessage,
-  } = useApp();
+  const { openSigner, openAction, signer, sendMessage, clearMessage } =
+    useApp();
   const { setClient, client } = ccc.useCcc();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -196,7 +190,6 @@ export default function Home() {
   );
 
   const [tab, setTab] = useState("Console");
-  const [readMsgCount, setReadMsgCount] = useState(0);
   const [highlight, setHighlight] = useState<number[] | undefined>(undefined);
 
   const [isTestnet, setIsTestnet] = useState(true);
@@ -292,17 +285,6 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
-
-  useEffect(() => {
-    if (tab === "Console") {
-      setReadMsgCount(messages.length);
-      return;
-    }
-
-    if (messages.slice(readMsgCount).some(([level]) => level === "error")) {
-      setTab("Console");
-    }
-  }, [messages, tab, readMsgCount]);
 
   return (
     <div className="flex min-h-dvh w-full flex-col lg:h-dvh lg:flex-row">
