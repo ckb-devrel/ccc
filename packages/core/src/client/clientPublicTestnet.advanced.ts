@@ -126,7 +126,7 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x4dcf3f3b09efac8995d6cbee87c5345e812d310094651e0c3d9a730f32dc9263",
+                "0x759f281588c96979764cb21c196478cf8e13ea81fede7f4ba26d1ff29dbc6a81",
               index: 0,
             },
             depType: "depGroup",
