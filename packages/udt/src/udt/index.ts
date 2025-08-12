@@ -105,8 +105,9 @@ export class UdtManager {
   ): Promise<Info> {
     let info = initialInfo;
     for (const cell of cells) {
+      const oldInfo = info;
       info = await this.infoFrom(client, info, cell);
-      if (info.count > 0) {
+      if (info.count > oldInfo.count) {
         tx.addInput(cell);
       }
     }
@@ -126,7 +127,6 @@ export class UdtManager {
     );
     const cellOutput = ccc.CellOutput.from(
       {
-        capacity: amount,
         lock,
         type: this.script,
       },
@@ -153,7 +153,7 @@ export class UdtManager {
     }
 
     const info = await this.infoFrom(client, undefined, cell);
-    if (!info) {
+    if (info.count === 0) {
       throw Error("Change output must be a UDT cell");
     }
 
@@ -267,10 +267,7 @@ export class UdtManager {
       yield { addedInput, initialInput, output };
     }
 
-    throw new ErrorUdtInsufficientCoin(
-      output.balance - addedInput.balance,
-      this,
-    );
+    throw new ErrorUdtInsufficientCoin(minBalance - addedInput.balance, this);
   }
 
   async completeChangeTo(
