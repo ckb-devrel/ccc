@@ -1,4 +1,4 @@
-import { CircleCheck, CircleX, Lightbulb, OctagonAlert } from "lucide-react";
+import { CircleCheck, CircleX, Lightbulb } from "lucide-react";
 import React, { useState } from "react";
 
 export interface MessageProps {

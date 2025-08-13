@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
-import { ccc } from "@ckb-ccc/connector-react";
-import { Textarea } from "@/src/components/Textarea";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { Textarea } from "@/src/components/Textarea";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc } from "@ckb-ccc/connector-react";
+import { useEffect, useState } from "react";
 
 export default function TransferUdt() {
   const { client } = ccc.useCcc();

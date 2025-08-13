@@ -1,3 +1,4 @@
+import { describe, expect, test } from "vitest";
 import { fixedPointFrom, fixedPointToString } from "./index.js";
 
 describe("fixedPointToString", () => {

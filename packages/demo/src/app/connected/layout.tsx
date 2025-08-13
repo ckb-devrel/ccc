@@ -1,9 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useApp } from "@/src/context";
-import { useEffect } from "react";
-import React from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect } from "react";
 
 export default function RootLayout({
   children,

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
 import { Button } from "@/src/components/Button";
+import { Dropdown } from "@/src/components/Dropdown";
 import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
-import { Dropdown } from "@/src/components/Dropdown";
 import { ccc } from "@ckb-ccc/connector-react";
+import React, { useState } from "react";
 import { Icon } from "../../../../../components/Icon";
 
 export type ScriptAmountType = {

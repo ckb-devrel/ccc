@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { ccc, spore } from "@ckb-ccc/connector-react";
-import { Textarea } from "@/src/components/Textarea";
+import { TextInput } from "@/src/components/Input";
 import { Message } from "@/src/components/Message";
+import { Textarea } from "@/src/components/Textarea";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc, spore } from "@ckb-ccc/connector-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 function generateClusterDescriptionUnderDobProtocol(
   client: ccc.Client,
@@ -206,7 +206,7 @@ export default function CreateSporeCluster() {
                 const compressed = JSON.stringify(JSON.parse(description));
                 log("JSON object description was compressed");
                 return compressed;
-              } catch (err) {
+              } catch (_err) {
                 warn(
                   "Failed to parse description as JSON object, leaving it unchanged",
                 );

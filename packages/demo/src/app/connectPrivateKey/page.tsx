@@ -1,12 +1,12 @@
 "use client";
 
-import { useApp } from "@/src/context";
 import { Button } from "@/src/components/Button";
-import { useState } from "react";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
+import { useApp } from "@/src/context";
 import { ccc } from "@ckb-ccc/connector-react";
 import { useRouter } from "next/navigation";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { useState } from "react";
 
 export default function Page() {
   const router = useRouter();

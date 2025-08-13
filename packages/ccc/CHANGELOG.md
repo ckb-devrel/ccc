@@ -1,5 +1,48 @@
 # @ckb-ccc/ccc
 
+## 1.1.11
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.19
+  - @ckb-ccc/joy-id@1.0.19
+  - @ckb-ccc/nip07@1.0.19
+  - @ckb-ccc/okx@1.0.19
+  - @ckb-ccc/rei@1.0.19
+  - @ckb-ccc/shell@1.1.11
+  - @ckb-ccc/uni-sat@1.0.19
+  - @ckb-ccc/utxo-global@1.0.19
+  - @ckb-ccc/xverse@1.0.19
+
+## 1.1.10
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.18
+  - @ckb-ccc/joy-id@1.0.18
+  - @ckb-ccc/nip07@1.0.18
+  - @ckb-ccc/okx@1.0.18
+  - @ckb-ccc/rei@1.0.18
+  - @ckb-ccc/shell@1.1.10
+  - @ckb-ccc/uni-sat@1.0.18
+  - @ckb-ccc/utxo-global@1.0.18
+  - @ckb-ccc/xverse@1.0.18
+
+## 1.1.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.17
+  - @ckb-ccc/joy-id@1.0.17
+  - @ckb-ccc/nip07@1.0.17
+  - @ckb-ccc/okx@1.0.17
+  - @ckb-ccc/rei@1.0.17
+  - @ckb-ccc/shell@1.1.9
+  - @ckb-ccc/uni-sat@1.0.17
+  - @ckb-ccc/utxo-global@1.0.17
+  - @ckb-ccc/xverse@1.0.17
+
 ## 1.1.8
 
 ### Patch Changes

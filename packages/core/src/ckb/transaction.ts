@@ -7,11 +7,7 @@ import {
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
-import {
-  Zero,
-  fixedPointFrom,
-  fixedPointToString,
-} from "../fixedPoint/index.js";
+import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
@@ -27,6 +23,10 @@ import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
+import {
+  ErrorTransactionInsufficientCapacity,
+  ErrorTransactionInsufficientCoin,
+} from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
 export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
@@ -162,6 +162,36 @@ export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
     }
     return new OutPoint(hexFrom(outPoint.txHash), numFrom(outPoint.index));
   }
+
+  /**
+   * Clone a OutPoint.
+   *
+   * @returns A cloned OutPoint instance.
+   *
+   * @example
+   * ```typescript
+   * const outPoint1 = outPoint0.clone();
+   * ```
+   */
+  clone(): OutPoint {
+    return new OutPoint(this.txHash, this.index);
+  }
+
+  /**
+   * Check if the OutPoint is equal to another OutPoint.
+   * @public
+   * @param other - The other OutPoint to compare with
+   * @returns True if the OutPoints are equal, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const isEqual = outPoint0.eq(outPoint1);
+   * ```
+   */
+  eq(other: OutPointLike): boolean {
+    other = OutPoint.from(other);
+    return this.txHash === other.txHash && this.index === other.index;
+  }
 }
 
 /**
@@ -228,6 +258,20 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
     );
+  }
+
+  /**
+   * Clone a CellOutput.
+   *
+   * @returns A cloned CellOutput instance.
+   *
+   * @example
+   * ```typescript
+   * const cellOutput1 = cellOutput0.clone();
+   * ```
+   */
+  clone(): CellOutput {
+    return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -700,12 +744,23 @@ export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
     return (await this.getCell(client)).getDaoProfit(client);
   }
 
+  /**
+   * Clone a CellInput.
+   *
+   * @returns A cloned CellInput instance.
+   *
+   * @example
+   * ```typescript
+   * const cellInput1 = cellInput0.clone();
+   * ```
+   */
   clone(): CellInput {
-    const cloned = super.clone();
-    cloned.cellOutput = this.cellOutput;
-    cloned.outputData = this.outputData;
-
-    return cloned;
+    return new CellInput(
+      this.previousOutput.clone(),
+      this.since,
+      this.cellOutput?.clone(),
+      this.outputData,
+    );
   }
 }
 export const CellInputVec = mol.vector(CellInput);
@@ -742,21 +797,6 @@ export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
   }
 
   /**
-   * Clone a CellDep.
-   *
-   * @returns A cloned CellDep instance.
-   *
-   * @example
-   * ```typescript
-   * const cellDep1 = cellDep0.clone();
-   * ```
-   */
-
-  clone(): CellDep {
-    return new CellDep(this.outPoint.clone(), this.depType);
-  }
-
-  /**
    * Creates a CellDep instance from a CellDepLike object.
    *
    * @param cellDep - A CellDepLike object or an instance of CellDep.
@@ -780,6 +820,20 @@ export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
       OutPoint.from(cellDep.outPoint),
       depTypeFrom(cellDep.depType),
     );
+  }
+
+  /**
+   * Clone a CellDep.
+   *
+   * @returns A cloned CellDep instance.
+   *
+   * @example
+   * ```typescript
+   * const cellDep1 = cellDep0.clone();
+   * ```
+   */
+  clone(): CellDep {
+    return new CellDep(this.outPoint.clone(), this.depType);
   }
 }
 export const CellDepVec = mol.vector(CellDep);
@@ -962,6 +1016,55 @@ export class Transaction extends mol.Entity.Base<
     this.outputs = tx.outputs;
     this.outputsData = tx.outputsData;
     this.witnesses = tx.witnesses;
+  }
+
+  /**
+   * Creates a deep copy of the transaction.
+   * This method creates a new Transaction instance with all nested objects cloned,
+   * ensuring that modifications to the cloned transaction do not affect the original.
+   *
+   * @returns A new Transaction instance that is a deep copy of the current transaction.
+   *
+   * @example
+   * ```typescript
+   * const originalTx = Transaction.from({
+   *   version: 0,
+   *   inputs: [{ previousOutput: { txHash: "0x...", index: 0 } }],
+   *   outputs: [{ capacity: 1000n, lock: lockScript }],
+   *   outputsData: ["0x"],
+   *   witnesses: ["0x"]
+   * });
+   *
+   * const clonedTx = originalTx.clone();
+   *
+   * // Modifications to clonedTx won't affect originalTx
+   * clonedTx.addOutput({ capacity: 2000n, lock: anotherLockScript });
+   * console.log(originalTx.outputs.length); // Still 1
+   * console.log(clonedTx.outputs.length);   // Now 2
+   * ```
+   *
+   * @remarks
+   * The clone operation performs deep copying for:
+   * - Cell dependencies (cellDeps) - each CellDep is cloned
+   * - Inputs - each CellInput is cloned
+   * - Outputs - each CellOutput is cloned
+   *
+   * The following are shallow copied (references to immutable data):
+   * - Header dependencies (headerDeps) - Hex strings are immutable
+   * - Output data (outputsData) - Hex strings are immutable
+   * - Witnesses - Hex strings are immutable
+   * - Version - bigint is immutable
+   */
+  clone(): Transaction {
+    return new Transaction(
+      this.version,
+      this.cellDeps.map((c) => c.clone()),
+      this.headerDeps.map((h) => h),
+      this.inputs.map((i) => i.clone()),
+      this.outputs.map((o) => o.clone()),
+      this.outputsData.map((o) => o),
+      this.witnesses.map((w) => w),
+    );
   }
 
   /**
@@ -1673,10 +1776,10 @@ export class Transaction extends mol.Entity.Base<
     capacityTweak?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    const exceptedCapacity =
+    const expectedCapacity =
       this.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
     const inputsCapacity = await this.getInputsCapacity(from.client);
-    if (inputsCapacity >= exceptedCapacity) {
+    if (inputsCapacity >= expectedCapacity) {
       return 0;
     }
 
@@ -1688,7 +1791,7 @@ export class Transaction extends mol.Entity.Base<
       },
       (acc, { cellOutput: { capacity } }) => {
         const sum = acc + capacity;
-        return sum >= exceptedCapacity ? undefined : sum;
+        return sum >= expectedCapacity ? undefined : sum;
       },
       inputsCapacity,
     );
@@ -1697,8 +1800,8 @@ export class Transaction extends mol.Entity.Base<
       return addedCount;
     }
 
-    throw new Error(
-      `Insufficient CKB, need ${fixedPointToString(exceptedCapacity - accumulated)} extra CKB`,
+    throw new ErrorTransactionInsufficientCapacity(
+      expectedCapacity - accumulated,
     );
   }
 
@@ -1719,15 +1822,45 @@ export class Transaction extends mol.Entity.Base<
     return addedCount;
   }
 
+  /**
+   * Complete inputs by UDT balance
+   *
+   * This method succeeds only if enough balance is collected.
+   *
+   * It will try to collect at least two inputs, even when the first input already contains enough balance, to avoid extra occupation fees introduced by the change cell. An edge case: If the first cell has the same amount as the output, a new cell is not needed.
+   * @param from - The signer to complete the inputs.
+   * @param type - The type script of the UDT.
+   * @param balanceTweak - The tweak of the balance.
+   * @returns A promise that resolves to the number of inputs added.
+   */
   async completeInputsByUdt(
     from: Signer,
     type: ScriptLike,
     balanceTweak?: NumLike,
   ): Promise<number> {
-    const exceptedBalance =
+    const expectedBalance =
       this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
-    const inputsBalance = await this.getInputsUdtBalance(from.client, type);
-    if (inputsBalance >= exceptedBalance) {
+    if (expectedBalance === numFrom(0)) {
+      return 0;
+    }
+
+    const [inputsBalance, inputsCount] = await reduceAsync(
+      this.inputs,
+      async ([balanceAcc, countAcc], input) => {
+        const { cellOutput, outputData } = await input.getCell(from.client);
+        if (!cellOutput.type?.eq(type)) {
+          return;
+        }
+
+        return [balanceAcc + udtBalanceFrom(outputData), countAcc + 1];
+      },
+      [numFrom(0), 0],
+    );
+
+    if (
+      inputsBalance === expectedBalance ||
+      (inputsBalance >= expectedBalance && inputsCount >= 2)
+    ) {
       return 0;
     }
 
@@ -1737,20 +1870,24 @@ export class Transaction extends mol.Entity.Base<
         script: type,
         outputDataLenRange: [16, numFrom("0xffffffff")],
       },
-      (acc, { outputData }) => {
+      (acc, { outputData }, _i, collected) => {
         const balance = udtBalanceFrom(outputData);
         const sum = acc + balance;
-        return sum >= exceptedBalance ? undefined : sum;
+        return sum === expectedBalance ||
+          (sum >= expectedBalance && inputsCount + collected.length >= 2)
+          ? undefined
+          : sum;
       },
       inputsBalance,
     );
 
-    if (accumulated === undefined) {
+    if (accumulated === undefined || accumulated >= expectedBalance) {
       return addedCount;
     }
 
-    throw new Error(
-      `Insufficient coin, need ${exceptedBalance - accumulated} extra coin`,
+    throw new ErrorTransactionInsufficientCoin(
+      expectedBalance - accumulated,
+      type,
     );
   }
 
@@ -1803,12 +1940,54 @@ export class Transaction extends mol.Entity.Base<
     return (numFrom(txSize) * numFrom(feeRate) + numFrom(999)) / numFrom(1000);
   }
 
+  /**
+   * Completes the transaction fee by adding inputs and handling change outputs.
+   * This method automatically calculates the required fee based on the transaction size and fee rate,
+   * adds necessary inputs to cover the fee, and handles change outputs through the provided change function.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param change - A function that handles change capacity. It receives the transaction and excess capacity,
+   *                 and should return the additional capacity needed (0 if change is handled successfully,
+   *                 positive number if more capacity is needed for change cell creation).
+   * @param expectedFeeRate - The expected fee rate in shannons per 1000 bytes. If not provided,
+   *                          it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when expectedFeeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @throws {ErrorTransactionInsufficientCapacity} When there's not enough capacity to cover the fee.
+   * @throws {Error} When the change function doesn't properly handle the available capacity.
+   *
+   * @example
+   * ```typescript
+   * const [addedInputs, hasChange] = await tx.completeFee(
+   *   signer,
+   *   (tx, capacity) => {
+   *     if (capacity >= 61_00000000n) { // Minimum for a change cell
+   *       tx.addOutput({ capacity, lock: changeScript });
+   *       return 0;
+   *     }
+   *     return 61_00000000n; // Need more capacity for change cell
+   *   },
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   async completeFee(
     from: Signer,
     change: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike,
     expectedFeeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
-    options?: { feeRateBlockRange?: NumLike; maxFeeRate?: NumLike },
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const feeRate =
       expectedFeeRate ??
@@ -1823,6 +2002,15 @@ export class Transaction extends mol.Entity.Base<
     while (true) {
       const tx = this.clone();
       const collected = await (async () => {
+        if (!(options?.shouldAddInputs ?? true)) {
+          const fee =
+            (await tx.getFee(from.client)) - leastFee - leastExtraCapacity;
+          if (fee < Zero) {
+            throw new ErrorTransactionInsufficientCapacity(-fee);
+          }
+          return 0;
+        }
+
         try {
           return await tx.completeInputsByCapacity(
             from,
@@ -1830,8 +2018,13 @@ export class Transaction extends mol.Entity.Base<
             filter,
           );
         } catch (err) {
-          if (leastExtraCapacity !== Zero) {
-            throw new Error("Not enough capacity for the change cell");
+          if (
+            err instanceof ErrorTransactionInsufficientCapacity &&
+            leastExtraCapacity !== Zero
+          ) {
+            throw new ErrorTransactionInsufficientCapacity(err.amount, {
+              isForChange: true,
+            });
           }
 
           throw err;
@@ -1885,6 +2078,11 @@ export class Transaction extends mol.Entity.Base<
     change: ScriptLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const script = Script.from(change);
 
@@ -1902,6 +2100,7 @@ export class Transaction extends mol.Entity.Base<
       },
       feeRate,
       filter,
+      options,
     );
   }
 
@@ -1909,10 +2108,15 @@ export class Transaction extends mol.Entity.Base<
     from: Signer,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const { script } = await from.getRecommendedAddressObj();
 
-    return this.completeFeeChangeToLock(from, script, feeRate, filter);
+    return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
   completeFeeChangeToOutput(
@@ -1920,6 +2124,11 @@ export class Transaction extends mol.Entity.Base<
     index: NumLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    },
   ): Promise<[number, boolean]> {
     const change = Number(numFrom(index));
     if (!this.outputs[change]) {
@@ -1933,6 +2142,7 @@ export class Transaction extends mol.Entity.Base<
       },
       feeRate,
       filter,
+      options,
     );
   }
 }

@@ -1,0 +1,46 @@
+/** @type {Partial<import("typedoc").TypeDocOptions>} */
+const config = {
+  $schema: "https://typedoc.org/schema.json",
+  name: "CCC Docs",
+  entryPoints: [
+    "packages/core",
+    "packages/ssri",
+    "packages/udt",
+    "packages/spore",
+    "packages/shell",
+    "packages/ccc",
+    "packages/connector",
+    "packages/connector-react",
+    "packages/utxo-global",
+    "packages/rei",
+    "packages/joy-id",
+    "packages/okx",
+    "packages/xverse",
+    "packages/uni-sat",
+    "packages/nip07",
+    "packages/eip6963",
+    "packages/lumos-patches",
+  ],
+  entryPointStrategy: "packages",
+  githubPages: true,
+  navigationLinks: {
+    GitHub: "https://github.com/ckb-devrel/ccc",
+    App: "https://app.ckbccc.com",
+    Docs: "https://docs.ckbccc.com",
+    Playground: "https://live.ckbccc.com",
+  },
+  hostedBaseUrl: "https://api.ckbccc.com",
+  customCss: "./assets/typedoc.css",
+  plugin: [
+    "typedoc-material-theme",
+    "typedoc-plugin-extras",
+    "typedoc-plugin-ga",
+  ],
+  themeColor: "#434343",
+  favicon: "assets/logo.svg",
+  customDescription: "Docs for CCC",
+  footerLastModified: true,
+  gaID: process.env.ANALYTICS_ID,
+};
+
+export default config;

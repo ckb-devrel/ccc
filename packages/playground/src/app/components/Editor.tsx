@@ -1,8 +1,8 @@
 import MonacoEditor from "@monaco-editor/react";
+import { shikiToMonaco } from "@shikijs/monaco";
 import { LoaderCircle } from "lucide-react";
 import { editor } from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
-import { shikiToMonaco } from "@shikijs/monaco";
 import { createHighlighter } from "shiki";
 
 const ReactSource = require.context(
@@ -144,6 +144,10 @@ export function Editor({
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
             "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
+          );
+          monaco.languages.typescript.typescriptDefaults.addExtraLib(
+            '{ "type": "commonjs" }',
+            "file:///node_modules/@ckb-ccc/playground/package.json",
           );
 
           monaco.languages.register({ id: "typescript" });

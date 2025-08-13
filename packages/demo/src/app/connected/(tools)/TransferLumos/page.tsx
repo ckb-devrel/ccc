@@ -1,20 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { Textarea } from "@/src/components/Textarea";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
+import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
+import { Indexer } from "@ckb-lumos/ckb-indexer";
 import common, {
   registerCustomLockScriptInfos,
 } from "@ckb-lumos/common-scripts/lib/common";
-import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
-import { Indexer } from "@ckb-lumos/ckb-indexer";
-import { TransactionSkeleton } from "@ckb-lumos/helpers";
 import { predefined } from "@ckb-lumos/config-manager";
-import { Textarea } from "@/src/components/Textarea";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TransactionSkeleton } from "@ckb-lumos/helpers";
+import { useState } from "react";
 
 export default function TransferLumos() {
   const { signer, createSender } = useApp();
@@ -100,7 +100,7 @@ export default function TransferLumos() {
               const dataBytes = (() => {
                 try {
                   return ccc.bytesFrom(data);
-                } catch (e) {}
+                } catch (_e) {}
 
                 return ccc.bytesFrom(data, "utf8");
               })();

@@ -1,31 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { ScriptAmountType } from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import {
-  ScriptAmountArrayInput,
-  ScriptAmountInput,
-  ScriptAmountType,
-} from "@/src/app/connected/(tools)/SSRI/components/ScriptAmountInput";
-import { ssri } from "@ckb-ccc/ssri";
+import { Icon } from "@/src/components/Icon";
+import { TextInput } from "@/src/components/Input";
+import { useApp } from "@/src/context";
 import { ccc } from "@ckb-ccc/connector-react";
+import { ssri } from "@ckb-ccc/ssri";
 import JsonView from "@uiw/react-json-view";
 import { darkTheme } from "@uiw/react-json-view/dark";
 import Image from "next/image";
-import {
-  HexArrayInput,
-  HexInput,
-} from "@/src/app/connected/(tools)/SSRI/components/HexArrayInput";
-import { Icon } from "@/src/components/Icon";
-import { MethodParamType, PARAM_TYPE_OPTIONS } from "./types";
-import { ParamValue } from "./types";
-import { MethodParam } from "./types";
+import { useCallback, useEffect, useState } from "react";
 import { ParameterInput } from "./components/ParameterInput";
 import { TransactionSkeletonPanel } from "./components/TransactionSkeletonPanel";
+import {
+  MethodParam,
+  MethodParamType,
+  PARAM_TYPE_OPTIONS,
+  ParamValue,
+} from "./types";
 
 const METHODS_OPTIONS = [
   "SSRI.version",
@@ -48,7 +43,9 @@ export default function SSRI() {
   const [paramValues, setParamValues] = useState<Record<string, ParamValue>>(
     {},
   );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [methodResult, setMethodResult] = useState<any>(undefined);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [SSRICallDetails, setSSRICallDetails] = useState<any>(null);
   const [iconDataURL, setIconDataURL] = useState<string>("");
   const [ssriContractTypeIDArgs, setSsriContractTypeIDArgs] = useState<string>(
@@ -167,8 +164,8 @@ export default function SSRI() {
         | ssri.ContextTransaction
         | undefined;
 
-      const args = methodParams.map((paramType, index) => {
-        let value = paramValues[`Parameter${index}`];
+      const args = methodParams.map((_paramType, index) => {
+        const value = paramValues[`Parameter${index}`];
         return value;
       });
 
@@ -204,22 +201,21 @@ export default function SSRI() {
         "index",
         String(contractOutPointIndex),
       );
-      let result;
-      result = await callSSRI(result, args, context);
+      const result = await callSSRI(args, context);
       if (result) {
         try {
           const transaction = ccc.Transaction.fromBytes(
             result.res as ccc.HexLike,
           );
           setTransactionResult(transaction);
-        } catch (e) {}
+        } catch (_e) {}
         setMethodResult(result);
         try {
           const dataURL = ccc.bytesTo(result.res as string, "utf8");
           if (dataURL.startsWith("http") || dataURL.startsWith("data:image")) {
             setIconDataURL(dataURL);
           }
-        } catch (e) {}
+        } catch (_e) {}
       }
     } catch (e) {
       let errorMessage =
@@ -239,7 +235,6 @@ export default function SSRI() {
     }
 
     async function callSSRI(
-      result: any,
       args: ParamValue[],
       context:
         | ssri.ContextScript
@@ -249,7 +244,7 @@ export default function SSRI() {
     ) {
       if (!contract) return;
 
-      let argsHex = methodParams
+      const argsHex = methodParams
         .map((param, index) => {
           const arg = args[index];
 
@@ -308,11 +303,9 @@ export default function SSRI() {
         })
         .filter((arg) => arg !== undefined);
 
-      result = await contract
+      return await contract
         .assertExecutor()
         .runScript(contract.code, rawMethodPath, argsHex, context);
-
-      return result;
     }
   };
 

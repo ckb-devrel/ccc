@@ -1,26 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { Dropdown } from "@/src/components/Dropdown";
+import { Message } from "@/src/components/Message";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
 import {
+  BtcApiUtxo,
+  BtcAssetApiConfig,
   buildNetworkConfig,
+  CkbRgbppUnlockSinger,
+  createBrowserRgbppBtcWallet,
+  getSupportedWallets,
   isMainnet,
   NetworkConfig,
   PredefinedNetwork,
   RgbppUdtClient,
   UtxoSeal,
-  CkbRgbppUnlockSinger,
-  getSupportedWallets,
-  createBrowserRgbppBtcWallet,
-  BtcAssetApiConfig,
-  BtcApiUtxo,
 } from "@ckb-ccc/rgbpp";
-import { useApp } from "@/src/context";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { ccc, SignerBtc } from "@ckb-ccc/connector-react";
-import { Message } from "@/src/components/Message";
-import { Dropdown } from "@/src/components/Dropdown";
-import { useGetExplorerLink } from "@/src/utils";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const issuanceAmount = BigInt(21000000);
 const xudtToken = {

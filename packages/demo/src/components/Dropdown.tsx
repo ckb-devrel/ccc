@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { Icon } from "./Icon";
 import { icons } from "lucide-react";
+import { useState } from "react";
+import { Icon } from "./Icon";
 
 interface DropdownProps {
   options: {

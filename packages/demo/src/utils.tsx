@@ -20,7 +20,7 @@ export function tokenInfoToBytes(
 export function bytesFromAnyString(str: string): ccc.Bytes {
   try {
     return ccc.bytesFrom(str);
-  } catch (e) {}
+  } catch (_e) {}
 
   return ccc.bytesFrom(str, "utf8");
 }

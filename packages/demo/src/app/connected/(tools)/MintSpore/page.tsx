@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { TextInput } from "@/src/components/Input";
 import { Button } from "@/src/components/Button";
-import { useGetExplorerLink } from "@/src/utils";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { Dropdown } from "@/src/components/Dropdown";
-import { ccc, spore } from "@ckb-ccc/connector-react";
+import { TextInput } from "@/src/components/Input";
 import { Message } from "@/src/components/Message";
+import { useApp } from "@/src/context";
+import { useGetExplorerLink } from "@/src/utils";
+import { ccc, spore } from "@ckb-ccc/connector-react";
 import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 export default function MintSpore() {
   const { signer, createSender } = useApp();
@@ -39,7 +39,7 @@ export default function MintSpore() {
         const compressed = JSON.stringify(JSON.parse(content));
         log("JSON object content was compressed");
         return compressed;
-      } catch (err) {
+      } catch (_err) {
         warn("Failed to parse content as JSON object, leaving it unchanged");
         return content;
       }

@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { Search } from "lucide-react";
-import { useGetExplorerLink } from "../utils";
 import Link from "next/link";
+import { useGetExplorerLink } from "../utils";
 
 export function About(props: React.ComponentPropsWithoutRef<"div">) {
   const { index } = useGetExplorerLink();

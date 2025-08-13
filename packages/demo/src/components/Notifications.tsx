@@ -1,6 +1,6 @@
-import React, { useState, useEffect, ReactNode } from "react";
-import { Message } from "./Message";
 import { ChevronsRightLeft, History } from "lucide-react";
+import { ReactNode, useEffect, useState } from "react";
+import { Message } from "./Message";
 
 interface NotificationProps {
   messages: ["info" | "warn" | "error", string, ReactNode][];

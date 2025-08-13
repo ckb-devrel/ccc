@@ -1,9 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { Camera, CameraOff, Pause, Play } from "lucide-react";
 import { Component, createRef, ReactNode, RefObject } from "react";
-import { RandomWalk } from "./RandomWalk";
 import { APP_CONTEXT } from "../context";
+import { RandomWalk } from "./RandomWalk";
 
 export class Background extends Component {
   static contextType = APP_CONTEXT;

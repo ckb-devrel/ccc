@@ -1,11 +1,11 @@
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import React, { useState } from "react";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
-import { useApp } from "@/src/context";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { Textarea } from "@/src/components/Textarea";
+import { useApp } from "@/src/context";
+import { ccc } from "@ckb-ccc/connector-react";
+import { useState } from "react";
 
 export default function Sign() {
   const { signer, createSender } = useApp();
@@ -16,7 +16,7 @@ export default function Sign() {
 
   return (
     <div className="flex w-full flex-col items-stretch">
-      <TextInput
+      <Textarea
         label="Message"
         placeholder="Message to sign and verify"
         state={[messageToSign, setMessageToSign]}
