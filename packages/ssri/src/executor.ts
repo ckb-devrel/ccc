@@ -63,6 +63,14 @@ export class ExecutorResponse<T> {
       throw new ExecutorErrorDecode(JSON.stringify(err));
     }
   }
+
+  async mapAsync<U>(fn: (res: T) => Promise<U>): Promise<ExecutorResponse<U>> {
+    try {
+      return new ExecutorResponse(await fn(this.res), this.cellDeps);
+    } catch (err) {
+      throw new ExecutorErrorDecode(JSON.stringify(err));
+    }
+  }
 }
 
 /**
