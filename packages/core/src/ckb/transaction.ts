@@ -965,6 +965,7 @@ export class WitnessArgs extends mol.Entity.Base<
 /**
  * Convert a bytes to a num.
  *
+ * @deprecated Use `Udt.balanceFrom` from `@ckb-ccc/udt` instead
  * @public
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
