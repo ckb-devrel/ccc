@@ -23,7 +23,7 @@
     }
   },
   "scripts": {
-    "test": "jest",
+    "test": "vitest",
     "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
