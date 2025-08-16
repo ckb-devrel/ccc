@@ -198,7 +198,7 @@ export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
  * @public
  */
 export type CellOutputLike = {
-  capacity: NumLike;
+  capacity?: NumLike | null;
   lock: ScriptLike;
   type?: ScriptLike | null;
 };
@@ -238,7 +238,6 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
    * This method supports automatic capacity calculation when capacity is 0 or omitted.
    *
    * @param cellOutput - A CellOutputLike object or an instance of CellOutput.
-   *                     Can also be an object without capacity when outputData is provided.
    * @param outputData - Optional output data used for automatic capacity calculation.
    *                     When provided and capacity is 0, the capacity will be calculated
    *                     as occupiedSize + outputData.length.
@@ -259,16 +258,9 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
    * }, "0x1234"); // Capacity will be calculated automatically
    * ```
    */
-  static from(cellOutput: CellOutputLike, outputData?: HexLike): CellOutput;
   static from(
-    cellOutput: Omit<CellOutputLike, "capacity"> &
-      Partial<Pick<CellOutputLike, "capacity">>,
-    outputData: HexLike,
-  ): CellOutput;
-  static from(
-    cellOutput: Omit<CellOutputLike, "capacity"> &
-      Partial<Pick<CellOutputLike, "capacity">>,
-    outputData?: HexLike,
+    cellOutput: CellOutputLike,
+    outputData?: HexLike | null,
   ): CellOutput {
     if (cellOutput instanceof CellOutput) {
       return cellOutput;
@@ -307,22 +299,172 @@ export const CellOutputVec = mol.vector(CellOutput);
 
 /**
  * @public
+ * Represents a cell-like object that may or may not be on-chain.
+ * It can optionally have an `outPoint` (or `previousOutput`).
+ * This is used as a flexible input for creating `CellAny` instances.
+ * @see CellAny
  */
-export type CellLike = (
-  | {
-      outPoint: OutPointLike;
-    }
-  | { previousOutput: OutPointLike }
-) & {
+export type CellAnyLike = {
+  outPoint?: OutPointLike | null;
+  previousOutput?: OutPointLike | null;
   cellOutput: CellOutputLike;
-  outputData: HexLike;
+  outputData?: HexLike | null;
 };
 /**
+ * Represents a CKB cell that can be either on-chain (with an `outPoint`) or off-chain (without an `outPoint`).
+ * This class provides a unified interface for handling cells before they are included in a transaction,
+ * or for cells that are already part of the blockchain state.
+ *
  * @public
  */
-export class Cell {
+export class CellAny {
   /**
-   * Creates an instance of Cell.
+   * Creates an instance of CellAny.
+   *
+   * @param cellOutput - The cell output of the cell.
+   * @param outputData - The output data of the cell.
+   * @param outPoint - The optional output point of the cell. If provided, the cell is considered on-chain.
+   */
+
+  constructor(
+    public cellOutput: CellOutput,
+    public outputData: Hex,
+    public outPoint?: OutPoint,
+  ) {}
+
+  /**
+   * Creates a `CellAny` instance from a `CellAnyLike` object.
+   * This factory method provides a convenient way to create `CellAny` instances
+   * from plain objects, automatically handling the optional `outPoint` or `previousOutput`.
+   *
+   * @param cell - A `CellAnyLike` object.
+   * @returns A new `CellAny` instance.
+   *
+   * @example
+   * ```typescript
+   * // Create an off-chain cell (e.g., a new output)
+   * const offChainCell = CellAny.from({
+   *   cellOutput: { capacity: 1000n, lock: lockScript },
+   *   outputData: "0x"
+   * });
+   *
+   * // Create an on-chain cell from an input
+   * const onChainCell = CellAny.from({
+   *   outPoint: { txHash: "0x...", index: 0 },
+   *   cellOutput: { capacity: 2000n, lock: lockScript },
+   *   outputData: "0x1234"
+   * });
+   * ```
+   */
+  static from(cell: CellAnyLike): CellAny {
+    if (cell instanceof CellAny) {
+      return cell;
+    }
+
+    return new CellAny(
+      CellOutput.from(cell.cellOutput, cell.outputData),
+      hexFrom(cell.outputData ?? "0x"),
+      apply(OutPoint.from, cell.outPoint ?? cell.previousOutput),
+    );
+  }
+
+  /**
+   * Calculates the total occupied size of the cell in bytes.
+   * This includes the size of the `CellOutput` structure plus the size of the `outputData`.
+   *
+   * @returns The total occupied size in bytes.
+   */
+  get occupiedSize() {
+    return this.cellOutput.occupiedSize + bytesFrom(this.outputData).byteLength;
+  }
+
+  /**
+   * Calculates the free capacity of the cell.
+   * Free capacity is the total capacity minus the capacity occupied by the cell's structure and data.
+   *
+   * @returns The free capacity in shannons as a `Num`.
+   */
+  get capacityFree() {
+    return this.cellOutput.capacity - fixedPointFrom(this.occupiedSize);
+  }
+
+  /**
+   * Checks if the cell is a Nervos DAO cell and optionally checks its phase.
+   *
+   * @param client - A CKB client instance to fetch known script information.
+   * @param phase - Optional phase to check: "deposited" or "withdrew".
+   *                If omitted, it checks if the cell is a DAO cell regardless of phase.
+   * @returns A promise that resolves to `true` if the cell is a matching Nervos DAO cell, `false` otherwise.
+   */
+  async isNervosDao(
+    client: Client,
+    phase?: "deposited" | "withdrew",
+  ): Promise<boolean> {
+    const { type } = this.cellOutput;
+
+    const daoType = await client.getKnownScript(KnownScript.NervosDao);
+    if (
+      !type ||
+      type.codeHash !== daoType.codeHash ||
+      type.hashType !== daoType.hashType
+    ) {
+      // Non Nervos DAO cell
+      return false;
+    }
+
+    const hasWithdrew = numFrom(this.outputData) !== Zero;
+    return (
+      !phase ||
+      (phase === "deposited" && !hasWithdrew) ||
+      (phase === "withdrew" && hasWithdrew)
+    );
+  }
+
+  /**
+   * Clones the `CellAny` instance.
+   *
+   * @returns A new `CellAny` instance that is a deep copy of the current one.
+   *
+   * @example
+   * ```typescript
+   * const clonedCell = cellAny.clone();
+   * ```
+   */
+  clone(): CellAny {
+    return new CellAny(
+      this.cellOutput.clone(),
+      this.outputData,
+      this.outPoint?.clone(),
+    );
+  }
+}
+
+/**
+ * Represents a cell-like object that is guaranteed to be on-chain.
+ * It must have an `outPoint` (or its alias `previousOutput`).
+ * This is used as a type constraint for creating `Cell` instances.
+ * @see Cell
+ * @public
+ */
+export type CellLike = CellAnyLike &
+  (
+    | {
+        outPoint: OutPointLike;
+        previousOutput?: undefined | null;
+      }
+    | {
+        outPoint?: undefined | null;
+        previousOutput: OutPointLike;
+      }
+  );
+/**
+ * Represents an on-chain CKB cell, which is a `CellAny` that is guaranteed to have an `outPoint`.
+ * This class is typically used for cells that are already part of the blockchain state, such as transaction inputs.
+ * @public
+ */
+export class Cell extends CellAny {
+  /**
+   * Creates an instance of an on-chain Cell.
    *
    * @param outPoint - The output point of the cell.
    * @param cellOutput - The cell output of the cell.
@@ -331,9 +473,11 @@ export class Cell {
 
   constructor(
     public outPoint: OutPoint,
-    public cellOutput: CellOutput,
-    public outputData: Hex,
-  ) {}
+    cellOutput: CellOutput,
+    outputData: Hex,
+  ) {
+    super(cellOutput, outputData, outPoint);
+  }
 
   /**
    * Creates a Cell instance from a CellLike object.
@@ -376,25 +520,10 @@ export class Cell {
     }
 
     return new Cell(
-      OutPoint.from("outPoint" in cell ? cell.outPoint : cell.previousOutput),
+      OutPoint.from(cell.outPoint ?? cell.previousOutput),
       CellOutput.from(cell.cellOutput, cell.outputData),
-      hexFrom(cell.outputData),
+      hexFrom(cell.outputData ?? "0x"),
     );
-  }
-
-  get capacityFree() {
-    const occupiedSize = fixedPointFrom(
-      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
-    );
-    return this.cellOutput.capacity - occupiedSize;
-  }
-
-  /**
-   * Occupied bytes of a cell on chain
-   * It's CellOutput.occupiedSize + bytesFrom(outputData).byteLength
-   */
-  get occupiedSize() {
-    return this.cellOutput.occupiedSize + bytesFrom(this.outputData).byteLength;
   }
 
   /**
@@ -426,30 +555,22 @@ export class Cell {
     return calcDaoProfit(this.capacityFree, depositHeader, withdrawHeader);
   }
 
-  async isNervosDao(
-    client: Client,
-    phase?: "deposited" | "withdrew",
-  ): Promise<boolean> {
-    const { type } = this.cellOutput;
-
-    const daoType = await client.getKnownScript(KnownScript.NervosDao);
-    if (
-      !type ||
-      type.codeHash !== daoType.codeHash ||
-      type.hashType !== daoType.hashType
-    ) {
-      // Non Nervos DAO cell
-      return false;
-    }
-
-    const hasWithdrew = numFrom(this.outputData) !== Zero;
-    return (
-      !phase ||
-      (phase === "deposited" && !hasWithdrew) ||
-      (phase === "withdrew" && hasWithdrew)
-    );
-  }
-
+  /**
+   * Retrieves detailed information about a Nervos DAO cell, including its deposit and withdrawal headers.
+   *
+   * @param client - A CKB client instance to fetch cell and header data.
+   * @returns A promise that resolves to an object containing header information.
+   *          - If not a DAO cell, returns `{}`.
+   *          - If a deposited DAO cell, returns `{ depositHeader }`.
+   *          - If a withdrawn DAO cell, returns `{ depositHeader, withdrawHeader }`.
+   *
+   * @throws If the cell is a DAO cell but its corresponding headers cannot be fetched.
+   *
+   * @example
+   * ```typescript
+   * const daoInfo = await cell.getNervosDaoInfo(client);
+   * ```
+   */
   async getNervosDaoInfo(client: Client): Promise<
     // Non Nervos DAO cell
     | {
@@ -1583,39 +1704,92 @@ export class Transaction extends mol.Entity.Base<
    * await tx.getOutput(0);
    * ```
    */
-  getOutput(index: NumLike):
-    | {
-        cellOutput: CellOutput;
-        outputData: Hex;
-      }
-    | undefined {
+  getOutput(index: NumLike): CellAny | undefined {
     const i = Number(numFrom(index));
     if (i >= this.outputs.length) {
       return;
     }
-    return {
+    return CellAny.from({
       cellOutput: this.outputs[i],
       outputData: this.outputsData[i] ?? "0x",
-    };
+    });
   }
+
   /**
-   * Add output
+   * Provides an iterable over the transaction's output cells.
    *
-   * @param outputLike - The cell output to add
-   * @param outputData - optional output data
+   * This getter is a convenient way to iterate through all the output cells (`CellAny`)
+   * of the transaction, combining the `outputs` and `outputsData` arrays.
+   * It can be used with `for...of` loops or other iterable-consuming patterns.
+   *
+   * @public
+   * @category Getter
+   * @returns An `Iterable<CellAny>` that yields each output cell of the transaction.
    *
    * @example
    * ```typescript
-   * await tx.addOutput(cellOutput, "0xabcd");
+   * for (const cell of tx.outputCells) {
+   *   console.log(`Output cell capacity: ${cell.cellOutput.capacity}`);
+   * }
    * ```
    */
+  get outputCells(): Iterable<CellAny> {
+    const { outputs, outputsData } = this;
+
+    function* generator(): Generator<CellAny> {
+      for (let i = 0; i < outputs.length; i++) {
+        yield CellAny.from({
+          cellOutput: outputs[i],
+          outputData: outputsData[i] ?? "0x",
+        });
+      }
+    }
+
+    return generator();
+  }
+
+  /**
+   * Adds an output to the transaction.
+   *
+   * This method supports two overloads for adding an output:
+   * 1. By providing a `CellAnyLike` object, which encapsulates both `cellOutput` and `outputData`.
+   * 2. By providing a `CellOutputLike` object and an optional `outputData`.
+   *
+   * @param cellOrOutputLike - A cell-like object containing both cell output and data, or just the cell output object.
+   * @param outputDataLike - Optional data for the cell output. Defaults to "0x" if not provided in the first argument.
+   * @returns The new number of outputs in the transaction.
+   *
+   * @example
+   * ```typescript
+   * // 1. Add an output using a CellAnyLike object
+   * const newLength1 = tx.addOutput({
+   *   cellOutput: { lock: recipientLock }, // capacity is calculated automatically
+   *   outputData: "0x1234",
+   * });
+   *
+   * // 2. Add an output using CellOutputLike and data separately
+   * const newLength2 = tx.addOutput({ lock: recipientLock }, "0xabcd");
+   * ```
+   */
+  addOutput(cellLike: CellAnyLike): number;
   addOutput(
-    outputLike: Omit<CellOutputLike, "capacity"> &
-      Partial<Pick<CellOutputLike, "capacity">>,
-    outputData: HexLike = "0x",
+    outputLike: CellOutputLike,
+    outputDataLike?: HexLike | null,
+  ): number;
+  addOutput(
+    cellOrOutputLike: CellAnyLike | CellOutputLike,
+    outputDataLike?: HexLike | null,
   ): number {
-    const len = this.outputs.push(CellOutput.from(outputLike, outputData));
-    this.setOutputDataAt(len - 1, outputData);
+    const cell =
+      "cellOutput" in cellOrOutputLike
+        ? CellAny.from(cellOrOutputLike)
+        : CellAny.from({
+            cellOutput: cellOrOutputLike,
+            outputData: outputDataLike,
+          });
+
+    const len = this.outputs.push(cell.cellOutput);
+    this.setOutputDataAt(len - 1, cell.outputData);
 
     return len;
   }

@@ -4,13 +4,13 @@ import { getMethodPath } from "./utils.js";
 
 export type ContextTransaction = {
   script?: ccc.ScriptLike | null;
-  cell?: Omit<ccc.CellLike, "outPoint"> | null;
+  cell?: ccc.CellAnyLike | null;
   tx: ccc.TransactionLike;
 };
 
 export type ContextCell = {
   script?: ccc.ScriptLike | null;
-  cell: Omit<ccc.CellLike, "outPoint">;
+  cell: ccc.CellAnyLike;
   tx?: undefined | null;
 };
 
@@ -175,14 +175,17 @@ export class ExecutorJsonRpc extends Executor {
         ];
       }
       if (context?.cell) {
+        const cell = ccc.CellAny.from(context.cell);
+
         return [
           "run_script_level_cell",
           [
             {
               cell_output: cccA.JsonRpcTransformers.cellOutputFrom(
-                ccc.CellOutput.from(context.cell.cellOutput),
+                cell.cellOutput,
+                cell.outputData,
               ),
-              hex_data: ccc.hexFrom(context.cell.outputData),
+              hex_data: ccc.hexFrom(cell.outputData),
             },
           ],
         ];

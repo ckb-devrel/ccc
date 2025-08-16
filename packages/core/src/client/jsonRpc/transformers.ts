@@ -124,7 +124,12 @@ export class JsonRpcTransformers {
       since: cellInput.since,
     });
   }
-  static cellOutputFrom(cellOutput: CellOutputLike): JsonRpcCellOutput {
+  static cellOutputFrom(
+    cellOutputLike: CellOutputLike,
+    outputData?: HexLike | null,
+  ): JsonRpcCellOutput {
+    const cellOutput = CellOutput.from(cellOutputLike, outputData);
+
     return {
       capacity: numToHex(cellOutput.capacity),
       lock: JsonRpcTransformers.scriptFrom(cellOutput.lock),
