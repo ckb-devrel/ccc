@@ -1,5 +1,39 @@
 # @ckb-ccc/core
 
+## 1.10.0
+### Minor Changes
+
+
+
+- [#258](https://github.com/ckb-devrel/ccc/pull/258) [`b8a07c1`](https://github.com/ckb-devrel/ccc/commit/b8a07c1ff78f73561f024d0f7a160152a9bafe54) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Signer.findCellsOnChain`
+
+
+
+- [#225](https://github.com/ckb-devrel/ccc/pull/225) [`c67e096`](https://github.com/ckb-devrel/ccc/commit/c67e096cc59a5685046cd5ad67676d0cf2d45dc3) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): optional `shouldAddInputs` for `Transaction.completeFee`
+
+
+
+- [#259](https://github.com/ckb-devrel/ccc/pull/259) [`7cd7696`](https://github.com/ckb-devrel/ccc/commit/7cd7696feb991f0027c9c8b6d58de7f51ef516a6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto capacity completion
+
+
+### Patch Changes
+
+
+
+- [#257](https://github.com/ckb-devrel/ccc/pull/257) [`705b27d`](https://github.com/ckb-devrel/ccc/commit/705b27d9fce6ccb0f13f19fcf359df62c6b73b26) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid circular dependency
+
+
+
+- [#260](https://github.com/ckb-devrel/ccc/pull/260) [`e900c59`](https://github.com/ckb-devrel/ccc/commit/e900c59f291332a285201e265fcf4f2b2b8430e7) Thanks [@Hanssen0](https://github.com/Hanssen0)! - perf(core): optimize Transaction.completeFee
+
+
+
+- [#244](https://github.com/ckb-devrel/ccc/pull/244) [`2d23b47`](https://github.com/ckb-devrel/ccc/commit/2d23b477460f0f07c80c8e3e7641e35069788b70) Thanks [@phroi](https://github.com/phroi)! - Simplify MapLru, while improving Complexity
+
+
+
+- [#225](https://github.com/ckb-devrel/ccc/pull/225) [`996e117`](https://github.com/ckb-devrel/ccc/commit/996e117c56fc5f3d4bb9b2adeac5c9da87128688) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `Transaction.clone` should clone inputs' cache
+
 ## 1.9.1
 ### Patch Changes
 
