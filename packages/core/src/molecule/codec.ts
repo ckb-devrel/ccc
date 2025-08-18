@@ -461,7 +461,7 @@ type UnionDecoded<
 /**
  * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
  *
- * If all variants have a fixed size, the resulting union codec is fixed-size (header + payload).
+ * If all variants have the same fixed size, the resulting union codec is fixed-size (header + payload).
  * Otherwise, it falls back to a dynamic-size codec.
  *
  * Serialization format:
