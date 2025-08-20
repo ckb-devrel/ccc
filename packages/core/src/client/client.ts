@@ -54,13 +54,13 @@ export abstract class Client {
 
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
-  ): Promise<{ mean: Num; median: Num }>;
+  ): Promise<{ mean?: Num; median?: Num }>;
   async getFeeRate(
     blockRange?: NumLike,
     options?: { maxFeeRate?: NumLike },
   ): Promise<Num> {
     const feeRate = numMax(
-      (await this.getFeeRateStatistics(blockRange)).median,
+      (await this.getFeeRateStatistics(blockRange)).median ?? Zero,
       DEFAULT_MIN_FEE_RATE,
     );
 
