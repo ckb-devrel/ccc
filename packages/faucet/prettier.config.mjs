@@ -7,7 +7,7 @@
 const config = {
   singleQuote: false,
   trailingComma: "all",
-  plugins: [import.meta.resolve("prettier-plugin-organize-imports")],
+  plugins: ["prettier-plugin-organize-imports"],
 };
 
 export default config;

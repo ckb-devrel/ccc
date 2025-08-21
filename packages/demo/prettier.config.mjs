@@ -7,10 +7,7 @@
 const config = {
   singleQuote: false,
   trailingComma: "all",
-  plugins: [
-    import.meta.resolve("prettier-plugin-organize-imports/index.js"),
-    import.meta.resolve("prettier-plugin-tailwindcss"),
-  ],
+  plugins: ["prettier-plugin-organize-imports", "prettier-plugin-tailwindcss"],
 };
 
 export default config;
