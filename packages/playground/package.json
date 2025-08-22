@@ -17,7 +17,7 @@
     "@nervina-labs/dob-render": "^0.2.3",
     "@next/third-parties": "^15.3.4",
     "@shikijs/monaco": "^3.2.1",
-    "axios": "^1.7.7",
+    "axios": "^1.8.2",
     "bech32": "^2.0.0",
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^0.438.0",
