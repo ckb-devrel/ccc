@@ -1,5 +1,12 @@
 # @ckb-ccc/udt
 
+## 0.1.13
+### Patch Changes
+
+- Updated dependencies [[`07fc9fe`](https://github.com/ckb-devrel/ccc/commit/07fc9fe196115bf4b341e7b657927987956a6d7c), [`0e7cd8f`](https://github.com/ckb-devrel/ccc/commit/0e7cd8f6ca191186852c84e44db2fc0e1bb26d9b), [`0008150`](https://github.com/ckb-devrel/ccc/commit/00081509e54e52af999e48feec11c90d2c649ab9), [`91f6027`](https://github.com/ckb-devrel/ccc/commit/91f60277c75773fad509f945eef8397ef1061cd1), [`5061511`](https://github.com/ckb-devrel/ccc/commit/506151120fcd1a80b6d38e074b7944164047e76f), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`40fcd50`](https://github.com/ckb-devrel/ccc/commit/40fcd50639ce32bee1fc54497b22f4871807e98a), [`82f5a45`](https://github.com/ckb-devrel/ccc/commit/82f5a45fd35968673be93f09bdd59ca79a7afb6e), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`46c61d4`](https://github.com/ckb-devrel/ccc/commit/46c61d48d5289a76385463bc7783b7cbfb05ed99)]:
+  - @ckb-ccc/core@1.11.0
+  - @ckb-ccc/ssri@0.2.11
+
 ## 0.1.11
 ### Patch Changes
 

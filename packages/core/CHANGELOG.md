@@ -1,5 +1,55 @@
 # @ckb-ccc/core
 
+## 1.11.0
+### Minor Changes
+
+
+
+- [`0e7cd8f`](https://github.com/ckb-devrel/ccc/commit/0e7cd8f6ca191186852c84e44db2fc0e1bb26d9b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Signer.findCellsOnChain`
+
+
+
+- [`0008150`](https://github.com/ckb-devrel/ccc/commit/00081509e54e52af999e48feec11c90d2c649ab9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): optional `shouldAddInputs` for `Transaction.completeFee`
+
+
+
+- [`5061511`](https://github.com/ckb-devrel/ccc/commit/506151120fcd1a80b6d38e074b7944164047e76f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto capacity completion
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(core): make `CONFIRMED_BLOCK_TIME` configurable
+
+
+
+- [`82f5a45`](https://github.com/ckb-devrel/ccc/commit/82f5a45fd35968673be93f09bdd59ca79a7afb6e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): multiple scripts for `SignerCkbScriptReadonly`
+
+
+### Patch Changes
+
+
+
+- [`07fc9fe`](https://github.com/ckb-devrel/ccc/commit/07fc9fe196115bf4b341e7b657927987956a6d7c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid circular dependency
+
+
+
+- [`91f6027`](https://github.com/ckb-devrel/ccc/commit/91f60277c75773fad509f945eef8397ef1061cd1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - perf(core): optimize Transaction.completeFee
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(mol): add support for fixed-size Union
+
+
+
+- [`40fcd50`](https://github.com/ckb-devrel/ccc/commit/40fcd50639ce32bee1fc54497b22f4871807e98a) Thanks [@phroi](https://github.com/phroi)! - Simplify MapLru, while improving Complexity
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - perf(core): imporve performance of `Script` & `OutPoint` `eq`
+
+
+
+- [`46c61d4`](https://github.com/ckb-devrel/ccc/commit/46c61d48d5289a76385463bc7783b7cbfb05ed99) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `Transaction.clone` should clone inputs' cache
+
 ## 1.9.1
 ### Patch Changes
 
