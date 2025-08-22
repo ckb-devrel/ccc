@@ -26,7 +26,9 @@ export function verifyMessageCkbSecp256k1(
     new secp256k1.Signature(
       numFrom(signatureBytes.slice(0, 32)),
       numFrom(signatureBytes.slice(32, 64)),
-    ).addRecoveryBit(Number(numFrom(signatureBytes.slice(64, 65)))),
+    )
+      .addRecoveryBit(Number(numFrom(signatureBytes.slice(64, 65))))
+      .toBytes(),
     bytesFrom(messageHashCkbSecp256k1(message)),
     bytesFrom(publicKey),
   );

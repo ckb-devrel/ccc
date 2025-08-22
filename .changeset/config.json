@@ -8,5 +8,12 @@
   "access": "public",
   "baseBranch": "master",
   "updateInternalDependencies": "patch",
-  "ignore": ["@ckb-ccc/ccc-demo", "@ckb-ccc/faucet"]
+  "ignore": [
+    "@ckb-ccc/ccc-tests",
+    "@ckb-ccc/ccc-demo",
+    "@ckb-ccc/ccc-faucet",
+    "@ckb-ccc/ccc-playground",
+    "@ckb-ccc/ccc-docs",
+    "@ckb-ccc/ccc-examples"
+  ]
 }

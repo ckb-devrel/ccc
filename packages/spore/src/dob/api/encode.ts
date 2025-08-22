@@ -1,3 +1,4 @@
+import { ccc } from "@ckb-ccc/core";
 import {
   checkDecoder,
   checkPatternDob0,
@@ -8,8 +9,12 @@ import {
 } from "../helper/index.js";
 
 export function encodeDna(dna: DNA): ArrayBuffer {
-  const encoder = new TextEncoder();
-  return encoder.encode(JSON.stringify(dna));
+  const data = ccc.bytesFrom(JSON.stringify(dna), "utf8");
+  const arrayBuffer = new ArrayBuffer(data.byteLength);
+  const view = new Uint8Array(arrayBuffer);
+
+  view.set(data);
+  return arrayBuffer;
 }
 
 export function encodeClusterDescriptionForDob0(dob0: Dob0): string {

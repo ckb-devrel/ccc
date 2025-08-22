@@ -1,9 +1,7 @@
 {
-  "name": "@ckb-ccc/ccc-examples",
-  "version": "1.0.21",
-  "description": "CCC code examples for CCC Playground",
+  "name": "@ckb-ccc/ccc-tests",
+  "version": "0.0.1",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
-  "license": "MIT",
   "private": true,
   "homepage": "https://github.com/ckb-devrel/ccc",
   "repository": {
@@ -11,9 +9,9 @@
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
   "scripts": {
-    "build": "rimraf ./dist && tsc",
-    "lint": "eslint ./src",
-    "format": "prettier --write . && eslint --fix ./src"
+    "lint": "eslint ./tests",
+    "format": "prettier --write . && eslint --fix ./tests",
+    "test": "node ./tests/cjs.test.cjs && tsx ./tests/esm.test.mts"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
@@ -22,16 +20,10 @@
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "rimraf": "^5.0.10",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^7.18.0"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "dependencies": {
-    "@ckb-ccc/ccc": "workspace:*",
-    "@ckb-ccc/playground": "file:src/playground"
+    "typescript-eslint": "^8.41.0",
+    "@ckb-ccc/ccc": "workspace:*"
   },
   "packageManager": "pnpm@10.8.1"
 }

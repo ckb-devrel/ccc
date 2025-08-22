@@ -66,7 +66,7 @@ export default function DepGroup() {
       setOutPoints(outPoints);
       log(`Found cell`, explorerTransaction(cell.outPoint.txHash));
     }
-  }, [validate, explorerTransaction]);
+  }, [validate, explorerTransaction, log]);
 
   useEffect(() => {
     (async () => {
