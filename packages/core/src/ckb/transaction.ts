@@ -315,6 +315,11 @@ export type CellAnyLike = {
  * This class provides a unified interface for handling cells before they are included in a transaction,
  * or for cells that are already part of the blockchain state.
  *
+ * @remarks
+ * When representing an output of a transaction being built, which does not have a deterministic `outPoint` yet,
+ * this class should be used without an `outPoint`. Once the transaction is on-chain, its outputs can be
+ * represented as `Cell` instances with a defined `outPoint`.
+ *
  * @public
  */
 export class CellAny {
@@ -460,6 +465,12 @@ export type CellLike = CellAnyLike &
 /**
  * Represents an on-chain CKB cell, which is a `CellAny` that is guaranteed to have an `outPoint`.
  * This class is typically used for cells that are already part of the blockchain state, such as transaction inputs.
+ *
+ * @remarks
+ * An `outPoint` should only be included when it is deterministic.
+ * For example, an output cell in a transaction currently being built does not have a deterministic `outPoint` yet,
+ * and should be represented as a `CellAny` without an `outPoint`. This helps simplify logic elsewhere in the library.
+ *
  * @public
  */
 export class Cell extends CellAny {
@@ -1086,6 +1097,7 @@ export class WitnessArgs extends mol.Entity.Base<
 /**
  * Convert a bytes to a num.
  *
+ * @deprecated Use `Udt.balanceFrom` from `@ckb-ccc/udt` instead
  * @public
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
