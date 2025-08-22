@@ -36,65 +36,14 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-## Quick Start
+## Note
 
-- At the moment, `UDT` and `UDTPausable` from `@ckb-ccc/udt` are fully supported through SSRI. In the future, there will be built in TypeScript generation directly based on the Rust source code on compilation.
-- To instantiate a `UDT` script compliant with SSRI, you can provide the SSRI server url and also specify the OutPoint of the script code.
-- You can also instantiate a `UDTPausable` script or other scripts that extends from `UDT`.
+- Try interactive demo at `[CCC App - UDT](!!!TODO - Add LINK!!!)`
+- Currently `ExecutorJsonRpc` is the only supported `Executor`. There will be more in the future and extra legacy support for metadata of `xUDT` will be added through `ckb-asset-indexer`.
 
-```ts
-import { Server } from "@ckb-ccc/ssri";
-import { Udt, UdtPausable } from "@ckb-ccc/udt";
+> Note: A public SSRI Executor JSON RPC Point is being scheduled, and efforts are being made to make to provide in-browser SSRI execution with WASM.
 
-const { signer } = useApp();
-const server = new Server("https://localhost:9090");
-
-const udt = new Udt(
-  server,
-  {
-    txHash: "0x...",
-    index: 0,
-  },
-  {
-    codeHash: "0x...",
-    hashType: "type",
-    args: "0x...",
-  },
-);
-
-const udtPausable = new UdtPausable(
-  server,
-  {
-    txHash: "0x...",
-    index: 0,
-  },
-  {
-    codeHash: "0x...",
-    hashType: "type",
-    args: "0x...",
-  },
-);
-```
-
-You can directly call the methods in the script:
-
-```ts
-const { res: udtSymbol } = await udt.symbol();
-const { res: pauseList } = await udtPausable.enumeratePaused();
-```
-
-Some of the methods can return a `ccc.Transaction`. For example, you can call `transfer` with the following params:
-
-```ts
-const { script: to } = await signer.getRecommendedAddressObj();
-
-const { res: transferTx } = await udt.transfer(signer, [{ to, amount: 100 }]);
-const completedTx = await udt.completeUdtBy(transferTx, signer);
-
-await completedTx.completeInputsByCapacity(signer);
-await completedTx.completeFeeBy(signer);
-const transferTxHash = await signer.sendTransaction(completedTx);
-```
+- At the moment, `UDT` and `UDTPausable` from `@ckb-ccc/udt` are fully supported with SSRI by extending the `ssri.Trait` class in `@ckb-ccc/ssri`. While you can build your own SSRI-based SDK for your SSRI-compliant script in reference to `@ckb-ccc/udt`, in the future, there will be built in TypeScript generation directly based on the Rust source code on compilation.
 
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
