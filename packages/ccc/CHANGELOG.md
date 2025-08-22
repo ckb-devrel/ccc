@@ -1,5 +1,19 @@
 # @ckb-ccc/ccc
 
+## 1.1.14
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.22
+  - @ckb-ccc/joy-id@1.0.22
+  - @ckb-ccc/nip07@1.0.22
+  - @ckb-ccc/okx@1.0.22
+  - @ckb-ccc/rei@1.0.22
+  - @ckb-ccc/shell@1.1.14
+  - @ckb-ccc/uni-sat@1.0.22
+  - @ckb-ccc/utxo-global@1.0.22
+  - @ckb-ccc/xverse@1.0.22
+
 ## 1.1.13
 ### Patch Changes
 

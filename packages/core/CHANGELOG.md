@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.11.1
+### Patch Changes
+
+
+
+- [#279](https://github.com/ckb-devrel/ccc/pull/279) [`e37468c`](https://github.com/ckb-devrel/ccc/commit/e37468c1527498cbd9097ebff24a13d53d747b22) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(core): update JoyId celldeps
+
 ## 1.11.0
 ### Minor Changes
 

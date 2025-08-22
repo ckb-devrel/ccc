@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/ccc-playground",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "type": "module",
   "private": true,
   "scripts": {
