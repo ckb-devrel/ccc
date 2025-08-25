@@ -43,7 +43,8 @@ export function Message({
 
   return (
     <div
-      className={`my-2 flex flex-col items-start rounded-md p-4 ${bgColorClass} ${className}`}
+      onClick={() => setIsExpanded(!isExpanded)}
+      className={`my-2 flex cursor-pointer flex-col items-start rounded-md p-4 ${bgColorClass} ${className}`}
     >
       {title ? (
         <div className="flex w-full items-center">
@@ -56,7 +57,6 @@ export function Message({
         </div>
       ) : undefined}
       <div
-        onClick={() => setIsExpanded(!isExpanded)}
         className={`relative mt-2 ${isExpanded ? "" : "line-clamp-1"}`}
         style={
           isExpanded
