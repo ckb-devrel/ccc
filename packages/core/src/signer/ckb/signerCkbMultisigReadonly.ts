@@ -10,6 +10,7 @@ import { Hex, hexConcat, hexFrom, HexLike } from "../../hex/index.js";
 import {
   hashCkb,
   numToBytes,
+  ScriptInfoLike,
   ScriptLike,
   Since,
   WitnessArgs,
@@ -28,6 +29,7 @@ export type MultisigInfoLike = {
   mustMatch: number;
   since?: SinceLike;
   multisigScript?:
+    | ScriptInfoLike
     | KnownScript.Secp256k1Multisig
     | KnownScript.Secp256k1MultisigV2;
 };
@@ -42,6 +44,7 @@ export class MultisigInfo {
   public readonly mustMatch: number;
   public readonly since?: Since;
   public readonly knownMultisigScript:
+    | ScriptInfoLike
     | KnownScript.Secp256k1Multisig
     | KnownScript.Secp256k1MultisigV2;
 
@@ -55,7 +58,10 @@ export class MultisigInfo {
     this.since = multisig.since ? Since.from(multisig.since) : undefined;
     this.knownMultisigScript =
       multisig.multisigScript ?? MULTISIG_SCRIPT_DEFAULT;
-    if (this.knownMultisigScript !== MULTISIG_SCRIPT_DEFAULT) {
+    if (
+      typeof this.knownMultisigScript === "string" &&
+      this.knownMultisigScript !== MULTISIG_SCRIPT_DEFAULT
+    ) {
       console.warn(
         `Multisig script '${this.knownMultisigScript}' is marked as **Deprecated**, please using '${MULTISIG_SCRIPT_DEFAULT}' instead`,
       );
@@ -105,20 +111,35 @@ export class MultisigInfo {
   }
 
   async defaultMultisigScript(client: Client): Promise<Script> {
-    return await Script.fromKnownScript(
-      client,
-      this.knownMultisigScript,
-      this.multisigScriptArgs(),
-    );
+    const args = this.multisigScriptArgs();
+    if (typeof this.knownMultisigScript === "string") {
+      return await Script.fromKnownScript(
+        client,
+        this.knownMultisigScript,
+        args,
+      );
+    }
+    return Script.from({
+      ...this.knownMultisigScript,
+      args,
+    });
   }
 
   async multisigScripts(client: Client): Promise<Script[]> {
     const args = this.multisigScriptArgs();
-    return await Promise.all(
+    const builtInScripts = await Promise.all(
       MULTISIG_SCRIPTS.map(async (script) => {
         return await Script.fromKnownScript(client, script, args);
       }),
     );
+    if (typeof this.knownMultisigScript === "string") {
+      return builtInScripts;
+    }
+    const manualScript = Script.from({
+      ...this.knownMultisigScript,
+      args,
+    });
+    return [manualScript, ...builtInScripts];
   }
 }
 
@@ -199,6 +220,19 @@ export class SignerCkbMultisigReadonly extends Signer {
           scripts.push({
             script: lock,
             cellDeps: scriptInfo.cellDeps,
+          });
+        } else {
+          if (typeof this.multisigInfo.knownMultisigScript === "string") {
+            // Generally, this branch could not be reached
+            throw new Error(
+              `Unsupported multisig script: ${this.multisigInfo.knownMultisigScript}`,
+            );
+          }
+          scripts.push({
+            script: lock,
+            cellDeps: this.multisigInfo.knownMultisigScript.cellDeps.map(
+              (cellDep) => CellDepInfo.from(cellDep),
+            ),
           });
         }
       }
