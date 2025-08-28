@@ -13,7 +13,7 @@ export class RandomWalk extends Component<RandomWalkProps> {
 
   // position, speed, force
   physics: number[] = [0, 0, 0, 0, 0, 0];
-  ref: RefObject<HTMLDivElement> = createRef();
+  ref: RefObject<HTMLDivElement | null> = createRef();
   interval: ReturnType<typeof setInterval> | undefined = undefined;
 
   x: number = 0;

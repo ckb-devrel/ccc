@@ -96,11 +96,12 @@ export abstract class Signer {
   ): NetworkPreference | undefined {
     if (
       currentNetwork !== undefined &&
-      preferences.some(({ signerType, addressPrefix, network }) => {
-        signerType === this.type &&
+      preferences.some(
+        ({ signerType, addressPrefix, network }) =>
+          signerType === this.type &&
           addressPrefix === this.client.addressPrefix &&
-          network === currentNetwork;
-      })
+          network === currentNetwork,
+      )
     ) {
       return;
     }

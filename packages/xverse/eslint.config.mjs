@@ -30,6 +30,21 @@ export default [
       "@typescript-eslint/unbound-method": ["error", { ignoreStatic: true }],
       "@typescript-eslint/no-unsafe-member-access": "off",
       "@typescript-eslint/require-await": "off",
+      "@typescript-eslint/only-throw-error": [
+        "error",
+        {
+          allowThrowingAny: true,
+          allowThrowingUnknown: true,
+          allowRethrowing: true,
+        },
+      ],
+      "@typescript-eslint/prefer-promise-reject-errors": [
+        "error",
+        {
+          allowThrowingAny: true,
+          allowThrowingUnknown: true,
+        },
+      ],
       "no-empty": "off",
       "prefer-const": [
         "error",

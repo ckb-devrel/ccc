@@ -57,7 +57,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
   };
 
   return (
-    <div className="flex w-full flex-col gap-2 rounded border p-2">
+    <div className="flex w-full flex-col gap-2 rounded border border-gray-200 p-2">
       <div className="flex flex-row items-center gap-2">
         <label className="min-w-24">Input Type:</label>
         <Dropdown
@@ -67,7 +67,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
           ]}
           selected={inputType}
           onSelect={(type) => setInputType(type as "script" | "address")}
-          className="flex-grow"
+          className="grow"
         />
       </div>
 
@@ -103,7 +103,7 @@ export const ScriptAmountInput: React.FC<ScriptAmountInputProps> = ({
               onSelect={(hashType) =>
                 onChange({ ...value, script: { ...value.script, hashType } })
               }
-              className="flex-grow"
+              className="grow"
             />
           </div>
           <TextInput

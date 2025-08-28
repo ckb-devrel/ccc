@@ -461,7 +461,7 @@ export default function SSRI() {
             options={PARAM_TYPE_OPTIONS}
             selected={selectedParamType}
             onSelect={(value) => setSelectedParamType(value as MethodParamType)}
-            className="flex-grow"
+            className="grow"
           />
           <Button onClick={addMethodParam} className="shrink-0">
             <Icon name="Plus" />
@@ -549,7 +549,7 @@ export default function SSRI() {
             Icon Result
           </label>
           <Image
-            className="h-auto max-w-full rounded border"
+            className="h-auto max-w-full rounded border border-gray-200"
             src={iconDataURL}
             alt={""}
             width={"100"}

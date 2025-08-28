@@ -27,7 +27,6 @@ function findSourcePos(
     }
     let nowCol = 0;
     for (const map of line.split(",").map((c: string) => vlqDecode(c))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [colInc, _, sRowInc, sColInc] = map;
       nowCol += colInc;
       if (i === row && nowCol >= col) {

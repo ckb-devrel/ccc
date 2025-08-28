@@ -8,10 +8,10 @@ export class Background extends Component {
   static contextType = APP_CONTEXT;
   context: React.ContextType<typeof APP_CONTEXT>;
 
-  refBg: RefObject<HTMLDivElement> = createRef();
-  ref0: RefObject<RandomWalk> = createRef();
-  ref1: RefObject<RandomWalk> = createRef();
-  ref2: RefObject<RandomWalk> = createRef();
+  refBg: RefObject<HTMLDivElement | null> = createRef();
+  ref0: RefObject<RandomWalk | null> = createRef();
+  ref1: RefObject<RandomWalk | null> = createRef();
+  ref2: RefObject<RandomWalk | null> = createRef();
 
   handler = (e: MouseEvent) => {
     if (
@@ -48,11 +48,11 @@ export class Background extends Component {
     return (
       <>
         <div
-          className="fixed left-0 top-0 h-full w-full select-none bg-white"
+          className="fixed top-0 left-0 h-full w-full bg-white select-none"
           ref={this.refBg}
           style={{ zIndex: this.context?.backgroundLifted ? 40 : -100 }}
         >
-          <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
+          <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]">
             <RandomWalk ref={this.ref0} className="flex flex-col items-center">
               <div className="relative">
                 <img
@@ -63,7 +63,7 @@ export class Background extends Component {
                   src="/background/0.svg"
                   alt=""
                 />
-                <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
+                <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]">
                   <RandomWalk ref={this.ref1}>
                     <img
                       style={{
@@ -73,7 +73,7 @@ export class Background extends Component {
                       src="/background/1.svg"
                       alt=""
                     />
-                    <div className="absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]">
+                    <div className="absolute top-1/2 left-1/2 translate-x-[-50%] translate-y-[-50%]">
                       <RandomWalk ref={this.ref2}>
                         <img
                           style={{
@@ -103,7 +103,7 @@ export class Background extends Component {
             </RandomWalk>
           </div>
           {this.context?.backgroundLifted ? undefined : (
-            <div className="absolute left-0 top-0 h-full w-full bg-white opacity-70"></div>
+            <div className="absolute top-0 left-0 h-full w-full bg-white opacity-70"></div>
           )}
         </div>
       </>
