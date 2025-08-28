@@ -3,12 +3,15 @@ import { Logger, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/require-await
 async function handleRoot(req: any, res: any, next: any) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (req.url === "/") {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     return res.send("OK!");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   next();
 }
 
@@ -24,8 +27,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(config.port, () =>
+  await app.listen(config.port as string | number, () =>
     Logger.log(`listening on ${config.port}`),
   );
 }
-bootstrap();
+
+void bootstrap();

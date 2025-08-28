@@ -21,13 +21,13 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.6",
-    "@types/jest": "^29.5.14",
-    "@vitest/coverage-v8": "3.2.2",
-    "jest": "30.0.0-alpha.6",
+    "@types/jest": "^30.0.0",
+    "@vitest/coverage-v8": "3.2.4",
+    "jest": "30.1.1",
     "ts-jest": "^29.4.1",
-    "typedoc": "^0.26.11",
+    "typedoc": "0.28.7",
     "typedoc-material-theme": "^1.4.0",
-    "typedoc-plugin-extras": "^3.1.0",
+    "typedoc-plugin-extras": "^4.0.1",
     "typedoc-plugin-ga": "^1.0.5",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
@@ -38,10 +38,11 @@
     },
     "onlyBuiltDependencies": [
       "@nestjs/core",
+      "@tailwindcss/oxide",
       "core-js",
       "core-js-pure",
-      "secp256k1",
       "esbuild",
+      "secp256k1",
       "sharp",
       "unrs-resolver"
     ]

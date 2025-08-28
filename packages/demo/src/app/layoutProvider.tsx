@@ -283,16 +283,16 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
       <AppProvider>
         <div className="flex h-dvh flex-col">
           <Background />
-          <header className="flex w-full flex-col items-center justify-between gap-4 border-b bg-white px-8 py-3 md:flex-row">
+          <header className="flex w-full flex-col items-center justify-between gap-4 border-b border-gray-200 bg-white px-8 py-3 md:flex-row">
             <Links />
             <WalletInfo />
           </header>
-          <main className="relative flex grow flex-col items-center justify-around overflow-y-scroll pb-4 pt-8">
+          <main className="relative flex grow flex-col items-center justify-around overflow-y-scroll pt-8 pb-4">
             <div className="flex w-full grow flex-col items-center justify-center">
               {children}
             </div>
           </main>
-          <footer className="flex w-full items-center justify-between border-t bg-white py-2">
+          <footer className="flex w-full items-center justify-between border-t border-gray-200 bg-white py-2">
             <AnimateControl />
             <Addresses />
             <ClientSwitcher />

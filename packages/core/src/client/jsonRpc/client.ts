@@ -251,11 +251,14 @@ export abstract class ClientJsonRpc extends Client {
 
   sendTransactionNoCache = this.buildSender(
     "send_transaction",
-    [JsonRpcTransformers.transactionFrom],
+    [
+      JsonRpcTransformers.transactionFrom,
+      (validator?: OutputsValidator | null) => validator ?? undefined,
+    ],
     hexFrom,
   ) as (
     transaction: TransactionLike,
-    validator?: OutputsValidator | undefined,
+    validator?: OutputsValidator | null,
   ) => Promise<Hex>;
 
   /**

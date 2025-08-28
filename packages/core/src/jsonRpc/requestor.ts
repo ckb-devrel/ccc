@@ -142,6 +142,7 @@ export class RequestorJsonRpc {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
     }
     if (res.error) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw res.error;
     }
     return res.result;

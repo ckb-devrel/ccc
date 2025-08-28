@@ -182,7 +182,7 @@ export default function DepGroup() {
           return (
             <div className="bg-white/75 py-1" key={i}>
               <div
-                className="w-100 flex cursor-pointer flex-col items-center justify-center break-all rounded px-16 py-2 hover:bg-red-200 xl:flex-row xl:justify-between"
+                className="flex w-full cursor-pointer flex-col items-center justify-center rounded px-16 py-2 break-all hover:bg-red-200 xl:flex-row xl:justify-between"
                 onClick={() =>
                   setOutPoints(outPoints.filter((_, j) => j !== i))
                 }

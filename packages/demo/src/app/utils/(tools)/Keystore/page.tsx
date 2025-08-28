@@ -96,7 +96,7 @@ export default function Keystore() {
         state={[password, setPassword]}
       />
       {accounts.length !== 0 ? (
-        <div className="mt-1 w-full overflow-scroll whitespace-nowrap bg-white">
+        <div className="mt-1 w-full overflow-scroll bg-white whitespace-nowrap">
           <p>path, address, private key</p>
           {accounts.map(({ privateKey, address, path }) => (
             <p key={path}>

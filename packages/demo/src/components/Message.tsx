@@ -66,7 +66,7 @@ export function Message({
               }
         }
       >
-        <p className={`whitespace-pre-wrap break-all text-sm ${colorClass}`}>
+        <p className={`text-sm break-all whitespace-pre-wrap ${colorClass}`}>
           {children}
         </p>
       </div>

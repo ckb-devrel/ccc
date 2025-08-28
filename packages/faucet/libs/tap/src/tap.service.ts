@@ -35,7 +35,7 @@ export class TapService {
     }
 
     const signer = new ccc.SignerCkbPrivateKey(this.client, key.privateKey);
-    this.logger.log(`Tap CKB: using ${await signer.getAddresses()}`);
+    this.logger.log(`Tap CKB: using ${await signer.getRecommendedAddress()}`);
 
     const tx = ccc.Transaction.from({
       outputs: [
