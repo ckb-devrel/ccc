@@ -164,7 +164,7 @@ export async function prepareSporeTransaction(
   }
 
   const existedActions = extractCobuildActionsFromTx(tx);
-  tx = await signer.prepareTransaction(tx);
+  tx = ccc.Transaction.from(await signer.prepareTransaction(tx));
   injectCobuild(tx, [existedActions, actions].flat());
   return tx;
 }
