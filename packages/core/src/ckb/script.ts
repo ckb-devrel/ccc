@@ -96,7 +96,6 @@ export function hashTypeToBytes(hashType: HashTypeLike): Bytes {
 export function hashTypeFromBytes(bytes: BytesLike): HashType {
   return NUM_TO_HASH_TYPE[bytesFrom(bytes)[0]];
 }
-
 /**
  * @public
  */
@@ -223,12 +222,6 @@ export class Script extends mol.Entity.Base<ScriptLike, Script>() {
     const script = await client.getKnownScript(knownScript);
     return new Script(script.codeHash, script.hashType, hexFrom(args));
   }
-
-  /**
-   * Converts the Script instance to molecule data format.
-   *
-   * @returns An object representing the script in molecule data format.
-   */
 }
 
 export const ScriptOpt = mol.option(Script);
