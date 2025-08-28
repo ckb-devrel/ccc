@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.11.2
+### Patch Changes
+
+
+
+- [#287](https://github.com/ckb-devrel/ccc/pull/287) [`00e6d56`](https://github.com/ckb-devrel/ccc/commit/00e6d56fa027cbe0cfeea20aa72abba7b14dc606) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): update joy id info
+
 ## 1.11.1
 ### Patch Changes
 
