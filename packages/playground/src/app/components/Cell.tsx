@@ -28,8 +28,8 @@ function Capacity({
   if (!r) {
     return (
       <>
-        <span className="break-all text-4xl font-bold">{l}</span>
-        <span className="break-all text-sm">
+        <span className="text-4xl font-bold break-all">{l}</span>
+        <span className="text-sm break-all">
           {profitNum === ccc.Zero
             ? ""
             : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -41,9 +41,9 @@ function Capacity({
 
   return (
     <>
-      <span className="break-all text-4xl font-bold">{l}</span>
-      <span className="break-all text-sm">.{r}</span>
-      <span className="break-all text-sm">
+      <span className="text-4xl font-bold break-all">{l}</span>
+      <span className="text-sm break-all">.{r}</span>
+      <span className="text-sm break-all">
         {profitNum === ccc.Zero
           ? ""
           : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -223,7 +223,7 @@ export function Cell({
       }}
     >
       <div
-        className="absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-gray-800"
+        className="absolute top-1/2 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-gray-800"
         style={{
           borderWidth: "2rem",
           borderColor: typeColor,

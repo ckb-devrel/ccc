@@ -89,6 +89,7 @@ export class TransportWebSocket implements Transport {
           this.ongoing.delete(data.id);
           void socket
             .then((socket) => socket.close())
+            // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
             .catch((err) => reject(err));
           reject(new Error("Request timeout"));
         }, this.timeout),
@@ -108,6 +109,7 @@ export class TransportWebSocket implements Transport {
             socket.send(JSON.stringify(data));
           }
         })
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         .catch((err) => reject(err));
     });
   }

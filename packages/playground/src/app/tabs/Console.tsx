@@ -30,12 +30,11 @@ export function Console({ onRun }: { onRun?: () => void }) {
 
   const consoles = useMemo(
     () =>
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       messages.map(([level, title, _, message], i) => {
         return (
           <div
             key={i}
-            className={`break-all border-t-4 border-fuchsia-800 p-2 text-stone-300 ${
+            className={`border-t-4 border-fuchsia-800 p-2 break-all text-stone-300 ${
               level === "error" ? "bg-red-600/25" : ""
             }`}
           >

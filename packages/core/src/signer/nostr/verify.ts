@@ -1,5 +1,5 @@
 import { schnorr } from "@noble/curves/secp256k1";
-import { sha256 } from "@noble/hashes/sha256";
+import { sha256 } from "@noble/hashes/sha2.js";
 import { bech32 } from "bech32";
 import { Bytes, BytesLike, bytesFrom } from "../../bytes/index.js";
 import { hexFrom } from "../../hex/index.js";
@@ -59,13 +59,13 @@ export function verifyMessageNostrEvent(
   address: string,
 ): boolean {
   const { words } = bech32.decode(address);
-  const publicKey = hexFrom(bech32.fromWords(words)).slice(2);
+  const pubkey = hexFrom(bech32.fromWords(words)).slice(2);
 
   const event = buildNostrEventFromMessage(message);
-  const eventHash = nostrEventHash(event);
+  const eventHash = nostrEventHash({ ...event, pubkey });
 
   try {
-    return schnorr.verify(hexFrom(signature).slice(2), eventHash, publicKey);
+    return schnorr.verify(hexFrom(signature).slice(2), eventHash, pubkey);
   } catch (_) {
     return false;
   }

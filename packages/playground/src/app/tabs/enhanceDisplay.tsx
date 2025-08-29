@@ -16,7 +16,7 @@ export async function enhanceDisplay(
         {cause?.toString ? (
           <div className="whitespace-pre-line">{cause.toString()}</div>
         ) : undefined}
-        <div className="whitespace-pre-line text-sm text-gray-300/75">
+        <div className="text-sm whitespace-pre-line text-gray-300/75">
           {stack?.toString()}
         </div>
       </div>
