@@ -145,20 +145,40 @@ export function filterCell(
 }
 
 /**
- * A Least Recently Used (LRU) cache implemented using a Map.
+ * A Least Recently Used (LRU) cache implemented by extending the built-in Map.
  *
- * This class extends the built-in Map to provide an LRU cache with a fixed capacity.
- * When the cache is full, the least recently used entry is automatically evicted.
+ * This class preserves all Map behaviors while adding LRU eviction semantics:
+ * - When an entry is accessed via get() it becomes the most recently used.
+ * - When an entry is inserted via set() it becomes the most recently used.
+ * - If insertion causes the cache to exceed its capacity, the least recently used
+ *   entry is evicted automatically.
  *
- * @template K The type of the keys in the cache.
- * @template V The type of the values in the cache.
+ * Implementation notes:
+ * - The Map (super) stores key-value pairs and provides O(1) get/set/delete semantics.
+ * - A Set named `lru` maintains usage order: the iteration order of the Set goes from
+ *   least-recently-used (first) to most-recently-used (last). We update that Set on
+ *   accesses and insertions to keep order correct.
+ *
+ * @template K Type of keys in the cache.
+ * @template V Type of values in the cache.
  */
 export class MapLru<K, V> extends Map<K, V> {
   /**
-   * Constructs a new MapLru instance.
+   * Internal ordered set used to track key usage.
    *
-   * @param capacity The maximum number of entries the cache can hold. Must be a positive integer.
-   * @throws {Error} If the capacity is not a positive integer.
+   * The Set preserves insertion order; keys are re-inserted on access so that the
+   * first element in the Set is always the least recently used key.
+   */
+  private readonly lru: Set<K> = new Set();
+
+  /**
+   * Create a new MapLru with a fixed capacity.
+   *
+   * The capacity is the maximum number of entries the cache will hold. When the cache
+   * grows beyond this capacity the least recently used entry is removed.
+   *
+   * @param capacity Maximum number of entries allowed in the cache.
+   * @throws {Error} If capacity is not a positive integer.
    */
   constructor(private readonly capacity: number) {
     super();
@@ -168,50 +188,87 @@ export class MapLru<K, V> extends Map<K, V> {
   }
 
   /**
-   * Retrieves a value from the cache.
+   * Retrieve a value from the cache and mark the key as most-recently-used.
    *
-   * If the key is present in the cache, the value is moved to the most-recently-used position.
+   * Behavior details:
+   * - If the key is present, it is moved to the most-recently-used position in the
+   *   internal LRU tracking Set and its associated value is returned.
+   * - If the key is not present, undefined is returned and the LRU order is unchanged.
    *
-   * @param key The key of the value to retrieve.
-   * @returns The value associated with the key, or undefined if the key is not present.
+   * @param key Key whose associated value is to be returned.
+   * @returns The value associated with the specified key, or **undefined** if not present.
    */
   override get(key: K): V | undefined {
-    // Check if the key exists. If not, return undefined.
+    // If the Map does not contain the key, return undefined without changing LRU order.
     if (!super.has(key)) {
       return undefined;
     }
 
-    const value = super.get(key) as V;
+    // Move to most-recently-used position by deleting then re-adding the key.
+    this.lru.delete(key);
+    this.lru.add(key);
 
-    // Move to most-recently-used position
-    super.delete(key);
-    super.set(key, value);
-
-    return value;
+    // super.get is safe to cast because we just confirmed the key exists.
+    return super.get(key) as V;
   }
 
   /**
-   * Inserts a new value into the cache, or updates an existing value.
+   * Insert or update a key/value pair and mark the key as most-recently-used.
    *
-   * If the key is already present in the cache, it is first deleted so that the re-insertion
-   * moves it to the most-recently-used position.
-   * If the cache is over capacity after the insertion, the least recently used entry is evicted.
+   * Behavior details:
+   * - If the key already exists, it's updated and moved to the most-recently-used position.
+   * - If insertion causes the cache size to exceed capacity, the least-recently-used key
+   *   (the first key in the LRU Set) is evicted from both the Map and the LRU Set.
    *
-   * @param key The key of the value to insert or update.
-   * @param value The value to associate with the key.
-   * @returns This MapLru instance.
+   * @param key Key to insert or update.
+   * @param value Value to associate with the key.
+   * @returns This MapLru instance (allows chaining).
    */
   override set(key: K, value: V): this {
-    // Delete and re-insert to move key to the end (most-recently-used)
-    super.delete(key);
+    // Store/update the value in the underlying Map.
     super.set(key, value);
 
-    // Evict oldest if over capacity
+    // Ensure key is at the most-recently-used position.
+    this.lru.delete(key);
+    this.lru.add(key);
+
+    // If over capacity, evict the least-recently-used key (first key in Set iteration).
     if (super.size > this.capacity) {
-      const oldestKey = super.keys().next().value!;
+      // .next().value is guaranteed to exist here because size > capacity >= 1
+      const oldestKey = this.lru.keys().next().value!;
       super.delete(oldestKey);
+      this.lru.delete(oldestKey);
     }
 
     return this;
+  }
+
+  /**
+   * Remove a key and its associated value from the cache.
+   *
+   * This removes the key from both the underlying Map and the LRU tracking Set.
+   *
+   * @param key Key to remove.
+   * @returns **true** if the key was present and removed; **false** if the key was not present.
+   */
+  override delete(key: K): boolean {
+    // Attempt to delete from the underlying Map first; if it didn't exist, no changes are needed.
+    if (!super.delete(key)) {
+      return false;
+    }
+    // Ensure LRU tracking no longer references the deleted key.
+    this.lru.delete(key);
+    return true;
+  }
+
+  /**
+   * Remove all entries from the cache.
+   *
+   * This clears both the underlying Map storage and the internal LRU tracking Set,
+   * ensuring no stale keys remain in the LRU structure after the cache is emptied.
+   */
+  override clear(): void {
+    super.clear();
+    this.lru.clear();
   }
 }
