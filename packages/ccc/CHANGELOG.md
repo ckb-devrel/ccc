@@ -1,5 +1,23 @@
 # @ckb-ccc/ccc
 
+## 1.1.16
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+- Updated dependencies [[`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252)]:
+  - @ckb-ccc/utxo-global@1.0.24
+  - @ckb-ccc/eip6963@1.0.24
+  - @ckb-ccc/uni-sat@1.0.24
+  - @ckb-ccc/joy-id@1.0.24
+  - @ckb-ccc/xverse@1.0.24
+  - @ckb-ccc/nip07@1.0.24
+  - @ckb-ccc/shell@1.1.16
+  - @ckb-ccc/okx@1.0.24
+  - @ckb-ccc/rei@1.0.24
+
 ## 1.1.15
 ### Patch Changes
 

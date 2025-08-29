@@ -1,5 +1,15 @@
 # @ckb-ccc/uni-sat
 
+## 1.0.24
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+- Updated dependencies [[`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252)]:
+  - @ckb-ccc/core@1.11.3
+
 ## 1.0.23
 ### Patch Changes
 

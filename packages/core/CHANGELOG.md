@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.11.3
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
 ## 1.11.2
 ### Patch Changes
 
