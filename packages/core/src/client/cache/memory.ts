@@ -1,3 +1,4 @@
+import { LRUCache } from "mnemonist";
 import { Cell, CellLike, OutPoint, OutPointLike } from "../../ckb/index.js";
 import { hexFrom, HexLike } from "../../hex/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
@@ -15,29 +16,31 @@ import {
   CellRecord,
   DEFAULT_CONFIRMED_BLOCK_TIME,
   filterCell,
-  MapLru,
 } from "./memory.advanced.js";
 
 export class ClientCacheMemory extends ClientCache {
   /**
    * OutPoint => [isLive, Cell | OutPoint]
    */
-  private readonly cells: MapLru<string, CellRecord>;
+  private readonly cells: LRUCache<string, CellRecord>;
 
   /**
    * TX Hash => Transaction Response
    */
-  private readonly knownTransactions: MapLru<string, ClientTransactionResponse>;
+  private readonly knownTransactions: LRUCache<
+    string,
+    ClientTransactionResponse
+  >;
 
   /**
    * Block Number => Block Hash
    */
-  private readonly knownBlockHashes: MapLru<Num, string>;
+  private readonly knownBlockHashes: LRUCache<Num, string>;
 
   /**
    * Block Hash => Block Header / Full Block
    */
-  private readonly knownBlocks: MapLru<
+  private readonly knownBlocks: LRUCache<
     string,
     Pick<ClientBlock, "header"> | ClientBlock
   >;
@@ -57,12 +60,12 @@ export class ClientCacheMemory extends ClientCache {
   ) {
     super();
 
-    this.cells = new MapLru<string, CellRecord>(this.maxCells);
-    this.knownTransactions = new MapLru<string, ClientTransactionResponse>(
+    this.cells = new LRUCache<string, CellRecord>(this.maxCells);
+    this.knownTransactions = new LRUCache<string, ClientTransactionResponse>(
       this.maxTxs,
     );
-    this.knownBlockHashes = new MapLru<Num, string>(this.maxBlocks);
-    this.knownBlocks = new MapLru<
+    this.knownBlockHashes = new LRUCache<Num, string>(this.maxBlocks);
+    this.knownBlocks = new LRUCache<
       string,
       Pick<ClientBlock, "header"> | ClientBlock
     >(this.maxBlocks);
