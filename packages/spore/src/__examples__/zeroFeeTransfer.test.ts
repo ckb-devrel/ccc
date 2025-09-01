@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
 import { describe, expect, it } from "vitest";
-import { getSporeScriptInfo, transferSpore } from "../index.js";
+import { transferSpore } from "../index.js";
 
 describe("transferSpore [testnet]", () => {
   expect(process.env.PRIVATE_KEY).toBeDefined();
@@ -20,21 +20,21 @@ describe("transferSpore [testnet]", () => {
     );
 
     // Build transaction
-    let { tx } = await transferSpore({
+    let { tx, zeroFeeApplied } = await transferSpore({
       signer,
       // Change this if you have a different sporeId
-      id: "0xc2462b641ae89b9bec5ca449e1e6acda8fe530db989cc988ba5077ac76d0f713",
+      id: "0xe1b98f485de4a7cec6161a15a3ae1fc06a9d7170df04d27ba453023254b2c5e3",
       to: owner.script,
+      zeroTransferFeeRate: 1000,
     });
 
-    // Complete transaction
-    await tx.completeFeeBy(signer, undefined, undefined, {
-      payFeeFromMargin: [
-        {
-          ...getSporeScriptInfo(signer.client),
-        },
-      ],
-    });
+    // Complete transaction if zero fee is not applied
+    if (!zeroFeeApplied) {
+      await tx.completeFeeBy(signer);
+      console.log("zero-transfer-fee is not applied, complete fee by signer");
+    } else {
+      console.log("zero-transfer-fee is applied, skip complete fee");
+    }
     tx = await signer.signTransaction(tx);
     console.log(JSON.stringify(JsonRpcTransformers.transactionFrom(tx)));
 

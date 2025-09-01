@@ -160,8 +160,10 @@ export async function createSpore(params: {
  * @param params.to Spore's new owner
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.zeroTransferFeeRate a fee rate to calculate the fee that paid by by margin from last spore cell
  * @returns
  *  - **tx**: a new transaction that contains transferred Spore cells
+ *  - **zeroFeeApplied**: whether the zero transfer fee is applied
  */
 export async function transferSpore(params: {
   signer: ccc.Signer;
@@ -170,13 +172,16 @@ export async function transferSpore(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  zeroTransferFeeRate?: ccc.NumLike;
 }): Promise<{
   tx: ccc.Transaction;
+  zeroFeeApplied?: boolean;
 }> {
-  const { signer, id, to, scripts, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash, zeroTransferFeeRate } =
+    params;
 
   // prepare transaction
-  const tx = ccc.Transaction.from(params.tx ?? {});
+  let tx = ccc.Transaction.from(params.tx ?? {});
 
   const { cell: sporeCell, scriptInfo: sporeScriptInfo } = await assertSpore(
     signer.client,
@@ -214,14 +219,30 @@ export async function transferSpore(params: {
     ? [
         assembleTransferSporeAction(
           sporeCell.cellOutput,
-          tx.outputs[tx.outputs.length - 1],
+          tx.outputs[outputIndex],
           scriptInfoHash,
         ),
       ]
     : [];
 
+  tx = await prepareSporeTransaction(signer, tx, actions);
+
+  let zeroFeeApplied = false;
+  if (zeroTransferFeeRate !== undefined) {
+    const minimalFeeRate = await tx.getFeeRate(signer.client);
+    if (minimalFeeRate <= ccc.numFrom(zeroTransferFeeRate)) {
+      const fee = tx.estimateFee(zeroTransferFeeRate);
+      const margin = tx.getOutputCapacityMargin(outputIndex);
+      if (margin >= fee) {
+        tx.outputs[outputIndex].capacity -= fee;
+        zeroFeeApplied = true;
+      }
+    }
+  }
+
   return {
-    tx: await prepareSporeTransaction(signer, tx, actions),
+    tx,
+    zeroFeeApplied,
   };
 }
 

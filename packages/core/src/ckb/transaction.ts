@@ -2266,7 +2266,6 @@ export class Transaction extends mol.Entity.Base<
    * @param options.feeRateBlockRange - Block range for fee rate calculation when expectedFeeRate is not provided.
    * @param options.maxFeeRate - Maximum allowed fee rate.
    * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
-   * @param options.payFeeFromMargin - The outputs to pay fee from margin.
    * @returns A promise that resolves to a tuple containing:
    *          - The number of inputs added during the process
    *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
@@ -2298,9 +2297,6 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
-      payFeeFromMargin?:
-        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
-        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const feeRate =
@@ -2441,7 +2437,6 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
-      payFeeFromMargin?: Array<Omit<ScriptLike, "args">> | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const script = Script.from(change);
@@ -2449,22 +2444,14 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFee(
       from,
       (tx, capacity) => {
-        if (options?.payFeeFromMargin === undefined) {
-          const changeCell = CellOutput.from({ capacity: 0, lock: script });
-          const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
-          if (capacity < occupiedCapacity) {
-            return occupiedCapacity;
-          }
-          changeCell.capacity = capacity;
-          tx.addOutput(changeCell);
-          return 0;
-        } else {
-          if (capacity < Zero) {
-            return -capacity;
-          } else {
-            return 0;
-          }
+        const changeCell = CellOutput.from({ capacity: 0, lock: script });
+        const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
+        if (capacity < occupiedCapacity) {
+          return occupiedCapacity;
         }
+        changeCell.capacity = capacity;
+        tx.addOutput(changeCell);
+        return 0;
       },
       feeRate,
       filter,
@@ -2507,9 +2494,6 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
-      payFeeFromMargin?:
-        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
-        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const { script } = await from.getRecommendedAddressObj();
@@ -2555,9 +2539,6 @@ export class Transaction extends mol.Entity.Base<
       feeRateBlockRange?: NumLike;
       maxFeeRate?: NumLike;
       shouldAddInputs?: boolean;
-      payFeeFromMargin?:
-        | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
-        | Array<number>;
     },
   ): Promise<[number, boolean]> {
     const change = Number(numFrom(index));
