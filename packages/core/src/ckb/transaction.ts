@@ -21,7 +21,7 @@ import {
 } from "../num/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
-import { Script, ScriptLike, ScriptOpt, hashTypeFrom } from "./script.js";
+import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
 import {
   ErrorTransactionInsufficientCapacity,
@@ -1970,64 +1970,6 @@ export class Transaction extends mol.Entity.Base<
       return Zero;
     }
     return output.margin(bytesFrom(this.outputsData[index]).length);
-  }
-
-  /**
-   * Get the margin information from outputs
-   *
-   * @param filter - The filter to apply to the outputs.
-   *               - `Array<ScriptLike>`: Filter outputs by type script equality.
-   *               - `Array<number>`: Filter outputs by index.
-   * @returns The margin capacity of the outputs and the collected output cells.
-   */
-  getOutputsCapacityMargin(
-    filter:
-      | Array<Omit<ScriptLike, "args"> & { args?: HexLike }>
-      | Array<number> = [],
-  ): {
-    marginCapacity: Num;
-    collectedOutputIndices: Array<number>;
-  } {
-    const marginOutputs = this.outputs
-      .map((output, i) => ({
-        script: output.type,
-        margin: this.getOutputCapacityMargin(i),
-        index: i,
-      }))
-      .filter((output) => output.margin > 0);
-
-    let predicate: (output: { script?: Script; index: number }) => boolean;
-
-    if (filter.length === 0) {
-      predicate = () => true;
-    } else if (typeof filter[0] === "number") {
-      const indices = filter as Array<number>;
-      predicate = (output) => indices.includes(output.index);
-    } else {
-      const scripts = filter as Array<ScriptLike>;
-      predicate = (output) =>
-        scripts.some(
-          (script) =>
-            hexFrom(script.codeHash) === output.script?.codeHash &&
-            hashTypeFrom(script.hashType) === output.script?.hashType &&
-            (script.args === undefined ||
-              output.script?.args.startsWith(hexFrom(script.args))),
-        );
-    }
-
-    const collectedOutputIndices: Array<number> = [];
-    const marginCapacity = marginOutputs.reduce((acc, output) => {
-      if (predicate(output)) {
-        collectedOutputIndices.push(output.index);
-        return acc + output.margin;
-      }
-      return acc;
-    }, numFrom(0));
-
-    return {
-      marginCapacity,
-      collectedOutputIndices,
-    };
   }
 
   async completeInputs<T>(
