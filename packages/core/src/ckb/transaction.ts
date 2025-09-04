@@ -1787,7 +1787,6 @@ export class Transaction extends mol.Entity.Base<
   addOutput(
     cellOrOutputLike: CellAnyLike | CellOutputLike,
     outputDataLike?: HexLike | null,
-    marginCapacity?: NumLike | null,
   ): number {
     const cell =
       "cellOutput" in cellOrOutputLike
@@ -1799,14 +1798,6 @@ export class Transaction extends mol.Entity.Base<
 
     const len = this.outputs.push(cell.cellOutput);
     this.setOutputDataAt(len - 1, cell.outputData);
-
-    if (
-      marginCapacity !== undefined &&
-      marginCapacity !== null &&
-      marginCapacity !== Zero
-    ) {
-      cell.cellOutput.capacity += numFrom(marginCapacity);
-    }
 
     return len;
   }
