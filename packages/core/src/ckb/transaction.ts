@@ -1960,7 +1960,7 @@ export class Transaction extends mol.Entity.Base<
     if (output === undefined) {
       return Zero;
     }
-    return output.margin(bytesFrom(this.outputsData[index]).length);
+    return output.margin(bytesFrom(this.outputsData[index] ?? "0x").length);
   }
 
   async completeInputs<T>(

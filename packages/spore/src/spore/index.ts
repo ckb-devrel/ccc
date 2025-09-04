@@ -129,7 +129,7 @@ export async function createSpore(params: {
   // Add margin capacity if specified
   if (marginCapacity) {
     const margin = ccc.numFrom(marginCapacity);
-    if (margin > ONE_CKB) {
+    if (margin > 0) {
       tx.outputs[outputIndex - 1].capacity += margin;
     }
   }
@@ -236,7 +236,7 @@ export async function transferSpore(params: {
 
   let zeroFeeApplied = false;
   if (zeroTransferFeeRate !== undefined) {
-    const minimalFeeRate = await tx.getFeeRate(signer.client);
+    const minimalFeeRate = await signer.client.getFeeRate();
     if (minimalFeeRate <= ccc.numFrom(zeroTransferFeeRate)) {
       const fee = tx.estimateFee(zeroTransferFeeRate);
       const margin = tx.getOutputCapacityMargin(outputIndex);
