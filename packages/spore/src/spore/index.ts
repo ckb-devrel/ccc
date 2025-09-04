@@ -115,7 +115,7 @@ export async function createSpore(params: {
   ids.push(id);
 
   const packedData = packRawSporeData(data);
-  const outputIndex = tx.addOutput(
+  const outputLen = tx.addOutput(
     {
       lock: to ?? lock,
       type: {
@@ -129,9 +129,9 @@ export async function createSpore(params: {
   // Add margin capacity if specified
   if (marginCapacity) {
     const margin = ccc.numFrom(marginCapacity);
-    if (margin > 0) {
-      tx.outputs[outputIndex - 1].capacity += margin;
-    }
+    tx.outputs[outputLen - 1].capacity += margin;
+  } else {
+    tx.outputs[outputLen - 1].capacity += ONE_CKB;
   }
 
   // create spore action
