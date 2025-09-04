@@ -58,14 +58,11 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     scriptLike: ScriptLike,
   ): Promise<ScriptInfo | undefined> {
     const script = Script.from(scriptLike);
-    const scriptInfo = Object.values(this.scripts).find((scriptInfo) => {
-      if (
+    const scriptInfo = Object.values(this.scripts).find(
+      (scriptInfo) =>
         scriptInfo?.codeHash === script.codeHash &&
-        scriptInfo.hashType === script.hashType
-      ) {
-        return scriptInfo;
-      }
-    });
+        scriptInfo.hashType === script.hashType,
+    );
     return scriptInfo ? ScriptInfo.from(scriptInfo) : undefined;
   }
 }
