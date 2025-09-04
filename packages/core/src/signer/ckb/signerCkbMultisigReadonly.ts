@@ -17,12 +17,6 @@ import {
 } from "../../index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 
-export const MULTISIG_SCRIPT_DEFAULT = KnownScript.Secp256k1MultisigV2;
-export const MULTISIG_SCRIPTS = [
-  KnownScript.Secp256k1MultisigV2,
-  KnownScript.Secp256k1Multisig,
-];
-
 export type MultisigInfoLike = {
   pubkeys: HexLike[];
   threshold: number;
@@ -45,8 +39,8 @@ export class MultisigInfo {
   public readonly since?: Since;
   public readonly knownMultisigScript:
     | ScriptInfoLike
-    | KnownScript.Secp256k1Multisig
-    | KnownScript.Secp256k1MultisigV2;
+    | KnownScript.Secp256k1MultisigV2
+    | KnownScript.Secp256k1Multisig;
 
   public readonly pubkeyBlake160Hashes: Hex[];
   public readonly metadata: Hex;
@@ -57,13 +51,13 @@ export class MultisigInfo {
     this.mustMatch = multisig.mustMatch;
     this.since = multisig.since ? Since.from(multisig.since) : undefined;
     this.knownMultisigScript =
-      multisig.multisigScript ?? MULTISIG_SCRIPT_DEFAULT;
+      multisig.multisigScript ?? KnownScript.Secp256k1MultisigV2;
     if (
       typeof this.knownMultisigScript === "string" &&
-      this.knownMultisigScript !== MULTISIG_SCRIPT_DEFAULT
+      this.knownMultisigScript !== KnownScript.Secp256k1MultisigV2
     ) {
       console.warn(
-        `Multisig script '${this.knownMultisigScript}' is marked as **Deprecated**, please using '${MULTISIG_SCRIPT_DEFAULT}' instead`,
+        `Multisig script '${this.knownMultisigScript}' is marked as **Deprecated**, please using '${KnownScript.Secp256k1MultisigV2}' instead`,
       );
     }
     if (this.threshold < 0 || this.threshold > 255) {
@@ -128,9 +122,11 @@ export class MultisigInfo {
   async multisigScripts(client: Client): Promise<Script[]> {
     const args = this.multisigScriptArgs();
     const builtInScripts = await Promise.all(
-      MULTISIG_SCRIPTS.map(async (script) => {
-        return await Script.fromKnownScript(client, script, args);
-      }),
+      [KnownScript.Secp256k1MultisigV2, KnownScript.Secp256k1Multisig].map(
+        async (script) => {
+          return await Script.fromKnownScript(client, script, args);
+        },
+      ),
     );
     if (typeof this.knownMultisigScript === "string") {
       return builtInScripts;
