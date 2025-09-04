@@ -198,40 +198,41 @@ export class SignerCkbMultisigReadonly extends Signer {
     txLike: TransactionLike,
   ): Promise<{ script: Script; cellDeps: CellDepInfo[] }[]> {
     const tx = Transaction.from(txLike);
-    const availableMultisigs = await this.getAddressObjs();
+    const multisigs = await this.getAddressObjs();
+    if (multisigs.length === 0) {
+      return [];
+    }
 
     const scripts: { script: Script; cellDeps: CellDepInfo[] }[] = [];
-    for (const multisig of availableMultisigs) {
-      for (const input of tx.inputs) {
-        const {
-          cellOutput: { lock },
-        } = await input.getCell(this.client);
+    for (const input of tx.inputs) {
+      const {
+        cellOutput: { lock },
+      } = await input.getCell(this.client);
 
-        if (scripts.some(({ script }) => script.eq(lock))) {
-          continue;
-        }
+      if (scripts.some(({ script }) => script.eq(lock))) {
+        continue;
+      }
 
-        if (lock.eq(multisig.script)) {
-          const scriptInfo = await this.client.findKnownScript(lock);
-          if (scriptInfo) {
-            scripts.push({
-              script: lock,
-              cellDeps: scriptInfo.cellDeps,
-            });
-          } else {
-            if (typeof this.multisigInfo.knownMultisigScript === "string") {
-              // Generally, this branch could not be reached
-              throw new Error(
-                `Unsupported multisig script: ${this.multisigInfo.knownMultisigScript}`,
-              );
-            }
-            scripts.push({
-              script: lock,
-              cellDeps: this.multisigInfo.knownMultisigScript.cellDeps.map(
-                (cellDep) => CellDepInfo.from(cellDep),
-              ),
-            });
+      if (multisigs.some(({ script }) => script.eq(lock))) {
+        const scriptInfo = await this.client.findKnownScript(lock);
+        if (scriptInfo) {
+          scripts.push({
+            script: lock,
+            cellDeps: scriptInfo.cellDeps,
+          });
+        } else {
+          if (typeof this.multisigInfo.knownMultisigScript === "string") {
+            // Generally, this branch could not be reached
+            throw new Error(
+              `Unsupported multisig script: ${this.multisigInfo.knownMultisigScript}`,
+            );
           }
+          scripts.push({
+            script: lock,
+            cellDeps: this.multisigInfo.knownMultisigScript.cellDeps.map(
+              (cellDep) => CellDepInfo.from(cellDep),
+            ),
+          });
         }
       }
     }
