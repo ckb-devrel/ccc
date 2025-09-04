@@ -1,4 +1,9 @@
 import { defineConfig, coverageConfigDefaults } from "vitest/config";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load environment variables from .env file
+config({ path: resolve(process.cwd(), ".env") });
 
 export default defineConfig({
   test: {
@@ -10,6 +15,6 @@ export default defineConfig({
         "**/dist.commonjs/**",
         ...coverageConfigDefaults.exclude,
       ],
-    },
+    }
   },
 });
