@@ -1,4 +1,4 @@
-import { bytesFrom, BytesLike, bytesTo } from "../bytes/index.js";
+import { bytesConcat, bytesFrom, BytesLike, bytesTo } from "../bytes/index.js";
 
 /**
  * Represents a hexadecimal string prefixed with "0x".
@@ -27,4 +27,20 @@ export type HexLike = BytesLike;
  */
 export function hexFrom(hex: HexLike): Hex {
   return `0x${bytesTo(bytesFrom(hex), "hex")}`;
+}
+
+/**
+ * Concatenates multiple HexLike values into a single Hex string.
+ * @public
+ *
+ * @param hexLikes - The HexLike values to concatenate.
+ * @returns A Hex string representing the concatenated values.
+ *
+ * @example
+ * ```typescript
+ * const hexString = hexConcat("0x68656c6c6f", "0x776f726c64"); // Outputs "0x68656c6c6f776f726c64"
+ * ```
+ */
+export function hexConcat(...hexLikes: HexLike[]): Hex {
+  return hexFrom(bytesConcat(...hexLikes));
 }
