@@ -190,6 +190,108 @@ export class UdtConfig {
 }
 
 /**
+ * Represents a UDT information-like object.
+ * This is used as a flexible input for creating `UdtInfo` instances.
+ *
+ * @public
+ * @category UDT
+ */
+export type UdtInfoLike =
+  | {
+      /** The UDT balance. */
+      balance?: ccc.NumLike | null;
+      /** The total CKB capacity of the UDT cells. */
+      capacity?: ccc.NumLike | null;
+      /** The number of UDT cells. */
+      count?: number | null;
+    }
+  | undefined
+  | null;
+
+/**
+ * Represents aggregated information about a set of UDT cells.
+ * This class encapsulates the total balance, total CKB capacity, and the number of cells.
+ *
+ * @public
+ * @category UDT
+ */
+export class UdtInfo {
+  /**
+   * Creates an instance of UdtInfo.
+   *
+   * @param balance - The total UDT balance.
+   * @param capacity - The total CKB capacity of the UDT cells.
+   * @param count - The number of UDT cells.
+   */
+  constructor(
+    public balance: ccc.Num,
+    public capacity: ccc.Num,
+    public count: number,
+  ) {}
+
+  /**
+   * Creates a `UdtInfo` instance from a `UdtInfoLike` object.
+   *
+   * @param infoLike - A `UdtInfoLike` object or an instance of `UdtInfo`.
+   * @returns A new `UdtInfo` instance.
+   */
+  static from(infoLike?: UdtInfoLike) {
+    if (infoLike instanceof UdtInfo) {
+      return infoLike;
+    }
+
+    return new UdtInfo(
+      ccc.numFrom(infoLike?.balance ?? ccc.Zero),
+      ccc.numFrom(infoLike?.capacity ?? ccc.Zero),
+      infoLike?.count ?? 0,
+    );
+  }
+
+  /**
+   * Creates a default `UdtInfo` instance with all values set to zero.
+   * @returns A new `UdtInfo` instance with zero balance, capacity, and count.
+   */
+  static default() {
+    return UdtInfo.from();
+  }
+
+  /**
+   * Clones the `UdtInfo` instance.
+   * @returns A new `UdtInfo` instance that is a copy of the current one.
+   */
+  clone() {
+    return new UdtInfo(this.balance, this.capacity, this.count);
+  }
+
+  /**
+   * Adds the values from another `UdtInfoLike` object to this instance (in-place).
+   *
+   * @param infoLike - The `UdtInfoLike` object to add.
+   * @returns The current, modified `UdtInfo` instance.
+   */
+  addEq(infoLike: UdtInfoLike) {
+    const info = UdtInfo.from(infoLike);
+
+    this.balance += info.balance;
+    this.capacity += info.capacity;
+    this.count += info.count;
+
+    return this;
+  }
+
+  /**
+   * Creates a new `UdtInfo` instance by adding the values from another `UdtInfoLike` object to the current one.
+   * This method is not in-place.
+   *
+   * @param infoLike - The `UdtInfoLike` object to add.
+   * @returns A new `UdtInfo` instance with the summed values.
+   */
+  add(infoLike: UdtInfoLike) {
+    return this.clone().addEq(infoLike);
+  }
+}
+
+/**
  * Represents a User Defined Token (UDT) script compliant with the SSRI protocol.
  *
  * This class provides a comprehensive implementation for interacting with User Defined Tokens,
@@ -248,7 +350,7 @@ export class Udt extends ssri.Trait {
    *
    * // Manually find cells using the same filter
    * for await (const cell of signer.findCells(udt.filter)) {
-   *   console.log(`Found UDT cell with balance: ${ccc.udtBalanceFrom(cell.outputData)}`);
+   *   console.log(`Found UDT cell with balance: ${udt.balanceFrom(signer.client, cell)}`);
    * }
    * ```
    */
@@ -471,6 +573,245 @@ export class Udt extends ssri.Trait {
     }
 
     return ssri.ExecutorResponse.new(undefined);
+  }
+
+  /**
+   * Extracts the UDT balance from raw output data without validation.
+   *
+   * ⚠️ **Warning**: This is an unsafe method. The caller must ensure that the
+   * provided `outputData` is from a valid UDT cell. This method does not
+   * verify the cell's type script or data length, and it assumes the data is
+   * at least 16 bytes long. For safe balance extraction from a cell, use
+   * `balanceFrom`.
+   *
+   * @param outputData - The raw output data of a cell, as a hex string or byte array.
+   * @returns The UDT balance as a `ccc.Num`. Returns `0` if the data is empty.
+   * @internal
+   */
+  static balanceFromUnsafe(outputData: ccc.HexLike): ccc.Num {
+    const data = ccc.bytesFrom(outputData).slice(0, 16);
+    return data.length === 0 ? ccc.Zero : ccc.numFromBytes(data);
+  }
+
+  /**
+   * Extracts UDT information (balance, capacity, count) from a list of cells.
+   *
+   * This method iterates through the provided cells, filters for valid UDT cells
+   * belonging to this token, and aggregates their information.
+   *
+   * @param _client - The client instance, which may be used by subclasses for network requests.
+   * @param cells - A list or a nested list of cells to process.
+   * @param acc - An optional `UdtInfoLike` object to accumulate results into.
+   * @returns A promise resolving to a `UdtInfo` object with the total balance, capacity,
+   *          and count of valid UDT cells found in the list.
+   *
+   * @remarks
+   * The base implementation of this method operates locally on the provided cell data
+   * and does not perform any network requests. However, subclasses may override this
+   * method to introduce network requests for more complex logic.
+   *
+   * @example
+   * ```typescript
+   * const udt = new Udt(codeOutPoint, scriptConfig);
+   * const cells = [cell1, cell2, nonUdtCell];
+   *
+   * const { balance, capacity, count } = await udt.infoFrom(client, cells);
+   *
+   * console.log(`Total UDT balance: ${balance}`);
+   * console.log(`Total capacity of UDT cells: ${capacity}`);
+   * console.log(`Number of UDT cells: ${count}`);
+   * ```
+   */
+  async infoFrom(
+    _client: ccc.Client,
+    cells: ccc.CellAnyLike | ccc.CellAnyLike[],
+    acc?: UdtInfoLike,
+  ): Promise<UdtInfo> {
+    return [cells].flat().reduce((acc, cellLike) => {
+      const cell = ccc.CellAny.from(cellLike);
+      if (!this.isUdt(cell)) {
+        return acc;
+      }
+
+      return acc.addEq({
+        balance: Udt.balanceFromUnsafe(cell.outputData),
+        capacity: cell.cellOutput.capacity,
+        count: 1,
+      });
+    }, UdtInfo.from(acc).clone());
+  }
+
+  /**
+   * Calculates the total UDT balance from a list of cells.
+   * This is a convenience method that wraps `infoFrom` and returns only the balance.
+   *
+   * @param client - The client instance.
+   * @param cells - A list or a nested list of cells to process.
+   * @param acc - An optional initial balance to accumulate on.
+   * @returns A promise resolving to the total UDT balance from the provided cells.
+   *
+   * @example
+   * ```typescript
+   * const cell1 = await client.getLiveCell(outpoint1);
+   * const cell2 = await client.getLiveCell(outpoint2);
+   * const totalBalance = await udt.balanceFrom(client, [cell1, cell2]);
+   * console.log(`Balance from selected cells: ${totalBalance}`);
+   * ```
+   */
+  async balanceFrom(
+    client: ccc.Client,
+    cells: ccc.CellAnyLike | ccc.CellAnyLike[],
+    acc?: ccc.NumLike | null,
+  ): Promise<ccc.Num> {
+    return (await this.infoFrom(client, cells, { balance: acc })).balance;
+  }
+
+  /**
+   * Calculates comprehensive information about all UDT cells controlled by the signer.
+   * This method scans through every UDT cell that the signer controls and aggregates
+   * their balance, capacity, and count information.
+   *
+   * ⚠️ **Performance Warning**: This is an expensive operation that scales with the number
+   * of UDT cells. For addresses with many UDT cells (hundreds or thousands), this method
+   * can take significant time and resources. Use sparingly and consider caching results.
+   *
+   * @param signer - The signer whose UDT cells to scan and analyze
+   * @param options - Optional configuration for the calculation
+   * @param options.source - Data source to use: "chain" (default) for on-chain data, "local" for local indexer cache
+   * @returns A promise resolving to a `UdtInfo` object containing the aggregated balance, capacity, and count.
+   *
+   * @example
+   * ```typescript
+   * const udt = new Udt(codeOutPoint, scriptConfig);
+   *
+   * // Calculate comprehensive UDT information from chain (default)
+   * const info = await udt.calculateInfo(signer);
+   * console.log(`Total UDT balance: ${info.balance}`);
+   * console.log(`Total capacity used: ${info.capacity} CKB`);
+   * console.log(`Number of UDT cells: ${info.count}`);
+   *
+   * // Use local cache for faster response (may be less up-to-date)
+   * const localInfo = await udt.calculateInfo(signer, { source: "local" });
+   * console.log(`Local cached balance: ${localInfo.balance}`);
+   *
+   * // Use for wallet balance display
+   * const balanceInTokens = ccc.fixedPointToString(info.balance, 8); // Assuming 8 decimals
+   * console.log(`Balance: ${balanceInTokens} tokens in ${info.count} cells`);
+   * ```
+   *
+   * @remarks
+   * **Performance Considerations:**
+   * - Execution time is O(n) where n is the number of UDT cells
+   * - Network requests are made for each cell discovery when using "chain" source
+   * - "local" source is faster but may not reflect the most recent state
+   * - Consider implementing client-side caching for frequently accessed data
+   * - For transaction-specific calculations, use `getInputsInfo()` or `getOutputsInfo()` instead
+   *
+   * **Data Source Options:**
+   * - `"chain"` (default): Queries the blockchain directly for the most up-to-date information
+   * - `"local"`: Uses local indexer cache, faster but potentially stale data
+   *
+   * **Use Cases:**
+   * - Wallet balance display and portfolio overview
+   * - UDT cell consolidation planning
+   * - Comprehensive account analysis
+   * - Debugging and development tools
+   *
+   * **Alternative Methods:**
+   * - Use `calculateBalance()` if you only need the total balance
+   * - Use `completeInputsAll()` if you need to collect all cells for a transaction
+   * - Use transaction-specific methods for partial calculations
+   */
+  async calculateInfo(
+    signer: ccc.Signer,
+    options?: { source?: "chain" | "local" | null },
+  ): Promise<UdtInfo> {
+    const isFromLocal = (options?.source ?? "chain") === "local";
+
+    return ccc.reduceAsync(
+      isFromLocal
+        ? signer.findCells(this.filter)
+        : signer.findCellsOnChain(this.filter),
+      (acc, cell) => this.infoFrom(signer.client, cell, acc),
+      UdtInfo.default(),
+    );
+  }
+
+  /**
+   * Calculates the total UDT balance across all cells controlled by the signer.
+   * This method provides a convenient way to get the complete UDT balance without
+   * needing the additional capacity and count information.
+   *
+   * ⚠️ **Performance Warning**: This is an expensive operation that scans all UDT cells.
+   * For addresses with many UDT cells, this method can be slow and resource-intensive.
+   * Consider caching results and using sparingly in production applications.
+   *
+   * @param signer - The signer whose total UDT balance to calculate
+   * @param options - Optional configuration for the calculation
+   * @param options.source - Data source to use: "chain" (default) for on-chain data, "local" for local indexer cache
+   * @returns A promise resolving to the total UDT balance across all cells
+   *
+   * @example
+   * ```typescript
+   * const udt = new Udt(codeOutPoint, scriptConfig);
+   *
+   * // Get total balance for wallet display (from chain)
+   * const totalBalance = await udt.calculateBalance(signer);
+   * console.log(`Total UDT balance: ${totalBalance}`);
+   *
+   * // Get balance from local cache for faster response
+   * const cachedBalance = await udt.calculateBalance(signer, { source: "local" });
+   * console.log(`Cached UDT balance: ${cachedBalance}`);
+   *
+   * // Convert to human-readable format (assuming 8 decimals)
+   * const decimals = await udt.decimals();
+   * if (decimals.res !== undefined) {
+   *   const humanReadable = ccc.fixedPointToString(totalBalance, Number(decimals.res));
+   *   console.log(`Balance: ${humanReadable} tokens`);
+   * }
+   *
+   * // Check if user has sufficient balance for a transfer
+   * const requiredAmount = ccc.fixedPointFrom(100);
+   * if (totalBalance >= requiredAmount) {
+   *   console.log("Sufficient balance for transfer");
+   * } else {
+   *   console.log(`Insufficient balance. Need ${requiredAmount - totalBalance} more`);
+   * }
+   * ```
+   *
+   * @remarks
+   * **Performance Considerations:**
+   * - This method internally calls `calculateInfo()` and extracts only the balance
+   * - Execution time scales linearly with the number of UDT cells
+   * - Network overhead increases with cell count when using "chain" source
+   * - "local" source is faster but may not reflect the most recent state
+   * - Results should be cached when used multiple times
+   *
+   * **Data Source Options:**
+   * - `"chain"` (default): Queries the blockchain directly for the most up-to-date balance
+   * - `"local"`: Uses local indexer cache, faster but potentially stale data
+   *
+   * **When to Use:**
+   * - Wallet balance display
+   * - Transfer amount validation
+   * - Portfolio calculations
+   * - Simple balance checks
+   *
+   * **When NOT to Use:**
+   * - In transaction loops or frequent operations
+   * - When you also need capacity or count information (use `calculateInfo()` instead)
+   * - For transaction input/output analysis (use transaction-specific methods)
+   *
+   * **Alternative Methods:**
+   * - Use `calculateInfo()` if you need additional information beyond balance
+   * - Use `getInputsBalance()` for transaction input analysis
+   * - Use `getOutputsBalance()` for transaction output analysis
+   */
+  async calculateBalance(
+    signer: ccc.Signer,
+    options?: { source?: "chain" | "local" | null },
+  ): Promise<ccc.Num> {
+    return (await this.calculateInfo(signer, options)).balance;
   }
 
   /**
@@ -700,17 +1041,18 @@ export class Udt extends ssri.Trait {
    * A valid UDT cell must have this UDT's type script and contain at least 16 bytes of output data
    * (the minimum required for storing the UDT balance as a 128-bit little-endian integer).
    *
-   * @param cellOutputLike - The cell output to check
-   * @param outputData - The output data of the cell
+   * @param cellLike - The cell to check, which can be a `ccc.Cell` or a `ccc.CellLike` object.
    * @returns True if the cell is a valid UDT cell for this token, false otherwise
    *
    * @example
    * ```typescript
    * const udt = new Udt(codeOutPoint, scriptConfig);
-   * const cellOutput = { lock: someLock, type: udt.script };
-   * const outputData = ccc.numLeToBytes(1000, 16); // 1000 UDT balance
+   * const cell = {
+   *   cellOutput: { lock: someLock, type: udt.script },
+   *   outputData: ccc.numLeToBytes(1000, 16) // 1000 UDT balance
+   * };
    *
-   * const isValid = udt.isUdt({ cellOutput, outputData });
+   * const isValid = udt.isUdt(cell);
    * console.log(`Is valid UDT cell: ${isValid}`); // true
    * ```
    *
@@ -719,9 +1061,10 @@ export class Udt extends ssri.Trait {
    * 1. The cell's type script matches this UDT's script
    * 2. The output data is at least 16 bytes long (required for UDT balance storage)
    */
-  isUdt(cell: { cellOutput: ccc.CellOutputLike; outputData: ccc.HexLike }) {
+  isUdt(cellLike: ccc.CellAnyLike) {
+    const cell = ccc.CellAny.from(cellLike);
     return (
-      (ccc.CellOutput.from(cell.cellOutput).type?.eq(this.script) ?? false) &&
+      (cell.cellOutput.type?.eq(this.script) ?? false) &&
       ccc.bytesFrom(cell.outputData).length >= 16
     );
   }
@@ -731,8 +1074,8 @@ export class Udt extends ssri.Trait {
    * This method analyzes all input cells and returns detailed statistics including
    * total UDT balance, total capacity occupied, and the number of UDT cells.
    *
-   * @param txLike - The transaction to analyze
    * @param client - The client to fetch input cell data
+   * @param txLike - The transaction to analyze
    * @returns A promise resolving to an object containing:
    *          - balance: Total UDT balance from all input cells
    *          - capacity: Total capacity occupied by all UDT input cells
@@ -743,7 +1086,7 @@ export class Udt extends ssri.Trait {
    * const udt = new Udt(codeOutPoint, scriptConfig);
    * const tx = ccc.Transaction.from(existingTransaction);
    *
-   * const inputsInfo = await udt.getInputsInfo(tx, client);
+   * const inputsInfo = await udt.getInputsInfo(client, tx);
    * console.log(`UDT inputs: ${inputsInfo.count} cells`);
    * console.log(`Total UDT balance: ${inputsInfo.balance}`);
    * console.log(`Total capacity: ${inputsInfo.capacity}`);
@@ -755,36 +1098,16 @@ export class Udt extends ssri.Trait {
    * Only cells with this UDT's type script are included in the statistics.
    */
   async getInputsInfo(
-    txLike: ccc.TransactionLike,
     client: ccc.Client,
-  ): Promise<{
-    balance: ccc.Num;
-    capacity: ccc.Num;
-    count: number;
-  }> {
+    txLike: ccc.TransactionLike,
+  ): Promise<UdtInfo> {
     const tx = ccc.Transaction.from(txLike);
-    const [balance, capacity, count] = await ccc.reduceAsync(
+    return ccc.reduceAsync(
       tx.inputs,
-      async (acc, input) => {
-        const { cellOutput, outputData } = await input.getCell(client);
-        if (!this.isUdt({ cellOutput, outputData })) {
-          return acc;
-        }
-
-        return [
-          acc[0] + ccc.udtBalanceFrom(outputData),
-          acc[1] + cellOutput.capacity,
-          acc[2] + 1,
-        ];
-      },
-      [ccc.Zero, ccc.Zero, 0],
+      async (acc, input) =>
+        this.infoFrom(client, await input.getCell(client), acc),
+      UdtInfo.default(),
     );
-
-    return {
-      balance,
-      capacity,
-      count,
-    };
   }
 
   /**
@@ -792,8 +1115,8 @@ export class Udt extends ssri.Trait {
    * This method examines each input cell and sums up the UDT amounts
    * for cells that have this UDT's type script.
    *
-   * @param txLike - The transaction to analyze
    * @param client - The client to fetch input cell data
+   * @param txLike - The transaction to analyze
    * @returns A promise resolving to the total UDT balance from all inputs
    *
    * @example
@@ -801,7 +1124,7 @@ export class Udt extends ssri.Trait {
    * const udt = new Udt(codeOutPoint, scriptConfig);
    * const tx = ccc.Transaction.from(existingTransaction);
    *
-   * const inputBalance = await udt.getInputsBalance(tx, client);
+   * const inputBalance = await udt.getInputsBalance(client, tx);
    * console.log(`Total UDT input balance: ${inputBalance}`);
    * ```
    *
@@ -810,10 +1133,10 @@ export class Udt extends ssri.Trait {
    * Inputs without a type script or with different type scripts are ignored.
    */
   async getInputsBalance(
-    txLike: ccc.TransactionLike,
     client: ccc.Client,
+    txLike: ccc.TransactionLike,
   ): Promise<ccc.Num> {
-    return (await this.getInputsInfo(txLike, client)).balance;
+    return (await this.getInputsInfo(client, txLike)).balance;
   }
 
   /**
@@ -821,8 +1144,8 @@ export class Udt extends ssri.Trait {
    * This method analyzes all output cells and returns detailed statistics including
    * total UDT balance, total capacity occupied, and the number of UDT cells.
    *
+   * @param client - The client parameter (unused for outputs since data is already available)
    * @param txLike - The transaction to analyze
-   * @param _client - The client parameter (unused for outputs since data is already available)
    * @returns A promise resolving to an object containing:
    *          - balance: Total UDT balance from all output cells
    *          - capacity: Total capacity occupied by all UDT output cells
@@ -842,7 +1165,7 @@ export class Udt extends ssri.Trait {
    *   ]
    * });
    *
-   * const outputsInfo = await udt.getOutputsInfo(tx, client);
+   * const outputsInfo = await udt.getOutputsInfo(client, tx);
    * console.log(`UDT outputs: ${outputsInfo.count} cells`);
    * console.log(`Total UDT balance: ${outputsInfo.balance}`); // 1500
    * console.log(`Total capacity: ${outputsInfo.capacity}`);
@@ -856,36 +1179,15 @@ export class Udt extends ssri.Trait {
    * actually need to fetch data since output information is already available.
    */
   async getOutputsInfo(
+    client: ccc.Client,
     txLike: ccc.TransactionLike,
-    _client: ccc.Client,
-  ): Promise<{
-    balance: ccc.Num;
-    capacity: ccc.Num;
-    count: number;
-  }> {
+  ): Promise<UdtInfo> {
     const tx = ccc.Transaction.from(txLike);
-    const [balance, capacity, count] = tx.outputs.reduce(
-      (acc, output, i) => {
-        if (
-          !this.isUdt({ cellOutput: output, outputData: tx.outputsData[i] })
-        ) {
-          return acc;
-        }
-
-        return [
-          acc[0] + ccc.udtBalanceFrom(tx.outputsData[i]),
-          acc[1] + output.capacity,
-          acc[2] + 1,
-        ];
-      },
-      [ccc.Zero, ccc.Zero, 0],
+    return ccc.reduceAsync(
+      tx.outputCells,
+      (acc, cell) => this.infoFrom(client, cell, acc),
+      UdtInfo.default(),
     );
-
-    return {
-      balance,
-      capacity,
-      count,
-    };
   }
 
   /**
@@ -893,8 +1195,8 @@ export class Udt extends ssri.Trait {
    * This method examines each output cell and sums up the UDT amounts
    * for cells that have this UDT's type script.
    *
-   * @param txLike - The transaction to analyze
    * @param client - The client parameter (passed to getOutputsInfo for consistency)
+   * @param txLike - The transaction to analyze
    * @returns A promise resolving to the total UDT balance from all outputs
    *
    * @example
@@ -911,7 +1213,7 @@ export class Udt extends ssri.Trait {
    *   ]
    * });
    *
-   * const outputBalance = await udt.getOutputsBalance(tx, client);
+   * const outputBalance = await udt.getOutputsBalance(client, tx);
    * console.log(`Total UDT output balance: ${outputBalance}`); // 1500
    * ```
    *
@@ -921,10 +1223,10 @@ export class Udt extends ssri.Trait {
    * This method is a convenience wrapper around `getOutputsInfo` that returns only the balance.
    */
   async getOutputsBalance(
-    txLike: ccc.TransactionLike,
     client: ccc.Client,
+    txLike: ccc.TransactionLike,
   ): Promise<ccc.Num> {
-    return (await this.getOutputsInfo(txLike, client)).balance;
+    return (await this.getOutputsInfo(client, txLike)).balance;
   }
 
   /**
@@ -933,8 +1235,8 @@ export class Udt extends ssri.Trait {
    * A positive value indicates UDT tokens are being burned, while a negative value
    * indicates more UDT is being created than consumed (which may require minting permissions).
    *
-   * @param txLike - The transaction to analyze
    * @param client - The client to fetch input cell data
+   * @param txLike - The transaction to analyze
    * @returns A promise resolving to the net UDT balance burned (inputs - outputs)
    *
    * @example
@@ -942,7 +1244,7 @@ export class Udt extends ssri.Trait {
    * const udt = new Udt(codeOutPoint, scriptConfig);
    * const tx = ccc.Transaction.from(existingTransaction);
    *
-   * const burned = await udt.getBalanceBurned(tx, client);
+   * const burned = await udt.getBalanceBurned(client, tx);
    * if (burned > 0) {
    *   console.log(`${burned} UDT tokens will be burned`);
    * } else if (burned < 0) {
@@ -960,13 +1262,13 @@ export class Udt extends ssri.Trait {
    * - Ensuring sufficient UDT inputs are provided for transfers
    */
   async getBalanceBurned(
-    txLike: ccc.TransactionLike,
     client: ccc.Client,
+    txLike: ccc.TransactionLike,
   ): Promise<ccc.Num> {
     const tx = ccc.Transaction.from(txLike);
     return (
-      (await this.getInputsBalance(tx, client)) -
-      (await this.getOutputsBalance(tx, client))
+      (await this.getInputsBalance(client, tx)) -
+      (await this.getOutputsBalance(client, tx))
     );
   }
 
@@ -994,7 +1296,7 @@ export class Udt extends ssri.Trait {
    *   tx,
    *   signer,
    *   ([balanceAcc, capacityAcc], cell) => {
-   *     const balance = ccc.udtBalanceFrom(cell.outputData);
+   *     const balance = Udt.balanceFromUnsafe(cell.outputData);
    *     const newBalance = balanceAcc + balance;
    *     const newCapacity = capacityAcc + cell.cellOutput.capacity;
    *
@@ -1078,9 +1380,11 @@ export class Udt extends ssri.Trait {
    * @remarks
    * This method implements sophisticated dual-constraint input selection with the following logic:
    *
-   * **Balance Calculations:**
-   * - UDT balance deficit: `inputBalance - outputBalance - balanceTweak`
-   * - Capacity balance with fee optimization: `min(inputCapacity - outputCapacity, estimatedFee) - capacityTweak`
+   * **Constraint Calculations:**
+   * - **UDT Balance Deficit**: `(input UDT balance) - (output UDT balance) - balanceTweak`
+   * - **Capacity Deficit**: `min((input UDT capacity) - (output UDT capacity), total_tx_fee) - capacityTweak`
+   *   The capacity calculation determines how much capacity from UDT cells is available to cover CKB requirements (like transaction fees).
+   *   It's capped by the total transaction fee to avoid over-providing capacity from UDT cells if not needed.
    * - The capacity calculation tries to avoid extra occupation by UDT cells and compress UDT state
    *
    * **Early Exit Optimization:**
@@ -1107,9 +1411,9 @@ export class Udt extends ssri.Trait {
   }> {
     const tx = ccc.Transaction.from(txLike);
     const { balance: inBalance, capacity: inCapacity } =
-      await this.getInputsInfo(tx, from.client);
+      await this.getInputsInfo(from.client, tx);
     const { balance: outBalance, capacity: outCapacity } =
-      await this.getOutputsInfo(tx, from.client);
+      await this.getOutputsInfo(from.client, tx);
 
     const balanceBurned =
       inBalance - outBalance - ccc.numFrom(balanceTweak ?? 0);
@@ -1129,25 +1433,23 @@ export class Udt extends ssri.Trait {
     } = await this.completeInputs(
       tx,
       from,
-      ([balanceAcc, capacityAcc], { cellOutput: { capacity }, outputData }) => {
-        const balance = ccc.udtBalanceFrom(outputData);
-        const balanceBurned = balanceAcc + balance;
-        const capacityBurned = capacityAcc + capacity;
+      async (acc, cell) => {
+        const info = await this.infoFrom(from.client, cell, acc);
 
         // Try to provide enough capacity with UDT cells to avoid extra occupation
-        return balanceBurned >= ccc.Zero && capacityBurned >= ccc.Zero
+        return info.balance >= ccc.Zero && info.capacity >= ccc.Zero
           ? undefined
-          : [balanceBurned, capacityBurned];
+          : info;
       },
-      [balanceBurned, capacityBurned],
+      { balance: balanceBurned, capacity: capacityBurned },
     );
 
-    if (accumulated === undefined || accumulated[0] >= ccc.Zero) {
+    if (accumulated === undefined || accumulated.balance >= ccc.Zero) {
       return { tx: txRes, addedCount };
     }
 
     throw new ErrorUdtInsufficientCoin({
-      amount: -accumulated[0],
+      amount: -accumulated.balance,
       type: this.script,
     });
   }
@@ -1274,7 +1576,7 @@ export class Udt extends ssri.Trait {
       tx = (await this.completeInputsByBalance(tx, signer)).tx;
     }
 
-    const balanceBurned = await this.getBalanceBurned(tx, signer.client);
+    const balanceBurned = await this.getBalanceBurned(signer.client, tx);
 
     if (balanceBurned < ccc.Zero) {
       throw new ErrorUdtInsufficientCoin({
@@ -1300,7 +1602,7 @@ export class Udt extends ssri.Trait {
       await this.completeInputsByBalance(tx, signer, ccc.Zero, extraCapacity)
     ).tx;
 
-    const balanceToChange = await this.getBalanceBurned(tx, signer.client);
+    const balanceToChange = await this.getBalanceBurned(signer.client, tx);
     await Promise.resolve(change(tx, balanceToChange, true));
 
     return tx;
@@ -1354,6 +1656,7 @@ export class Udt extends ssri.Trait {
   ) {
     const tx = ccc.Transaction.from(txLike);
     const index = Number(ccc.numFrom(indexLike));
+    const cellOutput = tx.outputs[index];
     const outputData = ccc.bytesFrom(tx.outputsData[index]);
 
     if (!this.isUdt({ cellOutput: tx.outputs[index], outputData })) {
@@ -1363,10 +1666,17 @@ export class Udt extends ssri.Trait {
     return this.complete(
       tx,
       signer,
-      (tx, balance, shouldModify) => {
+      async (tx, balance, shouldModify) => {
         if (shouldModify) {
           const balanceData = ccc.numLeToBytes(
-            ccc.udtBalanceFrom(outputData) + balance,
+            await this.balanceFrom(
+              signer.client,
+              {
+                cellOutput,
+                outputData,
+              },
+              balance,
+            ),
             16,
           );
 
