@@ -1,5 +1,16 @@
 # @ckb-ccc/core
 
+## 2.0.0
+### Major Changes
+
+
+
+- [#270](https://github.com/ckb-devrel/ccc/pull/270) [`638e5dc`](https://github.com/ckb-devrel/ccc/commit/638e5dc575b75270ab1e8d1572470820a72af57a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
+
+
+
+- [#267](https://github.com/ckb-devrel/ccc/pull/267) [`5530fa9`](https://github.com/ckb-devrel/ccc/commit/5530fa960736834477b5b84ac0330e0085cee8d5) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `reduce` and `reduceAsync` for `Iterable`
+
 ## 1.12.0
 ### Minor Changes
 
