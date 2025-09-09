@@ -1,5 +1,19 @@
 # @ckb-ccc/udt
 
+## 0.2.0
+### Minor Changes
+
+
+
+- [`c0893f1`](https://github.com/ckb-devrel/ccc/commit/c0893f1847c475c3bb512e4da7524fa5fdc76218) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(udt): `Udt.complete*` methods
+
+
+### Patch Changes
+
+- Updated dependencies [[`c0893f1`](https://github.com/ckb-devrel/ccc/commit/c0893f1847c475c3bb512e4da7524fa5fdc76218), [`638e5dc`](https://github.com/ckb-devrel/ccc/commit/638e5dc575b75270ab1e8d1572470820a72af57a), [`5530fa9`](https://github.com/ckb-devrel/ccc/commit/5530fa960736834477b5b84ac0330e0085cee8d5)]:
+  - @ckb-ccc/ssri@0.3.0
+  - @ckb-ccc/core@2.0.0
+
 ## 0.1.19
 ### Patch Changes
 
