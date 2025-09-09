@@ -49,7 +49,12 @@ export async function execute(
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
 ) {
   const compiled = ts.transpileModule(source, {
-    compilerOptions: { sourceMap: true, jsx: ts.JsxEmit.React },
+    compilerOptions: {
+      sourceMap: true,
+      jsx: ts.JsxEmit.React,
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.NodeNext,
+    },
   });
 
   const exports = {};
