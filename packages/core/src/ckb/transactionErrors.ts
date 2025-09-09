@@ -22,9 +22,6 @@ export class ErrorTransactionInsufficientCapacity extends Error {
   }
 }
 
-/**
- * @deprecated Use `ErrorUdtInsufficientCoin` from `@ckb-ccc/udt` instead.
- */
 export class ErrorTransactionInsufficientCoin extends Error {
   public readonly amount: Num;
   public readonly type: Script;
