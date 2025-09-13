@@ -13,8 +13,33 @@ export type Hex = `0x${string}`;
 export type HexLike = BytesLike;
 
 /**
- * Converts a HexLike value to a Hex string.
- * @public
+ * Determines whether a given value is a properly formatted hexadecimal string (ccc.Hex).
+ *
+ * A valid hexadecimal string:
+ * - Has at least two characters.
+ * - Starts with "0x".
+ * - Has an even length.
+ * - Contains only characters representing digits (0-9) or lowercase letters (a-f) after the "0x" prefix.
+ *
+ * @param s - The string to validate as a hexadecimal (ccc.Hex) string.
+ * @returns True if the string is a valid hex string, false otherwise.
+ */
+export function isHex(s: unknown): s is Hex {
+  if (!(typeof s === "string" && s.length % 2 === 0 && s.startsWith("0x"))) {
+    return false;
+  }
+
+  for (let i = 2; i < s.length; i++) {
+    const c = s.charAt(i);
+    if (!(("0" <= c && c <= "9") || ("a" <= c && c <= "f"))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Returns the hexadecimal representation of the given value.
  *
  * @param hex - The value to convert, which can be a string, Uint8Array, ArrayBuffer, or number array.
  * @returns A Hex string representing the value.
@@ -26,5 +51,10 @@ export type HexLike = BytesLike;
  * ```
  */
 export function hexFrom(hex: HexLike): Hex {
+  // Passthru an already normalized hex. V8 optimization: maintain existing hidden string fields.
+  if (isHex(hex)) {
+    return hex;
+  }
+
   return `0x${bytesTo(bytesFrom(hex), "hex")}`;
 }
