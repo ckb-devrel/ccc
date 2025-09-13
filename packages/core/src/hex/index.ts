@@ -13,7 +13,7 @@ export type Hex = `0x${string}`;
 export type HexLike = BytesLike;
 
 /**
- * Determines whether a given string is a properly formatted hexadecimal string (ccc.Hex).
+ * Determines whether a given value is a properly formatted hexadecimal string (ccc.Hex).
  *
  * A valid hexadecimal string:
  * - Has at least two characters.
@@ -24,20 +24,14 @@ export type HexLike = BytesLike;
  * @param s - The string to validate as a hexadecimal (ccc.Hex) string.
  * @returns True if the string is a valid hex string, false otherwise.
  */
-export function isHex(s: string): s is Hex {
-  if (
-    s.length < 2 ||
-    s.charCodeAt(0) !== 48 || // ascii code for '0'
-    s.charCodeAt(1) !== 120 || // ascii code for 'x'
-    s.length % 2 !== 0
-  ) {
+export function isHex(s: unknown): s is Hex {
+  if (!(typeof s === "string" && s.length % 2 === 0 && s.startsWith("0x"))) {
     return false;
   }
 
   for (let i = 2; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    // Allow characters '0'-'9' and 'a'-'f'
-    if (!((c >= 48 && c <= 57) || (c >= 97 && c <= 102))) {
+    const c = s.charAt(i);
+    if (!(("0" <= c && c <= "9") || ("a" <= c && c <= "f"))) {
       return false;
     }
   }
@@ -58,7 +52,7 @@ export function isHex(s: string): s is Hex {
  */
 export function hexFrom(hex: HexLike): Hex {
   // Passthru an already normalized hex. V8 optimization: maintain existing hidden string fields.
-  if (typeof hex === "string" && isHex(hex)) {
+  if (isHex(hex)) {
     return hex;
   }
 
