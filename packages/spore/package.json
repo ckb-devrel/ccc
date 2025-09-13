@@ -60,7 +60,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "axios": "^1.11.0"
+    "axios": "^1.12.0"
   },
   "packageManager": "pnpm@10.8.1"
 }
