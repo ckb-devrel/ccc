@@ -3,6 +3,7 @@ import { Zero } from "../fixedPoint/index.js";
 import { type Hex, type HexLike } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import { numFrom, NumLike, type Num } from "../num/index.js";
+import { gcd } from "../utils/index.js";
 
 /**
  * @deprecated use `Epoch.from` instead
@@ -293,19 +294,3 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
  * 4 hours * 60 minutes per hour * 60 seconds per minute * 1000 milliseconds per second.
  */
 const epochInMilliseconds = numFrom(14400000); // (Number.isSafeInteger(14400000) === true)
-
-/**
- * Calculate the greatest common divisor (GCD) of two Num values using the Euclidean algorithm.
- *
- * @param a - First operand.
- * @param b - Second operand.
- * @returns GCD(a, b) as a Num.
- */
-function gcd(a: Num, b: Num): Num {
-  a = a < Zero ? -a : a;
-  b = b < Zero ? -b : b;
-  while (b !== Zero) {
-    [a, b] = [b, a % b];
-  }
-  return a;
-}
