@@ -2472,7 +2472,7 @@ export function calcDaoProfit(
  * @example
  * ```typescript
  * const epoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
- * console.log(`Can claim at epoch: ${epoch.number}, index: ${epoch.index]}, length: ${epoch.length}`);
+ * console.log(`Can claim at epoch: ${epoch.number}, index: ${epoch.index}, length: ${epoch.length}`);
  * ```
  *
  * @remarks
