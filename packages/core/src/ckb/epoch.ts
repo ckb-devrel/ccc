@@ -165,9 +165,9 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    * representation: (number * length + index) scaled by the other's length.
    *
    * @param other - EpochLike value to compare against.
-   * @returns positive if this > other, 0 if equal, negative if this < other.
+   * @returns 1 if this > other, 0 if equal, -1 if this < other.
    */
-  compare(other: EpochLike): number {
+  compare(other: EpochLike): 1 | 0 | -1 {
     if (this === other) {
       return 0;
     }
@@ -176,7 +176,7 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
     const a = (this.number * this.length + this.index) * other_.length;
     const b = (other_.number * other_.length + other_.index) * this.length;
 
-    return Number(a - b);
+    return a > b ? 1 : a < b ? -1 : 0;
   }
 
   /**
