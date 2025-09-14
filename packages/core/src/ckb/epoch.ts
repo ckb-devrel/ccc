@@ -302,6 +302,8 @@ const epochInMilliseconds = numFrom(14400000); // (Number.isSafeInteger(14400000
  * @returns GCD(a, b) as a Num.
  */
 function gcd(a: Num, b: Num): Num {
+  a = a < Zero ? -a : a;
+  b = b < Zero ? -b : b;
   while (b !== Zero) {
     [a, b] = [b, a % b];
   }
