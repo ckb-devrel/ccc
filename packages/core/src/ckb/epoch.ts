@@ -67,22 +67,6 @@ export type EpochLike =
  */
 export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
   /**
-   * @deprecated use `number` instead
-   * Backwards-compatible array-style index 0 referencing the whole number.
-   */
-  public readonly [0]: Num;
-  /**
-   * @deprecated use `index` instead
-   * Backwards-compatible array-style index 1 referencing the fractional numerator.
-   */
-  public readonly [1]: Num;
-  /**
-   * @deprecated use `length` instead
-   * Backwards-compatible array-style index 2 referencing the fractional denominator.
-   */
-  public readonly [2]: Num;
-
-  /**
    * Construct a new Epoch.
    *
    * The constructor enforces a positive `length` (denominator). If `length`
@@ -102,9 +86,30 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
       throw new Error("Non positive Epoch length");
     }
     super();
-    this[0] = number;
-    this[1] = index;
-    this[2] = length;
+  }
+
+  /**
+   * @deprecated use `number` instead
+   * Backwards-compatible array-style index 0 referencing the whole epoch number.
+   */
+  get 0(): Num {
+    return this.number;
+  }
+
+  /**
+   * @deprecated use `index` instead
+   * Backwards-compatible array-style index 1 referencing the epoch fractional numerator.
+   */
+  get 1(): Num {
+    return this.index;
+  }
+
+  /**
+   * @deprecated use `length` instead
+   * Backwards-compatible array-style index 2 referencing the epoch fractional denominator.
+   */
+  get 2(): Num {
+    return this.length;
   }
 
   /**
