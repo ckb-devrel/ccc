@@ -132,7 +132,7 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
     }
 
     let number: NumLike, index: NumLike, length: NumLike;
-    if (epochLike instanceof Array) {
+    if (Array.isArray(epochLike)) {
       [number, index, length] = epochLike;
     } else {
       ({ number, index, length } = epochLike);
@@ -146,13 +146,6 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    */
   static zero(): Epoch {
     return new Epoch(0n, 0n, numFrom(1));
-  }
-
-  /**
-   * Return an epoch representing one (1 + 0/1).
-   */
-  static one(): Epoch {
-    return new Epoch(numFrom(1), 0n, numFrom(1));
   }
 
   /**
@@ -281,8 +274,8 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
 
     return (
       reference.timestamp +
-      epochInMilliseconds * number +
-      (epochInMilliseconds * index) / length
+      EPOCH_IN_MILLISECONDS * number +
+      (EPOCH_IN_MILLISECONDS * index) / length
     );
   }
 }
@@ -293,4 +286,4 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
  * Calculated as 4 hours in milliseconds:
  * 4 hours * 60 minutes per hour * 60 seconds per minute * 1000 milliseconds per second.
  */
-const epochInMilliseconds = numFrom(14400000); // (Number.isSafeInteger(14400000) === true)
+const EPOCH_IN_MILLISECONDS = numFrom(4 * 60 * 60 * 1000);
