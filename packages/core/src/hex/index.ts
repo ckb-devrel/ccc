@@ -21,16 +21,16 @@ export type HexLike = BytesLike;
  * - Has an even length.
  * - Contains only characters representing digits (0-9) or lowercase letters (a-f) after the "0x" prefix.
  *
- * @param s - The string to validate as a hexadecimal (ccc.Hex) string.
+ * @param v - The value to validate as a hexadecimal (ccc.Hex) string.
  * @returns True if the string is a valid hex string, false otherwise.
  */
-export function isHex(s: unknown): s is Hex {
-  if (!(typeof s === "string" && s.length % 2 === 0 && s.startsWith("0x"))) {
+export function isHex(v: unknown): v is Hex {
+  if (!(typeof v === "string" && v.length % 2 === 0 && v.startsWith("0x"))) {
     return false;
   }
 
-  for (let i = 2; i < s.length; i++) {
-    const c = s.charAt(i);
+  for (let i = 2; i < v.length; i++) {
+    const c = v.charAt(i);
     if (!(("0" <= c && c <= "9") || ("a" <= c && c <= "f"))) {
       return false;
     }
