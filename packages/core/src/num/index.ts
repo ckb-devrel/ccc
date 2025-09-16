@@ -1,4 +1,5 @@
 import { Bytes, BytesLike, bytesConcat, bytesFrom } from "../bytes/index.js";
+import { Zero } from "../fixedPoint/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 
 /**
@@ -90,11 +91,16 @@ export function numFrom(val: NumLike): Num {
 }
 
 /**
- * Converts a NumLike value to a hexadecimal string.
+ * Convert a NumLike value into a canonical Hex, so prefixed with `0x` and
+ * containing an even number of lowercase hex digits (full-byte representation).
+ *
  * @public
  *
  * @param val - The value to convert, which can be a string, number, bigint, or HexLike.
- * @returns A Hex string representing the numeric value.
+ * @returns A Hex string representing the provided value, prefixed with `0x` and
+ *          containing an even number of lowercase hex digits.
+ *
+ * @throws {Error} If the normalized numeric value is negative.
  *
  * @example
  * ```typescript
@@ -102,7 +108,13 @@ export function numFrom(val: NumLike): Num {
  * ```
  */
 export function numToHex(val: NumLike): Hex {
-  return `0x${numFrom(val).toString(16)}`;
+  const v = numFrom(val);
+  if (v < Zero) {
+    throw new Error("value must be non-negative");
+  }
+  const h = v.toString(16);
+  // ensure even length (full bytes)
+  return h.length % 2 === 0 ? `0x${h}` : `0x0${h}`;
 }
 
 /**
