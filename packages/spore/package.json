@@ -60,7 +60,12 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "axios": "^1.11.0"
+    "axios": "^1.11.0",
+    "satori": "^0.10.13",
+    "svgson": "^5.3.1"
+  },
+  "peerDependencies": {
+    "satori": "^0.10.13"
   },
   "packageManager": "pnpm@10.8.1"
 }
