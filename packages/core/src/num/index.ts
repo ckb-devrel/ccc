@@ -91,20 +91,23 @@ export function numFrom(val: NumLike): Num {
 }
 
 /**
- * Convert a NumLike value into a canonical Hex, so prefixed with `0x` and
- * containing an even number of lowercase hex digits (full-byte representation).
+ * Converts a {@link NumLike} value into its hexadecimal string representation, prefixed with `0x`.
+ *
+ * @remarks
+ * This function returns the direct hexadecimal representation of the number, which may have an odd number of digits.
+ * For a full-byte representation (an even number of hex digits), consider using {@link numToBytes}, {@link numLeToBytes}, or {@link numBeToBytes} and then converting the resulting byte array to a hex string.
  *
  * @public
  *
  * @param val - The value to convert, which can be a string, number, bigint, or HexLike.
- * @returns A Hex string representing the provided value, prefixed with `0x` and
- *          containing an even number of lowercase hex digits.
+ * @returns A Hex string representing the number.
  *
  * @throws {Error} If the normalized numeric value is negative.
  *
  * @example
  * ```typescript
- * const hex = numToHex(12345); // Outputs "0x3039"
+ * const hex = numToHex(4660); // "0x1234"
+ * const oddLengthHex = numToHex(10); // "0xa"
  * ```
  */
 export function numToHex(val: NumLike): Hex {
@@ -112,9 +115,7 @@ export function numToHex(val: NumLike): Hex {
   if (v < Zero) {
     throw new Error("value must be non-negative");
   }
-  const h = v.toString(16);
-  // ensure even length (full bytes)
-  return h.length % 2 === 0 ? `0x${h}` : `0x0${h}`;
+  return `0x${v.toString(16)}`;
 }
 
 /**
