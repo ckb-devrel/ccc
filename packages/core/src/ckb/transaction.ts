@@ -318,6 +318,8 @@ export type CellAnyLike = {
  * @public
  */
 export class CellAny {
+  public outPoint: OutPoint | undefined;
+
   /**
    * Creates an instance of CellAny.
    *
@@ -329,8 +331,10 @@ export class CellAny {
   constructor(
     public cellOutput: CellOutput,
     public outputData: Hex,
-    public outPoint?: OutPoint,
-  ) {}
+    outPoint?: OutPoint,
+  ) {
+    this.outPoint = outPoint;
+  }
 
   /**
    * Creates a `CellAny` instance from a `CellAnyLike` object.

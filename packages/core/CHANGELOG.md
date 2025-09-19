@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.12.1
+### Patch Changes
+
+
+
+- [#318](https://github.com/ckb-devrel/ccc/pull/318) [`6cb6bfc`](https://github.com/ckb-devrel/ccc/commit/6cb6bfcc24af00b460ab7d112986088a9a526ecd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `CellAny.outPoint` overrides existed `outPoint`
+
 ## 1.12.0
 ### Minor Changes
 

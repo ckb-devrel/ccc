@@ -1,5 +1,14 @@
 # @ckb-ccc/shell
 
+## 1.1.20
+### Patch Changes
+
+- Updated dependencies [[`6cb6bfc`](https://github.com/ckb-devrel/ccc/commit/6cb6bfcc24af00b460ab7d112986088a9a526ecd)]:
+  - @ckb-ccc/core@1.12.1
+  - @ckb-ccc/spore@1.5.12
+  - @ckb-ccc/ssri@0.2.18
+  - @ckb-ccc/udt@0.1.20
+
 ## 1.1.19
 ### Patch Changes
 
