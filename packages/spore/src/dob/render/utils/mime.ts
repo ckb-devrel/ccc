@@ -1,5 +1,65 @@
-import type { FileServerResult } from '../config'
-import { hexToBase64 } from './string'
+import type { FileServerResult } from "../config";
+import { hexToBase64 } from "./string";
+
+/**
+ * Detects MIME type from base64-encoded file header by examining file signatures
+ * @param base64Header Base64-encoded file header (should be at least 32 bytes worth)
+ * @returns The detected MIME type or null if not recognized
+ */
+function detectMimeTypeFromBase64Header(base64Header: string): string | null {
+  // JPEG: starts with /9j/ (ffd8ff in base64)
+  if (base64Header.startsWith("/9j/")) {
+    return "image/jpeg";
+  }
+
+  // PNG: starts with iVBORw0KGgo (89504e47 in base64)
+  if (base64Header.startsWith("iVBORw0KGgo")) {
+    return "image/png";
+  }
+
+  // GIF: starts with R0lGOD (474946 in base64)
+  if (base64Header.startsWith("R0lGOD")) {
+    return "image/gif";
+  }
+
+  // WebP: starts with UklGR (RIFF in base64) and contains WEBP
+  if (base64Header.startsWith("UklGR") && base64Header.includes("WEBP")) {
+    return "image/webp";
+  }
+
+  // BMP: starts with Qk0= (424d in base64)
+  if (base64Header.startsWith("Qk0=")) {
+    return "image/bmp";
+  }
+
+  // SVG: starts with PHN2ZyA= (<svg in base64) or PD94bWwg (<xml in base64)
+  if (
+    base64Header.startsWith("PHN2ZyA=") ||
+    base64Header.startsWith("PD94bWwg")
+  ) {
+    return "image/svg+xml";
+  }
+
+  // TIFF: starts with SUkqAA== (49492a00 in base64) or TU0AKg== (4d4d002a in base64)
+  if (
+    base64Header.startsWith("SUkqAA==") ||
+    base64Header.startsWith("TU0AKg==")
+  ) {
+    return "image/tiff";
+  }
+
+  // ICO: starts with AAAEAA== (00000100 in base64)
+  if (base64Header.startsWith("AAAAEAA==")) {
+    return "image/x-icon";
+  }
+
+  // AVIF: contains ZnR5cA== (ftyp in base64) and YXZpZg== (avif in base64)
+  if (base64Header.includes("ZnR5cA==") && base64Header.includes("YXZpZg==")) {
+    return "image/avif";
+  }
+
+  return null;
+}
 
 /**
  * Detects the MIME type of an image from its hex-encoded content by examining file signatures
@@ -9,59 +69,35 @@ import { hexToBase64 } from './string'
 export function detectImageMimeType(hexContent: string): string | null {
   // Skip if string is too short to contain a signature and content
   if (!hexContent || hexContent.length < 64) {
-    return null
+    return null;
   }
 
   // Extract just the file header (first 32 bytes should be enough for most formats)
   // and convert to lowercase for consistent comparison
-  const header = hexContent.substring(0, 64).toLowerCase() // 32 bytes = 64 hex chars
-  
-  // JPEG: starts with ffd8ff
-  if (header.startsWith('ffd8ff')) {
-    return 'image/jpeg'
-  }
-  
-  // PNG: starts with 89504e47 (‰PNG)
-  if (header.startsWith('89504e47')) {
-    return 'image/png'
-  }
-  
-  // GIF: starts with 474946 (GIF)
-  if (header.startsWith('474946')) {
-    return 'image/gif'
-  }
-  
-  // WebP: RIFF....WEBP
-  if (header.startsWith('52494646') && header.substring(16, 24) === '57454250') {
-    return 'image/webp'
-  }
-  
-  // BMP: starts with 424d (BM)
-  if (header.startsWith('424d')) {
-    return 'image/bmp'
+  const header = hexContent.substring(0, 64).toLowerCase(); // 32 bytes = 64 hex chars
+
+  // Convert hex to base64 for detection
+  return detectMimeTypeFromBase64Header(hexToBase64(header));
+}
+
+/**
+ * Detects the MIME type of an image from its base64-encoded content by examining file signatures
+ * @param base64Content Base64-encoded image content
+ * @returns The detected MIME type or null if not recognized
+ */
+export function detectImageMimeTypeFromBase64(
+  base64Content: string,
+): string | null {
+  // Skip if string is too short to contain a signature and content
+  if (!base64Content || base64Content.length < 44) {
+    return null;
   }
 
-  // SVG: starts with <svg or <?xml
-  if (header.startsWith('3c737667') || header.startsWith('3c3f786d6c')) {
-    return 'image/svg+xml'
-  }
-  
-  // TIFF: starts with 49492a00 (Intel) or 4d4d002a (Motorola)
-  if (header.startsWith('49492a00') || header.startsWith('4d4d002a')) {
-    return 'image/tiff'
-  }
-  
-  // ICO: starts with 00000100
-  if (header.startsWith('00000100')) {
-    return 'image/x-icon'
-  }
+  // Extract just the file header (first 32 bytes should be enough for most formats)
+  // Base64 encoding: 32 bytes = 44 base64 characters (32 * 4/3 = 42.67, rounded up to 44)
+  const header = base64Content.substring(0, 44);
 
-  // AVIF: ftyp....avif
-  if (header.includes('66747970') && header.includes('61766966')) {
-    return 'image/avif'
-  }
-  
-  return null
+  return detectMimeTypeFromBase64Header(header);
 }
 
 /**
@@ -70,18 +106,18 @@ export function detectImageMimeType(hexContent: string): string | null {
  * @returns Data URL or original string
  */
 export function processFileServerResult(result: FileServerResult): string {
-  if (typeof result === 'string') {
-    return result
+  if (typeof result === "string") {
+    return result;
   }
-  
+
   // Check if content_type is not an image type and try to detect the actual image type
-  let contentType = result.content_type
-  if (!contentType.startsWith('image/') && result.content) {
-    const mimeType = detectImageMimeType(result.content)
+  let contentType = result.content_type;
+  if (!contentType.startsWith("image/") && result.content) {
+    const mimeType = detectImageMimeTypeFromBase64(result.content);
     if (mimeType) {
-      contentType = mimeType
+      contentType = mimeType;
     }
   }
-  
-  return `data:${contentType};base64,${hexToBase64(result.content)}`
+
+  return `data:${contentType};base64,${result.content}`;
 }

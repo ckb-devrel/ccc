@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { renderByTokenKey, svgToBase64 } from "../dob/index.js";
+import { renderByTokenKey } from "../dob/index.js";
 
 describe("decodeDob [testnet]", () => {
   it("should respose a decoded dob render data from a spore id", async () => {

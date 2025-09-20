@@ -1,30 +1,30 @@
-import { type INode, stringify } from 'svgson'
-import satori from 'satori'
-import { svgToBase64 } from './svg-to-base64'
-import { base64ToArrayBuffer } from './utils/string'
-import SpaceGroteskBoldBase64 from './fonts/SpaceGrotesk-Bold.base64'
+import satori from "satori";
+import { type INode, stringify } from "svgson";
+import SpaceGroteskBoldBase64 from "./fonts/SpaceGrotesk-Bold.base64";
+import { svgToBase64 } from "./svg-to-base64";
+import { base64ToArrayBuffer } from "./utils/string";
 
 export async function renderDob1Svg(nodePromise: Promise<INode>) {
-  const node = await nodePromise
-  const str = stringify(node)
-  const base64 = await svgToBase64(str)
-  const spaceGroteskBoldFont = base64ToArrayBuffer(SpaceGroteskBoldBase64)
-  const width = parseInt(node.attributes.width, 10) || 500
-  const height = parseInt(node.attributes.height, 10) || 500
+  const node = await nodePromise;
+  const str = stringify(node);
+  const base64 = await svgToBase64(str);
+  const spaceGroteskBoldFont = base64ToArrayBuffer(SpaceGroteskBoldBase64);
+  const width = parseInt(node.attributes.width, 10) || 500;
+  const height = parseInt(node.attributes.height, 10) || 500;
 
   return satori(
     {
-      key: 'container',
-      type: 'div',
+      key: "container",
+      type: "div",
       props: {
         style: {
-          display: 'flex',
+          display: "flex",
           width: `${width}px`,
           height: `${width}px`,
         },
         children: [
           {
-            type: 'img',
+            type: "img",
             props: {
               src: base64,
               width,
@@ -43,11 +43,11 @@ export async function renderDob1Svg(nodePromise: Promise<INode>) {
       height,
       fonts: [
         {
-          name: 'SpaceGrotesk',
+          name: "SpaceGrotesk",
           data: spaceGroteskBoldFont,
           weight: 700,
         },
       ],
     },
-  )
+  );
 }
