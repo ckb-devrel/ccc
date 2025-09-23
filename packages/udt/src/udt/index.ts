@@ -262,7 +262,7 @@ export class Udt extends ssri.Trait {
             lock: to,
             type: this.script,
           },
-          ccc.numLeToBytes(amount),
+          ccc.numLeToBytes(amount, 16),
         );
       }
       resTx = ssri.ExecutorResponse.new(mint);
