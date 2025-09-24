@@ -4,7 +4,7 @@ import type { ParsedTrait } from "./traits-parser";
 export function getBackgroundColorByTraits(
   traits: ParsedTrait[],
 ): ParsedTrait | undefined {
-  return traits.find((trait) => trait.name === Key.BgColor);
+  return traits.find((trait) => trait.name === (Key.BgColor as string));
 }
 
 export function backgroundColorParser(

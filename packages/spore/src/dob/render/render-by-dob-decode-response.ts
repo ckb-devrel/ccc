@@ -27,7 +27,10 @@ export function renderByDobDecodeResponse(
       return renderImageSvg(traits);
     }
     // TODO: multiple images
-    if (trait.name === Key.Image && trait.value instanceof Promise) {
+    if (
+      trait.name === (Key.Image as string) &&
+      trait.value instanceof Promise
+    ) {
       return renderDob1Svg(trait.value);
     }
   }

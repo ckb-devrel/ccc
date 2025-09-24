@@ -14,5 +14,5 @@ export async function dobDecode(tokenKey: string): Promise<DobDecodeResponse> {
       params: [tokenKey],
     }),
   });
-  return response.json();
+  return response.json() as Promise<DobDecodeResponse>;
 }

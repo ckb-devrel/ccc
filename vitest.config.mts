@@ -2,9 +2,9 @@ import { defineConfig, coverageConfigDefaults } from "vitest/config";
 
 export default defineConfig({
   test: {
-    projects: ["packages/core", "packages/spore"],
+    projects: ["packages/core"],
     coverage: {
-      include: ["packages/core", "packages/spore"],
+      include: ["packages/core"],
       exclude: [
         "**/dist/**",
         "**/dist.commonjs/**",

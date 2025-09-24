@@ -29,24 +29,20 @@ export class Config {
   };
 
   private _queryUrlFn = async (url: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return new Promise<IpfsResult>((resolve, reject) => {
-        const reader = new FileReader();
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise<IpfsResult>((resolve, reject) => {
+      const reader = new FileReader();
 
-        reader.onload = function () {
-          const base64 = this.result as string;
-          resolve(base64);
-        };
-        reader.onerror = (error) => {
-          reject(error);
-        };
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      throw error;
-    }
+      reader.onload = function () {
+        const base64 = this.result as string;
+        resolve(base64);
+      };
+      reader.onerror = (error) => {
+        reject(new Error(`FileReader error: ${error.type}`));
+      };
+      reader.readAsDataURL(blob);
+    });
   };
 
   private _queryIpfsFn = async (uri: IpfsURI) => {

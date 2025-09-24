@@ -7,7 +7,7 @@ import { base64ToArrayBuffer } from "./utils/string";
 export async function renderDob1Svg(nodePromise: Promise<INode>) {
   const node = await nodePromise;
   const str = stringify(node);
-  const base64 = await svgToBase64(str);
+  const base64 = svgToBase64(str);
   const spaceGroteskBoldFont = base64ToArrayBuffer(SpaceGroteskBoldBase64);
   const width = parseInt(node.attributes.width, 10) || 500;
   const height = parseInt(node.attributes.height, 10) || 500;

@@ -50,7 +50,7 @@ export async function renderTextSvg(props: RenderProps) {
       el.type = "span";
       delete el.props.style.width;
       el.props.style.display = "block";
-      lastEl.props.children.push(el);
+      (lastEl.props.children as RenderElement[]).push(el);
       return acc;
     }
     acc.push(el);

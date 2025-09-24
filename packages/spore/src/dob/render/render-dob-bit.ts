@@ -9,7 +9,7 @@ const iconBase64 =
 
 export function renderDobBit(
   dob0Data: DobDecodeResult | string,
-  props?: {
+  _props?: {
     outputType?: "svg";
   },
 ) {
