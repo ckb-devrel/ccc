@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.12.2
+### Patch Changes
+
+
+
+- [`b371b07`](https://github.com/ckb-devrel/ccc/commit/b371b07e67f295129defc36190741ab4d783dd96) Thanks [@gpBlockchain](https://github.com/gpBlockchain)! - fix(core): udt mint outputData length not eq 16
+
 ## 1.12.1
 ### Patch Changes
 
