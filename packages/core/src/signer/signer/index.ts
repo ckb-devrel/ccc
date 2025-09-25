@@ -28,6 +28,7 @@ export enum SignerSignType {
   NostrEvent = "NostrEvent",
   CkbSecp256k1 = "CkbSecp256k1",
   DogeEcdsa = "DogeEcdsa",
+  CkbMultisigSecp256k1 = "CkbMultisigSecp256k1",
 }
 
 /**
@@ -140,6 +141,7 @@ export abstract class Signer {
           signature.signature,
           signature.identity,
         );
+      case SignerSignType.CkbMultisigSecp256k1:
       case SignerSignType.CkbSecp256k1:
         return verifyMessageCkbSecp256k1(
           message,
