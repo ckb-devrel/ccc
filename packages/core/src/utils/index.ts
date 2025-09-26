@@ -267,13 +267,15 @@ export function stringify(val: unknown) {
 }
 
 /**
- * Calculate the greatest common divisor (GCD) of two Num values using the Euclidean algorithm.
+ * Calculate the greatest common divisor (GCD) of two NumLike values using the Euclidean algorithm.
  *
  * @param a - First operand.
  * @param b - Second operand.
  * @returns GCD(a, b) as a Num.
  */
-export function gcd(a: Num, b: Num): Num {
+export function gcd(a: NumLike, b: NumLike): Num {
+  a = numFrom(a);
+  b = numFrom(b);
   a = a < Zero ? -a : a;
   b = b < Zero ? -b : b;
   while (b !== Zero) {

@@ -40,77 +40,77 @@ export function epochToHex(epochLike: EpochLike): Hex {
 
 export type EpochLike =
   | {
-      number: NumLike;
-      index: NumLike;
-      length: NumLike;
+      integer: NumLike;
+      numerator: NumLike;
+      denominator: NumLike;
     }
   | [NumLike, NumLike, NumLike];
 
 @mol.codec(
   mol
     .struct({
-      length: mol.uint(2, true),
-      index: mol.uint(2, true),
-      number: mol.uint(3, true),
+      denominator: mol.uint(2, true),
+      numerator: mol.uint(2, true),
+      integer: mol.uint(3, true),
     })
     .mapIn((encodable: EpochLike) => Epoch.from(encodable)),
 )
 /**
  * Epoch
  *
- * Represents a timestamp-like epoch as a mixed whole number and fractional part:
- * - number: whole units
- * - index: numerator of the fractional part
- * - length: denominator of the fractional part (must be > 0)
+ * Represents a timestamp-like epoch as a mixed whole integer and fractional part:
+ * - integer: whole units
+ * - numerator: numerator of the fractional part
+ * - denominator: denominator of the fractional part (must be > 0)
  *
- * The fractional portion is index/length. Instances normalize fractions where
+ * The fractional portion is numerator/denominator. Instances normalize fractions where
  * appropriate (e.g., reduce by GCD, carry whole units).
  */
 export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
   /**
    * Construct a new Epoch.
    *
-   * The constructor enforces a positive `length` (denominator). If `length`
+   * The constructor enforces a positive `denominator`. If `denominator`
    * is non-positive an Error is thrown.
    *
-   * @param number - Whole number portion of the epoch.
-   * @param index - Fractional numerator.
-   * @param length - Fractional denominator (must be > 0).
+   * @param integer - Whole number portion of the epoch.
+   * @param numerator - Fractional numerator.
+   * @param denominator - Fractional denominator (must be > 0).
    */
   public constructor(
-    public readonly number: Num,
-    public readonly index: Num,
-    public readonly length: Num,
+    public readonly integer: Num,
+    public readonly numerator: Num,
+    public readonly denominator: Num,
   ) {
     // Ensure the epoch has a positive denominator.
-    if (length <= Zero) {
-      throw new Error("Non positive Epoch length");
+    if (denominator <= Zero) {
+      throw new Error("Non positive Epoch denominator");
     }
     super();
   }
 
   /**
-   * @deprecated use `number` instead
-   * Backwards-compatible array-style index 0 referencing the whole epoch number.
+   * @deprecated use `integer` instead
+   * Backwards-compatible array-style index 0 referencing the whole epoch integer.
    */
   get 0(): Num {
-    return this.number;
+    return this.integer;
   }
 
   /**
-   * @deprecated use `index` instead
+   * @deprecated use `numerator` instead
    * Backwards-compatible array-style index 1 referencing the epoch fractional numerator.
    */
   get 1(): Num {
-    return this.index;
+    return this.numerator;
   }
 
   /**
-   * @deprecated use `length` instead
+   * @deprecated use `denominator` instead
    * Backwards-compatible array-style index 2 referencing the epoch fractional denominator.
    */
   get 2(): Num {
-    return this.length;
+    return this.denominator;
   }
 
   /**
@@ -118,8 +118,8 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    *
    * Accepts:
    * - an Epoch instance (returned as-is)
-   * - an object { number, index, length } where each field is NumLike
-   * - a tuple [number, index, length] where each element is NumLike
+   * - an object { integer, numerator, denominator } where each field is NumLike
+   * - a tuple [integer, numerator, denominator] where each element is NumLike
    *
    * All returned fields are converted to `Num` using `numFrom`.
    *
@@ -131,14 +131,18 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
       return epochLike;
     }
 
-    let number: NumLike, index: NumLike, length: NumLike;
-    if (epochLike instanceof Array) {
-      [number, index, length] = epochLike;
+    let integer: NumLike, numerator: NumLike, denominator: NumLike;
+    if (Array.isArray(epochLike)) {
+      [integer, numerator, denominator] = epochLike;
     } else {
-      ({ number, index, length } = epochLike);
+      ({ integer, numerator, denominator } = epochLike);
     }
 
-    return new Epoch(numFrom(number), numFrom(index), numFrom(length));
+    return new Epoch(
+      numFrom(integer),
+      numFrom(numerator),
+      numFrom(denominator),
+    );
   }
 
   /**
@@ -146,13 +150,6 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    */
   static zero(): Epoch {
     return new Epoch(0n, 0n, numFrom(1));
-  }
-
-  /**
-   * Return an epoch representing one (1 + 0/1).
-   */
-  static one(): Epoch {
-    return new Epoch(numFrom(1), 0n, numFrom(1));
   }
 
   /**
@@ -168,7 +165,7 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    * Compare this epoch to another EpochLike.
    *
    * Comparison is performed by converting both epochs to a common integer
-   * representation: (number * length + index) scaled by the other's length.
+   * representation: (integer * denominator + numerator) scaled by the other's denominator.
    *
    * @param other - EpochLike value to compare against.
    * @returns 1 if this > other, 0 if equal, -1 if this < other.
@@ -178,9 +175,10 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
       return 0;
     }
 
-    const other_ = Epoch.from(other);
-    const a = (this.number * this.length + this.index) * other_.length;
-    const b = (other_.number * other_.length + other_.index) * this.length;
+    const o = Epoch.from(other);
+    const a =
+      (this.integer * this.denominator + this.numerator) * o.denominator;
+    const b = (o.integer * o.denominator + o.numerator) * this.denominator;
 
     return a > b ? 1 : a < b ? -1 : 0;
   }
@@ -197,35 +195,35 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
 
   /**
    * Return a normalized epoch:
-   * - Ensures index is non-negative by borrowing from `number` if needed.
-   * - Reduces the fraction (index/length) by their GCD.
-   * - Carries any whole units from the fraction into `number`.
+   * - Ensures numerator is non-negative by borrowing from `integer` if needed.
+   * - Reduces the fraction (numerator/denominator) by their GCD.
+   * - Carries any whole units from the fraction into `integer`.
    *
    * @returns A new, normalized Epoch instance.
    */
   normalized(): Epoch {
-    let { number, index, length } = this;
+    let { integer, numerator, denominator } = this;
 
-    // Normalize negative index values by borrowing from the whole number.
-    if (index < Zero) {
+    // Normalize negative numerator values by borrowing from the whole integer.
+    if (numerator < Zero) {
       // Calculate how many whole units to borrow.
-      const n = (-index + length - 1n) / length;
-      number -= n;
-      index += length * n;
+      const n = (-numerator + denominator - 1n) / denominator;
+      integer -= n;
+      numerator += denominator * n;
     }
 
-    // Reduce the fraction (index / length) to its simplest form using the greatest common divisor.
-    const g = gcd(index, length);
-    index /= g;
-    length /= g;
+    // Reduce the fraction (numerator / denominator) to its simplest form using the greatest common divisor.
+    const g = gcd(numerator, denominator);
+    numerator /= g;
+    denominator /= g;
 
-    // Add any whole number overflow from the fraction.
-    number += index / length;
+    // Add any whole integer overflow from the fraction.
+    integer += numerator / denominator;
 
-    // Calculate the leftover index after accounting for the whole number part from the fraction.
-    index %= length;
+    // Calculate the leftover numerator after accounting for the whole integer part from the fraction.
+    numerator %= denominator;
 
-    return new Epoch(number, index, length);
+    return new Epoch(integer, numerator, denominator);
   }
 
   /**
@@ -238,24 +236,25 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    * @returns New Epoch equal to this + other.
    */
   add(other: EpochLike): Epoch {
-    const other_ = Epoch.from(other);
+    const o = Epoch.from(other);
 
-    // Sum the whole number parts.
-    const number = this.number + other_.number;
-    let index: Num;
-    let length: Num;
+    // Sum the whole integer parts.
+    const integer = this.integer + o.integer;
+    let numerator: Num;
+    let denominator: Num;
 
-    // If the epochs have different denominators (lengths), align them to a common denominator.
-    if (this.length !== other_.length) {
-      index = other_.index * this.length + this.index * other_.length;
-      length = this.length * other_.length;
+    // If the epochs have different denominators, align them to a common denominator.
+    if (this.denominator !== o.denominator) {
+      numerator =
+        o.numerator * this.denominator + this.numerator * o.denominator;
+      denominator = this.denominator * o.denominator;
     } else {
-      // If denominators are equal, simply add the indices.
-      index = this.index + other_.index;
-      length = this.length;
+      // If denominators are equal, simply add the numerators.
+      numerator = this.numerator + o.numerator;
+      denominator = this.denominator;
     }
 
-    return new Epoch(number, index, length).normalized();
+    return new Epoch(integer, numerator, denominator).normalized();
   }
 
   /**
@@ -265,8 +264,8 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    * @returns New Epoch equal to this - other.
    */
   sub(other: EpochLike): Epoch {
-    const { number, index, length } = Epoch.from(other);
-    return this.add(new Epoch(-number, -index, length));
+    const { integer, numerator, denominator } = Epoch.from(other);
+    return this.add(new Epoch(-integer, -numerator, denominator));
   }
 
   /**
@@ -277,12 +276,12 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    */
   toUnix(reference: ClientBlockHeader): bigint {
     // Calculate the difference between the provided epoch and the reference epoch.
-    const { number, index, length } = this.sub(reference.epoch);
+    const { integer, numerator, denominator } = this.sub(reference.epoch);
 
     return (
       reference.timestamp +
-      epochInMilliseconds * number +
-      (epochInMilliseconds * index) / length
+      EPOCH_IN_MILLISECONDS * integer +
+      (EPOCH_IN_MILLISECONDS * numerator) / denominator
     );
   }
 }
@@ -293,4 +292,4 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
  * Calculated as 4 hours in milliseconds:
  * 4 hours * 60 minutes per hour * 60 seconds per minute * 1000 milliseconds per second.
  */
-const epochInMilliseconds = numFrom(14400000); // (Number.isSafeInteger(14400000) === true)
+const EPOCH_IN_MILLISECONDS = numFrom(4 * 60 * 60 * 1000);

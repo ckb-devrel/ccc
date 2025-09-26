@@ -2467,12 +2467,12 @@ export function calcDaoProfit(
  *
  * @param depositHeader - The block header when the DAO deposit was made.
  * @param withdrawHeader - The block header when the DAO withdrawal was initiated.
- * @returns The epoch when the withdrawal can be claimed, represented as [number, index, length].
+ * @returns The epoch when the withdrawal can be claimed, represented as [integer, numerator, denominator].
  *
  * @example
  * ```typescript
  * const epoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
- * console.log(`Can claim at epoch: ${epoch.number}, index: ${epoch.index}, length: ${epoch.length}`);
+ * console.log(`Can claim at epoch: ${epoch.integer}, numerator: ${epoch.numerator}, denominator: ${epoch.denominator}`);
  * ```
  *
  * @remarks
@@ -2489,20 +2489,21 @@ export function calcDaoClaimEpoch(
   const deposit = ClientBlockHeader.from(depositHeader).epoch;
   const withdraw = ClientBlockHeader.from(withdrawHeader).epoch;
 
-  const partialCycle = (withdraw.number - deposit.number) % fullCycle;
-  let withdrawNumber = withdraw.number;
+  const partialCycle = (withdraw.integer - deposit.integer) % fullCycle;
+  let withdrawNumber = withdraw.integer;
   if (
     partialCycle !== Zero ||
-    // deposit.index       withdraw.index
-    // --------------- <= -----------------
-    // deposit.length      withdraw.length
-    deposit.index * withdraw.length <= withdraw.index * deposit.length
+    //  deposit.numerator        withdraw.numerator
+    // --------------------- <= ----------------------
+    //  deposit.denominator      withdraw.denominator
+    deposit.numerator * withdraw.denominator <=
+      withdraw.numerator * deposit.denominator
   ) {
     // Need to wait for the next cycle
     withdrawNumber += -partialCycle + fullCycle;
   }
 
-  return new Epoch(withdrawNumber, deposit.index, deposit.length);
+  return new Epoch(withdrawNumber, deposit.numerator, deposit.denominator);
 }
 
 const fullCycle = numFrom(180);
