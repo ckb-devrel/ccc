@@ -74,7 +74,7 @@ export function Transaction({
         </div>
       </div>
 
-      <div className="flex basis-1/2 flex-col border-t border-fuchsia-900">
+      <div className="flex basis-1/2 flex-col border-t border-neutral-400/50">
         <div className="p-3 pb-0">
           Outputs ({ccc.fixedPointToString(outputAmount)} +
           {outputAmount > inputAmount

@@ -71,10 +71,13 @@ export function useGetExplorerLink() {
   };
 }
 
-export function getScriptColor(script: ccc.ScriptLike): string {
+export function getScriptColor(script?: ccc.ScriptLike): string {
+  if (!script) {
+    return "hsl(0 0% 35%)";
+  }
   const hash = ccc.Script.from(script).hash();
 
-  return `hsl(${(ccc.numFrom(hash) % ccc.numFrom(360)).toString()} 65% 45%)`;
+  return `hsl(${(ccc.numFrom(hash) % ccc.numFrom(360)).toString()} 65% 35%)`;
 }
 
 export function formatTimestamp(timestamp: number): string {

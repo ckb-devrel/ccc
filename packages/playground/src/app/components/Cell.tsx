@@ -8,6 +8,7 @@ import {
   useGetExplorerLink,
 } from "../utils";
 import { Address } from "./Address";
+import { Bagua } from "./Bagua";
 import { RandomWalk } from "./RandomWalk";
 
 function Capacity({
@@ -28,8 +29,8 @@ function Capacity({
   if (!r) {
     return (
       <>
-        <span className="text-4xl font-bold break-all">{l}</span>
-        <span className="text-sm break-all">
+        <span className="text-3xl font-bold break-all">{l}</span>
+        <span className="text-xs break-all">
           {profitNum === ccc.Zero
             ? ""
             : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -41,9 +42,9 @@ function Capacity({
 
   return (
     <>
-      <span className="text-4xl font-bold break-all">{l}</span>
-      <span className="text-sm break-all">.{r}</span>
-      <span className="text-sm break-all">
+      <span className="text-3xl font-bold break-all">{l}</span>
+      <span className="-mt-1 text-xs break-all">.{r}</span>
+      <span className="text-xs break-all">
         {profitNum === ccc.Zero
           ? ""
           : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -198,20 +199,17 @@ export function Cell({
   }, [outputData]);
 
   const lockColor = useMemo(
-    () => (cellOutput ? getScriptColor(cellOutput.lock) : "#1f2937"),
+    () => getScriptColor(cellOutput?.lock),
     [cellOutput],
   );
   const typeColor = useMemo(
-    () => (cellOutput?.type ? getScriptColor(cellOutput.type) : "#1f2937"),
+    () => getScriptColor(cellOutput?.type),
     [cellOutput],
   );
 
   return (
     <RandomWalk
-      className="relative flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-full border border-fuchsia-900 shadow-md"
-      style={{
-        backgroundColor: lockColor,
-      }}
+      className="relative flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-full"
       onClick={() => {
         sendMessage("info", formatTimestamp(Date.now()), [
           <CellInfo
@@ -222,10 +220,39 @@ export function Cell({
         ]);
       }}
     >
+      <Bagua
+        value={
+          ccc.numFrom(cellOutput?.lock.hash() ?? 0) /
+          (ccc.numFrom(1) << ccc.numFrom(24))
+        }
+        thickness={3.2}
+        gap={3}
+        padding={1}
+        space={2}
+        margin={2}
+        fill={lockColor}
+        stroke="#00000060"
+        className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2"
+      />
+      <Bagua
+        value={
+          ccc.numFrom(cellOutput?.type?.hash() ?? 0) /
+          (ccc.numFrom(1) << ccc.numFrom(24))
+        }
+        thickness={6}
+        gap={3}
+        padding={1}
+        space={3}
+        margin={3}
+        fill={typeColor}
+        stroke="#00000060"
+        className="absolute top-1/2 left-1/2 h-22 w-22 -translate-x-1/2 -translate-y-1/2"
+      />
       <div
-        className="absolute top-1/2 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-gray-800"
+        className="absolute top-1/2 left-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
         style={{
-          borderWidth: "2rem",
+          backgroundColor: typeColor,
+          borderWidth: "1px",
           borderColor: typeColor,
         }}
       >
@@ -241,7 +268,7 @@ export function Cell({
         <Capacity capacity={cellOutput?.capacity} profit={daoProfit} />
       </div>
       {previousOutput ? (
-        <div className="relative">
+        <div className="relative text-xs">
           {explorerTransaction(
             previousOutput.txHash,
             `${formatString(

@@ -34,7 +34,7 @@ export function Console({ onRun }: { onRun?: () => void }) {
         return (
           <div
             key={i}
-            className={`border-t-4 border-fuchsia-800 p-2 break-all text-stone-300 ${
+            className={`border-t-4 border-neutral-500 p-2 break-all text-stone-300 ${
               level === "error" ? "bg-red-600/25" : ""
             }`}
           >
