@@ -39,7 +39,7 @@ export function TrigramLine({
         repeatCount="indefinite"
       />
     );
-  }, []);
+  }, [dim]);
 
   return isBroken ? (
     <>
