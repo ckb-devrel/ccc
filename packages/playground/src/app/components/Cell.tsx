@@ -4,12 +4,12 @@ import { useApp } from "../context";
 import {
   formatString,
   formatTimestamp,
+  getScriptBagua,
   getScriptColor,
   useGetExplorerLink,
 } from "../utils";
 import { Address } from "./Address";
-import { Bagua } from "./Bagua";
-import { RandomWalk } from "./RandomWalk";
+import { Bagua, Taiji } from "./Bagua";
 
 function Capacity({
   capacity,
@@ -182,12 +182,8 @@ export function Cell({
       ccc.fixedPointFrom(
         cellOutput.occupiedSize + ccc.bytesFrom(outputData).length,
       );
-    const free = (freeSize * ccc.numFrom(10000)) / total;
 
-    return ccc.fixedPointToString(
-      free >= ccc.numFrom(9500) ? ccc.numFrom(9500) : free,
-      2,
-    );
+    return ccc.fixedPointToString((freeSize * ccc.numFrom(7500)) / total, 2);
   }, [cellOutput, outputData]);
 
   const outputLength = useMemo(() => {
@@ -208,8 +204,8 @@ export function Cell({
   );
 
   return (
-    <RandomWalk
-      className="relative flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-full"
+    <div
+      className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-full"
       onClick={() => {
         sendMessage("info", formatTimestamp(Date.now()), [
           <CellInfo
@@ -221,49 +217,39 @@ export function Cell({
       }}
     >
       <Bagua
-        value={
-          ccc.numFrom(cellOutput?.lock.hash() ?? 0) /
-          (ccc.numFrom(1) << ccc.numFrom(24))
-        }
+        value={getScriptBagua(cellOutput?.lock)}
         thickness={3.2}
-        gap={3}
         padding={1}
-        space={2}
+        space={3}
         margin={2}
         fill={lockColor}
-        stroke="#00000060"
-        className="absolute top-1/2 left-1/2 h-32 w-32 -translate-x-1/2 -translate-y-1/2"
+        stroke="#000000a0"
+        className="absolute top-1/2 left-1/2 h-33 w-33 -translate-x-1/2 -translate-y-1/2"
       />
       <Bagua
-        value={
-          ccc.numFrom(cellOutput?.type?.hash() ?? 0) /
-          (ccc.numFrom(1) << ccc.numFrom(24))
-        }
+        value={getScriptBagua(cellOutput?.type)}
         thickness={6}
-        gap={3}
         padding={1}
         space={3}
         margin={3}
         fill={typeColor}
-        stroke="#00000060"
+        stroke="#000000a0"
         className="absolute top-1/2 left-1/2 h-22 w-22 -translate-x-1/2 -translate-y-1/2"
       />
-      <div
-        className="absolute top-1/2 left-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full"
-        style={{
-          backgroundColor: typeColor,
-          borderWidth: "1px",
-          borderColor: typeColor,
-        }}
+      <Taiji
+        className="absolute top-1/2 left-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 animate-spin overflow-hidden rounded-full"
+        style={{ animationDuration: "16s" }}
+        yangColor={lockColor}
       >
         <div
-          className="absolute left-1/2 h-20 w-20 -translate-x-1/2 bg-white"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
-            backgroundColor: lockColor,
-            top: `${freePercentage}%`,
+            width: `${freePercentage}%`,
+            height: `${freePercentage}%`,
+            backgroundColor: typeColor,
           }}
         ></div>
-      </div>
+      </Taiji>
       <div className="relative flex flex-col items-center">
         <Capacity capacity={cellOutput?.capacity} profit={daoProfit} />
       </div>
@@ -284,6 +270,6 @@ export function Cell({
           {outputLength} bytes
         </div>
       ) : undefined}
-    </RandomWalk>
+    </div>
   );
 }
