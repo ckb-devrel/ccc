@@ -60,7 +60,7 @@ const MOCK_HEADER: ccc.ClientBlockHeaderLike = {
     u: 0,
   },
   nonce: 0,
-  epoch: [0, 0, 0],
+  epoch: [0, 0, 1],
   hash: "0x" + "a".repeat(64),
   number: 0,
   parentHash: "0x" + "b".repeat(64),
