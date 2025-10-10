@@ -1,4 +1,6 @@
 export enum Key {
+  Bg = "prev.bg",
+  Type = "prev.type",
   BgColor = "prev.bgcolor",
   Prev = "prev",
   Image = "IMAGE",

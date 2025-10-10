@@ -12,7 +12,7 @@ import type {
   TextRenderOptions,
 } from "../../types/core.js";
 import type { RenderElement } from "../../types/internal.js";
-import { base64ToArrayBuffer } from "../../utils/string-utils.js";
+import { base64ToArrayBuffer } from "../../utils/string.js";
 
 /**
  * Font configuration with default values

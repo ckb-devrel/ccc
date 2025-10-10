@@ -1,11 +1,11 @@
 import type { RenderOutput } from "../../helper/object.js";
 import { Key } from "../config/constants.js";
-import { renderTextParamsParser } from "../core/parsers/text-params-parser.js";
-import { traitsParser } from "../core/parsers/traits-parser.js";
-import { renderDob1Svg } from "../core/renderers/dob1-renderer.js";
-import { renderImageSvg } from "../core/renderers/image-renderer.js";
-import type { RenderProps } from "../core/renderers/text-renderer.js";
-import { renderTextSvg } from "../core/renderers/text-renderer.js";
+import { renderTextParamsParser } from "../core/parsers/textParamsParser.js";
+import { traitsParser } from "../core/parsers/traitsParser.js";
+import { renderDob1Svg } from "../core/renderers/dob1Render.js";
+import { renderImageSvg } from "../core/renderers/imageRender.js";
+import type { RenderProps } from "../core/renderers/textRender.js";
+import { renderTextSvg } from "../core/renderers/textRender.js";
 
 export function renderByDobDecodeResponse(
   renderOutput: RenderOutput | string,
@@ -22,7 +22,7 @@ export function renderByDobDecodeResponse(
 
   const { traits, indexVarRegister } = traitsParser(renderData);
   for (const trait of traits) {
-    if (trait.name === "prev.type" && trait.value === "image") {
+    if (trait.name === String(Key.Type) && trait.value === "image") {
       return renderImageSvg(traits);
     }
     // TODO: multiple images

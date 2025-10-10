@@ -1,4 +1,3 @@
-export * from "./bit-renderer";
-export * from "./dob1-renderer";
-export * from "./image-renderer";
-export * from "./text-renderer";
+export * from "./dob1Render.js";
+export * from "./imageRender.js";
+export * from "./textRender.js";

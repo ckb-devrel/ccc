@@ -1,2 +1,2 @@
-export * from "./render-by-dob-decode-response";
-export * from "./render-by-token-key";
+export * from "./renderDobDecode.js";
+export * from "./renderToken.js";

@@ -1,7 +1,7 @@
 import { decodeDobBySporeId } from "../../api/decode.js";
 import { config } from "../config.js";
-import type { RenderProps } from "../core/renderers/text-renderer.js";
-import { renderByDobDecodeResponse } from "./render-by-dob-decode-response.js";
+import type { RenderProps } from "../core/renderers/textRender.js";
+import { renderByDobDecodeResponse } from "./renderDobDecode.js";
 
 export async function renderByTokenKey(
   tokenKey: string,

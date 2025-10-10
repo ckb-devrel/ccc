@@ -2,7 +2,14 @@ import type { INode } from "svgson";
 import { parse } from "svgson";
 import type { BtcFsURI, IpfsURI } from "../config.js";
 import { config } from "../config.js";
-import { processFileServerResult } from "../utils/mime-utils.js";
+import { processFileServerResult } from "./mime.js";
+
+export async function svgToBase64(svgCode: string) {
+  if (typeof window !== "undefined") {
+    return `data:image/svg+xml;base64,${window.btoa(svgCode)}`; // browser
+  }
+  return `data:image/svg+xml;base64,${Buffer.from(svgCode).toString("base64")}`; // nodejs
+}
 
 async function handleNodeHref(node: INode) {
   if (node.name !== "image") {

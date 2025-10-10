@@ -1,12 +1,14 @@
 import satori from "satori";
 import { config } from "../../config.js";
+import { Key } from "../../config/constants.js";
+import { RENDER_CONSTANTS } from "../../types/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
-import { processFileServerResult } from "../../utils/mime-utils.js";
-import { isBtcFs, isIpfs } from "../../utils/string-utils.js";
-import { backgroundColorParser } from "../parsers/background-color-parser.js";
+import { processFileServerResult } from "../../utils/mime.js";
+import { isBtcFs, isIpfs } from "../../utils/string.js";
+import { backgroundColorParser } from "../parsers/backgroundColorParser.js";
 
 export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
-  const prevBg = traits.find((trait) => trait.name === "prev.bg");
+  const prevBg = traits.find((trait) => trait.name === String(Key.Bg));
   const bgColor = backgroundColorParser(traits, { defaultColor: "#FFFFFF00" });
 
   let bgImage = "";
@@ -55,6 +57,10 @@ export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
         ],
       },
     },
-    { width: 500, height: 500, fonts: [] },
+    {
+      width: RENDER_CONSTANTS.CANVAS_WIDTH,
+      height: RENDER_CONSTANTS.CANVAS_HEIGHT,
+      fonts: [],
+    },
   );
 }

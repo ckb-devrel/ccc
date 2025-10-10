@@ -12,9 +12,9 @@ import type {
   TextRenderOptions,
   TextStyle,
   TraitValue,
-} from "../../types/core";
-import { backgroundColorParser } from "./background-color-parser.js";
-import { createStyleParser } from "./style-parser.js";
+} from "../../types/core.js";
+import { backgroundColorParser } from "./backgroundColorParser.js";
+import { createStyleParser } from "./styleParser.js";
 
 /**
  * Default template for text rendering

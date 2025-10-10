@@ -1,8 +1,8 @@
 import type { RenderOutput } from "../../../helper/object.js";
 import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants.js";
-import { resolveSvgTraits } from "../../services/svg-resolver.js";
 import type { ParsedTrait } from "../../types/core.js";
-import { parseStringToArray } from "../../utils/string-utils.js";
+import { parseStringToArray } from "../../utils/string.js";
+import { resolveSvgTraits } from "../../utils/svg.js";
 
 // ParsedTrait is now defined in types/core.ts
 
