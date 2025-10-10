@@ -1,8 +1,8 @@
 import type { INode } from "svgson";
-import { ARRAY_INDEX_REG, ARRAY_REG } from "./constants/regex";
-import { resolveSvgTraits } from "./resolve-svg-traits";
-import type { RenderPartialOutput as RenderOutput } from "./types";
-import { parseStringToArray } from "./utils/string";
+import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants";
+import { resolveSvgTraits } from "../../services/svg-resolver";
+import type { RenderPartialOutput as RenderOutput } from "../../types";
+import { parseStringToArray } from "../../utils/string-utils";
 
 export interface ParsedTrait {
   name: string;

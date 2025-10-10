@@ -1,6 +1,5 @@
+import { GLOBAL_TEMPLATE_REG, Key, TEMPLATE_REG } from "../../config/constants";
 import { backgroundColorParser } from "./background-color-parser";
-import { Key } from "./constants/key";
-import { GLOBAL_TEMPLATE_REG, TEMPLATE_REG } from "./constants/regex";
 import { ParsedStyleFormat, styleParser } from "./style-parser";
 import type { ParsedTrait } from "./traits-parser";
 
@@ -40,7 +39,7 @@ export function renderTextParamsParser(
         !trait.name.startsWith(Key.Prev) &&
         typeof trait.value !== "undefined" &&
         !(trait.name in indexVarRegister) &&
-        trait.name !== Key.Image,
+        trait.name !== String(Key.Image),
     )
     .map((trait) => {
       let currentTemplate = template;
@@ -54,7 +53,7 @@ export function renderTextParamsParser(
           }
           if (currentLayoutMatch[2]) {
             parsedStyle = styleParser(`<${currentLayoutMatch[2]}>`, {
-              baseStyle: JSON.parse(JSON.stringify(parsedStyle)),
+              baseStyle: { ...parsedStyle },
             });
           }
         }
@@ -72,7 +71,10 @@ export function renderTextParamsParser(
 
       const text = currentTemplate
         .replace("%k", name)
-        .replace("%v", `${value}`)
+        .replace(
+          "%v",
+          typeof value === "object" ? JSON.stringify(value) : String(value),
+        )
         .replace("%%", "%");
 
       const styleCss: {

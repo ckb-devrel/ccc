@@ -1,5 +1,5 @@
-import { config } from "../config";
-import type { DobDecodeResponse } from "../types";
+import { config } from "../../config";
+import type { DobDecodeResponse } from "../../types";
 
 export async function dobDecode(tokenKey: string): Promise<DobDecodeResponse> {
   const response = await fetch(config.dobDecodeServerURL, {

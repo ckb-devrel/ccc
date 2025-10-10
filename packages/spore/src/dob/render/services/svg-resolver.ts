@@ -1,8 +1,8 @@
 import type { INode } from "svgson";
 import { parse } from "svgson";
-import type { BtcFsURI, IpfsURI } from "./config";
-import { config } from "./config";
-import { processFileServerResult } from "./utils/mime";
+import type { BtcFsURI, IpfsURI } from "../config";
+import { config } from "../config";
+import { processFileServerResult } from "../utils/mime-utils";
 
 async function handleNodeHref(node: INode) {
   if (node.name !== "image") {
@@ -36,7 +36,8 @@ export async function resolveSvgTraits(svgStr: string): Promise<INode> {
     const svgAST = await parse(svgStr);
     await handleNodeHref(svgAST);
     return svgAST;
-  } catch (error) {
+  } catch (error: unknown) {
+    console.error(error);
     return {
       value: "",
       type: "element",

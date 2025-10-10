@@ -1,14 +1,14 @@
-import { Key } from "./constants/key";
-import { renderDob1Svg } from "./render-dob1-svg";
-import { renderImageSvg } from "./render-image-svg";
-import { renderTextParamsParser } from "./render-text-params-parser";
-import type { RenderProps } from "./render-text-svg";
-import { renderTextSvg } from "./render-text-svg";
-import { traitsParser } from "./traits-parser";
+import { Key } from "../config/constants";
+import { renderTextParamsParser } from "../core/parsers/text-params-parser";
+import { traitsParser } from "../core/parsers/traits-parser";
+import { renderDob1Svg } from "../core/renderers/dob1-renderer";
+import { renderImageSvg } from "../core/renderers/image-renderer";
+import type { RenderProps } from "../core/renderers/text-renderer";
+import { renderTextSvg } from "../core/renderers/text-renderer";
 import type {
   DobDecodeResult,
   RenderPartialOutput as RenderOutput,
-} from "./types";
+} from "../types";
 
 export function renderByDobDecodeResponse(
   dob0Data: DobDecodeResult | string,
@@ -30,7 +30,7 @@ export function renderByDobDecodeResponse(
       return renderImageSvg(traits);
     }
     // TODO: multiple images
-    if (trait.name === Key.Image && trait.value instanceof Promise) {
+    if (trait.name === String(Key.Image) && trait.value instanceof Promise) {
       return renderDob1Svg(trait.value);
     }
   }

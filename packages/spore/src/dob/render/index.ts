@@ -1,10 +1,6 @@
-export { config } from "./config";
-export * from "./render-by-dob-decode-response";
-export * from "./render-by-token-key";
-export * from "./render-dob-bit";
-export * from "./render-image-svg";
-export * from "./render-text-params-parser";
-export * from "./render-text-svg";
-export * from "./svg-to-base64";
-export * from "./traits-parser";
+export * from "./api";
+export * from "./config";
+export * from "./core";
+export * from "./services";
 export * from "./types";
+export * from "./utils";

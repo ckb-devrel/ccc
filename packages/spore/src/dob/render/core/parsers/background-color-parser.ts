@@ -1,10 +1,10 @@
-import { Key } from "./constants/key";
+import { Key } from "../../config/constants";
 import type { ParsedTrait } from "./traits-parser";
 
 export function getBackgroundColorByTraits(
   traits: ParsedTrait[],
 ): ParsedTrait | undefined {
-  return traits.find((trait) => trait.name === Key.BgColor);
+  return traits.find((trait) => trait.name === String(Key.BgColor));
 }
 
 export function backgroundColorParser(

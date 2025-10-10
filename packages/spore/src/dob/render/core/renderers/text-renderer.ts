@@ -1,12 +1,11 @@
 import satori from "satori";
-import TurretRoadBoldBase64 from "./fonts/TurretRoad-Bold.base64";
-import TurretRoadMediumBase64 from "./fonts/TurretRoad-Medium.base64";
-import type { renderTextParamsParser } from "./render-text-params-parser";
-import type { RenderElement } from "./types/internal";
-import { base64ToArrayBuffer } from "./utils/string";
+import { FONTS } from "../../config/fonts";
+import type { RenderElement } from "../../types/internal";
+import { base64ToArrayBuffer } from "../../utils/string-utils";
+import type { renderTextParamsParser } from "../parsers/text-params-parser";
 
-const TurretRoadMediumFont = base64ToArrayBuffer(TurretRoadMediumBase64);
-const TurretRoadBoldFont = base64ToArrayBuffer(TurretRoadBoldBase64);
+const TurretRoadMediumFont = base64ToArrayBuffer(FONTS.TurretRoadMedium);
+const TurretRoadBoldFont = base64ToArrayBuffer(FONTS.TurretRoadBold);
 
 export interface RenderProps extends ReturnType<typeof renderTextParamsParser> {
   font?: {
@@ -50,7 +49,11 @@ export async function renderTextSvg(props: RenderProps) {
       el.type = "span";
       delete el.props.style.width;
       el.props.style.display = "block";
-      lastEl.props.children.push(el);
+      if (Array.isArray(lastEl.props.children)) {
+        lastEl.props.children.push(el);
+      } else {
+        lastEl.props.children = [lastEl.props.children, el];
+      }
       return acc;
     }
     acc.push(el);

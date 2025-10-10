@@ -1,14 +1,14 @@
 import satori from "satori";
 import { type INode, stringify } from "svgson";
-import SpaceGroteskBoldBase64 from "./fonts/SpaceGrotesk-Bold.base64";
-import { svgToBase64 } from "./svg-to-base64";
-import { base64ToArrayBuffer } from "./utils/string";
+import { FONTS } from "../../config/fonts";
+import { base64ToArrayBuffer } from "../../utils/string-utils";
+import { svgToBase64 } from "../../utils/svg-utils";
 
 export async function renderDob1Svg(nodePromise: Promise<INode>) {
   const node = await nodePromise;
   const str = stringify(node);
   const base64 = await svgToBase64(str);
-  const spaceGroteskBoldFont = base64ToArrayBuffer(SpaceGroteskBoldBase64);
+  const spaceGroteskBoldFont = base64ToArrayBuffer(FONTS.SpaceGroteskBold);
   const width = parseInt(node.attributes.width, 10) || 500;
   const height = parseInt(node.attributes.height, 10) || 500;
 
