@@ -1,30 +1,20 @@
 import satori from "satori";
-import { FONTS } from "../../config/fonts";
-import type {
-  DobDecodeResult,
-  RenderPartialOutput as RenderOutput,
-} from "../../types";
-import { base64ToArrayBuffer } from "../../utils/string-utils";
-import { traitsParser } from "../parsers/traits-parser";
+import type { RenderOutput } from "../../../helper/object.js";
+import { FONTS } from "../../config/fonts.js";
+import { base64ToArrayBuffer } from "../../utils/string-utils.js";
+import { traitsParser } from "../parsers/traits-parser.js";
 
 const iconBase64 =
   "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMDAwIiB2aWV3Qm94PSIwIDAgMTAwMCAxMDAwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcDBfNTA0XzI4OCkiPgo8cmVjdCB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMDAwIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTAwMCAwSDBWMTAwMEgxMDAwVjBaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNTAwIDY0NS42NjlDNjE1LjE1NyA2NDUuNjY5IDcwOC42NjEgNTUyLjE2NSA3MDguNjYxIDQzNy4wMDhDNzA4LjY2MSAzOTAuMDkyIDY5My4yNDIgMzQ2Ljc4NSA2NjYuOTk1IDMxMi4wMDhDNjkyLjI1NyAyOTIuNjUxIDcwOC42NjEgMjYyLjQ2NyA3MDguNjYxIDIyOC4zNDZINTAwQzM4NC44NDMgMjI4LjM0NiAyOTEuMzM5IDMyMS44NSAyOTEuMzM5IDQzNy4wMDhDMjkxLjMzOSA1NTEuODM3IDM4NS4xNzEgNjQ1LjY2OSA1MDAgNjQ1LjY2OVpNNTAwIDMyMy44MTlDNTYyLjMzNiAzMjMuODE5IDYxMy4xODkgMzc0LjY3MiA2MTMuMTg5IDQzNy4wMDhDNjEzLjE4OSA0OTkuMzQ0IDU2Mi4zMzYgNTUwLjE5NyA1MDAgNTUwLjE5N0M0MzcuNjY0IDU1MC4xOTcgMzg2LjgxMSA0OTkuMzQ0IDM4Ni44MTEgNDM3LjAwOEMzODYuODExIDM3NC42NzIgNDM3LjY2NCAzMjMuODE5IDUwMCAzMjMuODE5WiIgZmlsbD0iIzAwREY5QiIvPgo8cGF0aCBkPSJNNTAwIDgxMS4zNTJDNDA0LjE5OSA4MTEuMzUyIDMwOC4zOTkgNzc0LjkzNCAyMzUuMjM2IDcwMS43NzJDMjQ2LjcxOSA2NzEuNTg4IDI3MS45ODIgNjQ2LjY1NCAzMDUuNzc0IDYzNy4xMzlDMzU5LjkwOCA2ODkuNjMzIDQyOS43OSA3MTUuODc5IDUwMCA3MTUuODc5QzU3MC4yMSA3MTUuODc5IDY0MC4wOTIgNjg5LjYzMyA2OTQuMjI2IDYzNy4xMzlDNzI4LjAxOCA2NDYuNjU0IDc1My4yODEgNjcxLjI2IDc2NC43NjQgNzAxLjc3MkM2OTEuOTI5IDc3NC42MDYgNTk1LjgwMSA4MTEuMzUyIDUwMCA4MTEuMzUyWiIgZmlsbD0iIzI0NzFGRSIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzUwNF8yODgiPgo8cmVjdCB3aWR0aD0iMTAwMCIgaGVpZ2h0PSIxMDAwIiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=";
 
-export function renderDobBit(
-  dob0Data: DobDecodeResult | string,
-  _props?: {
-    outputType?: "svg";
-  },
-) {
-  if (typeof dob0Data === "string") {
-    dob0Data = JSON.parse(dob0Data) as DobDecodeResult;
+export function renderDobBit(renderOutput: RenderOutput | string) {
+  let renderData: RenderOutput;
+  if (typeof renderOutput === "string") {
+    renderData = JSON.parse(renderOutput) as RenderOutput;
+  } else {
+    renderData = renderOutput;
   }
-  if (typeof dob0Data.render_output === "string") {
-    dob0Data.render_output = JSON.parse(
-      dob0Data.render_output,
-    ) as RenderOutput[];
-  }
-  const { traits } = traitsParser(dob0Data.render_output);
+  const { traits } = traitsParser(renderData);
   const account =
     traits.find((trait) => trait.name === "Account")?.value ?? "-";
   let fontSize = 76;

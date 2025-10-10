@@ -1,8 +1,8 @@
 import type { INode } from "svgson";
 import { parse } from "svgson";
-import type { BtcFsURI, IpfsURI } from "../config";
-import { config } from "../config";
-import { processFileServerResult } from "../utils/mime-utils";
+import type { BtcFsURI, IpfsURI } from "../config.js";
+import { config } from "../config.js";
+import { processFileServerResult } from "../utils/mime-utils.js";
 
 async function handleNodeHref(node: INode) {
   if (node.name !== "image") {

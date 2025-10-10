@@ -1,7 +1,7 @@
-import { STYLE_FORMATS, TEXT_ALIGNMENT } from "../../types/constants";
-import type { StyleConfiguration, StyleFormat } from "../../types/core";
-import { StyleParseError } from "../../types/errors";
-import { validateString } from "../../utils/validation";
+import { STYLE_FORMATS, TEXT_ALIGNMENT } from "../../types/constants.js";
+import type { StyleConfiguration, StyleFormat } from "../../types/core.js";
+import { StyleParseError } from "../../types/errors.js";
+import { validateString } from "../../utils/validation.js";
 
 /**
  * Default style configuration

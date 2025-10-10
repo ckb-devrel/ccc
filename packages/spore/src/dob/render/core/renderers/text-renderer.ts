@@ -1,18 +1,18 @@
 import satori from "satori";
-import { FONTS } from "../../config/fonts";
+import { FONTS } from "../../config/fonts.js";
 import {
   ALIGNMENT_MAP,
   FONT_STYLES,
   FONT_WEIGHTS,
   RENDER_CONSTANTS,
-} from "../../types/constants";
+} from "../../types/constants.js";
 import type {
   FontConfiguration,
   TextItem,
   TextRenderOptions,
-} from "../../types/core";
-import type { RenderElement } from "../../types/internal";
-import { base64ToArrayBuffer } from "../../utils/string-utils";
+} from "../../types/core.js";
+import type { RenderElement } from "../../types/internal.js";
+import { base64ToArrayBuffer } from "../../utils/string-utils.js";
 
 /**
  * Font configuration with default values

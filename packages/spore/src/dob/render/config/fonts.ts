@@ -1,6 +1,6 @@
-import SpaceGroteskBoldBase64 from "../fonts/SpaceGrotesk-Bold.base64";
-import TurretRoadBoldBase64 from "../fonts/TurretRoad-Bold.base64";
-import TurretRoadMediumBase64 from "../fonts/TurretRoad-Medium.base64";
+import SpaceGroteskBoldBase64 from "../fonts/SpaceGrotesk-Bold.base64.js";
+import TurretRoadBoldBase64 from "../fonts/TurretRoad-Bold.base64.js";
+import TurretRoadMediumBase64 from "../fonts/TurretRoad-Medium.base64.js";
 
 export const FONTS = {
   SpaceGroteskBold: SpaceGroteskBoldBase64,

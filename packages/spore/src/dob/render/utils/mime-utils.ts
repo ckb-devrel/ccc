@@ -1,5 +1,5 @@
-import type { FileServerResult } from "../config";
-import { hexToBase64 } from "./string-utils";
+import type { FileServerResult } from "../config.js";
+import { hexToBase64 } from "./string-utils.js";
 
 /**
  * Detects MIME type from base64-encoded file header by examining file signatures

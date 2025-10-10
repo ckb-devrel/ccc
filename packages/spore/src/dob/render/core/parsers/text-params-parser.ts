@@ -1,5 +1,9 @@
-import { GLOBAL_TEMPLATE_REG, Key, TEMPLATE_REG } from "../../config/constants";
-import { STYLE_FORMATS } from "../../types/constants";
+import {
+  GLOBAL_TEMPLATE_REG,
+  Key,
+  TEMPLATE_REG,
+} from "../../config/constants.js";
+import { STYLE_FORMATS } from "../../types/constants.js";
 import type {
   ParsedTrait,
   StyleConfiguration,
@@ -9,8 +13,8 @@ import type {
   TextStyle,
   TraitValue,
 } from "../../types/core";
-import { backgroundColorParser } from "./background-color-parser";
-import { createStyleParser } from "./style-parser";
+import { backgroundColorParser } from "./background-color-parser.js";
+import { createStyleParser } from "./style-parser.js";
 
 /**
  * Default template for text rendering

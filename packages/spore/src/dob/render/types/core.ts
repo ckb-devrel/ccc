@@ -2,11 +2,10 @@
  * Core type definitions for the render system
  */
 
-export type TraitValue =
-  | string
-  | number
-  | Date
-  | Promise<import("svgson").INode>;
+import { INode } from "svgson";
+import { RenderOutput } from "../../helper/object.js";
+
+export type TraitValue = string | number | Date | Promise<INode>;
 
 export interface Trait {
   readonly name: string;
@@ -75,6 +74,6 @@ export interface ImageRenderOptions {
 }
 
 export interface BitRenderOptions {
-  readonly dobData: string | import("./api").DobDecodeResult;
+  readonly dobData: string | RenderOutput[];
   readonly outputType?: "svg";
 }

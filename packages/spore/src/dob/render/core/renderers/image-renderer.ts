@@ -1,9 +1,9 @@
 import satori from "satori";
-import { config } from "../../config";
-import type { ParsedTrait } from "../../types/core";
-import { processFileServerResult } from "../../utils/mime-utils";
-import { isBtcFs, isIpfs } from "../../utils/string-utils";
-import { backgroundColorParser } from "../parsers/background-color-parser";
+import { config } from "../../config.js";
+import type { ParsedTrait } from "../../types/core.js";
+import { processFileServerResult } from "../../utils/mime-utils.js";
+import { isBtcFs, isIpfs } from "../../utils/string-utils.js";
+import { backgroundColorParser } from "../parsers/background-color-parser.js";
 
 export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
   const prevBg = traits.find((trait) => trait.name === "prev.bg");

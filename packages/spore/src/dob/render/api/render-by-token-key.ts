@@ -1,6 +1,7 @@
-import type { RenderProps } from "../core/renderers/text-renderer";
-import { dobDecode } from "../services/api/dob-decode";
-import { renderByDobDecodeResponse } from "./render-by-dob-decode-response";
+import { decodeDobBySporeId } from "../../api/decode.js";
+import { config } from "../config.js";
+import type { RenderProps } from "../core/renderers/text-renderer.js";
+import { renderByDobDecodeResponse } from "./render-by-dob-decode-response.js";
 
 export async function renderByTokenKey(
   tokenKey: string,
@@ -8,6 +9,10 @@ export async function renderByTokenKey(
     outputType?: "svg";
   },
 ) {
-  const dobDecodeResponse = await dobDecode(tokenKey);
-  return renderByDobDecodeResponse(dobDecodeResponse.result, options);
+  const renderOutput = await decodeDobBySporeId(
+    tokenKey,
+    config.dobDecodeServerURL,
+  );
+
+  return renderByDobDecodeResponse(renderOutput, options);
 }

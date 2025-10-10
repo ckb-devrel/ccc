@@ -1,4 +1,4 @@
-import { ValidationError } from "../types/errors";
+import { ValidationError } from "../types/errors.js";
 
 /**
  * Validation utilities for the render system

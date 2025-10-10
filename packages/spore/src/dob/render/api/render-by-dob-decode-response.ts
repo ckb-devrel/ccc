@@ -1,30 +1,26 @@
-import { Key } from "../config/constants";
-import { renderTextParamsParser } from "../core/parsers/text-params-parser";
-import { traitsParser } from "../core/parsers/traits-parser";
-import { renderDob1Svg } from "../core/renderers/dob1-renderer";
-import { renderImageSvg } from "../core/renderers/image-renderer";
-import type { RenderProps } from "../core/renderers/text-renderer";
-import { renderTextSvg } from "../core/renderers/text-renderer";
-import type {
-  DobDecodeResult,
-  RenderPartialOutput as RenderOutput,
-} from "../types";
+import type { RenderOutput } from "../../helper/object.js";
+import { Key } from "../config/constants.js";
+import { renderTextParamsParser } from "../core/parsers/text-params-parser.js";
+import { traitsParser } from "../core/parsers/traits-parser.js";
+import { renderDob1Svg } from "../core/renderers/dob1-renderer.js";
+import { renderImageSvg } from "../core/renderers/image-renderer.js";
+import type { RenderProps } from "../core/renderers/text-renderer.js";
+import { renderTextSvg } from "../core/renderers/text-renderer.js";
 
 export function renderByDobDecodeResponse(
-  dob0Data: DobDecodeResult | string,
+  renderOutput: RenderOutput | string,
   props?: Pick<RenderProps, "font"> & {
     outputType?: "svg";
   },
 ) {
-  if (typeof dob0Data === "string") {
-    dob0Data = JSON.parse(dob0Data) as DobDecodeResult;
+  let renderData: RenderOutput;
+  if (typeof renderOutput === "string") {
+    renderData = JSON.parse(renderOutput) as RenderOutput;
+  } else {
+    renderData = renderOutput;
   }
-  if (typeof dob0Data.render_output === "string") {
-    dob0Data.render_output = JSON.parse(
-      dob0Data.render_output,
-    ) as RenderOutput[];
-  }
-  const { traits, indexVarRegister } = traitsParser(dob0Data.render_output);
+
+  const { traits, indexVarRegister } = traitsParser(renderData);
   for (const trait of traits) {
     if (trait.name === "prev.type" && trait.value === "image") {
       return renderImageSvg(traits);

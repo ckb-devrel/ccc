@@ -1,8 +1,8 @@
 import satori from "satori";
 import { type INode, stringify } from "svgson";
-import { FONTS } from "../../config/fonts";
-import { base64ToArrayBuffer } from "../../utils/string-utils";
-import { svgToBase64 } from "../../utils/svg-utils";
+import { FONTS } from "../../config/fonts.js";
+import { base64ToArrayBuffer } from "../../utils/string-utils.js";
+import { svgToBase64 } from "../../utils/svg-utils.js";
 
 export async function renderDob1Svg(nodePromise: Promise<INode>) {
   const node = await nodePromise;

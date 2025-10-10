@@ -1,14 +1,14 @@
 import type { INode } from "svgson";
-import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants";
-import { resolveSvgTraits } from "../../services/svg-resolver";
-import type { RenderPartialOutput as RenderOutput } from "../../types/api";
+import type { DecodeElement, RenderOutput } from "../../../helper/object.js";
+import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants.js";
+import { resolveSvgTraits } from "../../services/svg-resolver.js";
 import type {
   IndexVariableRegister,
   ParsedTrait,
   TraitParseResult,
 } from "../../types/core";
-import { TraitParseError } from "../../types/errors";
-import { parseStringToArray } from "../../utils/string-utils";
+import { TraitParseError } from "../../types/errors.js";
+import { parseStringToArray } from "../../utils/string-utils.js";
 import {
   validateArray,
   validateNumber,
@@ -73,7 +73,7 @@ class TraitValueParser {
    * Parses a single trait based on its type
    */
   parseTrait(
-    item: RenderOutput,
+    item: DecodeElement,
     indexVarRegister: IndexVariableRegister,
   ): ParsedTrait | null {
     try {
@@ -120,15 +120,15 @@ class TraitValueParser {
  * Builds the index variable register from render output items
  */
 function buildIndexVariableRegister(
-  items: RenderOutput[],
+  items: RenderOutput,
 ): IndexVariableRegister {
   const register: Record<string, number> = {};
 
   for (const item of items) {
     const firstTrait = item.traits[0];
-    if (!firstTrait?.String) continue;
+    if (!firstTrait?.value) continue;
 
-    const match = firstTrait.String.match(ARRAY_INDEX_REG);
+    const match = String(firstTrait.value).match(ARRAY_INDEX_REG);
     if (!match) continue;
 
     const indexString = match[1];
@@ -150,7 +150,7 @@ function buildIndexVariableRegister(
 /**
  * Parses render output into traits with proper error handling
  */
-export function parseTraits(items: RenderOutput[]): TraitParseResult {
+export function parseTraits(items: RenderOutput): TraitParseResult {
   try {
     validateArray(items, "render output items");
 
