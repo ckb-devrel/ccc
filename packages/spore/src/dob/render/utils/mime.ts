@@ -22,42 +22,37 @@ function detectMimeTypeFromBase64Header(base64Header: string): string | null {
     return "image/gif";
   }
 
-  // WebP: starts with UklGR (RIFF in base64) and contains WEBP
-  if (base64Header.startsWith("UklGR") && base64Header.includes("WEBP")) {
+  // WebP: starts with UklGR (RIFF in base64) and contains V0VCUA== ("WEBP" in base64)
+  if (base64Header.startsWith("UklGRg") && base64Header.includes("V0VCUA")) {
     return "image/webp";
   }
 
   // BMP: starts with Qk0= (424d in base64)
-  if (base64Header.startsWith("Qk0=")) {
+  if (base64Header.startsWith("Qk0")) {
     return "image/bmp";
   }
 
-  // SVG: starts with PHN2ZyA= (<svg in base64) or PD94bWwg (<xml in base64)
-  if (
-    base64Header.startsWith("PHN2ZyA=") ||
-    base64Header.startsWith("PD94bWwg")
-  ) {
+  // SVG: starts with PHN2ZyA= (<svg in base64) or PD94bWwgPC (<?xml in base64)
+  if (base64Header.startsWith("PHN2Zw") || base64Header.startsWith("PD94bWw")) {
     return "image/svg+xml";
   }
 
   // TIFF: starts with SUkqAA== (49492a00 in base64) or TU0AKg== (4d4d002a in base64)
-  if (
-    base64Header.startsWith("SUkqAA==") ||
-    base64Header.startsWith("TU0AKg==")
-  ) {
+  if (base64Header.startsWith("SUkqAA") || base64Header.startsWith("TU0AKg")) {
     return "image/tiff";
   }
 
   // ICO: starts with AAAEAA== (00000100 in base64)
-  if (base64Header.startsWith("AAAAEAA==")) {
+  if (base64Header.startsWith("AAAAEAA")) {
     return "image/x-icon";
   }
 
   // AVIF: contains ZnR5cA== (ftyp in base64) and YXZpZg== (avif in base64)
-  if (base64Header.includes("ZnR5cA==") && base64Header.includes("YXZpZg==")) {
+  if (base64Header.includes("ZnR5cA") && base64Header.includes("YXZpZg")) {
     return "image/avif";
   }
 
+  console.log("Unsupported MIME type", base64Header);
   return null;
 }
 

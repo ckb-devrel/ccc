@@ -36,7 +36,7 @@ export async function resolveSvgTraits(svgStr: string): Promise<INode> {
     const svgAST = await parse(svgStr);
     await handleNodeHref(svgAST);
     return svgAST;
-  } catch (_error) {
+  } catch (error) {
     return {
       value: "",
       type: "element",

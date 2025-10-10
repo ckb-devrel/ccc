@@ -34,7 +34,7 @@ export async function renderTextSvg(props: RenderProps) {
       key: item.name,
       type: "p",
       props: {
-        children: item.text,
+        children: [item.text],
         style: {
           ...item.style,
           display: "flex",
@@ -48,9 +48,9 @@ export async function renderTextSvg(props: RenderProps) {
     if (item.parsedStyle.breakLine === 0 && acc[acc.length - 1]) {
       const lastEl = acc[acc.length - 1];
       el.type = "span";
-      delete (el.props.style as Record<string, unknown>).width;
-      (el.props.style as Record<string, unknown>).display = "block";
-      (lastEl.props.children as RenderElement[]).push(el);
+      delete el.props.style.width;
+      el.props.style.display = "block";
+      lastEl.props.children.push(el);
       return acc;
     }
     acc.push(el);
@@ -59,7 +59,7 @@ export async function renderTextSvg(props: RenderProps) {
         key: `${item.name}${i}`,
         type: "p",
         props: {
-          children: "",
+          children: ``,
           style: {
             height: "36px",
             margin: 0,

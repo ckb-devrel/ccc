@@ -1,7 +1,10 @@
 import satori from "satori";
 import SpaceGroteskBoldBase64 from "./fonts/SpaceGrotesk-Bold.base64";
 import { traitsParser } from "./traits-parser";
-import type { DobDecodeResult, RenderPartialOutput } from "./types";
+import type {
+  DobDecodeResult,
+  RenderPartialOutput as RenderOutput,
+} from "./types";
 import { base64ToArrayBuffer } from "./utils/string";
 
 const iconBase64 =
@@ -9,7 +12,7 @@ const iconBase64 =
 
 export function renderDobBit(
   dob0Data: DobDecodeResult | string,
-  _props?: {
+  props?: {
     outputType?: "svg";
   },
 ) {
@@ -19,7 +22,7 @@ export function renderDobBit(
   if (typeof dob0Data.render_output === "string") {
     dob0Data.render_output = JSON.parse(
       dob0Data.render_output,
-    ) as RenderPartialOutput[];
+    ) as RenderOutput[];
   }
   const { traits } = traitsParser(dob0Data.render_output);
   const account =

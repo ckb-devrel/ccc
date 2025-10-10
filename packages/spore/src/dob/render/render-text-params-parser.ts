@@ -40,7 +40,7 @@ export function renderTextParamsParser(
         !trait.name.startsWith(Key.Prev) &&
         typeof trait.value !== "undefined" &&
         !(trait.name in indexVarRegister) &&
-        trait.name !== (Key.Image as string),
+        trait.name !== Key.Image,
     )
     .map((trait) => {
       let currentTemplate = template;
@@ -50,13 +50,11 @@ export function renderTextParamsParser(
         const currentLayoutMatch = value.match(TEMPLATE_REG);
         if (currentLayoutMatch) {
           if (currentLayoutMatch[1]) {
-            [, value] = currentLayoutMatch as [string, string, string];
+            [, value] = currentLayoutMatch;
           }
           if (currentLayoutMatch[2]) {
             parsedStyle = styleParser(`<${currentLayoutMatch[2]}>`, {
-              baseStyle: JSON.parse(
-                JSON.stringify(parsedStyle),
-              ) as typeof parsedStyle,
+              baseStyle: JSON.parse(JSON.stringify(parsedStyle)),
             });
           }
         }
@@ -73,12 +71,9 @@ export function renderTextParamsParser(
       }
 
       const text = currentTemplate
-        .replace(/%k/g, name)
-        .replace(
-          /%v/g,
-          typeof value === "object" ? JSON.stringify(value) : String(value),
-        )
-        .replace(/%%/g, "%");
+        .replace("%k", name)
+        .replace("%v", `${value}`)
+        .replace("%%", "%");
 
       const styleCss: {
         textAlign?: string;

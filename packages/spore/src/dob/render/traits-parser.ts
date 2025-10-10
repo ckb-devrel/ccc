@@ -1,7 +1,7 @@
 import type { INode } from "svgson";
 import { ARRAY_INDEX_REG, ARRAY_REG } from "./constants/regex";
 import { resolveSvgTraits } from "./resolve-svg-traits";
-import type { RenderPartialOutput } from "./types";
+import type { RenderPartialOutput as RenderOutput } from "./types";
 import { parseStringToArray } from "./utils/string";
 
 export interface ParsedTrait {
@@ -9,7 +9,7 @@ export interface ParsedTrait {
   value: number | string | Date | Promise<INode>;
 }
 
-export function traitsParser(items: RenderPartialOutput[]): {
+export function traitsParser(items: RenderOutput[]): {
   traits: ParsedTrait[];
   indexVarRegister: Record<string, number>;
 } {
