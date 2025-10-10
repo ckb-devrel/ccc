@@ -18,17 +18,19 @@ export type QueryUrlFn = (uri: string) => Promise<FileServerResult>;
 export class Config {
   private _dobDecodeServerURL = "https://dob-decoder.ckbccc.com";
   private _queryBtcFsFn: QueryBtcFsFn = async (uri) => {
-    console.log("requiring", uri);
+    console.log("dob-render-sdk requiring", uri);
     const response = await fetch(
       `https://dob-decoder.ckbccc.com/restful/dob_extract_image?uri=${uri}&encode=base64`,
     );
+    const text = await response.text();
     return {
-      content: await response.text(),
+      content: text,
       content_type: "",
     };
   };
 
   private _queryUrlFn = async (url: string) => {
+    console.log("dob-render-sdk requiring", url);
     const response = await fetch(url);
     const blob = await response.blob();
     return new Promise<IpfsResult>((resolve, reject) => {

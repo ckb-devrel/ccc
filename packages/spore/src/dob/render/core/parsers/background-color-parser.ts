@@ -1,5 +1,5 @@
 import { Key } from "../../config/constants";
-import type { ParsedTrait } from "./traits-parser";
+import type { ParsedTrait } from "../../types/core";
 
 export function getBackgroundColorByTraits(
   traits: ParsedTrait[],

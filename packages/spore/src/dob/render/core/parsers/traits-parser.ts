@@ -1,13 +1,10 @@
-import type { INode } from "svgson";
 import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants";
 import { resolveSvgTraits } from "../../services/svg-resolver";
 import type { RenderPartialOutput as RenderOutput } from "../../types";
+import type { ParsedTrait } from "../../types/core";
 import { parseStringToArray } from "../../utils/string-utils";
 
-export interface ParsedTrait {
-  name: string;
-  value: number | string | Date | Promise<INode>;
-}
+// ParsedTrait is now defined in types/core.ts
 
 export function traitsParser(items: RenderOutput[]): {
   traits: ParsedTrait[];
