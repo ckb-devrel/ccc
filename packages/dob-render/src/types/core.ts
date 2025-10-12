@@ -3,7 +3,7 @@
  */
 
 import { INode } from "svgson";
-import { RenderOutput } from "../../helper/object.js";
+import { RenderOutput } from "./external.js";
 
 export type TraitValue = string | number | Date | Promise<INode>;
 

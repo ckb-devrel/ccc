@@ -1,6 +1,6 @@
-import type { RenderOutput } from "../../../helper/object.js";
 import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
+import type { RenderOutput } from "../../types/external.js";
 import { parseStringToArray } from "../../utils/string.js";
 import { resolveSvgTraits } from "../../utils/svg.js";
 

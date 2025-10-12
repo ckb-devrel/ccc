@@ -1,4 +1,3 @@
-import type { RenderOutput } from "../../helper/object.js";
 import { Key } from "../config/constants.js";
 import { renderTextParamsParser } from "../core/parsers/textParamsParser.js";
 import { traitsParser } from "../core/parsers/traitsParser.js";
@@ -6,6 +5,7 @@ import { renderDob1Svg } from "../core/renderers/dob1Render.js";
 import { renderImageSvg } from "../core/renderers/imageRender.js";
 import type { RenderProps } from "../core/renderers/textRender.js";
 import { renderTextSvg } from "../core/renderers/textRender.js";
+import type { RenderOutput } from "../types/external.js";
 
 export function renderByDobDecodeResponse(
   renderOutput: RenderOutput | string,

@@ -1,4 +1,4 @@
-import { decodeDobBySporeId } from "../../api/decode.js";
+import { dob } from "@ckb-ccc/spore";
 import { config } from "../config.js";
 import type { RenderProps } from "../core/renderers/textRender.js";
 import { renderByDobDecodeResponse } from "./renderDobDecode.js";
@@ -9,7 +9,7 @@ export async function renderByTokenKey(
     outputType?: "svg";
   },
 ) {
-  const renderOutput = await decodeDobBySporeId(
+  const renderOutput = await dob.decodeDobBySporeId(
     tokenKey,
     config.dobDecodeServerURL,
   );
