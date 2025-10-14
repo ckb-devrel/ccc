@@ -7,16 +7,20 @@ export type FileServerResult =
 
 export type BtcFsResult = FileServerResult;
 export type IpfsResult = FileServerResult;
+export type CkbFsResult = FileServerResult;
 
 export type BtcFsURI = `btcfs://${string}`;
 export type IpfsURI = `ipfs://${string}`;
+export type CkbFsURI = `ckbfs://${string}`;
 
 export type QueryBtcFsFn = (uri: BtcFsURI) => Promise<BtcFsResult>;
 export type QueryIpfsFn = (uri: IpfsURI) => Promise<IpfsResult>;
+export type QueryCkbFsFn = (uri: CkbFsURI) => Promise<CkbFsResult>;
 export type QueryUrlFn = (uri: string) => Promise<FileServerResult>;
 
 export class Config {
   private _dobDecodeServerURL = "https://dob-decoder.ckbccc.com";
+
   private _queryBtcFsFn: QueryBtcFsFn = async (uri) => {
     console.log("dob-render-sdk requiring", uri);
     const response = await fetch(
@@ -53,6 +57,10 @@ export class Config {
     return this._queryUrlFn(url);
   };
 
+  private _queryCkbFsFn: QueryCkbFsFn = async (_uri: CkbFsURI) => {
+    throw new Error("CkbFs is not supported");
+  };
+
   get dobDecodeServerURL() {
     return this._dobDecodeServerURL;
   }
@@ -69,6 +77,10 @@ export class Config {
     this._queryIpfsFn = fn;
   }
 
+  setQueryCkbFsFn(fn: QueryCkbFsFn): void {
+    this._queryCkbFsFn = fn;
+  }
+
   get queryBtcFsFn(): QueryBtcFsFn {
     return this._queryBtcFsFn;
   }
@@ -79,6 +91,10 @@ export class Config {
 
   get queryUrlFn(): QueryUrlFn {
     return this._queryUrlFn;
+  }
+
+  get queryCkbFsFn(): QueryCkbFsFn {
+    return this._queryCkbFsFn;
   }
 }
 

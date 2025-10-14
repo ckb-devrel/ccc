@@ -4,7 +4,7 @@ import { Key } from "../../config/constants.js";
 import { RENDER_CONSTANTS } from "../../types/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
 import { processFileServerResult } from "../../utils/mime.js";
-import { isBtcFs, isIpfs } from "../../utils/string.js";
+import { isBtcFs, isCkbFs, isIpfs } from "../../utils/string.js";
 import { backgroundColorParser } from "../parsers/backgroundColorParser.js";
 
 export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
@@ -19,6 +19,9 @@ export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
     } else if (isIpfs(prevBg.value)) {
       const ipfsFsResult = await config.queryIpfsFn(prevBg.value);
       bgImage = processFileServerResult(ipfsFsResult);
+    } else if (isCkbFs(prevBg.value)) {
+      const ckbFsResult = await config.queryCkbFsFn(prevBg.value);
+      bgImage = processFileServerResult(ckbFsResult);
     } else if (prevBg.value.startsWith("https://")) {
       bgImage = prevBg.value;
     }
