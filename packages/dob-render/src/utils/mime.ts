@@ -1,4 +1,4 @@
-import type { FileServerResult } from "../config.js";
+import type { FileServerResult } from "../types/query.js";
 import { hexToBase64 } from "./string.js";
 
 /**

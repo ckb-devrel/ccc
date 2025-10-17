@@ -1,12 +1,16 @@
 import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
 import type { RenderOutput } from "../../types/external.js";
+import type { QueryOptions } from "../../types/query.js";
 import { parseStringToArray } from "../../utils/string.js";
 import { resolveSvgTraits } from "../../utils/svg.js";
 
 // ParsedTrait is now defined in types/core.ts
 
-export function traitsParser(items: RenderOutput): {
+export function traitsParser(
+  items: RenderOutput,
+  options?: QueryOptions,
+): {
   traits: ParsedTrait[];
   indexVarRegister: Record<string, number>;
 } {
@@ -62,14 +66,13 @@ export function traitsParser(items: RenderOutput): {
       if ("SVG" in traitData && typeof traitData.SVG === "string") {
         return {
           name: item.name,
-          value: resolveSvgTraits(traitData.SVG),
+          value: resolveSvgTraits(traitData.SVG, options),
         };
       }
 
       return null;
     })
-    .map((e) => e!)
-    .filter((e) => e);
+    .filter((e): e is ParsedTrait => e !== null);
   return {
     traits,
     indexVarRegister,

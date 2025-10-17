@@ -1,18 +1,14 @@
 import { dob } from "@ckb-ccc/spore";
-import { config } from "../config.js";
-import type { RenderProps } from "../core/renderers/textRender.js";
+import type { RenderOptions } from "../types/query.js";
 import { renderByDobDecodeResponse } from "./renderDobDecode.js";
 
 export async function renderByTokenKey(
   tokenKey: string,
-  options?: Pick<RenderProps, "font"> & {
-    outputType?: "svg";
-  },
+  options?: RenderOptions & { dobDecodeServerURL?: string },
 ) {
-  const renderOutput = await dob.decodeDobBySporeId(
-    tokenKey,
-    config.dobDecodeServerURL,
-  );
+  const serverURL =
+    options?.dobDecodeServerURL || "https://dob-decoder.ckbccc.com";
+  const renderOutput = await dob.decodeDobBySporeId(tokenKey, serverURL);
 
   return renderByDobDecodeResponse(renderOutput, options);
 }

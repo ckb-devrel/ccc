@@ -1,28 +1,37 @@
 import satori from "satori";
-import { config } from "../../config.js";
 import { Key } from "../../config/constants.js";
 import { RENDER_CONSTANTS } from "../../types/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
+import type { QueryOptions } from "../../types/query.js";
 import { processFileServerResult } from "../../utils/mime.js";
-import { isBtcFs, isCkbFs, isIpfs } from "../../utils/string.js";
+import { isBtcFs, isCkbFs, isIpfs, isUrl } from "../../utils/string.js";
 import { backgroundColorParser } from "../parsers/backgroundColorParser.js";
 
-export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
+export async function renderImageSvg(
+  traits: ParsedTrait[],
+  options?: QueryOptions,
+): Promise<string> {
   const prevBg = traits.find((trait) => trait.name === String(Key.Bg));
   const bgColor = backgroundColorParser(traits, { defaultColor: "#FFFFFF00" });
 
   let bgImage = "";
   if (prevBg?.value && typeof prevBg.value === "string") {
     if (isBtcFs(prevBg.value)) {
-      const btcFsResult = await config.queryBtcFsFn(prevBg.value);
-      bgImage = processFileServerResult(btcFsResult);
+      if (options?.queryBtcFsFn) {
+        const btcFsResult = await options.queryBtcFsFn(prevBg.value);
+        bgImage = processFileServerResult(btcFsResult);
+      }
     } else if (isIpfs(prevBg.value)) {
-      const ipfsFsResult = await config.queryIpfsFn(prevBg.value);
-      bgImage = processFileServerResult(ipfsFsResult);
+      if (options?.queryIpfsFn) {
+        const ipfsFsResult = await options.queryIpfsFn(prevBg.value);
+        bgImage = processFileServerResult(ipfsFsResult);
+      }
     } else if (isCkbFs(prevBg.value)) {
-      const ckbFsResult = await config.queryCkbFsFn(prevBg.value);
-      bgImage = processFileServerResult(ckbFsResult);
-    } else if (prevBg.value.startsWith("https://")) {
+      if (options?.queryCkbFsFn) {
+        const ckbFsResult = await options.queryCkbFsFn(prevBg.value);
+        bgImage = processFileServerResult(ckbFsResult);
+      }
+    } else if (isUrl(prevBg.value)) {
       bgImage = prevBg.value;
     }
   }
@@ -35,7 +44,7 @@ export async function renderImageSvg(traits: ParsedTrait[]): Promise<string> {
         style: {
           display: "flex",
           width: "500px",
-          background: bgColor ?? "#000",
+          background: bgColor,
           color: "#fff",
           height: "500px",
           justifyContent: "center",

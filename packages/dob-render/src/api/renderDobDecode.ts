@@ -3,27 +3,29 @@ import { renderTextParamsParser } from "../core/parsers/textParamsParser.js";
 import { traitsParser } from "../core/parsers/traitsParser.js";
 import { renderDob1Svg } from "../core/renderers/dob1Render.js";
 import { renderImageSvg } from "../core/renderers/imageRender.js";
-import type { RenderProps } from "../core/renderers/textRender.js";
 import { renderTextSvg } from "../core/renderers/textRender.js";
 import type { RenderOutput } from "../types/external.js";
+import type { RenderOptions } from "../types/query.js";
+import {
+  defaultQueryBtcFsFn,
+  defaultQueryCkbFsFn,
+  defaultQueryIpfsFn,
+  defaultQueryUrlFn,
+} from "../types/query.js";
 
 export function renderByDobDecodeResponse(
-  renderOutput: RenderOutput | string,
-  props?: Pick<RenderProps, "font"> & {
-    outputType?: "svg";
-  },
+  renderOutput: RenderOutput,
+  props?: RenderOptions,
 ) {
-  let renderData: RenderOutput;
-  if (typeof renderOutput === "string") {
-    renderData = JSON.parse(renderOutput) as RenderOutput;
-  } else {
-    renderData = renderOutput;
-  }
-
-  const { traits, indexVarRegister } = traitsParser(renderData);
+  const { traits, indexVarRegister } = traitsParser(renderOutput);
   for (const trait of traits) {
     if (trait.name === String(Key.Type) && trait.value === "image") {
-      return renderImageSvg(traits);
+      return renderImageSvg(traits, {
+        queryBtcFsFn: props?.queryBtcFsFn || defaultQueryBtcFsFn,
+        queryIpfsFn: props?.queryIpfsFn || defaultQueryIpfsFn,
+        queryCkbFsFn: props?.queryCkbFsFn || defaultQueryCkbFsFn,
+        queryUrlFn: props?.queryUrlFn || defaultQueryUrlFn,
+      });
     }
     // TODO: multiple images
     if (trait.name === String(Key.Image) && trait.value instanceof Promise) {

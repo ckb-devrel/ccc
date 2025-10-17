@@ -36,16 +36,16 @@ export class StyleParser {
       const result = baseStyle ? { ...baseStyle } : { ...DEFAULT_STYLE };
 
       // Remove angle brackets if present
-      const cleanInput = this.removeAngleBrackets(input);
+      let cleanInput = this.removeAngleBrackets(input);
 
       // Parse color
-      this.parseColor(cleanInput, result);
+      cleanInput = this.parseColor(cleanInput, result);
 
       // Parse format
-      this.parseFormat(cleanInput, result);
+      cleanInput = this.parseFormat(cleanInput, result);
 
       // Parse alignment
-      this.parseAlignment(cleanInput, result);
+      cleanInput = this.parseAlignment(cleanInput, result);
 
       // Parse break line
       this.parseBreakLine(cleanInput, result);

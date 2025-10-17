@@ -11,6 +11,7 @@ import type {
   TextItem,
   TextRenderOptions,
 } from "../../types/core.js";
+import { RenderEngineError } from "../../types/errors.js";
 import type { RenderElement } from "../../types/internal.js";
 import { base64ToArrayBuffer } from "../../utils/string.js";
 
@@ -44,8 +45,11 @@ export class TextRenderer {
 
       return await satori(container, this.getSatoriOptions());
     } catch (error) {
-      throw new Error(
+      throw new RenderEngineError(
         `Failed to render text: ${error instanceof Error ? error.message : String(error)}`,
+        "text",
+        options,
+        error instanceof Error ? error : new Error(String(error)),
       );
     }
   }

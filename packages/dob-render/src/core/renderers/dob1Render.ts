@@ -23,7 +23,7 @@ export async function renderDob1Svg(nodePromise: Promise<INode>) {
         style: {
           display: "flex",
           width: `${width}px`,
-          height: `${width}px`,
+          height: `${height}px`,
         },
         children: [
           {
