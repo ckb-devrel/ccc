@@ -30,16 +30,9 @@ export async function prepareCluster(
       const lock = cluster.cellOutput.lock;
 
       if ((await tx.findInputIndexByLock(lock, signer.client)) === undefined) {
-        const addresses = await signer.getAddressObjs();
-        if (addresses.some((address) => address.script.eq(lock))) {
-          // Signer's lock to be the proxy lock
-          await tx.completeInputsAddOne(signer);
-        } else {
-          // Custom proxy script, we should find the cell manually
-          for await (const cell of signer.client.findCellsByLock(lock)) {
-            tx.addInput(cell);
-            break;
-          }
+        for await (const cell of signer.client.findCellsByLock(lock, null)) {
+          tx.addInput(cell);
+          break;
         }
       }
       if (tx.outputs.every((output) => output.lock !== lock)) {
