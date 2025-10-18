@@ -1,4 +1,4 @@
-# @ckb-ccc/render
+# @ckb-ccc/dob-render
 
 CCC - CKBer's Codebase. Common Chains Connector's render SDK for DOB protocol.
 
@@ -31,7 +31,7 @@ const svg = renderByDobDecodeResponse(renderOutput);
 
 Renders a DOB token by its key.
 
-### `renderByDobDecodeResponse(renderOutput: RenderOutput | string, props?: RenderProps)`
+### `renderByDobDecodeResponse(renderOutput: RenderOutput, props?: RenderProps)`
 
 Renders a DOB token from a decoded response.
 

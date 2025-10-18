@@ -13,6 +13,7 @@ import type {
   TextStyle,
   TraitValue,
 } from "../../types/core.js";
+import { RenderEngineError } from "../../types/errors.js";
 import { backgroundColorParser } from "./backgroundColorParser.js";
 import { createStyleParser } from "./styleParser.js";
 
@@ -55,8 +56,11 @@ export class TextParamsParser {
         bgColor,
       };
     } catch (error) {
-      throw new Error(
+      throw new RenderEngineError(
         `Failed to parse text parameters: ${error instanceof Error ? error.message : String(error)}`,
+        "text",
+        { traits, indexVarRegister, options },
+        error instanceof Error ? error : undefined,
       );
     }
   }

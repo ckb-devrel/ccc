@@ -1,10 +1,10 @@
+import { dob } from "@ckb-ccc/spore";
 import { Key } from "../config/constants.js";
 import { renderTextParamsParser } from "../core/parsers/textParamsParser.js";
 import { traitsParser } from "../core/parsers/traitsParser.js";
 import { renderDob1Svg } from "../core/renderers/dob1Render.js";
 import { renderImageSvg } from "../core/renderers/imageRender.js";
 import { renderTextSvg } from "../core/renderers/textRender.js";
-import type { RenderOutput } from "../types/external.js";
 import type { RenderOptions } from "../types/query.js";
 import {
   defaultQueryBtcFsFn,
@@ -14,7 +14,7 @@ import {
 } from "../types/query.js";
 
 export function renderByDobDecodeResponse(
-  renderOutput: RenderOutput,
+  renderOutput: dob.RenderOutput,
   props?: RenderOptions,
 ) {
   const { traits, indexVarRegister } = traitsParser(renderOutput);

@@ -8,11 +8,11 @@ import {
 } from "../../types/constants.js";
 import type {
   FontConfiguration,
+  RenderElement,
   TextItem,
   TextRenderOptions,
 } from "../../types/core.js";
 import { RenderEngineError } from "../../types/errors.js";
-import type { RenderElement } from "../../types/internal.js";
 import { base64ToArrayBuffer } from "../../utils/string.js";
 
 /**

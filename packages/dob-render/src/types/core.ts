@@ -3,26 +3,29 @@
  */
 
 import { INode } from "svgson";
-import { RenderOutput } from "./external.js";
+
+export interface RenderElement<
+  P = Record<string, unknown>,
+  S = Record<string, unknown>,
+  T = string,
+> {
+  type: T;
+  props: P & {
+    children:
+      | RenderElement
+      | RenderElement[]
+      | string
+      | (RenderElement | string)[];
+    style: S;
+  };
+  key: string | null;
+}
 
 export type TraitValue = string | number | Date | Promise<INode>;
 
-export interface Trait {
+export interface ParsedTrait {
   readonly name: string;
   readonly value: TraitValue;
-}
-
-export interface ParsedTrait extends Trait {
-  readonly value: TraitValue;
-}
-
-export interface IndexVariableRegister {
-  readonly [variableName: string]: number;
-}
-
-export interface TraitParseResult {
-  readonly traits: readonly ParsedTrait[];
-  readonly indexVarRegister: IndexVariableRegister;
 }
 
 export interface StyleConfiguration {
@@ -62,18 +65,4 @@ export interface FontConfiguration {
   readonly italic: ArrayBuffer;
   readonly bold: ArrayBuffer;
   readonly boldItalic: ArrayBuffer;
-}
-
-export interface RenderConfiguration {
-  readonly font?: FontConfiguration;
-  readonly outputType?: "svg";
-}
-
-export interface ImageRenderOptions {
-  readonly traits: readonly ParsedTrait[];
-}
-
-export interface BitRenderOptions {
-  readonly dobData: string | RenderOutput[];
-  readonly outputType?: "svg";
 }

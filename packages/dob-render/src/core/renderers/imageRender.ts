@@ -43,10 +43,10 @@ export async function renderImageSvg(
       props: {
         style: {
           display: "flex",
-          width: "500px",
+          width: `${RENDER_CONSTANTS.CANVAS_WIDTH}px`,
           background: bgColor,
-          color: "#fff",
-          height: "500px",
+          color: `${RENDER_CONSTANTS.DEFAULT_TEXT_COLOR}`,
+          height: `${RENDER_CONSTANTS.CANVAS_HEIGHT}px`,
           justifyContent: "center",
           alignItems: "center",
           overflow: "hidden",

@@ -1,22 +1,21 @@
+import { dob } from "@ckb-ccc/spore";
 import { ARRAY_INDEX_REG, ARRAY_REG } from "../../config/constants.js";
 import type { ParsedTrait } from "../../types/core.js";
-import type { RenderOutput } from "../../types/external.js";
 import type { QueryOptions } from "../../types/query.js";
 import { parseStringToArray } from "../../utils/string.js";
 import { resolveSvgTraits } from "../../utils/svg.js";
 
-// ParsedTrait is now defined in types/core.ts
-
 export function traitsParser(
-  items: RenderOutput,
+  items: dob.RenderOutput,
   options?: QueryOptions,
 ): {
   traits: ParsedTrait[];
   indexVarRegister: Record<string, number>;
 } {
   const indexVarRegister = items.reduce<Record<string, number>>((acc, item) => {
-    if (!item.traits[0]?.value) return acc;
-    const match = String(item.traits[0].value).match(ARRAY_INDEX_REG);
+    if (!("String" in item.traits[0])) return acc;
+    if (typeof item.traits[0].String !== "string") return acc;
+    const match = item.traits[0].String.match(ARRAY_INDEX_REG);
     if (!match) return acc;
     const intIndex = parseInt(match[1], 10);
     if (isNaN(intIndex)) return acc;
@@ -67,7 +66,7 @@ export function traitsParser(
         return {
           name: item.name,
           value: resolveSvgTraits(traitData.SVG, options),
-        };
+        } as ParsedTrait;
       }
 
       return null;

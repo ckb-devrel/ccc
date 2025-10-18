@@ -55,12 +55,16 @@ export interface Dob1 {
   dob: PatternDob1;
 }
 
+export type ElementTrait =
+  | { String: string }
+  | { Number: number }
+  | { Timestamp: number }
+  | { SVG: string }
+  | { [key: string]: string | number };
+
 export interface DecodeElement {
   name: string;
-  traits: {
-    type: string;
-    value: number | string;
-  }[];
+  traits: ElementTrait[];
 }
 
 export type RenderOutput = DecodeElement[];
