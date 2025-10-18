@@ -64,7 +64,8 @@
     "@ckb-ccc/shell": "workspace:*",
     "@ckb-ccc/uni-sat": "workspace:*",
     "@ckb-ccc/utxo-global": "workspace:*",
-    "@ckb-ccc/xverse": "workspace:*"
+    "@ckb-ccc/xverse": "workspace:*",
+    "@ckb-ccc/dob-render": "workspace:*"
   },
   "packageManager": "pnpm@10.8.1"
 }

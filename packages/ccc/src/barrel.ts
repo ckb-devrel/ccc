@@ -1,3 +1,4 @@
+export * from "@ckb-ccc/dob-render";
 export * from "@ckb-ccc/eip6963";
 export * from "@ckb-ccc/joy-id";
 export * from "@ckb-ccc/nip07";
