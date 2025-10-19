@@ -12,7 +12,6 @@ import {
   ScriptLike,
   Transaction,
   TransactionLike,
-  epochFrom,
   hashTypeFrom,
 } from "../ckb/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
@@ -398,7 +397,7 @@ export class ClientBlockHeader {
         s: numFrom(headerLike.dao.s),
         u: numFrom(headerLike.dao.u),
       },
-      epochFrom(headerLike.epoch),
+      Epoch.from(headerLike.epoch),
       hexFrom(headerLike.extraHash),
       hexFrom(headerLike.hash),
       numFrom(headerLike.nonce),
