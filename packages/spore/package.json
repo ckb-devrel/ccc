@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/spore",
-  "version": "1.5.3",
+  "version": "1.5.13",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Spore protocol",
   "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
@@ -41,26 +41,26 @@
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
-    "@eslint/js": "^9.1.1",
-    "@types/node": "^22.10.0",
+    "@eslint/js": "^9.34.0",
+    "@types/node": "^24.3.0",
     "copyfiles": "^2.4.1",
-    "dotenv": "^16.4.5",
-    "eslint": "^9.1.0",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.1",
-    "prettier": "^3.5.3",
-    "prettier-plugin-organize-imports": "^4.1.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.4.5",
-    "typescript-eslint": "^7.7.0",
-    "vitest": "^3.2.2"
+    "dotenv": "^17.2.1",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "axios": "^1.7.7"
+    "axios": "^1.11.0"
   },
   "packageManager": "pnpm@10.8.1"
 }

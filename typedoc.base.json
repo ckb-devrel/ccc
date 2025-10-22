@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "sourceLinkTemplate": "https://github.com/ckb-devrel/ccc/blob/master/{path}#L{line}",
+  "sourceLinkTemplate": "https://github.com/ckb-devrel/ccc/blob/release/{path}#L{line}",
   "excludeReferences": true,
   "excludeExternals": true,
   "externalPattern": [

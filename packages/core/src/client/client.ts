@@ -54,13 +54,13 @@ export abstract class Client {
 
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
-  ): Promise<{ mean: Num; median: Num }>;
+  ): Promise<{ mean?: Num; median?: Num }>;
   async getFeeRate(
     blockRange?: NumLike,
     options?: { maxFeeRate?: NumLike },
   ): Promise<Num> {
     const feeRate = numMax(
-      (await this.getFeeRateStatistics(blockRange)).median,
+      (await this.getFeeRateStatistics(blockRange)).median ?? Zero,
       DEFAULT_MIN_FEE_RATE,
     );
 
@@ -177,6 +177,13 @@ export abstract class Client {
     txHash: HexLike,
   ): Promise<ClientTransactionResponse | undefined>;
 
+  /**
+   * Get a cell by its out point.
+   * The cell will be cached if it is found.
+   *
+   * @param outPointLike - The out point of the cell to get.
+   * @returns The cell if it exists, otherwise undefined.
+   */
   async getCell(outPointLike: OutPointLike): Promise<Cell | undefined> {
     const outPoint = OutPoint.from(outPointLike);
     const cached = await this.cache.getCell(outPoint);
@@ -195,8 +202,8 @@ export abstract class Client {
     }
 
     const cell = Cell.from({
-      outPoint,
       ...output,
+      outPoint,
     });
     await this.cache.recordCells(cell);
     return cell;
@@ -219,8 +226,8 @@ export abstract class Client {
     }
 
     const cell = Cell.from({
-      outPoint,
       ...output,
+      outPoint,
     });
     await this.cache.recordCells(cell);
     return { cell, header };

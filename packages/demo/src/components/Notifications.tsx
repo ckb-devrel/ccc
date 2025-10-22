@@ -54,7 +54,7 @@ export function Notifications({ messages }: NotificationProps) {
     <>
       {messages.length > 0 ? (
         <div
-          className="fixed right-0 top-28 z-50 mb-4 flex cursor-pointer items-center rounded-l-full border bg-white px-3 py-2 shadow-md md:top-16"
+          className="fixed top-28 right-0 z-50 mb-4 flex cursor-pointer items-center rounded-l-full border border-gray-200 bg-white px-3 py-2 shadow-md md:top-16"
           onClick={toggleExpand}
         >
           {isExpanded ? (
@@ -69,7 +69,7 @@ export function Notifications({ messages }: NotificationProps) {
       ) : undefined}
 
       <div
-        className={`fixed right-0 top-44 z-40 max-h-[60vh] w-full md:top-32 md:w-7/12 lg:w-5/12 xl:w-4/12 ${isExpanded ? "" : "translate-x-full"} flex flex-col overflow-y-auto overflow-x-hidden border bg-white duration-300 ease-in-out md:rounded-lg md:shadow-lg`}
+        className={`fixed top-44 right-0 z-40 max-h-[60vh] w-full md:top-32 md:w-7/12 lg:w-5/12 xl:w-4/12 ${isExpanded ? "" : "translate-x-full"} flex flex-col overflow-x-hidden overflow-y-auto border border-gray-200 bg-white duration-300 ease-in-out md:rounded-lg md:shadow-lg`}
       >
         <div className="p-4">
           {messages

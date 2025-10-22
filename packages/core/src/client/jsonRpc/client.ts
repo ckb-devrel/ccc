@@ -131,9 +131,9 @@ export abstract class ClientJsonRpc extends Client {
   getFeeRateStatistics = this.buildSender(
     "get_fee_rate_statistics",
     [(n: NumLike) => apply(numFrom, n)],
-    ({ mean, median }: { mean: NumLike; median: NumLike }) => ({
-      mean: numFrom(mean),
-      median: numFrom(median),
+    (res: { mean: NumLike; median: NumLike } | null | undefined) => ({
+      mean: apply(numFrom, res?.mean),
+      median: apply(numFrom, res?.median),
     }),
   ) as Client["getFeeRateStatistics"];
 
@@ -251,11 +251,14 @@ export abstract class ClientJsonRpc extends Client {
 
   sendTransactionNoCache = this.buildSender(
     "send_transaction",
-    [JsonRpcTransformers.transactionFrom],
+    [
+      JsonRpcTransformers.transactionFrom,
+      (validator?: OutputsValidator | null) => validator ?? undefined,
+    ],
     hexFrom,
   ) as (
     transaction: TransactionLike,
-    validator?: OutputsValidator | undefined,
+    validator?: OutputsValidator | null,
   ) => Promise<Hex>;
 
   /**

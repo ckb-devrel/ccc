@@ -7,7 +7,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 const config: Config = {
   title: "CCC Docs",
   tagline: "CCC - CKBer's Codebase",
-  favicon: "img/favicon.svg",
+  favicon: "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
 
   // Set the production url of your site here
   url: "https://docs.ckbccc.com",
@@ -66,8 +66,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: "img/logoAndText.svg",
+    image: "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
     colorMode: {
       defaultMode: "dark",
       disableSwitch: false,
@@ -77,7 +76,7 @@ const config: Config = {
       title: "CCC Docs",
       logo: {
         alt: "CCC Logo",
-        src: "img/logo.svg",
+        src: "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
       },
       items: [
         {

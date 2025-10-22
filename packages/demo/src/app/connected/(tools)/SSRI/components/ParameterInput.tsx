@@ -146,7 +146,7 @@ export function ParameterInput({
               label="Method Path Generator"
               placeholder="Enter method name to generate path"
               state={[methodPathInput || "", setMethodPathInput]}
-              className="flex-grow"
+              className="grow"
             />
             <Button
               onClick={() => {
@@ -203,7 +203,7 @@ export function ParameterInput({
         }
         )
       </summary>
-      <div className="flex flex-col gap-2 pl-4 pt-2">
+      <div className="flex flex-col gap-2 pt-2 pl-4">
         <TextInput
           label="Capacity"
           placeholder="Enter capacity"
@@ -376,7 +376,7 @@ export function ParameterInput({
         }
         )
       </summary>
-      <div className="flex flex-col gap-2 pl-4 pt-2">
+      <div className="flex flex-col gap-2 pt-2 pl-4">
         <TextInput
           label="Transaction Data (Hex)"
           placeholder="Enter transaction data in hex format"
@@ -423,7 +423,7 @@ export function ParameterInput({
         </label>
       </div>
       {paramValues[`Parameter${index}NotUsingDefault`] && (
-        <div className="flex flex-col gap-2 pl-4 pt-2">
+        <div className="flex flex-col gap-2 pt-2 pl-4">
           <TextInput
             label="Transaction Data (Hex)"
             placeholder="Enter transaction data in hex format"
@@ -580,7 +580,7 @@ export function ParameterInput({
 
   return (
     <div className="flex w-full flex-row items-center gap-2">
-      <div className="flex-grow">{renderInputByType()}</div>
+      <div className="grow">{renderInputByType()}</div>
       {methodToCall === "Customized" && onDelete && (
         <Button onClick={onDelete}>
           <Icon name="Trash" />

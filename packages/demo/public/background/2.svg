@@ -7,7 +7,7 @@
    viewBox="0 0 125.67109 125.67109"
    version="1.1"
    id="svg1"
-   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
+   inkscape:version="1.4.2 (ebf0e940d0, 2025-05-08)"
    sodipodi:docname="2.svg"
    inkscape:export-filename="logo.png"
    inkscape:export-xdpi="96"
@@ -27,10 +27,10 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="1.0263363"
-     inkscape:cx="328.83958"
+     inkscape:cx="328.35241"
      inkscape:cy="279.14827"
-     inkscape:window-width="1414"
-     inkscape:window-height="835"
+     inkscape:window-width="1578"
+     inkscape:window-height="840"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -44,7 +44,7 @@
      transform="translate(-17.164455,-17.164455)">
     <path
        id="ellipse2"
-       style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:3;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="opacity:1;fill:#1e1e2e;fill-opacity:1;stroke:#1e1e2e;stroke-width:3;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        d="M 80.1558,38.91905 A 121.21683,121.21682 0 0 0 72.58314,80.209553 121.21683,121.21682 0 0 0 79.99974,121.08095 121.21683,121.21682 0 0 0 87.416859,80.209553 121.21683,121.21682 0 0 0 80.1558,38.91905 Z" />
   </g>
 </svg>

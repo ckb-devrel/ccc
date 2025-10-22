@@ -18,11 +18,13 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "CCC Playground",
   description: "Start exploring CKB from here!",
-  icons: "/favicon.svg",
+  icons:
+    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
   openGraph: {
     title: "CCC Playground",
     description: "Start exploring CKB from here!",
-    images: "/opengraph.png",
+    images:
+      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
   },
 };
 

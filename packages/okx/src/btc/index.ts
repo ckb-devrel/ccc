@@ -146,7 +146,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
    */
   async isConnected(): Promise<boolean> {
     try {
-      this.provider;
+      void this.provider; // Invoke provider getter
     } catch (_) {
       return false;
     }

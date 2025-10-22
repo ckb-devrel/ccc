@@ -25,7 +25,7 @@ export const HexInput: React.FC<HexInputProps> = ({
   onRemove,
 }) => {
   return (
-    <div className="flex w-full flex-col gap-2 rounded border p-2">
+    <div className="flex w-full flex-col gap-2 rounded border border-gray-200 p-2">
       <TextInput
         label={label}
         placeholder={placeholder}

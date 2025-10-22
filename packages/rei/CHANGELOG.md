@@ -1,5 +1,67 @@
 # @ckb-ccc/rei
 
+## 1.0.29
+### Patch Changes
+
+- Updated dependencies [[`b371b07`](https://github.com/ckb-devrel/ccc/commit/b371b07e67f295129defc36190741ab4d783dd96)]:
+  - @ckb-ccc/core@1.12.2
+
+## 1.0.28
+### Patch Changes
+
+- Updated dependencies [[`6cb6bfc`](https://github.com/ckb-devrel/ccc/commit/6cb6bfcc24af00b460ab7d112986088a9a526ecd)]:
+  - @ckb-ccc/core@1.12.1
+
+## 1.0.27
+### Patch Changes
+
+
+
+- [#290](https://github.com/ckb-devrel/ccc/pull/290) [`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(deps): bump dependency version with `--latest`
+
+- Updated dependencies [[`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f), [`12c1e6b`](https://github.com/ckb-devrel/ccc/commit/12c1e6b751de220898ed94998027c7cf07c7a7dc), [`d382469`](https://github.com/ckb-devrel/ccc/commit/d382469ffca7934f19d0156af6939d7794808265), [`50b5537`](https://github.com/ckb-devrel/ccc/commit/50b553715f150ca7c68a661c7cbf8696ec674846)]:
+  - @ckb-ccc/core@1.12.0
+
+## 1.0.26
+### Patch Changes
+
+- Updated dependencies [[`cec9b39`](https://github.com/ckb-devrel/ccc/commit/cec9b39345fc37a6ae72c0774059b2e31efc9e89), [`c95913f`](https://github.com/ckb-devrel/ccc/commit/c95913f58c889c9d8c0b164014f9917501c11dbc)]:
+  - @ckb-ccc/core@1.11.5
+
+## 1.0.25
+### Patch Changes
+
+- Updated dependencies [[`1eb030f`](https://github.com/ckb-devrel/ccc/commit/1eb030fde95c545561a092a4025747e6d14fc8de)]:
+  - @ckb-ccc/core@1.11.4
+
+## 1.0.24
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+- Updated dependencies [[`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252)]:
+  - @ckb-ccc/core@1.11.3
+
+## 1.0.23
+### Patch Changes
+
+- Updated dependencies [[`00e6d56`](https://github.com/ckb-devrel/ccc/commit/00e6d56fa027cbe0cfeea20aa72abba7b14dc606)]:
+  - @ckb-ccc/core@1.11.2
+
+## 1.0.22
+### Patch Changes
+
+- Updated dependencies [[`e37468c`](https://github.com/ckb-devrel/ccc/commit/e37468c1527498cbd9097ebff24a13d53d747b22)]:
+  - @ckb-ccc/core@1.11.1
+
+## 1.0.21
+### Patch Changes
+
+- Updated dependencies [[`07fc9fe`](https://github.com/ckb-devrel/ccc/commit/07fc9fe196115bf4b341e7b657927987956a6d7c), [`0e7cd8f`](https://github.com/ckb-devrel/ccc/commit/0e7cd8f6ca191186852c84e44db2fc0e1bb26d9b), [`0008150`](https://github.com/ckb-devrel/ccc/commit/00081509e54e52af999e48feec11c90d2c649ab9), [`91f6027`](https://github.com/ckb-devrel/ccc/commit/91f60277c75773fad509f945eef8397ef1061cd1), [`5061511`](https://github.com/ckb-devrel/ccc/commit/506151120fcd1a80b6d38e074b7944164047e76f), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`40fcd50`](https://github.com/ckb-devrel/ccc/commit/40fcd50639ce32bee1fc54497b22f4871807e98a), [`82f5a45`](https://github.com/ckb-devrel/ccc/commit/82f5a45fd35968673be93f09bdd59ca79a7afb6e), [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6), [`46c61d4`](https://github.com/ckb-devrel/ccc/commit/46c61d48d5289a76385463bc7783b7cbfb05ed99)]:
+  - @ckb-ccc/core@1.11.0
+
 ## 1.0.19
 ### Patch Changes
 

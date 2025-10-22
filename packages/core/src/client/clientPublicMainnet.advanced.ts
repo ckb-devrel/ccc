@@ -120,10 +120,80 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0xf05188e5f3a6767fc4687faf45ba5f1a6e25d3ada6129dae8722cb282f262493",
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
               index: 0,
             },
-            depType: "depGroup",
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x2d1f2d4d1514ccc3bb4f04f5437a5ae30d00636ee57cedd2c70ab3ea75b62adc",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 1,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xc086090432098835ec542a1b94bdd1b842c5aa1ccd1616873fe77f4a04044417",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 2,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x165b225c6fbed7e655b024384d9083de3243375f9893706f4452858ecd694e96",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 3,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xafb8408d0094ab944e6286aac750b9bb854ac0bcb66dfe5c60559744a700e70c",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 4,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x773bf0647be24b4e18ef44068fd069b9de5549c4b86be227779ceb9179598ec4",
           },
         },
       ],
@@ -380,74 +450,6 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
             outPoint: {
               txHash:
                 "0xb0ed754fb27d67fd8388c97fed914fb7998eceaa01f3e6f967e498de1ba0ac9b",
-              index: 1,
-            },
-            depType: "code",
-          },
-        },
-      ],
-    },
-    [KnownScript.RgbppLock]: {
-      codeHash:
-        "0xbc6c568a1a0d0a09f6844dc9d74ddb4343c32143ff25f727c59edf4fb72d6936",
-      hashType: "type",
-      cellDeps: [
-        {
-          cellDep: {
-            outPoint: {
-              txHash:
-                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
-              index: 0,
-            },
-            depType: "code",
-          },
-          type: {
-            codeHash:
-              "0x00000000000000000000000000000000000000000000000000545950455f4944",
-            hashType: "type",
-            args: "0x68ad3d9e0bb9ea841a5d1fcd600137bd3f45401e759e353121f26cd0d981452f",
-          },
-        },
-        // Rgbpp lock config cell dep
-        {
-          cellDep: {
-            outPoint: {
-              txHash:
-                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
-              index: 1,
-            },
-            depType: "code",
-          },
-        },
-      ],
-    },
-    [KnownScript.BtcTimeLock]: {
-      codeHash:
-        "0x70d64497a075bd651e98ac030455ea200637ee325a12ad08aff03f1a117e5a62",
-      hashType: "type",
-      cellDeps: [
-        {
-          cellDep: {
-            outPoint: {
-              txHash:
-                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
-              index: 0,
-            },
-            depType: "code",
-          },
-          type: {
-            codeHash:
-              "0x00000000000000000000000000000000000000000000000000545950455f4944",
-            hashType: "type",
-            args: "0x44b8253ae18e913a2845b0d548eaf6b3ba1099ed26835888932a754194028a8a",
-          },
-        },
-        // btc time lock config cell dep
-        {
-          cellDep: {
-            outPoint: {
-              txHash:
-                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
               index: 1,
             },
             depType: "code",

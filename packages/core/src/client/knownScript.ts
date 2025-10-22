@@ -25,9 +25,4 @@ export enum KnownScript {
   TypeBurnLock = "TypeBurnLock",
   EasyToDiscoverType = "EasyToDiscoverType",
   TimeLock = "TimeLock",
-
-  // RGB++ related scripts (default using Bitcoin Testnet3)
-  // For Bitcoin Signet, use TESTNET_SCRIPTS_BTC_SIGNET_OVERRIDES from @ckb-ccc/core/advanced
-  RgbppLock = "RgbppLock",
-  BtcTimeLock = "BtcTimeLock",
 }
