@@ -30,14 +30,11 @@ export async function prepareCluster(
       const lock = cluster.cellOutput.lock;
 
       if ((await tx.findInputIndexByLock(lock, signer.client)) === undefined) {
-        const oldLength = tx.inputs.length;
-        for await (const cell of signer.client.findCellsByLock(lock, null)) {
-          tx.addInput(cell);
-          break;
-        }
-        if (tx.inputs.length === oldLength) {
-          throw Error("Proxy lock cell not found in `lockProxy` mode");
-        }
+        const proxySigner = new ccc.SignerCkbScriptReadonly(
+          signer.client,
+          lock,
+        );
+        await tx.completeInputsAddOne(proxySigner);
       }
       if (tx.outputs.every((output) => output.lock !== lock)) {
         tx.addOutput({
