@@ -19,9 +19,9 @@ export function BigButton({
   return (
     <button
       {...props}
-      className={`relative flex items-center justify-center rounded rounded-full border bg-white font-bold shadow-md ${classes} ${props.className ?? ""}`}
+      className={`relative flex items-center justify-center rounded rounded-full border border-gray-200 bg-white font-bold shadow-md ${classes} ${props.className ?? ""}`}
     >
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-15">
         <RandomWalk>
           <Icon className={iconClasses} />
         </RandomWalk>

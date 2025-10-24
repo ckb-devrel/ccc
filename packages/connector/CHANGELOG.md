@@ -1,5 +1,67 @@
 # @ckb-ccc/connector
 
+## 1.0.29
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.21
+
+## 1.0.28
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.20
+
+## 1.0.27
+### Patch Changes
+
+
+
+- [#290](https://github.com/ckb-devrel/ccc/pull/290) [`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(deps): bump dependency version with `--latest`
+
+- Updated dependencies [[`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f)]:
+  - @ckb-ccc/ccc@1.1.19
+
+## 1.0.26
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.18
+
+## 1.0.25
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.17
+
+## 1.0.24
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+- Updated dependencies [[`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252)]:
+  - @ckb-ccc/ccc@1.1.16
+
+## 1.0.23
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.15
+
+## 1.0.22
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.14
+
+## 1.0.21
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.1.13
+
 ## 1.0.19
 ### Patch Changes
 

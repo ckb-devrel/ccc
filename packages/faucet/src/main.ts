@@ -1,10 +1,10 @@
 import { loadConfig } from "@app/commons";
 import { Logger, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { NextFunction, Response } from "express";
 import { AppModule } from "./app.module";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleRoot(req: any, res: any, next: any) {
+function handleRoot(req: Request, res: Response, next: NextFunction) {
   if (req.url === "/") {
     return res.send("OK!");
   }
@@ -24,8 +24,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(config.port, () =>
+  await app.listen(config.port as string | number, () =>
     Logger.log(`listening on ${config.port}`),
   );
 }
-bootstrap();
+
+void bootstrap();

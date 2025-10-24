@@ -1,5 +1,135 @@
 # @ckb-ccc/core
 
+## 1.12.2
+### Patch Changes
+
+
+
+- [`b371b07`](https://github.com/ckb-devrel/ccc/commit/b371b07e67f295129defc36190741ab4d783dd96) Thanks [@gpBlockchain](https://github.com/gpBlockchain)! - fix(core): udt mint outputData length not eq 16
+
+## 1.12.1
+### Patch Changes
+
+
+
+- [#318](https://github.com/ckb-devrel/ccc/pull/318) [`6cb6bfc`](https://github.com/ckb-devrel/ccc/commit/6cb6bfcc24af00b460ab7d112986088a9a526ecd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `CellAny.outPoint` overrides existed `outPoint`
+
+## 1.12.0
+### Minor Changes
+
+
+
+- [`12c1e6b`](https://github.com/ckb-devrel/ccc/commit/12c1e6b751de220898ed94998027c7cf07c7a7dc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `messageHashBtcEcdsa`
+  
+  Removed dependency on outdated `bitcoinjs-message`.
+
+
+- [`50b5537`](https://github.com/ckb-devrel/ccc/commit/50b553715f150ca7c68a661c7cbf8696ec674846) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `CellAny`
+  
+  It's definitely a mistake to name `CellOnChain` `Cell`, but there is nothing we can do with that right now. To avoid more duplicate code, `CellAny` was added to represent a cell that's on-chain or off-chain.
+
+### Patch Changes
+
+
+
+- [#290](https://github.com/ckb-devrel/ccc/pull/290) [`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(deps): bump dependency version with `--latest`
+
+
+
+- [`d382469`](https://github.com/ckb-devrel/ccc/commit/d382469ffca7934f19d0156af6939d7794808265) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): default `Signer.prepareTransaction`
+
+## 1.11.5
+### Patch Changes
+
+
+
+- [#306](https://github.com/ckb-devrel/ccc/pull/306) [`cec9b39`](https://github.com/ckb-devrel/ccc/commit/cec9b39345fc37a6ae72c0774059b2e31efc9e89) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): nostr signature verification
+
+
+
+- [#304](https://github.com/ckb-devrel/ccc/pull/304) [`c95913f`](https://github.com/ckb-devrel/ccc/commit/c95913f58c889c9d8c0b164014f9917501c11dbc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `ccc.mol.codec` decorator
+  
+  * The runtime will invoke the decorator with 2 arguments, but the decorator expects 1.
+  * Decorator function return type '...' is not assignable to type '...'
+
+## 1.11.4
+### Patch Changes
+
+
+
+- [#295](https://github.com/ckb-devrel/ccc/pull/295) [`1eb030f`](https://github.com/ckb-devrel/ccc/commit/1eb030fde95c545561a092a4025747e6d14fc8de) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `ClientCacheMemory.findCells` never stops
+
+## 1.11.3
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+## 1.11.2
+### Patch Changes
+
+
+
+- [#287](https://github.com/ckb-devrel/ccc/pull/287) [`00e6d56`](https://github.com/ckb-devrel/ccc/commit/00e6d56fa027cbe0cfeea20aa72abba7b14dc606) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): update joy id info
+
+## 1.11.1
+### Patch Changes
+
+
+
+- [#279](https://github.com/ckb-devrel/ccc/pull/279) [`e37468c`](https://github.com/ckb-devrel/ccc/commit/e37468c1527498cbd9097ebff24a13d53d747b22) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(core): update JoyId celldeps
+
+## 1.11.0
+### Minor Changes
+
+
+
+- [`0e7cd8f`](https://github.com/ckb-devrel/ccc/commit/0e7cd8f6ca191186852c84e44db2fc0e1bb26d9b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Signer.findCellsOnChain`
+
+
+
+- [`0008150`](https://github.com/ckb-devrel/ccc/commit/00081509e54e52af999e48feec11c90d2c649ab9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): optional `shouldAddInputs` for `Transaction.completeFee`
+
+
+
+- [`5061511`](https://github.com/ckb-devrel/ccc/commit/506151120fcd1a80b6d38e074b7944164047e76f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto capacity completion
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(core): make `CONFIRMED_BLOCK_TIME` configurable
+
+
+
+- [`82f5a45`](https://github.com/ckb-devrel/ccc/commit/82f5a45fd35968673be93f09bdd59ca79a7afb6e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): multiple scripts for `SignerCkbScriptReadonly`
+
+
+### Patch Changes
+
+
+
+- [`07fc9fe`](https://github.com/ckb-devrel/ccc/commit/07fc9fe196115bf4b341e7b657927987956a6d7c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid circular dependency
+
+
+
+- [`91f6027`](https://github.com/ckb-devrel/ccc/commit/91f60277c75773fad509f945eef8397ef1061cd1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - perf(core): optimize Transaction.completeFee
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(mol): add support for fixed-size Union
+
+
+
+- [`40fcd50`](https://github.com/ckb-devrel/ccc/commit/40fcd50639ce32bee1fc54497b22f4871807e98a) Thanks [@phroi](https://github.com/phroi)! - Simplify MapLru, while improving Complexity
+
+
+
+- [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - perf(core): imporve performance of `Script` & `OutPoint` `eq`
+
+
+
+- [`46c61d4`](https://github.com/ckb-devrel/ccc/commit/46c61d48d5289a76385463bc7783b7cbfb05ed99) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `Transaction.clone` should clone inputs' cache
+
 ## 1.9.1
 ### Patch Changes
 

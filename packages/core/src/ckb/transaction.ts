@@ -198,7 +198,7 @@ export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
  * @public
  */
 export type CellOutputLike = {
-  capacity: NumLike;
+  capacity?: NumLike | null;
   lock: ScriptLike;
   type?: ScriptLike | null;
 };
@@ -235,29 +235,50 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
 
   /**
    * Creates a CellOutput instance from a CellOutputLike object.
+   * This method supports automatic capacity calculation when capacity is 0 or omitted.
    *
    * @param cellOutput - A CellOutputLike object or an instance of CellOutput.
+   * @param outputData - Optional output data used for automatic capacity calculation.
+   *                     When provided and capacity is 0, the capacity will be calculated
+   *                     as occupiedSize + outputData.length.
    * @returns A CellOutput instance.
    *
    * @example
    * ```typescript
-   * const cellOutput = CellOutput.from({
+   * // Basic usage with explicit capacity
+   * const cellOutput1 = CellOutput.from({
    *   capacity: 1000n,
    *   lock: { codeHash: "0x...", hashType: "type", args: "0x..." },
    *   type: { codeHash: "0x...", hashType: "type", args: "0x..." }
    * });
+   *
+   * // Automatic capacity calculation
+   * const cellOutput2 = CellOutput.from({
+   *   lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   * }, "0x1234"); // Capacity will be calculated automatically
    * ```
    */
-  static from(cellOutput: CellOutputLike): CellOutput {
+  static from(
+    cellOutput: CellOutputLike,
+    outputData?: HexLike | null,
+  ): CellOutput {
     if (cellOutput instanceof CellOutput) {
       return cellOutput;
     }
 
-    return new CellOutput(
-      numFrom(cellOutput.capacity),
+    const output = new CellOutput(
+      numFrom(cellOutput.capacity ?? 0),
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
     );
+
+    if (output.capacity === Zero) {
+      output.capacity = fixedPointFrom(
+        output.occupiedSize + bytesFrom(outputData ?? "0x").length,
+      );
+    }
+
+    return output;
   }
 
   /**
@@ -278,22 +299,176 @@ export const CellOutputVec = mol.vector(CellOutput);
 
 /**
  * @public
+ * Represents a cell-like object that may or may not be on-chain.
+ * It can optionally have an `outPoint` (or `previousOutput`).
+ * This is used as a flexible input for creating `CellAny` instances.
+ * @see CellAny
  */
-export type CellLike = (
-  | {
-      outPoint: OutPointLike;
-    }
-  | { previousOutput: OutPointLike }
-) & {
+export type CellAnyLike = {
+  outPoint?: OutPointLike | null;
+  previousOutput?: OutPointLike | null;
   cellOutput: CellOutputLike;
-  outputData: HexLike;
+  outputData?: HexLike | null;
 };
 /**
+ * Represents a CKB cell that can be either on-chain (with an `outPoint`) or off-chain (without an `outPoint`).
+ * This class provides a unified interface for handling cells before they are included in a transaction,
+ * or for cells that are already part of the blockchain state.
+ *
  * @public
  */
-export class Cell {
+export class CellAny {
+  public outPoint: OutPoint | undefined;
+
   /**
-   * Creates an instance of Cell.
+   * Creates an instance of CellAny.
+   *
+   * @param cellOutput - The cell output of the cell.
+   * @param outputData - The output data of the cell.
+   * @param outPoint - The optional output point of the cell. If provided, the cell is considered on-chain.
+   */
+
+  constructor(
+    public cellOutput: CellOutput,
+    public outputData: Hex,
+    outPoint?: OutPoint,
+  ) {
+    this.outPoint = outPoint;
+  }
+
+  /**
+   * Creates a `CellAny` instance from a `CellAnyLike` object.
+   * This factory method provides a convenient way to create `CellAny` instances
+   * from plain objects, automatically handling the optional `outPoint` or `previousOutput`.
+   *
+   * @param cell - A `CellAnyLike` object.
+   * @returns A new `CellAny` instance.
+   *
+   * @example
+   * ```typescript
+   * // Create an off-chain cell (e.g., a new output)
+   * const offChainCell = CellAny.from({
+   *   cellOutput: { capacity: 1000n, lock: lockScript },
+   *   outputData: "0x"
+   * });
+   *
+   * // Create an on-chain cell from an input
+   * const onChainCell = CellAny.from({
+   *   outPoint: { txHash: "0x...", index: 0 },
+   *   cellOutput: { capacity: 2000n, lock: lockScript },
+   *   outputData: "0x1234"
+   * });
+   * ```
+   */
+  static from(cell: CellAnyLike): CellAny {
+    if (cell instanceof CellAny) {
+      return cell;
+    }
+
+    return new CellAny(
+      CellOutput.from(cell.cellOutput, cell.outputData),
+      hexFrom(cell.outputData ?? "0x"),
+      apply(OutPoint.from, cell.outPoint ?? cell.previousOutput),
+    );
+  }
+
+  /**
+   * Calculates the total occupied size of the cell in bytes.
+   * This includes the size of the `CellOutput` structure plus the size of the `outputData`.
+   *
+   * @returns The total occupied size in bytes.
+   */
+  get occupiedSize() {
+    return this.cellOutput.occupiedSize + bytesFrom(this.outputData).byteLength;
+  }
+
+  /**
+   * Calculates the free capacity of the cell.
+   * Free capacity is the total capacity minus the capacity occupied by the cell's structure and data.
+   *
+   * @returns The free capacity in shannons as a `Num`.
+   */
+  get capacityFree() {
+    return this.cellOutput.capacity - fixedPointFrom(this.occupiedSize);
+  }
+
+  /**
+   * Checks if the cell is a Nervos DAO cell and optionally checks its phase.
+   *
+   * @param client - A CKB client instance to fetch known script information.
+   * @param phase - Optional phase to check: "deposited" or "withdrew".
+   *                If omitted, it checks if the cell is a DAO cell regardless of phase.
+   * @returns A promise that resolves to `true` if the cell is a matching Nervos DAO cell, `false` otherwise.
+   */
+  async isNervosDao(
+    client: Client,
+    phase?: "deposited" | "withdrew",
+  ): Promise<boolean> {
+    const { type } = this.cellOutput;
+
+    const daoType = await client.getKnownScript(KnownScript.NervosDao);
+    if (
+      !type ||
+      type.codeHash !== daoType.codeHash ||
+      type.hashType !== daoType.hashType
+    ) {
+      // Non Nervos DAO cell
+      return false;
+    }
+
+    const hasWithdrew = numFrom(this.outputData) !== Zero;
+    return (
+      !phase ||
+      (phase === "deposited" && !hasWithdrew) ||
+      (phase === "withdrew" && hasWithdrew)
+    );
+  }
+
+  /**
+   * Clones the `CellAny` instance.
+   *
+   * @returns A new `CellAny` instance that is a deep copy of the current one.
+   *
+   * @example
+   * ```typescript
+   * const clonedCell = cellAny.clone();
+   * ```
+   */
+  clone(): CellAny {
+    return new CellAny(
+      this.cellOutput.clone(),
+      this.outputData,
+      this.outPoint?.clone(),
+    );
+  }
+}
+
+/**
+ * Represents a cell-like object that is guaranteed to be on-chain.
+ * It must have an `outPoint` (or its alias `previousOutput`).
+ * This is used as a type constraint for creating `Cell` instances.
+ * @see Cell
+ * @public
+ */
+export type CellLike = CellAnyLike &
+  (
+    | {
+        outPoint: OutPointLike;
+        previousOutput?: undefined | null;
+      }
+    | {
+        outPoint?: undefined | null;
+        previousOutput: OutPointLike;
+      }
+  );
+/**
+ * Represents an on-chain CKB cell, which is a `CellAny` that is guaranteed to have an `outPoint`.
+ * This class is typically used for cells that are already part of the blockchain state, such as transaction inputs.
+ * @public
+ */
+export class Cell extends CellAny {
+  /**
+   * Creates an instance of an on-chain Cell.
    *
    * @param outPoint - The output point of the cell.
    * @param cellOutput - The cell output of the cell.
@@ -302,15 +477,45 @@ export class Cell {
 
   constructor(
     public outPoint: OutPoint,
-    public cellOutput: CellOutput,
-    public outputData: Hex,
-  ) {}
+    cellOutput: CellOutput,
+    outputData: Hex,
+  ) {
+    super(cellOutput, outputData, outPoint);
+  }
 
   /**
    * Creates a Cell instance from a CellLike object.
+   * This method accepts either `outPoint` or `previousOutput` to specify the cell's location,
+   * and supports automatic capacity calculation for the cell output.
    *
-   * @param cell - A CellLike object or an instance of Cell.
+   * @param cell - A CellLike object or an instance of Cell. The object can use either:
+   *               - `outPoint`: For referencing a cell output
+   *               - `previousOutput`: For referencing a cell input (alternative name for outPoint)
+   *               The cellOutput can omit capacity for automatic calculation.
    * @returns A Cell instance.
+   *
+   * @example
+   * ```typescript
+   * // Using outPoint with explicit capacity
+   * const cell1 = Cell.from({
+   *   outPoint: { txHash: "0x...", index: 0 },
+   *   cellOutput: {
+   *     capacity: 1000n,
+   *     lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   *   },
+   *   outputData: "0x"
+   * });
+   *
+   * // Using previousOutput with automatic capacity calculation
+   * const cell2 = Cell.from({
+   *   previousOutput: { txHash: "0x...", index: 0 },
+   *   cellOutput: {
+   *     lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
+   *     // capacity will be calculated automatically
+   *   },
+   *   outputData: "0x1234"
+   * });
+   * ```
    */
 
   static from(cell: CellLike): Cell {
@@ -319,25 +524,10 @@ export class Cell {
     }
 
     return new Cell(
-      OutPoint.from("outPoint" in cell ? cell.outPoint : cell.previousOutput),
-      CellOutput.from(cell.cellOutput),
-      hexFrom(cell.outputData),
+      OutPoint.from(cell.outPoint ?? cell.previousOutput),
+      CellOutput.from(cell.cellOutput, cell.outputData),
+      hexFrom(cell.outputData ?? "0x"),
     );
-  }
-
-  get capacityFree() {
-    const occupiedSize = fixedPointFrom(
-      this.cellOutput.occupiedSize + bytesFrom(this.outputData).length,
-    );
-    return this.cellOutput.capacity - occupiedSize;
-  }
-
-  /**
-   * Occupied bytes of a cell on chain
-   * It's CellOutput.occupiedSize + bytesFrom(outputData).byteLength
-   */
-  get occupiedSize() {
-    return this.cellOutput.occupiedSize + bytesFrom(this.outputData).byteLength;
   }
 
   /**
@@ -369,30 +559,22 @@ export class Cell {
     return calcDaoProfit(this.capacityFree, depositHeader, withdrawHeader);
   }
 
-  async isNervosDao(
-    client: Client,
-    phase?: "deposited" | "withdrew",
-  ): Promise<boolean> {
-    const { type } = this.cellOutput;
-
-    const daoType = await client.getKnownScript(KnownScript.NervosDao);
-    if (
-      !type ||
-      type.codeHash !== daoType.codeHash ||
-      type.hashType !== daoType.hashType
-    ) {
-      // Non Nervos DAO cell
-      return false;
-    }
-
-    const hasWithdrew = numFrom(this.outputData) !== Zero;
-    return (
-      !phase ||
-      (phase === "deposited" && !hasWithdrew) ||
-      (phase === "withdrew" && hasWithdrew)
-    );
-  }
-
+  /**
+   * Retrieves detailed information about a Nervos DAO cell, including its deposit and withdrawal headers.
+   *
+   * @param client - A CKB client instance to fetch cell and header data.
+   * @returns A promise that resolves to an object containing header information.
+   *          - If not a DAO cell, returns `{}`.
+   *          - If a deposited DAO cell, returns `{ depositHeader }`.
+   *          - If a withdrawn DAO cell, returns `{ depositHeader, withdrawHeader }`.
+   *
+   * @throws If the cell is a DAO cell but its corresponding headers cannot be fetched.
+   *
+   * @example
+   * ```typescript
+   * const daoInfo = await cell.getNervosDaoInfo(client);
+   * ```
+   */
   async getNervosDaoInfo(client: Client): Promise<
     // Non Nervos DAO cell
     | {
@@ -1001,6 +1183,9 @@ export class Transaction extends mol.Entity.Base<
 
   /**
    * Copy every properties from another transaction.
+   * This method replaces all properties of the current transaction with those from the provided transaction.
+   *
+   * @param txLike - The transaction-like object to copy properties from.
    *
    * @example
    * ```typescript
@@ -1092,19 +1277,9 @@ export class Transaction extends mol.Entity.Base<
       return tx;
     }
     const outputs =
-      tx.outputs?.map((output, i) => {
-        const o = CellOutput.from({
-          ...output,
-          capacity: output.capacity ?? 0,
-        });
-        if (o.capacity === Zero) {
-          o.capacity = fixedPointFrom(
-            o.occupiedSize +
-              (apply(bytesFrom, tx.outputsData?.[i])?.length ?? 0),
-          );
-        }
-        return o;
-      }) ?? [];
+      tx.outputs?.map((output, i) =>
+        CellOutput.from(output, tx.outputsData?.[i] ?? []),
+      ) ?? [];
     const outputsData = outputs.map((_, i) =>
       hexFrom(tx.outputsData?.[i] ?? "0x"),
     );
@@ -1332,7 +1507,7 @@ export class Transaction extends mol.Entity.Base<
    *
    * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
    * @param client - The client for complete extra infos in the transaction.
-   * @returns A promise that resolves to the prepared transaction
+   * @returns A promise that resolves to the found index, or undefined if no matching input is found.
    *
    * @example
    * ```typescript
@@ -1359,7 +1534,7 @@ export class Transaction extends mol.Entity.Base<
    *
    * @param scriptLike - The script associated with the transaction, represented as a ScriptLike object.
    * @param client - The client for complete extra infos in the transaction.
-   * @returns A promise that resolves to the prepared transaction
+   * @returns A promise that resolves to the found index, or undefined if no matching input is found.
    *
    * @example
    * ```typescript
@@ -1472,14 +1647,14 @@ export class Transaction extends mol.Entity.Base<
    * Set output data at index.
    *
    * @param index - The index of the output data.
-   * @param witness - The data to set.
+   * @param data - The data to set.
    *
    * @example
    * ```typescript
-   * await tx.setOutputDataAt(0, "0x00");
+   * tx.setOutputDataAt(0, "0x00");
    * ```
    */
-  setOutputDataAt(index: number, witness: HexLike): void {
+  setOutputDataAt(index: number, data: HexLike): void {
     if (this.outputsData.length < index) {
       this.outputsData.push(
         ...Array.from(
@@ -1489,7 +1664,7 @@ export class Transaction extends mol.Entity.Base<
       );
     }
 
-    this.outputsData[index] = hexFrom(witness);
+    this.outputsData[index] = hexFrom(data);
   }
 
   /**
@@ -1533,48 +1708,92 @@ export class Transaction extends mol.Entity.Base<
    * await tx.getOutput(0);
    * ```
    */
-  getOutput(index: NumLike):
-    | {
-        cellOutput: CellOutput;
-        outputData: Hex;
-      }
-    | undefined {
+  getOutput(index: NumLike): CellAny | undefined {
     const i = Number(numFrom(index));
     if (i >= this.outputs.length) {
       return;
     }
-    return {
+    return CellAny.from({
       cellOutput: this.outputs[i],
       outputData: this.outputsData[i] ?? "0x",
-    };
+    });
   }
+
   /**
-   * Add output
+   * Provides an iterable over the transaction's output cells.
    *
-   * @param outputLike - The cell output to add
-   * @param outputData - optional output data
+   * This getter is a convenient way to iterate through all the output cells (`CellAny`)
+   * of the transaction, combining the `outputs` and `outputsData` arrays.
+   * It can be used with `for...of` loops or other iterable-consuming patterns.
+   *
+   * @public
+   * @category Getter
+   * @returns An `Iterable<CellAny>` that yields each output cell of the transaction.
    *
    * @example
    * ```typescript
-   * await tx.addOutput(cellOutput, "0xabcd");
+   * for (const cell of tx.outputCells) {
+   *   console.log(`Output cell capacity: ${cell.cellOutput.capacity}`);
+   * }
    * ```
    */
-  addOutput(
-    outputLike: Omit<CellOutputLike, "capacity"> &
-      Partial<Pick<CellOutputLike, "capacity">>,
-    outputData: HexLike = "0x",
-  ): number {
-    const output = CellOutput.from({
-      ...outputLike,
-      capacity: outputLike.capacity ?? 0,
-    });
-    if (output.capacity === Zero) {
-      output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData).length,
-      );
+  get outputCells(): Iterable<CellAny> {
+    const { outputs, outputsData } = this;
+
+    function* generator(): Generator<CellAny> {
+      for (let i = 0; i < outputs.length; i++) {
+        yield CellAny.from({
+          cellOutput: outputs[i],
+          outputData: outputsData[i] ?? "0x",
+        });
+      }
     }
-    const len = this.outputs.push(output);
-    this.setOutputDataAt(len - 1, outputData);
+
+    return generator();
+  }
+
+  /**
+   * Adds an output to the transaction.
+   *
+   * This method supports two overloads for adding an output:
+   * 1. By providing a `CellAnyLike` object, which encapsulates both `cellOutput` and `outputData`.
+   * 2. By providing a `CellOutputLike` object and an optional `outputData`.
+   *
+   * @param cellOrOutputLike - A cell-like object containing both cell output and data, or just the cell output object.
+   * @param outputDataLike - Optional data for the cell output. Defaults to "0x" if not provided in the first argument.
+   * @returns The new number of outputs in the transaction.
+   *
+   * @example
+   * ```typescript
+   * // 1. Add an output using a CellAnyLike object
+   * const newLength1 = tx.addOutput({
+   *   cellOutput: { lock: recipientLock }, // capacity is calculated automatically
+   *   outputData: "0x1234",
+   * });
+   *
+   * // 2. Add an output using CellOutputLike and data separately
+   * const newLength2 = tx.addOutput({ lock: recipientLock }, "0xabcd");
+   * ```
+   */
+  addOutput(cellLike: CellAnyLike): number;
+  addOutput(
+    outputLike: CellOutputLike,
+    outputDataLike?: HexLike | null,
+  ): number;
+  addOutput(
+    cellOrOutputLike: CellAnyLike | CellOutputLike,
+    outputDataLike?: HexLike | null,
+  ): number {
+    const cell =
+      "cellOutput" in cellOrOutputLike
+        ? CellAny.from(cellOrOutputLike)
+        : CellAny.from({
+            cellOutput: cellOrOutputLike,
+            outputData: outputDataLike,
+          });
+
+    const len = this.outputs.push(cell.cellOutput);
+    this.setOutputDataAt(len - 1, cell.outputData);
 
     return len;
   }
@@ -1998,21 +2217,22 @@ export class Transaction extends mol.Entity.Base<
 
     let leastFee = Zero;
     let leastExtraCapacity = Zero;
+    let collected = 0;
 
+    // ===
+    // Usually, for the worst situation, three iterations are needed
+    // 1. First attempt to complete the transaction.
+    // 2. Not enough capacity for the change cell.
+    // 3. Fee increased by the change cell.
+    // ===
     while (true) {
-      const tx = this.clone();
-      const collected = await (async () => {
+      collected += await (async () => {
         if (!(options?.shouldAddInputs ?? true)) {
-          const fee =
-            (await tx.getFee(from.client)) - leastFee - leastExtraCapacity;
-          if (fee < Zero) {
-            throw new ErrorTransactionInsufficientCapacity(-fee);
-          }
           return 0;
         }
 
         try {
-          return await tx.completeInputsByCapacity(
+          return await this.completeInputsByCapacity(
             from,
             leastFee + leastExtraCapacity,
             filter,
@@ -2031,21 +2251,33 @@ export class Transaction extends mol.Entity.Base<
         }
       })();
 
-      await from.prepareTransaction(tx);
+      const fee = await this.getFee(from.client);
+      if (fee < leastFee + leastExtraCapacity) {
+        // Not enough capacity are collected, it should only happens when shouldAddInputs is false
+        throw new ErrorTransactionInsufficientCapacity(
+          leastFee + leastExtraCapacity - fee,
+          { isForChange: leastExtraCapacity !== Zero },
+        );
+      }
+
+      await from.prepareTransaction(this);
       if (leastFee === Zero) {
         // The initial fee is calculated based on prepared transaction
-        leastFee = tx.estimateFee(feeRate);
+        // This should only happens during the first iteration
+        leastFee = this.estimateFee(feeRate);
       }
-      const fee = await tx.getFee(from.client);
       // The extra capacity paid the fee without a change
+      // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
+      // So this only happens in the first iteration
       if (fee === leastFee) {
-        this.copy(tx);
         return [collected, false];
       }
 
+      // Invoke the change function on a transaction multiple times may cause problems, so we clone it
+      const tx = this.clone();
       const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
-      // No enough extra capacity to create new cells for change
       if (needed > Zero) {
+        // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
@@ -2073,6 +2305,38 @@ export class Transaction extends mol.Entity.Base<
     }
   }
 
+  /**
+   * Completes the transaction fee by adding inputs and creating a change output with the specified lock script.
+   * This is a convenience method that automatically creates a change cell with the provided lock script
+   * when there's excess capacity after paying the transaction fee.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param change - The lock script for the change output cell.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @example
+   * ```typescript
+   * const changeScript = Script.from({
+   *   codeHash: "0x...",
+   *   hashType: "type",
+   *   args: "0x..."
+   * });
+   *
+   * const [addedInputs, hasChange] = await tx.completeFeeChangeToLock(
+   *   signer,
+   *   changeScript,
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   completeFeeChangeToLock(
     from: Signer,
     change: ScriptLike,
@@ -2104,6 +2368,33 @@ export class Transaction extends mol.Entity.Base<
     );
   }
 
+  /**
+   * Completes the transaction fee using the signer's recommended address for change.
+   * This is a convenience method that automatically uses the signer's recommended
+   * address as the change destination, making it easier to complete transactions
+   * without manually specifying a change address.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *
+   * @example
+   * ```typescript
+   * const [addedInputs, hasChange] = await tx.completeFeeBy(
+   *   signer,
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   *
+   * // Change will automatically go to signer's recommended address
+   * ```
+   */
   async completeFeeBy(
     from: Signer,
     feeRate?: NumLike,
@@ -2119,6 +2410,35 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
+  /**
+   * Completes the transaction fee by adding excess capacity to an existing output.
+   * Instead of creating a new change output, this method adds any excess capacity
+   * to the specified existing output in the transaction.
+   *
+   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param index - The index of the existing output to add excess capacity to.
+   * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
+   * @param filter - Optional filter for selecting cells when adding inputs.
+   * @param options - Optional configuration object.
+   * @param options.feeRateBlockRange - Block range for fee rate calculation when feeRate is not provided.
+   * @param options.maxFeeRate - Maximum allowed fee rate.
+   * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
+   * @returns A promise that resolves to a tuple containing:
+   *          - The number of inputs added during the process
+   *          - A boolean indicating whether change was applied (true) or fee was paid without change (false)
+   *
+   * @throws {Error} When the specified output index doesn't exist.
+   *
+   * @example
+   * ```typescript
+   * // Add excess capacity to the first output (index 0)
+   * const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+   *   signer,
+   *   0, // Output index
+   *   1000n // 1000 shannons per 1000 bytes
+   * );
+   * ```
+   */
   completeFeeChangeToOutput(
     from: Signer,
     index: NumLike,
@@ -2148,7 +2468,26 @@ export class Transaction extends mol.Entity.Base<
 }
 
 /**
- * Calculate Nervos DAO profit between two blocks
+ * Calculate Nervos DAO profit between two blocks.
+ * This function computes the profit earned from a Nervos DAO deposit
+ * based on the capacity and the time period between deposit and withdrawal.
+ *
+ * @param profitableCapacity - The capacity that earns profit (total capacity minus occupied capacity).
+ * @param depositHeaderLike - The block header when the DAO deposit was made.
+ * @param withdrawHeaderLike - The block header when the DAO withdrawal is made.
+ * @returns The profit amount in CKB (capacity units).
+ *
+ * @example
+ * ```typescript
+ * const profit = calcDaoProfit(
+ *   ccc.fixedPointFrom(100), // 100 CKB profitable capacity
+ *   depositHeader,
+ *   withdrawHeader
+ * );
+ * console.log(`Profit: ${profit} shannons`);
+ * ```
+ *
+ * @see {@link https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md | Nervos DAO RFC}
  */
 export function calcDaoProfit(
   profitableCapacity: NumLike,
@@ -2167,8 +2506,26 @@ export function calcDaoProfit(
 }
 
 /**
- * Calculate claimable epoch for Nervos DAO withdrawal
- * See https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md
+ * Calculate claimable epoch for Nervos DAO withdrawal.
+ * This function determines the earliest epoch when a Nervos DAO withdrawal
+ * can be claimed based on the deposit and withdrawal epochs.
+ *
+ * @param depositHeader - The block header when the DAO deposit was made.
+ * @param withdrawHeader - The block header when the DAO withdrawal was initiated.
+ * @returns The epoch when the withdrawal can be claimed, represented as [number, index, length].
+ *
+ * @example
+ * ```typescript
+ * const claimEpoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
+ * console.log(`Can claim at epoch: ${claimEpoch[0]}, index: ${claimEpoch[1]}, length: ${claimEpoch[2]}`);
+ * ```
+ *
+ * @remarks
+ * The Nervos DAO has a minimum lock period of 180 epochs (~30 days).
+ * This function calculates the exact epoch when the withdrawal becomes claimable
+ * based on the deposit epoch and withdrawal epoch timing.
+ *
+ * @see {@link https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0023-dao-deposit-withdraw/0023-dao-deposit-withdraw.md | Nervos DAO RFC}
  */
 export function calcDaoClaimEpoch(
   depositHeader: ClientBlockHeaderLike,

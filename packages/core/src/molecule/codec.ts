@@ -459,34 +459,71 @@ type UnionDecoded<
   : never;
 
 /**
- * Union is a dynamic-size type.
- * Serializing a union has two steps:
- * - Serialize an item type id in bytes as a 32 bit unsigned integer in little-endian. The item type id is the index of the inner items, and it's starting at 0.
- * - Serialize the inner item.
- * @param codecLayout the union item record
- * @param fields the custom item type id record
+ * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
+ *
+ * If all variants have the same fixed size, the resulting union codec is fixed-size (header + payload).
+ * Otherwise, it falls back to a dynamic-size codec.
+ *
+ * Serialization format:
+ * 1. 4-byte little-endian unsigned integer for the variant index.
+ * 2. Encoded bytes of the selected variant.
+ *
+ * @typeParam T
+ *   A record mapping variant names to codecs.
+ * @param codecLayout
+ *   An object whose keys are variant names and values are codecs for each variant.
+ * @param fields
+ *   Optional mapping from variant names to custom numeric IDs. If omitted, the index
+ *   of each variant in `codecLayout` is used as its ID.
+ *
+ *
  * @example
- * // without custom id
- * union({ cafe: Uint8, bee: Uint8 })
- * // with custom id
- * union({ cafe: Uint8, bee: Uint8 }, { cafe: 0xcafe, bee: 0xbee })
+ * // Dynamic union without custom numeric IDs
+ * union({ cafe: Uint8, bee: Uint16 })
+ *
+ * // Dynamic union with custom numeric IDs
+ * union({ cafe: Uint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee })
+ *
+ * // Fixed-size union without custom numeric IDs
+ * const PaddedUint8 = struct({ data : u8, padding : u8 })
+ * union({ cafe: PaddedUint8, bee: Uint16 });
+ *
+ * // Fixed-size union with custom numeric IDs
+ * union({ cafe: PaddedUint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee })
  */
+
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T>, UnionDecoded<T>> {
-  const keys = Object.keys(codecLayout);
+  const entries = Object.entries(codecLayout);
+
+  // Determine if all variants have a fixed and equal byteLength.
+  let byteLength: number | undefined;
+  if (entries.length > 0) {
+    const firstLen = entries[0][1].byteLength;
+    if (
+      firstLen !== undefined &&
+      entries.every(([, { byteLength: len }]) => len === firstLen)
+    ) {
+      // Add 4 bytes for the type header
+      byteLength = firstLen + 4;
+    }
+  }
 
   return Codec.from({
+    byteLength,
     encode({ type, value }) {
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
       if (!codec) {
         throw new Error(
-          `union: invalid type, expected ${keys.toString()}, but got ${typeStr}`,
+          `union: invalid type, expected ${entries.map((e) => e[0]).toString()}, but got ${typeStr}`,
         );
       }
-      const fieldId = fields ? (fields[typeStr] ?? -1) : keys.indexOf(typeStr);
+      const fieldId = fields
+        ? (fields[typeStr] ?? -1)
+        : entries.findIndex((e) => e[0] === typeStr);
       if (fieldId < 0) {
         throw new Error(`union: invalid field id ${fieldId} of ${typeStr}`);
       }

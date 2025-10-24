@@ -1,8 +1,6 @@
 import { blake2b } from "@noble/hashes/blake2b";
 import { BytesLike, bytesFrom } from "../bytes/index.js";
-import { CellInput, CellInputLike } from "../ckb/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
-import { NumLike, numLeToBytes } from "../num/index.js";
 import { CKB_BLAKE2B_PERSONAL } from "./advanced.js";
 import { Hasher } from "./hasher.js";
 
@@ -80,28 +78,4 @@ export function hashCkb(...data: BytesLike[]): Hex {
   const hasher = new HasherCkb();
   data.forEach((d) => hasher.update(d));
   return hasher.digest();
-}
-
-/**
- * Computes the Type ID hash of the given data.
- * @public
- *
- * @param cellInputLike - The first cell input of the transaction.
- * @param outputIndex - The output index of the Type ID cell.
- * @returns The hexadecimal string representation of the hash.
- *
- * @example
- * ```typescript
- * const hash = hashTypeId(cellInput, outputIndex); // Outputs something like "0x..."
- * ```
- */
-
-export function hashTypeId(
-  cellInputLike: CellInputLike,
-  outputIndex: NumLike,
-): Hex {
-  return hashCkb(
-    CellInput.from(cellInputLike).toBytes(),
-    numLeToBytes(outputIndex, 8),
-  );
 }

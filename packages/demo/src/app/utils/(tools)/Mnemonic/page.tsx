@@ -7,7 +7,7 @@ import { useApp } from "@/src/context";
 import { ccc } from "@ckb-ccc/connector-react";
 import { HDKey } from "@scure/bip32";
 import * as bip39 from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Mnemonic() {
@@ -98,7 +98,7 @@ export default function Mnemonic() {
         state={[password, setPassword]}
       />
       {accounts.length !== 0 ? (
-        <div className="mt-1 w-full overflow-scroll whitespace-nowrap bg-white">
+        <div className="mt-1 w-full overflow-scroll bg-white whitespace-nowrap">
           <p>path, address, private key</p>
           {accounts.map(({ privateKey, address, path }) => (
             <p key={path}>

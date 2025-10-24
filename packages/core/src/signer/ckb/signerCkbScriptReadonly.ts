@@ -4,31 +4,46 @@ import { Client } from "../../client/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 
 /**
- * A class extending Signer that provides read-only access to a CKB script.
- * This class does not support signing operations.
+ * A read-only signer for a CKB script. It can be used to get addresses,
+ * but not to sign transactions. This is useful when you want to watch an address
+ * without having the private key.
+ *
  * @public
  */
 export class SignerCkbScriptReadonly extends Signer {
+  /**
+   * The type of the signer.
+   */
   get type(): SignerType {
     return SignerType.CKB;
   }
 
+  /**
+   * The sign type of the signer.
+   * As this is a read-only signer, the sign type is {@link SignerSignType.Unknown}.
+   */
   get signType(): SignerSignType {
     return SignerSignType.Unknown;
   }
 
-  private readonly script: Script;
+  /**
+   * The scripts associated with the signer.
+   */
+  public readonly scripts: Script[];
 
   /**
    * Creates an instance of SignerCkbScriptReadonly.
    *
    * @param client - The client instance used for communication.
-   * @param script - The script associated with the signer.
+   * @param scripts - The scripts associated with the signer. Can be a single script, an array of scripts, or multiple script arguments.
    */
-  constructor(client: Client, script: ScriptLike) {
+  constructor(client: Client, ...scripts: (ScriptLike | ScriptLike[])[]) {
     super(client);
 
-    this.script = Script.from(script);
+    this.scripts = scripts.flat().map(Script.from);
+    if (this.scripts.length === 0) {
+      throw new Error("SignerCkbScriptReadonly requires at least one script.");
+    }
   }
 
   /**
@@ -71,8 +86,9 @@ export class SignerCkbScriptReadonly extends Signer {
    * const addressObjs = await signer.getAddressObjs(); // Outputs the array of Address objects
    * ```
    */
-
   async getAddressObjs(): Promise<Address[]> {
-    return [Address.fromScript(this.script, this.client)];
+    return this.scripts.map((script) =>
+      Address.fromScript(script, this.client),
+    );
   }
 }
