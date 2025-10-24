@@ -120,10 +120,80 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0xf05188e5f3a6767fc4687faf45ba5f1a6e25d3ada6129dae8722cb282f262493",
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
               index: 0,
             },
-            depType: "depGroup",
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x2d1f2d4d1514ccc3bb4f04f5437a5ae30d00636ee57cedd2c70ab3ea75b62adc",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 1,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xc086090432098835ec542a1b94bdd1b842c5aa1ccd1616873fe77f4a04044417",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 2,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x165b225c6fbed7e655b024384d9083de3243375f9893706f4452858ecd694e96",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 3,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xafb8408d0094ab944e6286aac750b9bb854ac0bcb66dfe5c60559744a700e70c",
+          },
+        },
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8a605a4402cadda69fa64fd25cbbd74058e3eb86a7a72aee3d25df278564d31b",
+              index: 4,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0x773bf0647be24b4e18ef44068fd069b9de5549c4b86be227779ceb9179598ec4",
           },
         },
       ],

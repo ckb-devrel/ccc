@@ -156,16 +156,17 @@ export function codec<
   Encodable,
   TypeLike extends Encodable,
   Decoded extends TypeLike,
-  Type extends object & TypeLike,
-  ConstructorType extends Constructor<Type> & {
-    from(decoded: TypeLike): Type;
-    byteLength?: number;
-    encode(encodable: TypeLike): Bytes;
-    decode(bytesLike: BytesLike): TypeLike;
-    fromBytes(bytes: BytesLike): Type;
-  },
 >(codec: Codec<Encodable, Decoded>) {
-  return function (Constructor: ConstructorType) {
+  return function <
+    Type extends TypeLike,
+    ConstructorType extends Constructor<Type> & {
+      from(decoded: TypeLike): Type;
+      byteLength?: number;
+      encode(encodable: TypeLike): Bytes;
+      decode(bytesLike: BytesLike): Type;
+      fromBytes(bytes: BytesLike): Type;
+    },
+  >(Constructor: ConstructorType, ..._: unknown[]) {
     Constructor.byteLength = codec.byteLength;
     Constructor.encode = function (encodable: TypeLike) {
       return codec.encode(encodable);

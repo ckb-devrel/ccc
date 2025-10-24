@@ -141,8 +141,8 @@ export class RequestorJsonRpc {
     if (res.id !== payload.id) {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
     }
-    if (res.error) {
-      throw res.error;
+    if (res.error != null) {
+      throw res.error as unknown;
     }
     return res.result;
   }

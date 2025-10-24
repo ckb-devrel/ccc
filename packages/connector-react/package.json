@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/connector-react",
-  "version": "1.0.19",
+  "version": "1.0.29",
   "description": "CCC - CKBer's Codebase. Common Chains Connector UI Component for React",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -24,23 +24,23 @@
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
-    "@eslint/js": "^9.1.1",
-    "@types/react": "^18",
-    "eslint": "^9.1.0",
-    "eslint-config-prettier": "^10.1.5",
-    "eslint-plugin-prettier": "^5.4.1",
-    "prettier": "^3.5.3",
-    "prettier-plugin-organize-imports": "^4.1.0",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.4.5",
-    "typescript-eslint": "^7.7.0"
+    "@eslint/js": "^9.34.0",
+    "@types/react": "^19.1.12",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@ckb-ccc/connector": "workspace:*",
-    "@lit/react": "^1.0.5"
+    "@lit/react": "^1.0.8"
   },
   "peerDependencies": {
     "react": ">=16"

@@ -1,5 +1,139 @@
 # @ckb-ccc/ccc
 
+## 1.1.21
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.29
+  - @ckb-ccc/joy-id@1.0.29
+  - @ckb-ccc/nip07@1.0.29
+  - @ckb-ccc/okx@1.0.29
+  - @ckb-ccc/rei@1.0.29
+  - @ckb-ccc/shell@1.1.21
+  - @ckb-ccc/uni-sat@1.0.29
+  - @ckb-ccc/utxo-global@1.0.29
+  - @ckb-ccc/xverse@1.0.29
+
+## 1.1.20
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.28
+  - @ckb-ccc/joy-id@1.0.28
+  - @ckb-ccc/nip07@1.0.28
+  - @ckb-ccc/okx@1.0.28
+  - @ckb-ccc/rei@1.0.28
+  - @ckb-ccc/shell@1.1.20
+  - @ckb-ccc/uni-sat@1.0.28
+  - @ckb-ccc/utxo-global@1.0.28
+  - @ckb-ccc/xverse@1.0.28
+
+## 1.1.19
+### Patch Changes
+
+
+
+- [#290](https://github.com/ckb-devrel/ccc/pull/290) [`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(deps): bump dependency version with `--latest`
+
+- Updated dependencies [[`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f)]:
+  - @ckb-ccc/utxo-global@1.0.27
+  - @ckb-ccc/eip6963@1.0.27
+  - @ckb-ccc/uni-sat@1.0.27
+  - @ckb-ccc/joy-id@1.0.27
+  - @ckb-ccc/xverse@1.0.27
+  - @ckb-ccc/nip07@1.0.27
+  - @ckb-ccc/shell@1.1.19
+  - @ckb-ccc/okx@1.0.27
+  - @ckb-ccc/rei@1.0.27
+
+## 1.1.18
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.26
+  - @ckb-ccc/joy-id@1.0.26
+  - @ckb-ccc/nip07@1.0.26
+  - @ckb-ccc/okx@1.0.26
+  - @ckb-ccc/rei@1.0.26
+  - @ckb-ccc/shell@1.1.18
+  - @ckb-ccc/uni-sat@1.0.26
+  - @ckb-ccc/utxo-global@1.0.26
+  - @ckb-ccc/xverse@1.0.26
+
+## 1.1.17
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.25
+  - @ckb-ccc/joy-id@1.0.25
+  - @ckb-ccc/nip07@1.0.25
+  - @ckb-ccc/okx@1.0.25
+  - @ckb-ccc/rei@1.0.25
+  - @ckb-ccc/shell@1.1.17
+  - @ckb-ccc/uni-sat@1.0.25
+  - @ckb-ccc/utxo-global@1.0.25
+  - @ckb-ccc/xverse@1.0.25
+
+## 1.1.16
+### Patch Changes
+
+
+
+- [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
+
+- Updated dependencies [[`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252)]:
+  - @ckb-ccc/utxo-global@1.0.24
+  - @ckb-ccc/eip6963@1.0.24
+  - @ckb-ccc/uni-sat@1.0.24
+  - @ckb-ccc/joy-id@1.0.24
+  - @ckb-ccc/xverse@1.0.24
+  - @ckb-ccc/nip07@1.0.24
+  - @ckb-ccc/shell@1.1.16
+  - @ckb-ccc/okx@1.0.24
+  - @ckb-ccc/rei@1.0.24
+
+## 1.1.15
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.23
+  - @ckb-ccc/joy-id@1.0.23
+  - @ckb-ccc/nip07@1.0.23
+  - @ckb-ccc/okx@1.0.23
+  - @ckb-ccc/rei@1.0.23
+  - @ckb-ccc/shell@1.1.15
+  - @ckb-ccc/uni-sat@1.0.23
+  - @ckb-ccc/utxo-global@1.0.23
+  - @ckb-ccc/xverse@1.0.23
+
+## 1.1.14
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.0.22
+  - @ckb-ccc/joy-id@1.0.22
+  - @ckb-ccc/nip07@1.0.22
+  - @ckb-ccc/okx@1.0.22
+  - @ckb-ccc/rei@1.0.22
+  - @ckb-ccc/shell@1.1.14
+  - @ckb-ccc/uni-sat@1.0.22
+  - @ckb-ccc/utxo-global@1.0.22
+  - @ckb-ccc/xverse@1.0.22
+
+## 1.1.13
+### Patch Changes
+
+- Updated dependencies [[`d94bbb3`](https://github.com/ckb-devrel/ccc/commit/d94bbb3b46e1bb0d54be8f4d5f04fb042074bddf)]:
+  - @ckb-ccc/joy-id@1.0.21
+  - @ckb-ccc/eip6963@1.0.21
+  - @ckb-ccc/nip07@1.0.21
+  - @ckb-ccc/okx@1.0.21
+  - @ckb-ccc/rei@1.0.21
+  - @ckb-ccc/shell@1.1.13
+  - @ckb-ccc/uni-sat@1.0.21
+  - @ckb-ccc/utxo-global@1.0.21
+  - @ckb-ccc/xverse@1.0.21
+
 ## 1.1.11
 ### Patch Changes
 

@@ -69,12 +69,12 @@ export function Transaction({
             : ` + ${ccc.fixedPointToString(inputAmountExtra)} `}
           CKB)
         </div>
-        <div className="grow p-3">
-          <div className="flex flex-wrap justify-center gap-2">{inputs}</div>
+        <div className="grow p-5">
+          <div className="flex flex-wrap justify-center gap-4">{inputs}</div>
         </div>
       </div>
 
-      <div className="flex basis-1/2 flex-col border-t border-fuchsia-900">
+      <div className="flex basis-1/2 flex-col border-t border-neutral-400/50">
         <div className="p-3 pb-0">
           Outputs ({ccc.fixedPointToString(outputAmount)} +
           {outputAmount > inputAmount
@@ -82,8 +82,8 @@ export function Transaction({
             : ` ${ccc.fixedPointToString(inputAmount - outputAmount)} `}
           CKB)
         </div>
-        <div className="grow p-3">
-          <div className="flex flex-wrap justify-center gap-2">{outputs}</div>
+        <div className="grow p-5">
+          <div className="flex flex-wrap justify-center gap-4">{outputs}</div>
         </div>
       </div>
 

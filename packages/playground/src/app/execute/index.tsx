@@ -27,7 +27,6 @@ function findSourcePos(
     }
     let nowCol = 0;
     for (const map of line.split(",").map((c: string) => vlqDecode(c))) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [colInc, _, sRowInc, sColInc] = map;
       nowCol += colInc;
       if (i === row && nowCol >= col) {
@@ -49,7 +48,12 @@ export async function execute(
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
 ) {
   const compiled = ts.transpileModule(source, {
-    compilerOptions: { sourceMap: true, jsx: ts.JsxEmit.React },
+    compilerOptions: {
+      sourceMap: true,
+      jsx: ts.JsxEmit.React,
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.NodeNext,
+    },
   });
 
   const exports = {};

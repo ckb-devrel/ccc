@@ -18,6 +18,7 @@ async function checkResponse<T extends keyof Requests>(
 ): Promise<Return<T>> {
   const res = await response;
   if (v.is(rpcErrorResponseMessageSchema, res)) {
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
     throw res.error;
   }
 
@@ -25,6 +26,7 @@ async function checkResponse<T extends keyof Requests>(
     return res.result as Return<T>;
   }
 
+  // eslint-disable-next-line @typescript-eslint/only-throw-error
   throw {
     code: RpcErrorCode.INTERNAL_ERROR,
     message: "Received unknown response from provider.",

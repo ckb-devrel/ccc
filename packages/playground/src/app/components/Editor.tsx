@@ -163,7 +163,7 @@ export function Editor({
         }}
       />
       {isLoading ? (
-        <div className="absolute left-0 top-0 flex h-full w-full flex-col items-center justify-center bg-white/25">
+        <div className="absolute top-0 left-0 flex h-full w-full flex-col items-center justify-center bg-white/25">
           <LoaderCircle className="mb-2 animate-spin" size="48" />
           Loading...
         </div>

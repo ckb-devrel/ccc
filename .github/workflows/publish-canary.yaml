@@ -2,17 +2,44 @@ name: Release to NPM Canary
 
 permissions:
   contents: write
+  pull-requests: write
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+concurrency: ${{ github.workflow }}-${{ github.event_name == 'issue_comment' && github.event.issue.number || github.ref }}
 
 jobs:
   release:
     name: Release
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request &&
+      contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      startsWith(github.event.comment.body, '/canary'))
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Get PR head SHA for comment trigger
+        if: github.event_name == 'issue_comment'
+        id: get_pr_head_sha
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: context.issue.number,
+            });
+            core.setOutput('sha', pr.head.sha);
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'issue_comment' && steps.get_pr_head_sha.outputs.sha || github.ref }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -37,3 +64,35 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Comment on PR with Success
+        if: github.event_name == 'issue_comment' && steps.changesets.outputs.published == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const workflow_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const publishedPackages = JSON.parse(${{ toJSON(steps.changesets.outputs.publishedPackages) }});
+
+            let body = `🚀 Canary version published successfully! [View workflow run](${workflow_url})\n\n`;
+            body += "The following packages have been published to npm:\n";
+            for (const pkg of publishedPackages) {
+              body += `* \`${pkg.name}@${pkg.version}\`\n`;
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+
+      - name: Comment on PR on Failure
+        if: failure() && github.event_name == 'issue_comment'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const workflow_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const body = `❌ Canary version deployment failed. [View workflow run](${workflow_url})`;
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });

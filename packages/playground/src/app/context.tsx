@@ -30,6 +30,13 @@ function WalletIcon({
   );
 }
 
+export type Messages = [
+  "error" | "info",
+  string,
+  unknown[],
+  ReactNode | undefined,
+][];
+
 export const APP_CONTEXT = createContext<
   | {
       enabledAnimate: boolean;
@@ -42,7 +49,7 @@ export const APP_CONTEXT = createContext<
       disconnect: () => void;
       openAction: ReactNode;
 
-      messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
+      messages: Messages;
       clearMessage: () => void;
       sendMessage: (
         level: "error" | "info",
@@ -84,33 +91,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     signer?.getInternalAddress().then((a) => setAddress(a));
   }, [signer]);
 
-  const [{ messages }, setMessages] = useState<{
-    messages: ["error" | "info", string, unknown[], ReactNode | undefined][];
-    cachedMessages: number;
-  }>({ messages: [], cachedMessages: 0 });
+  const [messages, setMessages] = useState<Messages>([]);
+  const cachedMessagesRef = React.useRef<Messages>([]);
+  const messagesTimeoutRef = React.useRef<number | null>(null);
 
   const sendMessage = useCallback(
-    (level: "error" | "info", title: string, msgs: unknown[]) =>
-      messages.push([level, title, msgs, undefined]),
-    [messages],
+    (level: "error" | "info", title: string, msgs: unknown[]) => {
+      cachedMessagesRef.current.push([level, title, msgs, undefined]);
+
+      if (messagesTimeoutRef.current) {
+        return;
+      }
+
+      messagesTimeoutRef.current = window.setTimeout(() => {
+        const toAdd = cachedMessagesRef.current.splice(0);
+        setMessages((prevMessages) => [...prevMessages, ...toAdd]);
+        messagesTimeoutRef.current = null;
+      }, 100);
+    },
+    [],
   );
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMessages((messages) => {
-        if (messages.messages.length === messages.cachedMessages) {
-          return messages;
-        }
-
-        return {
-          messages: [...messages.messages],
-          cachedMessages: messages.messages.length,
-        };
-      });
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [setMessages]);
+    return () => {
+      if (messagesTimeoutRef.current) {
+        clearTimeout(messagesTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
@@ -154,7 +162,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ),
 
         messages,
-        clearMessage: () => setMessages({ messages: [], cachedMessages: 0 }),
+        clearMessage: () => {
+          setMessages([]);
+          cachedMessagesRef.current.length = 0;
+        },
         sendMessage,
         createSender: (title) => ({
           log: (...msgs) => sendMessage("info", title, msgs),

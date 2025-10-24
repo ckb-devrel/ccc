@@ -9,11 +9,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "CCC App",
   description: "An app based on the CCC library",
-  icons: "/favicon.svg",
+  icons:
+    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
   openGraph: {
     title: "CCC App",
     description: "An app based on the CCC library",
-    images: "/opengraph.png",
+    images:
+      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
   },
 };
 

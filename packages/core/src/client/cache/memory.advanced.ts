@@ -145,73 +145,80 @@ export function filterCell(
 }
 
 /**
- * A Least Recently Used (LRU) cache implemented using a Map.
- *
- * This class extends the built-in Map to provide an LRU cache with a fixed capacity.
- * When the cache is full, the least recently used entry is automatically evicted.
- *
- * @template K The type of the keys in the cache.
- * @template V The type of the values in the cache.
+ * A Map-like class that implements a "Least Recently Used" (LRU) cache policy.
+ * When the cache reaches its capacity, the least recently used item is removed.
+ * @public
  */
 export class MapLru<K, V> extends Map<K, V> {
+  private readonly lru: Set<K> = new Set<K>();
+
   /**
-   * Constructs a new MapLru instance.
-   *
-   * @param capacity The maximum number of entries the cache can hold. Must be a positive integer.
-   * @throws {Error} If the capacity is not a positive integer.
+   * @param capacity - The maximum number of items to store in the cache. Must be a positive integer.
    */
   constructor(private readonly capacity: number) {
     super();
+
     if (!Number.isInteger(capacity) || capacity < 1) {
       throw new Error("Capacity must be a positive integer");
     }
   }
 
   /**
-   * Retrieves a value from the cache.
-   *
-   * If the key is present in the cache, the value is moved to the most-recently-used position.
-   *
-   * @param key The key of the value to retrieve.
-   * @returns The value associated with the key, or undefined if the key is not present.
+   * Retrieves the value for a given key and marks it as recently used.
+   * @param key - The key of the element to retrieve.
+   * @returns The value associated with the key, or `undefined` if the key is not in the cache.
    */
-  override get(key: K): V | undefined {
-    // Check if the key exists. If not, return undefined.
+  override get(key: K) {
     if (!super.has(key)) {
-      return undefined;
+      return;
     }
 
-    const value = super.get(key) as V;
+    this.lru.delete(key);
+    this.lru.add(key);
 
-    // Move to most-recently-used position
-    super.delete(key);
-    super.set(key, value);
-
-    return value;
+    return super.get(key);
   }
 
   /**
-   * Inserts a new value into the cache, or updates an existing value.
-   *
-   * If the key is already present in the cache, it is first deleted so that the re-insertion
-   * moves it to the most-recently-used position.
-   * If the cache is over capacity after the insertion, the least recently used entry is evicted.
-   *
-   * @param key The key of the value to insert or update.
-   * @param value The value to associate with the key.
-   * @returns This MapLru instance.
+   * Adds or updates a key-value pair in the cache and marks the key as recently used.
+   * If setting a new key causes the cache to exceed its capacity, the least recently used item is evicted.
+   * @param key - The key of the element to add or update.
+   * @param value - The value of the element to add or update.
+   * @returns The `MapLru` instance.
    */
-  override set(key: K, value: V): this {
-    // Delete and re-insert to move key to the end (most-recently-used)
-    super.delete(key);
+  override set(key: K, value: V) {
     super.set(key, value);
 
-    // Evict oldest if over capacity
-    if (super.size > this.capacity) {
-      const oldestKey = super.keys().next().value!;
-      super.delete(oldestKey);
+    this.lru.delete(key);
+    this.lru.add(key);
+
+    // Evict the oldest entry if capacity is exceeded.
+    if (this.lru.size > this.capacity) {
+      const oldestKey = this.lru.keys().next().value!;
+      this.delete(oldestKey);
+    }
+    return this;
+  }
+
+  /**
+   * Removes the specified element from the cache.
+   * @param key - The key of the element to remove.
+   * @returns `true` if an element in the `MapLru` object existed and has been removed, or `false` if the element does not exist.
+   */
+  override delete(key: K): boolean {
+    if (!super.delete(key)) {
+      return false;
     }
 
-    return this;
+    this.lru.delete(key);
+    return true;
+  }
+
+  /**
+   * Removes all key-value pairs from the cache.
+   */
+  override clear() {
+    super.clear();
+    this.lru.clear();
   }
 }

@@ -6,6 +6,7 @@ import {
   Client,
   ClientFindTransactionsGroupedResponse,
   ClientFindTransactionsResponse,
+  ClientIndexerSearchKeyFilterLike,
 } from "../../client/index.js";
 import { Hex } from "../../hex/index.js";
 import { Num } from "../../num/index.js";
@@ -95,11 +96,12 @@ export abstract class Signer {
   ): NetworkPreference | undefined {
     if (
       currentNetwork !== undefined &&
-      preferences.some(({ signerType, addressPrefix, network }) => {
-        signerType === this.type &&
+      preferences.some(
+        ({ signerType, addressPrefix, network }) =>
+          signerType === this.type &&
           addressPrefix === this.client.addressPrefix &&
-          network === currentNetwork;
-      })
+          network === currentNetwork,
+      )
     ) {
       return;
     }
@@ -237,6 +239,39 @@ export abstract class Signer {
     return this.getAddressObjs().then((addresses) =>
       addresses.map((address) => address.toString()),
     );
+  }
+
+  /**
+   * Find cells of this signer
+   *
+   * @param filter - The filter for the search key.
+   * @param withData - Whether to include cell data in the response.
+   * @param order - The order of the returned cells, can be "asc" or "desc".
+   * @param limit - The maximum number of cells for every querying chunk.
+   * @returns A async generator that yields all matching cells
+   */
+  async *findCellsOnChain(
+    filter: ClientIndexerSearchKeyFilterLike,
+    withData?: boolean | null,
+    order?: "asc" | "desc",
+    limit?: number,
+  ): AsyncGenerator<Cell> {
+    const scripts = await this.getAddressObjs();
+    for (const { script } of scripts) {
+      for await (const cell of this.client.findCellsOnChain(
+        {
+          script,
+          scriptType: "lock",
+          filter,
+          scriptSearchMode: "exact",
+          withData,
+        },
+        order,
+        limit,
+      )) {
+        yield cell;
+      }
+    }
   }
 
   /**
@@ -425,14 +460,23 @@ export abstract class Signer {
   }
 
   /**
-   * prepare a transaction before signing. This method is not implemented and should be overridden by subclasses.
+   * Prepares a transaction before signing.
+   * This method can be overridden by subclasses to perform any necessary steps,
+   * such as adding cell dependencies or witnesses, before the transaction is signed.
+   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
+   * without modification.
    *
-   * @param _ - The transaction to prepare, represented as a TransactionLike object.
-   * @returns A promise that resolves to the prepared Transaction object.
-   * @throws Will throw an error if not implemented.
+   * @remarks
+   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
+   * This may lead to an underestimation of transaction size and fees if used with methods
+   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
+   * transactions should override this method to perform necessary preparations.
+   *
+   * @param tx - The transaction to prepare.
+   * @returns A promise that resolves to the prepared {@link Transaction} object.
    */
-  prepareTransaction(_: TransactionLike): Promise<Transaction> {
-    throw Error("Signer.prepareTransaction not implemented");
+  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
+    return Transaction.from(tx);
   }
 
   /**

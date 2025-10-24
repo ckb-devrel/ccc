@@ -71,10 +71,22 @@ export function useGetExplorerLink() {
   };
 }
 
-export function getScriptColor(script: ccc.ScriptLike): string {
+export function getScriptColor(script?: ccc.ScriptLike): string {
+  if (!script) {
+    return "hsl(0 0% 30%)";
+  }
   const hash = ccc.Script.from(script).hash();
 
-  return `hsl(${(ccc.numFrom(hash) % ccc.numFrom(360)).toString()} 65% 45%)`;
+  return `hsl(${((ccc.numFrom(hash) & ccc.numFrom(0xfff)) % ccc.numFrom(360)).toString()} 65% 30%)`;
+}
+
+export function getScriptBagua(script?: ccc.ScriptLike): ccc.Num {
+  if (!script) {
+    return ccc.Zero;
+  }
+  const hash = ccc.Script.from(script).hash();
+
+  return (ccc.numFrom(hash) & ccc.numFrom(0xffffff000)) >> ccc.numFrom(12);
 }
 
 export function formatTimestamp(timestamp: number): string {
