@@ -2,8 +2,21 @@ import { Nip07A } from "@ckb-ccc/nip07/advanced";
 import { UniSatA } from "@ckb-ccc/uni-sat/advanced";
 
 export interface BitcoinProvider
-  extends Pick<UniSatA.Provider, "on" | "removeListener" | "signMessage">,
-    Partial<Omit<UniSatA.Provider, "on" | "removeListener" | "signMessage">> {
+  extends Pick<
+      UniSatA.Provider,
+      "on" | "removeListener" | "signMessage" | "signPsbt" | "pushPsbt"
+    >,
+    Partial<
+      Omit<
+        UniSatA.Provider,
+        | "on"
+        | "removeListener"
+        | "signMessage"
+        | "signPsbt"
+        | "pushPsbt"
+        | "pushTx"
+      >
+    > {
   connect?(): Promise<{
     address: string;
     publicKey: string;
