@@ -1,15 +1,40 @@
-import { Address } from "../../address/index.js";
-import { Cell, Transaction } from "../../ckb/transaction.js";
+import { Address, AddressLike } from "../../address/index.js";
+import { Script } from "../../ckb/script.js";
+import {
+  Cell,
+  CellOutput,
+  Transaction,
+  TransactionLike,
+} from "../../ckb/transaction.js";
 import { ErrorTransactionInsufficientCapacity } from "../../ckb/transactionErrors.js";
 import { Client } from "../../client/client.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../client/clientTypes.advanced.js";
-import { Zero } from "../../fixedPoint/index.js";
+import { fixedPointFrom, Zero } from "../../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
 import { FeePayer } from "./index.js";
 
-export class DefaultFeePayer implements FeePayer {
-  constructor(private addresses: Address[]) {}
+function defaultChangeFn(
+  tx: Transaction,
+  changeScript: Script,
+  capacity: Num,
+): NumLike {
+  const changeCell = CellOutput.from({ capacity: 0, lock: changeScript });
+  const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
+  if (capacity < occupiedCapacity) {
+    return occupiedCapacity;
+  }
+  changeCell.capacity = capacity;
+  tx.addOutput(changeCell);
+  return 0;
+}
 
+export class DefaultFeePayer implements FeePayer {
+  private addresses: Address[] = [];
+
+  private changeFn?: (
+    tx: Transaction,
+    capacity: Num,
+  ) => Promise<NumLike> | NumLike;
   private feeRate?: NumLike;
   private filter?: ClientCollectableSearchKeyFilterLike;
   private options?: {
@@ -17,22 +42,38 @@ export class DefaultFeePayer implements FeePayer {
     maxFeeRate?: NumLike;
     shouldAddInputs?: boolean;
   };
-  private changeFn?: (
-    tx: Transaction,
-    capacity: Num,
-  ) => Promise<NumLike> | NumLike;
 
-  async completeTxFee(tx: Transaction, client: Client): Promise<Transaction> {
-    return tx;
+  async completeTxFee(tx: Transaction, client: Client): Promise<void> {
+    await this.completeFee(tx, client);
+  }
+
+  setAddresses(addresses: AddressLike[]): void {
+    this.addresses = addresses.map((address) => Address.from(address));
+    if (this.addresses.length === 0) {
+      throw new Error("Addresses cannot be empty");
+    }
+  }
+
+  setOptionalProperties(props: {
+    changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
+    feeRate?: NumLike;
+    filter?: ClientCollectableSearchKeyFilterLike;
+    options?: {
+      feeRateBlockRange?: NumLike;
+      maxFeeRate?: NumLike;
+      shouldAddInputs?: boolean;
+    };
+  }): void {
+    this.changeFn = props.changeFn;
+    this.feeRate = props.feeRate;
+    this.filter = props.filter;
+    this.options = props.options;
   }
 
   async completeFee(
     tx: Transaction,
     client: Client,
-  ): Promise<{
-    tx: Transaction;
-    result: [number, boolean];
-  }> {
+  ): Promise<[number, boolean]> {
     const feeRate =
       this.feeRate ??
       (await client.getFeeRate(this.options?.feeRateBlockRange, this.options));
@@ -76,7 +117,7 @@ export class DefaultFeePayer implements FeePayer {
         }
       })();
 
-      const fee = await this.getFee(from.client);
+      const fee = await tx.getFee(client);
       if (fee < leastFee + leastExtraCapacity) {
         // Not enough capacity are collected, it should only happens when shouldAddInputs is false
         throw new ErrorTransactionInsufficientCapacity(
@@ -85,11 +126,11 @@ export class DefaultFeePayer implements FeePayer {
         );
       }
 
-      await from.prepareTransaction(this);
+      await this.prepareTransaction(tx);
       if (leastFee === Zero) {
         // The initial fee is calculated based on prepared transaction
         // This should only happens during the first iteration
-        leastFee = this.estimateFee(feeRate);
+        leastFee = tx.estimateFee(feeRate);
       }
       // The extra capacity paid the fee without a change
       // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
@@ -99,35 +140,60 @@ export class DefaultFeePayer implements FeePayer {
       }
 
       // Invoke the change function on a transaction multiple times may cause problems, so we clone it
-      const tx = tx.clone();
-      const needed = numFrom(await Promise.resolve(this.changeFn?.(tx, fee - leastFee)));
+      const txCopy = tx.clone();
+      const needed = numFrom(
+        await Promise.resolve(
+          this.changeFn?.(txCopy, fee - leastFee) ??
+            defaultChangeFn(txCopy, this.addresses[0].script, fee - leastFee),
+        ),
+      );
       if (needed > Zero) {
         // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
 
-      if ((await tx.getFee(from.client)) !== leastFee) {
+      if ((await txCopy.getFee(client)) !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
       }
 
       // New change cells created, update the fee
-      await from.prepareTransaction(tx);
-      const changedFee = tx.estimateFee(feeRate);
+      await this.prepareTransaction(txCopy);
+      const changedFee = txCopy.estimateFee(feeRate);
       if (leastFee > changedFee) {
         throw new Error("The change function removed existed transaction data");
       }
       // The fee has been paid
       if (leastFee === changedFee) {
-        this.copy(tx);
+        tx.copy(txCopy);
         return [collected, true];
       }
 
       // The fee after changing is more than the original fee
       leastFee = changedFee;
     }
+  }
+
+  /**
+   * Prepares a transaction before signing.
+   * This method can be overridden by subclasses to perform any necessary steps,
+   * such as adding cell dependencies or witnesses, before the transaction is signed.
+   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
+   * without modification.
+   *
+   * @remarks
+   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
+   * This may lead to an underestimation of transaction size and fees if used with methods
+   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
+   * transactions should override this method to perform necessary preparations.
+   *
+   * @param tx - The transaction to prepare.
+   * @returns A promise that resolves to the prepared {@link Transaction} object.
+   */
+  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
+    return Transaction.from(tx);
   }
 
   async completeInputsByCapacity(
@@ -177,7 +243,6 @@ export class DefaultFeePayer implements FeePayer {
     ) => Promise<T | undefined> | T | undefined,
     init: T,
   ): Promise<{
-    tx: Transaction;
     addedCount: number;
     accumulated?: T;
   }> {
@@ -218,13 +283,11 @@ export class DefaultFeePayer implements FeePayer {
     collectedCells.forEach((cell) => tx.addInput(cell));
     if (fulfilled) {
       return {
-        tx,
         addedCount: collectedCells.length,
       };
     }
 
     return {
-      tx,
       addedCount: collectedCells.length,
       accumulated: acc,
     };
