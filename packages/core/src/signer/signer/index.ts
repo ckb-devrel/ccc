@@ -15,6 +15,7 @@ import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
 import { verifyMessageEvmPersonal } from "../evm/verify.js";
+import { DefaultFeePayer } from "../feePayer/defaultFee.js";
 import { verifyMessageNostrEvent } from "../nostr/verify.js";
 
 /**
@@ -78,8 +79,10 @@ export class Signature {
  * This class provides methods to connect, get addresses, and sign transactions.
  * @public
  */
-export abstract class Signer {
-  constructor(protected client_: Client) {}
+export abstract class Signer extends DefaultFeePayer {
+  constructor(protected client_: Client) {
+    super();
+  }
 
   abstract get type(): SignerType;
   abstract get signType(): SignerSignType;
@@ -468,26 +471,6 @@ export abstract class Signer {
   async signTransaction(tx: TransactionLike): Promise<Transaction> {
     const preparedTx = await this.prepareTransaction(tx);
     return this.signOnlyTransaction(preparedTx);
-  }
-
-  /**
-   * Prepares a transaction before signing.
-   * This method can be overridden by subclasses to perform any necessary steps,
-   * such as adding cell dependencies or witnesses, before the transaction is signed.
-   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
-   * without modification.
-   *
-   * @remarks
-   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
-   * This may lead to an underestimation of transaction size and fees if used with methods
-   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
-   * transactions should override this method to perform necessary preparations.
-   *
-   * @param tx - The transaction to prepare.
-   * @returns A promise that resolves to the prepared {@link Transaction} object.
-   */
-  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
-    return Transaction.from(tx);
   }
 
   /**

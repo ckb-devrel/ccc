@@ -23,10 +23,7 @@ import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
-import {
-  ErrorTransactionInsufficientCapacity,
-  ErrorTransactionInsufficientCoin,
-} from "./transactionErrors.js";
+import { ErrorTransactionInsufficientCoin } from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
 export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
@@ -1957,40 +1954,19 @@ export class Transaction extends mol.Entity.Base<
     addedCount: number;
     accumulated?: T;
   }> {
-    const collectedCells = [];
-
-    let acc: T = init;
-    let fulfilled = false;
-    for await (const cell of from.findCells(filter, true)) {
-      if (
-        this.inputs.some(({ previousOutput }) =>
-          previousOutput.eq(cell.outPoint),
-        )
-      ) {
-        continue;
-      }
-      const i = collectedCells.push(cell);
-      const next = await Promise.resolve(
-        accumulator(acc, cell, i - 1, collectedCells),
-      );
-      if (next === undefined) {
-        fulfilled = true;
-        break;
-      }
-      acc = next;
-    }
-
-    collectedCells.forEach((cell) => this.addInput(cell));
-    if (fulfilled) {
-      return {
-        addedCount: collectedCells.length,
-      };
-    }
-
-    return {
-      addedCount: collectedCells.length,
-      accumulated: acc,
-    };
+    from.setAddresses(await from.getAddressObjs());
+    from.setOptionalProperties({
+      filter,
+    });
+    const { addedCount, accumulated } = await from.completeInputs(
+      this,
+      from.client,
+      filter,
+      accumulator,
+      init,
+    );
+    from.setOptionalProperties({});
+    return { addedCount, accumulated };
   }
 
   async completeInputsByCapacity(
@@ -1998,33 +1974,17 @@ export class Transaction extends mol.Entity.Base<
     capacityTweak?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    const expectedCapacity =
-      this.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
-    const inputsCapacity = await this.getInputsCapacity(from.client);
-    if (inputsCapacity >= expectedCapacity) {
-      return 0;
-    }
-
-    const { addedCount, accumulated } = await this.completeInputs(
-      from,
-      filter ?? {
-        scriptLenRange: [0, 1],
-        outputDataLenRange: [0, 1],
-      },
-      (acc, { cellOutput: { capacity } }) => {
-        const sum = acc + capacity;
-        return sum >= expectedCapacity ? undefined : sum;
-      },
-      inputsCapacity,
+    from.setAddresses(await from.getAddressObjs());
+    from.setOptionalProperties({
+      filter,
+    });
+    const addedCount = await from.completeInputsByCapacity(
+      this,
+      from.client,
+      capacityTweak,
     );
-
-    if (accumulated === undefined) {
-      return addedCount;
-    }
-
-    throw new ErrorTransactionInsufficientCapacity(
-      expectedCapacity - accumulated,
-    );
+    from.setOptionalProperties({});
+    return addedCount;
   }
 
   async completeInputsAll(
@@ -2211,101 +2171,16 @@ export class Transaction extends mol.Entity.Base<
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const feeRate =
-      expectedFeeRate ??
-      (await from.client.getFeeRate(options?.feeRateBlockRange, options));
-
-    // Complete all inputs extra infos for cache
-    await this.getInputsCapacity(from.client);
-
-    let leastFee = Zero;
-    let leastExtraCapacity = Zero;
-    let collected = 0;
-
-    // ===
-    // Usually, for the worst situation, three iterations are needed
-    // 1. First attempt to complete the transaction.
-    // 2. Not enough capacity for the change cell.
-    // 3. Fee increased by the change cell.
-    // ===
-    while (true) {
-      collected += await (async () => {
-        if (!(options?.shouldAddInputs ?? true)) {
-          return 0;
-        }
-
-        try {
-          return await this.completeInputsByCapacity(
-            from,
-            leastFee + leastExtraCapacity,
-            filter,
-          );
-        } catch (err) {
-          if (
-            err instanceof ErrorTransactionInsufficientCapacity &&
-            leastExtraCapacity !== Zero
-          ) {
-            throw new ErrorTransactionInsufficientCapacity(err.amount, {
-              isForChange: true,
-            });
-          }
-
-          throw err;
-        }
-      })();
-
-      const fee = await this.getFee(from.client);
-      if (fee < leastFee + leastExtraCapacity) {
-        // Not enough capacity are collected, it should only happens when shouldAddInputs is false
-        throw new ErrorTransactionInsufficientCapacity(
-          leastFee + leastExtraCapacity - fee,
-          { isForChange: leastExtraCapacity !== Zero },
-        );
-      }
-
-      await from.prepareTransaction(this);
-      if (leastFee === Zero) {
-        // The initial fee is calculated based on prepared transaction
-        // This should only happens during the first iteration
-        leastFee = this.estimateFee(feeRate);
-      }
-      // The extra capacity paid the fee without a change
-      // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
-      // So this only happens in the first iteration
-      if (fee === leastFee) {
-        return [collected, false];
-      }
-
-      // Invoke the change function on a transaction multiple times may cause problems, so we clone it
-      const tx = this.clone();
-      const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
-      if (needed > Zero) {
-        // No enough extra capacity to create new cells for change, collect inputs again
-        leastExtraCapacity = needed;
-        continue;
-      }
-
-      if ((await tx.getFee(from.client)) !== leastFee) {
-        throw new Error(
-          "The change function doesn't use all available capacity",
-        );
-      }
-
-      // New change cells created, update the fee
-      await from.prepareTransaction(tx);
-      const changedFee = tx.estimateFee(feeRate);
-      if (leastFee > changedFee) {
-        throw new Error("The change function removed existed transaction data");
-      }
-      // The fee has been paid
-      if (leastFee === changedFee) {
-        this.copy(tx);
-        return [collected, true];
-      }
-
-      // The fee after changing is more than the original fee
-      leastFee = changedFee;
-    }
+    from.setAddresses(await from.getAddressObjs());
+    from.setOptionalProperties({
+      changeFn: change,
+      feeRate: expectedFeeRate,
+      filter,
+      options,
+    });
+    const result = await from.completeFee(this, from.client);
+    from.setOptionalProperties({});
+    return result;
   }
 
   /**

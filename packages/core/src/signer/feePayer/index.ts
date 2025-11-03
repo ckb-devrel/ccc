@@ -4,7 +4,7 @@ import { Client } from "../../client/client.js";
 export abstract class FeePayer {
   constructor() {}
 
-  abstract completeTxFee(tx: Transaction, client: Client): Promise<Transaction>;
+  abstract completeTxFee(tx: Transaction, client: Client): Promise<void>;
 }
 
 export class FeePayerManager {
@@ -19,10 +19,9 @@ export class FeePayerManager {
     return this.payers.pop();
   }
 
-  async completeTxFee(tx: Transaction, client: Client): Promise<Transaction> {
+  async completeTxFee(tx: Transaction, client: Client): Promise<void> {
     for (const payer of this.payers) {
-      tx = await payer.completeTxFee(tx, client);
+      await payer.completeTxFee(tx, client);
     }
-    return tx;
   }
 }
