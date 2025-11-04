@@ -19,6 +19,7 @@ import {
   numToBytes,
   numToHex,
 } from "../num/index.js";
+import { FeePayer, FeePayerManager } from "../signer/feePayer/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
@@ -2286,6 +2287,18 @@ export class Transaction extends mol.Entity.Base<
     const { script } = await from.getRecommendedAddressObj();
 
     return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
+  }
+
+  async completeByFeePayers(
+    client: Client,
+    feePayers: Array<FeePayer> | FeePayerManager,
+  ): Promise<void> {
+    if (feePayers instanceof FeePayerManager) {
+      await feePayers.completeTxFee(this, client);
+    } else {
+      const manager = new FeePayerManager(feePayers);
+      await manager.completeTxFee(this, client);
+    }
   }
 
   /**
