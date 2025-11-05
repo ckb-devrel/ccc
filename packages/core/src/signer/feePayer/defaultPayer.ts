@@ -1,4 +1,4 @@
-import { Address, AddressLike } from "../../address/index.js";
+import { Address } from "../../address/index.js";
 import { Script } from "../../ckb/script.js";
 import {
   Cell,
@@ -28,9 +28,7 @@ function defaultChangeFn(
   return 0;
 }
 
-export class DefaultFeePayer implements FeePayer {
-  private addresses: Address[] = [];
-
+export abstract class SignerFeePayer implements FeePayer {
   private changeFn?: (
     tx: Transaction,
     capacity: Num,
@@ -43,15 +41,66 @@ export class DefaultFeePayer implements FeePayer {
     shouldAddInputs?: boolean;
   };
 
-  async completeTxFee(tx: Transaction, client: Client): Promise<void> {
-    await this.completeFee(tx, client);
+  /**
+   * Gets an array of Address objects associated with the signer.
+   *
+   * @returns A promise that resolves to an array of Address objects.
+   */
+  abstract getAddressObjs(): Promise<Address[]>;
+
+  /**
+   * Gets the recommended Address object for the signer.
+   *
+   * @param _preference - Optional preference parameter.
+   * @returns A promise that resolves to the recommended Address object.
+   */
+  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
+    return (await this.getAddressObjs())[0];
   }
 
-  setAddresses(addresses: AddressLike[]): void {
-    this.addresses = addresses.map((address) => Address.from(address));
-    if (this.addresses.length === 0) {
-      throw new Error("Addresses cannot be empty");
-    }
+  /**
+   * Gets the recommended address for the signer as a string.
+   *
+   * @param preference - Optional preference parameter.
+   * @returns A promise that resolves to the recommended address as a string.
+   */
+  async getRecommendedAddress(preference?: unknown): Promise<string> {
+    return (await this.getRecommendedAddressObj(preference)).toString();
+  }
+
+  /**
+   * Gets an array of addresses associated with the signer as strings.
+   *
+   * @returns A promise that resolves to an array of addresses as strings.
+   */
+  async getAddresses(): Promise<string[]> {
+    return this.getAddressObjs().then((addresses) =>
+      addresses.map((address) => address.toString()),
+    );
+  }
+
+  /**
+   * Prepares a transaction before signing.
+   * This method can be overridden by subclasses to perform any necessary steps,
+   * such as adding cell dependencies or witnesses, before the transaction is signed.
+   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
+   * without modification.
+   *
+   * @remarks
+   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
+   * This may lead to an underestimation of transaction size and fees if used with methods
+   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
+   * transactions should override this method to perform necessary preparations.
+   *
+   * @param tx - The transaction to prepare.
+   * @returns A promise that resolves to the prepared {@link Transaction} object.
+   */
+  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
+    return Transaction.from(tx);
+  }
+
+  async completeTxFee(tx: Transaction, client: Client): Promise<void> {
+    await this.completeFee(tx, client);
   }
 
   setOptionalProperties(props: {
@@ -144,7 +193,11 @@ export class DefaultFeePayer implements FeePayer {
       const needed = numFrom(
         await Promise.resolve(
           this.changeFn?.(txCopy, fee - leastFee) ??
-            defaultChangeFn(txCopy, this.addresses[0].script, fee - leastFee),
+            defaultChangeFn(
+              txCopy,
+              (await this.getRecommendedAddressObj()).script,
+              fee - leastFee,
+            ),
         ),
       );
       if (needed > Zero) {
@@ -174,26 +227,6 @@ export class DefaultFeePayer implements FeePayer {
       // The fee after changing is more than the original fee
       leastFee = changedFee;
     }
-  }
-
-  /**
-   * Prepares a transaction before signing.
-   * This method can be overridden by subclasses to perform any necessary steps,
-   * such as adding cell dependencies or witnesses, before the transaction is signed.
-   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
-   * without modification.
-   *
-   * @remarks
-   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
-   * This may lead to an underestimation of transaction size and fees if used with methods
-   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
-   * transactions should override this method to perform necessary preparations.
-   *
-   * @param tx - The transaction to prepare.
-   * @returns A promise that resolves to the prepared {@link Transaction} object.
-   */
-  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
-    return Transaction.from(tx);
   }
 
   async completeInputsByCapacity(
@@ -250,7 +283,7 @@ export class DefaultFeePayer implements FeePayer {
 
     let acc: T = init;
     let fulfilled = false;
-    for (const address of this.addresses) {
+    for (const address of await this.getAddressObjs()) {
       for await (const cell of client.findCells({
         script: address.script,
         scriptType: "lock",

@@ -1955,7 +1955,6 @@ export class Transaction extends mol.Entity.Base<
     addedCount: number;
     accumulated?: T;
   }> {
-    from.setAddresses(await from.getAddressObjs());
     from.setOptionalProperties({
       filter,
     });
@@ -1975,7 +1974,6 @@ export class Transaction extends mol.Entity.Base<
     capacityTweak?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    from.setAddresses(await from.getAddressObjs());
     from.setOptionalProperties({
       filter,
     });
@@ -2172,7 +2170,6 @@ export class Transaction extends mol.Entity.Base<
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    from.setAddresses(await from.getAddressObjs());
     from.setOptionalProperties({
       changeFn: change,
       feeRate: expectedFeeRate,

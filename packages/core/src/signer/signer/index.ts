@@ -1,4 +1,3 @@
-import { Address } from "../../address/index.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../advancedBarrel.js";
 import { BytesLike } from "../../bytes/index.js";
 import { Cell, Transaction, TransactionLike } from "../../ckb/index.js";
@@ -15,7 +14,7 @@ import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
 import { verifyMessageEvmPersonal } from "../evm/verify.js";
-import { DefaultFeePayer } from "../feePayer/defaultFee.js";
+import { SignerFeePayer } from "../feePayer/defaultPayer.js";
 import { verifyMessageNostrEvent } from "../nostr/verify.js";
 
 /**
@@ -79,7 +78,7 @@ export class Signature {
  * This class provides methods to connect, get addresses, and sign transactions.
  * @public
  */
-export abstract class Signer extends DefaultFeePayer {
+export abstract class Signer extends SignerFeePayer {
   constructor(protected client_: Client) {
     super();
   }
@@ -215,44 +214,6 @@ export abstract class Signer extends DefaultFeePayer {
    */
   async getIdentity(): Promise<string> {
     return this.getInternalAddress();
-  }
-
-  /**
-   * Gets an array of Address objects associated with the signer.
-   *
-   * @returns A promise that resolves to an array of Address objects.
-   */
-  abstract getAddressObjs(): Promise<Address[]>;
-
-  /**
-   * Gets the recommended Address object for the signer.
-   *
-   * @param _preference - Optional preference parameter.
-   * @returns A promise that resolves to the recommended Address object.
-   */
-  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
-    return (await this.getAddressObjs())[0];
-  }
-
-  /**
-   * Gets the recommended address for the signer as a string.
-   *
-   * @param preference - Optional preference parameter.
-   * @returns A promise that resolves to the recommended address as a string.
-   */
-  async getRecommendedAddress(preference?: unknown): Promise<string> {
-    return (await this.getRecommendedAddressObj(preference)).toString();
-  }
-
-  /**
-   * Gets an array of addresses associated with the signer as strings.
-   *
-   * @returns A promise that resolves to an array of addresses as strings.
-   */
-  async getAddresses(): Promise<string[]> {
-    return this.getAddressObjs().then((addresses) =>
-      addresses.map((address) => address.toString()),
-    );
   }
 
   /**
