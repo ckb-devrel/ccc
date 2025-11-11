@@ -53,12 +53,16 @@ import { RgbppApiSpvProof } from "../../types/spv.js";
 
 const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
 
-export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
+export abstract class RgbppBtcWallet {
+  protected btcAssetsApi: BtcAssetsApiBase;
+  protected networkConfig: NetworkConfig;
+
   constructor(
-    protected networkConfig: NetworkConfig,
+    networkConfig: NetworkConfig,
     btcAssetApiConfig: BtcAssetApiConfig,
   ) {
-    super(btcAssetApiConfig);
+    this.btcAssetsApi = new BtcAssetsApiBase(btcAssetApiConfig);
+    this.networkConfig = networkConfig;
   }
 
   abstract getAddress(): Promise<string>;

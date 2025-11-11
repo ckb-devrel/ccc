@@ -18,17 +18,21 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
     return this.signer.getBtcAccount();
   }
 
-  async signAndBroadcast(psbt: Psbt): Promise<string> {
+  async signAndBroadcast(
+    psbt: Psbt,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
     // JoyID uses different signing method
     if (
       this.signer.constructor.name === "BitcoinSigner" &&
       "name" in this.signer
     ) {
+      // TODO: fix options support
       return this.signer.pushPsbt(psbt.toHex());
     }
 
     // UniSat and OKX use standard method
-    const signedPsbt = await this.signer.signPsbt(psbt.toHex());
+    const signedPsbt = await this.signer.signPsbt(psbt.toHex(), options);
     return this.signer.pushPsbt(signedPsbt);
   }
 }
