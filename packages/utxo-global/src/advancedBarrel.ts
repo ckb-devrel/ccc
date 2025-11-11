@@ -1,6 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 
 export interface Provider {
+  signPsbt(psbtHex: string, options?: ccc.SignPsbtOptions): Promise<string>;
+
   requestAccounts(): Promise<string[]>;
   getAccount(): Promise<string[]>;
   getPublicKey(): Promise<{ address: string; publicKey: string }[]>;

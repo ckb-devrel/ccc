@@ -215,7 +215,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * @param psbtHex - The hex string of PSBT to sign
    * @returns A promise that resolves to the signed PSBT hex string
    */
-  async signPsbt(psbtHex: string): Promise<string> {
+  async signPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
     const { address } = await this.assertConnection();
 
     const config = this.getConfig();
@@ -224,6 +227,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: psbtHex,
+          options,
           signerAddress: address,
           autoFinalized: true,
         },

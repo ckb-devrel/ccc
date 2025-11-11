@@ -5,6 +5,7 @@ import { Client, KnownScript } from "../../client/index.js";
 import { HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
+import { SignPsbtOptions } from "./psbt.js";
 import { btcEcdsaPublicKeyHash } from "./verify.js";
 
 /**
@@ -132,10 +133,13 @@ export abstract class SignerBtc extends Signer {
    * Signs a Partially Signed Bitcoin Transaction (PSBT).
    *
    * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT hex string
-   * @todo Add support for Taproot signing options (useTweakedSigner, etc.)
    */
-  abstract signPsbt(psbtHex: string): Promise<string>;
+  abstract signPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string>;
 
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.

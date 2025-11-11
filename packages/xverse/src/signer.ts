@@ -170,8 +170,66 @@ export class Signer extends ccc.SignerBtc {
     ).signature;
   }
 
-  async signPsbt(_: string): Promise<string> {
-    throw new Error("Not implemented");
+  /**
+   * Signs a PSBT using Xverse wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT hex string
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: A string representing the PSBT to sign, encoded in base64
+   * - signInputs: A Record<string, number[]> where:
+   *   - keys are the addresses to use for signing
+   *   - values are the indexes of the inputs to sign with each address
+   *
+   * Xverse returns:
+   * - psbt: The base64 encoded signed PSBT
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
+  async signPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    if (!options || !options.toSignInputs.length) {
+      throw new Error("Must specify input(s) to sign");
+    }
+
+    // Convert hex to base64 as required by Xverse
+    const psbtBytes = ccc.bytesFrom(psbtHex);
+    const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+
+    const signedPsbtBase64 = (
+      await checkResponse(
+        this.provider.request("signPsbt", {
+          psbt: psbtBase64,
+          // Build signInputs: Record<address, input_indexes[]>
+          // Multiple inputs with the same address should be grouped together
+          signInputs: options.toSignInputs.reduce(
+            (acc, input) => {
+              if (!input.address) {
+                throw new Error(
+                  "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+                );
+              }
+              // Append to existing array or create new one
+              if (acc[input.address]) {
+                acc[input.address].push(input.index);
+              } else {
+                acc[input.address] = [input.index];
+              }
+              return acc;
+            },
+            {} as Record<string, number[]>,
+          ),
+        }),
+      )
+    ).psbt;
+
+    const signedPsbtBytes = ccc.bytesFrom(signedPsbtBase64, "base64");
+    return ccc.hexFrom(signedPsbtBytes).slice(2);
   }
 
   async pushPsbt(_: string): Promise<string> {
