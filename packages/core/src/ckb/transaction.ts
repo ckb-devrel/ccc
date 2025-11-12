@@ -19,7 +19,7 @@ import {
   numToBytes,
   numToHex,
 } from "../num/index.js";
-import { FeePayer, FeePayerManager } from "../signer/feePayer/index.js";
+import { FeePayer } from "../signer/feePayer/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
@@ -291,6 +291,10 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
    */
   clone(): CellOutput {
     return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
+  }
+
+  margin(dataLen: NumLike = 0): Num {
+    return this.capacity - fixedPointFrom(this.occupiedSize) - numFrom(dataLen);
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -1938,6 +1942,14 @@ export class Transaction extends mol.Entity.Base<
     }, numFrom(0));
   }
 
+  getOutputCapacityMargin(index: number): Num {
+    const output = this.outputs[index];
+    if (output === undefined) {
+      return Zero;
+    }
+    return output.margin(bytesFrom(this.outputsData[index] ?? "0x").length);
+  }
+
   async completeInputs<T>(
     from: Signer,
     filter: ClientCollectableSearchKeyFilterLike,
@@ -1952,9 +1964,6 @@ export class Transaction extends mol.Entity.Base<
     addedCount: number;
     accumulated?: T;
   }> {
-    from.setOptionalProperties({
-      filter,
-    });
     const { addedCount, accumulated } = await from.completeInputs(
       this,
       from.client,
@@ -1962,7 +1971,6 @@ export class Transaction extends mol.Entity.Base<
       accumulator,
       init,
     );
-    from.setOptionalProperties({});
     return { addedCount, accumulated };
   }
 
@@ -1971,15 +1979,14 @@ export class Transaction extends mol.Entity.Base<
     capacityTweak?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    from.setOptionalProperties({
-      filter,
-    });
     const addedCount = await from.completeInputsByCapacity(
       this,
       from.client,
       capacityTweak,
+      {
+        filter,
+      },
     );
-    from.setOptionalProperties({});
     return addedCount;
   }
 
@@ -2167,14 +2174,12 @@ export class Transaction extends mol.Entity.Base<
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    from.setOptionalProperties({
+    const result = await from.completeFee(this, from.client, {
       changeFn: change,
       feeRate: expectedFeeRate,
       filter,
       options,
     });
-    const result = await from.completeFee(this, from.client);
-    from.setOptionalProperties({});
     return result;
   }
 
@@ -2283,15 +2288,15 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
-  async completeByFeePayers(
+  async completeByFeePayer(
     client: Client,
-    feePayers: Array<FeePayer> | FeePayerManager,
+    ...feePayers: FeePayer[]
   ): Promise<void> {
-    if (feePayers instanceof FeePayerManager) {
-      await feePayers.completeTxFee(this, client);
-    } else {
-      const manager = new FeePayerManager(feePayers);
-      await manager.completeTxFee(this, client);
+    for (const feePayer of feePayers) {
+      await feePayer.prepareTransaction(this);
+    }
+    for (const feePayer of feePayers) {
+      await feePayer.completeTxFee(this, client);
     }
   }
 
