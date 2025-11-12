@@ -1,17 +1,12 @@
 import { Address } from "../../address/index.js";
 import { Script } from "../../ckb/script.js";
-import {
-  Cell,
-  CellOutput,
-  Transaction,
-  TransactionLike,
-} from "../../ckb/transaction.js";
+import { Cell, CellOutput, Transaction } from "../../ckb/transaction.js";
 import { ErrorTransactionInsufficientCapacity } from "../../ckb/transactionErrors.js";
 import { Client } from "../../client/client.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../client/clientTypes.advanced.js";
 import { fixedPointFrom, Zero } from "../../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
-import { FeePayer } from "./index.js";
+import { FeePayer, FeeRateOptions } from "./index.js";
 
 function defaultChangeFn(
   tx: Transaction,
@@ -28,14 +23,22 @@ function defaultChangeFn(
   return 0;
 }
 
-export abstract class SignerFeePayer implements FeePayer {
-  private changeFn?: (
-    tx: Transaction,
-    capacity: Num,
-  ) => Promise<NumLike> | NumLike;
-  private feeRate?: NumLike;
-  private filter?: ClientCollectableSearchKeyFilterLike;
-  private options?: {
+export interface FeePayerFromAddressOptions {
+  changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
+  feeRate?: NumLike;
+  filter?: ClientCollectableSearchKeyFilterLike;
+  options?: {
+    feeRateBlockRange?: NumLike;
+    maxFeeRate?: NumLike;
+    shouldAddInputs?: boolean;
+  };
+}
+
+export abstract class FeePayerFromAddress extends FeePayer {
+  changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
+  feeRate?: NumLike;
+  filter?: ClientCollectableSearchKeyFilterLike;
+  options?: {
     feeRateBlockRange?: NumLike;
     maxFeeRate?: NumLike;
     shouldAddInputs?: boolean;
@@ -79,28 +82,23 @@ export abstract class SignerFeePayer implements FeePayer {
     );
   }
 
-  /**
-   * Prepares a transaction before signing.
-   * This method can be overridden by subclasses to perform any necessary steps,
-   * such as adding cell dependencies or witnesses, before the transaction is signed.
-   * The default implementation converts the {@link TransactionLike} object to a {@link Transaction} object
-   * without modification.
-   *
-   * @remarks
-   * Note that this default implementation does not add any cell dependencies or dummy witnesses.
-   * This may lead to an underestimation of transaction size and fees if used with methods
-   * like `Transaction.completeFee`. Subclasses for signers that are intended to sign
-   * transactions should override this method to perform necessary preparations.
-   *
-   * @param tx - The transaction to prepare.
-   * @returns A promise that resolves to the prepared {@link Transaction} object.
-   */
-  async prepareTransaction(tx: TransactionLike): Promise<Transaction> {
-    return Transaction.from(tx);
+  async completeTxFee(
+    tx: Transaction,
+    client: Client,
+    options?: FeeRateOptions,
+  ): Promise<void> {
+    await this.completeFee(tx, client, options);
   }
 
-  async completeTxFee(tx: Transaction, client: Client): Promise<void> {
-    await this.completeFee(tx, client);
+  mergeOptions(
+    manualOptions?: FeePayerFromAddressOptions,
+  ): FeePayerFromAddressOptions {
+    return {
+      changeFn: manualOptions?.changeFn ?? this.changeFn,
+      feeRate: manualOptions?.feeRate ?? this.feeRate,
+      filter: manualOptions?.filter ?? this.filter,
+      options: manualOptions?.options ?? this.options,
+    };
   }
 
   setOptionalProperties(props: {
@@ -122,10 +120,12 @@ export abstract class SignerFeePayer implements FeePayer {
   async completeFee(
     tx: Transaction,
     client: Client,
+    options?: FeePayerFromAddressOptions,
   ): Promise<[number, boolean]> {
-    const feeRate =
-      this.feeRate ??
-      (await client.getFeeRate(this.options?.feeRateBlockRange, this.options));
+    const mergedOptions = this.mergeOptions(options);
+
+    // Get fee rate at first
+    const feeRate = await FeePayer.getFeeRate(client, mergedOptions);
 
     // Complete all inputs extra infos for cache
     await tx.getInputsCapacity(client);
@@ -142,7 +142,7 @@ export abstract class SignerFeePayer implements FeePayer {
     // ===
     while (true) {
       collected += await (async () => {
-        if (!(this.options?.shouldAddInputs ?? true)) {
+        if (!(mergedOptions.options?.shouldAddInputs ?? true)) {
           return 0;
         }
 
@@ -151,6 +151,7 @@ export abstract class SignerFeePayer implements FeePayer {
             tx,
             client,
             leastFee + leastExtraCapacity,
+            options,
           );
         } catch (err) {
           if (
@@ -192,7 +193,7 @@ export abstract class SignerFeePayer implements FeePayer {
       const txCopy = tx.clone();
       const needed = numFrom(
         await Promise.resolve(
-          this.changeFn?.(txCopy, fee - leastFee) ??
+          mergedOptions.changeFn?.(txCopy, fee - leastFee) ??
             defaultChangeFn(
               txCopy,
               (await this.getRecommendedAddressObj()).script,
@@ -233,6 +234,7 @@ export abstract class SignerFeePayer implements FeePayer {
     tx: Transaction,
     client: Client,
     capacityTweak?: NumLike,
+    options?: FeePayerFromAddressOptions,
   ): Promise<number> {
     const expectedCapacity =
       tx.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
@@ -241,10 +243,11 @@ export abstract class SignerFeePayer implements FeePayer {
       return 0;
     }
 
+    const mergedOptions = this.mergeOptions(options);
     const { addedCount, accumulated } = await this.completeInputs(
       tx,
       client,
-      this.filter ?? {
+      mergedOptions.filter ?? {
         scriptLenRange: [0, 1],
         outputDataLenRange: [0, 1],
       },

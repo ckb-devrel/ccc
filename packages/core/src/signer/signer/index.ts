@@ -14,7 +14,7 @@ import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
 import { verifyMessageEvmPersonal } from "../evm/verify.js";
-import { SignerFeePayer } from "../feePayer/defaultPayer.js";
+import { FeePayerFromAddress } from "../feePayer/feePayerFromAddress.js";
 import { verifyMessageNostrEvent } from "../nostr/verify.js";
 
 /**
@@ -78,7 +78,7 @@ export class Signature {
  * This class provides methods to connect, get addresses, and sign transactions.
  * @public
  */
-export abstract class Signer extends SignerFeePayer {
+export abstract class Signer extends FeePayerFromAddress {
   constructor(protected client_: Client) {
     super();
   }
