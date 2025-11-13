@@ -6,7 +6,7 @@ import { Client } from "../../client/client.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../client/clientTypes.advanced.js";
 import { fixedPointFrom, Zero } from "../../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
-import { FeePayer, FeeRateOptions } from "./index.js";
+import { FeePayer, FeeRateOptions } from "./feePayer.js";
 
 function defaultChangeFn(
   tx: Transaction,
