@@ -25,8 +25,7 @@ describe("createSpore [testnet]", () => {
     console.log("sporeId:", id);
 
     // Complete transaction
-    // await tx.completeFeeBy(signer);
-    await tx.completeByFeePayers(client, [signer]);
+    await tx.completeFeeBy(signer);
     tx = await signer.signTransaction(tx);
     console.log(JSON.stringify(JsonRpcTransformers.transactionFrom(tx)));
 
