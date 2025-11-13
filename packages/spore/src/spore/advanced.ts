@@ -49,9 +49,9 @@ export async function prepareCluster(
 
       // Add the output only if there's not already one with proxy lock
       if (!tx.outputs.some((output) => output.lock === lock)) {
-        const lockProxyInputCell = tx.getInput(lockProxyInputIndex)!;
-        await lockProxyInputCell.completeExtraInfos(signer.client);
-        tx.addOutput(lockProxyInputCell.cellOutput!);
+        tx.addOutput(
+          await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
+        );
       }
 
       tx.addCellDeps({
