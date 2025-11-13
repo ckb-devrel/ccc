@@ -58,6 +58,20 @@ describe("Transaction", () => {
         },
       );
 
+      // Mock the findCells method to return our mock UDT cells
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          if (
+            searchKey.filter?.script &&
+            ccc.Script.from(searchKey.filter.script).eq(type)
+          ) {
+            for (const cell of mockUdtCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
       // Mock client.getCell to return the cell data for inputs
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         const cell = mockUdtCells.find((c) => c.outPoint.eq(outPoint));
@@ -263,9 +277,12 @@ describe("Transaction", () => {
 
     it("should use only one cell when user has only one cell available", async () => {
       // Mock signer to return only one cell
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          if (
+            searchKey.filter?.script &&
+            ccc.Script.from(searchKey.filter.script).eq(type)
+          ) {
             yield mockUdtCells[0]; // Only yield the first cell
           }
         },
@@ -321,6 +338,18 @@ describe("Transaction", () => {
         async function* (filter) {
           // Return capacity cells for general queries
           if (!filter.script || filter.scriptLenRange) {
+            for (const cell of mockCapacityCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
+      // Mock the findCells method to return capacity cells
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          // Return capacity cells for general queries
+          if (!searchKey.filter?.script || searchKey.filter?.scriptLenRange) {
             for (const cell of mockCapacityCells) {
               yield cell;
             }
@@ -551,7 +580,15 @@ describe("Transaction", () => {
       );
 
       // Verify that findCells was called with the custom filter
-      expect(signer.findCells).toHaveBeenCalledWith(customFilter, true);
+      for (const address of await signer.getAddressObjs()) {
+        expect(client.findCells).toHaveBeenCalledWith({
+          script: address.script,
+          scriptType: "lock",
+          filter: customFilter,
+          scriptSearchMode: "exact",
+          withData: true,
+        });
+      }
     });
 
     it("should throw error when change function doesn't use all capacity", async () => {
