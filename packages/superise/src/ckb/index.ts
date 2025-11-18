@@ -39,7 +39,9 @@ export class CkbSigner extends ccc.Signer {
     if (!connection) return;
     try {
       this.connection = JSON.parse(connection) as CkbConnection;
-    } catch {}
+    } catch (error) {
+      console.error("Failed to restore superise connection:", error);
+    }
   }
 
   private async getConnection() {
@@ -141,12 +143,14 @@ export class CkbSigner extends ccc.Signer {
     metadata: SignCkbHashAllMetadata,
   ) {
     const txHash = ccc.Transaction.from(tx).hash();
-    this._uiMetadataMap = { [txHash]: metadata };
+    this._uiMetadataMap[txHash] = metadata;
   }
 
   private getUiMetadataFromTx(tx: ccc.TransactionLike) {
     const txHash = ccc.Transaction.from(tx).hash();
-    return this._uiMetadataMap[txHash];
+    const metadata = this._uiMetadataMap[txHash];
+    delete this._uiMetadataMap[txHash];
+    return metadata;
   }
 
   override async prepareTransaction(txLike: ccc.TransactionLike) {

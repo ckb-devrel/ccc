@@ -14,7 +14,7 @@ import { METAMASK_SVG } from "./assets/metamask.svg.js";
 import { NOSTR_SVG } from "./assets/nostr.svg.js";
 import { OKX_SVG } from "./assets/okx.svg.js";
 import { REI_SVG } from "./assets/rei.svg.js";
-import { SUPERISE_SVG } from "./assets/superise.svg";
+import { SUPERISE_SVG } from "./assets/superise.svg.js";
 import { UNI_SAT_SVG } from "./assets/uni-sat.svg.js";
 import { UTXO_GLOBAL_SVG } from "./assets/utxo-global.svg.js";
 
