@@ -1,8 +1,8 @@
 {
-  "name": "@ckb-ccc/ccc",
-  "version": "1.1.21",
-  "description": "CCC - CKBer's Codebase. Common Chains Connector.",
-  "author": "Hanssen0 <hanssen0@hanssen0.com>",
+  "name": "@ckb-ccc/superise",
+  "version": "1.0.29",
+  "description": "Common Chains Connector's support for SupeRISE",
+  "author": "rivjc",
   "license": "MIT",
   "private": false,
   "homepage": "https://github.com/ckb-devrel/ccc",
@@ -56,16 +56,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/eip6963": "workspace:*",
-    "@ckb-ccc/joy-id": "workspace:*",
-    "@ckb-ccc/nip07": "workspace:*",
-    "@ckb-ccc/okx": "workspace:*",
-    "@ckb-ccc/rei": "workspace:*",
-    "@ckb-ccc/shell": "workspace:*",
-    "@ckb-ccc/uni-sat": "workspace:*",
-    "@ckb-ccc/utxo-global": "workspace:*",
-    "@ckb-ccc/xverse": "workspace:*",
-    "@ckb-ccc/superise": "workspace:*"
+    "@ckb-ccc/core": "workspace:*",
+    "@superise/bridge-api-types": "^0.0.5"
   },
   "packageManager": "pnpm@10.8.1"
 }
