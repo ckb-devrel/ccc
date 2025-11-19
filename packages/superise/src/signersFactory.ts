@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
-import "@superise/bridge-api-types";
-import { CkbSigner } from "./ckb";
+import type SupeRISE from "@superise/bridge-api-types";
+import { CkbSigner } from "./ckb/index.js";
 
 /**
  * @public
@@ -9,7 +9,9 @@ export function getSupeRISESigners(
   client: ccc.Client,
   _preferredNetworks?: ccc.NetworkPreference[],
 ): ccc.SignerInfo[] {
-  const windowRef = window;
+  const windowRef = window as {
+    superise?: SupeRISE.Bridge;
+  };
 
   if (typeof windowRef.superise === "undefined") {
     return [];

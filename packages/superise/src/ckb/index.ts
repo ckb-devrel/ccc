@@ -1,9 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import type {
-  Bridge,
-  CkbConnection,
-  SignCkbHashAllMetadata,
-} from "../advancedBarrel";
+import type SupeRISE from '@superise/bridge-api-types'
 
 export class CkbSigner extends ccc.Signer {
   get type() {
@@ -16,12 +12,12 @@ export class CkbSigner extends ccc.Signer {
 
   private connectionStorageKey = "superise-ckb-connection";
 
-  private connection?: CkbConnection;
+  private connection?: SupeRISE.CkbConnection;
 
-  private _uiMetadataMap: Record<string, SignCkbHashAllMetadata> = {};
+  private _uiMetadataMap: Record<string, SupeRISE.SignCkbHashAllMetadata> = {};
 
   constructor(
-    private readonly bridge: Bridge,
+    private readonly bridge: SupeRISE.Bridge,
     client: ccc.Client,
   ) {
     super(client);
@@ -38,7 +34,7 @@ export class CkbSigner extends ccc.Signer {
     const connection = localStorage.getItem(this.connectionStorageKey);
     if (!connection) return;
     try {
-      this.connection = JSON.parse(connection) as CkbConnection;
+      this.connection = JSON.parse(connection) as SupeRISE.CkbConnection;
     } catch (error) {
       console.error("Failed to restore superise connection:", error);
     }
@@ -140,7 +136,7 @@ export class CkbSigner extends ccc.Signer {
 
   public setUiMetadataForTx(
     tx: ccc.TransactionLike,
-    metadata: SignCkbHashAllMetadata,
+    metadata: SupeRISE.SignCkbHashAllMetadata,
   ) {
     const txHash = ccc.Transaction.from(tx).hash();
     this._uiMetadataMap[txHash] = metadata;

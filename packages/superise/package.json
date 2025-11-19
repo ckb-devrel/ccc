@@ -23,16 +23,6 @@
       "import": "./dist/barrel.js",
       "require": "./dist.commonjs/barrel.js",
       "default": "./dist.commonjs/barrel.js"
-    },
-    "./advancedBarrel": {
-      "import": "./dist/advancedBarrel.js",
-      "require": "./dist.commonjs/advancedBarrel.js",
-      "default": "./dist.commonjs/advancedBarrel.js"
-    },
-    "./advanced": {
-      "import": "./dist/advanced.js",
-      "require": "./dist.commonjs/advanced.js",
-      "default": "./dist.commonjs/advanced.js"
     }
   },
   "scripts": {
