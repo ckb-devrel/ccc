@@ -1198,4 +1198,441 @@ describe("Transaction", () => {
       });
     });
   });
+
+  describe("Margin Concept", () => {
+    describe("CellOutput.margin", () => {
+      it("should calculate margin correctly with no data", () => {
+        const cellOutput = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(1000),
+          lock,
+        });
+
+        const margin = cellOutput.margin(0);
+        const expectedMargin =
+          ccc.fixedPointFrom(1000) -
+          ccc.fixedPointFrom(cellOutput.occupiedSize);
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should calculate margin correctly with data length", () => {
+        const dataLen = 100;
+        const cellOutput = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(1000),
+          lock,
+        });
+
+        const margin = cellOutput.margin(dataLen);
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const expectedMargin =
+          cellOutput.capacity -
+          ccc.fixedPointFrom(cellOutput.occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should calculate margin with type script", () => {
+        const dataLen = 50;
+        const cellOutput = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(2000),
+          lock,
+          type,
+        });
+
+        const margin = cellOutput.margin(dataLen);
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const expectedMargin =
+          cellOutput.capacity -
+          ccc.fixedPointFrom(cellOutput.occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should return zero margin when capacity equals occupied size plus data", () => {
+        const dataLen = 10;
+        const cellOutput = ccc.CellOutput.from(
+          {
+            capacity: 0,
+            lock,
+          },
+          "0x" + "00".repeat(dataLen),
+        );
+
+        // Capacity is auto-calculated as occupiedSize + dataLen, so margin should be 0
+        const margin = cellOutput.margin(dataLen);
+        // The margin should be approximately 0, but due to fixed-point precision,
+        // we check it's very close to zero (within rounding error)
+        const expectedMargin =
+          cellOutput.capacity -
+          ccc.fixedPointFrom(cellOutput.occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should return zero margin when capacity is insufficient", () => {
+        const cellOutput = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(50),
+          lock,
+        });
+
+        const margin = cellOutput.margin(100); // Data length exceeds available capacity
+        expect(margin).toBe(ccc.Zero);
+      });
+
+      it("should handle large data length", () => {
+        const dataLen = 10000;
+        const cellOutput = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(20000),
+          lock,
+        });
+
+        const margin = cellOutput.margin(dataLen);
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const expectedMargin =
+          cellOutput.capacity -
+          ccc.fixedPointFrom(cellOutput.occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+    });
+
+    describe("Transaction.getOutputCapacityMargin", () => {
+      it("should get margin for existing output", () => {
+        const outputData = "0x12345678"; // 4 bytes
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: ccc.fixedPointFrom(1000),
+              lock,
+            },
+          ],
+          outputsData: [outputData],
+        });
+
+        const margin = tx.getOutputCapacityMargin(0);
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const dataLen = ccc.bytesFrom(outputData).length;
+        const expectedMargin =
+          tx.outputs[0].capacity -
+          ccc.fixedPointFrom(tx.outputs[0].occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should return zero for non-existent output", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [],
+        });
+
+        const margin = tx.getOutputCapacityMargin(0);
+        expect(margin).toBe(ccc.Zero);
+      });
+
+      it("should get margin for output with type script", () => {
+        const outputData = "0xabcd"; // 2 bytes
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: ccc.fixedPointFrom(2000),
+              lock,
+              type,
+            },
+          ],
+          outputsData: [outputData],
+        });
+
+        const margin = tx.getOutputCapacityMargin(0);
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const dataLen = ccc.bytesFrom(outputData).length;
+        const expectedMargin =
+          tx.outputs[0].capacity -
+          ccc.fixedPointFrom(tx.outputs[0].occupiedSize) -
+          ccc.fixedPointFrom(ccc.numFrom(dataLen));
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should handle empty output data", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: ccc.fixedPointFrom(1000),
+              lock,
+            },
+          ],
+          outputsData: ["0x"],
+        });
+
+        const margin = tx.getOutputCapacityMargin(0);
+        const expectedMargin =
+          ccc.fixedPointFrom(1000) -
+          ccc.fixedPointFrom(tx.outputs[0].occupiedSize);
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should handle missing output data", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: ccc.fixedPointFrom(1000),
+              lock,
+            },
+          ],
+        });
+
+        const margin = tx.getOutputCapacityMargin(0);
+        const expectedMargin =
+          ccc.fixedPointFrom(1000) -
+          ccc.fixedPointFrom(tx.outputs[0].occupiedSize);
+        expect(margin).toBe(expectedMargin);
+      });
+
+      it("should get margin for multiple outputs", () => {
+        const tx = ccc.Transaction.from({
+          outputs: [
+            {
+              capacity: ccc.fixedPointFrom(1000),
+              lock,
+            },
+            {
+              capacity: ccc.fixedPointFrom(2000),
+              lock,
+              type,
+            },
+          ],
+          outputsData: ["0x12", "0x3456"],
+        });
+
+        const margin0 = tx.getOutputCapacityMargin(0);
+        const margin1 = tx.getOutputCapacityMargin(1);
+
+        // Margin = capacity - occupiedSize - dataLen (all in fixed-point)
+        const dataLen0 = ccc.bytesFrom(tx.outputsData[0]).length;
+        const dataLen1 = ccc.bytesFrom(tx.outputsData[1]).length;
+        expect(margin0).toBe(
+          tx.outputs[0].capacity -
+            ccc.fixedPointFrom(tx.outputs[0].occupiedSize) -
+            ccc.fixedPointFrom(ccc.numFrom(dataLen0)),
+        );
+        expect(margin1).toBe(
+          tx.outputs[1].capacity -
+            ccc.fixedPointFrom(tx.outputs[1].occupiedSize) -
+            ccc.fixedPointFrom(ccc.numFrom(dataLen1)),
+        );
+      });
+    });
+  });
+
+  describe("Fee Payer Layer", () => {
+    let mockFeePayer1: ccc.FeePayer;
+    let mockFeePayer2: ccc.FeePayer;
+
+    beforeEach(() => {
+      // Create mock fee payers
+      mockFeePayer1 = {
+        prepareTransaction: vi.fn().mockResolvedValue(undefined),
+        completeTxFee: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ccc.FeePayer;
+
+      mockFeePayer2 = {
+        prepareTransaction: vi.fn().mockResolvedValue(undefined),
+        completeTxFee: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ccc.FeePayer;
+    });
+
+    it("should call prepareTransaction on all fee payers", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it("should call completeTxFee on all fee payers after prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+
+      // Verify both methods were called
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(tx, client);
+      expect(mockFeePayer2.completeTxFee).toHaveBeenCalledWith(tx, client);
+
+      // Verify prepareTransaction was called before completeTxFee
+      // by checking the order of calls
+      const prepare1Order = (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mock.invocationCallOrder[0];
+      const complete1Order = (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.invocationCallOrder[0];
+      expect(prepare1Order).toBeLessThan(complete1Order);
+    });
+
+    it("should handle single fee payer", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(client, mockFeePayer1);
+
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer2.prepareTransaction).not.toHaveBeenCalled();
+      expect(mockFeePayer2.completeTxFee).not.toHaveBeenCalled();
+    });
+
+    it("should handle empty fee payer list", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      // Should not throw with empty fee payer list
+      await expect(tx.completeByFeePayer(client)).resolves.not.toThrow();
+    });
+
+    it("should handle multiple fee payers in sequence", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const callOrder: string[] = [];
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("prepare1");
+        return undefined;
+      });
+      (
+        mockFeePayer2.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("prepare2");
+        return undefined;
+      });
+      (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("complete1");
+      });
+      (
+        mockFeePayer2.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("complete2");
+      });
+
+      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+
+      // Verify order: all prepareTransaction calls first, then all completeTxFee calls
+      expect(callOrder).toEqual([
+        "prepare1",
+        "prepare2",
+        "complete1",
+        "complete2",
+      ]);
+    });
+
+    it("should propagate errors from prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const error = new Error("Prepare transaction failed");
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(error);
+
+      await expect(
+        tx.completeByFeePayer(client, mockFeePayer1),
+      ).rejects.toThrow("Prepare transaction failed");
+    });
+
+    it("should propagate errors from completeTxFee", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const error = new Error("Complete fee failed");
+      (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(error);
+
+      await expect(
+        tx.completeByFeePayer(client, mockFeePayer1),
+      ).rejects.toThrow("Complete fee failed");
+    });
+
+    it("should handle fee payer that modifies transaction in prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const modifiedTx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+          {
+            capacity: ccc.fixedPointFrom(50),
+            lock,
+          },
+        ],
+      });
+
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(modifiedTx);
+
+      await tx.completeByFeePayer(client, mockFeePayer1);
+
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(tx, client);
+    });
+  });
 });

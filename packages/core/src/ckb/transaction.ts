@@ -295,7 +295,14 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
   }
 
   margin(dataLen: NumLike = 0): Num {
-    return this.capacity - fixedPointFrom(this.occupiedSize) - numFrom(dataLen);
+    let margin =
+      this.capacity -
+      fixedPointFrom(this.occupiedSize) -
+      fixedPointFrom(numFrom(dataLen));
+    if (margin < Zero) {
+      margin = Zero;
+    }
+    return margin;
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
