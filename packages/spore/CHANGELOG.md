@@ -1,5 +1,12 @@
 # @ckb-ccc/spore
 
+## 1.5.14
+### Patch Changes
+
+
+
+- [#324](https://github.com/ckb-devrel/ccc/pull/324) [`3aa4425`](https://github.com/ckb-devrel/ccc/commit/3aa4425c6f7d756ceb464f58716b1a89620e2d5b) Thanks [@ashuralyk](https://github.com/ashuralyk)! - Enable searching manual proxy lock for cluster in LockProxy mode
+
 ## 1.5.13
 ### Patch Changes
 
