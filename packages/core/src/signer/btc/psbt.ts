@@ -25,7 +25,7 @@ export type ToSignInput = {
   /**
    * (Optional) Sighash types to use for signing.
    */
-  sigHashType?: number[];
+  sighashTypes?: number[];
   /**
    * (Optional) When signing and unlocking Taproot addresses, the tweakSigner is used by default
    * for signature generation. Setting this to true allows for signing with the original private key.
@@ -41,7 +41,7 @@ export type ToSignInput = {
       /**
        * The public key whose corresponding private key to use for signing.
        */
-      pubkey?: string;
+      publicKey?: string;
     }
   | {
       /**
@@ -51,6 +51,6 @@ export type ToSignInput = {
       /**
        * The public key whose corresponding private key to use for signing.
        */
-      pubkey: string;
+      publicKey: string;
     }
 );

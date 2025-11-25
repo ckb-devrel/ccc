@@ -286,7 +286,7 @@ export abstract class RgbppBtcWallet {
 
     let filteredUtxos = utxos;
     if (knownInputs) {
-      filteredUtxos = utxos.filter((utxo) => {
+      filteredUtxos = utxos.filter((utxo: BtcApiUtxo) => {
         return !knownInputs.some(
           (input) => input.hash === utxo.txid && input.index === utxo.vout,
         );
@@ -372,7 +372,9 @@ export abstract class RgbppBtcWallet {
       }
     }
 
-    return Math.ceil(bufferedVirtualSize * feeRate);
+    return Math.ceil(
+      bufferedVirtualSize * (feeRate ?? this.networkConfig.btcFeeRate),
+    );
   }
 
   /**
@@ -611,18 +613,20 @@ export abstract class RgbppBtcWallet {
   }
 
   getTransaction(txId: string) {
-    return this.request<BtcApiTransaction>(`/bitcoin/v1/transaction/${txId}`);
+    return this.btcAssetsApi.request<BtcApiTransaction>(
+      `/bitcoin/v1/transaction/${txId}`,
+    );
   }
 
   async getTransactionHex(txId: string) {
-    const { hex } = await this.request<BtcApiTransactionHex>(
+    const { hex } = await this.btcAssetsApi.request<BtcApiTransactionHex>(
       `/bitcoin/v1/transaction/${txId}/hex`,
     );
     return hex;
   }
 
   getUtxos(address: string, params?: BtcApiUtxoParams) {
-    return this.request<BtcApiUtxo[]>(
+    return this.btcAssetsApi.request<BtcApiUtxo[]>(
       `/bitcoin/v1/address/${address}/unspent`,
       {
         params,
@@ -647,12 +651,15 @@ export abstract class RgbppBtcWallet {
 
   async getRgbppSpvProof(btcTxId: string, confirmations: number) {
     const spvProof: RgbppApiSpvProof | null =
-      await this.request<RgbppApiSpvProof>("/rgbpp/v1/btc-spv/proof", {
-        params: {
-          btc_txid: btcTxId,
-          confirmations,
+      await this.btcAssetsApi.request<RgbppApiSpvProof>(
+        "/rgbpp/v1/btc-spv/proof",
+        {
+          params: {
+            btc_txid: btcTxId,
+            confirmations,
+          },
         },
-      });
+      );
 
     return spvProof
       ? {
@@ -666,13 +673,13 @@ export abstract class RgbppBtcWallet {
   }
 
   getRecommendedFee() {
-    return this.request<BtcApiRecommendedFeeRates>(
+    return this.btcAssetsApi.request<BtcApiRecommendedFeeRates>(
       `/bitcoin/v1/fees/recommended`,
     );
   }
 
   async sendTransaction(txHex: string): Promise<string> {
-    const { txid: txId } = await this.post<BtcApiSentTransaction>(
+    const { txid: txId } = await this.btcAssetsApi.post<BtcApiSentTransaction>(
       "/bitcoin/v1/transaction",
       {
         body: JSON.stringify({
@@ -684,10 +691,10 @@ export abstract class RgbppBtcWallet {
   }
 
   async getRgbppCellOutputs(btcAddress: string) {
-    const res = await this.request<{ cellOutput: ccc.CellOutput }[]>(
-      `/rgbpp/v1/address/${btcAddress}/assets`,
-    );
+    const res = await this.btcAssetsApi.request<
+      { cellOutput: ccc.CellOutput }[]
+    >(`/rgbpp/v1/address/${btcAddress}/assets`);
 
-    return res.map((item) => item.cellOutput);
+    return res.map((item: { cellOutput: ccc.CellOutput }) => item.cellOutput);
   }
 }

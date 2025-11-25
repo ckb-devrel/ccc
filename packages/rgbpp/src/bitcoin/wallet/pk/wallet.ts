@@ -67,7 +67,7 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
         }
 
         // Validate pubkey if provided
-        if (input.pubkey) {
+        if (input.publicKey) {
           const fullPubkey = account.keyPair.publicKey.toString("hex");
           const xOnlyPubkey =
             account.addressType === AddressType.P2TR
@@ -75,9 +75,9 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
               : fullPubkey;
 
           // Accept both full pubkey and x-only pubkey for Taproot
-          if (input.pubkey !== fullPubkey && input.pubkey !== xOnlyPubkey) {
+          if (input.publicKey !== fullPubkey && input.publicKey !== xOnlyPubkey) {
             throw new Error(
-              `Invalid public key in toSignInput. Expected ${fullPubkey} or ${xOnlyPubkey}, got ${input.pubkey}`,
+              `Invalid public key in toSignInput. Expected ${fullPubkey} or ${xOnlyPubkey}, got ${input.publicKey}`,
             );
           }
         }
