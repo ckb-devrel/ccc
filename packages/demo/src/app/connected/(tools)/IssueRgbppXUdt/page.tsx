@@ -11,7 +11,7 @@ import {
   BtcApiUtxo,
   BtcAssetApiConfig,
   buildNetworkConfig,
-  CkbRgbppUnlockSinger,
+  CkbRgbppUnlockSigner,
   createBrowserRgbppBtcWallet,
   getSupportedWallets,
   isMainnet,
@@ -176,20 +176,20 @@ export default function IssueRGBPPXUdt() {
       });
   }, [rgbppBtcWallet]);
 
-  const [ckbRgbppUnlockSinger, setCkbRgbppUnlockSinger] =
-    useState<CkbRgbppUnlockSinger>();
+  const [CkbRgbppUnlockSigner, setCkbRgbppUnlockSigner] =
+    useState<CkbRgbppUnlockSigner>();
 
   useEffect(() => {
     if (!ckbClient || !rgbppBtcWallet || !rgbppUdtClient) {
-      setCkbRgbppUnlockSinger(undefined);
+      setCkbRgbppUnlockSigner(undefined);
       return;
     }
 
     let mounted = true;
     rgbppBtcWallet.getAddress().then((address: string) => {
       if (mounted) {
-        setCkbRgbppUnlockSinger(
-          new CkbRgbppUnlockSinger(
+        setCkbRgbppUnlockSigner(
+          new CkbRgbppUnlockSigner(
             ckbClient,
             address,
             rgbppBtcWallet,
@@ -209,7 +209,7 @@ export default function IssueRGBPPXUdt() {
       !signer ||
       !(signer instanceof SignerBtc) ||
       !rgbppBtcWallet ||
-      !ckbRgbppUnlockSinger ||
+      !CkbRgbppUnlockSigner ||
       !rgbppUdtClient ||
       !selectedUtxo
     ) {
@@ -308,7 +308,7 @@ export default function IssueRGBPPXUdt() {
         btcTxId,
       );
       const rgbppSignedCkbTx =
-        await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+        await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
       await rgbppSignedCkbTx.completeFeeBy(signer);
 
       setCurrentStep("waiting-ckb");
@@ -333,7 +333,7 @@ export default function IssueRGBPPXUdt() {
     selectedUtxo,
     rgbppBtcWallet,
     rgbppUdtClient,
-    ckbRgbppUnlockSinger,
+    CkbRgbppUnlockSigner,
     log,
     error,
     explorerTransaction,
