@@ -146,14 +146,7 @@ export function Editor({
              export * from '@ckb-ccc/rgbpp';
              export function render(...msgs: unknown[]): Promise<void>; 
              export const signer: ccc.Signer; 
-             export const client: ccc.Client; 
-             export function initRgbppEnv(signer: ccc.SignerBtc): Promise<{
-              btcRgbppSigner: import('@ckb-ccc/rgbpp').BrowserRgbppBtcWallet;
-              ckbRgbppUnlockSinger: import('@ckb-ccc/rgbpp').CkbRgbppUnlockSinger;
-              rgbppUdtClient: import('@ckb-ccc/rgbpp').RgbppUdtClient;
-            }>;
-            export function prepareRgbppUdtIssuanceCells(signer: ccc.Signer, utxoSeal: import('@ckb-ccc/rgbpp').UtxoSeal,
-              rgbppUdtClient: import('@ckb-ccc/rgbpp').RgbppUdtClient,): Promise<import('@ckb-ccc/core').Cell[]>;`,
+             export const client: ccc.Client;`,
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
 

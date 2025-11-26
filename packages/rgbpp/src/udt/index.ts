@@ -106,6 +106,49 @@ export class RgbppUdtClient {
     });
   };
 
+  async createRgbppUdtIssuanceCells(
+    signer: ccc.Signer,
+    utxoSeal: UtxoSeal,
+  ): Promise<ccc.Cell[]> {
+    const rgbppLockScript = this.buildRgbppLockScript(utxoSeal);
+
+    const rgbppCellsGen =
+      await signer.client.findCellsByLock(rgbppLockScript);
+    const rgbppCells: ccc.Cell[] = [];
+    for await (const cell of rgbppCellsGen) {
+      rgbppCells.push(cell);
+    }
+
+    if (rgbppCells.length !== 0) {
+      console.log("Using existing RGB++ cell");
+      return rgbppCells;
+    }
+
+    console.log("RGB++ cell not found, creating a new one");
+    const tx = ccc.Transaction.default();
+
+    // If additional capacity is required when used as an input in a transaction, it can always be supplemented in `completeInputsByCapacity`.
+    tx.addOutput({
+      lock: rgbppLockScript,
+    });
+
+    await tx.completeInputsByCapacity(signer);
+    await tx.completeFeeBy(signer);
+    const txHash = await signer.sendTransaction(tx);
+    await signer.client.waitTransaction(txHash);
+    console.log(`RGB++ cell created, txHash: ${txHash}`);
+
+    const cell = await signer.client.getCellLive({
+      txHash,
+      index: 0,
+    });
+    if (!cell) {
+      throw new Error("Cell not found");
+    }
+
+    return [cell];
+  }
+
   async issuanceCkbPartialTx(
     params: RgbppUdtIssuance,
   ): Promise<ccc.Transaction> {
