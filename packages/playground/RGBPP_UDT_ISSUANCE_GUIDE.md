@@ -55,7 +55,7 @@ const btcRgbppSigner = await ccc.rgbpp.createBrowserRgbppBtcWallet(
 );
 
 const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(networkConfig, signer.client);
-const ckbRgbppUnlockSinger = new ccc.rgbpp.CkbRgbppUnlockSinger(...);
+const CkbRgbppUnlockSigner = new ccc.rgbpp.CkbRgbppUnlockSigner({/* ... */});
 ```
 
 `https://api-testnet.rgbpp.com` here is the testnet btc-assets-api URL. It's a service that retrieves BTC/RGB++ information/assets and processes transactions with these assets. It serves as the critical infrastructure component that connects Bitcoin and CKB networks for RGB++ operations.
@@ -63,7 +63,7 @@ const ckbRgbppUnlockSinger = new ccc.rgbpp.CkbRgbppUnlockSinger(...);
 **Key Components**: 
 - `createBrowserRgbppBtcWallet`: Creates RGB++ Bitcoin wallet for cross-chain operations
 - `RgbppUdtClient`: High-level APIs for xUDT operations
-- `CkbRgbppUnlockSinger`: Handles RGB++ lock script unlock logic
+- `CkbRgbppUnlockSigner`: Handles RGB++ lock script unlock logic
 
 ### Step 3: UTXO Seal and Issuance Cell
 
@@ -115,12 +115,12 @@ const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
   btcTxId,
 );
 
-const rgbppSignedCkbTx = await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+const rgbppSignedCkbTx = await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 await rgbppSignedCkbTx.completeFeeBy(signer);
 const ckbFinalTx = await signer.signTransaction(rgbppSignedCkbTx);
 const txHash = await signer.client.sendTransaction(ckbFinalTx);
 ```
 
-In `ckbRgbppUnlockSinger.signTransaction`, the BTC transaction's confirmation status is periodically checked through the SPV service. Upon confirmation, we acquire the new single-use seal which represents ownership of the issued RGB++ xUDT token. The transaction ID of this UTXO is used to replace the placeholder value in the RGB++ lock script, enabling the assembly of the final CKB transaction.
+In `CkbRgbppUnlockSigner.signTransaction`, the BTC transaction's confirmation status is periodically checked through the SPV service. Upon confirmation, we acquire the new single-use seal which represents ownership of the issued RGB++ xUDT token. The transaction ID of this UTXO is used to replace the placeholder value in the RGB++ lock script, enabling the assembly of the final CKB transaction.
 
 The final CKB transaction is then submitted to the network, completing the token issuance process.

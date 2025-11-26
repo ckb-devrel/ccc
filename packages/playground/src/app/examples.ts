@@ -32,7 +32,8 @@ await tx.completeFeeBy(signer, 1000);
 await render(tx);
 `;
 
-export const RGBPP_UDT_ISSUANCE = `import { ccc } from "@ckb-ccc/ccc";
+export const RGBPP_UDT_ISSUANCE = `
+import { ccc } from "@ckb-ccc/ccc";
 import { render, signer, client } from "@ckb-ccc/playground";
 
 // ensure supported wallet is connected
@@ -85,8 +86,11 @@ if (!btcRgbppSigner) {
   throw new Error("Failed to create browser RGBPP BTC singer");
 }
 
-const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(networkConfig, signer.client);
-const ckbRgbppUnlockSinger = new ccc.rgbpp.CkbRgbppUnlockSinger(
+const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(
+  networkConfig,
+  signer.client,
+);
+const ckbRgbppUnlockSigner = new ccc.rgbpp.CkbRgbppUnlockSigner(
   signer.client,
   await btcRgbppSigner.getAddress(),
   btcRgbppSigner,
@@ -147,12 +151,12 @@ const ckbPartialTxInjected = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
   btcTxId,
 );
 const rgbppSignedCkbTx =
-  await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+  await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 await rgbppSignedCkbTx.completeFeeBy(signer);
 const ckbFinalTx = await signer.signTransaction(rgbppSignedCkbTx);
 await render("Final RGB++ CKB tx", ckbFinalTx);
 
 const txHash = await signer.client.sendTransaction(ckbFinalTx);
-await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
 await render("RGB++ CKB tx", txHash);
 `;
