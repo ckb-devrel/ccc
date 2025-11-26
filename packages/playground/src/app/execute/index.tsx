@@ -1,7 +1,6 @@
 import * as cccLib from "@ckb-ccc/ccc";
 import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
 import { ccc } from "@ckb-ccc/connector-react";
-import * as rgbppLib from "@ckb-ccc/rgbpp";
 import * as dobRenderLib from "@nervina-labs/dob-render";
 import * as React from "react";
 import ts from "typescript";
@@ -65,7 +64,6 @@ export async function execute(
       "@ckb-ccc/ccc": cccLib,
       "@ckb-ccc/ccc/advanced": cccAdvancedLib,
       "@nervina-labs/dob-render": dobRenderLib,
-      "@ckb-ccc/rgbpp": rgbppLib,
       "@ckb-ccc/playground": {
         render: async (...msgs: unknown[]) => {
           log("info", formatTimestamp(Date.now()), msgs);
