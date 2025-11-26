@@ -50,7 +50,7 @@ const btcRgbppSigner = await ccc.rgbpp.createBrowserRgbppBtcWallet(
   networkConfig,
   {
     url: "https://api-testnet.rgbpp.com",
-    isMainnet: signer.client.addressPrefix === "ckt",
+    isMainnet: signer.client.addressPrefix === "ckb",
   },
 );
 
