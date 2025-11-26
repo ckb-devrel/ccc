@@ -32,12 +32,8 @@ await tx.completeFeeBy(signer, 1000);
 await render(tx);
 `;
 
-export const RGBPP_UDT_ISSUANCE = `
-import { ccc } from "@ckb-ccc/ccc";
+export const RGBPP_UDT_ISSUANCE = `import { ccc } from "@ckb-ccc/ccc";
 import { render, signer, client } from "@ckb-ccc/playground";
-
-// @ts-expect-error Module type mismatch in playground environment
-import { buildNetworkConfig, PredefinedNetwork, PredefinedScriptName, createBrowserRgbppBtcWallet, RgbppUdtClient, CkbRgbppUnlockSinger } from "@ckb-ccc/rgbpp";
 
 // ensure supported wallet is connected
 if (!signer || !(signer instanceof ccc.SignerBtc)) {
@@ -52,12 +48,12 @@ if (client.addressPrefix !== "ckt") {
 const btcAddress = await signer.getBtcAccount();
 
 // initialize RGB++ env
-const networkConfig = buildNetworkConfig(
-  PredefinedNetwork.BitcoinTestnet3,
+const networkConfig = ccc.rgbpp.buildNetworkConfig(
+  ccc.rgbpp.PredefinedNetwork.BitcoinTestnet3,
   // TODO: remove the following 2 configs after updating RGB++ cell deps in ccc
   {
     cellDeps: {
-      [PredefinedScriptName.RgbppLock]: ccc.CellDep.from({
+      [ccc.rgbpp.PredefinedScriptName.RgbppLock]: ccc.CellDep.from({
         outPoint: {
           txHash:
             "0x0d1567da0979f78b297d5311442669fbd1bd853c8be324c5ab6da41e7a1ed6e5",
@@ -65,7 +61,7 @@ const networkConfig = buildNetworkConfig(
         },
         depType: "code",
       }),
-      [PredefinedScriptName.BtcTimeLock]: ccc.CellDep.from({
+      [ccc.rgbpp.PredefinedScriptName.BtcTimeLock]: ccc.CellDep.from({
         outPoint: {
           txHash:
             "0x8fb747ff0416a43e135c583b028f98c7b81d3770551b196eb7ba1062dd9acc94",
@@ -77,7 +73,7 @@ const networkConfig = buildNetworkConfig(
   },
 );
 
-const btcRgbppSigner = await createBrowserRgbppBtcWallet(
+const btcRgbppSigner = await ccc.rgbpp.createBrowserRgbppBtcWallet(
   signer,
   networkConfig,
   {
@@ -89,8 +85,8 @@ if (!btcRgbppSigner) {
   throw new Error("Failed to create browser RGBPP BTC singer");
 }
 
-const rgbppUdtClient = new RgbppUdtClient(networkConfig, signer.client);
-const ckbRgbppUnlockSinger = new CkbRgbppUnlockSinger(
+const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(networkConfig, signer.client);
+const ckbRgbppUnlockSinger = new ccc.rgbpp.CkbRgbppUnlockSinger(
   signer.client,
   await btcRgbppSigner.getAddress(),
   btcRgbppSigner,

@@ -34,8 +34,8 @@ if (client.addressPrefix !== "ckt") {
 }
 
 // Initialize RGB++ network configuration
-const networkConfig = buildNetworkConfig(
-  PredefinedNetwork.BitcoinTestnet3,
+const networkConfig = ccc.rgbpp.buildNetworkConfig(
+  ccc.rgbpp.PredefinedNetwork.BitcoinTestnet3,
   { cellDeps: { /* ... */ } }
 );
 ```
@@ -45,7 +45,7 @@ const networkConfig = buildNetworkConfig(
 ### Step 2: RGB++ Wallet and Client Setup
 
 ```typescript
-const btcRgbppSigner = await createBrowserRgbppBtcWallet(
+const btcRgbppSigner = await ccc.rgbpp.createBrowserRgbppBtcWallet(
   signer,
   networkConfig,
   {
@@ -54,8 +54,8 @@ const btcRgbppSigner = await createBrowserRgbppBtcWallet(
   },
 );
 
-const rgbppUdtClient = new RgbppUdtClient(networkConfig, signer.client);
-const ckbRgbppUnlockSinger = new CkbRgbppUnlockSinger(...);
+const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(networkConfig, signer.client);
+const ckbRgbppUnlockSinger = new ccc.rgbpp.CkbRgbppUnlockSinger(...);
 ```
 
 `https://api-testnet.rgbpp.com` here is the testnet btc-assets-api URL. It's a service that retrieves BTC/RGB++ information/assets and processes transactions with these assets. It serves as the critical infrastructure component that connects Bitcoin and CKB networks for RGB++ operations.
