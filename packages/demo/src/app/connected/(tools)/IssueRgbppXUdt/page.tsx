@@ -176,7 +176,7 @@ export default function IssueRGBPPXUdt() {
       });
   }, [rgbppBtcWallet]);
 
-  const [CkbRgbppUnlockSigner, setCkbRgbppUnlockSigner] =
+  const [ckbRgbppUnlockSigner, setCkbRgbppUnlockSigner] =
     useState<CkbRgbppUnlockSigner>();
 
   useEffect(() => {
@@ -209,7 +209,7 @@ export default function IssueRGBPPXUdt() {
       !signer ||
       !(signer instanceof SignerBtc) ||
       !rgbppBtcWallet ||
-      !CkbRgbppUnlockSigner ||
+      !ckbRgbppUnlockSigner ||
       !rgbppUdtClient ||
       !selectedUtxo
     ) {
@@ -308,7 +308,7 @@ export default function IssueRGBPPXUdt() {
         btcTxId,
       );
       const rgbppSignedCkbTx =
-        await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
+        await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
       await rgbppSignedCkbTx.completeFeeBy(signer);
 
       setCurrentStep("waiting-ckb");
