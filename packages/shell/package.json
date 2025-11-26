@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
+    "@ckb-ccc/rgbpp": "workspace:*",
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/udt": "workspace:*"
