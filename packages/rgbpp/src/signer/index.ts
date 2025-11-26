@@ -30,7 +30,7 @@ import {
 } from "../utils/script.js";
 import { pollForSpvProof } from "../utils/spv.js";
 
-export class CkbRgbppUnlockSinger extends ccc.Signer {
+export class CkbRgbppUnlockSigner extends ccc.Signer {
   // map of script code hash to script name
   private readonly scriptMap: Record<string, PredefinedScriptName>;
   private readonly rgbppScriptInfos: {

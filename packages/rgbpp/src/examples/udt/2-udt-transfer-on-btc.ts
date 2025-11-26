@@ -14,7 +14,7 @@ const {
   rgbppBtcWallet,
   rgbppUdtClient,
   utxoBasedAccountAddress,
-  ckbRgbppUnlockSinger,
+  CkbRgbppUnlockSigner,
   ckbClient,
   ckbSigner,
 } = await initializeRgbppEnv();
@@ -44,7 +44,7 @@ async function transferUdt({
   // * collect udt inputs using ccc
   txWithInputs = await udtInstance.completeChangeToLock(
     tx,
-    ckbRgbppUnlockSinger,
+    CkbRgbppUnlockSigner,
     rgbppUdtClient.buildPseudoRgbppLockScript(),
   );
 
@@ -67,11 +67,11 @@ async function transferUdt({
   );
 
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await CkbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 

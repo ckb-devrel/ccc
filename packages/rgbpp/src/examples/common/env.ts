@@ -4,7 +4,7 @@ import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/pk/wallet.js";
 import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
 
 import { parseAddressType } from "../../bitcoin/index.js";
-import { CkbRgbppUnlockSinger } from "../../signer/index.js";
+import { CkbRgbppUnlockSigner } from "../../signer/index.js";
 import { NetworkConfig, PredefinedNetwork } from "../../types/network.js";
 import { RgbppUdtClient } from "../../udt/index.js";
 import { buildNetworkConfig, isMainnet } from "../../utils/index.js";
@@ -24,7 +24,7 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
   utxoBasedAccountAddress: string;
   rgbppUdtClient: RgbppUdtClient;
   rgbppBtcWallet: PrivateKeyRgbppBtcWallet;
-  ckbRgbppUnlockSinger: CkbRgbppUnlockSinger;
+  CkbRgbppUnlockSigner: CkbRgbppUnlockSigner;
 }> {
   const scripts = scriptInfos?.reduce(
     (acc: Record<string, any>, { name, script, cellDep }) => {
@@ -69,7 +69,7 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
     utxoBasedAccountAddress: await rgbppBtcWallet.getAddress(),
     rgbppUdtClient,
     rgbppBtcWallet,
-    ckbRgbppUnlockSinger: new CkbRgbppUnlockSinger(
+    CkbRgbppUnlockSigner: new CkbRgbppUnlockSigner(
       ckbClient,
       await rgbppBtcWallet.getAddress(),
       rgbppBtcWallet,

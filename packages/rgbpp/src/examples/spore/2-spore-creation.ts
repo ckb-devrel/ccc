@@ -21,7 +21,7 @@ async function createSpore({
     rgbppBtcWallet,
     rgbppUdtClient,
     utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
+    CkbRgbppUnlockSigner,
     ckbClient,
     ckbSigner,
   } = await initializeRgbppEnv();
@@ -67,13 +67,13 @@ async function createSpore({
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
 
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await CkbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 

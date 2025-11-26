@@ -12,7 +12,7 @@ const {
   rgbppBtcWallet,
   rgbppUdtClient,
   utxoBasedAccountAddress,
-  ckbRgbppUnlockSinger,
+  CkbRgbppUnlockSigner,
   ckbClient,
   ckbSigner,
 } = await initializeRgbppEnv();
@@ -64,7 +64,7 @@ async function issueUdt({
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await CkbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   // > Commitment must cover all Inputs and Outputs where Type is not null;
   // https://github.com/utxostack/RGBPlusPlus-design/blob/main/docs/lockscript-design-prd-en.md#requirements-and-limitations-on-isomorphic-binding
@@ -72,7 +72,7 @@ async function issueUdt({
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await CkbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
