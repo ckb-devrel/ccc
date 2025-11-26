@@ -83,7 +83,7 @@ const btcRgbppSigner = await ccc.rgbpp.createBrowserRgbppBtcWallet(
   },
 );
 if (!btcRgbppSigner) {
-  throw new Error("Failed to create browser RGBPP BTC singer");
+  throw new Error("Failed to create browser RGBPP BTC signer");
 }
 
 const rgbppUdtClient = new ccc.rgbpp.RgbppUdtClient(
