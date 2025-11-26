@@ -1,8 +1,9 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { Udt } from "@ckb-ccc/udt";
 
 import "../common/load-env.js";
 
-import { RgbppBtcReceiver, ScriptInfo } from "../../types/rgbpp/index.js";
+import { RgbppBtcReceiver, RgbppScriptInfo } from "../../types/rgbpp/index.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
 
@@ -22,15 +23,15 @@ async function transferUdt({
   udtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: ScriptInfo;
+  udtScriptInfo: RgbppScriptInfo;
   receivers: RgbppBtcReceiver[];
 }) {
-  const udt = new ccc.udt.Udt(
+  const udtInstance = new Udt(
     udtScriptInfo.cellDep.outPoint,
     udtScriptInfo.script,
   );
 
-  let { res: tx } = await udt.transfer(
+  let { res: tx } = await udtInstance.transfer(
     ckbSigner as unknown as ccc.Signer,
     receivers.map((receiver) => ({
       to: rgbppUdtClient.buildPseudoRgbppLockScript(),
@@ -41,7 +42,7 @@ async function transferUdt({
   let txWithInputs: ccc.Transaction;
 
   // * collect udt inputs using ccc
-  txWithInputs = await udt.completeChangeToLock(
+  txWithInputs = await udtInstance.completeChangeToLock(
     tx,
     ckbRgbppUnlockSinger,
     rgbppUdtClient.buildPseudoRgbppLockScript(),

@@ -1,4 +1,4 @@
-import { ccc, mol } from "@ckb-ccc/shell";
+import { ccc, mol } from "@ckb-ccc/core";
 
 export interface RgbppUdtToken {
   decimal: number;
@@ -11,7 +11,8 @@ export interface UtxoSeal {
   index: number;
 }
 
-export interface ScriptInfo {
+// TODO: ccc.ScriptInfo
+export interface RgbppScriptInfo {
   name: string;
   script: ccc.Script;
   cellDep: ccc.CellDep;

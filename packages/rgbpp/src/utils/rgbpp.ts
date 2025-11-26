@@ -1,6 +1,6 @@
 import { sha256 } from "js-sha256";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { convertToOutput, InitOutput, TxOutput } from "../bitcoin/index.js";
 

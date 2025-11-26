@@ -1,7 +1,7 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/pk/wallet.js";
-import { ScriptInfo } from "../../types/rgbpp/index.js";
+import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
 
 import { parseAddressType } from "../../bitcoin/index.js";
 import { CkbRgbppUnlockSinger } from "../../signer/index.js";
@@ -17,7 +17,7 @@ const btcAssetsApiUrl = process.env.BTC_ASSETS_API_URL!;
 const btcAssetsApiToken = process.env.BTC_ASSETS_API_TOKEN!;
 const btcAssetsApiOrigin = process.env.BTC_ASSETS_API_ORIGIN!;
 
-export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
+export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promise<{
   ckbClient: ccc.Client;
   ckbSigner: ccc.SignerCkbPrivateKey;
   networkConfig: NetworkConfig;

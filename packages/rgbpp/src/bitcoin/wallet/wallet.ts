@@ -1,6 +1,6 @@
 import { Psbt, Transaction } from "bitcoinjs-lib";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import {
   btcTxIdInReverseByteOrder,

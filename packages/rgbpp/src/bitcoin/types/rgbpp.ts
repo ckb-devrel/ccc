@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { RgbppUdtClient } from "../../udt/index.js";
 import { BtcApiUtxoParams } from "./tx.js";

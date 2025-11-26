@@ -1,6 +1,6 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
-import { ScriptInfo } from "../../types/rgbpp/index.js";
+import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
 
 export const udtToken = {
   name: "Just UDT",
@@ -32,7 +32,7 @@ export const testnetSudtCellDep = ccc.CellDep.from({
   depType: "code",
 });
 
-export const testnetSudtInfo: ScriptInfo = {
+export const testnetSudtInfo: RgbppScriptInfo = {
   name: "sUDT",
   script: testnetSudt,
   cellDep: testnetSudtCellDep,

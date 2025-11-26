@@ -1,6 +1,7 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { Udt } from "@ckb-ccc/udt";
 
-import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
+import { RgbppScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
@@ -17,7 +18,7 @@ async function ckbUdtToBtc({
   amount,
 }: {
   utxoSeal?: UtxoSeal;
-  udtScriptInfo: ScriptInfo;
+  udtScriptInfo: RgbppScriptInfo;
 
   amount: bigint;
 }) {
@@ -25,19 +26,19 @@ async function ckbUdtToBtc({
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
   }
 
-  const udt = new ccc.udt.Udt(
+  const udtInstance = new Udt(
     udtScriptInfo.cellDep.outPoint,
     udtScriptInfo.script,
   );
 
-  let { res: tx } = await udt.transfer(ckbSigner as unknown as ccc.Signer, [
+  let { res: tx } = await udtInstance.transfer(ckbSigner as unknown as ccc.Signer, [
     {
       to: rgbppUdtClient.buildRgbppLockScript(utxoSeal),
       amount: ccc.fixedPointFrom(amount),
     },
   ]);
 
-  const txWithInputs = await udt.completeBy(tx, ckbSigner);
+  const txWithInputs = await udtInstance.completeBy(tx, ckbSigner);
   await txWithInputs.completeFeeBy(ckbSigner);
   const signedTx = await ckbSigner.signTransaction(txWithInputs);
   const txHash = await ckbSigner.client.sendTransaction(signedTx);

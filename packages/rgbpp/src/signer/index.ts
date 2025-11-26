@@ -6,7 +6,8 @@ import {
   SignerType,
   Transaction,
   TransactionLike,
-} from "@ckb-ccc/shell";
+} from "@ckb-ccc/core";
+import { spore } from "@ckb-ccc/spore";
 
 import { transactionToHex } from "../bitcoin/index.js";
 
@@ -126,7 +127,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
     // TODO: extract into a method
     // ? * handle cluster transfer in spore transfer because of not being able to use cluster mode
     const clusterScriptInfos = Object.values(
-      ccc.spore.getClusterScriptInfos(this.client),
+      spore.getClusterScriptInfos(this.client),
     );
     const clusterIndicesInInputs: number[] = [];
     const clusterIndicesInOutputs: number[] = [];
@@ -164,7 +165,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
       const inputCluster = tx.inputs[clusterIndicesInInputs[0]];
       await inputCluster.completeExtraInfos(this.client);
       const inputClusterId = inputCluster.cellOutput!.type!.args;
-      const { cell: inputClusterCell } = await ccc.spore.assertCluster(
+      const { cell: inputClusterCell } = await spore.assertCluster(
         this.client,
         inputClusterId,
       );

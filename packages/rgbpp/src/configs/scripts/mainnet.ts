@@ -4,7 +4,7 @@ import {
   ScriptSet,
 } from "../../types/script.js";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 export const mainnetScripts: ScriptSet = {
   [PredefinedScriptName.RgbppLock]: ccc.Script.from({

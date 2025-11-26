@@ -1,8 +1,9 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 import { RgbppUdtClient } from "../../udt/index.js";
 
+// TODO: prepare ckb issuance cells, move to rgbppUdtClient
 export async function prepareRgbppCells(
   ckbClient: ccc.Client,
   ckbSigner: ccc.SignerCkbPrivateKey,

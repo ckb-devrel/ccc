@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
 import { dirname, join, parse } from "path";

@@ -1,6 +1,7 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { Udt } from "@ckb-ccc/udt";
 
-import { ScriptInfo } from "../../types/rgbpp/index.js";
+import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
@@ -22,15 +23,15 @@ async function btcUdtToCkb({
   udtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: ScriptInfo;
+  udtScriptInfo: RgbppScriptInfo;
   receivers: { address: string; amount: bigint }[];
 }) {
-  const udt = new ccc.udt.Udt(
+  const udtInstance = new Udt(
     udtScriptInfo.cellDep.outPoint,
     udtScriptInfo.script,
   );
 
-  let { res: tx } = await udt.transfer(
+  let { res: tx } = await udtInstance.transfer(
     ckbSigner as unknown as ccc.Signer,
     await Promise.all(
       receivers.map(async (receiver) => ({
@@ -40,7 +41,7 @@ async function btcUdtToCkb({
     ),
   );
 
-  const txWithInputs = await udt.completeChangeToLock(
+  const txWithInputs = await udtInstance.completeChangeToLock(
     tx,
     ckbRgbppUnlockSinger,
     // merge multiple inputs to a single change output

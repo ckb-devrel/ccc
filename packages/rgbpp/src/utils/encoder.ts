@@ -1,4 +1,4 @@
-import { Hex, hexFrom } from "@ckb-ccc/shell";
+import { Hex, hexFrom } from "@ckb-ccc/core";
 
 export const trimHexPrefix = (hex: string): string =>
   hex.startsWith("0x") ? hex.substring(2) : hex;

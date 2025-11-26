@@ -1,8 +1,8 @@
-import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
+import { RgbppScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 import { issuanceAmount, udtToken } from "../common/assets.js";
 import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
@@ -21,7 +21,7 @@ async function issueUdt({
   udtScriptInfo,
   utxoSeal,
 }: {
-  udtScriptInfo: ScriptInfo;
+  udtScriptInfo: RgbppScriptInfo;
   utxoSeal?: UtxoSeal;
 }) {
   if (!utxoSeal) {

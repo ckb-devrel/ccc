@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { PredefinedNetwork } from "../../types/network.js";
 import { mainnetCellDeps, mainnetScripts } from "./mainnet.js";

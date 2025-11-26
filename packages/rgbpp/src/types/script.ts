@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 export enum PredefinedScriptName {
   RgbppLock = "RgbppLock",

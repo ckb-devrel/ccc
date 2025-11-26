@@ -1,4 +1,5 @@
-import { ccc, spore } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { spore } from "@ckb-ccc/spore";
 import { SporeDataView } from "@ckb-ccc/spore/advanced";
 
 import "../common/load-env.js";

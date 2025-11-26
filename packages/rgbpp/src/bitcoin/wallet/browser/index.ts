@@ -1,9 +1,10 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 import { Psbt } from "bitcoinjs-lib";
 import { NetworkConfig } from "../../../types/network.js";
 import { BtcAssetApiConfig } from "../../types/btc-assets-api.js";
 import { RgbppBtcWallet } from "../wallet.js";
 
+// TODO: add default btc asset api URL
 export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
   constructor(
     protected signer: ccc.SignerBtc,

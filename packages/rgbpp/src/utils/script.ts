@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
 import {

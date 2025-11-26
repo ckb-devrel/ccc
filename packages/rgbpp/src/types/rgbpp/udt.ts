@@ -1,12 +1,12 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
-import { RgbppUdtToken, ScriptInfo } from "./rgbpp.js";
+import { RgbppUdtToken, RgbppScriptInfo } from "./rgbpp.js";
 
 export interface RgbppUdtIssuance {
   token: RgbppUdtToken;
   amount: bigint;
   rgbppLiveCells: ccc.Cell[];
-  udtScriptInfo: ScriptInfo;
+  udtScriptInfo: RgbppScriptInfo;
 }
 
 export interface RgbppBtcReceiver {

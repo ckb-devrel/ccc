@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { BtcTimeLock, BtcTimeUnlock } from "../types/rgbpp/rgbpp.js";
 import { prependHexPrefix, reverseHexByteOrder } from "./encoder.js";
