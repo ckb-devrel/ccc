@@ -45,7 +45,7 @@ export class SignersController {
   hostConnected(): void {
     void this.refresh();
     // Wait for plugins to be loaded
-    setTimeout(() => this.refresh(), 500);
+    setTimeout(() => void this.refresh(), 500);
   }
 
   hostDisconnected(): void {
