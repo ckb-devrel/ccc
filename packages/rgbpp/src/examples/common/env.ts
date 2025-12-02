@@ -24,7 +24,7 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
   utxoBasedAccountAddress: string;
   rgbppUdtClient: RgbppUdtClient;
   rgbppBtcWallet: PrivateKeyRgbppBtcWallet;
-  CkbRgbppUnlockSigner: CkbRgbppUnlockSigner;
+  ckbRgbppUnlockSigner: CkbRgbppUnlockSigner;
 }> {
   const scripts = scriptInfos?.reduce(
     (acc: Record<string, any>, { name, script, cellDep }) => {
@@ -69,7 +69,7 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
     utxoBasedAccountAddress: await rgbppBtcWallet.getAddress(),
     rgbppUdtClient,
     rgbppBtcWallet,
-    CkbRgbppUnlockSigner: new CkbRgbppUnlockSigner(
+    ckbRgbppUnlockSigner: new CkbRgbppUnlockSigner(
       ckbClient,
       await rgbppBtcWallet.getAddress(),
       rgbppBtcWallet,

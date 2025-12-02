@@ -10,8 +10,10 @@ import {
   parseUtxoSealFromScriptArgs,
   pseudoRgbppLockArgs,
   pseudoRgbppLockArgsForCommitment,
+  retryWithBackoff,
   u32ToHex,
 } from "../../utils/index.js";
+import { RetryOptions } from "../../utils/retry.js";
 
 import {
   BLANK_TX_ID,
@@ -536,7 +538,10 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     );
   }
 
-  async prepareUtxoSeal(options?: UtxoSealOptions): Promise<UtxoSeal> {
+  async prepareUtxoSeal(
+    options?: UtxoSealOptions,
+    retryOptions?: RetryOptions,
+  ): Promise<UtxoSeal> {
     const targetValue = options?.targetValue ?? this.networkConfig.btcDustLimit;
     const feeRate = options?.feeRate ?? this.networkConfig.btcFeeRate;
     const btcUtxoParams = options?.btcUtxoParams ?? {
@@ -576,9 +581,17 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     });
 
     const txId = await this.signAndBroadcast(psbt);
-    console.log(`[prepareUtxoSeal] Transaction ${txId} sent`);
 
-    let btcTx = await this.getTransaction(txId);
+    // Wait for transaction to be indexed by API with retry mechanism
+    let btcTx = await retryWithBackoff(
+      () => this.getTransaction(txId),
+      {
+        maxRetries: retryOptions?.maxRetries,
+        initialDelay: retryOptions?.initialDelay,
+      },
+    );
+
+    // Wait for confirmation
     while (!btcTx.status.confirmed) {
       console.log(
         `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting 30 seconds...`,
