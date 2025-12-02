@@ -641,7 +641,7 @@ export abstract class RgbppBtcWallet {
    * @returns Balance information including total, available, pending, dust, and RGB++ satoshi amounts
    */
   getBalance(address: string, params?: BtcApiBalanceParams) {
-    return this.request<BtcApiBalance>(
+    return this.btcAssetsApi.request<BtcApiBalance>(
       `/bitcoin/v1/address/${address}/balance`,
       {
         params,

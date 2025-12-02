@@ -1,7 +1,7 @@
 import * as bitcoin from "bitcoinjs-lib";
 import { Psbt, Transaction } from "bitcoinjs-lib";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import {
   addressToScriptPublicKeyHex,
@@ -53,7 +53,7 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
 
     // If options are provided, validate and use them
     if (options?.toSignInputs && options.toSignInputs.length > 0) {
-      return options.toSignInputs.map((input) => {
+      return options.toSignInputs.map((input: ccc.ToSignInput) => {
         const index = Number(input.index);
         if (isNaN(index)) {
           throw new Error("Invalid index in toSignInput");
