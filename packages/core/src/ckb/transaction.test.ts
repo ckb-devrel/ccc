@@ -1428,12 +1428,20 @@ describe("Transaction", () => {
     beforeEach(() => {
       // Create mock fee payers
       mockFeePayer1 = {
-        prepareTransaction: vi.fn().mockResolvedValue(undefined),
+        prepareTransaction: vi
+          .fn()
+          .mockImplementation(async (tx: ccc.TransactionLike) =>
+            ccc.Transaction.from(tx),
+          ),
         completeTxFee: vi.fn().mockResolvedValue(undefined),
       } as unknown as ccc.FeePayer;
 
       mockFeePayer2 = {
-        prepareTransaction: vi.fn().mockResolvedValue(undefined),
+        prepareTransaction: vi
+          .fn()
+          .mockImplementation(async (tx: ccc.TransactionLike) =>
+            ccc.Transaction.from(tx),
+          ),
         completeTxFee: vi.fn().mockResolvedValue(undefined),
       } as unknown as ccc.FeePayer;
     });
@@ -1469,10 +1477,22 @@ describe("Transaction", () => {
       await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
 
       // Verify both methods were called
-      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
-      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledWith(tx);
-      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(tx, client);
-      expect(mockFeePayer2.completeTxFee).toHaveBeenCalledWith(tx, client);
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalled();
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalled();
+      expect(mockFeePayer2.completeTxFee).toHaveBeenCalled();
+
+      // Verify completeTxFee was called with a Transaction and client
+      const completeTxFee1Call = (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
+      const completeTxFee2Call = (
+        mockFeePayer2.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
+      expect(completeTxFee1Call[0]).toBeInstanceOf(ccc.Transaction);
+      expect(completeTxFee1Call[1]).toBe(client);
+      expect(completeTxFee2Call[0]).toBeInstanceOf(ccc.Transaction);
+      expect(completeTxFee2Call[1]).toBe(client);
 
       // Verify prepareTransaction was called before completeTxFee
       // by checking the order of calls
@@ -1530,15 +1550,15 @@ describe("Transaction", () => {
       const callOrder: string[] = [];
       (
         mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
-      ).mockImplementation(async () => {
+      ).mockImplementation(async (tx: ccc.TransactionLike) => {
         callOrder.push("prepare1");
-        return undefined;
+        return ccc.Transaction.from(tx);
       });
       (
         mockFeePayer2.prepareTransaction as ReturnType<typeof vi.fn>
-      ).mockImplementation(async () => {
+      ).mockImplementation(async (tx: ccc.TransactionLike) => {
         callOrder.push("prepare2");
-        return undefined;
+        return ccc.Transaction.from(tx);
       });
       (
         mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
@@ -1631,8 +1651,18 @@ describe("Transaction", () => {
 
       await tx.completeByFeePayer(client, mockFeePayer1);
 
-      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
-      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(tx, client);
+      // prepareTransaction is called with a clone of the original transaction
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();
+      const prepareCallArg = (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0] as ccc.Transaction;
+      expect(prepareCallArg).toBeInstanceOf(ccc.Transaction);
+      expect(prepareCallArg.outputs.length).toBe(1);
+      // completeTxFee should be called with the modified transaction returned by prepareTransaction
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(
+        modifiedTx,
+        client,
+      );
     });
   });
 });
