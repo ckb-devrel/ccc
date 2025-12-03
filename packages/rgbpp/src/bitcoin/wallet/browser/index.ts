@@ -23,10 +23,8 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
     // JoyID uses different signing method
-    if (
-      this.signer.constructor.name === "BitcoinSigner" &&
-      "name" in this.signer
-    ) {
+    // Check using duck typing instead of constructor.name
+    if ("name" in this.signer && typeof (this.signer as any).name === "string") {
       // TODO: fix options support
       return this.signer.pushPsbt(psbt.toHex());
     }
@@ -42,13 +40,10 @@ export function createBrowserRgbppBtcWallet(
   networkConfig: NetworkConfig,
   btcAssetApiConfig: BtcAssetApiConfig,
 ): BrowserRgbppBtcWallet | null {
-  const signerName = signer.constructor.name;
-
-  // Check if wallet is supported
   const isSupported =
-    (signerName === "Signer" && "provider" in signer) || // UniSat
-    (signerName === "BitcoinSigner" && "providers" in signer) || // OKX
-    (signerName === "BitcoinSigner" && "name" in signer); // JoyID
+    "provider" in signer || // UniSat
+    "providers" in signer || // OKX
+    ("name" in signer && typeof (signer as any).name === "string"); // JoyID
 
   if (isSupported) {
     return new BrowserRgbppBtcWallet(signer, networkConfig, btcAssetApiConfig);
