@@ -2302,12 +2302,16 @@ export class Transaction extends mol.Entity.Base<
     client: Client,
     ...feePayers: FeePayer[]
   ): Promise<void> {
+    let tx = this.clone();
     for (const feePayer of feePayers) {
-      await feePayer.prepareTransaction(this);
+      tx = await feePayer.prepareTransaction(tx);
     }
+
     for (const feePayer of feePayers) {
-      await feePayer.completeTxFee(this, client);
+      await feePayer.completeTxFee(tx, client);
     }
+
+    this.copy(tx);
   }
 
   /**
