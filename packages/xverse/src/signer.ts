@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { Psbt } from "bitcoinjs-lib";
 import * as v from "valibot";
 import {
   Address,
@@ -189,12 +190,56 @@ export class Signer extends ccc.SignerBtc {
    *
    * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
    */
+  /**
+   * Build default toSignInputs for all unsigned inputs
+   */
+  private buildDefaultToSignInputs(
+    psbtHex: string,
+    address: string,
+  ): ccc.ToSignInput[] {
+    const toSignInputs: ccc.ToSignInput[] = [];
+
+    try {
+      const psbt = Psbt.fromHex(psbtHex);
+
+      // Collect all unsigned inputs
+      psbt.data.inputs.forEach((input, index) => {
+        const isSigned =
+          input.finalScriptSig ||
+          input.finalScriptWitness ||
+          input.tapKeySig ||
+          (input.partialSig && input.partialSig.length > 0) ||
+          (input.tapScriptSig && input.tapScriptSig.length > 0);
+
+        if (!isSigned) {
+          toSignInputs.push({ index, address } as ccc.ToSignInput);
+        }
+      });
+
+      // If no unsigned inputs found, assume we need to sign all inputs
+      if (toSignInputs.length === 0) {
+        for (let i = 0; i < psbt.data.inputs.length; i++) {
+          toSignInputs.push({ index: i, address } as ccc.ToSignInput);
+        }
+      }
+    } catch (error) {
+      // Fallback: if PSBT parsing fails, assume single input at index 0
+      console.warn("Failed to parse PSBT, assuming single input:", error);
+      toSignInputs.push({ index: 0, address } as ccc.ToSignInput);
+    }
+
+    return toSignInputs;
+  }
+
   async signPsbt(
     psbtHex: string,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    if (!options || !options.toSignInputs.length) {
-      throw new Error("Must specify input(s) to sign");
+    // Build default toSignInputs if not provided
+    let toSignInputs = options?.toSignInputs;
+    if (!toSignInputs || !toSignInputs.length) {
+      const address = await this.getBtcAccount();
+      toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
     }
 
     // Convert hex to base64 as required by Xverse
@@ -207,7 +252,7 @@ export class Signer extends ccc.SignerBtc {
           psbt: psbtBase64,
           // Build signInputs: Record<address, input_indexes[]>
           // Multiple inputs with the same address should be grouped together
-          signInputs: options.toSignInputs.reduce(
+          signInputs: toSignInputs.reduce(
             (acc, input) => {
               if (!input.address) {
                 throw new Error(
@@ -224,6 +269,7 @@ export class Signer extends ccc.SignerBtc {
             },
             {} as Record<string, number[]>,
           ),
+          broadcast: false,
         }),
       )
     ).psbt;
@@ -232,7 +278,51 @@ export class Signer extends ccc.SignerBtc {
     return ccc.hexFrom(signedPsbtBytes).slice(2);
   }
 
-  async pushPsbt(_: string): Promise<string> {
-    throw new Error("Not implemented");
+  async pushPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    // Build default toSignInputs if not provided
+    let toSignInputs = options?.toSignInputs;
+    if (!toSignInputs || !toSignInputs.length) {
+      const address = await this.getBtcAccount();
+      toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
+    }
+
+    // Convert hex to base64 as required by Xverse
+    const psbtBytes = ccc.bytesFrom(psbtHex);
+    const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+
+    const result = await checkResponse(
+      this.provider.request("signPsbt", {
+        psbt: psbtBase64,
+        // Build signInputs: Record<address, input_indexes[]>
+        // Multiple inputs with the same address should be grouped together
+        signInputs: toSignInputs.reduce(
+          (acc, input) => {
+            if (!input.address) {
+              throw new Error(
+                "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+              );
+            }
+            // Append to existing array or create new one
+            if (acc[input.address]) {
+              acc[input.address].push(input.index);
+            } else {
+              acc[input.address] = [input.index];
+            }
+            return acc;
+          },
+          {} as Record<string, number[]>,
+        ),
+        broadcast: true,
+      }),
+    );
+
+    if (!result.txid) {
+      throw new Error("Failed to broadcast PSBT");
+    }
+
+    return result.txid;
   }
 }

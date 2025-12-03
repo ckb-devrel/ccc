@@ -22,14 +22,24 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
     psbt: Psbt,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    // JoyID uses different signing method
-    // Check using duck typing instead of constructor.name
-    if ("name" in this.signer && typeof (this.signer as any).name === "string") {
-      // TODO: fix options support
+    // Check wallet type using duck typing instead of constructor.name
+    const isJoyID = "name" in this.signer && typeof (this.signer as any).name === "string";
+    const isXverse = "provider" in this.signer && 
+                     this.signer.provider && 
+                     typeof (this.signer.provider as any).request === "function";
+    
+    // JoyID uses pushPsbt directly (sign + broadcast in one call)
+    if (isJoyID) {
       return this.signer.pushPsbt(psbt.toHex());
     }
+    
+    // Xverse uses a custom pushPsbt with options support
+    if (isXverse) {
+      // Type cast to access Xverse-specific pushPsbt signature
+      return (this.signer as any).pushPsbt(psbt.toHex(), options);
+    }
 
-    // UniSat and OKX use standard method
+    // UniSat and OKX use standard method (sign first, then broadcast)
     const signedPsbt = await this.signer.signPsbt(psbt.toHex(), options);
     return this.signer.pushPsbt(signedPsbt);
   }
@@ -40,8 +50,10 @@ export function createBrowserRgbppBtcWallet(
   networkConfig: NetworkConfig,
   btcAssetApiConfig: BtcAssetApiConfig,
 ): BrowserRgbppBtcWallet | null {
+  // Check if wallet is supported using duck typing instead of constructor.name
+  // to avoid issues with minified code in production builds
   const isSupported =
-    "provider" in signer || // UniSat
+    "provider" in signer || // UniSat, Xverse
     "providers" in signer || // OKX
     ("name" in signer && typeof (signer as any).name === "string"); // JoyID
 
@@ -56,5 +68,5 @@ export function createBrowserRgbppBtcWallet(
  * Get supported wallet names
  */
 export function getSupportedWallets(): string[] {
-  return ["UniSat", "OKX", "JoyID"];
+  return ["UniSat", "OKX", "JoyID", "Xverse"];
 }
