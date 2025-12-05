@@ -157,7 +157,7 @@ export class CkbSigner extends ccc.Signer {
           scriptInfo.script,
           this.client,
         );
-        if (!index) return;
+        if (typeof index !== "number") return;
 
         indexes.push(index);
       },
