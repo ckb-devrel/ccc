@@ -46,8 +46,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/core": "workspace:*",
-    "@superise/bridge-api-types": "^0.0.5"
+    "@ckb-ccc/core": "workspace:*"
   },
   "packageManager": "pnpm@10.8.1"
 }

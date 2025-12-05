@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import type SupeRISE from '@superise/bridge-api-types'
+import type { Bridge, CkbConnection } from "../advancedBarrel";
 
 export class CkbSigner extends ccc.Signer {
   get type() {
@@ -12,12 +12,10 @@ export class CkbSigner extends ccc.Signer {
 
   private connectionStorageKey = "superise-ckb-connection";
 
-  private connection?: SupeRISE.CkbConnection;
-
-  private _uiMetadataMap: Record<string, SupeRISE.SignCkbHashAllMetadata> = {};
+  private connection?: CkbConnection;
 
   constructor(
-    private readonly bridge: SupeRISE.Bridge,
+    private readonly bridge: Bridge,
     client: ccc.Client,
   ) {
     super(client);
@@ -34,7 +32,7 @@ export class CkbSigner extends ccc.Signer {
     const connection = localStorage.getItem(this.connectionStorageKey);
     if (!connection) return;
     try {
-      this.connection = JSON.parse(connection) as SupeRISE.CkbConnection;
+      this.connection = JSON.parse(connection) as CkbConnection;
     } catch (error) {
       console.error("Failed to restore superise connection:", error);
     }
@@ -61,6 +59,7 @@ export class CkbSigner extends ccc.Signer {
 
   override async disconnect() {
     this.connection = undefined;
+    localStorage.removeItem(this.connectionStorageKey);
   }
 
   override async getInternalAddress() {
@@ -83,8 +82,7 @@ export class CkbSigner extends ccc.Signer {
   }
 
   override async signMessageRaw(message: string) {
-    const signMessage = `Nervos Message:${message}`;
-    const sign = await this.bridge.signCkbMessage(signMessage);
+    const sign = await this.bridge.signCkbMessage(message);
     return ccc.hexFrom(sign.signature);
   }
 
@@ -134,21 +132,6 @@ export class CkbSigner extends ccc.Signer {
     return scripts;
   }
 
-  public setUiMetadataForTx(
-    tx: ccc.TransactionLike,
-    metadata: SupeRISE.SignCkbHashAllMetadata,
-  ) {
-    const txHash = ccc.Transaction.from(tx).hash();
-    this._uiMetadataMap[txHash] = metadata;
-  }
-
-  private getUiMetadataFromTx(tx: ccc.TransactionLike) {
-    const txHash = ccc.Transaction.from(tx).hash();
-    const metadata = this._uiMetadataMap[txHash];
-    delete this._uiMetadataMap[txHash];
-    return metadata;
-  }
-
   override async prepareTransaction(txLike: ccc.TransactionLike) {
     const tx = ccc.Transaction.from(txLike);
 
@@ -166,47 +149,28 @@ export class CkbSigner extends ccc.Signer {
 
   override async signOnlyTransaction(txLike: ccc.TransactionLike) {
     const tx = ccc.Transaction.from(txLike);
-    const metadata = this.getUiMetadataFromTx(tx);
 
-    const signatureCache = new Map<string, string>();
-
-    for (const { script } of await this.getRelatedScripts(tx)) {
-      const info = await tx.getSignHashInfo(script, this.client);
-      if (!info) {
-        return tx;
-      }
-
-      const { message, position } = info;
-
-      let signature!: string;
-      if (signatureCache.has(message)) {
-        signature = signatureCache.get(message)!;
-      } else {
-        const sign = await this.bridge.signCkbHashAll(
-          message.replace(/^0x/, ""),
-          metadata,
+    const witnessIndexes = await ccc.reduceAsync(
+      await this.getRelatedScripts(tx),
+      async (indexes, scriptInfo) => {
+        const index = await tx.findInputIndexByLock(
+          scriptInfo.script,
+          this.client,
         );
-        signature = sign.signature;
-        signatureCache.set(message, signature);
-      }
+        if (!index) return;
 
-      const witness =
-        tx.getWitnessArgsAt(info.position) ?? ccc.WitnessArgs.from({});
-      witness.lock = signature as ccc.Hex;
-      tx.setWitnessArgsAt(position, witness);
-    }
+        indexes.push(index);
+      },
+      [] as number[],
+    );
 
-    return tx;
-  }
-
-  override async signTransaction(
-    tx: ccc.TransactionLike,
-  ): Promise<ccc.Transaction> {
-    const preparedTx = await this.prepareTransaction(tx);
-    return this.signOnlyTransaction(preparedTx);
-  }
-
-  override async sendTransaction(tx: ccc.TransactionLike): Promise<ccc.Hex> {
-    return this.client.sendTransaction(await this.signTransaction(tx));
+    const result = await this.bridge.signCkbTransaction(
+      ccc.stringify(tx),
+      witnessIndexes,
+    );
+    const signedTx = JSON.parse(
+      result.signedTransaction,
+    ) as ccc.TransactionLike;
+    return ccc.Transaction.from(signedTx);
   }
 }

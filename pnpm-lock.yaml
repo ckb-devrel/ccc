@@ -1091,9 +1091,6 @@ importers:
       '@ckb-ccc/core':
         specifier: workspace:*
         version: link:../core
-      '@superise/bridge-api-types':
-        specifier: ^0.0.5
-        version: 0.0.5(typescript@5.9.2)
     devDependencies:
       '@eslint/js':
         specifier: ^9.34.0
@@ -3832,11 +3829,6 @@ packages:
 
   '@slorber/remark-comment@1.0.0':
     resolution: {integrity: sha512-RCE24n7jsOj1M0UPvIQCHTe7fI0sFL4S2nwKVWwHyVr/wI/H8GosgsJGyhnsZoGFnD/P2hLf1mSbrrgSLN93NA==}
-
-  '@superise/bridge-api-types@0.0.5':
-    resolution: {integrity: sha512-DPvLepID27N7LoSSKqsrPOAtR3GBDRb2dm3O3rRczUT+CiogawfGRd4CAPyIus5VXgRdqgtqnNzVFl7a/EXMMA==}
-    peerDependencies:
-      typescript: ^5
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0':
     resolution: {integrity: sha512-b9MIk7yhdS1pMCZM8VeNfUlSKVRhsHZNMl5O9SfaX0l0t5wjdgu4IDzGB8bpnGBBOjGST3rRFVsaaEtI4W6f7g==}
@@ -14048,10 +14040,6 @@ snapshots:
       micromark-factory-space: 1.1.0
       micromark-util-character: 1.2.0
       micromark-util-symbol: 1.1.0
-
-  '@superise/bridge-api-types@0.0.5(typescript@5.9.2)':
-    dependencies:
-      typescript: 5.9.2
 
   '@svgr/babel-plugin-add-jsx-attribute@8.0.0(@babel/core@7.28.3)':
     dependencies:

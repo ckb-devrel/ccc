@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import type SupeRISE from "@superise/bridge-api-types";
+import type { Bridge } from "./advancedBarrel";
 import { CkbSigner } from "./ckb/index.js";
 
 /**
@@ -10,7 +10,7 @@ export function getSupeRISESigners(
   _preferredNetworks?: ccc.NetworkPreference[],
 ): ccc.SignerInfo[] {
   const windowRef = window as {
-    superise?: SupeRISE.Bridge;
+    superise?: Bridge;
   };
 
   if (typeof windowRef.superise === "undefined") {
