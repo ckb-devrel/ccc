@@ -1,5 +1,6 @@
 import { Client } from "../../client/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
+import { SignPsbtOptions } from "./psbt.js";
 import { SignerBtc } from "./signerBtc.js";
 
 /**
@@ -75,7 +76,7 @@ export class SignerBtcPublicKeyReadonly extends SignerBtc {
     throw new Error("Read-only signer does not support signPsbt");
   }
 
-  async pushPsbt(_: string): Promise<string> {
+  async pushPsbt(_: string, __?: SignPsbtOptions): Promise<string> {
     throw new Error("Read-only signer does not support pushPsbt");
   }
 }

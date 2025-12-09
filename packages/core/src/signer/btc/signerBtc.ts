@@ -28,6 +28,32 @@ export abstract class SignerBtc extends Signer {
   }
 
   /**
+   * Whether the wallet supports a single call to sign + broadcast (combined flow).
+   * Default false; override in implementations like Xverse/JoyID.
+   */
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return false;
+  }
+
+  /**
+   * Sign and broadcast a PSBT in one call when supported, otherwise falls back
+   * to sign then push. Prefer this over manual sign+push to avoid double popups.
+   */
+  async signAndPushPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string> {
+    if (this.supportsSingleCallSignAndBroadcast) {
+      // Wallet handles sign+broadcast internally (e.g., Xverse/JoyID)
+      return this.pushPsbt(psbtHex, options);
+    }
+
+    // Split-mode wallets: sign first, then broadcast
+    const signedPsbt = await this.signPsbt(psbtHex, options);
+    return this.pushPsbt(signedPsbt, options);
+  }
+
+  /**
    * Gets the Bitcoin account associated with the signer.
    *
    * @returns A promise that resolves to a string representing the Bitcoin account.
@@ -147,5 +173,8 @@ export abstract class SignerBtc extends Signer {
    * @param psbtHex - The hex string of signed PSBT to broadcast
    * @returns A promise that resolves to the transaction ID
    */
-  abstract pushPsbt(psbtHex: string): Promise<string>;
+  abstract pushPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string>;
 }

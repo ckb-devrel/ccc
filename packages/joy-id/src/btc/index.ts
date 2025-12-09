@@ -70,6 +70,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
     super(client);
   }
 
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return true;
+  }
+
   /**
    * Gets the configuration for JoyID.
    * @returns The configuration object.
@@ -252,7 +256,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * Use this method directly for sign+broadcast operations to avoid double popups.
    * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
    */
-  async pushPsbt(psbtHex: string): Promise<string> {
+  async pushPsbt(
+    psbtHex: string,
+    _options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
     const { address } = await this.assertConnection();
 
     const config = this.getConfig();

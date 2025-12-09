@@ -174,7 +174,10 @@ export class Signer extends ccc.SignerBtc {
    * @param psbtHex - The hex string of signed PSBT to broadcast
    * @returns A promise that resolves to the transaction ID
    */
-  async pushPsbt(psbtHex: string): Promise<string> {
+  async pushPsbt(
+    psbtHex: string,
+    _options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
     return this.provider.pushPsbt(psbtHex);
   }
 }

@@ -136,10 +136,10 @@ export class SignerBtc extends ccc.SignerBtc {
    * @returns A promise that resolves to the signed PSBT hex string
    */
   async signPsbt(
-    psbtHex: string,
-    options?: ccc.SignPsbtOptions,
+    _psbtHex: string,
+    _options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    return this.provider.signPsbt(psbtHex, options);
+    throw new Error("UTXO Global PSBT signing not implemented yet");
   }
 
   /**
@@ -149,7 +149,7 @@ export class SignerBtc extends ccc.SignerBtc {
    * @returns A promise that resolves to the transaction ID
    * @todo Implement PSBT broadcasting with UTXO Global
    */
-  async pushPsbt(_: string): Promise<string> {
+  async pushPsbt(_: string, __?: ccc.SignPsbtOptions): Promise<string> {
     throw new Error("UTXO Global PSBT broadcasting not implemented yet");
   }
 }

@@ -66,6 +66,10 @@ export class Signer extends ccc.SignerBtc {
     super(client);
   }
 
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return true;
+  }
+
   async assertAddress(): Promise<Address> {
     this.addressCache =
       this.addressCache ??
@@ -171,7 +175,6 @@ export class Signer extends ccc.SignerBtc {
     ).signature;
   }
 
-  
   /**
    * Build default toSignInputs for all unsigned inputs
    */
@@ -229,19 +232,22 @@ export class Signer extends ccc.SignerBtc {
     const psbtBytes = ccc.bytesFrom(psbtHex);
     const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
 
-    const signInputs = toSignInputs.reduce((acc, input) => {
-      if (!input.address) {
-        throw new Error(
-          "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
-        );
-      }
-      if (acc[input.address]) {
-        acc[input.address].push(input.index);
-      } else {
-        acc[input.address] = [input.index];
-      }
-      return acc;
-    }, {} as Record<string, number[]>);
+    const signInputs = toSignInputs.reduce(
+      (acc, input) => {
+        if (!input.address) {
+          throw new Error(
+            "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+          );
+        }
+        if (acc[input.address]) {
+          acc[input.address].push(input.index);
+        } else {
+          acc[input.address] = [input.index];
+        }
+        return acc;
+      },
+      {} as Record<string, number[]>,
+    );
 
     return { psbtBase64, signInputs };
   }
@@ -288,6 +294,27 @@ export class Signer extends ccc.SignerBtc {
     return ccc.hexFrom(signedPsbtBytes).slice(2);
   }
 
+  /**
+   * Signs and broadcasts a PSBT using Xverse wallet (single popup).
+   *
+   * @param psbtHex - The hex string of PSBT to sign and broadcast
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to SignPsbtResult:
+   * - psbt: base64 encoded signed PSBT
+   * - txid: transaction id (only when broadcast succeeds)
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: base64 encoded PSBT
+   * - signInputs: Record<address, number[]> input indexes to sign
+   * - broadcast: set to true to broadcast
+   *
+   * @remarks
+   * Use this method directly for sign+broadcast operations to avoid double popups.
+   * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
   async pushPsbt(
     psbtHex: string,
     options?: ccc.SignPsbtOptions,
