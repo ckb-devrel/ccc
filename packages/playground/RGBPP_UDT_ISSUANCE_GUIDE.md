@@ -8,7 +8,7 @@ This guide demonstrates how to use the `@ckb-ccc/rgbpp` package to build RGB++ a
 
 Before running this example, ensure you have:
 
-1. **Supported Wallet**: UniSat, JoyID
+1. **Supported Wallet**: UniSat, JoyID, Xverse
 2. **Testnet Environment**: Currently only Bitcoin Testnet3 and CKB Testnet are supported on the playground environment
 3. **Test Funds**: 
    - Bitcoin Testnet3 funds from [Bitcoin Faucet](https://bitcoinfaucet.uo1.net/)
