@@ -171,25 +171,7 @@ export class Signer extends ccc.SignerBtc {
     ).signature;
   }
 
-  /**
-   * Signs a PSBT using Xverse wallet.
-   *
-   * @param psbtHex - The hex string of PSBT to sign
-   * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string
-   *
-   * @remarks
-   * Xverse accepts:
-   * - psbt: A string representing the PSBT to sign, encoded in base64
-   * - signInputs: A Record<string, number[]> where:
-   *   - keys are the addresses to use for signing
-   *   - values are the indexes of the inputs to sign with each address
-   *
-   * Xverse returns:
-   * - psbt: The base64 encoded signed PSBT
-   *
-   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
-   */
+  
   /**
    * Build default toSignInputs for all unsigned inputs
    */
@@ -231,44 +213,72 @@ export class Signer extends ccc.SignerBtc {
     return toSignInputs;
   }
 
-  async signPsbt(
+  private async prepareSignPsbtParams(
     psbtHex: string,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
-    // Build default toSignInputs if not provided
+  ): Promise<{
+    psbtBase64: string;
+    signInputs: Record<string, number[]>;
+  }> {
     let toSignInputs = options?.toSignInputs;
     if (!toSignInputs || !toSignInputs.length) {
       const address = await this.getBtcAccount();
       toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
     }
 
-    // Convert hex to base64 as required by Xverse
     const psbtBytes = ccc.bytesFrom(psbtHex);
     const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+
+    const signInputs = toSignInputs.reduce((acc, input) => {
+      if (!input.address) {
+        throw new Error(
+          "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+        );
+      }
+      if (acc[input.address]) {
+        acc[input.address].push(input.index);
+      } else {
+        acc[input.address] = [input.index];
+      }
+      return acc;
+    }, {} as Record<string, number[]>);
+
+    return { psbtBase64, signInputs };
+  }
+
+  /**
+   * Signs a PSBT using Xverse wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT hex string
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: A string representing the PSBT to sign, encoded in base64
+   * - signInputs: A Record<string, number[]> where:
+   *   - keys are the addresses to use for signing
+   *   - values are the indexes of the inputs to sign with each address
+   *
+   * Xverse returns:
+   * - psbt: The base64 encoded signed PSBT
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
+  async signPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      psbtHex,
+      options,
+    );
 
     const signedPsbtBase64 = (
       await checkResponse(
         this.provider.request("signPsbt", {
           psbt: psbtBase64,
-          // Build signInputs: Record<address, input_indexes[]>
-          // Multiple inputs with the same address should be grouped together
-          signInputs: toSignInputs.reduce(
-            (acc, input) => {
-              if (!input.address) {
-                throw new Error(
-                  "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
-                );
-              }
-              // Append to existing array or create new one
-              if (acc[input.address]) {
-                acc[input.address].push(input.index);
-              } else {
-                acc[input.address] = [input.index];
-              }
-              return acc;
-            },
-            {} as Record<string, number[]>,
-          ),
+          signInputs,
           broadcast: false,
         }),
       )
@@ -282,39 +292,17 @@ export class Signer extends ccc.SignerBtc {
     psbtHex: string,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    // Build default toSignInputs if not provided
-    let toSignInputs = options?.toSignInputs;
-    if (!toSignInputs || !toSignInputs.length) {
-      const address = await this.getBtcAccount();
-      toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
-    }
-
-    // Convert hex to base64 as required by Xverse
-    const psbtBytes = ccc.bytesFrom(psbtHex);
-    const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      psbtHex,
+      options,
+    );
 
     const result = await checkResponse(
       this.provider.request("signPsbt", {
         psbt: psbtBase64,
         // Build signInputs: Record<address, input_indexes[]>
         // Multiple inputs with the same address should be grouped together
-        signInputs: toSignInputs.reduce(
-          (acc, input) => {
-            if (!input.address) {
-              throw new Error(
-                "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
-              );
-            }
-            // Append to existing array or create new one
-            if (acc[input.address]) {
-              acc[input.address].push(input.index);
-            } else {
-              acc[input.address] = [input.index];
-            }
-            return acc;
-          },
-          {} as Record<string, number[]>,
-        ),
+        signInputs,
         broadcast: true,
       }),
     );
