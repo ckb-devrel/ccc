@@ -197,7 +197,7 @@ export class Signer extends ccc.SignerBtc {
           (input.tapScriptSig && input.tapScriptSig.length > 0);
 
         if (!isSigned) {
-          toSignInputs.push({ index, address } as ccc.ToSignInput);
+          toSignInputs.push({ index, address });
         }
       });
 
