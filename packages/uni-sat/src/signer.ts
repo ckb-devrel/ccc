@@ -155,6 +155,7 @@ export class Signer extends ccc.SignerBtc {
    * Signs a PSBT using UniSat wallet.
    *
    * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT hex string
    */
   async signPsbt(

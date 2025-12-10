@@ -13,9 +13,13 @@ export interface Provider {
    */
   signPsbt(psbtHex: string, options?: ccc.SignPsbtOptions): Promise<string>;
 
+  /**
+   * Broadcasts a signed PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string of the signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID.
+   */
   pushPsbt(psbtHex: string): Promise<string>;
-
-  pushTx(tx: { rawtx: string }): Promise<string>;
 
   /**
    * Requests user accounts.
