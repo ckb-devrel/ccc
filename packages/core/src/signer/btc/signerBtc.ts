@@ -164,10 +164,15 @@ export abstract class SignerBtc extends Signer {
   ): Promise<string>;
 
   /**
-   * Broadcasts a signed PSBT to the Bitcoin network.
+   * Pushes a PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string of signed PSBT to broadcast
-   * @returns A promise that resolves to the transaction ID
+   * For wallets that support a single call for signing and broadcasting (where `supportsSingleCallSignAndBroadcast` is true),
+   * this method takes an **unsigned** PSBT, signs it, and broadcasts it.
+   * For other wallets, this method takes a **signed** PSBT and only broadcasts it.
+   *
+   * @param psbtHex - The hex string of the PSBT to push. Can be signed or unsigned depending on the wallet's capabilities.
+   * @param options - Options for signing the PSBT. Only used by wallets that perform signing in this step.
+   * @returns A promise that resolves to the transaction ID.
    */
   abstract pushPsbt(
     psbtHex: string,

@@ -201,16 +201,12 @@ export class Signer extends ccc.SignerBtc {
         }
       });
 
-      // If no unsigned inputs found, assume we need to sign all inputs
-      if (toSignInputs.length === 0) {
-        for (let i = 0; i < psbt.data.inputs.length; i++) {
-          toSignInputs.push({ index: i, address } as ccc.ToSignInput);
-        }
-      }
+      // If no unsigned inputs found, the PSBT is already fully signed
+      // Let the wallet handle this case (likely a no-op or error)
     } catch (error) {
-      // Fallback: if PSBT parsing fails, assume single input at index 0
-      console.warn("Failed to parse PSBT, assuming single input:", error);
-      toSignInputs.push({ index: 0, address } as ccc.ToSignInput);
+      throw new Error(
+        `Failed to parse PSBT hex. Please provide toSignInputs explicitly in options. Original error: ${String(error)}`,
+      );
     }
 
     return toSignInputs;
@@ -308,10 +304,6 @@ export class Signer extends ccc.SignerBtc {
    * - psbt: base64 encoded PSBT
    * - signInputs: Record<address, number[]> input indexes to sign
    * - broadcast: set to true to broadcast
-   *
-   * @remarks
-   * Use this method directly for sign+broadcast operations to avoid double popups.
-   * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
    *
    * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
    */
