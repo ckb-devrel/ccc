@@ -5,6 +5,7 @@ import { KnownScript } from "../../client/index.js";
 import { HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
+import { SignPsbtOptions } from "./psbt.js";
 import { btcEcdsaPublicKeyHash } from "./verify.js";
 
 /**
@@ -20,6 +21,32 @@ export abstract class SignerBtc extends Signer {
 
   get signType(): SignerSignType {
     return SignerSignType.BtcEcdsa;
+  }
+
+  /**
+   * Whether the wallet supports a single call to sign + broadcast (combined flow).
+   * Default false; override in implementations like Xverse/JoyID.
+   */
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return false;
+  }
+
+  /**
+   * Sign and broadcast a PSBT in one call when supported, otherwise falls back
+   * to sign then push. Prefer this over manual sign+push to avoid double popups.
+   */
+  async signAndPushPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string> {
+    if (this.supportsSingleCallSignAndBroadcast) {
+      // Wallet handles sign+broadcast internally (e.g., Xverse/JoyID)
+      return this.pushPsbt(psbtHex, options);
+    }
+
+    // Split-mode wallets: sign first, then broadcast
+    const signedPsbt = await this.signPsbt(psbtHex, options);
+    return this.pushPsbt(signedPsbt, options);
   }
 
   /**
@@ -123,4 +150,27 @@ export abstract class SignerBtc extends Signer {
     tx.setWitnessArgsAt(info.position, witness);
     return tx;
   }
+
+  /**
+   * Signs a Partially Signed Bitcoin Transaction (PSBT).
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT hex string
+   */
+  abstract signPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string>;
+
+  /**
+   * Broadcasts a signed PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string of signed PSBT to broadcast
+   * @returns A promise that resolves to the transaction ID
+   */
+  abstract pushPsbt(
+    psbtHex: string,
+    options?: SignPsbtOptions,
+  ): Promise<string>;
 }

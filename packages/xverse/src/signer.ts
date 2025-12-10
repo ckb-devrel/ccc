@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { Psbt } from "bitcoinjs-lib";
 import * as v from "valibot";
 import {
   Address,
@@ -63,6 +64,10 @@ export class Signer extends ccc.SignerBtc {
     ],
   ) {
     super(client);
+  }
+
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return true;
   }
 
   async assertAddress(): Promise<Address> {
@@ -168,5 +173,171 @@ export class Signer extends ccc.SignerBtc {
         }),
       )
     ).signature;
+  }
+
+  /**
+   * Build default toSignInputs for all unsigned inputs
+   */
+  private buildDefaultToSignInputs(
+    psbtHex: string,
+    address: string,
+  ): ccc.ToSignInput[] {
+    const toSignInputs: ccc.ToSignInput[] = [];
+
+    try {
+      const psbt = Psbt.fromHex(psbtHex);
+
+      // Collect all unsigned inputs
+      psbt.data.inputs.forEach((input, index) => {
+        const isSigned =
+          input.finalScriptSig ||
+          input.finalScriptWitness ||
+          input.tapKeySig ||
+          (input.partialSig && input.partialSig.length > 0) ||
+          (input.tapScriptSig && input.tapScriptSig.length > 0);
+
+        if (!isSigned) {
+          toSignInputs.push({ index, address } as ccc.ToSignInput);
+        }
+      });
+
+      // If no unsigned inputs found, assume we need to sign all inputs
+      if (toSignInputs.length === 0) {
+        for (let i = 0; i < psbt.data.inputs.length; i++) {
+          toSignInputs.push({ index: i, address } as ccc.ToSignInput);
+        }
+      }
+    } catch (error) {
+      // Fallback: if PSBT parsing fails, assume single input at index 0
+      console.warn("Failed to parse PSBT, assuming single input:", error);
+      toSignInputs.push({ index: 0, address } as ccc.ToSignInput);
+    }
+
+    return toSignInputs;
+  }
+
+  private async prepareSignPsbtParams(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<{
+    psbtBase64: string;
+    signInputs: Record<string, number[]>;
+  }> {
+    let toSignInputs = options?.toSignInputs;
+    if (!toSignInputs || !toSignInputs.length) {
+      const address = await this.getBtcAccount();
+      toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
+    }
+
+    const psbtBytes = ccc.bytesFrom(psbtHex);
+    const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+
+    const signInputs = toSignInputs.reduce(
+      (acc, input) => {
+        if (!input.address) {
+          throw new Error(
+            "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+          );
+        }
+        if (acc[input.address]) {
+          acc[input.address].push(input.index);
+        } else {
+          acc[input.address] = [input.index];
+        }
+        return acc;
+      },
+      {} as Record<string, number[]>,
+    );
+
+    return { psbtBase64, signInputs };
+  }
+
+  /**
+   * Signs a PSBT using Xverse wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT hex string
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: A string representing the PSBT to sign, encoded in base64
+   * - signInputs: A Record<string, number[]> where:
+   *   - keys are the addresses to use for signing
+   *   - values are the indexes of the inputs to sign with each address
+   *
+   * Xverse returns:
+   * - psbt: The base64 encoded signed PSBT
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
+  async signPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      psbtHex,
+      options,
+    );
+
+    const signedPsbtBase64 = (
+      await checkResponse(
+        this.provider.request("signPsbt", {
+          psbt: psbtBase64,
+          signInputs,
+          broadcast: false,
+        }),
+      )
+    ).psbt;
+
+    const signedPsbtBytes = ccc.bytesFrom(signedPsbtBase64, "base64");
+    return ccc.hexFrom(signedPsbtBytes).slice(2);
+  }
+
+  /**
+   * Signs and broadcasts a PSBT using Xverse wallet (single popup).
+   *
+   * @param psbtHex - The hex string of PSBT to sign and broadcast
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to SignPsbtResult:
+   * - psbt: base64 encoded signed PSBT
+   * - txid: transaction id (only when broadcast succeeds)
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: base64 encoded PSBT
+   * - signInputs: Record<address, number[]> input indexes to sign
+   * - broadcast: set to true to broadcast
+   *
+   * @remarks
+   * Use this method directly for sign+broadcast operations to avoid double popups.
+   * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
+  async pushPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      psbtHex,
+      options,
+    );
+
+    const result = await checkResponse(
+      this.provider.request("signPsbt", {
+        psbt: psbtBase64,
+        // Build signInputs: Record<address, input_indexes[]>
+        // Multiple inputs with the same address should be grouped together
+        signInputs,
+        broadcast: true,
+      }),
+    );
+
+    if (!result.txid) {
+      throw new Error("Failed to broadcast PSBT");
+    }
+
+    return result.txid;
   }
 }

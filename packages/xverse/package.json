@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
+    "bitcoinjs-lib": "^7.0.0",
     "valibot": "^1.1.0"
   },
   "packageManager": "pnpm@10.8.1"

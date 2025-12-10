@@ -60,6 +60,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
     super(client);
   }
 
+  get supportsSingleCallSignAndBroadcast(): boolean {
+    return true;
+  }
+
   /**
    * Gets the configuration for JoyID.
    * @returns The configuration object.
@@ -197,5 +201,73 @@ export class BitcoinSigner extends ccc.SignerBtc {
       { ...config, type: DappRequestType.SignMessage },
     );
     return signature;
+  }
+
+  /**
+   * Signs a PSBT using JoyID wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign
+   * @returns A promise that resolves to the signed PSBT hex string
+   */
+  async signPsbt(
+    psbtHex: string,
+    options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    const { address } = await this.assertConnection();
+
+    const config = this.getConfig();
+    const { tx: signedPsbtHex } = await createPopup(
+      buildJoyIDURL(
+        {
+          ...config,
+          tx: psbtHex,
+          options,
+          signerAddress: address,
+          autoFinalized: options?.autoFinalized ?? true,
+        },
+        "popup",
+        "/sign-psbt",
+      ),
+      { ...config, type: DappRequestType.SignPsbt },
+    );
+
+    return signedPsbtHex;
+  }
+
+  /**
+   * Signs and broadcasts a PSBT to the Bitcoin network using JoyID wallet.
+   *
+   * This method combines both signing and broadcasting in a single operation.
+   *
+   * @param psbtHex - The hex string of PSBT to sign and broadcast
+   * @returns A promise that resolves to the transaction ID
+   *
+   * @remarks
+   * Use this method directly for sign+broadcast operations to avoid double popups.
+   * While calling signPsbt() then pushPsbt() will still work, it triggers two popups and requires double signing.
+   */
+  async pushPsbt(
+    psbtHex: string,
+    _options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    const { address } = await this.assertConnection();
+
+    const config = this.getConfig();
+    const { tx: txid } = await createPopup(
+      buildJoyIDURL(
+        {
+          ...config,
+          tx: psbtHex,
+          signerAddress: address,
+          autoFinalized: true, // sendPsbt always finalizes
+          isSend: true,
+        },
+        "popup",
+        "/sign-psbt",
+      ),
+      { ...config, type: DappRequestType.SignPsbt }, // Use SignPsbt type for both operations
+    );
+
+    return txid;
   }
 }
