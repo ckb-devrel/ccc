@@ -287,7 +287,7 @@ export class Signer extends ccc.SignerBtc {
     ).psbt;
 
     const signedPsbtBytes = ccc.bytesFrom(signedPsbtBase64, "base64");
-    return ccc.hexFrom(signedPsbtBytes).slice(2);
+    return ccc.bytesTo(signedPsbtBytes, "hex"); // no leading "0x"
   }
 
   /**
