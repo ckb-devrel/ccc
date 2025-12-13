@@ -28,6 +28,7 @@ export function TrigramLine({
   const brokenWidth = (width - gap) / 2;
 
   const animate = useMemo(() => {
+    /* eslint-disable react-hooks/purity */
     const percentage = Math.random() * 0.2 + 0.05;
     return (
       <animate
@@ -39,6 +40,7 @@ export function TrigramLine({
         repeatCount="indefinite"
       />
     );
+    /* eslint-enable react-hooks/purity */
   }, [dim]);
 
   return isBroken ? (
