@@ -1,5 +1,12 @@
 # @ckb-ccc/connector-react
 
+## 1.0.31
+### Patch Changes
+
+
+
+- [#335](https://github.com/ckb-devrel/ccc/pull/335) [`ea7e626`](https://github.com/ckb-devrel/ccc/commit/ea7e626a81ad4fb78142f0d948843de84478debf) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump version of react
+
 ## 1.0.30
 ### Patch Changes
 
