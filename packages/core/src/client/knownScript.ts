@@ -15,6 +15,7 @@ export enum KnownScript {
   OmniLock = "OmniLock",
   NostrLock = "NostrLock",
   UniqueType = "UniqueType",
+  DidCkb = "DidCkb",
 
   // ckb-proxy-locks https://github.com/ckb-devrel/ckb-proxy-locks
   AlwaysSuccess = "AlwaysSuccess",
