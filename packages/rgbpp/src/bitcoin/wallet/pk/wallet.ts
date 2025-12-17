@@ -37,6 +37,10 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
     return this.account.from;
   }
 
+  async getPublicKey(): Promise<string> {
+    return this.account.keyPair.publicKey.toString("hex");
+  }
+
   /**
    * Format SignPsbtOptions to actual inputs that need to be signed
    * @private

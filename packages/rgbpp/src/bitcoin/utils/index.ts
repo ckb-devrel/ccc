@@ -8,10 +8,11 @@ import { PredefinedNetwork } from "../../types/network.js";
 import {
   AddressType,
   InitOutput,
+  PublicKeyProvider,
   TxInputData,
   TxOutput,
   Utxo,
-} from "../types/tx.js";
+} from "../types/index.js";
 
 const { cloneDeep } = lodash;
 
@@ -215,7 +216,19 @@ export function isOpReturnScriptPubkey(script: Buffer): boolean {
   return true;
 }
 
-export function utxoToInputData(utxo: Utxo): TxInputData {
+/**
+ * Convert UTXO to PSBT input data
+ *
+ * @param utxo - The UTXO to convert
+ * @param publicKeyProvider - Optional provider to lookup public keys for P2TR addresses
+ * @returns PSBT input data
+ *
+ * @throws Error if address type is unsupported or public key is missing for P2TR
+ */
+export async function utxoToInputData(
+  utxo: Utxo,
+  publicKeyProvider?: PublicKeyProvider,
+): Promise<TxInputData> {
   if (!isSupportedAddressType(utxo.addressType)) {
     throw new Error(
       `Unsupported address type, only support ${SUPPORTED_ADDRESS_TYPES.join(
@@ -237,9 +250,22 @@ export function utxoToInputData(utxo: Utxo): TxInputData {
   }
 
   if (utxo.addressType === AddressType.P2TR) {
-    if (!utxo.pubkey) {
-      throw new Error("Missing pubkey");
+    let pubkey = utxo.pubkey;
+
+    if (!pubkey && publicKeyProvider) {
+      pubkey = await publicKeyProvider.getPublicKey(
+        utxo.address,
+        utxo.addressType,
+      );
     }
+
+    if (!pubkey) {
+      throw new Error(
+        `Missing pubkey for P2TR address ${utxo.address}. ` +
+          `Please provide a PublicKeyProvider or add pubkey to UTXO data.`,
+      );
+    }
+
     const data = {
       hash: utxo.txid,
       index: utxo.vout,
@@ -247,7 +273,7 @@ export function utxoToInputData(utxo: Utxo): TxInputData {
         value: utxo.value,
         script: Buffer.from(trimHexPrefix(utxo.scriptPk), "hex"),
       },
-      tapInternalKey: toXOnly(Buffer.from(trimHexPrefix(utxo.pubkey), "hex")),
+      tapInternalKey: toXOnly(Buffer.from(trimHexPrefix(pubkey), "hex")),
     };
     return data;
   }

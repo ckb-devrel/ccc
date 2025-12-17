@@ -18,6 +18,12 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
     return this.signer.getBtcAccount();
   }
 
+  async getPublicKey(): Promise<string> {
+    const pubkey = await this.signer.getBtcPublicKey();
+    const hexString = typeof pubkey === "string" ? pubkey : pubkey.toString();
+    return hexString.startsWith("0x") ? hexString.slice(2) : hexString;
+  }
+
   async signAndBroadcast(
     psbt: Psbt,
     options?: ccc.SignPsbtOptions,

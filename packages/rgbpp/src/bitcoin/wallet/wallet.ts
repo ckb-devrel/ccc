@@ -25,6 +25,7 @@ import { UtxoSeal } from "../../types/rgbpp/rgbpp.js";
 
 import { BtcAssetsApiBase } from "../service/base.js";
 import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
+import { PublicKeyProvider } from "../types/publicKeyProvider.js";
 import { RgbppBtcTxParams } from "../types/rgbpp.js";
 import {
   BtcApiBalance,
@@ -47,6 +48,11 @@ import {
   utxoToInputData,
 } from "../utils/index.js";
 import { transactionToHex } from "./pk/account.js";
+import {
+  CachedPublicKeyProvider,
+  CompositePublicKeyProvider,
+  WalletPublicKeyProvider,
+} from "./publicKeyProvider.js";
 
 import { NetworkConfig } from "../../types/network.js";
 import { RgbppApiSpvProof } from "../../types/spv.js";
@@ -56,6 +62,8 @@ const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
 export abstract class RgbppBtcWallet {
   protected btcAssetsApi: BtcAssetsApiBase;
   protected networkConfig: NetworkConfig;
+  protected publicKeyProvider: PublicKeyProvider;
+  private cachedProvider: CachedPublicKeyProvider;
 
   constructor(
     networkConfig: NetworkConfig,
@@ -63,9 +71,55 @@ export abstract class RgbppBtcWallet {
   ) {
     this.btcAssetsApi = new BtcAssetsApiBase(btcAssetApiConfig);
     this.networkConfig = networkConfig;
+
+    // Initialize public key providers
+    this.cachedProvider = new CachedPublicKeyProvider();
+    this.publicKeyProvider = new CompositePublicKeyProvider([
+      this.cachedProvider,
+      new WalletPublicKeyProvider(this),
+    ]);
   }
 
+  /**
+   * Get the current wallet address
+   */
   abstract getAddress(): Promise<string>;
+
+  /**
+   * Get the public key for the current wallet address
+   * @returns Public key in hex format (33-byte compressed format)
+   */
+  abstract getPublicKey(): Promise<string>;
+
+  /**
+   * Register a public key for a specific address
+   * This is useful when you need to spend UTXOs from addresses other than the current wallet
+   *
+   * @param address - Bitcoin address
+   * @param publicKey - Public key in hex format (33-byte compressed or 32-byte x-only format)
+   *
+   * @example
+   * ```typescript
+   * // Register a public key for a service address
+   * wallet.registerPublicKey(
+   *   "bc1p_service_address_xxx",
+   *   "02abc123..." // 33-byte compressed public key
+   * );
+   * ```
+   */
+  registerPublicKey(address: string, publicKey: string): void {
+    this.cachedProvider.addMapping(address, publicKey);
+  }
+
+  /**
+   * Set a custom public key provider
+   * This will replace the default composite provider
+   *
+   * @param provider - The public key provider to use
+   */
+  setPublicKeyProvider(provider: PublicKeyProvider): void {
+    this.publicKeyProvider = provider;
+  }
 
   async buildPsbt(
     params: RgbppBtcTxParams,
@@ -199,25 +253,31 @@ export abstract class RgbppBtcWallet {
       const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
       if (isOpReturnScriptPubkey(scriptBuffer)) {
         inputs.push(
-          utxoToInputData({
-            txid: utxoSeal.txId,
-            vout: utxoSeal.index,
-            value: vout.value,
-            scriptPk: vout.scriptpubkey,
-          } as Utxo),
+          await utxoToInputData(
+            {
+              txid: utxoSeal.txId,
+              vout: utxoSeal.index,
+              value: vout.value,
+              scriptPk: vout.scriptpubkey,
+            } as Utxo,
+            this.publicKeyProvider,
+          ),
         );
         continue;
       }
 
       inputs.push(
-        utxoToInputData({
-          txid: utxoSeal.txId,
-          vout: utxoSeal.index,
-          value: vout.value,
-          scriptPk: vout.scriptpubkey,
-          address: vout.scriptpubkey_address,
-          addressType: getAddressType(vout.scriptpubkey_address),
-        } as Utxo),
+        await utxoToInputData(
+          {
+            txid: utxoSeal.txId,
+            vout: utxoSeal.index,
+            value: vout.value,
+            scriptPk: vout.scriptpubkey,
+            address: vout.scriptpubkey_address,
+            addressType: getAddressType(vout.scriptpubkey_address),
+          } as Utxo,
+          this.publicKeyProvider,
+        ),
       );
     }
     return inputs;
