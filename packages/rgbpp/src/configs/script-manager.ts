@@ -2,11 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 
 import { DEFAULT_CONFIRMATIONS } from "../constants/index.js";
 import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
-import {
-  CellDepSet,
-  PredefinedScriptName,
-  ScriptSet,
-} from "../types/script.js";
+import { CellDepSet, ScriptSet } from "../types/script.js";
 import {
   buildBtcTimeLockArgs,
   buildRgbppLockArgs,
@@ -15,51 +11,61 @@ import {
 } from "../utils/rgbpp.js";
 
 export class ScriptManager {
+  private scriptCache: Map<ccc.KnownScript, Promise<ccc.ScriptInfo>> = new Map();
+
   constructor(
-    private scripts: ScriptSet,
-    private cellDeps: CellDepSet,
+    private client: ccc.Client,
+    private signetConfig?: { scripts: ScriptSet; cellDeps: CellDepSet },
   ) {}
 
-  getScripts() {
-    return JSON.parse(JSON.stringify(this.scripts));
-  }
-
-  getScriptInfos() {
-    return Object.entries(this.scripts).reduce(
-      (acc, [name, script]) => ({
-        ...acc,
-        [name]: {
-          script,
-          cellDep: this.cellDeps[name as PredefinedScriptName],
-        },
-      }),
-      {} as Record<
-        PredefinedScriptName,
-        { script: ccc.Script; cellDep: ccc.CellDep }
-      >,
-    );
-  }
-
-  getScriptInfoByName(name: PredefinedScriptName): {
+  /**
+   * Get script info by name, using ccc.KnownScript
+   * For Signet network, falls back to local configuration
+   */
+  async getKnownScriptInfo(name: ccc.KnownScript): Promise<{
     script: ccc.Script;
     cellDep: ccc.CellDep;
-  } {
+  }> {
+    // Check if using Signet local config
+    if (this.signetConfig?.scripts[name] && this.signetConfig?.cellDeps[name]) {
+      return {
+        script: this.signetConfig.scripts[name],
+        cellDep: this.signetConfig.cellDeps[name],
+      };
+    }
+
+    // Check cache first
+    let scriptInfoPromise = this.scriptCache.get(name);
+    if (!scriptInfoPromise) {
+      // Fetch from client and cache promise
+      scriptInfoPromise = this.client.getKnownScript(name);
+      this.scriptCache.set(name, scriptInfoPromise);
+    }
+
+    const scriptInfo = await scriptInfoPromise;
+
     return {
-      script: this.scripts[name],
-      cellDep: this.cellDeps[name],
+      script: ccc.Script.from({
+        codeHash: scriptInfo.codeHash,
+        hashType: scriptInfo.hashType,
+        args: "",
+      }),
+      cellDep: scriptInfo.cellDeps[0].cellDep,
     };
   }
 
-  buildPseudoRgbppLockScript(): ccc.Script {
+  async buildPseudoRgbppLockScript(): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
     return ccc.Script.from({
-      ...this.scripts[PredefinedScriptName.RgbppLock],
+      ...script,
       args: pseudoRgbppLockArgs(),
     });
   }
 
-  buildRgbppLockScript(utxoSeal: UtxoSeal): ccc.Script {
+  async buildRgbppLockScript(utxoSeal: UtxoSeal): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
     return ccc.Script.from({
-      ...this.scripts[PredefinedScriptName.RgbppLock],
+      ...script,
       args: buildRgbppLockArgs({
         txId: utxoSeal.txId,
         index: utxoSeal.index, // index in btc tx output
@@ -67,13 +73,14 @@ export class ScriptManager {
     });
   }
 
-  buildBtcTimeLockScript(
+  async buildBtcTimeLockScript(
     receiverLock: ccc.Script,
     btcTxId: string,
     confirmations = DEFAULT_CONFIRMATIONS,
-  ): ccc.Script {
+  ): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock);
     return ccc.Script.from({
-      ...this.scripts[PredefinedScriptName.BtcTimeLock],
+      ...script,
       args: buildBtcTimeLockArgs(receiverLock, btcTxId, confirmations),
     });
   }
@@ -86,13 +93,30 @@ export class ScriptManager {
     1. Create a transaction which uses any out point as tx.inputs[0] and has a output cell whose type script is Type ID. The output cell's type script args is the hash of tx.inputs[0] and its output index. Because any out point can only be used once as an input, tx.inputs[0] and thus the new type id must be different in each creation transaction.
     2. Destroy an old cell with a specific type id and create a new cell with the same type id in the same transaction.
   */
-  buildUniqueTypeScript(
+  async buildUniqueTypeScript(
     firstInput: ccc.CellInput,
     outputIndex: number,
-  ): ccc.Script {
+  ): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.UniqueType);
     return ccc.Script.from({
-      ...this.scripts[PredefinedScriptName.UniqueType],
+      ...script,
       args: buildUniqueTypeArgs(firstInput, outputIndex),
     });
+  }
+
+  /**
+   * Get RGB++ lock script template (without args)
+   */
+  async rgbppLockScriptTemplate(): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
+    return script;
+  }
+
+  /**
+   * Get BTC time lock script template (without args)
+   */
+  async btcTimeLockScriptTemplate(): Promise<ccc.Script> {
+    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock);
+    return script;
   }
 }

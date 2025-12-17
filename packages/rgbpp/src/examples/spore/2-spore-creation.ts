@@ -26,10 +26,12 @@ async function createSpore({
     ckbSigner,
   } = await initializeRgbppEnv();
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+
   const { tx: transferClusterTx } = await spore.transferSporeCluster({
     signer: ckbSigner,
     id: receiverInfo[0].rawSporeData.clusterId!,
-    to: rgbppUdtClient.buildPseudoRgbppLockScript(), // new cluster output
+    to: pseudoRgbppLock, // new cluster output
   });
 
   let ckbPartialTx: ccc.Transaction = transferClusterTx;
@@ -37,7 +39,7 @@ async function createSpore({
     const { tx: _ckbPartialTx, id } = await spore.createSpore({
       signer: ckbSigner,
       data: receiver.rawSporeData,
-      to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+      to: pseudoRgbppLock,
       // cannot use cluster mode here as cluster's lock needs to be updated
       clusterMode: "skip",
       tx: ckbPartialTx,

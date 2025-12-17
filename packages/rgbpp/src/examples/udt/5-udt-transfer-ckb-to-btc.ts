@@ -31,9 +31,11 @@ async function ckbUdtToBtc({
     udtScriptInfo.script,
   );
 
+  const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+
   let { res: tx } = await udtInstance.transfer(ckbSigner as unknown as ccc.Signer, [
     {
-      to: rgbppUdtClient.buildRgbppLockScript(utxoSeal),
+      to: rgbppLock,
       amount: ccc.fixedPointFrom(amount),
     },
   ]);

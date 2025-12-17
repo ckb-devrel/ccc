@@ -1,19 +1,22 @@
 import { ccc } from "@ckb-ccc/core";
 
-export enum PredefinedScriptName {
-  RgbppLock = "RgbppLock",
-  BtcTimeLock = "BtcTimeLock",
-  UniqueType = ccc.KnownScript.UniqueType,
-}
-
+/**
+ * Script set for Bitcoin Signet network
+ * Signet uses local configuration as it's primarily for testing
+ */
 export interface ScriptSet {
-  [PredefinedScriptName.RgbppLock]: ccc.Script;
-  [PredefinedScriptName.BtcTimeLock]: ccc.Script;
-  [PredefinedScriptName.UniqueType]: ccc.Script;
+  [key: string]: ccc.Script;
+  [ccc.KnownScript.RgbppLock]: ccc.Script;
+  [ccc.KnownScript.BtcTimeLock]: ccc.Script;
+  [ccc.KnownScript.UniqueType]: ccc.Script;
 }
 
+/**
+ * Cell dep set for Bitcoin Signet network
+ */
 export interface CellDepSet {
-  [PredefinedScriptName.RgbppLock]: ccc.CellDep;
-  [PredefinedScriptName.BtcTimeLock]: ccc.CellDep;
-  [PredefinedScriptName.UniqueType]: ccc.CellDep;
+  [key: string]: ccc.CellDep;
+  [ccc.KnownScript.RgbppLock]: ccc.CellDep;
+  [ccc.KnownScript.BtcTimeLock]: ccc.CellDep;
+  [ccc.KnownScript.UniqueType]: ccc.CellDep;
 }

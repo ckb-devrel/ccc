@@ -14,7 +14,6 @@ import { transactionToHex } from "../bitcoin/index.js";
 import { TX_ID_PLACEHOLDER } from "../constants/index.js";
 import { SimpleBtcClient } from "../interfaces/btc.js";
 import { SpvProofProvider } from "../interfaces/spv.js";
-import { PredefinedScriptName } from "../types/script.js";
 import { SpvProof } from "../types/spv.js";
 import { deduplicateByOutPoint } from "../utils/common.js";
 import { trimHexPrefix } from "../utils/encoder.js";
@@ -32,13 +31,13 @@ import { pollForSpvProof } from "../utils/spv.js";
 
 export class CkbRgbppUnlockSigner extends ccc.Signer {
   // map of script code hash to script name
-  private readonly scriptMap: Record<string, PredefinedScriptName>;
+  private readonly scriptMap: Record<string, ccc.KnownScript>;
   private readonly rgbppScriptInfos: {
-    [PredefinedScriptName.RgbppLock]: {
+    [ccc.KnownScript.RgbppLock]: {
       script: ccc.Script;
       cellDep: ccc.CellDep;
     };
-    [PredefinedScriptName.BtcTimeLock]: {
+    [ccc.KnownScript.BtcTimeLock]: {
       script: ccc.Script;
       cellDep: ccc.CellDep;
     };
@@ -54,7 +53,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     private readonly spvProofProvider: SpvProofProvider,
     private readonly simpleBtcClient: SimpleBtcClient,
     scriptInfos: Record<
-      PredefinedScriptName,
+      ccc.KnownScript,
       { script: ccc.Script; cellDep: ccc.CellDep }
     >,
   ) {
@@ -62,14 +61,14 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     this.scriptMap = Object.fromEntries(
       Object.entries(scriptInfos).map(([key, value]) => [
         value.script.codeHash,
-        key as PredefinedScriptName,
+        key as ccc.KnownScript,
       ]),
     );
     this.rgbppScriptInfos = {
-      [PredefinedScriptName.RgbppLock]:
-        scriptInfos[PredefinedScriptName.RgbppLock],
-      [PredefinedScriptName.BtcTimeLock]:
-        scriptInfos[PredefinedScriptName.BtcTimeLock],
+      [ccc.KnownScript.RgbppLock]:
+        scriptInfos[ccc.KnownScript.RgbppLock],
+      [ccc.KnownScript.BtcTimeLock]:
+        scriptInfos[ccc.KnownScript.BtcTimeLock],
     };
   }
 
@@ -81,12 +80,12 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     return SignerSignType.Unknown;
   }
 
-  getScriptName(script?: ccc.Script): PredefinedScriptName | undefined {
+  getScriptName(script?: ccc.Script): ccc.KnownScript | undefined {
     return script ? this.scriptMap[script.codeHash] : undefined;
   }
 
   async collectCellDeps(tx: Transaction): Promise<ccc.CellDep[]> {
-    const scriptNames = new Set<PredefinedScriptName>(
+    const scriptNames = new Set<ccc.KnownScript>(
       [
         ...(
           await Promise.all(
@@ -102,13 +101,13 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
           )
         ).flat(),
         ...tx.outputs.map((output) => this.getScriptName(output.type)),
-      ].filter((name): name is PredefinedScriptName => !!name),
+      ].filter((name): name is ccc.KnownScript => !!name),
     );
 
     let cellDeps = Array.from(scriptNames).flatMap((name) => {
       if (
-        name === PredefinedScriptName.RgbppLock ||
-        name === PredefinedScriptName.BtcTimeLock
+        name === ccc.KnownScript.RgbppLock ||
+        name === ccc.KnownScript.BtcTimeLock
       ) {
         return [
           this.rgbppScriptInfos[name].cellDep,
@@ -253,8 +252,8 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     const outputs = tx.outputs.filter((output) => output.lock);
     const rgbppOutput = outputs.find((output) =>
       isUsingOneOfScripts(output.lock, [
-        this.rgbppScriptInfos[PredefinedScriptName.RgbppLock].script,
-        this.rgbppScriptInfos[PredefinedScriptName.BtcTimeLock].script,
+        this.rgbppScriptInfos[ccc.KnownScript.RgbppLock].script,
+        this.rgbppScriptInfos[ccc.KnownScript.BtcTimeLock].script,
       ]),
     );
     if (!rgbppOutput) {
@@ -320,7 +319,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       if (
         isSameScriptTemplate(
           output.lock,
-          this.rgbppScriptInfos[PredefinedScriptName.RgbppLock].script,
+          this.rgbppScriptInfos[ccc.KnownScript.RgbppLock].script,
         )
       ) {
         btcTxId = getTxIdFromScriptArgs(output.lock.args);
@@ -328,7 +327,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       } else if (
         isSameScriptTemplate(
           output.lock,
-          this.rgbppScriptInfos[PredefinedScriptName.BtcTimeLock].script,
+          this.rgbppScriptInfos[ccc.KnownScript.BtcTimeLock].script,
         )
       ) {
         btcTxId = getTxIdFromScriptArgs(output.lock.args);

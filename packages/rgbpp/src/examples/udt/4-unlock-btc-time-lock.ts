@@ -7,8 +7,6 @@ import {
   pollForSpvProof,
 } from "../../utils/index.js";
 
-import { PredefinedScriptName } from "../../types/script.js";
-
 import { testnetSudtCellDep } from "../common/assets.js";
 
 import "../common/load-env.js";
@@ -47,9 +45,10 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
     );
   });
 
-  const btcTimeLockCellDep = rgbppUdtClient.getRgbppScriptInfoByName(
-    PredefinedScriptName.BtcTimeLock,
-  ).cellDep;
+  const btcTimeLockInfo = await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+    ccc.KnownScript.BtcTimeLock,
+  );
+  const btcTimeLockCellDep = btcTimeLockInfo.cellDep;
   tx.cellDeps.push(
     testnetSudtCellDep,
     btcTimeLockCellDep,

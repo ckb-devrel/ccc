@@ -31,10 +31,12 @@ async function transferUdt({
     udtScriptInfo.script,
   );
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+
   let { res: tx } = await udtInstance.transfer(
     ckbSigner as unknown as ccc.Signer,
     receivers.map((receiver) => ({
-      to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+      to: pseudoRgbppLock,
       amount: ccc.fixedPointFrom(receiver.amount),
     })),
   );
@@ -45,7 +47,7 @@ async function transferUdt({
   txWithInputs = await udtInstance.completeChangeToLock(
     tx,
     ckbRgbppUnlockSigner,
-    rgbppUdtClient.buildPseudoRgbppLockScript(),
+    pseudoRgbppLock,
   );
 
   const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({

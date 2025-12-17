@@ -22,12 +22,14 @@ async function transferSpore(
     ckbSigner,
   } = await initializeRgbppEnv();
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+
   let ckbPartialTx = ccc.Transaction.from({});
   for (const { sporeTypeArgs } of transfers) {
     const { tx: _ckbPartialTx } = await spore.transferSpore({
       signer: ckbSigner,
       id: sporeTypeArgs,
-      to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+      to: pseudoRgbppLock,
       tx: ckbPartialTx,
     });
     ckbPartialTx = _ckbPartialTx;

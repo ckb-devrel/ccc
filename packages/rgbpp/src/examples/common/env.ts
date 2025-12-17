@@ -74,7 +74,17 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
       await rgbppBtcWallet.getAddress(),
       rgbppBtcWallet,
       rgbppBtcWallet,
-      rgbppUdtClient.getRgbppScriptInfos(),
+      {
+        [ccc.KnownScript.RgbppLock]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+          ccc.KnownScript.RgbppLock,
+        ),
+        [ccc.KnownScript.BtcTimeLock]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+          ccc.KnownScript.BtcTimeLock,
+        ),
+        [ccc.KnownScript.UniqueType]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+          ccc.KnownScript.UniqueType,
+        ),
+      } as Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>,
     ),
   };
 }

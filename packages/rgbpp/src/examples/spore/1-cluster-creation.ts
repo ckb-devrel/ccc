@@ -41,10 +41,12 @@ async function createSporeCluster(utxoSeal?: UtxoSeal) {
     tx.inputs.push(cellInput);
   });
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+
   const { tx: ckbPartialTx, id } = await spore.createSporeCluster({
     signer: ckbSigner,
     data: clusterData,
-    to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+    to: pseudoRgbppLock,
     tx,
   });
 

@@ -22,10 +22,12 @@ async function ckbSporeToBtc({
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
   }
 
+  const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+
   const { tx } = await spore.transferSpore({
     signer: ckbSigner,
     id: sporeTypeArgs,
-    to: rgbppUdtClient.buildRgbppLockScript(utxoSeal),
+    to: rgbppLock,
   });
 
   await tx.completeFeeBy(ckbSigner);

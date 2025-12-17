@@ -1,19 +1,15 @@
 import { ccc } from "@ckb-ccc/core";
 
-import {
-  CellDepSet,
-  PredefinedScriptName,
-  ScriptSet,
-} from "../../types/script.js";
+import { CellDepSet, ScriptSet } from "../../types/script.js";
 
 export const signetScripts: ScriptSet = {
-  [PredefinedScriptName.RgbppLock]: ccc.Script.from({
+  [ccc.KnownScript.RgbppLock]: ccc.Script.from({
     codeHash:
       "0xd07598deec7ce7b5665310386b4abd06a6d48843e953c5cc2112ad0d5a220364",
     hashType: "type",
     args: "",
   }),
-  [PredefinedScriptName.BtcTimeLock]: ccc.Script.from({
+  [ccc.KnownScript.BtcTimeLock]: ccc.Script.from({
     codeHash:
       "0x80a09eca26d77cea1f5a69471c59481be7404febf40ee90f886c36a948385b55",
     hashType: "type",
@@ -28,7 +24,7 @@ export const signetScripts: ScriptSet = {
 };
 
 export const signetCellDeps: CellDepSet = {
-  [PredefinedScriptName.RgbppLock]: ccc.CellDep.from({
+  [ccc.KnownScript.RgbppLock]: ccc.CellDep.from({
     outPoint: {
       txHash:
         "0x61efdeddbaa0bb4132c0eb174b3e8002ff5ec430f61ba46f30768d683c516eec",
@@ -36,7 +32,7 @@ export const signetCellDeps: CellDepSet = {
     },
     depType: "code",
   }),
-  [PredefinedScriptName.BtcTimeLock]: ccc.CellDep.from({
+  [ccc.KnownScript.BtcTimeLock]: ccc.CellDep.from({
     outPoint: {
       txHash:
         "0x5364b3535965e9eac9a35dd7af8e9e45a61d30a16e115923c032f80b28783e21",

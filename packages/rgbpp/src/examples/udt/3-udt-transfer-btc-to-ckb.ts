@@ -41,11 +41,12 @@ async function btcUdtToCkb({
     ),
   );
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
   const txWithInputs = await udtInstance.completeChangeToLock(
     tx,
     ckbRgbppUnlockSigner,
     // merge multiple inputs to a single change output
-    rgbppUdtClient.buildPseudoRgbppLockScript(),
+    pseudoRgbppLock,
   );
 
   const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({

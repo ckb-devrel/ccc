@@ -173,17 +173,17 @@ export const isCommitmentMatched = (
 };
 
 // RGB++ related outputs
-export const buildBtcRgbppOutputs = (
+export const buildBtcRgbppOutputs = async (
   ckbPartialTx: ccc.Transaction,
   btcChangeAddress: string,
   receiverBtcAddresses: string[],
   btcDustLimit: number,
   rgbppUdtClient: RgbppUdtClient,
-): TxOutput[] => {
+): Promise<TxOutput[]> => {
   const commitment = calculateCommitment(ckbPartialTx);
 
-  const rgbppLockScriptTemplate = rgbppUdtClient.rgbppLockScriptTemplate();
-  const btcTimeLockScriptTemplate = rgbppUdtClient.btcTimeLockScriptTemplate();
+  const rgbppLockScriptTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
+  const btcTimeLockScriptTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
 
   const outputs: InitOutput[] = [];
   let lastCkbTypedOutputIndex = -1;

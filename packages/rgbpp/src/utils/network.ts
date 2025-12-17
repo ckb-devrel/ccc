@@ -1,6 +1,9 @@
+import { ccc } from "@ckb-ccc/core";
+
 import {
-  predefinedCellDeps,
-  predefinedScripts,
+  DEFAULT_DUST_LIMIT,
+  DEFAULT_FEE_RATE,
+  signetScriptConfig,
 } from "../configs/scripts/index.js";
 
 import {
@@ -9,16 +12,6 @@ import {
   NetworkConfigOverrides,
   PredefinedNetwork,
 } from "../types/network.js";
-import {
-  CellDepSet,
-  PredefinedScriptName,
-  ScriptSet,
-} from "../types/script.js";
-
-import {
-  DEFAULT_DUST_LIMIT,
-  DEFAULT_FEE_RATE,
-} from "../configs/scripts/index.js";
 
 export function buildNetworkConfig(
   network: Network,
@@ -33,8 +26,6 @@ export function buildNetworkConfig(
         isMainnet: false,
         btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        scripts: predefinedScripts[PredefinedNetwork.BitcoinTestnet3],
-        cellDeps: predefinedCellDeps[PredefinedNetwork.BitcoinTestnet3],
       };
       break;
     case PredefinedNetwork.BitcoinSignet:
@@ -43,8 +34,7 @@ export function buildNetworkConfig(
         isMainnet: false,
         btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        scripts: predefinedScripts[PredefinedNetwork.BitcoinSignet],
-        cellDeps: predefinedCellDeps[PredefinedNetwork.BitcoinSignet],
+        signetConfig: signetScriptConfig,
       };
       break;
     case PredefinedNetwork.BitcoinMainnet:
@@ -53,37 +43,15 @@ export function buildNetworkConfig(
         isMainnet: true,
         btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        scripts: predefinedScripts[PredefinedNetwork.BitcoinMainnet],
-        cellDeps: predefinedCellDeps[PredefinedNetwork.BitcoinMainnet],
       };
       break;
     default:
-      // if not in PredefinedNetwork, predefinedScripts and predefinedCellDeps must be provided
-      if (!overrides?.scripts || !overrides?.cellDeps) {
-        throw new Error(
-          `For custom network ${network}, predefinedScripts and predefinedCellDeps must be provided`,
-        );
-      }
-      const { scripts, cellDeps } = overrides;
-
-      // Ensure all required scripts and cellDeps are provided
-      const requiredScripts = Object.values(PredefinedScriptName);
-      const missingScripts = requiredScripts.filter((name) => !scripts[name]);
-      const missingCellDeps = requiredScripts.filter((name) => !cellDeps[name]);
-
-      if (missingScripts.length > 0 || missingCellDeps.length > 0) {
-        throw new Error(
-          `For custom network ${network}, missing required scripts: ${missingScripts.join(", ")} or cellDeps: ${missingCellDeps.join(", ")}`,
-        );
-      }
-
       config = {
         name: network,
         isMainnet: false,
         btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        scripts: scripts as ScriptSet,
-        cellDeps: cellDeps as CellDepSet,
+        signetConfig: overrides?.signetConfig, // Allow custom config for other networks if needed
       };
       break;
   }
@@ -100,16 +68,7 @@ function mergeConfigs(
     isMainnet: base.isMainnet,
     btcDustLimit: overrides?.btcDustLimit || base.btcDustLimit,
     btcFeeRate: overrides?.btcFeeRate || base.btcFeeRate,
-    scripts: Object.assign(
-      {},
-      base.scripts,
-      overrides.scripts || {},
-    ) as ScriptSet,
-    cellDeps: Object.assign(
-      {},
-      base.cellDeps,
-      overrides.cellDeps || {},
-    ) as CellDepSet,
+    signetConfig: overrides?.signetConfig || base.signetConfig,
   };
 }
 

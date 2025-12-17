@@ -146,6 +146,10 @@ export abstract class RgbppBtcWallet {
 
     const inputs = await this.buildInputs(utxoSeals);
 
+    // Pre-fetch script templates for comparison
+    const rgbppLockTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
+    const btcTimeLockTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
+
     // adjust index in rgbpp lock args of outputs
     let rgbppIndex = 0;
     const commitmentOutputs: ccc.CellOutput[] = [];
@@ -154,7 +158,7 @@ export abstract class RgbppBtcWallet {
       if (
         isSameScriptTemplate(
           output.lock,
-          rgbppUdtClient.rgbppLockScriptTemplate(),
+          rgbppLockTemplate,
         )
       ) {
         indexedOutputs.push(
@@ -185,7 +189,7 @@ export abstract class RgbppBtcWallet {
       } else if (
         isSameScriptTemplate(
           output.lock,
-          rgbppUdtClient.btcTimeLockScriptTemplate(),
+          btcTimeLockTemplate,
         )
       ) {
         indexedOutputs.push(output);
@@ -209,7 +213,7 @@ export abstract class RgbppBtcWallet {
     commitmentTx.outputs = commitmentOutputs;
     indexedTx.outputs = indexedOutputs;
 
-    const rgbppOutputs = buildBtcRgbppOutputs(
+    const rgbppOutputs = await buildBtcRgbppOutputs(
       commitmentTx,
       btcChangeAddress,
       receiverBtcAddresses,

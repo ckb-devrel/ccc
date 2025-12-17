@@ -10,7 +10,7 @@ export async function prepareRgbppCells(
   utxoSeal: UtxoSeal,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
-  const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+  const rgbppLockScript = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
   const rgbppCellsGen = await ckbClient.findCellsByLock(rgbppLockScript);
   const rgbppCells: ccc.Cell[] = [];
@@ -59,7 +59,7 @@ export async function collectRgbppCells(
 
   await Promise.all(
     utxoSeals.map(async (utxoSeal) => {
-      const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+      const rgbppLockScript = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
       const rgbppCellsGen = await ckbClient.findCellsByLock(
         rgbppLockScript,
         typeScript,
@@ -82,8 +82,9 @@ export async function collectBtcTimeLockCells(
   btcTimeLockArgs: string,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
+  const btcTimeLockTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
   const btcTimeLockCellsGen = await ckbClient.findCellsByLock({
-    ...rgbppUdtClient.btcTimeLockScriptTemplate(),
+    ...btcTimeLockTemplate,
     args: btcTimeLockArgs,
   });
   const btcTimeLockCells: ccc.Cell[] = [];

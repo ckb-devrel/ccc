@@ -9,7 +9,6 @@ import { ScriptManager } from "../configs/index.js";
 import { deadLock } from "../configs/scripts/index.js";
 import { NetworkConfig, UtxoSeal } from "../types/index.js";
 import { RgbppUdtIssuance } from "../types/rgbpp/udt.js";
-import { PredefinedScriptName } from "../types/script.js";
 import {
   deduplicateByOutPoint,
   encodeRgbppUdtToken,
@@ -19,43 +18,29 @@ import {
 } from "../utils/index.js";
 
 export class RgbppUdtClient {
-  private scriptManager: ScriptManager;
+  public scriptManager: ScriptManager;
 
   constructor(
     networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
   ) {
-    this.scriptManager = new ScriptManager(
-      networkConfig.scripts,
-      networkConfig.cellDeps,
-    );
+    const signetConfig = networkConfig.signetConfig;
+    this.scriptManager = new ScriptManager(ckbClient, signetConfig);
   }
 
-  getRgbppScriptInfos() {
-    return this.scriptManager.getScriptInfos();
+  async rgbppLockScriptTemplate(): Promise<ccc.Script> {
+    return this.scriptManager.rgbppLockScriptTemplate();
   }
 
-  getRgbppScriptInfoByName(name: PredefinedScriptName) {
-    return this.scriptManager.getScriptInfoByName(name);
+  async btcTimeLockScriptTemplate(): Promise<ccc.Script> {
+    return this.scriptManager.btcTimeLockScriptTemplate();
   }
 
-  rgbppLockScriptTemplate() {
-    return this.scriptManager.getScriptInfoByName(
-      PredefinedScriptName.RgbppLock,
-    ).script;
-  }
-
-  btcTimeLockScriptTemplate() {
-    return this.scriptManager.getScriptInfoByName(
-      PredefinedScriptName.BtcTimeLock,
-    ).script;
-  }
-
-  buildRgbppLockScript(utxoSeal: UtxoSeal) {
+  async buildRgbppLockScript(utxoSeal: UtxoSeal): Promise<ccc.Script> {
     return this.scriptManager.buildRgbppLockScript(utxoSeal);
   }
 
-  buildPseudoRgbppLockScript() {
+  async buildPseudoRgbppLockScript(): Promise<ccc.Script> {
     return this.scriptManager.buildPseudoRgbppLockScript();
   }
 
@@ -75,15 +60,18 @@ export class RgbppUdtClient {
   }
 
   // * It's assumed that all the tx.outputs are rgbpp/btc time lock scripts.
-  injectTxIdToRgbppCkbTx = (
+  injectTxIdToRgbppCkbTx = async (
     tx: ccc.Transaction,
     txId: string,
-  ): ccc.Transaction => {
+  ): Promise<ccc.Transaction> => {
+    const rgbppLockTemplate = await this.rgbppLockScriptTemplate();
+    const btcTimeLockTemplate = await this.btcTimeLockScriptTemplate();
+
     const outputs = tx.outputs.map((output, index) => {
       if (
         !isUsingOneOfScripts(output.lock, [
-          this.rgbppLockScriptTemplate(),
-          this.btcTimeLockScriptTemplate(),
+          rgbppLockTemplate,
+          btcTimeLockTemplate,
         ])
       ) {
         throw new Error(
@@ -110,7 +98,7 @@ export class RgbppUdtClient {
     signer: ccc.Signer,
     utxoSeal: UtxoSeal,
   ): Promise<ccc.Cell[]> {
-    const rgbppLockScript = this.buildRgbppLockScript(utxoSeal);
+    const rgbppLockScript = await this.buildRgbppLockScript(utxoSeal);
 
     const rgbppCellsGen =
       await signer.client.findCellsByLock(rgbppLockScript);
@@ -168,9 +156,22 @@ export class RgbppUdtClient {
       tx.inputs.push(cellInput);
     });
 
+    const pseudoRgbppLock = await this.scriptManager.buildPseudoRgbppLockScript();
+    const btcTimeLock = await this.scriptManager.buildBtcTimeLockScript(
+      deadLock,
+      TX_ID_PLACEHOLDER,
+    );
+    const uniqueType = await this.scriptManager.buildUniqueTypeScript(
+      tx.inputs[0],
+      UNIQUE_TYPE_OUTPUT_INDEX,
+    );
+    const uniqueTypeInfo = await this.scriptManager.getKnownScriptInfo(
+      ccc.KnownScript.UniqueType,
+    );
+
     tx.addOutput(
       {
-        lock: this.scriptManager.buildPseudoRgbppLockScript(),
+        lock: pseudoRgbppLock,
         type: ccc.Script.from({
           ...params.udtScriptInfo.script,
           args: params.rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
@@ -181,22 +182,15 @@ export class RgbppUdtClient {
 
     tx.addOutput(
       {
-        lock: this.scriptManager.buildBtcTimeLockScript(
-          deadLock,
-          TX_ID_PLACEHOLDER,
-        ),
-        type: this.scriptManager.buildUniqueTypeScript(
-          tx.inputs[0],
-          UNIQUE_TYPE_OUTPUT_INDEX,
-        ),
+        lock: btcTimeLock,
+        type: uniqueType,
       },
       encodeRgbppUdtToken(params.token),
     );
 
     tx.addCellDeps(
       params.udtScriptInfo.cellDep,
-      this.scriptManager.getScriptInfoByName(PredefinedScriptName.UniqueType)
-        .cellDep,
+      uniqueTypeInfo.cellDep,
     );
 
     return tx;
