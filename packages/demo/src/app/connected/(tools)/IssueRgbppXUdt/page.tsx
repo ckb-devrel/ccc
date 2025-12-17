@@ -186,15 +186,16 @@ export default function IssueRGBPPXUdt() {
     }
 
     let mounted = true;
-    rgbppBtcWallet.getAddress().then((address: string) => {
+    rgbppBtcWallet.getAddress().then(async (address: string) => {
       if (mounted) {
+        const scriptInfos = await rgbppUdtClient.getRgbppScriptInfos();
         setCkbRgbppUnlockSigner(
           new CkbRgbppUnlockSigner(
             ckbClient,
             address,
             rgbppBtcWallet,
             rgbppBtcWallet,
-            rgbppUdtClient.getRgbppScriptInfos(),
+            scriptInfos,
           ),
         );
       }
@@ -229,7 +230,8 @@ export default function IssueRGBPPXUdt() {
         txId,
         index: parseInt(indexStr),
       };
-      const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+      const rgbppLockScript =
+        await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
       const rgbppCellsGen =
         await signer.client.findCellsByLock(rgbppLockScript);

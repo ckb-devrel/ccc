@@ -58,6 +58,19 @@ export class RgbppUdtClient {
     );
   }
 
+  async getRgbppScriptInfos(): Promise<
+    Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>
+  > {
+    return {
+      [ccc.KnownScript.RgbppLock]:
+        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
+      [ccc.KnownScript.BtcTimeLock]:
+        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
+      [ccc.KnownScript.UniqueType]:
+        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.UniqueType),
+    } as Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>;
+  }
+
   // * It's assumed that all the tx.outputs are rgbpp/btc time lock scripts.
   injectTxIdToRgbppCkbTx = async (
     tx: ccc.Transaction,
