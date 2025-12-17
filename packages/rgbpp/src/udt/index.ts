@@ -24,8 +24,7 @@ export class RgbppUdtClient {
     networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
   ) {
-    const signetConfig = networkConfig.signetConfig;
-    this.scriptManager = new ScriptManager(ckbClient, signetConfig);
+    this.scriptManager = new ScriptManager(ckbClient);
   }
 
   async rgbppLockScriptTemplate(): Promise<ccc.Script> {

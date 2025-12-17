@@ -3,7 +3,6 @@ import { ccc } from "@ckb-ccc/core";
 import {
   DEFAULT_DUST_LIMIT,
   DEFAULT_FEE_RATE,
-  signetScriptConfig,
 } from "../configs/scripts/index.js";
 
 import {
@@ -28,15 +27,6 @@ export function buildNetworkConfig(
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
       };
       break;
-    case PredefinedNetwork.BitcoinSignet:
-      config = {
-        name: PredefinedNetwork.BitcoinSignet,
-        isMainnet: false,
-        btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
-        btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        signetConfig: signetScriptConfig,
-      };
-      break;
     case PredefinedNetwork.BitcoinMainnet:
       config = {
         name: PredefinedNetwork.BitcoinMainnet,
@@ -51,7 +41,6 @@ export function buildNetworkConfig(
         isMainnet: false,
         btcDustLimit: overrides?.btcDustLimit || DEFAULT_DUST_LIMIT,
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
-        signetConfig: overrides?.signetConfig, // Allow custom config for other networks if needed
       };
       break;
   }
@@ -68,7 +57,6 @@ function mergeConfigs(
     isMainnet: base.isMainnet,
     btcDustLimit: overrides?.btcDustLimit || base.btcDustLimit,
     btcFeeRate: overrides?.btcFeeRate || base.btcFeeRate,
-    signetConfig: overrides?.signetConfig || base.signetConfig,
   };
 }
 

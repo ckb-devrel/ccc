@@ -2,7 +2,6 @@ import { ccc } from "@ckb-ccc/core";
 
 import { DEFAULT_CONFIRMATIONS } from "../constants/index.js";
 import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
-import { CellDepSet, ScriptSet } from "../types/script.js";
 import {
   buildBtcTimeLockArgs,
   buildRgbppLockArgs,
@@ -15,29 +14,17 @@ export class ScriptManager {
 
   constructor(
     private client: ccc.Client,
-    private signetConfig?: { scripts: ScriptSet; cellDeps: CellDepSet },
   ) {}
 
   /**
    * Get script info by name, using ccc.KnownScript
-   * For Signet network, falls back to local configuration
    */
   async getKnownScriptInfo(name: ccc.KnownScript): Promise<{
     script: ccc.Script;
     cellDep: ccc.CellDep;
   }> {
-    // Check if using Signet local config
-    if (this.signetConfig?.scripts[name] && this.signetConfig?.cellDeps[name]) {
-      return {
-        script: this.signetConfig.scripts[name],
-        cellDep: this.signetConfig.cellDeps[name],
-      };
-    }
-
-    // Check cache first
     let scriptInfoPromise = this.scriptCache.get(name);
     if (!scriptInfoPromise) {
-      // Fetch from client and cache promise
       scriptInfoPromise = this.client.getKnownScript(name);
       this.scriptCache.set(name, scriptInfoPromise);
     }
