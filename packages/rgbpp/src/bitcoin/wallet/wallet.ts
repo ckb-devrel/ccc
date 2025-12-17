@@ -238,9 +238,17 @@ export abstract class RgbppBtcWallet {
   abstract signAndBroadcast(psbt: Psbt): Promise<string>;
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
+    const uniqueSeals = this.deduplicateUtxoSeals(utxoSeals);
+    
+    if (uniqueSeals.length < utxoSeals.length) {
+      console.warn(
+        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`
+      );
+    }
+
     const inputs: TxInputData[] = [];
     // TODO: parallel
-    for (const utxoSeal of utxoSeals) {
+    for (const utxoSeal of uniqueSeals) {
       const tx = await this.getTransaction(utxoSeal.txId);
       if (!tx) {
         continue;
@@ -281,6 +289,29 @@ export abstract class RgbppBtcWallet {
       );
     }
     return inputs;
+  }
+
+  /**
+   * Deduplicate UTXO seals based on txId and index
+   * @private
+   */
+  private deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
+    if (!utxoSeals || utxoSeals.length === 0) {
+      return [];
+    }
+
+    const seen = new Map<string, UtxoSeal>();
+    
+    for (const seal of utxoSeals) {
+      const normalizedTxId = seal.txId?.toLowerCase() ?? "";
+      const key = `${normalizedTxId}:${seal.index}`;
+      
+      if (!seen.has(key)) {
+        seen.set(key, seal);
+      }
+    }
+    
+    return Array.from(seen.values());
   }
 
   rawTxHex(tx: Transaction): string {
