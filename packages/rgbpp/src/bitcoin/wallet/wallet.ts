@@ -18,6 +18,7 @@ import { RetryOptions } from "../../utils/retry.js";
 import {
   BLANK_TX_ID,
   BTC_TX_PSEUDO_INDEX,
+  DEFAULT_CONFIRMATION_POLL_INTERVAL,
   TX_ID_PLACEHOLDER,
 } from "../../constants/index.js";
 
@@ -648,6 +649,10 @@ export abstract class RgbppBtcWallet {
     const btcUtxoParams = options?.btcUtxoParams ?? {
       only_non_rgbpp_utxos: true,
     };
+    const confirmationPollInterval = Math.max(
+      options?.confirmationPollInterval ?? DEFAULT_CONFIRMATION_POLL_INTERVAL,
+      5_000,
+    );
 
     const outputs = [
       {
@@ -693,12 +698,19 @@ export abstract class RgbppBtcWallet {
     );
 
     // Wait for confirmation
+    const intervalSeconds = confirmationPollInterval / 1000;
     while (!btcTx.status.confirmed) {
       console.log(
-        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting 30 seconds...`,
+        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
-      btcTx = await this.getTransaction(txId);
+      await ccc.sleep(confirmationPollInterval);
+      try {
+        btcTx = await this.getTransaction(txId);
+      } catch (error) {
+        console.warn(
+          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${error}. Retrying...`,
+        );
+      }
     }
 
     return {

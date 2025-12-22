@@ -166,4 +166,6 @@ export interface UtxoSealOptions {
   targetValue?: number;
   feeRate?: number;
   btcUtxoParams?: BtcApiUtxoParams;
+  /** Polling interval in milliseconds for waiting transaction confirmation (default: 30000) */
+  confirmationPollInterval?: number;
 }
