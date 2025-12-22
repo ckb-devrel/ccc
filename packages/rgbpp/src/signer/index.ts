@@ -11,9 +11,11 @@ import { spore } from "@ckb-ccc/spore";
 
 import { transactionToHex } from "../bitcoin/index.js";
 
-import { TX_ID_PLACEHOLDER } from "../constants/index.js";
-import { SimpleBtcClient } from "../interfaces/btc.js";
-import { SpvProofProvider } from "../interfaces/spv.js";
+import {
+  DEFAULT_SPV_POLL_INTERVAL,
+  TX_ID_PLACEHOLDER,
+} from "../constants/index.js";
+import { RgbppBtcDataSource } from "../interfaces/btc.js";
 import { SpvProof } from "../types/spv.js";
 import { deduplicateByOutPoint } from "../utils/common.js";
 import { trimHexPrefix } from "../utils/encoder.js";
@@ -28,6 +30,18 @@ import {
   isUsingOneOfScripts,
 } from "../utils/script.js";
 import { pollForSpvProof } from "../utils/spv.js";
+
+export interface CkbRgbppUnlockSignerParams {
+  ckbClient: ccc.Client;
+  rgbppBtcAddress: string;
+  btcDataSource: RgbppBtcDataSource;
+  scriptInfos: Record<
+    ccc.KnownScript,
+    { script: ccc.Script; cellDep: ccc.CellDep }
+  >;
+  /** Polling interval in milliseconds for SPV proof polling (default: 30000, minimum: 5000) */
+  spvPollInterval?: number;
+}
 
 export class CkbRgbppUnlockSigner extends ccc.Signer {
   // map of script code hash to script name
@@ -45,19 +59,21 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
 
   private spvProofCache = new Map<string, Promise<SpvProof>>();
   private cacheExpiryTime = 600_000;
-  private spvPollInterval = 10_000;
+  private readonly spvPollInterval: number;
+  private readonly rgbppBtcAddress: string;
+  private readonly btcDataSource: RgbppBtcDataSource;
 
-  constructor(
-    ckbClient: ccc.Client,
-    private readonly rgbppBtcAddress: string,
-    private readonly spvProofProvider: SpvProofProvider,
-    private readonly simpleBtcClient: SimpleBtcClient,
-    scriptInfos: Record<
-      ccc.KnownScript,
-      { script: ccc.Script; cellDep: ccc.CellDep }
-    >,
-  ) {
+  constructor({
+    ckbClient,
+    rgbppBtcAddress,
+    btcDataSource,
+    scriptInfos,
+    spvPollInterval,
+  }: CkbRgbppUnlockSignerParams) {
     super(ckbClient);
+    this.rgbppBtcAddress = rgbppBtcAddress;
+    this.btcDataSource = btcDataSource;
+
     this.scriptMap = Object.fromEntries(
       Object.entries(scriptInfos).map(([key, value]) => [
         value.script.codeHash,
@@ -70,6 +86,10 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       [ccc.KnownScript.BtcTimeLock]:
         scriptInfos[ccc.KnownScript.BtcTimeLock],
     };
+    this.spvPollInterval = Math.max(
+      spvPollInterval ?? DEFAULT_SPV_POLL_INTERVAL,
+      5_000,
+    );
   }
 
   get type(): SignerType {
@@ -214,7 +234,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     }
 
     const proofPromise = pollForSpvProof(
-      this.spvProofProvider,
+      this.btcDataSource,
       btcTxId,
       0,
       this.spvPollInterval,
@@ -243,7 +263,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   }
 
   async getRawBtcTxHex(txId: string): Promise<string> {
-    const hex = await this.simpleBtcClient.getTransactionHex(txId);
+    const hex = await this.btcDataSource.getTransactionHex(txId);
     const parseTx = bitcoin.Transaction.fromHex(hex);
     return transactionToHex(parseTx, false);
   }
@@ -378,7 +398,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   }
 
   async getAddressObjs(): Promise<ccc.Address[]> {
-    const rgbppCellOutputs = await this.simpleBtcClient.getRgbppCellOutputs(
+    const rgbppCellOutputs = await this.btcDataSource.getRgbppCellOutputs(
       this.rgbppBtcAddress,
     );
 

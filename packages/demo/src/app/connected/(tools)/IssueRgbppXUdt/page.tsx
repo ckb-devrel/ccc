@@ -190,13 +190,12 @@ export default function IssueRGBPPXUdt() {
       if (mounted) {
         const scriptInfos = await rgbppUdtClient.getRgbppScriptInfos();
         setCkbRgbppUnlockSigner(
-          new CkbRgbppUnlockSigner(
+          new CkbRgbppUnlockSigner({
             ckbClient,
-            address,
-            rgbppBtcWallet,
-            rgbppBtcWallet,
+            rgbppBtcAddress: address,
+            btcDataSource: rgbppBtcWallet,
             scriptInfos,
-          ),
+          }),
         );
       }
     });
