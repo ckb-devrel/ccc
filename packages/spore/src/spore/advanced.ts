@@ -29,16 +29,31 @@ export async function prepareCluster(
     case "lockProxy": {
       const lock = cluster.cellOutput.lock;
 
-      if ((await tx.findInputIndexByLock(lock, signer.client)) === undefined) {
-        // note: We can only search proxy of signer, if any custom logic is in need, developer should get
-        // the proxy filled in transaction before invoking `createSpore`
-        await tx.completeInputsAddOne(signer);
-      }
-      if (tx.outputs.every((output) => output.lock !== lock)) {
-        tx.addOutput({
+      // Ensure a lock-proxy input is present, add one if absent
+      let lockProxyInputIndex = await tx.findInputIndexByLock(
+        lock,
+        signer.client,
+      );
+      if (lockProxyInputIndex === undefined) {
+        await tx.completeInputsAddOne(
+          new ccc.SignerCkbScriptReadonly(signer.client, lock),
+        );
+        lockProxyInputIndex = await tx.findInputIndexByLock(
           lock,
-        });
+          signer.client,
+        );
+        if (lockProxyInputIndex === undefined) {
+          throw new Error("Lock proxy input not found");
+        }
       }
+
+      // Add the output only if there's not already one with proxy lock
+      if (!tx.outputs.some((output) => output.lock === lock)) {
+        tx.addOutput(
+          await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
+        );
+      }
+
       tx.addCellDeps({
         outPoint: cluster.outPoint,
         depType: "code",
