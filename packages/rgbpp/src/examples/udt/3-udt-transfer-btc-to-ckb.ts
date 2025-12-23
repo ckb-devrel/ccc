@@ -31,7 +31,7 @@ async function btcUdtToCkb({
     udtScriptInfo.script,
   );
 
-  let { res: tx } = await udtInstance.transfer(
+  const { res: tx } = await udtInstance.transfer(
     ckbSigner as unknown as ccc.Signer,
     await Promise.all(
       receivers.map(async (receiver) => ({
@@ -92,7 +92,7 @@ btcUdtToCkb({
 
   udtScriptInfo: {
     ...testnetSudtInfo,
-    script: await ccc.Script.from({
+    script: ccc.Script.from({
       ...testnetSudtInfo.script,
       args: "0x2f72f0890769a3f0b53d6e40f63e511ec3991fea33a318c129dc5c8a1dce4a64",
     }),
@@ -115,7 +115,7 @@ btcUdtToCkb({
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

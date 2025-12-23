@@ -69,7 +69,7 @@ btcSporeToCkb({
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

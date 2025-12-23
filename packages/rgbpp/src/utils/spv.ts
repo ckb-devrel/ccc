@@ -10,7 +10,7 @@ export async function pollForSpvProof(
   intervalMs?: number,
 ): Promise<SpvProof> {
   const interval = intervalMs ?? DEFAULT_SPV_POLL_INTERVAL;
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     try {
       console.log(`[SPV] Polling for BTC tx ${btcTxId}`);

@@ -17,7 +17,6 @@ export interface RetryOptions {
   logger?: (message: string) => void;
 }
 
-
 export async function retryWithBackoff<T>(
   operation: () => Promise<T>,
   options: RetryOptions = {},
@@ -33,16 +32,24 @@ export async function retryWithBackoff<T>(
 
   // Parameter validation
   if (maxRetries < 0 || !Number.isInteger(maxRetries)) {
-    throw new Error(`maxRetries must be a non-negative integer, got: ${maxRetries}`);
+    throw new Error(
+      `maxRetries must be a non-negative integer, got: ${maxRetries}`,
+    );
   }
   if (initialDelay < 0 || !Number.isFinite(initialDelay)) {
-    throw new Error(`initialDelay must be a non-negative number, got: ${initialDelay}`);
+    throw new Error(
+      `initialDelay must be a non-negative number, got: ${initialDelay}`,
+    );
   }
   if (backoffMultiplier <= 0 || !Number.isFinite(backoffMultiplier)) {
-    throw new Error(`backoffMultiplier must be a positive number, got: ${backoffMultiplier}`);
+    throw new Error(
+      `backoffMultiplier must be a positive number, got: ${backoffMultiplier}`,
+    );
   }
   if (jitterFactor < 0 || jitterFactor > 1 || !Number.isFinite(jitterFactor)) {
-    throw new Error(`jitterFactor must be between 0 and 1, got: ${jitterFactor}`);
+    throw new Error(
+      `jitterFactor must be between 0 and 1, got: ${jitterFactor}`,
+    );
   }
 
   let lastError: unknown;
@@ -55,11 +62,15 @@ export async function retryWithBackoff<T>(
       const jitterRange = jitterFactor * baseDelay;
       const jitter = (Math.random() - 0.5) * 2 * jitterRange; // ±jitterRange
       const delay = Math.max(0, baseDelay + jitter); // Ensure non-negative
-      
+
       if (verbose) {
-        logger(`Retrying in ${delay.toFixed(1)} seconds (attempt ${attempt + 1}/${totalAttempts})...`);
+        logger(
+          `Retrying in ${delay.toFixed(1)} seconds (attempt ${attempt + 1}/${totalAttempts})...`,
+        );
       }
-      await new Promise((resolve) => setTimeout(resolve, Math.floor(delay * 1000)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.floor(delay * 1000)),
+      );
     }
 
     try {
@@ -70,12 +81,13 @@ export async function retryWithBackoff<T>(
       return result;
     } catch (error) {
       lastError = error;
-      
+
       if (verbose && attempt < totalAttempts - 1) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         logger(`Attempt ${attempt + 1} failed: ${errorMessage}`);
       }
-      
+
       // Don't throw on the last attempt, let the loop complete
       if (attempt === totalAttempts - 1) {
         if (verbose) {

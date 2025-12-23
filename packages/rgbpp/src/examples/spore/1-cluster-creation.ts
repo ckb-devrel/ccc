@@ -32,14 +32,16 @@ async function createSporeCluster(utxoSeal?: UtxoSeal) {
   );
   const tx = ccc.Transaction.default();
   // manually add specified inputs
-  rgbppCells.forEach((cell) => {
-    const cellInput = ccc.CellInput.from({
-      previousOutput: cell.outPoint,
-    });
-    cellInput.completeExtraInfos(ckbClient);
+  await Promise.all(
+    rgbppCells.map(async (cell) => {
+      const cellInput = ccc.CellInput.from({
+        previousOutput: cell.outPoint,
+      });
+      await cellInput.completeExtraInfos(ckbClient);
 
-    tx.inputs.push(cellInput);
-  });
+      tx.inputs.push(cellInput);
+    }),
+  );
 
   const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
@@ -91,7 +93,7 @@ createSporeCluster({
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

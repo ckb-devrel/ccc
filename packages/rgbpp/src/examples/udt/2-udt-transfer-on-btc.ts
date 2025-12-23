@@ -33,7 +33,7 @@ async function transferUdt({
 
   const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
-  let { res: tx } = await udtInstance.transfer(
+  const { res: tx } = await udtInstance.transfer(
     ckbSigner as unknown as ccc.Signer,
     receivers.map((receiver) => ({
       to: pseudoRgbppLock,
@@ -41,10 +41,8 @@ async function transferUdt({
     })),
   );
 
-  let txWithInputs: ccc.Transaction;
-
   // * collect udt inputs using ccc
-  txWithInputs = await udtInstance.completeChangeToLock(
+  const txWithInputs = await udtInstance.completeChangeToLock(
     tx,
     ckbRgbppUnlockSigner,
     pseudoRgbppLock,
@@ -93,7 +91,7 @@ transferUdt({
 
   udtScriptInfo: {
     ...testnetSudtInfo,
-    script: await ccc.Script.from({
+    script: ccc.Script.from({
       ...testnetSudtInfo.script,
       args: "0x8418c9699aa47ef02f45f021a6d1d44e4dfa503cf2fc1b002ff3c39e9f158080",
     }),
@@ -128,7 +126,7 @@ transferUdt({
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

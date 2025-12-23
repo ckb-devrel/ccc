@@ -11,7 +11,7 @@ export class WalletPublicKeyProvider implements PublicKeyProvider {
 
   async getPublicKey(
     address: string,
-    addressType: AddressType,
+    _addressType: AddressType,
   ): Promise<string | undefined> {
     // If it's the current wallet address, return its public key
     const currentAddress = await this.wallet.getAddress();

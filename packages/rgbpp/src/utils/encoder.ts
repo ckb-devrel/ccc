@@ -24,7 +24,7 @@ export const u32ToHex = (u32: string | number, littleEndian = false): Hex => {
 };
 
 export const utf8ToHex = (text: string): Hex => {
-  let result = text.trim();
+  const result = text.trim();
   if (result.startsWith("0x")) {
     return result as Hex;
   }

@@ -1,5 +1,3 @@
-import { ccc } from "@ckb-ccc/core";
-
 import {
   DEFAULT_DUST_LIMIT,
   DEFAULT_FEE_RATE,
@@ -19,6 +17,7 @@ export function buildNetworkConfig(
   let config: NetworkConfig;
 
   switch (network) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PredefinedNetwork.BitcoinTestnet3:
       config = {
         name: PredefinedNetwork.BitcoinTestnet3,
@@ -27,6 +26,7 @@ export function buildNetworkConfig(
         btcFeeRate: overrides?.btcFeeRate || DEFAULT_FEE_RATE,
       };
       break;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     case PredefinedNetwork.BitcoinMainnet:
       config = {
         name: PredefinedNetwork.BitcoinMainnet,
@@ -61,5 +61,6 @@ function mergeConfigs(
 }
 
 export function isMainnet(network: Network): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
   return network === PredefinedNetwork.BitcoinMainnet;
 }

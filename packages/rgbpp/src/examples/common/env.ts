@@ -17,7 +17,9 @@ const btcAssetsApiUrl = process.env.BTC_ASSETS_API_URL!;
 const btcAssetsApiToken = process.env.BTC_ASSETS_API_TOKEN!;
 const btcAssetsApiOrigin = process.env.BTC_ASSETS_API_ORIGIN!;
 
-export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promise<{
+export async function initializeRgbppEnv(
+  scriptInfos?: RgbppScriptInfo[],
+): Promise<{
   ckbClient: ccc.Client;
   ckbSigner: ccc.SignerCkbPrivateKey;
   networkConfig: NetworkConfig;
@@ -26,13 +28,22 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
   rgbppBtcWallet: PrivateKeyRgbppBtcWallet;
   ckbRgbppUnlockSigner: CkbRgbppUnlockSigner;
 }> {
-  const scripts = scriptInfos?.reduce(
-    (acc: Record<string, any>, { name, script, cellDep }) => {
+  const _scripts = scriptInfos?.reduce(
+    (
+      acc: {
+        scripts: Record<string, ccc.Script>;
+        cellDeps: Record<string, ccc.CellDep>;
+      },
+      { name, script, cellDep },
+    ) => {
       acc.scripts[name] = script;
       acc.cellDeps[name] = cellDep;
       return acc;
     },
-    { scripts: {}, cellDeps: {} },
+    {
+      scripts: {} as Record<string, ccc.Script>,
+      cellDeps: {} as Record<string, ccc.CellDep>,
+    },
   );
 
   const ckbClient = isMainnet(utxoBasedChainName)
@@ -45,7 +56,6 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
 
   const networkConfig = buildNetworkConfig(
     utxoBasedChainName as PredefinedNetwork,
-    scripts,
   );
 
   const rgbppUdtClient = new RgbppUdtClient(networkConfig, ckbClient);
@@ -74,16 +84,22 @@ export async function initializeRgbppEnv(scriptInfos?: RgbppScriptInfo[]): Promi
       rgbppBtcAddress: await rgbppBtcWallet.getAddress(),
       btcDataSource: rgbppBtcWallet,
       scriptInfos: {
-        [ccc.KnownScript.RgbppLock]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
-          ccc.KnownScript.RgbppLock,
-        ),
-        [ccc.KnownScript.BtcTimeLock]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
-          ccc.KnownScript.BtcTimeLock,
-        ),
-        [ccc.KnownScript.UniqueType]: await rgbppUdtClient.scriptManager.getKnownScriptInfo(
-          ccc.KnownScript.UniqueType,
-        ),
-      } as Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>,
+        [ccc.KnownScript.RgbppLock]:
+          await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+            ccc.KnownScript.RgbppLock,
+          ),
+        [ccc.KnownScript.BtcTimeLock]:
+          await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+            ccc.KnownScript.BtcTimeLock,
+          ),
+        [ccc.KnownScript.UniqueType]:
+          await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+            ccc.KnownScript.UniqueType,
+          ),
+      } as Record<
+        ccc.KnownScript,
+        { script: ccc.Script; cellDep: ccc.CellDep }
+      >,
     }),
   };
 }

@@ -182,8 +182,10 @@ export const buildBtcRgbppOutputs = async (
 ): Promise<TxOutput[]> => {
   const commitment = calculateCommitment(ckbPartialTx);
 
-  const rgbppLockScriptTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
-  const btcTimeLockScriptTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
+  const rgbppLockScriptTemplate =
+    await rgbppUdtClient.rgbppLockScriptTemplate();
+  const btcTimeLockScriptTemplate =
+    await rgbppUdtClient.btcTimeLockScriptTemplate();
 
   const outputs: InitOutput[] = [];
   let lastCkbTypedOutputIndex = -1;

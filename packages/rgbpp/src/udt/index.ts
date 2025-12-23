@@ -21,7 +21,7 @@ export class RgbppUdtClient {
   public scriptManager: ScriptManager;
 
   constructor(
-    networkConfig: NetworkConfig,
+    _networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
   ) {
     this.scriptManager = new ScriptManager(ckbClient);
@@ -62,12 +62,16 @@ export class RgbppUdtClient {
     Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>
   > {
     return {
-      [ccc.KnownScript.RgbppLock]:
-        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
+      [ccc.KnownScript.RgbppLock]: await this.scriptManager.getKnownScriptInfo(
+        ccc.KnownScript.RgbppLock,
+      ),
       [ccc.KnownScript.BtcTimeLock]:
-        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
-      [ccc.KnownScript.UniqueType]:
-        await this.scriptManager.getKnownScriptInfo(ccc.KnownScript.UniqueType),
+        await this.scriptManager.getKnownScriptInfo(
+          ccc.KnownScript.BtcTimeLock,
+        ),
+      [ccc.KnownScript.UniqueType]: await this.scriptManager.getKnownScriptInfo(
+        ccc.KnownScript.UniqueType,
+      ),
     } as Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>;
   }
 
@@ -79,7 +83,7 @@ export class RgbppUdtClient {
     const rgbppLockTemplate = await this.rgbppLockScriptTemplate();
     const btcTimeLockTemplate = await this.btcTimeLockScriptTemplate();
 
-    const outputs = tx.outputs.map((output, index) => {
+    const outputs = tx.outputs.map((output, _index) => {
       if (
         !isUsingOneOfScripts(output.lock, [
           rgbppLockTemplate,
@@ -112,8 +116,7 @@ export class RgbppUdtClient {
   ): Promise<ccc.Cell[]> {
     const rgbppLockScript = await this.buildRgbppLockScript(utxoSeal);
 
-    const rgbppCellsGen =
-      await signer.client.findCellsByLock(rgbppLockScript);
+    const rgbppCellsGen = signer.client.findCellsByLock(rgbppLockScript);
     const rgbppCells: ccc.Cell[] = [];
     for await (const cell of rgbppCellsGen) {
       rgbppCells.push(cell);
@@ -159,16 +162,19 @@ export class RgbppUdtClient {
     const rgpbbLiveCells = deduplicateByOutPoint(params.rgbppLiveCells);
 
     const tx = ccc.Transaction.default();
-    rgpbbLiveCells.forEach((cell) => {
-      const cellInput = ccc.CellInput.from({
-        previousOutput: cell.outPoint,
-      });
-      cellInput.completeExtraInfos(this.ckbClient);
+    await Promise.all(
+      rgpbbLiveCells.map(async (cell) => {
+        const cellInput = ccc.CellInput.from({
+          previousOutput: cell.outPoint,
+        });
+        await cellInput.completeExtraInfos(this.ckbClient);
 
-      tx.inputs.push(cellInput);
-    });
+        tx.inputs.push(cellInput);
+      }),
+    );
 
-    const pseudoRgbppLock = await this.scriptManager.buildPseudoRgbppLockScript();
+    const pseudoRgbppLock =
+      await this.scriptManager.buildPseudoRgbppLockScript();
     const btcTimeLock = await this.scriptManager.buildBtcTimeLockScript(
       deadLock,
       TX_ID_PLACEHOLDER,
@@ -200,10 +206,7 @@ export class RgbppUdtClient {
       encodeRgbppUdtToken(params.token),
     );
 
-    tx.addCellDeps(
-      params.udtScriptInfo.cellDep,
-      uniqueTypeInfo.cellDep,
-    );
+    tx.addCellDeps(params.udtScriptInfo.cellDep, uniqueTypeInfo.cellDep);
 
     return tx;
   }

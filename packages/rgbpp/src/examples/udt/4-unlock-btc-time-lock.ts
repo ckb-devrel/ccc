@@ -27,23 +27,25 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
 
   const tx = ccc.Transaction.default();
 
-  btcTimeLockCells.forEach((cell) => {
-    const cellInput = ccc.CellInput.from({
-      previousOutput: cell.outPoint,
-    });
-    cellInput.completeExtraInfos(ckbClient);
-    tx.inputs.push(cellInput);
+  await Promise.all(
+    btcTimeLockCells.map(async (cell) => {
+      const cellInput = ccc.CellInput.from({
+        previousOutput: cell.outPoint,
+      });
+      await cellInput.completeExtraInfos(ckbClient);
+      tx.inputs.push(cellInput);
 
-    tx.addOutput(
-      {
-        lock: parseBtcTimeLockArgs(cell.cellOutput.lock.args).lock,
-        type: cell.cellOutput.type,
-        // * https://github.com/utxostack/rgbpp/blob/main/contracts/btc-time-lock/src/main.rs#L97
-        capacity: cell.cellOutput.capacity,
-      },
-      cell.outputData,
-    );
-  });
+      tx.addOutput(
+        {
+          lock: parseBtcTimeLockArgs(cell.cellOutput.lock.args).lock,
+          type: cell.cellOutput.type,
+          // * https://github.com/utxostack/rgbpp/blob/main/contracts/btc-time-lock/src/main.rs#L97
+          capacity: cell.cellOutput.capacity,
+        },
+        cell.outputData,
+      );
+    }),
+  );
 
   const btcTimeLockInfo = await rgbppUdtClient.scriptManager.getKnownScriptInfo(
     ccc.KnownScript.BtcTimeLock,
@@ -61,7 +63,7 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
     }),
   );
 
-  for await (const btcTimeLockCell of btcTimeLockCells) {
+  for (const btcTimeLockCell of btcTimeLockCells) {
     const { btcTxId, confirmations } = parseBtcTimeLockArgs(
       btcTimeLockCell.cellOutput.lock.args,
     );
@@ -104,7 +106,7 @@ unlockBtcTimeLock(
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

@@ -33,12 +33,15 @@ async function ckbUdtToBtc({
 
   const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
-  let { res: tx } = await udtInstance.transfer(ckbSigner as unknown as ccc.Signer, [
-    {
-      to: rgbppLock,
-      amount: ccc.fixedPointFrom(amount),
-    },
-  ]);
+  const { res: tx } = await udtInstance.transfer(
+    ckbSigner as unknown as ccc.Signer,
+    [
+      {
+        to: rgbppLock,
+        amount: ccc.fixedPointFrom(amount),
+      },
+    ],
+  );
 
   const txWithInputs = await udtInstance.completeBy(tx, ckbSigner);
   await txWithInputs.completeFeeBy(ckbSigner);
@@ -83,7 +86,7 @@ ckbUdtToBtc({
   })
   .catch((e) => {
     console.log(e.message);
-    logger.saveOnError(e);
+    logger.saveOnError(e as Error);
     process.exit(1);
   });
 

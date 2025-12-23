@@ -163,7 +163,8 @@ export function transactionToHex(
   tx: bitcoin.Transaction,
   withWitness?: boolean,
 ): string {
-  const buffer: Buffer = tx["__toBuffer"](
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+  const buffer: Buffer = (tx as any)["__toBuffer"](
     undefined,
     undefined,
     withWitness ?? false,

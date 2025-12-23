@@ -149,19 +149,15 @@ export abstract class RgbppBtcWallet {
 
     // Pre-fetch script templates for comparison
     const rgbppLockTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
-    const btcTimeLockTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
+    const btcTimeLockTemplate =
+      await rgbppUdtClient.btcTimeLockScriptTemplate();
 
     // adjust index in rgbpp lock args of outputs
     let rgbppIndex = 0;
     const commitmentOutputs: ccc.CellOutput[] = [];
     const indexedOutputs: ccc.CellOutput[] = [];
     for (const output of ckbPartialTx.outputs) {
-      if (
-        isSameScriptTemplate(
-          output.lock,
-          rgbppLockTemplate,
-        )
-      ) {
+      if (isSameScriptTemplate(output.lock, rgbppLockTemplate)) {
         indexedOutputs.push(
           ccc.CellOutput.from({
             ...output,
@@ -187,12 +183,7 @@ export abstract class RgbppBtcWallet {
           }),
         );
         rgbppIndex++;
-      } else if (
-        isSameScriptTemplate(
-          output.lock,
-          btcTimeLockTemplate,
-        )
-      ) {
+      } else if (isSameScriptTemplate(output.lock, btcTimeLockTemplate)) {
         indexedOutputs.push(output);
         commitmentOutputs.push(
           ccc.CellOutput.from({
@@ -244,10 +235,10 @@ export abstract class RgbppBtcWallet {
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
     const uniqueSeals = this.deduplicateUtxoSeals(utxoSeals);
-    
+
     if (uniqueSeals.length < utxoSeals.length) {
       console.warn(
-        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`
+        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`,
       );
     }
 
@@ -306,16 +297,16 @@ export abstract class RgbppBtcWallet {
     }
 
     const seen = new Map<string, UtxoSeal>();
-    
+
     for (const seal of utxoSeals) {
       const normalizedTxId = seal.txId?.toLowerCase() ?? "";
       const key = `${normalizedTxId}:${seal.index}`;
-      
+
       if (!seen.has(key)) {
         seen.set(key, seal);
       }
     }
-    
+
     return Array.from(seen.values());
   }
 
@@ -432,7 +423,7 @@ export abstract class RgbppBtcWallet {
     feeRate?: number,
   ) {
     // Ensure we have enough inputs to cover outputs
-    let totalInputValue = inputs.reduce(
+    const totalInputValue = inputs.reduce(
       (acc, input) => acc + input.witnessUtxo.value,
       0,
     );
@@ -689,13 +680,10 @@ export abstract class RgbppBtcWallet {
     const txId = await this.signAndBroadcast(psbt);
 
     // Wait for transaction to be indexed by API with retry mechanism
-    let btcTx = await retryWithBackoff(
-      () => this.getTransaction(txId),
-      {
-        maxRetries: retryOptions?.maxRetries,
-        initialDelay: retryOptions?.initialDelay,
-      },
-    );
+    let btcTx = await retryWithBackoff(() => this.getTransaction(txId), {
+      maxRetries: retryOptions?.maxRetries,
+      initialDelay: retryOptions?.initialDelay,
+    });
 
     // Wait for confirmation
     const intervalSeconds = confirmationPollInterval / 1000;
@@ -708,7 +696,7 @@ export abstract class RgbppBtcWallet {
         btcTx = await this.getTransaction(txId);
       } catch (error) {
         console.warn(
-          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${error}. Retrying...`,
+          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
         );
       }
     }

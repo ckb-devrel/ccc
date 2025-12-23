@@ -20,7 +20,10 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
 
   async getPublicKey(): Promise<string> {
     const pubkey = await this.signer.getBtcPublicKey();
-    const hexString = typeof pubkey === "string" ? pubkey : pubkey.toString();
+    const hexString: string =
+      typeof pubkey === "string"
+        ? pubkey
+        : (pubkey as { toString(): string }).toString();
     return hexString.startsWith("0x") ? hexString.slice(2) : hexString;
   }
 
@@ -42,7 +45,8 @@ export function createBrowserRgbppBtcWallet(
   const isSupported =
     "provider" in signer || // UniSat, Xverse
     "providers" in signer || // OKX
-    ("name" in signer && typeof (signer as any).name === "string"); // JoyID
+    ("name" in signer &&
+      typeof (signer as { name?: string }).name === "string"); // JoyID
 
   if (isSupported) {
     return new BrowserRgbppBtcWallet(signer, networkConfig, btcAssetApiConfig);

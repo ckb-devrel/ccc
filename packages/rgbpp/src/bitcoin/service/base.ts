@@ -9,8 +9,6 @@ import {
 } from "../types/index.js";
 import { isDomain } from "../utils/index.js";
 
-const { pickBy } = lodash;
-
 export class BtcAssetsApiBase implements BaseApis {
   public url: string;
   public app?: string;
@@ -53,7 +51,7 @@ export class BtcAssetsApiBase implements BaseApis {
       );
     }
 
-    const pickedParams = pickBy(params, (val) => val !== undefined);
+    const pickedParams = lodash.pickBy(params, (val) => val !== undefined);
     const packedParams = params
       ? "?" + new URLSearchParams(pickedParams).toString()
       : "";
@@ -79,7 +77,9 @@ export class BtcAssetsApiBase implements BaseApis {
     let ok: boolean = false;
     try {
       text = await res.text();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       json = JSON.parse(text);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ok = json?.ok ?? res.ok ?? false;
     } catch {
       // do nothing
@@ -103,14 +103,17 @@ export class BtcAssetsApiBase implements BaseApis {
       comment = text ? `(${status}) ${text}` : `${status}`;
     }
     if (json && !ok) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const code =
         json.code ?? json.statusCode ?? json.error?.error?.code ?? res.status;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const message =
         json.message ??
         (typeof json.error === "string"
           ? json.error
           : json.error?.error?.message);
       if (message) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         comment = code ? `(${code}) ${message}` : message;
       } else {
         comment = JSON.stringify(json);
@@ -166,6 +169,7 @@ export class BtcAssetsApiBase implements BaseApis {
 
 function tryParseBody(body: unknown): Record<string, unknown> | undefined {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return typeof body === "string" ? JSON.parse(body) : undefined;
   } catch {
     return undefined;

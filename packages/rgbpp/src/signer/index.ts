@@ -81,10 +81,8 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       ]),
     );
     this.rgbppScriptInfos = {
-      [ccc.KnownScript.RgbppLock]:
-        scriptInfos[ccc.KnownScript.RgbppLock],
-      [ccc.KnownScript.BtcTimeLock]:
-        scriptInfos[ccc.KnownScript.BtcTimeLock],
+      [ccc.KnownScript.RgbppLock]: scriptInfos[ccc.KnownScript.RgbppLock],
+      [ccc.KnownScript.BtcTimeLock]: scriptInfos[ccc.KnownScript.BtcTimeLock],
     };
     this.spvPollInterval = Math.max(
       spvPollInterval ?? DEFAULT_SPV_POLL_INTERVAL,
@@ -124,7 +122,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       ].filter((name): name is ccc.KnownScript => !!name),
     );
 
-    let cellDeps = Array.from(scriptNames).flatMap((name) => {
+    const cellDeps = Array.from(scriptNames).flatMap((name) => {
       if (
         name === ccc.KnownScript.RgbppLock ||
         name === ccc.KnownScript.BtcTimeLock
@@ -227,7 +225,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   }
 
   private async getSpvProof(btcTxId: string): Promise<SpvProof> {
-    let spvProof = this.spvProofCache.get(btcTxId);
+    const spvProof = this.spvProofCache.get(btcTxId);
 
     if (spvProof) {
       return spvProof;
@@ -334,7 +332,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     tx.witnesses = tx.witnesses.slice(0, tx.inputs.length);
 
     let btcTxId: string | undefined;
-    let rgbppLockArgs: ccc.Hex[] = [];
+    const rgbppLockArgs: ccc.Hex[] = [];
     for (const output of tx.outputs) {
       if (
         isSameScriptTemplate(
@@ -358,7 +356,6 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       throw new Error("Invalid transaction");
     }
 
-    let cobuild: ccc.Hex;
     if (rgbppLockArgs.length > 0) {
       let currentCobuild = pseudoCobuild;
       const pseudoArg = trimHexPrefix(pseudoRgbppLockArgs());
@@ -376,10 +373,10 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
           currentCobuild.substring(index + pseudoArg.length);
         lastIndex = index + trimHexPrefix(lockArg).length;
       }
-      pseudoCobuild = currentCobuild as ccc.Hex;
+      pseudoCobuild = currentCobuild;
     }
 
-    cobuild = pseudoCobuild.replace(
+    const cobuild = pseudoCobuild.replace(
       btcTxIdInReverseByteOrder(TX_ID_PLACEHOLDER),
       btcTxIdInReverseByteOrder(btcTxId),
     ) as ccc.Hex;

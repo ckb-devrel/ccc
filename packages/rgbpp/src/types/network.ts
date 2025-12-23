@@ -1,5 +1,3 @@
-import { CellDepSet, ScriptSet } from "./script.js";
-
 export enum PredefinedNetwork {
   BitcoinTestnet3 = "BitcoinTestnet3",
   BitcoinMainnet = "BitcoinMainnet",

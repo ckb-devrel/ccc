@@ -14,8 +14,6 @@ import {
   Utxo,
 } from "../types/index.js";
 
-const { cloneDeep } = lodash;
-
 /**
  * Check if target string is a valid domain.
  * @exmaple
@@ -104,7 +102,7 @@ export function decodeAddress(address: string): {
           addressType,
         };
       }
-    } catch (e) {
+    } catch (_e) {
       // Do nothing (no need to throw here)
     }
   } else {
@@ -138,7 +136,7 @@ export function decodeAddress(address: string): {
           addressType,
         };
       }
-    } catch (e) {
+    } catch (_e) {
       // Do nothing (no need to throw here)
     }
   }
@@ -150,7 +148,7 @@ export function decodeAddress(address: string): {
 }
 
 export function toBtcNetwork(network: string): bitcoin.Network {
-  return network === PredefinedNetwork.BitcoinMainnet
+  return network === (PredefinedNetwork.BitcoinMainnet as string)
     ? bitcoin.networks.bitcoin
     : bitcoin.networks.testnet;
 }
@@ -198,7 +196,7 @@ export function isOpReturnScriptPubkey(script: Buffer): boolean {
     return false;
   }
 
-  const [op, data] = scripts!;
+  const [op, data] = scripts;
   // OP_RETURN opcode is 0x6a in hex or 106 in integer
   if (op !== bitcoin.opcodes.OP_RETURN) {
     return false;
@@ -298,7 +296,7 @@ export function convertToOutput(output: InitOutput): TxOutput {
     };
   }
   if ("address" in output || "script" in output) {
-    result = cloneDeep(output);
+    result = lodash.cloneDeep(output);
   }
   if (!result) {
     throw new Error("Unsupported output");

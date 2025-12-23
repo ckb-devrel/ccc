@@ -10,11 +10,10 @@ import {
 } from "../utils/rgbpp.js";
 
 export class ScriptManager {
-  private scriptCache: Map<ccc.KnownScript, Promise<ccc.ScriptInfo>> = new Map();
+  private scriptCache: Map<ccc.KnownScript, Promise<ccc.ScriptInfo>> =
+    new Map();
 
-  constructor(
-    private client: ccc.Client,
-  ) {}
+  constructor(private client: ccc.Client) {}
 
   /**
    * Get script info by name, using ccc.KnownScript
@@ -65,7 +64,9 @@ export class ScriptManager {
     btcTxId: string,
     confirmations = DEFAULT_CONFIRMATIONS,
   ): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock);
+    const { script } = await this.getKnownScriptInfo(
+      ccc.KnownScript.BtcTimeLock,
+    );
     return ccc.Script.from({
       ...script,
       args: buildBtcTimeLockArgs(receiverLock, btcTxId, confirmations),
@@ -84,7 +85,9 @@ export class ScriptManager {
     firstInput: ccc.CellInput,
     outputIndex: number,
   ): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.UniqueType);
+    const { script } = await this.getKnownScriptInfo(
+      ccc.KnownScript.UniqueType,
+    );
     return ccc.Script.from({
       ...script,
       args: buildUniqueTypeArgs(firstInput, outputIndex),
@@ -103,7 +106,9 @@ export class ScriptManager {
    * Get BTC time lock script template (without args)
    */
   async btcTimeLockScriptTemplate(): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock);
+    const { script } = await this.getKnownScriptInfo(
+      ccc.KnownScript.BtcTimeLock,
+    );
     return script;
   }
 }

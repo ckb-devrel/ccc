@@ -79,7 +79,10 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
               : fullPubkey;
 
           // Accept both full pubkey and x-only pubkey for Taproot
-          if (input.publicKey !== fullPubkey && input.publicKey !== xOnlyPubkey) {
+          if (
+            input.publicKey !== fullPubkey &&
+            input.publicKey !== xOnlyPubkey
+          ) {
             throw new Error(
               `Invalid public key in toSignInput. Expected ${fullPubkey} or ${xOnlyPubkey}, got ${input.publicKey}`,
             );

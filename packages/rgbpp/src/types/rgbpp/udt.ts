@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { RgbppUdtToken, RgbppScriptInfo } from "./rgbpp.js";
+import { RgbppScriptInfo, RgbppUdtToken } from "./rgbpp.js";
 
 export interface RgbppUdtIssuance {
   token: RgbppUdtToken;
