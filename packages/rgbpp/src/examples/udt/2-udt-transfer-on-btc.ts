@@ -3,7 +3,7 @@ import { Udt } from "@ckb-ccc/udt";
 
 import "../common/load-env.js";
 
-import { RgbppBtcReceiver, RgbppScriptInfo } from "../../types/rgbpp/index.js";
+import { RgbppBtcReceiver } from "../../types/rgbpp/index.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
 
@@ -23,18 +23,22 @@ async function transferUdt({
   udtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: RgbppScriptInfo;
+  udtScriptInfo: ccc.ScriptInfo;
   receivers: RgbppBtcReceiver[];
 }) {
   const udtInstance = new Udt(
-    udtScriptInfo.cellDep.outPoint,
-    udtScriptInfo.script,
+    udtScriptInfo.cellDeps[0].cellDep.outPoint,
+    ccc.Script.from({
+      codeHash: udtScriptInfo.codeHash,
+      hashType: udtScriptInfo.hashType,
+      args: "",
+    }),
   );
 
   const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
   const { res: tx } = await udtInstance.transfer(
-    ckbSigner as unknown as ccc.Signer,
+    ckbSigner,
     receivers.map((receiver) => ({
       to: pseudoRgbppLock,
       amount: ccc.fixedPointFrom(receiver.amount),
@@ -78,24 +82,9 @@ async function transferUdt({
 const logger = new RgbppTxLogger({ opType: "udt-transfer-on-btc" });
 
 transferUdt({
-  // udtScriptInfo: {
-  //   name: ccc.KnownScript.XUdt,
-  //   script: await ccc.Script.fromKnownScript(
-  //     ckbClient,
-  //     ccc.KnownScript.XUdt,
-  //     "0x1f460e3c8c280ac828ec58cfe3b4ee55dfa1241420229222f24a330b37d3a15f",
-  //   ),
-  //   cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-  //     .cellDep,
-  // },
+  // udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
 
-  udtScriptInfo: {
-    ...testnetSudtInfo,
-    script: ccc.Script.from({
-      ...testnetSudtInfo.script,
-      args: "0x8418c9699aa47ef02f45f021a6d1d44e4dfa503cf2fc1b002ff3c39e9f158080",
-    }),
-  },
+  udtScriptInfo: testnetSudtInfo,
 
   receivers: [
     {
@@ -125,8 +114,9 @@ transferUdt({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e as Error);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

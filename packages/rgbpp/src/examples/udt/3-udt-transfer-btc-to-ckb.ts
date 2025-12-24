@@ -1,8 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { Udt } from "@ckb-ccc/udt";
 
-import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
-
 import "../common/load-env.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
@@ -23,16 +21,20 @@ async function btcUdtToCkb({
   udtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: RgbppScriptInfo;
+  udtScriptInfo: ccc.ScriptInfo;
   receivers: { address: string; amount: bigint }[];
 }) {
   const udtInstance = new Udt(
-    udtScriptInfo.cellDep.outPoint,
-    udtScriptInfo.script,
+    udtScriptInfo.cellDeps[0].cellDep.outPoint,
+    ccc.Script.from({
+      codeHash: udtScriptInfo.codeHash,
+      hashType: udtScriptInfo.hashType,
+      args: "",
+    }),
   );
 
   const { res: tx } = await udtInstance.transfer(
-    ckbSigner as unknown as ccc.Signer,
+    ckbSigner,
     await Promise.all(
       receivers.map(async (receiver) => ({
         to: await rgbppUdtClient.buildBtcTimeLockScript(receiver.address),
@@ -79,24 +81,9 @@ async function btcUdtToCkb({
 const logger = new RgbppTxLogger({ opType: "udt-transfer-btc-to-ckb" });
 
 btcUdtToCkb({
-  // udtScriptInfo: {
-  //   name: ccc.KnownScript.XUdt,
-  //   script: await ccc.Script.fromKnownScript(
-  //     ckbClient,
-  //     ccc.KnownScript.XUdt,
-  //     "0x29e04d8c0c246cc1b0027d7aa8a31f56f740134a56d056bb5efdbb00d3c78a44",
-  //   ),
-  //   cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-  //     .cellDep,
-  // },
+  // udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
 
-  udtScriptInfo: {
-    ...testnetSudtInfo,
-    script: ccc.Script.from({
-      ...testnetSudtInfo.script,
-      args: "0x2f72f0890769a3f0b53d6e40f63e511ec3991fea33a318c129dc5c8a1dce4a64",
-    }),
-  },
+  udtScriptInfo: testnetSudtInfo,
 
   receivers: [
     {
@@ -114,8 +101,9 @@ btcUdtToCkb({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e as Error);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

@@ -81,8 +81,9 @@ transferSpore([
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e as Error);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

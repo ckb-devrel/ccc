@@ -12,11 +12,13 @@ import {
   BtcAssetApiConfig,
   buildNetworkConfig,
   CkbRgbppUnlockSigner,
+  ClientScriptProvider,
   createBrowserRgbppBtcWallet,
   getSupportedWallets,
   isMainnet,
   NetworkConfig,
   PredefinedNetwork,
+  RgbppScriptName,
   RgbppUdtClient,
   UtxoSeal,
 } from "@ckb-ccc/rgbpp";
@@ -111,7 +113,8 @@ export default function IssueRGBPPXUdt() {
       : new ccc.ClientPublicTestnet();
     setCkbClient(client);
 
-    const udtClient = new RgbppUdtClient(config, client);
+    const scriptProvider = new ClientScriptProvider(client);
+    const udtClient = new RgbppUdtClient(config, client, scriptProvider);
     setRgbppUdtClient(udtClient);
   }, [signer]);
 
@@ -194,7 +197,7 @@ export default function IssueRGBPPXUdt() {
             ckbClient,
             rgbppBtcAddress: address,
             btcDataSource: rgbppBtcWallet,
-            scriptInfos,
+            scriptInfos: scriptInfos as Record<RgbppScriptName, ccc.ScriptInfo>,
           }),
         );
       }
@@ -272,16 +275,7 @@ export default function IssueRGBPPXUdt() {
         token: xudtToken,
         amount: issuanceAmount,
         rgbppLiveCells: rgbppIssuanceCells,
-        udtScriptInfo: {
-          name: ccc.KnownScript.XUdt,
-          script: await ccc.Script.fromKnownScript(
-            signer.client,
-            ccc.KnownScript.XUdt,
-            "",
-          ),
-          cellDep: (await signer.client.getKnownScript(ccc.KnownScript.XUdt))
-            .cellDeps[0].cellDep,
-        },
+        udtScriptInfo: await signer.client.getKnownScript(ccc.KnownScript.XUdt),
       });
 
       setCurrentStep("signing-btc");

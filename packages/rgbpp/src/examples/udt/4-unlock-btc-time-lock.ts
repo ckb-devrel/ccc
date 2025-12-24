@@ -7,7 +7,7 @@ import {
   pollForSpvProof,
 } from "../../utils/index.js";
 
-import { testnetSudtCellDep } from "../common/assets.js";
+import { testnetSudtInfo } from "../common/assets.js";
 
 import "../common/load-env.js";
 
@@ -50,9 +50,9 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
   const btcTimeLockInfo = await rgbppUdtClient.scriptManager.getKnownScriptInfo(
     ccc.KnownScript.BtcTimeLock,
   );
-  const btcTimeLockCellDep = btcTimeLockInfo.cellDep;
+  const btcTimeLockCellDep = btcTimeLockInfo.cellDeps[0].cellDep;
   tx.cellDeps.push(
-    testnetSudtCellDep,
+    testnetSudtInfo.cellDeps[0].cellDep,
     btcTimeLockCellDep,
     ccc.CellDep.from({
       outPoint: {
@@ -105,8 +105,9 @@ unlockBtcTimeLock(
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e as Error);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

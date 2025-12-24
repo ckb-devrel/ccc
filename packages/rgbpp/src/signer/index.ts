@@ -16,6 +16,7 @@ import {
   TX_ID_PLACEHOLDER,
 } from "../constants/index.js";
 import { RgbppBtcDataSource } from "../interfaces/btc.js";
+import { RgbppScriptName } from "../types/script.js";
 import { SpvProof } from "../types/spv.js";
 import { deduplicateByOutPoint } from "../utils/common.js";
 import { trimHexPrefix } from "../utils/encoder.js";
@@ -35,10 +36,7 @@ export interface CkbRgbppUnlockSignerParams {
   ckbClient: ccc.Client;
   rgbppBtcAddress: string;
   btcDataSource: RgbppBtcDataSource;
-  scriptInfos: Record<
-    ccc.KnownScript,
-    { script: ccc.Script; cellDep: ccc.CellDep }
-  >;
+  scriptInfos: Record<RgbppScriptName, ccc.ScriptInfo>;
   /** Polling interval in milliseconds for SPV proof polling (default: 30000, minimum: 5000) */
   spvPollInterval?: number;
 }
@@ -76,13 +74,28 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
 
     this.scriptMap = Object.fromEntries(
       Object.entries(scriptInfos).map(([key, value]) => [
-        value.script.codeHash,
+        value.codeHash,
         key as ccc.KnownScript,
       ]),
     );
+
+    // Convert ccc.ScriptInfo to internal format
+    const convertScriptInfo = (info: ccc.ScriptInfo) => ({
+      script: ccc.Script.from({
+        codeHash: info.codeHash,
+        hashType: info.hashType,
+        args: "",
+      }),
+      cellDep: info.cellDeps[0].cellDep,
+    });
+
     this.rgbppScriptInfos = {
-      [ccc.KnownScript.RgbppLock]: scriptInfos[ccc.KnownScript.RgbppLock],
-      [ccc.KnownScript.BtcTimeLock]: scriptInfos[ccc.KnownScript.BtcTimeLock],
+      [ccc.KnownScript.RgbppLock]: convertScriptInfo(
+        scriptInfos[ccc.KnownScript.RgbppLock],
+      ),
+      [ccc.KnownScript.BtcTimeLock]: convertScriptInfo(
+        scriptInfos[ccc.KnownScript.BtcTimeLock],
+      ),
     };
     this.spvPollInterval = Math.max(
       spvPollInterval ?? DEFAULT_SPV_POLL_INTERVAL,

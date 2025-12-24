@@ -11,13 +11,6 @@ export interface UtxoSeal {
   index: number;
 }
 
-// TODO: ccc.ScriptInfo
-export interface RgbppScriptInfo {
-  name: string;
-  script: ccc.Script;
-  cellDep: ccc.CellDep;
-}
-
 // struct ExtraCommitmentData {
 //   input_len: byte,
 //   output_len: byte,

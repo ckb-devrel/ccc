@@ -1,7 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { RgbppScriptInfo } from "../../types/rgbpp/index.js";
-
 export const udtToken = {
   name: "Just UDT",
   symbol: "jUDT",
@@ -23,17 +21,20 @@ export const testnetSudt = ccc.Script.from({
   args: "",
 });
 
-export const testnetSudtCellDep = ccc.CellDep.from({
-  outPoint: {
-    txHash:
-      "0xe12877ebd2c3c364dc46c5c992bcfaf4fee33fa13eebdf82c591fc9825aab769",
-    index: 0,
-  },
-  depType: "code",
+export const testnetSudtInfo = ccc.ScriptInfo.from({
+  codeHash:
+    "0xc5e5dcf215925f7ef4dfaf5f4b4f105bc321c02776d6e7d52a1db3fcd9d011a4",
+  hashType: "type",
+  cellDeps: [
+    {
+      cellDep: {
+        outPoint: {
+          txHash:
+            "0xe12877ebd2c3c364dc46c5c992bcfaf4fee33fa13eebdf82c591fc9825aab769",
+          index: 0,
+        },
+        depType: "code",
+      },
+    },
+  ],
 });
-
-export const testnetSudtInfo: RgbppScriptInfo = {
-  name: "sUDT",
-  script: testnetSudt,
-  cellDep: testnetSudtCellDep,
-};

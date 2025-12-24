@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 
 import { DEFAULT_CONFIRMATIONS } from "../constants/index.js";
 import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
+import { IScriptProvider, RgbppScriptName } from "../types/script.js";
 import {
   buildBtcTimeLockArgs,
   buildRgbppLockArgs,
@@ -9,49 +10,84 @@ import {
   pseudoRgbppLockArgs,
 } from "../utils/rgbpp.js";
 
+/**
+ * ScriptManager - Manages and builds RGB++ related scripts
+ *
+ * Uses IScriptProvider for flexible script source configuration.
+ * Supports multiple script sources through provider composition.
+ *
+ * @example
+ * ```typescript
+ * import { ScriptManager, ClientScriptProvider } from "@ckb-ccc/rgbpp";
+ *
+ * // Basic usage with client
+ * const manager = new ScriptManager(new ClientScriptProvider(client));
+ *
+ * // With custom scripts
+ * const manager = new ScriptManager(
+ *   createScriptProvider(client, customScripts)
+ * );
+ * ```
+ */
 export class ScriptManager {
-  private scriptCache: Map<ccc.KnownScript, Promise<ccc.ScriptInfo>> =
-    new Map();
-
-  constructor(private client: ccc.Client) {}
+  constructor(private provider: IScriptProvider) {}
 
   /**
-   * Get script info by name, using ccc.KnownScript
+   * Get script info by name using the configured provider
+   *
+   * @param name - Known script name from ccc.KnownScript
+   * @returns ccc.ScriptInfo containing code hash, hash type, and cell dependencies
    */
-  async getKnownScriptInfo(name: ccc.KnownScript): Promise<{
-    script: ccc.Script;
-    cellDep: ccc.CellDep;
-  }> {
-    let scriptInfoPromise = this.scriptCache.get(name);
-    if (!scriptInfoPromise) {
-      scriptInfoPromise = this.client.getKnownScript(name);
-      this.scriptCache.set(name, scriptInfoPromise);
-    }
+  async getKnownScriptInfo(name: ccc.KnownScript): Promise<ccc.ScriptInfo> {
+    return this.provider.getScriptInfo(name);
+  }
 
-    const scriptInfo = await scriptInfoPromise;
+  /**
+   * Get all required RGBPP script infos in one call
+   * This is a convenience method for initializing CkbRgbppUnlockSigner
+   *
+   * @returns Record containing RgbppLock, BtcTimeLock, and UniqueType script infos
+   * @example
+   * ```typescript
+   * const scriptInfos = await scriptManager.getRgbppScriptInfos();
+   * const signer = new CkbRgbppUnlockSigner({
+   *   ckbClient,
+   *   rgbppBtcAddress,
+   *   btcDataSource,
+   *   scriptInfos,
+   * });
+   * ```
+   */
+  async getRgbppScriptInfos(): Promise<
+    Record<RgbppScriptName, ccc.ScriptInfo>
+  > {
+    const [rgbppLock, btcTimeLock, uniqueType] = await Promise.all([
+      this.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
+      this.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
+      this.getKnownScriptInfo(ccc.KnownScript.UniqueType),
+    ]);
 
     return {
-      script: ccc.Script.from({
-        codeHash: scriptInfo.codeHash,
-        hashType: scriptInfo.hashType,
-        args: "",
-      }),
-      cellDep: scriptInfo.cellDeps[0].cellDep,
+      [ccc.KnownScript.RgbppLock]: rgbppLock,
+      [ccc.KnownScript.BtcTimeLock]: btcTimeLock,
+      [ccc.KnownScript.UniqueType]: uniqueType,
     };
   }
 
   async buildPseudoRgbppLockScript(): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
+    const scriptInfo = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
     return ccc.Script.from({
-      ...script,
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
       args: pseudoRgbppLockArgs(),
     });
   }
 
   async buildRgbppLockScript(utxoSeal: UtxoSeal): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
+    const scriptInfo = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
     return ccc.Script.from({
-      ...script,
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
       args: buildRgbppLockArgs({
         txId: utxoSeal.txId,
         index: utxoSeal.index, // index in btc tx output
@@ -64,11 +100,12 @@ export class ScriptManager {
     btcTxId: string,
     confirmations = DEFAULT_CONFIRMATIONS,
   ): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(
+    const scriptInfo = await this.getKnownScriptInfo(
       ccc.KnownScript.BtcTimeLock,
     );
     return ccc.Script.from({
-      ...script,
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
       args: buildBtcTimeLockArgs(receiverLock, btcTxId, confirmations),
     });
   }
@@ -85,11 +122,12 @@ export class ScriptManager {
     firstInput: ccc.CellInput,
     outputIndex: number,
   ): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(
+    const scriptInfo = await this.getKnownScriptInfo(
       ccc.KnownScript.UniqueType,
     );
     return ccc.Script.from({
-      ...script,
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
       args: buildUniqueTypeArgs(firstInput, outputIndex),
     });
   }
@@ -98,17 +136,25 @@ export class ScriptManager {
    * Get RGB++ lock script template (without args)
    */
   async rgbppLockScriptTemplate(): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
-    return script;
+    const scriptInfo = await this.getKnownScriptInfo(ccc.KnownScript.RgbppLock);
+    return ccc.Script.from({
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
+      args: "",
+    });
   }
 
   /**
    * Get BTC time lock script template (without args)
    */
   async btcTimeLockScriptTemplate(): Promise<ccc.Script> {
-    const { script } = await this.getKnownScriptInfo(
+    const scriptInfo = await this.getKnownScriptInfo(
       ccc.KnownScript.BtcTimeLock,
     );
-    return script;
+    return ccc.Script.from({
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
+      args: "",
+    });
   }
 }

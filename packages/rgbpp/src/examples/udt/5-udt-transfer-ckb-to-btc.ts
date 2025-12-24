@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import { Udt } from "@ckb-ccc/udt";
 
-import { RgbppScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
+import { UtxoSeal } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
@@ -18,7 +18,7 @@ async function ckbUdtToBtc({
   amount,
 }: {
   utxoSeal?: UtxoSeal;
-  udtScriptInfo: RgbppScriptInfo;
+  udtScriptInfo: ccc.ScriptInfo;
 
   amount: bigint;
 }) {
@@ -27,21 +27,22 @@ async function ckbUdtToBtc({
   }
 
   const udtInstance = new Udt(
-    udtScriptInfo.cellDep.outPoint,
-    udtScriptInfo.script,
+    udtScriptInfo.cellDeps[0].cellDep.outPoint,
+    ccc.Script.from({
+      codeHash: udtScriptInfo.codeHash,
+      hashType: udtScriptInfo.hashType,
+      args: "",
+    }),
   );
 
   const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
-  const { res: tx } = await udtInstance.transfer(
-    ckbSigner as unknown as ccc.Signer,
-    [
-      {
-        to: rgbppLock,
-        amount: ccc.fixedPointFrom(amount),
-      },
-    ],
-  );
+  const { res: tx } = await udtInstance.transfer(ckbSigner, [
+    {
+      to: rgbppLock,
+      amount: ccc.fixedPointFrom(amount),
+    },
+  ]);
 
   const txWithInputs = await udtInstance.completeBy(tx, ckbSigner);
   await txWithInputs.completeFeeBy(ckbSigner);
@@ -59,24 +60,9 @@ ckbUdtToBtc({
   //   index: 0,
   // },
 
-  udtScriptInfo: {
-    name: ccc.KnownScript.XUdt,
-    script: await ccc.Script.fromKnownScript(
-      ckbClient,
-      ccc.KnownScript.XUdt,
-      "0x868c505051f06bb41646bd1b442dbed8035d91abd9ac7acc4bda3bab267e6ac7",
-    ),
-    cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-      .cellDep,
-  },
+  udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
 
-  // udtScriptInfo: {
-  //   ...testnetSudtInfo,
-  //   script: await ccc.Script.from({
-  //     ...testnetSudtInfo.script,
-  //     args: "0x07bccc105cdd747019a843d8bd0b5424efc33beb20b4f0db0f925e97f30c465f",
-  //   }),
-  // },
+  // udtScriptInfo: testnetSudtInfo,
 
   amount: ccc.fixedPointFrom(11),
 })
@@ -85,8 +71,9 @@ ckbUdtToBtc({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e as Error);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

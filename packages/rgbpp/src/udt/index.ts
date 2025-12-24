@@ -9,6 +9,7 @@ import { ScriptManager } from "../configs/index.js";
 import { deadLock } from "../configs/scripts/index.js";
 import { NetworkConfig, UtxoSeal } from "../types/index.js";
 import { RgbppUdtIssuance } from "../types/rgbpp/udt.js";
+import { IScriptProvider, RgbppScriptName } from "../types/script.js";
 import {
   deduplicateByOutPoint,
   encodeRgbppUdtToken,
@@ -23,8 +24,9 @@ export class RgbppUdtClient {
   constructor(
     _networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
+    scriptProvider: IScriptProvider,
   ) {
-    this.scriptManager = new ScriptManager(ckbClient);
+    this.scriptManager = new ScriptManager(scriptProvider);
   }
 
   async rgbppLockScriptTemplate(): Promise<ccc.Script> {
@@ -59,20 +61,19 @@ export class RgbppUdtClient {
   }
 
   async getRgbppScriptInfos(): Promise<
-    Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>
+    Record<RgbppScriptName, ccc.ScriptInfo>
   > {
+    const [rgbppLock, btcTimeLock, uniqueType] = await Promise.all([
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.UniqueType),
+    ]);
+
     return {
-      [ccc.KnownScript.RgbppLock]: await this.scriptManager.getKnownScriptInfo(
-        ccc.KnownScript.RgbppLock,
-      ),
-      [ccc.KnownScript.BtcTimeLock]:
-        await this.scriptManager.getKnownScriptInfo(
-          ccc.KnownScript.BtcTimeLock,
-        ),
-      [ccc.KnownScript.UniqueType]: await this.scriptManager.getKnownScriptInfo(
-        ccc.KnownScript.UniqueType,
-      ),
-    } as Record<ccc.KnownScript, { script: ccc.Script; cellDep: ccc.CellDep }>;
+      [ccc.KnownScript.RgbppLock]: rgbppLock,
+      [ccc.KnownScript.BtcTimeLock]: btcTimeLock,
+      [ccc.KnownScript.UniqueType]: uniqueType,
+    } as Record<RgbppScriptName, ccc.ScriptInfo>;
   }
 
   // * It's assumed that all the tx.outputs are rgbpp/btc time lock scripts.
@@ -191,7 +192,8 @@ export class RgbppUdtClient {
       {
         lock: pseudoRgbppLock,
         type: ccc.Script.from({
-          ...params.udtScriptInfo.script,
+          codeHash: params.udtScriptInfo.codeHash,
+          hashType: params.udtScriptInfo.hashType,
           args: params.rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
         }),
       },
@@ -206,7 +208,10 @@ export class RgbppUdtClient {
       encodeRgbppUdtToken(params.token),
     );
 
-    tx.addCellDeps(params.udtScriptInfo.cellDep, uniqueTypeInfo.cellDep);
+    tx.addCellDeps(
+      params.udtScriptInfo.cellDeps[0].cellDep,
+      uniqueTypeInfo.cellDeps[0].cellDep,
+    );
 
     return tx;
   }
