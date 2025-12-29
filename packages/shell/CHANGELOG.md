@@ -1,5 +1,11 @@
 # @ckb-ccc/shell
 
+## 1.1.22
+### Patch Changes
+
+- Updated dependencies [[`3aa4425`](https://github.com/ckb-devrel/ccc/commit/3aa4425c6f7d756ceb464f58716b1a89620e2d5b)]:
+  - @ckb-ccc/spore@1.5.14
+
 ## 1.1.21
 ### Patch Changes
 
