@@ -26,8 +26,6 @@
   "devDependencies": {
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
-    "@ckb-lumos/base": "^0.22.2",
-    "@ckb-lumos/codec": "^0.22.2",
     "@eslint/js": "^9.34.0",
     "@exact-realty/multipart-parser": "^1.0.13",
     "@types/jest": "^29.5.14",
