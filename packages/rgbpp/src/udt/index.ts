@@ -125,11 +125,11 @@ export class RgbppUdtClient {
     }
 
     if (rgbppCells.length !== 0) {
-      console.log("Using existing RGB++ cell");
+      // console.log("Using existing RGB++ cell");
       return rgbppCells;
     }
 
-    console.log("RGB++ cell not found, creating a new one");
+    // console.log("RGB++ cell not found, creating a new one");
     const tx = ccc.Transaction.default();
 
     // If additional capacity is required when used as an input in a transaction, it can always be supplemented in `completeInputsByCapacity`.
@@ -141,7 +141,7 @@ export class RgbppUdtClient {
     await tx.completeFeeBy(signer);
     const txHash = await signer.sendTransaction(tx);
     await signer.client.waitTransaction(txHash);
-    console.log(`RGB++ cell created, txHash: ${txHash}`);
+    // console.log(`RGB++ cell created, txHash: ${txHash}`);
 
     const cell = await signer.client.getCellLive({
       txHash,
@@ -161,11 +161,11 @@ export class RgbppUdtClient {
       throw new Error("rgbppLiveCells is empty");
     }
 
-    const rgpbbLiveCells = deduplicateByOutPoint(params.rgbppLiveCells);
+    const rgbppLiveCells = deduplicateByOutPoint(params.rgbppLiveCells);
 
     const tx = ccc.Transaction.default();
     await Promise.all(
-      rgpbbLiveCells.map(async (cell) => {
+      rgbppLiveCells.map(async (cell) => {
         const cellInput = ccc.CellInput.from({
           previousOutput: cell.outPoint,
         });
@@ -189,13 +189,20 @@ export class RgbppUdtClient {
       ccc.KnownScript.UniqueType,
     );
 
+    if (params.udtScriptInfo.cellDeps.length === 0) {
+      throw new Error("udtScriptInfo.cellDeps is empty");
+    }
+    if (uniqueTypeInfo.cellDeps.length === 0) {
+      throw new Error("uniqueTypeInfo.cellDeps is empty");
+    }
+
     tx.addOutput(
       {
         lock: pseudoRgbppLock,
         type: ccc.Script.from({
           codeHash: params.udtScriptInfo.codeHash,
           hashType: params.udtScriptInfo.hashType,
-          args: params.rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
+          args: rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
         }),
       },
       u128ToLe(params.amount * BigInt(10 ** params.token.decimal)),
