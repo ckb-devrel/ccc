@@ -1,8 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 import { Psbt } from "bitcoinjs-lib";
-import { NetworkConfig } from "../../../types/network.js";
-import { BtcAssetApiConfig } from "../../types/btc-assets-api.js";
-import { RgbppBtcWallet } from "../wallet.js";
+import { NetworkConfig } from "../../types/network.js";
+import { BtcAssetApiConfig } from "../api/config.js";
+import { RgbppBtcWallet } from "./base.js";
 
 // TODO: add default btc asset api URL
 export class BrowserRgbppBtcWallet extends RgbppBtcWallet {

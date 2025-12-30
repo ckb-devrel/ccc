@@ -5,18 +5,19 @@ import {
   UNIQUE_TYPE_OUTPUT_INDEX,
 } from "../constants/index.js";
 
-import { ScriptManager } from "../configs/index.js";
+import { ScriptManager } from "../configs/script-manager.js";
 import { deadLock } from "../configs/scripts/index.js";
-import { NetworkConfig, UtxoSeal } from "../types/index.js";
+import { NetworkConfig } from "../types/network.js";
+import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
 import { RgbppUdtIssuance } from "../types/rgbpp/udt.js";
 import { IScriptProvider, RgbppScriptName } from "../types/script.js";
+import { deduplicateByOutPoint } from "../utils/common.js";
+import { u128ToLe } from "../utils/encoder.js";
+import { encodeRgbppUdtToken } from "../utils/rgbpp.js";
 import {
-  deduplicateByOutPoint,
-  encodeRgbppUdtToken,
   isUsingOneOfScripts,
-  u128ToLe,
   updateScriptArgsWithTxId,
-} from "../utils/index.js";
+} from "../utils/script.js";
 
 export class RgbppUdtClient {
   public scriptManager: ScriptManager;

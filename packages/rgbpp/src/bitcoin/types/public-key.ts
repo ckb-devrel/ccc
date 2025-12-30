@@ -1,4 +1,4 @@
-import { AddressType } from "./tx.js";
+import { AddressType } from "./address.js";
 
 /**
  * Public key provider interface

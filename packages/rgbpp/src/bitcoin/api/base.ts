@@ -1,5 +1,4 @@
 import lodash from "lodash";
-import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
 import { BtcAssetsApiError, ErrorCodes } from "../types/error.js";
 import {
   BaseApiRequestOptions,
@@ -8,6 +7,7 @@ import {
   Json,
 } from "../types/index.js";
 import { isDomain } from "../utils/index.js";
+import { BtcAssetApiConfig } from "./config.js";
 
 export class BtcAssetsApiBase implements BaseApis {
   public url: string;

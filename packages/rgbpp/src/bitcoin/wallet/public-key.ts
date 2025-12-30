@@ -1,5 +1,6 @@
-import { AddressType, PublicKeyProvider } from "../types/index.js";
-import { RgbppBtcWallet } from "./wallet.js";
+import { AddressType } from "../types/address.js";
+import { PublicKeyProvider } from "../types/public-key.js";
+import { RgbppBtcWallet } from "./base.js";
 
 /**
  * Public key provider that retrieves public keys from a wallet

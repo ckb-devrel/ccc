@@ -24,36 +24,37 @@ import {
 
 import { UtxoSeal } from "../../types/rgbpp/rgbpp.js";
 
-import { BtcAssetsApiBase } from "../service/base.js";
-import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
-import { PublicKeyProvider } from "../types/publicKeyProvider.js";
-import { RgbppBtcTxParams } from "../types/rgbpp.js";
+import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
 import {
   BtcApiBalance,
-  BtcApiBalanceParams,
   BtcApiRecommendedFeeRates,
   BtcApiSentTransaction,
   BtcApiTransaction,
   BtcApiTransactionHex,
   BtcApiUtxo,
+} from "../types/api.js";
+import { PublicKeyProvider } from "../types/public-key.js";
+import { RgbppBtcTxParams } from "../types/rgbpp.js";
+import {
+  BtcApiBalanceParams,
   BtcApiUtxoParams,
   TxInputData,
   TxOutput,
   Utxo,
   UtxoSealOptions,
-} from "../types/tx.js";
+} from "../types/transaction.js";
 import {
   getAddressType,
   isOpReturnScriptPubkey,
   toBtcNetwork,
   utxoToInputData,
 } from "../utils/index.js";
-import { transactionToHex } from "./pk/account.js";
+import { transactionToHex } from "./account.js";
 import {
   CachedPublicKeyProvider,
   CompositePublicKeyProvider,
   WalletPublicKeyProvider,
-} from "./publicKeyProvider.js";
+} from "./public-key.js";
 
 import { NetworkConfig } from "../../types/network.js";
 import { RgbppApiSpvProof } from "../../types/spv.js";

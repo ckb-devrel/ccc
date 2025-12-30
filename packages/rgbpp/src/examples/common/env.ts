@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/pk/wallet.js";
+import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/private-key.js";
 
 import { parseAddressType } from "../../bitcoin/index.js";
 import { ClientScriptProvider } from "../../configs/index.js";

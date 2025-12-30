@@ -3,18 +3,18 @@ import { Psbt, Transaction } from "bitcoinjs-lib";
 
 import { ccc } from "@ckb-ccc/core";
 
+import { BtcAssetApiConfig } from "../api/config.js";
+import { AddressType } from "../types/address.js";
+import { toXOnly } from "../utils/script.js";
 import {
   addressToScriptPublicKeyHex,
   BtcAccount,
   createBtcAccount,
-  toXOnly,
   tweakSigner,
-} from "../../index.js";
-import { BtcAssetApiConfig } from "../../types/btc-assets-api.js";
-import { AddressType } from "../../types/tx.js";
+} from "./account.js";
 
-import { NetworkConfig } from "../../../types/network.js";
-import { RgbppBtcWallet } from "../wallet.js";
+import { NetworkConfig } from "../../types/network.js";
+import { RgbppBtcWallet } from "./base.js";
 
 export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
   private account: BtcAccount;
