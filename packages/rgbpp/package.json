@@ -1,0 +1,62 @@
+{
+  "name": "@ckb-ccc/rgbpp",
+  "version": "1.0.0",
+  "description": "RGB++ for CKB",
+  "types": "dist/index.d.ts",
+  "source": "src/index.ts",
+  "type": "module",
+  "main": "dist.commonjs/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
+      "default": "./dist.commonjs/index.js"
+    }
+  },
+  "scripts": {
+    "test": "jest",
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "lint": "eslint ./src",
+    "format": "prettier --write . && eslint --fix ./src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@ckb-ccc/spore": "workspace:*",
+    "@ckb-ccc/udt": "workspace:*",
+    "@ckb-lumos/base": "^0.22.2",
+    "@ckb-lumos/codec": "^0.22.2",
+    "@eslint/js": "^9.34.0",
+    "@exact-realty/multipart-parser": "^1.0.13",
+    "@types/jest": "^29.5.14",
+    "@types/lodash": "^4.17.14",
+    "@types/node": "^22.10.6",
+    "copyfiles": "^2.4.1",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^29.7.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.41.0"
+  },
+  "dependencies": {
+    "@bitcoinerlab/secp256k1": "1.1.1",
+    "@ckb-ccc/core": "workspace:*",
+    "@ckb-lumos/base": "^0.23.0",
+    "@ckb-lumos/bi": "^0.23.0",
+    "@ckb-lumos/codec": "^0.23.0",
+    "bip32": "4.0.0",
+    "bitcoinjs-lib": "6.1.6",
+    "ecpair": "2.1.0",
+    "js-sha256": "^0.11.0",
+    "lodash": "^4.17.21"
+  }
+}
