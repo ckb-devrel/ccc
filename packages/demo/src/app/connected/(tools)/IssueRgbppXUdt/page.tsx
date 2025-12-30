@@ -22,7 +22,7 @@ import {
   RgbppUdtClient,
   UtxoSeal,
 } from "@ckb-ccc/rgbpp";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const issuanceAmount = BigInt(21000000);
 const xudtToken = {
@@ -49,6 +49,11 @@ export default function IssueRGBPPXUdt() {
     [createSender],
   );
   const { error, log } = sender;
+  // Use ref to store error function to avoid re-running effects when it changes
+  const errorRef = useRef(error);
+  useEffect(() => {
+    errorRef.current = error;
+  }, [error]);
   const { explorerTransaction } = useGetExplorerLink();
 
   const [rgbppBtcTxId, setRgbppBtcTxId] = useState<string>("");
@@ -101,7 +106,9 @@ export default function IssueRGBPPXUdt() {
       // * use Testnet3 as default
       network = PredefinedNetwork.BitcoinTestnet3;
     } else {
-      error(`Unsupported network prefix: ${signer.client.addressPrefix}`);
+      errorRef.current(
+        `Unsupported network prefix: ${signer.client.addressPrefix}`,
+      );
       return;
     }
 
@@ -140,7 +147,7 @@ export default function IssueRGBPPXUdt() {
       networkConfig &&
       !rgbppBtcWallet
     ) {
-      error(
+      errorRef.current(
         `Unsupported wallet type: ${signer.constructor.name}. Supported wallets: ${getSupportedWallets().join(", ")}`,
       );
     }
@@ -172,7 +179,7 @@ export default function IssueRGBPPXUdt() {
         setIsLoadingUtxos(false);
       })
       .catch((err) => {
-        error("Failed to get UTXOs:", String(err));
+        errorRef.current("Failed to get UTXOs:", String(err));
         setUtxos([]);
         setSelectedUtxo("");
         setIsLoadingUtxos(false);
@@ -288,7 +295,7 @@ export default function IssueRGBPPXUdt() {
         rgbppUdtClient,
         btcChangeAddress: btcAccount,
         receiverBtcAddresses: [btcAccount],
-        feeRate: 10,
+        feeRate: 5,
       });
 
       const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
@@ -321,16 +328,15 @@ export default function IssueRGBPPXUdt() {
     } catch (err) {
       setCurrentStep("idle");
       setStepMessage("");
-      error("Transaction failed:", String(err));
+      errorRef.current("Transaction failed:", String(err));
     }
   }, [
     signer,
     selectedUtxo,
     rgbppBtcWallet,
     rgbppUdtClient,
-    CkbRgbppUnlockSigner,
+    ckbRgbppUnlockSigner,
     log,
-    error,
     explorerTransaction,
     getBtcExplorerLink,
   ]);
@@ -397,7 +403,7 @@ export default function IssueRGBPPXUdt() {
                 }
                 setIsLoadingUtxos(false);
               } catch (err) {
-                error("Failed to refresh UTXOs:", String(err));
+                errorRef.current("Failed to refresh UTXOs:", String(err));
                 setIsLoadingUtxos(false);
               }
             }}

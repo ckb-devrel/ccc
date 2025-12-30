@@ -2,6 +2,33 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+### Environment Variables
+
+Before running the development server, you need to configure environment variables for RGB++ features.
+
+Create a `.env.local` file in the `packages/demo` directory with the following variables:
+
+```bash
+# BTC Assets API Configuration
+# Required: BTC Assets API URL (must be an absolute URL starting with http:// or https://)
+NEXT_PUBLIC_BTC_ASSETS_API_URL=https://api-testnet.rgbpp.com
+
+# Optional: BTC Assets API Token (required for mainnet)
+NEXT_PUBLIC_BTC_ASSETS_API_TOKEN=
+
+# Optional: BTC Assets API Origin (required for mainnet)
+# Your application's origin domain (e.g., localhost:3000, app.example.com)
+NEXT_PUBLIC_BTC_ASSETS_API_ORIGIN=
+```
+
+**Note:**
+- The URL must be an absolute URL (starting with `http://` or `https://`), not a relative path
+- For testnet, you can use `https://api-testnet.rgbpp.com`
+- For mainnet, you'll need to provide a valid token and origin
+- After modifying environment variables, restart the development server
+
+### Run the Development Server
+
 First, run the development server:
 
 ```bash
