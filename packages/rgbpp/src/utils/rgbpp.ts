@@ -2,7 +2,8 @@ import { sha256 } from "js-sha256";
 
 import { ccc } from "@ckb-ccc/core";
 
-import { convertToOutput, InitOutput, TxOutput } from "../bitcoin/index.js";
+import { InitOutput, TxOutput } from "../bitcoin/types/transaction.js";
+import { convertToOutput } from "../bitcoin/utils/transaction.js";
 
 import {
   BLANK_TX_ID,
