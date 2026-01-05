@@ -1,4 +1,5 @@
-import { NumLike, numFrom, numToHex } from "../num/index.js";
+import { Zero } from "../fixedPoint/index.js";
+import { NumLike, numFrom, numToHex, type Num } from "../num/index.js";
 
 /**
  * A type safe way to apply a transformer on a value if it's not empty.
@@ -195,4 +196,22 @@ export function stringify(val: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return value;
   });
+}
+
+/**
+ * Calculate the greatest common divisor (GCD) of two NumLike values using the Euclidean algorithm.
+ *
+ * @param a - First operand.
+ * @param b - Second operand.
+ * @returns GCD(a, b) as a Num.
+ */
+export function gcd(a: NumLike, b: NumLike): Num {
+  a = numFrom(a);
+  b = numFrom(b);
+  a = a < Zero ? -a : a;
+  b = b < Zero ? -b : b;
+  while (b !== Zero) {
+    [a, b] = [b, a % b];
+  }
+  return a;
 }

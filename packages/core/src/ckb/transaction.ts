@@ -21,6 +21,7 @@ import {
 } from "../num/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
+import { Epoch } from "./epoch.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
 import {
@@ -645,45 +646,6 @@ export class Cell extends CellAny {
       this.outputData,
     );
   }
-}
-
-/**
- * @public
- */
-export type EpochLike = [NumLike, NumLike, NumLike];
-/**
- * @public
- */
-export type Epoch = [Num, Num, Num];
-/**
- * @public
- */
-export function epochFrom(epochLike: EpochLike): Epoch {
-  return [numFrom(epochLike[0]), numFrom(epochLike[1]), numFrom(epochLike[2])];
-}
-/**
- * @public
- */
-export function epochFromHex(hex: HexLike): Epoch {
-  const num = numFrom(hexFrom(hex));
-
-  return [
-    num & numFrom("0xffffff"),
-    (num >> numFrom(24)) & numFrom("0xffff"),
-    (num >> numFrom(40)) & numFrom("0xffff"),
-  ];
-}
-/**
- * @public
- */
-export function epochToHex(epochLike: EpochLike): Hex {
-  const epoch = epochFrom(epochLike);
-
-  return numToHex(
-    numFrom(epoch[0]) +
-      (numFrom(epoch[1]) << numFrom(24)) +
-      (numFrom(epoch[2]) << numFrom(40)),
-  );
 }
 
 /**
@@ -1887,7 +1849,7 @@ export class Transaction extends mol.Entity.Base<
     return reduceAsync(
       this.inputs,
       async (acc, input) => acc + (await input.getExtraCapacity(client)),
-      numFrom(0),
+      Zero,
     );
   }
 
@@ -1903,16 +1865,13 @@ export class Transaction extends mol.Entity.Base<
 
           return acc + capacity;
         },
-        numFrom(0),
+        Zero,
       )) + (await this.getInputsCapacityExtra(client))
     );
   }
 
   getOutputsCapacity(): Num {
-    return this.outputs.reduce(
-      (acc, { capacity }) => acc + capacity,
-      numFrom(0),
-    );
+    return this.outputs.reduce((acc, { capacity }) => acc + capacity, Zero);
   }
 
   async getInputsUdtBalance(client: Client, type: ScriptLike): Promise<Num> {
@@ -1926,7 +1885,7 @@ export class Transaction extends mol.Entity.Base<
 
         return acc + udtBalanceFrom(outputData);
       },
-      numFrom(0),
+      Zero,
     );
   }
 
@@ -1937,7 +1896,7 @@ export class Transaction extends mol.Entity.Base<
       }
 
       return acc + udtBalanceFrom(this.outputsData[i]);
-    }, numFrom(0));
+    }, Zero);
   }
 
   async completeInputs<T>(
@@ -2059,7 +2018,7 @@ export class Transaction extends mol.Entity.Base<
   ): Promise<number> {
     const expectedBalance =
       this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
-    if (expectedBalance === numFrom(0)) {
+    if (expectedBalance === Zero) {
       return 0;
     }
 
@@ -2073,7 +2032,7 @@ export class Transaction extends mol.Entity.Base<
 
         return [balanceAcc + udtBalanceFrom(outputData), countAcc + 1];
       },
-      [numFrom(0), 0],
+      [Zero, 0],
     );
 
     if (
@@ -2512,12 +2471,12 @@ export function calcDaoProfit(
  *
  * @param depositHeader - The block header when the DAO deposit was made.
  * @param withdrawHeader - The block header when the DAO withdrawal was initiated.
- * @returns The epoch when the withdrawal can be claimed, represented as [number, index, length].
+ * @returns The epoch when the withdrawal can be claimed, represented as an Epoch instance.
  *
  * @example
  * ```typescript
- * const claimEpoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
- * console.log(`Can claim at epoch: ${claimEpoch[0]}, index: ${claimEpoch[1]}, length: ${claimEpoch[2]}`);
+ * const epoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
+ * console.log(`Can claim at epoch: ${epoch.integer}, numerator: ${epoch.numerator}, denominator: ${epoch.denominator}`);
  * ```
  *
  * @remarks
@@ -2531,26 +2490,23 @@ export function calcDaoClaimEpoch(
   depositHeader: ClientBlockHeaderLike,
   withdrawHeader: ClientBlockHeaderLike,
 ): Epoch {
-  const depositEpoch = ClientBlockHeader.from(depositHeader).epoch;
-  const withdrawEpoch = ClientBlockHeader.from(withdrawHeader).epoch;
-  const intDiff = withdrawEpoch[0] - depositEpoch[0];
-  // deposit[1]    withdraw[1]
-  // ---------- <= -----------
-  // deposit[2]    withdraw[2]
+  const deposit = ClientBlockHeader.from(depositHeader).epoch.normalizeBase();
+  const withdraw = ClientBlockHeader.from(withdrawHeader).epoch.normalizeBase();
+
+  const fullCycle = numFrom(180);
+  const partialCycle = (withdraw.integer - deposit.integer) % fullCycle;
+  let withdrawInteger = withdraw.integer;
   if (
-    intDiff % numFrom(180) !== numFrom(0) ||
-    depositEpoch[1] * withdrawEpoch[2] <= depositEpoch[2] * withdrawEpoch[1]
+    partialCycle !== Zero ||
+    //  deposit.numerator        withdraw.numerator
+    // --------------------- <= ----------------------
+    //  deposit.denominator      withdraw.denominator
+    deposit.numerator * withdraw.denominator <=
+      withdraw.numerator * deposit.denominator
   ) {
-    return [
-      depositEpoch[0] + (intDiff / numFrom(180) + numFrom(1)) * numFrom(180),
-      depositEpoch[1],
-      depositEpoch[2],
-    ];
+    // Need to wait for the next cycle
+    withdrawInteger += -partialCycle + fullCycle;
   }
 
-  return [
-    depositEpoch[0] + (intDiff / numFrom(180)) * numFrom(180),
-    depositEpoch[1],
-    depositEpoch[2],
-  ];
+  return new Epoch(withdrawInteger, deposit.numerator, deposit.denominator);
 }
