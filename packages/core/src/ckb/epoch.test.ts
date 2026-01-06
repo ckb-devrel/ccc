@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  Epoch,
-  EPOCH_IN_MILLISECONDS,
-  epochFrom,
-  epochFromHex,
-  epochToHex,
-} from "./epoch";
+import type { ClientBlockHeader } from "../client/index.js";
+import { Epoch, epochFrom, epochFromHex, epochToHex } from "./epoch";
 
 describe("Epoch", () => {
   it("constructs from tuple and object via from()", () => {
@@ -150,7 +145,7 @@ describe("Epoch", () => {
   it("toUnix estimates timestamp using a reference header", () => {
     const refEpoch = new Epoch(1n, 0n, 1n);
     // Provide a minimal shaped header for toUnix without using `any`.
-    const refHeader: { epoch: Epoch; timestamp: bigint } = {
+    const refHeader = {
       epoch: refEpoch,
       timestamp: 1000n,
     };
@@ -158,13 +153,68 @@ describe("Epoch", () => {
     // target epoch is 2 + 1/2
     const target = new Epoch(2n, 1n, 2n);
     const delta = target.sub(refEpoch); // should be 1 + 1/2
-    const expected =
+
+    // Test default behavior (4 hours)
+    const expectedDefault =
       refHeader.timestamp +
-      EPOCH_IN_MILLISECONDS * delta.integer +
-      (EPOCH_IN_MILLISECONDS * delta.numerator) / delta.denominator;
-    // Allow this single structural cast for the test harness.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-    expect(target.toUnix(refHeader as any)).toBe(expected);
+      DEFAULT_EPOCH_IN_MILLISECONDS * delta.integer +
+      (DEFAULT_EPOCH_IN_MILLISECONDS * delta.numerator) / delta.denominator;
+
+    expect(target.toUnix(refHeader)).toBe(expectedDefault);
+
+    // Test custom epoch duration (10 minutes)
+    const customEpochMs = 10n * 60n * 1000n;
+    const expectedCustom =
+      refHeader.timestamp +
+      customEpochMs * delta.integer +
+      (customEpochMs * delta.numerator) / delta.denominator;
+
+    expect(target.toUnix(refHeader, customEpochMs)).toBe(expectedCustom);
+  });
+
+  it("toUnix accepts full ClientBlockHeader", () => {
+    const refEpoch = new Epoch(1n, 0n, 1n);
+    // Simulate a full ClientBlockHeader object
+    const fullHeader: ClientBlockHeader = {
+      epoch: refEpoch,
+      timestamp: 1000n,
+      compactTarget: 0n,
+      hash: "0x1234567890abcdef",
+      number: 100n,
+      parentHash: "0xabcdef1234567890",
+      version: 0n,
+      nonce: 0n,
+      dao: { c: 0n, ar: 0n, s: 0n, u: 0n },
+      extraHash: "0x0000000000000000",
+      proposalsHash: "0x0000000000000000",
+      transactionsRoot: "0x0000000000000000",
+    };
+
+    const target = new Epoch(2n, 1n, 2n);
+    const delta = target.sub(fullHeader.epoch);
+    const expected =
+      fullHeader.timestamp +
+      DEFAULT_EPOCH_IN_MILLISECONDS * delta.integer +
+      (DEFAULT_EPOCH_IN_MILLISECONDS * delta.numerator) / delta.denominator;
+
+    // Full ClientBlockHeader should work due to structural typing
+    expect(target.toUnix(fullHeader)).toBe(expected);
+  });
+
+  it("toUnix accepts object literal with exact required properties", () => {
+    const target = new Epoch(2n, 1n, 2n);
+    const minimalRef = {
+      epoch: new Epoch(1n, 0n, 1n),
+      timestamp: 1000n,
+    };
+
+    const delta = target.sub(minimalRef.epoch);
+    const expected =
+      minimalRef.timestamp +
+      DEFAULT_EPOCH_IN_MILLISECONDS * delta.integer +
+      (DEFAULT_EPOCH_IN_MILLISECONDS * delta.numerator) / delta.denominator;
+
+    expect(target.toUnix(minimalRef)).toBe(expected);
   });
 
   it("deprecated helpers epochFrom / epochFromHex / epochToHex", () => {
@@ -181,3 +231,11 @@ describe("Epoch", () => {
     expect(decoded.denominator).toBe(e.denominator);
   });
 });
+
+/**
+ * DEFAULT_EPOCH_IN_MILLISECONDS
+ *
+ * Constant duration of a single standard ideal epoch expressed in milliseconds.
+ * Defined as 4 hours = 4 * 60 * 60 * 1000 ms.
+ */
+const DEFAULT_EPOCH_IN_MILLISECONDS = 4n * 60n * 60n * 1000n;

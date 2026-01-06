@@ -433,33 +433,27 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
   /**
    * Convert this epoch to an estimated Unix timestamp in milliseconds using a reference header.
    *
-   * Note: This is an estimation that assumes a constant epoch duration EPOCH_IN_MILLISECONDS.
+   * Note: This is an estimation that assumes a constant epoch duration.
    *
-   * @param reference - Block header providing `epoch` (Epoch) and `timestamp` (bigint) fields.
+   * @param reference - Object providing `epoch` (Epoch) and `timestamp` (Num) fields, such as a ClientBlockHeader.
+   * @param epochInMilliseconds - Duration of a single epoch in milliseconds. Defaults to 4 hours.
    * @returns Estimated Unix timestamp in milliseconds as bigint.
    */
-  toUnix(reference: ClientBlockHeader): bigint {
+  toUnix(
+    reference: Pick<ClientBlockHeader, "epoch" | "timestamp">,
+    epochInMilliseconds: Num = numFrom(4 * 60 * 60 * 1000),
+  ): bigint {
     // Compute relative epoch difference against the reference header.
     const { integer, numerator, denominator } = this.sub(reference.epoch);
 
     // Add whole epoch duration and fractional epoch duration to the reference timestamp.
     return (
       reference.timestamp +
-      EPOCH_IN_MILLISECONDS * integer +
-      (EPOCH_IN_MILLISECONDS * numerator) / denominator
+      epochInMilliseconds * integer +
+      (epochInMilliseconds * numerator) / denominator
     );
   }
 }
-
-/**
- * EPOCH_IN_MILLISECONDS
- *
- * Constant duration of a single epoch expressed in milliseconds.
- * Defined as 4 hours = 4 * 60 * 60 * 1000 ms.
- *
- * Stored as Num (bigint) to avoid precision loss when used with other Num values.
- */
-export const EPOCH_IN_MILLISECONDS = numFrom(4 * 60 * 60 * 1000);
 
 /**
  * epochFrom
