@@ -322,8 +322,6 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
 
     const rgbppWitness = ccc.WitnessArgs.from({
       lock: rgbppUnlock,
-      inputType: "",
-      outputType: "",
     }).toBytes();
 
     tx.inputs.forEach((_, index) => {
