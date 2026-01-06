@@ -5,7 +5,6 @@ import "../common/load-env.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
 
-import { testnetSudtInfo } from "../common/assets.js";
 import { RgbppTxLogger } from "../common/logger.js";
 
 const {
@@ -18,18 +17,23 @@ const {
 } = await initializeRgbppEnv();
 
 async function btcUdtToCkb({
-  udtScriptInfo,
+  udtScriptArgs,
+  customUdtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: ccc.ScriptInfo;
+  udtScriptArgs: ccc.Hex;
+  customUdtScriptInfo?: ccc.ScriptInfo;
   receivers: { address: string; amount: bigint }[];
 }) {
+  const scriptInfo =
+    customUdtScriptInfo ??
+    (await ckbClient.getKnownScript(ccc.KnownScript.XUdt));
   const udtInstance = new Udt(
-    udtScriptInfo.cellDeps[0].cellDep.outPoint,
+    scriptInfo.cellDeps[0].cellDep.outPoint,
     ccc.Script.from({
-      codeHash: udtScriptInfo.codeHash,
-      hashType: udtScriptInfo.hashType,
-      args: "",
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
+      args: udtScriptArgs,
     }),
   );
 
@@ -57,7 +61,7 @@ async function btcUdtToCkb({
     rgbppUdtClient,
     btcChangeAddress: utxoBasedAccountAddress,
     receiverBtcAddresses: [],
-    feeRate: 28,
+    // feeRate: 5,
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
@@ -81,10 +85,8 @@ async function btcUdtToCkb({
 const logger = new RgbppTxLogger({ opType: "udt-transfer-btc-to-ckb" });
 
 btcUdtToCkb({
-  // udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
-
-  udtScriptInfo: testnetSudtInfo,
-
+  udtScriptArgs:
+    "0x88017813e410f63a21074a54f3a025cfa8319201b43588b50d869c1a2843b76f",
   receivers: [
     {
       address: await ckbSigner.getRecommendedAddress(),

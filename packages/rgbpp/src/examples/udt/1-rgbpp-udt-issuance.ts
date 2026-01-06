@@ -18,16 +18,19 @@ const {
 } = await initializeRgbppEnv();
 
 async function issueUdt({
-  udtScriptInfo,
+  customUdtScriptInfo,
   utxoSeal,
 }: {
-  udtScriptInfo: ccc.ScriptInfo;
+  customUdtScriptInfo?: ccc.ScriptInfo;
   utxoSeal?: UtxoSeal;
-}) {
+} = {}) {
   if (!utxoSeal) {
-    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 10 });
+    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
   }
 
+  const udtScriptInfo =
+    customUdtScriptInfo ??
+    (await ckbClient.getKnownScript(ccc.KnownScript.XUdt));
   const rgbppIssuanceCells = await prepareRgbppCells(
     ckbClient,
     ckbSigner,
@@ -52,7 +55,7 @@ async function issueUdt({
     rgbppUdtClient,
     btcChangeAddress: utxoBasedAccountAddress,
     receiverBtcAddresses: [utxoBasedAccountAddress],
-    feeRate: 28,
+    // feeRate: 5,
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
@@ -79,16 +82,7 @@ async function issueUdt({
 
 const logger = new RgbppTxLogger({ opType: "udt-issuance" });
 
-issueUdt({
-  udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
-
-  // udtScriptInfo: testnetSudtInfo,
-
-  utxoSeal: {
-    txId: "2d9c548292e89ecc6fff511069765531a0b2e5595651d52a5b136d576a2e0973",
-    index: 2,
-  },
-})
+issueUdt()
   .then(() => {
     logger.saveOnSuccess();
     process.exit(0);
