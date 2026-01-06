@@ -1,5 +1,11 @@
 # @ckb-ccc/uni-sat
 
+## 1.0.30
+### Patch Changes
+
+- Updated dependencies [[`fae1753`](https://github.com/ckb-devrel/ccc/commit/fae17538737f1eceef7c094b9badb777d885b414), [`df9ce67`](https://github.com/ckb-devrel/ccc/commit/df9ce6706cb557f648d22da97c2e9c88d0527830), [`f642cc5`](https://github.com/ckb-devrel/ccc/commit/f642cc5fd25df53de19c71937767c47143a26f1e), [`638e5dc`](https://github.com/ckb-devrel/ccc/commit/638e5dc575b75270ab1e8d1572470820a72af57a), [`5530fa9`](https://github.com/ckb-devrel/ccc/commit/5530fa960736834477b5b84ac0330e0085cee8d5), [`e413333`](https://github.com/ckb-devrel/ccc/commit/e41333386037e59810e833fc7e6b5d11f1b7cf69)]:
+  - @ckb-ccc/core@2.0.0
+
 ## 1.0.29
 ### Patch Changes
 
