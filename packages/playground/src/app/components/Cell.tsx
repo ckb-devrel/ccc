@@ -4,11 +4,12 @@ import { useApp } from "../context";
 import {
   formatString,
   formatTimestamp,
+  getScriptBagua,
   getScriptColor,
   useGetExplorerLink,
 } from "../utils";
 import { Address } from "./Address";
-import { RandomWalk } from "./RandomWalk";
+import { Bagua, Taiji } from "./Bagua";
 
 function Capacity({
   capacity,
@@ -28,8 +29,8 @@ function Capacity({
   if (!r) {
     return (
       <>
-        <span className="text-4xl font-bold break-all">{l}</span>
-        <span className="text-sm break-all">
+        <span className="text-3xl font-bold break-all">{l}</span>
+        <span className="text-xs break-all">
           {profitNum === ccc.Zero
             ? ""
             : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -41,9 +42,9 @@ function Capacity({
 
   return (
     <>
-      <span className="text-4xl font-bold break-all">{l}</span>
-      <span className="text-sm break-all">.{r}</span>
-      <span className="text-sm break-all">
+      <span className="text-3xl font-bold break-all">{l}</span>
+      <span className="-mt-1 text-xs break-all">.{r}</span>
+      <span className="text-xs break-all">
         {profitNum === ccc.Zero
           ? ""
           : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
@@ -181,12 +182,8 @@ export function Cell({
       ccc.fixedPointFrom(
         cellOutput.occupiedSize + ccc.bytesFrom(outputData).length,
       );
-    const free = (freeSize * ccc.numFrom(10000)) / total;
 
-    return ccc.fixedPointToString(
-      free >= ccc.numFrom(9500) ? ccc.numFrom(9500) : free,
-      2,
-    );
+    return ccc.fixedPointToString((freeSize * ccc.numFrom(7500)) / total, 2);
   }, [cellOutput, outputData]);
 
   const outputLength = useMemo(() => {
@@ -198,20 +195,17 @@ export function Cell({
   }, [outputData]);
 
   const lockColor = useMemo(
-    () => (cellOutput ? getScriptColor(cellOutput.lock) : "#1f2937"),
+    () => getScriptColor(cellOutput?.lock),
     [cellOutput],
   );
   const typeColor = useMemo(
-    () => (cellOutput?.type ? getScriptColor(cellOutput.type) : "#1f2937"),
+    () => getScriptColor(cellOutput?.type),
     [cellOutput],
   );
 
   return (
-    <RandomWalk
-      className="relative flex h-40 w-40 cursor-pointer flex-col items-center justify-center rounded-full border border-fuchsia-900 shadow-md"
-      style={{
-        backgroundColor: lockColor,
-      }}
+    <div
+      className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-full"
       onClick={() => {
         sendMessage("info", formatTimestamp(Date.now()), [
           <CellInfo
@@ -222,26 +216,45 @@ export function Cell({
         ]);
       }}
     >
-      <div
-        className="absolute top-1/2 left-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-gray-800"
-        style={{
-          borderWidth: "2rem",
-          borderColor: typeColor,
-        }}
+      <Bagua
+        value={getScriptBagua(cellOutput?.lock)}
+        thickness={3.2}
+        padding={1}
+        space={3}
+        margin={2}
+        fill={lockColor}
+        stroke="#000000a0"
+        className="absolute top-1/2 left-1/2 h-33 w-33 -translate-x-1/2 -translate-y-1/2"
+      />
+      <Bagua
+        value={getScriptBagua(cellOutput?.type)}
+        thickness={6}
+        padding={1}
+        space={3}
+        margin={3}
+        fill={typeColor}
+        stroke="#000000a0"
+        className="absolute top-1/2 left-1/2 h-22 w-22 -translate-x-1/2 -translate-y-1/2"
+      />
+      <Taiji
+        className="absolute top-1/2 left-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 animate-spin overflow-hidden rounded-full"
+        style={{ animationDuration: "16s" }}
+        yangColor={lockColor}
       >
         <div
-          className="absolute left-1/2 h-20 w-20 -translate-x-1/2 bg-white"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
-            backgroundColor: lockColor,
-            top: `${freePercentage}%`,
+            width: `${freePercentage}%`,
+            height: `${freePercentage}%`,
+            backgroundColor: typeColor,
           }}
         ></div>
-      </div>
+      </Taiji>
       <div className="relative flex flex-col items-center">
         <Capacity capacity={cellOutput?.capacity} profit={daoProfit} />
       </div>
       {previousOutput ? (
-        <div className="relative">
+        <div className="relative text-xs">
           {explorerTransaction(
             previousOutput.txHash,
             `${formatString(
@@ -257,6 +270,6 @@ export function Cell({
           {outputLength} bytes
         </div>
       ) : undefined}
-    </RandomWalk>
+    </div>
   );
 }

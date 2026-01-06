@@ -2,7 +2,13 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import { Key } from "lucide-react";
-import React, { createContext, ReactNode, useEffect, useState } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Notifications } from "./components/Notifications";
 import { formatString, useGetExplorerLink } from "./utils";
 
@@ -57,7 +63,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [privateKeySigner, setPrivateKeySigner] = useState<
     ccc.SignerCkbPrivateKey | undefined
   >(undefined);
-  const [address, setAddress] = useState<string>("");
 
   const [enabledAnimate, setAnimate] = useState(true);
   const [backgroundLifted, setBackgroundLifted] = useState(false);
@@ -69,23 +74,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     client,
     disconnect,
   } = ccc.useCcc();
-  const signer = privateKeySigner ?? cccSigner?.signer;
+  const signer = useMemo(() => {
+    if (!privateKeySigner) {
+      return cccSigner?.signer;
+    }
+
+    if (privateKeySigner.client.addressPrefix === client.addressPrefix) {
+      return privateKeySigner;
+    }
+
+    return new ccc.SignerCkbPrivateKey(client, privateKeySigner.privateKey);
+  }, [privateKeySigner, client, cccSigner]);
 
   const { explorerAddress } = useGetExplorerLink();
 
-  useEffect(() => {
-    if (
-      !privateKeySigner ||
-      privateKeySigner.client.addressPrefix === client.addressPrefix
-    ) {
-      return;
-    }
-
-    setPrivateKeySigner(
-      new ccc.SignerCkbPrivateKey(client, privateKeySigner.privateKey),
-    );
-  }, [privateKeySigner, client]);
-
+  const [address, setAddress] = useState<string>("");
   useEffect(() => {
     signer?.getInternalAddress().then((a) => setAddress(a));
   }, [signer]);

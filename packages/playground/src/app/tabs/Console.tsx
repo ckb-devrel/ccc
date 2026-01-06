@@ -34,7 +34,7 @@ export function Console({ onRun }: { onRun?: () => void }) {
         return (
           <div
             key={i}
-            className={`border-t-4 border-fuchsia-800 p-2 break-all text-stone-300 ${
+            className={`border-t-4 border-neutral-500 p-2 break-all text-stone-300 ${
               level === "error" ? "bg-red-600/25" : ""
             }`}
           >
@@ -62,7 +62,7 @@ export function Console({ onRun }: { onRun?: () => void }) {
   if (consoles.length === 0) {
     return (
       <div className="flex grow flex-col items-center justify-center">
-        <button className="mb-4 rounded-full bg-green-400 p-6" onClick={onRun}>
+        <button className="mb-4 rounded-full bg-[#eba0ac] p-6" onClick={onRun}>
           <Play size="32" />
         </button>
         <p className="text-lg">Run code to start exploring</p>
