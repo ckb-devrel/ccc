@@ -1,11 +1,24 @@
-import * as cccLib from "@ckb-ccc/ccc";
-import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
 import { ccc } from "@ckb-ccc/connector-react";
-import * as dobRenderLib from "@nervina-labs/dob-render";
 import * as React from "react";
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
+
+const LIBS_MAP_ = new Map();
+const LIBS = await Promise.all(
+  (
+    [
+      ["@noble/curves/secp256k1"],
+      ["@noble/hashes/sha2"],
+      ["@ckb-ccc/ccc", "@ckb-ccc/core"],
+      ["@ckb-ccc/ccc/advanced", "@ckb-ccc/core/advanced"],
+      ["@nervina-labs/dob-render"],
+    ] as const
+  ).map(async (k) => {
+    const lib = await import(k[0]);
+    k.forEach((k) => LIBS_MAP_.set(k, lib));
+  }),
+).then(() => LIBS_MAP_);
 
 function findSourcePos(
   sourceMap: string | undefined,
@@ -58,13 +71,13 @@ export async function execute(
 
   const exports = {};
   const require = (path: string) => {
-    const lib = {
-      "@ckb-ccc/core": cccLib,
-      "@ckb-ccc/core/advanced": cccAdvancedLib,
-      "@ckb-ccc/ccc": cccLib,
-      "@ckb-ccc/ccc/advanced": cccAdvancedLib,
-      "@nervina-labs/dob-render": dobRenderLib,
-      "@ckb-ccc/playground": {
+    const lib = LIBS.get(path);
+    if (lib) {
+      return lib;
+    }
+
+    if (path === "@ckb-ccc/playground") {
+      return {
         render: async (...msgs: unknown[]) => {
           log("info", formatTimestamp(Date.now()), msgs);
 
@@ -94,14 +107,10 @@ export async function execute(
         },
         signer,
         client: signer.client,
-      },
-    }[path];
-
-    if (!lib) {
-      return;
+      };
     }
 
-    return lib;
+    throw Error(`Unknown module ${path}`);
   };
 
   try {
