@@ -269,7 +269,7 @@ export class UdtInfo {
    * @param infoLike - The `UdtInfoLike` object to add.
    * @returns The current, modified `UdtInfo` instance.
    */
-  addEq(infoLike: UdtInfoLike) {
+  addAssign(infoLike: UdtInfoLike) {
     const info = UdtInfo.from(infoLike);
 
     this.balance += info.balance;
@@ -287,7 +287,7 @@ export class UdtInfo {
    * @returns A new `UdtInfo` instance with the summed values.
    */
   add(infoLike: UdtInfoLike) {
-    return this.clone().addEq(infoLike);
+    return this.clone().addAssign(infoLike);
   }
 }
 
@@ -580,17 +580,16 @@ export class Udt extends ssri.Trait {
    *
    * ⚠️ **Warning**: This is an unsafe method. The caller must ensure that the
    * provided `outputData` is from a valid UDT cell. This method does not
-   * verify the cell's type script or data length, and it assumes the data is
-   * at least 16 bytes long. For safe balance extraction from a cell, use
+   * verify the cell's type script. For safe balance extraction from a cell, use
    * `balanceFrom`.
    *
    * @param outputData - The raw output data of a cell, as a hex string or byte array.
-   * @returns The UDT balance as a `ccc.Num`. Returns `0` if the data is empty.
+   * @returns The UDT balance as a `ccc.Num`. Returns `0` if the data length is less than 16 bytes.
    * @internal
    */
   static balanceFromUnsafe(outputData: ccc.HexLike): ccc.Num {
     const data = ccc.bytesFrom(outputData).slice(0, 16);
-    return data.length === 0 ? ccc.Zero : ccc.numFromBytes(data);
+    return data.length < 16 ? ccc.Zero : ccc.numFromBytes(data);
   }
 
   /**
@@ -633,7 +632,7 @@ export class Udt extends ssri.Trait {
         return acc;
       }
 
-      return acc.addEq({
+      return acc.addAssign({
         balance: Udt.balanceFromUnsafe(cell.outputData),
         capacity: cell.cellOutput.capacity,
         count: 1,
