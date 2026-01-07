@@ -235,7 +235,7 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
 
   /**
    * Creates a CellOutput instance from a CellOutputLike object.
-   * This method supports automatic capacity calculation when capacity is 0 or omitted.
+   * This method supports automatic capacity calculation when outputData is provided and capacity is 0 or omitted.
    *
    * @param cellOutput - A CellOutputLike object or an instance of CellOutput.
    * @param outputData - Optional output data used for automatic capacity calculation.
@@ -262,19 +262,20 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
     cellOutput: CellOutputLike,
     outputData?: HexLike | null,
   ): CellOutput {
-    if (cellOutput instanceof CellOutput) {
-      return cellOutput;
-    }
+    const output = (() => {
+      if (cellOutput instanceof CellOutput) {
+        return cellOutput;
+      }
+      return new CellOutput(
+        numFrom(cellOutput.capacity ?? 0),
+        Script.from(cellOutput.lock),
+        apply(Script.from, cellOutput.type),
+      );
+    })();
 
-    const output = new CellOutput(
-      numFrom(cellOutput.capacity ?? 0),
-      Script.from(cellOutput.lock),
-      apply(Script.from, cellOutput.type),
-    );
-
-    if (output.capacity === Zero) {
+    if (output.capacity === Zero && outputData != null) {
       output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData ?? "0x").length,
+        output.occupiedSize + bytesFrom(outputData).length,
       );
     }
 
@@ -365,9 +366,11 @@ export class CellAny {
       return cell;
     }
 
+    const outputData = hexFrom(cell.outputData ?? "0x");
+
     return new CellAny(
-      CellOutput.from(cell.cellOutput, cell.outputData),
-      hexFrom(cell.outputData ?? "0x"),
+      CellOutput.from(cell.cellOutput, outputData),
+      outputData,
       apply(OutPoint.from, cell.outPoint ?? cell.previousOutput),
     );
   }
