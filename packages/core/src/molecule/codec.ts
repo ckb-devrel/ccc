@@ -718,3 +718,20 @@ export function uintNumber(
     outMap: (num) => Number(num),
   });
 }
+
+/**
+ * Create a codec for padding bytes.
+ * The padding bytes are zero-filled when encoding and ignored when decoding.
+ * @param byteLength The length of the padding in bytes.
+ */
+export function padding(
+  byteLength: number,
+): Codec<void | undefined | null, void> {
+  return Codec.from({
+    byteLength,
+    encode: () => {
+      return new Uint8Array(byteLength);
+    },
+    decode: () => {},
+  });
+}

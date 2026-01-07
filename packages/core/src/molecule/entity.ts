@@ -1,6 +1,6 @@
 import { Bytes, bytesEq, BytesLike } from "../bytes/index.js";
 import { hashCkb } from "../hasher/index.js";
-import { Hex } from "../hex/index.js";
+import { Hex, hexFrom } from "../hex/index.js";
 import { Constructor } from "../utils/index.js";
 import { Codec } from "./codec.js";
 
@@ -126,6 +126,15 @@ export abstract class Entity {
       hash(): Hex {
         return hashCkb(this.toBytes());
       }
+
+      /**
+       * Convert the entity to a full-byte untrimmed Hex representation
+       * @public
+       * @returns The entity full-byte untrimmed hexadecimal representation
+       */
+      toHex(): Hex {
+        return hexFrom(this.toBytes());
+      }
     }
 
     return Impl;
@@ -133,6 +142,7 @@ export abstract class Entity {
 
   abstract toBytes(): Bytes;
   abstract hash(): Hex;
+  abstract toHex(): Hex;
   abstract clone(): Entity;
 }
 
