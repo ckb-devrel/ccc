@@ -5,23 +5,48 @@ import { editor } from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 import { createHighlighter } from "shiki";
 
-const ReactSource = require.context(
-  "!!raw-loader!../../../node_modules/@types/react",
-  true,
-  /^\.\/(.*\.d\.ts|package.json)$/,
-);
-
-const CCCSource = require.context(
-  "!!raw-loader!../../../../",
-  true,
-  /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/,
-);
-
-const DobRenderSource = require.context(
-  "!!raw-loader!../../../node_modules/@nervina-labs/dob-render/dist",
-  true,
-  /^\.\/.*\.d\.ts$/,
-);
+const EXTRA_SOURCES = [
+  {
+    files: require.context(
+      "../../../node_modules/@types/react",
+      true,
+      /^\.\/(.*\.d\.ts|package.json)$/,
+    ),
+    name: "@types/react",
+  },
+  {
+    files: require.context(
+      "../../../../",
+      true,
+      /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/,
+    ),
+    name: "@ckb-ccc",
+  },
+  {
+    files: require.context(
+      "../../../node_modules/@nervina-labs/dob-render",
+      true,
+      /^\.\/(.*\.d\.ts|package.json)$/,
+    ),
+    name: "@nervina-labs/dob-render",
+  },
+  {
+    files: require.context(
+      "../../../node_modules/@noble/hashes",
+      true,
+      /^\.\/(.*\.d\.ts|package.json)$/,
+    ),
+    name: "@noble/hashes",
+  },
+  {
+    files: require.context(
+      "../../../node_modules/@noble/curves",
+      true,
+      /^\.\/(.*\.d\.ts|package.json)$/,
+    ),
+    name: "@noble/curves",
+  },
+];
 
 export function Editor({
   value,
@@ -120,25 +145,15 @@ export function Editor({
             ],
           });
 
-          ReactSource.keys().forEach((key: string) => {
-            monaco.languages.typescript.typescriptDefaults.addExtraLib(
-              ReactSource(key).default,
-              "file:///node_modules/@types/react/" + key.replace("./", ""),
-            );
-          });
-
-          CCCSource.keys().forEach((key: string) => {
-            monaco.languages.typescript.typescriptDefaults.addExtraLib(
-              CCCSource(key).default,
-              "file:///node_modules/@ckb-ccc/" + key.replace("./", ""),
-            );
-          });
-
-          DobRenderSource.keys().forEach((key: string) => {
-            monaco.languages.typescript.typescriptDefaults.addExtraLib(
-              DobRenderSource(key).default,
-              `file:///node_modules/@nervina-labs/dob-render/${key.replace("./", "")}`,
-            );
+          EXTRA_SOURCES.forEach(({ files, name }) => {
+            files.keys().forEach((key: string) => {
+              monaco.languages.typescript.typescriptDefaults.addExtraLib(
+                key.endsWith(".json")
+                  ? JSON.stringify(files(key))
+                  : files(key).default,
+                `file:///node_modules/${name}/${key.replace("./", "")}`,
+              );
+            });
           });
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
