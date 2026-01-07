@@ -56,14 +56,10 @@ export type EpochLike =
  */
 @mol.codec(
   mol.struct({
-    padding: mol.Codec.from({
-      byteLength: 1,
-      encode: (_) => new Uint8Array(1),
-      decode: (_) => "0x00",
-    }),
-    denominator: mol.uint(2, false),
-    numerator: mol.uint(2, false),
-    integer: mol.uint(3, false),
+    padding: mol.padding(1),
+    denominator: mol.uint(2),
+    numerator: mol.uint(2),
+    integer: mol.uint(3),
   }),
 )
 export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
@@ -290,7 +286,7 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    *
    * @returns Epoch with integer = 0, numerator = 0, denominator = 0.
    */
-  static genesis(): Epoch {
+  static get Genesis(): Epoch {
     return new Epoch(Zero, Zero, Zero);
   }
 
@@ -299,7 +295,7 @@ export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
    *
    * @returns Epoch equal to 180 with denominator set to 1 to represent an exact whole unit.
    */
-  static oneNervosDaoCycle(): Epoch {
+  static get OneNervosDaoCycle(): Epoch {
     return new Epoch(numFrom(180), Zero, numFrom(1));
   }
 

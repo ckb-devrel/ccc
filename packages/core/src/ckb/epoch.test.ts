@@ -99,13 +99,13 @@ describe("Epoch", () => {
     expect(c.denominator).toBe(e.denominator);
   });
 
-  it("genesis and oneNervosDaoCycle helpers", () => {
-    const g = Epoch.genesis();
+  it("Genesis and OneNervosDaoCycle helpers", () => {
+    const g = Epoch.Genesis;
     expect(g.integer).toBe(0n);
     expect(g.numerator).toBe(0n);
     expect(g.denominator).toBe(0n);
 
-    const o = Epoch.oneNervosDaoCycle();
+    const o = Epoch.OneNervosDaoCycle;
     expect(o.integer).toBe(180n);
     expect(o.numerator).toBe(0n);
     expect(o.denominator).toBe(1n);
