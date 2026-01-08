@@ -248,7 +248,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
    */
   async pushPsbt(
     psbtHex: string,
-    _options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptions,
   ): Promise<string> {
     const { address } = await this.assertConnection();
 
@@ -258,6 +258,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: psbtHex,
+          options,
           signerAddress: address,
           autoFinalized: true, // sendPsbt always finalizes
           isSend: true,
