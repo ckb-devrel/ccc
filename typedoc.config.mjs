@@ -8,6 +8,7 @@ const config = {
     "packages/ssri",
     "packages/udt",
     "packages/spore",
+    "packages/did-ckb",
     "packages/shell",
     "packages/ccc",
     "packages/connector",
