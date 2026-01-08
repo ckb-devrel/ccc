@@ -369,7 +369,7 @@ export abstract class Client {
 
   async findSingletonCellByType(
     type: ScriptLike,
-    withData = false,
+    withData = true,
   ): Promise<Cell | undefined> {
     for await (const cell of this.findCellsByType(
       type,

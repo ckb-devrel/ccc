@@ -16,6 +16,7 @@ import {
   NumLike,
   numFrom,
   numFromBytes,
+  numMax,
   numToBytes,
   numToHex,
 } from "../num/index.js";
@@ -274,9 +275,10 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
       );
     })();
 
-    if (output.capacity === Zero && outputData != null) {
-      output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData).length,
+    if (outputData != null) {
+      output.capacity = numMax(
+        output.capacity,
+        fixedPointFrom(output.occupiedSize + bytesFrom(outputData).length),
       );
     }
 
