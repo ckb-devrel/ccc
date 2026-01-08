@@ -1,5 +1,11 @@
 # @ckb-ccc/connector-react
 
+## 1.0.32
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@1.0.31
+
 ## 1.0.31
 ### Patch Changes
 
