@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.12.3
+### Patch Changes
+
+
+
+- [#344](https://github.com/ckb-devrel/ccc/pull/344) [`6a3be47`](https://github.com/ckb-devrel/ccc/commit/6a3be477b40870dc40d491ce51e667f61f70965e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: wrong capacity completion while deserializing transaction
+
 ## 1.12.2
 ### Patch Changes
 
