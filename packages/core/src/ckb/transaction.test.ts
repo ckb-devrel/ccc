@@ -385,6 +385,9 @@ describe("Transaction", () => {
           {
             previousOutput: mockCapacityCells[0].outPoint,
           },
+          {
+            previousOutput: mockCapacityCells[1].outPoint,
+          },
         ],
         outputs: [
           {
@@ -647,22 +650,13 @@ describe("Transaction", () => {
 
   describe("Automatic Capacity Completion", () => {
     describe("CellOutput.from", () => {
-      it("should use explicit capacity when provided", () => {
-        const cellOutput = ccc.CellOutput.from({
-          capacity: 1000n,
-          lock,
-        });
-
-        expect(cellOutput.capacity).toBe(1000n);
-      });
-
       it("should not modify capacity when data is not provided", () => {
         const cellOutput = ccc.CellOutput.from({
-          capacity: 0n,
+          capacity: 100n,
           lock,
         });
 
-        expect(cellOutput.capacity).toBe(0n);
+        expect(cellOutput.capacity).toBe(100n);
       });
 
       it("should calculate capacity automatically when capacity is 0", () => {
@@ -670,6 +664,20 @@ describe("Transaction", () => {
         const cellOutput = ccc.CellOutput.from(
           {
             capacity: 0n,
+            lock,
+          },
+          outputData,
+        );
+
+        const expectedCapacity = cellOutput.occupiedSize + 2; // occupiedSize + outputData length
+        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
+      });
+
+      it("should calculate capacity automatically when capacity is less than min requirement", () => {
+        const outputData = "0x1234"; // 2 bytes
+        const cellOutput = ccc.CellOutput.from(
+          {
+            capacity: 1000n,
             lock,
           },
           outputData,
@@ -732,9 +740,9 @@ describe("Transaction", () => {
         expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
       });
 
-      it("should not auto-calculate when capacity is explicitly provided even with outputData", () => {
+      it("should not auto-calculate when capacity is enough even with outputData", () => {
         const outputData = "0x1234"; // 2 bytes
-        const explicitCapacity = 5000n;
+        const explicitCapacity = ccc.fixedPointFrom(100);
         const cellOutput = ccc.CellOutput.from(
           {
             capacity: explicitCapacity,
@@ -744,21 +752,6 @@ describe("Transaction", () => {
         );
 
         expect(cellOutput.capacity).toBe(explicitCapacity);
-      });
-
-      it("should handle the overloaded signature correctly", () => {
-        // Test the overloaded signature where capacity is omitted and outputData is required
-        const outputData = "0xabcd";
-        const cellOutput = ccc.CellOutput.from(
-          {
-            lock,
-            type,
-          },
-          outputData,
-        );
-
-        const expectedCapacity = cellOutput.occupiedSize + 2;
-        expect(cellOutput.capacity).toBe(ccc.fixedPointFrom(expectedCapacity));
       });
     });
 
@@ -798,7 +791,7 @@ describe("Transaction", () => {
 
       it("should handle mixed explicit and automatic capacity calculation", () => {
         const outputsData = ["0x12", "0x3456"];
-        const explicitCapacity = 5000n;
+        const explicitCapacity = ccc.fixedPointFrom(100);
         const tx = ccc.Transaction.from({
           outputs: [
             {
@@ -951,7 +944,7 @@ describe("Transaction", () => {
       it("should add output with explicit capacity", () => {
         const tx = ccc.Transaction.default();
         const outputData = "0x12";
-        const explicitCapacity = 10000n;
+        const explicitCapacity = ccc.fixedPointFrom(100);
 
         tx.addOutput(
           {
@@ -1142,7 +1135,7 @@ describe("Transaction", () => {
 
       it("should calculate capacityFree correctly", () => {
         const outputData = "0x1234";
-        const explicitCapacity = 1000n;
+        const explicitCapacity = ccc.fixedPointFrom(100);
         const cell = ccc.Cell.from({
           outPoint: {
             txHash: "0x" + "0".repeat(64),
