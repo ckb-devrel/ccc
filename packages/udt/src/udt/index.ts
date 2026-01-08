@@ -1288,17 +1288,15 @@ export class Udt extends ssri.Trait {
    * const result = await udt.completeInputs(
    *   tx,
    *   signer,
-   *   ([balanceAcc, capacityAcc], cell) => {
-   *     const balance = Udt.balanceFromUnsafe(cell.outputData);
-   *     const newBalance = balanceAcc + balance;
-   *     const newCapacity = capacityAcc + cell.cellOutput.capacity;
+   *  async (acc, cell) => {
+   *    const info = await this.infoFrom(signer.client, cell, acc);
    *
-   *     // Stop when we have enough balance and capacity
-   *     return newBalance >= requiredBalance && newCapacity >= requiredCapacity
-   *       ? undefined  // Stop adding inputs
-   *       : [newBalance, newCapacity];  // Continue with updated accumulator
-   *   },
-   *   [ccc.Zero, ccc.Zero]  // Initial [balance, capacity]
+   *    // Stop when we have enough balance and capacity
+   *    return info.balance >= requiredBalance && info.capacity >= requiredCapacity
+   *      ? undefined  // Stop adding inputs
+   *      : info;  // Continue with updated accumulator
+   *  },
+   *  { balance: 0, capacity: 0 },  // Initial { balance, capacity }
    * );
    * ```
    *
