@@ -1,6 +1,7 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { Client } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
+import { Codec, Entity, codec } from "../codec/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {
@@ -9,7 +10,7 @@ import {
   NUM_TO_HASH_TYPE,
 } from "./script.advanced.js";
 
-export const HashTypeCodec: mol.Codec<HashTypeLike, HashType> = mol.Codec.from({
+export const HashTypeCodec: Codec<HashTypeLike, HashType> = Codec.from({
   byteLength: 1,
   encode: hashTypeToBytes,
   decode: hashTypeFromBytes,
@@ -108,14 +109,14 @@ export type ScriptLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.table({
     codeHash: mol.Byte32,
     hashType: HashTypeCodec,
     args: mol.Bytes,
   }),
 )
-export class Script extends mol.Entity.Base<ScriptLike, Script>() {
+export class Script extends Entity.Base<ScriptLike, Script>() {
   /**
    * Creates an instance of Script.
    *

@@ -32,7 +32,7 @@ export abstract class Entity {
        */
       static encode(_: SubTypeLike): Bytes {
         throw new Error(
-          "encode not implemented, use @ccc.mol.codec to decorate your type",
+          "encode not implemented, use @ccc.codec to decorate your type",
         );
       }
       /**
@@ -45,7 +45,7 @@ export abstract class Entity {
        */
       static decode(_: BytesLike): SubType {
         throw new Error(
-          "decode not implemented, use @ccc.mol.codec to decorate your type",
+          "decode not implemented, use @ccc.codec to decorate your type",
         );
       }
 
@@ -59,7 +59,7 @@ export abstract class Entity {
        */
       static fromBytes(_bytes: BytesLike): SubType {
         throw new Error(
-          "fromBytes not implemented, use @ccc.mol.codec to decorate your type",
+          "fromBytes not implemented, use @ccc.codec to decorate your type",
         );
       }
 
@@ -156,14 +156,14 @@ export abstract class Entity {
  * A class decorator to add methods implementation on the {@link Entity.Base} class
  * @example
  * ```typescript
- * @mol.codec(
+ * @codec(
  *   mol.table({
  *     codeHash: mol.Byte32,
  *     hashType: HashTypeCodec,
  *     args: mol.Bytes,
  *   }),
  * )
- * export class Script extends mol.Entity.Base<ScriptLike, Script>() {
+ * export class Script extends Entity.Base<ScriptLike, Script>() {
  *   from(scriptLike: ScriptLike): Script {}
  * }
  * ```
@@ -186,7 +186,7 @@ export function codec<
     Constructor.byteLength = codec.byteLength;
     if (Constructor.encode === undefined) {
       Constructor.encode = function (encodable: TypeLike) {
-        return codec.encode(encodable);
+        return codec.encode(Constructor.from(encodable));
       };
     }
     if (Constructor.decode === undefined) {
