@@ -1,105 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
-  Bytes,
   bytesConcat,
   bytesConcatTo,
   bytesFrom,
   BytesLike,
 } from "../bytes/index.js";
 import {
-  Num,
-  numBeFromBytes,
-  numBeToBytes,
-  numFromBytes,
-  NumLike,
-  numToBytes,
-} from "../num/index.js";
+  Codec,
+  CodecLike,
+  DecodedType,
+  EncodableType,
+} from "../codec/index.js";
+import { numFromBytes, NumLike, numToBytes } from "../num/index.js";
 
-export type CodecLike<Encodable, Decoded = Encodable> = {
-  readonly encode: (encodable: Encodable) => Bytes;
-  readonly decode: (
-    decodable: BytesLike,
-    config?: { isExtraFieldIgnored?: boolean },
-  ) => Decoded;
-  readonly byteLength?: number;
-};
-export class Codec<Encodable, Decoded = Encodable> {
-  constructor(
-    public readonly encode: (encodable: Encodable) => Bytes,
-    public readonly decode: (
-      decodable: BytesLike,
-      config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
-    ) => Decoded,
-    public readonly byteLength?: number, // if provided, treat codec as fixed length
-  ) {}
-
-  static from<Encodable, Decoded = Encodable>({
-    encode,
-    decode,
-    byteLength,
-  }: CodecLike<Encodable, Decoded>): Codec<Encodable, Decoded> {
-    return new Codec(
-      (encodable: Encodable) => {
-        const encoded = encode(encodable);
-        if (byteLength !== undefined && encoded.byteLength !== byteLength) {
-          throw new Error(
-            `Codec.encode: expected byte length ${byteLength}, got ${encoded.byteLength}`,
-          );
-        }
-        return encoded;
-      },
-      (decodable, config) => {
-        const decodableBytes = bytesFrom(decodable);
-        if (
-          byteLength !== undefined &&
-          decodableBytes.byteLength !== byteLength
-        ) {
-          throw new Error(
-            `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
-          );
-        }
-        return decode(decodable, config);
-      },
-      byteLength,
-    );
-  }
-
-  map<NewEncodable = Encodable, NewDecoded = Decoded>({
-    inMap,
-    outMap,
-  }: {
-    inMap?: (encodable: NewEncodable) => Encodable;
-    outMap?: (decoded: Decoded) => NewDecoded;
-  }): Codec<NewEncodable, NewDecoded> {
-    return new Codec(
-      (encodable) =>
-        this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer, config) =>
-        (outMap
-          ? outMap(this.decode(buffer, config))
-          : this.decode(buffer, config)) as NewDecoded,
-      this.byteLength,
-    );
-  }
-
-  mapIn<NewEncodable>(
-    map: (encodable: NewEncodable) => Encodable,
-  ): Codec<NewEncodable, Decoded> {
-    return this.map({ inMap: map });
-  }
-
-  mapOut<NewDecoded>(
-    map: (decoded: Decoded) => NewDecoded,
-  ): Codec<Encodable, NewDecoded> {
-    return this.map({ outMap: map });
-  }
-}
-
-export type EncodableType<T extends CodecLike<any, any>> =
-  T extends CodecLike<infer Encodable, unknown> ? Encodable : never;
-export type DecodedType<T extends CodecLike<any, any>> =
-  T extends CodecLike<any, infer Decoded> ? Decoded : never;
+export {
+  /**
+   * @deprecated Use ccc.Codec instead
+   */
+  Codec,
+  /**
+   * @deprecated Use ccc.CodecLike instead
+   */
+  CodecLike,
+  /**
+   * @deprecated Use ccc.DecodedType instead
+   */
+  DecodedType,
+  /**
+   * @deprecated Use ccc.EncodableType instead
+   */
+  EncodableType,
+  /**
+   * @deprecated Use ccc.codecUint instead
+   */
+  codecUint as uint,
+  /**
+   * @deprecated Use ccc.codecUintNumber instead
+   */
+  codecUintNumber as uintNumber,
+} from "../codec/index.js";
 
 function uint32To(numLike: NumLike) {
   return numToBytes(numLike, 4);
@@ -671,67 +611,5 @@ export function array<Encodable, Decoded>(
         throw new Error(`array(${e?.toString()})`);
       }
     },
-  });
-}
-
-/**
- * Create a codec to deal with fixed LE or BE bytes.
- * @param byteLength
- * @param littleEndian
- */
-export function uint(
-  byteLength: number,
-  littleEndian = false,
-): Codec<NumLike, Num> {
-  return Codec.from({
-    byteLength,
-    encode: (numLike) => {
-      if (littleEndian) {
-        return numToBytes(numLike, byteLength);
-      } else {
-        return numBeToBytes(numLike, byteLength);
-      }
-    },
-    decode: (buffer) => {
-      if (littleEndian) {
-        return numFromBytes(buffer);
-      } else {
-        return numBeFromBytes(buffer);
-      }
-    },
-  });
-}
-
-/**
- * Create a codec to deal with fixed LE or BE bytes.
- * @param byteLength
- * @param littleEndian
- */
-export function uintNumber(
-  byteLength: number,
-  littleEndian = false,
-): Codec<NumLike, number> {
-  if (byteLength > 4) {
-    throw new Error("uintNumber: byteLength must be less than or equal to 4");
-  }
-  return uint(byteLength, littleEndian).map({
-    outMap: (num) => Number(num),
-  });
-}
-
-/**
- * Create a codec for padding bytes.
- * The padding bytes are zero-filled when encoding and ignored when decoding.
- * @param byteLength The length of the padding in bytes.
- */
-export function padding(
-  byteLength: number,
-): Codec<void | undefined | null, void> {
-  return Codec.from({
-    byteLength,
-    encode: () => {
-      return new Uint8Array(byteLength);
-    },
-    decode: () => {},
   });
 }

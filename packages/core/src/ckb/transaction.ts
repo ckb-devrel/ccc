@@ -7,6 +7,7 @@ import {
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
+import { Codec, Entity, codec } from "../codec/index.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
@@ -31,7 +32,7 @@ import {
 } from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
-export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
+export const DepTypeCodec: Codec<DepTypeLike, DepType> = Codec.from({
   byteLength: 1,
   encode: depTypeToBytes,
   decode: depTypeFromBytes,
@@ -126,13 +127,13 @@ export type OutPointLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.struct({
     txHash: mol.Byte32,
     index: mol.Uint32,
   }),
 )
-export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
+export class OutPoint extends Entity.Base<OutPointLike, OutPoint>() {
   /**
    * Creates an instance of OutPoint.
    *
@@ -207,14 +208,14 @@ export type CellOutputLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.table({
     capacity: mol.Uint64,
     lock: Script,
     type: ScriptOpt,
   }),
 )
-export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
+export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
   /**
    * Creates an instance of CellOutput.
    *
@@ -666,10 +667,10 @@ export type SinceLike =
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.Uint64.mapIn((encodable: SinceLike) => Since.from(encodable).toNum()),
 )
-export class Since extends mol.Entity.Base<SinceLike, Since>() {
+export class Since extends Entity.Base<SinceLike, Since>() {
   /**
    * Creates an instance of Since.
    *
@@ -787,7 +788,7 @@ export type CellInputLike = (
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol
     .struct({
       since: Since,
@@ -795,7 +796,7 @@ export type CellInputLike = (
     })
     .mapIn((encodable: CellInputLike) => CellInput.from(encodable)),
 )
-export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
+export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
   /**
    * Creates an instance of CellInput.
    *
@@ -924,13 +925,13 @@ export type CellDepLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.struct({
     outPoint: OutPoint,
     depType: DepTypeCodec,
   }),
 )
-export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
+export class CellDep extends Entity.Base<CellDepLike, CellDep>() {
   /**
    * Creates an instance of CellDep.
    *
@@ -998,17 +999,14 @@ export type WitnessArgsLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.table({
     lock: mol.BytesOpt,
     inputType: mol.BytesOpt,
     outputType: mol.BytesOpt,
   }),
 )
-export class WitnessArgs extends mol.Entity.Base<
-  WitnessArgsLike,
-  WitnessArgs
->() {
+export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
   /**
    * Creates an instance of WitnessArgs.
    *
@@ -1091,7 +1089,7 @@ export type TransactionLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol
     .table({
       raw: RawTransaction,
@@ -1106,10 +1104,7 @@ export type TransactionLike = {
     })
     .mapOut((tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses })),
 )
-export class Transaction extends mol.Entity.Base<
-  TransactionLike,
-  Transaction
->() {
+export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   /**
    * Creates an instance of Transaction.
    *

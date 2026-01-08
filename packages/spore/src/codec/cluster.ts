@@ -5,7 +5,7 @@ export interface ClusterDataV1View {
   description: string;
 }
 
-export const ClusterDataV1: mol.Codec<ClusterDataV1View> = mol.table({
+export const ClusterDataV1: ccc.Codec<ClusterDataV1View> = mol.table({
   name: mol.String,
   description: mol.String,
 });
@@ -16,7 +16,7 @@ export interface ClusterDataV2View {
   mutantId?: ccc.HexLike;
 }
 
-export const ClusterDataV2: mol.Codec<ClusterDataV2View> = mol.table({
+export const ClusterDataV2: ccc.Codec<ClusterDataV2View> = mol.table({
   name: mol.String,
   description: mol.String,
   mutantId: mol.BytesOpt,

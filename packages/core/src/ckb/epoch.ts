@@ -1,4 +1,5 @@
 import type { ClientBlockHeader } from "../client/clientTypes.js";
+import { codec, codecPadding, codecUint, Entity } from "../codec/index.js";
 import { Zero } from "../fixedPoint/index.js";
 import { type Hex, type HexLike } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
@@ -54,15 +55,15 @@ export type EpochLike =
  * @remarks
  * This class is primarily a thin value-object; operations return new Epoch instances.
  */
-@mol.codec(
+@codec(
   mol.struct({
-    padding: mol.padding(1),
-    denominator: mol.uint(2),
-    numerator: mol.uint(2),
-    integer: mol.uint(3),
+    padding: codecPadding(1),
+    denominator: codecUint(2),
+    numerator: codecUint(2),
+    integer: codecUint(3),
   }),
 )
-export class Epoch extends mol.Entity.Base<EpochLike, Epoch>() {
+export class Epoch extends Entity.Base<EpochLike, Epoch>() {
   /**
    * Construct a new Epoch instance.
    *
