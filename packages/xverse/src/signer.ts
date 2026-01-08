@@ -319,8 +319,6 @@ export class Signer extends ccc.SignerBtc {
     const result = await checkResponse(
       this.provider.request("signPsbt", {
         psbt: psbtBase64,
-        // Build signInputs: Record<address, input_indexes[]>
-        // Multiple inputs with the same address should be grouped together
         signInputs,
         broadcast: true,
       }),
