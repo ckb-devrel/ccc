@@ -93,7 +93,7 @@ export class UdtRegister extends Udt {
     if (this.executor) {
       const res = await this.executor.runScriptTry(
         this.code,
-        "UDTSSRI.create",
+        "SSRIUDT.create",
         [
           register.toBytes(),
           ccc.Script.from(owner.script).toBytes(),
