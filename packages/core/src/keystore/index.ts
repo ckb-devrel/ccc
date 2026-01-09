@@ -1,7 +1,7 @@
-import { ctr } from "@noble/ciphers/aes";
-import { scryptAsync } from "@noble/hashes/scrypt";
-import { keccak_256 } from "@noble/hashes/sha3";
-import { randomBytes } from "@noble/hashes/utils";
+import { ctr } from "@noble/ciphers/aes.js";
+import { scryptAsync } from "@noble/hashes/scrypt.js";
+import { keccak_256 } from "@noble/hashes/sha3.js";
+import { randomBytes } from "@noble/hashes/utils.js";
 import { Bytes, BytesLike, bytesConcat, bytesFrom } from "../bytes/index.js";
 import { hexFrom } from "../hex/index.js";
 

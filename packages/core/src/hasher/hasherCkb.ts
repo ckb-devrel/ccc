@@ -1,4 +1,4 @@
-import { blake2b } from "@noble/hashes/blake2b";
+import { blake2b } from "@noble/hashes/blake2.js";
 import { BytesLike, bytesFrom } from "../bytes/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import { CKB_BLAKE2B_PERSONAL } from "./advanced.js";

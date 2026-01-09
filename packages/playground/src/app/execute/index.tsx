@@ -8,8 +8,8 @@ const LIBS_MAP_ = new Map();
 const LIBS = await Promise.all(
   (
     [
-      ["@noble/curves/secp256k1"],
-      ["@noble/hashes/sha2"],
+      ["@noble/curves/secp256k1.js"],
+      ["@noble/hashes/sha2.js"],
       ["@ckb-ccc/ccc", "@ckb-ccc/core"],
       ["@ckb-ccc/ccc/advanced", "@ckb-ccc/core/advanced"],
       ["@nervina-labs/dob-render"],
