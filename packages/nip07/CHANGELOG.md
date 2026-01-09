@@ -1,5 +1,11 @@
 # @ckb-ccc/nip07
 
+## 1.0.31
+### Patch Changes
+
+- Updated dependencies [[`b4aa99f`](https://github.com/ckb-devrel/ccc/commit/b4aa99f1b87c1d14117a15fa1fcac6f9e60b43c1)]:
+  - @ckb-ccc/core@1.12.4
+
 ## 1.0.30
 ### Patch Changes
 
