@@ -1,4 +1,4 @@
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { ripemd160 } from "@noble/hashes/legacy.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import bs58check from "bs58check";
@@ -98,5 +98,6 @@ export function verifyMessageBtcEcdsa(
     bytesFrom(rawSign),
     messageHashBtcEcdsa(challenge),
     bytesFrom(publicKey),
+    { prehash: false },
   );
 }

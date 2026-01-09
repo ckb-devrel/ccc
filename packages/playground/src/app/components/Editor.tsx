@@ -5,12 +5,14 @@ import { editor } from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 import { createHighlighter } from "shiki";
 
+const COMMON_REGEX = /^\.\/(.*\.d\.ts|.*\.d\.mts|package.json)$/;
+
 const EXTRA_SOURCES = [
   {
     files: require.context(
       "../../../node_modules/@types/react",
       true,
-      /^\.\/(.*\.d\.ts|package.json)$/,
+      COMMON_REGEX,
     ),
     name: "@types/react",
   },
@@ -18,7 +20,7 @@ const EXTRA_SOURCES = [
     files: require.context(
       "../../../../",
       true,
-      /^\.\/[^\/]*\/(dist\.commonjs\/.*\.d\.ts|package.json)$/,
+      /^\.\/[^\/]*\/(dist\/(.*\.d\.ts|.*\.d\.mts)|package.json)$/,
     ),
     name: "@ckb-ccc",
   },
@@ -26,7 +28,7 @@ const EXTRA_SOURCES = [
     files: require.context(
       "../../../node_modules/@nervina-labs/dob-render",
       true,
-      /^\.\/(.*\.d\.ts|package.json)$/,
+      COMMON_REGEX,
     ),
     name: "@nervina-labs/dob-render",
   },
@@ -34,7 +36,7 @@ const EXTRA_SOURCES = [
     files: require.context(
       "../../../node_modules/@noble/hashes",
       true,
-      /^\.\/(.*\.d\.ts|package.json)$/,
+      COMMON_REGEX,
     ),
     name: "@noble/hashes",
   },
@@ -42,7 +44,7 @@ const EXTRA_SOURCES = [
     files: require.context(
       "../../../node_modules/@noble/curves",
       true,
-      /^\.\/(.*\.d\.ts|package.json)$/,
+      COMMON_REGEX,
     ),
     name: "@noble/curves",
   },
@@ -129,7 +131,7 @@ export function Editor({
             ...monaco.languages.typescript.typescriptDefaults.getCompilerOptions(),
             module: monaco.languages.typescript.ModuleKind.ESNext,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            moduleResolution: 99 as any, // NodeNext
+            moduleResolution: 100 as any, // Bundler
             noImplicitAny: true,
             strictNullChecks: true,
             jsx: monaco.languages.typescript.JsxEmit.ReactJSX,

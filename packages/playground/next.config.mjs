@@ -6,6 +6,10 @@ const nextConfig = {
         loaders: ["raw-loader"],
         as: "*.mjs",
       },
+      "*.d.mts": {
+        loaders: ["raw-loader"],
+        as: "*.mjs",
+      },
     },
   },
 };

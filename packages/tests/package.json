@@ -14,6 +14,7 @@
     "test": "node ./tests/cjs.test.cjs && tsx ./tests/esm.test.mts"
   },
   "devDependencies": {
+    "@ckb-ccc/ccc": "workspace:*",
     "@eslint/js": "^9.34.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
@@ -22,8 +23,7 @@
     "prettier-plugin-organize-imports": "^4.2.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.41.0",
-    "@ckb-ccc/ccc": "workspace:*"
+    "typescript-eslint": "^8.41.0"
   },
   "packageManager": "pnpm@10.8.1"
 }

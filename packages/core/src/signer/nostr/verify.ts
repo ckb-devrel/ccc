@@ -1,4 +1,4 @@
-import { schnorr } from "@noble/curves/secp256k1";
+import { schnorr } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bech32 } from "bech32";
 import { Bytes, BytesLike, bytesFrom } from "../../bytes/index.js";
@@ -65,7 +65,7 @@ export function verifyMessageNostrEvent(
   const eventHash = nostrEventHash({ ...event, pubkey });
 
   try {
-    return schnorr.verify(hexFrom(signature).slice(2), eventHash, pubkey);
+    return schnorr.verify(bytesFrom(signature), eventHash, bytesFrom(pubkey));
   } catch (_) {
     return false;
   }
