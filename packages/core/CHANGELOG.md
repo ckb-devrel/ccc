@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.12.4
+### Patch Changes
+
+
+
+- [#350](https://github.com/ckb-devrel/ccc/pull/350) [`b4aa99f`](https://github.com/ckb-devrel/ccc/commit/b4aa99f1b87c1d14117a15fa1fcac6f9e60b43c1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): circular dependency due to btc.verify
+
 ## 1.12.3
 ### Patch Changes
 
