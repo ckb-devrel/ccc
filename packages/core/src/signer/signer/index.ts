@@ -11,7 +11,7 @@ import {
 import { Hex } from "../../hex/index.js";
 import { Num } from "../../num/index.js";
 import { verifyMessageBtcEcdsa } from "../btc/verify.js";
-import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
+import { verifyMessageCkbSecp256k1 } from "../ckb/secp256k1Signing.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
 import { verifyMessageEvmPersonal } from "../evm/verify.js";
@@ -488,6 +488,60 @@ export abstract class Signer {
    */
   signOnlyTransaction(_: TransactionLike): Promise<Transaction> {
     throw Error("Signer.signOnlyTransaction not implemented");
+  }
+}
+
+/**
+ * An abstract class representing a multisig signer.
+ * @public
+ */
+export abstract class SignerMultisig extends Signer {
+  /**
+   * Get the number of members in the multisig script.
+   * @returns The number of members.
+   */
+  abstract getMemberCount(): Promise<number>;
+
+  /**
+   * Get the threshold of the multisig script.
+   * @returns The threshold.
+   */
+  abstract getMemberThreshold(): Promise<number>;
+
+  /**
+   * Get the number of signatures in the transaction.
+   * @param _ - The transaction.
+   * @returns The number of signatures.
+   */
+  abstract getSignaturesCount(_: TransactionLike): Promise<number | undefined>;
+
+  /**
+   * Check if the transaction needs more signatures
+   *
+   * @param txLike - The transaction to check.
+   * @returns A promise that resolves to true if the multisig witness is fulfilled, false otherwise.
+   */
+  abstract needMoreSignatures(_: TransactionLike): Promise<boolean>;
+
+  /**
+   * Aggregate transactions.
+   * @param _ - The transactions to aggregate.
+   * @returns The aggregated transaction.
+   */
+  abstract aggregateTransactions(_: TransactionLike[]): Promise<Transaction>;
+
+  /**
+   * Send a transaction.
+   * @param tx - The transaction to send.
+   * @returns The transaction hash.
+   */
+  async sendTransaction(tx: TransactionLike): Promise<Hex> {
+    const signedTx = await this.signTransaction(tx);
+    if (await this.needMoreSignatures(signedTx)) {
+      throw Error("Not enough signatures");
+    }
+
+    return this.client.sendTransaction(signedTx);
   }
 }
 
