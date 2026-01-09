@@ -1,5 +1,11 @@
 # @ckb-ccc/spore
 
+## 1.5.15
+### Patch Changes
+
+- Updated dependencies [[`f642cc5`](https://github.com/ckb-devrel/ccc/commit/f642cc5fd25df53de19c71937767c47143a26f1e), [`638e5dc`](https://github.com/ckb-devrel/ccc/commit/638e5dc575b75270ab1e8d1572470820a72af57a), [`5530fa9`](https://github.com/ckb-devrel/ccc/commit/5530fa960736834477b5b84ac0330e0085cee8d5), [`0ad2a5f`](https://github.com/ckb-devrel/ccc/commit/0ad2a5f6305d4964b00394bc8a6ed50136fdffa8), [`e413333`](https://github.com/ckb-devrel/ccc/commit/e41333386037e59810e833fc7e6b5d11f1b7cf69)]:
+  - @ckb-ccc/core@2.0.0
+
 ## 1.5.14
 ### Patch Changes
 

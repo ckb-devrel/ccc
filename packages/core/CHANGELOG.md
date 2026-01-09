@@ -1,5 +1,31 @@
 # @ckb-ccc/core
 
+## 2.0.0
+### Major Changes
+
+
+
+- [#270](https://github.com/ckb-devrel/ccc/pull/270) [`638e5dc`](https://github.com/ckb-devrel/ccc/commit/638e5dc575b75270ab1e8d1572470820a72af57a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
+
+
+
+- [#267](https://github.com/ckb-devrel/ccc/pull/267) [`5530fa9`](https://github.com/ckb-devrel/ccc/commit/5530fa960736834477b5b84ac0330e0085cee8d5) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `reduce` and `reduceAsync` for `Iterable`
+
+
+### Patch Changes
+
+
+
+- [#268](https://github.com/ckb-devrel/ccc/pull/268) [`f642cc5`](https://github.com/ckb-devrel/ccc/commit/f642cc5fd25df53de19c71937767c47143a26f1e) Thanks [@phroi](https://github.com/phroi)! - `hexFrom` passthru normalized hex and `numToHex` enforce hex normalization
+
+
+
+- [#261](https://github.com/ckb-devrel/ccc/pull/261) [`0ad2a5f`](https://github.com/ckb-devrel/ccc/commit/0ad2a5f6305d4964b00394bc8a6ed50136fdffa8) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(udt): udt info querying methods
+
+
+
+- [#317](https://github.com/ckb-devrel/ccc/pull/317) [`e413333`](https://github.com/ckb-devrel/ccc/commit/e41333386037e59810e833fc7e6b5d11f1b7cf69) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core):  Invalid Uint64 0x00: with redundant leading zeros.
+
 ## 1.12.2
 ### Patch Changes
 
