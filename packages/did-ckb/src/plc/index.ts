@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
-import { p256 } from "@noble/curves/p256";
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { p256 } from "@noble/curves/nist.js";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 
 /**
  * Minimal did:plc helpers, scoped to what a did:ckb migration needs:
@@ -148,13 +148,17 @@ export function signRotationHash(
     throw new Error(`Expected 32-byte private key, got ${priv.length}`);
   }
   if (curve === "secp256k1") {
-    return secp256k1
-      .sign(hash, priv, { prehash: true, lowS: true })
-      .toCompactRawBytes();
+    return secp256k1.sign(hash, priv, {
+      prehash: true,
+      lowS: true,
+      format: "compact",
+    });
   }
-  return p256
-    .sign(hash, priv, { prehash: true, lowS: true })
-    .toCompactRawBytes();
+  return p256.sign(hash, priv, {
+    prehash: true,
+    lowS: true,
+    format: "compact",
+  });
 }
 
 /**
