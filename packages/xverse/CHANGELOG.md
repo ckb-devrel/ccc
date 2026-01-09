@@ -1,5 +1,11 @@
 # @ckb-ccc/xverse
 
+## 1.0.32
+### Patch Changes
+
+- Updated dependencies [[`1148a5c`](https://github.com/ckb-devrel/ccc/commit/1148a5c403cde985fb4ba713ccfa0c163d287174), [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d), [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d), [`a526890`](https://github.com/ckb-devrel/ccc/commit/a5268909ea9d61c4e2f5187a43e2318327b27cae), [`9f7ecb6`](https://github.com/ckb-devrel/ccc/commit/9f7ecb6ab8db9c6866dad029f2888e1e5cfcbe7d)]:
+  - @ckb-ccc/core@1.13.0
+
 ## 1.0.31
 ### Patch Changes
 
