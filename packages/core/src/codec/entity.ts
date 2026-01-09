@@ -1,8 +1,7 @@
-import { Bytes, bytesEq, BytesLike } from "../bytes/index.js";
+import { Bytes, bytesEq, bytesFrom, BytesLike } from "../bytes/index.js";
 import { hashCkb } from "../hasher/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import { Constructor } from "../utils/index.js";
-import { Codec } from "./codec.js";
 
 /**
  * The base class of CCC to create a serializable instance. This should be used with the {@link codec} decorator.
@@ -172,7 +171,14 @@ export function codec<
   Encodable,
   TypeLike extends Encodable,
   Decoded extends TypeLike,
->(codec: Codec<Encodable, Decoded>) {
+>(codec: {
+  encode: (encodable: Encodable) => Bytes;
+  decode: (
+    decodable: Bytes,
+    config?: { isExtraFieldIgnored?: boolean },
+  ) => Decoded;
+  byteLength?: number;
+}) {
   return function <
     Type extends TypeLike,
     ConstructorType extends Constructor<Type> & {
@@ -191,12 +197,12 @@ export function codec<
     }
     if (Constructor.decode === undefined) {
       Constructor.decode = function (bytesLike: BytesLike) {
-        return Constructor.from(codec.decode(bytesLike));
+        return Constructor.from(codec.decode(bytesFrom(bytesLike)));
       };
     }
     if (Constructor.fromBytes === undefined) {
       Constructor.fromBytes = function (bytes: BytesLike) {
-        return Constructor.from(codec.decode(bytes));
+        return Constructor.from(codec.decode(bytesFrom(bytes)));
       };
     }
 
