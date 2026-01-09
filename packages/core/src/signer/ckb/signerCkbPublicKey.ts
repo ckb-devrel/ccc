@@ -2,9 +2,10 @@ import { Address } from "../../address/index.js";
 import { bytesFrom } from "../../bytes/index.js";
 import { Script, Transaction, TransactionLike } from "../../ckb/index.js";
 import { CellDepInfo, Client, KnownScript } from "../../client/index.js";
-import { hashCkb } from "../../hasher/index.js";
+import { HASH_CKB_SHORT_LENGTH, hashCkb } from "../../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
+import { SECP256K1_SIGNATURE_LENGTH } from "./secp256k1Signing.js";
 
 /**
  * @public
@@ -47,7 +48,7 @@ export class SignerCkbPublicKey extends Signer {
     return Address.fromKnownScript(
       this.client,
       KnownScript.Secp256k1Blake160,
-      bytesFrom(hashCkb(this.publicKey)).slice(0, 20),
+      bytesFrom(hashCkb(this.publicKey)).slice(0, HASH_CKB_SHORT_LENGTH),
     );
   }
 
@@ -140,7 +141,11 @@ export class SignerCkbPublicKey extends Signer {
 
     await Promise.all(
       (await this.getRelatedScripts(tx)).map(async ({ script, cellDeps }) => {
-        await tx.prepareSighashAllWitness(script, 65, this.client);
+        await tx.prepareSighashAllWitness(
+          script,
+          SECP256K1_SIGNATURE_LENGTH,
+          this.client,
+        );
         await tx.addCellDepInfos(this.client, cellDeps);
       }),
     );
