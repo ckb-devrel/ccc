@@ -1768,10 +1768,29 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @example
    * ```typescript
-   * const witnessArgs = await tx.getWitnessArgsAt(0);
+   * const witnessArgs = tx.getWitnessArgsAt(0);
    * ```
    */
   getWitnessArgsAt(index: number): WitnessArgs | undefined {
+    try {
+      return this.getWitnessArgsAtUnsafe(index);
+    } catch (_) {
+      return undefined;
+    }
+  }
+
+  /**
+   * Get witness at index as WitnessArgs, throw if failed to decode
+   *
+   * @param index - The index of the witness.
+   * @returns The witness parsed as WitnessArgs.
+   *
+   * @example
+   * ```typescript
+   * const witnessArgs = tx.getWitnessArgsAtUnsafe(0);
+   * ```
+   */
+  getWitnessArgsAtUnsafe(index: number): WitnessArgs | undefined {
     const rawWitness = this.witnesses[index];
     return (rawWitness ?? "0x") !== "0x"
       ? WitnessArgs.fromBytes(rawWitness)
