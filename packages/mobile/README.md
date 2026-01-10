@@ -1,6 +1,8 @@
 # CCC Mobile Wallet
 
-A React Native mobile wallet for CKB (Nervos Network) blockchain, built on top of the CCC SDK.
+An Expo/React Native mobile wallet for CKB (Nervos Network) blockchain, built on top of the CCC SDK.
+
+> **🚀 Quick Start**: See [EXPO_SETUP.md](./EXPO_SETUP.md) for detailed setup instructions!
 
 ## Features
 
@@ -28,11 +30,14 @@ A React Native mobile wallet for CKB (Nervos Network) blockchain, built on top o
 
 The mobile wallet is built using:
 
-- **React Native 0.76.6** - Cross-platform mobile framework
+- **Expo ~52.0** - React Native development framework
+- **React Native 0.76.5** - Cross-platform mobile framework
 - **@ckb-ccc/core** - CKB blockchain SDK
 - **React Navigation 7** - Navigation solution
-- **React Native Keychain** - Secure credential storage
-- **React Native Biometrics** - Biometric authentication
+- **Expo SecureStore** - Secure credential storage
+- **Expo LocalAuthentication** - Biometric authentication
+- **Expo Camera** - QR code scanning
+- **@expo/vector-icons** - Icon library
 - **TypeScript** - Type-safe development
 
 ### Key Components
@@ -65,11 +70,14 @@ src/
 
 - Node.js >= 18
 - pnpm >= 10.8.1
-- React Native development environment set up
-  - For iOS: Xcode, CocoaPods
+- **For testing on device**: Install Expo Go app
+  - [iOS Expo Go](https://apps.apple.com/app/expo-go/id982107779)
+  - [Android Expo Go](https://play.google.com/store/apps/details?id=host.exp.exponent)
+- **For native builds** (optional):
+  - For iOS: macOS with Xcode
   - For Android: Android Studio, JDK
 
-### Setup
+### Quick Setup (Recommended)
 
 1. **Install dependencies**
 
@@ -78,21 +86,44 @@ cd packages/mobile
 pnpm install
 ```
 
-2. **iOS Setup**
+2. **Start Expo development server**
 
 ```bash
-cd ios
-pod install
-cd ..
+pnpm start
 ```
 
-3. **Android Setup**
+3. **Test on your device**
+   - Scan the QR code with your phone's camera (iOS)
+   - Or scan with Expo Go app (Android)
+   - The app will load on your device instantly!
 
-The Android setup is handled automatically by Gradle.
+### Native Development Build (Full Features)
+
+For full native functionality including all biometric features:
+
+```bash
+# Generate native projects
+pnpm prebuild
+
+# Run on iOS
+pnpm ios
+
+# Run on Android
+pnpm android
+```
 
 ## Running the App
 
-### Development
+### Using Expo Go (No Build Required)
+
+**Start Dev Server**
+```bash
+pnpm start
+```
+
+Then scan the QR code with Expo Go app or camera.
+
+### Native Build
 
 **iOS**
 ```bash
@@ -104,9 +135,9 @@ pnpm ios
 pnpm android
 ```
 
-**Metro Bundler**
+**Web**
 ```bash
-pnpm start
+pnpm web
 ```
 
 ### Production Build
