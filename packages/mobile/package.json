@@ -1,0 +1,66 @@
+{
+  "name": "@ckb-ccc/mobile",
+  "version": "0.1.0",
+  "description": "CCC Mobile Wallet - React Native mobile wallet for CKB blockchain",
+  "author": "Hanssen0 <hanssen0@hanssen0.com>",
+  "license": "MIT",
+  "private": false,
+  "homepage": "https://github.com/ckb-devrel/ccc",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ckb-devrel/ccc.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "test": "jest",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "@ckb-ccc/core": "workspace:*",
+    "@react-navigation/native": "^7.0.13",
+    "@react-navigation/native-stack": "^7.1.10",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "react": "19.0.0",
+    "react-native": "0.76.6",
+    "react-native-safe-area-context": "^5.1.1",
+    "react-native-screens": "^4.4.0",
+    "react-native-gesture-handler": "^2.22.0",
+    "react-native-reanimated": "^3.18.1",
+    "react-native-svg": "^15.10.0",
+    "react-native-qrcode-svg": "^6.3.14",
+    "react-native-keychain": "^9.0.2",
+    "react-native-biometrics": "^3.0.1",
+    "react-native-camera": "^4.2.1",
+    "@react-native-async-storage/async-storage": "^2.2.0",
+    "react-native-vector-icons": "^10.3.0",
+    "react-native-modal": "^13.0.1",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "stream-browserify": "^3.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/runtime": "^7.26.0",
+    "@react-native/babel-preset": "0.76.6",
+    "@react-native/eslint-config": "0.76.6",
+    "@react-native/metro-config": "0.76.6",
+    "@react-native/typescript-config": "0.76.6",
+    "@types/react": "^19.0.12",
+    "@types/react-test-renderer": "^19.0.1",
+    "babel-jest": "^30.0.0",
+    "eslint": "^9.34.0",
+    "jest": "^30.0.0",
+    "prettier": "^3.6.2",
+    "react-test-renderer": "19.0.0",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "pnpm@10.8.1"
+}
