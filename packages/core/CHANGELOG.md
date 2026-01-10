@@ -1,5 +1,28 @@
 # @ckb-ccc/core
 
+## 1.13.0
+### Minor Changes
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`1148a5c`](https://github.com/ckb-devrel/ccc/commit/1148a5c403cde985fb4ba713ccfa0c163d287174) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): extract a universal `Codec` from `mol.Codec`
+
+
+
+- [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(Epoch): transform `Epoch` into a class and add utilities
+
+
+
+- [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(core): `mol.padding` for padding codec
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`a526890`](https://github.com/ckb-devrel/ccc/commit/a5268909ea9d61c4e2f5187a43e2318327b27cae) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add known script did ckb
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`9f7ecb6`](https://github.com/ckb-devrel/ccc/commit/9f7ecb6ab8db9c6866dad029f2888e1e5cfcbe7d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto complete cell capacity if it's not enough
+
 ## 1.12.4
 ### Patch Changes
 
