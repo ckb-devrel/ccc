@@ -18,7 +18,7 @@ export type HexLike = BytesLike;
  * A valid hexadecimal string:
  * - Has at least two characters.
  * - Starts with "0x".
- * - Has an even length.
+ * - Has an even length (odd-length hex is considered non-standard).
  * - Contains only characters representing digits (0-9) or lowercase letters (a-f) after the "0x" prefix.
  *
  * @param v - The value to validate as a hexadecimal (ccc.Hex) string.
@@ -57,4 +57,60 @@ export function hexFrom(hex: HexLike): Hex {
   }
 
   return `0x${bytesTo(bytesFrom(hex), "hex")}`;
+}
+
+/**
+ * Return the number of bytes occupied by `hexLike`.
+ *
+ * This function efficiently calculates the byte length of hex-like values.
+ * For valid Hex strings, it uses a fast-path helper. For other types, it
+ * converts to bytes first.
+ *
+ * @param hexLike - Hex-like value (Hex string, Uint8Array, ArrayBuffer, or iterable of numbers).
+ * @returns Byte length of `hexLike`.
+ *
+ * @example
+ * ```typescript
+ * bytesLen("0x48656c6c6f") // 5
+ * bytesLen(new Uint8Array([1, 2, 3])) // 3
+ * bytesLen(new ArrayBuffer(4)) // 4
+ * bytesLen([1, 2]) // 2
+ * ```
+ *
+ * @throws May throw if `hexLike` contains invalid byte values when passed to `bytesFrom`.
+ * @see bytesLenUnsafe - Fast version for already-validated Hex strings
+ *
+ * @note Prefer direct `.length`/`.byteLength` access on Uint8Array/ArrayBuffer when you already have bytes.
+ *       Use `bytesLen()` only when you need length without performing additional operations.
+ * @see bytesFrom - Convert values to Bytes (Uint8Array)
+ */
+export function bytesLen(hexLike: HexLike): number {
+  if (isHex(hexLike)) {
+    return bytesLenUnsafe(hexLike);
+  }
+
+  return bytesFrom(hexLike).length;
+}
+
+/**
+ * Fast byte length for Hex strings.
+ *
+ * This function efficiently calculates the byte length of Hex values:
+ * - Skips isHex validation (caller must ensure input is valid Hex)
+ * - Handles odd-digit hex by rounding up, matching bytesFrom's padding behavior.
+ *
+ * @param hex - A valid Hex string (with "0x" prefix).
+ * @returns Byte length of the hex string.
+ *
+ * @example
+ * ```typescript
+ * bytesLenUnsafe("0x48656c6c6f") // 5
+ * bytesLenUnsafe("0x123") // 2 (odd digits round up via padding)
+ * ```
+ *
+ * @see bytesLen - Validated version for untrusted input
+ */
+export function bytesLenUnsafe(hex: Hex): number {
+  // Equivalent to Math.ceil((hex.length - 2) / 2), rounds up for odd-digit hex.
+  return (hex.length - 1) >> 1;
 }
