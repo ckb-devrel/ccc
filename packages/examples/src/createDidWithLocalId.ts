@@ -1,13 +1,16 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { render, signer } from "@ckb-ccc/playground";
-import { secp256k1 } from "@noble/curves/secp256k1";
-import { sha256 } from "@noble/hashes/sha2";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 // From https://github.com/bluesky-social/atproto/blob/main/packages/crypto
 function plcSign(key: ccc.BytesLike, msg: ccc.BytesLike): ccc.Bytes {
   const msgHash = sha256(ccc.bytesFrom(msg));
-  const sig = secp256k1.sign(msgHash, ccc.bytesFrom(key), { lowS: true });
-  return sig.toBytes("compact");
+  return secp256k1.sign(msgHash, ccc.bytesFrom(key), {
+    lowS: true,
+    format: "compact",
+    prehash: false,
+  });
 }
 
 // Construct create did tx

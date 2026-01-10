@@ -1,4 +1,4 @@
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { Bytes, bytesFrom, BytesLike } from "../../bytes/index.js";
 import { hexFrom } from "../../hex/index.js";
 import {
@@ -38,18 +38,17 @@ export function verifyMessageDogeEcdsa(
   const challenge =
     typeof message === "string" ? message : hexFrom(message).slice(2);
   const signatureBytes = bytesFrom(signature, "base64");
-  const recoveryBit = signatureBytes[0];
-  const rawSign = signatureBytes.slice(1);
-
-  const sig = secp256k1.Signature.fromCompact(
-    hexFrom(rawSign).slice(2),
-  ).addRecoveryBit(recoveryBit - 31);
+  signatureBytes[0] -= 31;
 
   return (
     btcPublicKeyFromP2pkhAddress(address) ===
     hexFrom(
       btcEcdsaPublicKeyHash(
-        sig.recoverPublicKey(messageHashDogeEcdsa(challenge)).toHex(),
+        secp256k1.recoverPublicKey(
+          signatureBytes,
+          messageHashDogeEcdsa(challenge),
+          { prehash: false },
+        ),
       ),
     )
   );

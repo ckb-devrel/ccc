@@ -1,8 +1,11 @@
-import { blake2b } from "@noble/hashes/blake2b";
+import { blake2b } from "@noble/hashes/blake2.js";
 import { BytesLike, bytesFrom } from "../bytes/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import { CKB_BLAKE2B_PERSONAL } from "./advanced.js";
 import { Hasher } from "./hasher.js";
+
+export const HASH_CKB_LENGTH = 32;
+export const HASH_CKB_SHORT_LENGTH = 20;
 
 /**
  * @public
@@ -73,7 +76,6 @@ export class HasherCkb implements Hasher {
  * const hash = hashCkb("some data"); // Outputs something like "0x..."
  * ```
  */
-
 export function hashCkb(...data: BytesLike[]): Hex {
   const hasher = new HasherCkb();
   data.forEach((d) => hasher.update(d));
