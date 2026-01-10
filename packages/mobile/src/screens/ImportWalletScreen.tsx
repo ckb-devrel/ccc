@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import {useWallet} from '../contexts/WalletContext';
 
 const ImportWalletScreen = () => {

@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import {useWallet} from '../contexts/WalletContext';
 
 const ReceiveScreen = () => {

@@ -1,8 +1,9 @@
-import * as Keychain from 'react-native-keychain';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import {ccc} from '@ckb-ccc/core';
 
 export class SecureKeystore {
-  private static readonly SERVICE_NAME = 'CCC_MOBILE_WALLET';
+  private static readonly KEY_PREFIX = 'CCC_MOBILE_WALLET';
 
   /**
    * Store private key securely
@@ -12,14 +13,8 @@ export class SecureKeystore {
     accountName: string,
   ): Promise<void> {
     try {
-      await Keychain.setGenericPassword(
-        accountName,
-        privateKey,
-        {
-          service: `${this.SERVICE_NAME}_${accountName}`,
-          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-        },
-      );
+      const key = `${this.KEY_PREFIX}_${accountName}`;
+      await SecureStore.setItemAsync(key, privateKey);
     } catch (error) {
       console.error('Failed to store private key:', error);
       throw new Error('Failed to store private key securely');
@@ -31,14 +26,8 @@ export class SecureKeystore {
    */
   static async getPrivateKey(accountName: string): Promise<string | null> {
     try {
-      const credentials = await Keychain.getGenericPassword({
-        service: `${this.SERVICE_NAME}_${accountName}`,
-      });
-
-      if (credentials) {
-        return credentials.password;
-      }
-      return null;
+      const key = `${this.KEY_PREFIX}_${accountName}`;
+      return await SecureStore.getItemAsync(key);
     } catch (error) {
       console.error('Failed to retrieve private key:', error);
       return null;
@@ -46,22 +35,17 @@ export class SecureKeystore {
   }
 
   /**
-   * Store private key with biometric authentication
+   * Store private key with biometric authentication (Expo uses device security by default)
    */
   static async storePrivateKeyWithBiometric(
     privateKey: string,
     accountName: string,
   ): Promise<void> {
     try {
-      await Keychain.setGenericPassword(
-        accountName,
-        privateKey,
-        {
-          service: `${this.SERVICE_NAME}_${accountName}`,
-          accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
-          accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_CURRENT_SET,
-        },
-      );
+      const key = `${this.KEY_PREFIX}_${accountName}`;
+      await SecureStore.setItemAsync(key, privateKey, {
+        requireAuthentication: true,
+      });
     } catch (error) {
       console.error('Failed to store private key with biometric:', error);
       throw new Error('Failed to store private key with biometric');
@@ -75,19 +59,18 @@ export class SecureKeystore {
     accountName: string,
   ): Promise<string | null> {
     try {
-      const credentials = await Keychain.getGenericPassword({
-        service: `${this.SERVICE_NAME}_${accountName}`,
-        authenticationPrompt: {
-          title: 'Authenticate to access wallet',
-          subtitle: 'Use biometric to unlock',
-          cancel: 'Cancel',
-        },
+      // First authenticate with biometric
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate to access wallet',
+        fallbackLabel: 'Use passcode',
       });
 
-      if (credentials) {
-        return credentials.password;
+      if (!result.success) {
+        throw new Error('Biometric authentication failed');
       }
-      return null;
+
+      const key = `${this.KEY_PREFIX}_${accountName}`;
+      return await SecureStore.getItemAsync(key);
     } catch (error) {
       console.error('Failed to retrieve private key with biometric:', error);
       return null;
@@ -99,9 +82,8 @@ export class SecureKeystore {
    */
   static async deletePrivateKey(accountName: string): Promise<void> {
     try {
-      await Keychain.resetGenericPassword({
-        service: `${this.SERVICE_NAME}_${accountName}`,
-      });
+      const key = `${this.KEY_PREFIX}_${accountName}`;
+      await SecureStore.deleteItemAsync(key);
     } catch (error) {
       console.error('Failed to delete private key:', error);
       throw new Error('Failed to delete private key');
@@ -121,8 +103,9 @@ export class SecureKeystore {
    */
   static async isBiometricAvailable(): Promise<boolean> {
     try {
-      const biometryType = await Keychain.getSupportedBiometryType();
-      return biometryType !== null;
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      return hasHardware && isEnrolled;
     } catch (error) {
       console.error('Failed to check biometric availability:', error);
       return false;
@@ -132,9 +115,17 @@ export class SecureKeystore {
   /**
    * Get supported biometry type
    */
-  static async getBiometryType(): Promise<Keychain.BIOMETRY_TYPE | null> {
+  static async getBiometryType(): Promise<string | null> {
     try {
-      return await Keychain.getSupportedBiometryType();
+      const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+      if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+        return 'FaceID';
+      } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+        return 'TouchID';
+      } else if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+        return 'Iris';
+      }
+      return 'Biometric';
     } catch (error) {
       console.error('Failed to get biometry type:', error);
       return null;

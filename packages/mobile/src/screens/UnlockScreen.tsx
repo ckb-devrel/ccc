@@ -7,8 +7,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import ReactNativeBiometrics from 'react-native-biometrics';
+import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
+import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useWallet} from '../contexts/WalletContext';
 
@@ -27,10 +27,18 @@ const UnlockScreen = () => {
       const enabled = await AsyncStorage.getItem('@wallet_biometric_enabled');
       setBiometricEnabled(enabled === 'true');
 
-      const rnBiometrics = new ReactNativeBiometrics();
-      const {available, biometryType} = await rnBiometrics.isSensorAvailable();
-      if (available) {
-        setBiometricType(biometryType);
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (hasHardware && isEnrolled) {
+        const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          setBiometricType('FaceID');
+        } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+          setBiometricType('TouchID');
+        } else {
+          setBiometricType('Biometric');
+        }
       }
     } catch (error) {
       console.error('Failed to check biometric settings:', error);
@@ -46,12 +54,12 @@ const UnlockScreen = () => {
 
   const handleBiometricUnlock = async () => {
     try {
-      const rnBiometrics = new ReactNativeBiometrics();
-      const {success} = await rnBiometrics.simplePrompt({
+      const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock wallet',
+        fallbackLabel: 'Use passcode',
       });
 
-      if (success) {
+      if (result.success) {
         const accountToUnlock = currentAccount || accounts[0];
         if (accountToUnlock) {
           await unlock(accountToUnlock);
