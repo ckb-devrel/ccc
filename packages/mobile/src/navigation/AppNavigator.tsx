@@ -8,6 +8,7 @@ import { MaterialCommunityIcons as Icon } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import SendScreen from '../screens/SendScreen';
 import ReceiveScreen from '../screens/ReceiveScreen';
+import ReputationScreen from '../screens/ReputationScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CreateWalletScreen from '../screens/CreateWalletScreen';
 import ImportWalletScreen from '../screens/ImportWalletScreen';
@@ -26,6 +27,7 @@ export type MainTabParamList = {
   Home: undefined;
   Send: undefined;
   Receive: undefined;
+  Reputation: undefined;
   Settings: undefined;
 };
 
@@ -48,6 +50,9 @@ const MainTabs = () => {
               break;
             case 'Receive':
               iconName = focused ? 'qrcode-scan' : 'qrcode';
+              break;
+            case 'Reputation':
+              iconName = focused ? 'shield-star' : 'shield-star-outline';
               break;
             case 'Settings':
               iconName = focused ? 'cog' : 'cog-outline';
@@ -76,6 +81,11 @@ const MainTabs = () => {
         name="Receive"
         component={ReceiveScreen}
         options={{title: 'Receive'}}
+      />
+      <Tab.Screen
+        name="Reputation"
+        component={ReputationScreen}
+        options={{title: 'Reputation'}}
       />
       <Tab.Screen
         name="Settings"

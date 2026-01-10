@@ -26,6 +26,14 @@ An Expo/React Native mobile wallet for CKB (Nervos Network) blockchain, built on
 - Network switching support
 - Transaction status notifications
 
+🌟 **Reputation System** (NEW!)
+- Privacy-preserving vault behavior tracking
+- Non-transferable, opt-in reputation scores
+- Zero-knowledge proof attestations
+- Sybil-resistant scoring mechanism
+- Achievement badges for reliability
+- [Learn more →](./REPUTATION_SYSTEM.md)
+
 ## Architecture
 
 The mobile wallet is built using:
