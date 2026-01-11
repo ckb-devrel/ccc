@@ -1,5 +1,5 @@
 ---
-"@ckb-ccc/core": patch
+"@ckb-ccc/core": minor
 ---
 
 Add `bytesLen` and `bytesLenUnsafe` utilities
