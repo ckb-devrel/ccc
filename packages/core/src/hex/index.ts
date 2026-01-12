@@ -58,3 +58,53 @@ export function hexFrom(hex: HexLike): Hex {
 
   return `0x${bytesTo(bytesFrom(hex), "hex")}`;
 }
+
+/**
+ * Return the number of bytes occupied by `hexLike`.
+ *
+ * @param hexLike - Hex-like value
+ * @returns Byte length of `hexLike`.
+ *
+ * @example
+ * ```typescript
+ * bytesLen("0x48656c6c6f") // 5
+ * bytesLen(new Uint8Array([1, 2, 3])) // 3
+ * bytesLen(new ArrayBuffer(4)) // 4
+ * bytesLen([1, 2]) // 2
+ * ```
+ *
+ * @see bytesLenUnsafe - Fast version for already-normalized Hex strings
+ *
+ * @note Prefer direct `.length`/`.byteLength` access on Uint8Array/ArrayBuffer when you already have bytes.
+ *       Use `bytesLen()` only when you need length without performing additional operations.
+ * @see bytesFrom - Convert values to Bytes (Uint8Array)
+ */
+export function bytesLen(hexLike: HexLike): number {
+  if (isNormalizedHex(hexLike)) {
+    return bytesLenUnsafe(hexLike);
+  }
+
+  return bytesFrom(hexLike).length;
+}
+
+/**
+ * Fast byte length for Hex strings.
+ *
+ * This function efficiently calculates the byte length of Hex values:
+ * - Skips validation (caller must ensure input is valid Hex)
+ * - Handles odd-digit hex as if it were padded with a leading zero (e.g., "0x123" is treated as "0x0123").
+ *
+ * @param hex - A valid Hex string (with "0x" prefix).
+ * @returns Byte length of the hex string.
+ *
+ * @example
+ * ```typescript
+ * bytesLenUnsafe("0x48656c6c6f") // 5
+ * bytesLenUnsafe("0x123") // 2 (odd digits round up via padding)
+ * ```
+ *
+ * @see bytesLen - Validated version for untrusted input
+ */
+export function bytesLenUnsafe(hex: Hex): number {
+  return Math.floor((hex.length - 1) / 2);
+}
