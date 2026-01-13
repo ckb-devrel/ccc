@@ -72,11 +72,17 @@ export class SignerBtcPublicKeyReadonly extends SignerBtc {
     return this.publicKey;
   }
 
-  async signPsbt(_: HexLike, __?: SignPsbtOptions): Promise<string> {
+  async signPsbt(
+    _psbtHex: HexLike,
+    _options?: SignPsbtOptions,
+  ): Promise<string> {
     throw new Error("Read-only signer does not support signPsbt");
   }
 
-  async broadcastPsbt(_: HexLike, __?: SignPsbtOptions): Promise<string> {
+  async broadcastPsbt(
+    _psbtHex: HexLike,
+    _options?: SignPsbtOptions,
+  ): Promise<string> {
     throw new Error("Read-only signer does not support broadcastPsbt");
   }
 }
