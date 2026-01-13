@@ -150,8 +150,8 @@ export class SignerBtc extends ccc.SignerBtc {
    * @todo Implement PSBT broadcasting with UTXO Global
    */
   async broadcastPsbt(
-    _: ccc.HexLike,
-    __?: ccc.SignPsbtOptions,
+    _psbtHex: ccc.HexLike,
+    _options?: ccc.SignPsbtOptions,
   ): Promise<string> {
     throw new Error("UTXO Global PSBT broadcasting not implemented yet");
   }
