@@ -4,6 +4,7 @@ export * from "@ckb-ccc/nip07";
 export * from "@ckb-ccc/okx";
 export * from "@ckb-ccc/rei";
 export * from "@ckb-ccc/shell/barrel";
+export * from "@ckb-ccc/superise";
 export * from "@ckb-ccc/uni-sat";
 export * from "@ckb-ccc/utxo-global";
 export * from "@ckb-ccc/xverse";
