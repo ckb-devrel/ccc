@@ -154,27 +154,27 @@ export class Signer extends ccc.SignerBtc {
   /**
    * Signs a PSBT using UniSat wallet.
    *
-   * @param psbtHex - The hex string of PSBT to sign
+   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string
+   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
    */
   async signPsbt(
-    psbtHex: string,
+    psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    return this.provider.signPsbt(psbtHex, options);
+    return this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options);
   }
 
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string of signed PSBT to broadcast
-   * @returns A promise that resolves to the transaction ID
+   * @param psbtHex - The hex string (without 0x prefix) of signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID (without 0x prefix)
    */
-  async pushPsbt(
-    psbtHex: string,
+  async broadcastPsbt(
+    psbtHex: ccc.HexLike,
     _options?: ccc.SignPsbtOptions,
   ): Promise<string> {
-    return this.provider.pushPsbt(psbtHex);
+    return this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
   }
 }

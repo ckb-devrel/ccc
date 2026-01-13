@@ -66,10 +66,6 @@ export class Signer extends ccc.SignerBtc {
     super(client);
   }
 
-  get supportsSingleCallSignAndBroadcast(): boolean {
-    return true;
-  }
-
   async assertAddress(): Promise<Address> {
     this.addressCache =
       this.addressCache ??
@@ -179,15 +175,14 @@ export class Signer extends ccc.SignerBtc {
    * Build default toSignInputs for all unsigned inputs
    */
   private buildDefaultToSignInputs(
-    psbtHex: string,
+    psbtHex: ccc.Hex,
     address: string,
   ): ccc.ToSignInput[] {
     const toSignInputs: ccc.ToSignInput[] = [];
 
     try {
-      const psbt = Psbt.fromHex(psbtHex);
-
       // Collect all unsigned inputs
+      const psbt = Psbt.fromHex(psbtHex.slice(2));
       psbt.data.inputs.forEach((input, index) => {
         const isSigned =
           input.finalScriptSig ||
@@ -204,8 +199,10 @@ export class Signer extends ccc.SignerBtc {
       // If no unsigned inputs found, the PSBT is already fully signed
       // Let the wallet handle this case (likely a no-op or error)
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
-        `Failed to parse PSBT hex. Please provide toSignInputs explicitly in options. Original error: ${String(error)}`,
+        `Failed to parse PSBT hex. Please provide toSignInputs explicitly in options. Original error: ${errorMessage}`,
       );
     }
 
@@ -213,7 +210,7 @@ export class Signer extends ccc.SignerBtc {
   }
 
   private async prepareSignPsbtParams(
-    psbtHex: string,
+    psbtHex: ccc.Hex,
     options?: ccc.SignPsbtOptions,
   ): Promise<{
     psbtBase64: string;
@@ -225,8 +222,7 @@ export class Signer extends ccc.SignerBtc {
       toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
     }
 
-    const psbtBytes = ccc.bytesFrom(psbtHex);
-    const psbtBase64 = ccc.bytesTo(psbtBytes, "base64");
+    const psbtBase64 = ccc.bytesTo(psbtHex, "base64");
 
     const signInputs = toSignInputs.reduce(
       (acc, input) => {
@@ -251,9 +247,9 @@ export class Signer extends ccc.SignerBtc {
   /**
    * Signs a PSBT using Xverse wallet.
    *
-   * @param psbtHex - The hex string of PSBT to sign
+   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string
+   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
    *
    * @remarks
    * Xverse accepts:
@@ -268,11 +264,11 @@ export class Signer extends ccc.SignerBtc {
    * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
    */
   async signPsbt(
-    psbtHex: string,
+    psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
-      psbtHex,
+      ccc.hexFrom(psbtHex),
       options,
     );
 
@@ -291,28 +287,28 @@ export class Signer extends ccc.SignerBtc {
   }
 
   /**
-   * Signs and broadcasts a PSBT using Xverse wallet (single popup).
-   *
-   * @param psbtHex - The hex string of PSBT to sign and broadcast
-   * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to SignPsbtResult:
-   * - psbt: base64 encoded signed PSBT
-   * - txid: transaction id (only when broadcast succeeds)
+   * Broadcasts a PSBT to the Bitcoin network.
    *
    * @remarks
-   * Xverse accepts:
-   * - psbt: base64 encoded PSBT
-   * - signInputs: Record<address, number[]> input indexes to sign
-   * - broadcast: set to true to broadcast
-   *
-   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   * Xverse does not support broadcasting a signed PSBT directly.
+   * It only supports "Sign and Broadcast" as a single atomic operation via `signAndBroadcastPsbt`.
    */
-  async pushPsbt(
-    psbtHex: string,
+  async broadcastPsbt(
+    _psbtHex: ccc.HexLike,
+    _options?: ccc.SignPsbtOptions,
+  ): Promise<string> {
+    throw new Error(
+      "Xverse does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
+    );
+  }
+
+  async signAndBroadcastPsbt(
+    psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
   ): Promise<string> {
+    // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
-      psbtHex,
+      ccc.hexFrom(psbtHex),
       options,
     );
 

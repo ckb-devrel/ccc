@@ -131,12 +131,12 @@ export class SignerBtc extends ccc.SignerBtc {
   /**
    * Signs a PSBT using UTXO Global wallet.
    *
-   * @param psbtHex - The hex string of PSBT to sign
+   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string
+   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
    */
   async signPsbt(
-    _psbtHex: string,
+    _psbtHex: ccc.HexLike,
     _options?: ccc.SignPsbtOptions,
   ): Promise<string> {
     throw new Error("UTXO Global PSBT signing not implemented yet");
@@ -145,11 +145,14 @@ export class SignerBtc extends ccc.SignerBtc {
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string of signed PSBT to broadcast
-   * @returns A promise that resolves to the transaction ID
+   * @param psbtHex - The hex string (without 0x prefix) of signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID (without 0x prefix)
    * @todo Implement PSBT broadcasting with UTXO Global
    */
-  async pushPsbt(_: string, __?: ccc.SignPsbtOptions): Promise<string> {
+  async broadcastPsbt(
+    _: ccc.HexLike,
+    __?: ccc.SignPsbtOptions,
+  ): Promise<string> {
     throw new Error("UTXO Global PSBT broadcasting not implemented yet");
   }
 }
