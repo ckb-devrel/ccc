@@ -24,29 +24,19 @@ export abstract class SignerBtc extends Signer {
   }
 
   /**
-   * Whether the wallet supports a single call to sign + broadcast (combined flow).
-   * Default false; override in implementations like Xverse/JoyID.
+   * Sign and broadcast a PSBT.
+   *
+   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign and broadcast.
+   * @param options - Options for signing the PSBT.
+   * @returns A promise that resolves to the transaction ID (non-0x prefixed hex).
    */
-  get supportsSingleCallSignAndBroadcast(): boolean {
-    return false;
-  }
-
-  /**
-   * Sign and broadcast a PSBT in one call when supported, otherwise falls back
-   * to sign then push. Prefer this over manual sign+push to avoid double popups.
-   */
-  async signAndPushPsbt(
-    psbtHex: string,
+  async signAndBroadcastPsbt(
+    psbtHex: HexLike,
     options?: SignPsbtOptions,
   ): Promise<string> {
-    if (this.supportsSingleCallSignAndBroadcast) {
-      // Wallet handles sign+broadcast internally (e.g., Xverse/JoyID)
-      return this.pushPsbt(psbtHex, options);
-    }
-
-    // Split-mode wallets: sign first, then broadcast
-    const signedPsbt = await this.signPsbt(psbtHex, options);
-    return this.pushPsbt(signedPsbt, options);
+    // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
+    const signedPsbt = await this.signPsbt(hexFrom(psbtHex).slice(2), options);
+    return this.broadcastPsbt(signedPsbt, options);
   }
 
   /**
@@ -154,28 +144,26 @@ export abstract class SignerBtc extends Signer {
   /**
    * Signs a Partially Signed Bitcoin Transaction (PSBT).
    *
-   * @param psbtHex - The hex string of PSBT to sign
+   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string
+   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
    */
   abstract signPsbt(
-    psbtHex: string,
+    psbtHex: HexLike,
     options?: SignPsbtOptions,
   ): Promise<string>;
 
   /**
-   * Pushes a PSBT to the Bitcoin network.
+   * Broadcasts a PSBT to the Bitcoin network.
    *
-   * For wallets that support a single call for signing and broadcasting (where `supportsSingleCallSignAndBroadcast` is true),
-   * this method takes an **unsigned** PSBT, signs it, and broadcasts it.
-   * For other wallets, this method takes a **signed** PSBT and only broadcasts it.
-   *
-   * @param psbtHex - The hex string of the PSBT to push. Can be signed or unsigned depending on the wallet's capabilities.
-   * @param options - Options for signing the PSBT. Only used by wallets that perform signing in this step.
-   * @returns A promise that resolves to the transaction ID.
+   * @param psbtHex - The hex string (without 0x prefix) of the PSBT to broadcast.
+   * @param options - Options for broadcasting the PSBT.
+   * @returns A promise that resolves to the transaction ID (without 0x prefix).
    */
-  abstract pushPsbt(
-    psbtHex: string,
-    options?: SignPsbtOptions,
-  ): Promise<string>;
+  async broadcastPsbt(
+    _psbtHex: HexLike,
+    _options?: SignPsbtOptions,
+  ): Promise<string> {
+    throw new Error("Not implemented");
+  }
 }
