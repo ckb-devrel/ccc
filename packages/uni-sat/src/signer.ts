@@ -154,15 +154,17 @@ export class Signer extends ccc.SignerBtc {
   /**
    * Signs a PSBT using UniSat wallet.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
+   * @param psbtHex - The hex string of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
+   * @returns A promise that resolves to the signed PSBT as a Hex string
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
-    return this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options);
+  ): Promise<ccc.Hex> {
+    return ccc.hexFrom(
+      await this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options),
+    );
   }
 
   /**
@@ -174,7 +176,8 @@ export class Signer extends ccc.SignerBtc {
   async broadcastPsbt(
     psbtHex: ccc.HexLike,
     _options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
-    return this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
+  ): Promise<ccc.Hex> {
+    const txid = await this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
+    return ccc.hexFrom(txid);
   }
 }

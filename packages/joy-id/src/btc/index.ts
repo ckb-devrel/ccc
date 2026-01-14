@@ -202,13 +202,13 @@ export class BitcoinSigner extends ccc.SignerBtc {
   /**
    * Signs a PSBT using JoyID wallet.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
-   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
+   * @param psbtHex - The hex string of PSBT to sign.
+   * @returns A promise that resolves to the signed PSBT as a Hex string.
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
 
     const config = this.getConfig();
@@ -227,7 +227,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
       { ...config, type: DappRequestType.SignPsbt },
     );
 
-    return signedPsbtHex;
+    return ccc.hexFrom(signedPsbtHex);
   }
 
   /**
@@ -240,7 +240,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
   async broadcastPsbt(
     _psbtHex: ccc.HexLike,
     _options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     throw new Error(
       "JoyID does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
     );
@@ -249,7 +249,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
   async signAndBroadcastPsbt(
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
 
     const config = this.getConfig();
@@ -270,6 +270,6 @@ export class BitcoinSigner extends ccc.SignerBtc {
       { ...config, type: DappRequestType.SignPsbt }, // Use SignPsbt type for both operations
     );
 
-    return txid;
+    return ccc.hexFrom(txid);
   }
 }
