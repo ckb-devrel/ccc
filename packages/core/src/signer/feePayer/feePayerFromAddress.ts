@@ -1,12 +1,11 @@
-import { Address } from "../../address/index.js";
 import { Script } from "../../ckb/script.js";
-import { Cell, CellOutput, Transaction } from "../../ckb/transaction.js";
+import { CellOutput, Transaction } from "../../ckb/transaction.js";
 import { ErrorTransactionInsufficientCapacity } from "../../ckb/transactionErrors.js";
 import { Client } from "../../client/client.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../client/clientTypes.advanced.js";
 import { fixedPointFrom, Zero } from "../../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
-import { FeePayer, FeeRateOptions } from "./feePayer.js";
+import { FeePayer, FeeRateOptionsLike } from "./feePayer.js";
 
 function defaultChangeFn(
   tx: Transaction,
@@ -23,7 +22,7 @@ function defaultChangeFn(
   return 0;
 }
 
-export interface FeePayerFromAddressOptions {
+export interface FeePayerFromAddressOptionsLike {
   changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
   feeRate?: NumLike;
   filter?: ClientCollectableSearchKeyFilterLike;
@@ -45,33 +44,6 @@ export abstract class FeePayerFromAddress extends FeePayer {
   };
 
   /**
-   * Gets an array of Address objects associated with the signer.
-   *
-   * @returns A promise that resolves to an array of Address objects.
-   */
-  abstract getAddressObjs(): Promise<Address[]>;
-
-  /**
-   * Gets the recommended Address object for the signer.
-   *
-   * @param _preference - Optional preference parameter.
-   * @returns A promise that resolves to the recommended Address object.
-   */
-  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
-    return (await this.getAddressObjs())[0];
-  }
-
-  /**
-   * Gets the recommended address for the signer as a string.
-   *
-   * @param preference - Optional preference parameter.
-   * @returns A promise that resolves to the recommended address as a string.
-   */
-  async getRecommendedAddress(preference?: unknown): Promise<string> {
-    return (await this.getRecommendedAddressObj(preference)).toString();
-  }
-
-  /**
    * Gets an array of addresses associated with the signer as strings.
    *
    * @returns A promise that resolves to an array of addresses as strings.
@@ -85,14 +57,14 @@ export abstract class FeePayerFromAddress extends FeePayer {
   async completeTxFee(
     tx: Transaction,
     client: Client,
-    options?: FeeRateOptions,
+    options?: FeeRateOptionsLike,
   ): Promise<void> {
     await this.completeFee(tx, client, options);
   }
 
   mergeOptions(
-    manualOptions?: FeePayerFromAddressOptions,
-  ): FeePayerFromAddressOptions {
+    manualOptions?: FeePayerFromAddressOptionsLike,
+  ): FeePayerFromAddressOptionsLike {
     return {
       changeFn: manualOptions?.changeFn ?? this.changeFn,
       feeRate: manualOptions?.feeRate ?? this.feeRate,
@@ -120,7 +92,7 @@ export abstract class FeePayerFromAddress extends FeePayer {
   async completeFee(
     tx: Transaction,
     client: Client,
-    options?: FeePayerFromAddressOptions,
+    options?: FeePayerFromAddressOptionsLike,
   ): Promise<[number, boolean]> {
     const mergedOptions = this.mergeOptions(options);
 
@@ -234,7 +206,7 @@ export abstract class FeePayerFromAddress extends FeePayer {
     tx: Transaction,
     client: Client,
     capacityTweak?: NumLike,
-    options?: FeePayerFromAddressOptions,
+    options?: FeePayerFromAddressOptionsLike,
   ): Promise<number> {
     const expectedCapacity =
       tx.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
@@ -265,67 +237,5 @@ export abstract class FeePayerFromAddress extends FeePayer {
     throw new ErrorTransactionInsufficientCapacity(
       expectedCapacity - accumulated,
     );
-  }
-
-  async completeInputs<T>(
-    tx: Transaction,
-    client: Client,
-    filter: ClientCollectableSearchKeyFilterLike,
-    accumulator: (
-      acc: T,
-      v: Cell,
-      i: number,
-      array: Cell[],
-    ) => Promise<T | undefined> | T | undefined,
-    init: T,
-  ): Promise<{
-    addedCount: number;
-    accumulated?: T;
-  }> {
-    const collectedCells = [];
-
-    let acc: T = init;
-    let fulfilled = false;
-    for (const address of await this.getAddressObjs()) {
-      for await (const cell of client.findCells({
-        script: address.script,
-        scriptType: "lock",
-        filter,
-        scriptSearchMode: "exact",
-        withData: true,
-      })) {
-        if (
-          tx.inputs.some(({ previousOutput }) =>
-            previousOutput.eq(cell.outPoint),
-          )
-        ) {
-          continue;
-        }
-        const i = collectedCells.push(cell);
-        const next = await Promise.resolve(
-          accumulator(acc, cell, i - 1, collectedCells),
-        );
-        if (next === undefined) {
-          fulfilled = true;
-          break;
-        }
-        acc = next;
-      }
-      if (fulfilled) {
-        break;
-      }
-    }
-
-    collectedCells.forEach((cell) => tx.addInput(cell));
-    if (fulfilled) {
-      return {
-        addedCount: collectedCells.length,
-      };
-    }
-
-    return {
-      addedCount: collectedCells.length,
-      accumulated: acc,
-    };
   }
 }

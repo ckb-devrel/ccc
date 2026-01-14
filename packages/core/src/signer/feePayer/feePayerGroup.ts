@@ -1,19 +1,10 @@
 import { Transaction, TransactionLike } from "../../ckb/transaction.js";
 import { Client } from "../../client/client.js";
-import { FeePayer, FeeRateOptions } from "./feePayer.js";
+import { FeePayer, FeeRateOptionsLike } from "./feePayer.js";
 
 export class FeePayerGroup extends FeePayer {
   constructor(private feePayers: FeePayer[]) {
     super();
-  }
-
-  push(...payers: FeePayer[]): FeePayerGroup {
-    this.feePayers.push(...payers);
-    return this;
-  }
-
-  pop(): FeePayer | undefined {
-    return this.feePayers.pop();
   }
 
   async prepareTransaction(txLike: TransactionLike): Promise<Transaction> {
@@ -27,7 +18,7 @@ export class FeePayerGroup extends FeePayer {
   async completeTxFee(
     tx: Transaction,
     client: Client,
-    options?: FeeRateOptions,
+    options?: FeeRateOptionsLike,
   ): Promise<void> {
     for (const payer of this.feePayers) {
       await payer.completeTxFee(tx, client, options);
