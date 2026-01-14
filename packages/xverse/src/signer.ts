@@ -247,9 +247,9 @@ export class Signer extends ccc.SignerBtc {
   /**
    * Signs a PSBT using Xverse wallet.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
+   * @param psbtHex - The hex string of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
+   * @returns A promise that resolves to the signed PSBT as a Hex string
    *
    * @remarks
    * Xverse accepts:
@@ -266,7 +266,7 @@ export class Signer extends ccc.SignerBtc {
   async signPsbt(
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
       ccc.hexFrom(psbtHex),
       options,
@@ -282,8 +282,7 @@ export class Signer extends ccc.SignerBtc {
       )
     ).psbt;
 
-    const signedPsbtBytes = ccc.bytesFrom(signedPsbtBase64, "base64");
-    return ccc.bytesTo(signedPsbtBytes, "hex"); // no leading "0x"
+    return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
   }
 
   /**
@@ -296,7 +295,7 @@ export class Signer extends ccc.SignerBtc {
   async broadcastPsbt(
     _psbtHex: ccc.HexLike,
     _options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     throw new Error(
       "Xverse does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
     );
@@ -305,7 +304,7 @@ export class Signer extends ccc.SignerBtc {
   async signAndBroadcastPsbt(
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<ccc.Hex> {
     // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
       ccc.hexFrom(psbtHex),
@@ -324,6 +323,6 @@ export class Signer extends ccc.SignerBtc {
       throw new Error("Failed to broadcast PSBT");
     }
 
-    return result.txid;
+    return ccc.hexFrom(result.txid);
   }
 }

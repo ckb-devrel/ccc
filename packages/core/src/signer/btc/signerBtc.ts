@@ -2,7 +2,7 @@ import { Address } from "../../address/index.js";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { Transaction, TransactionLike, WitnessArgs } from "../../ckb/index.js";
 import { KnownScript } from "../../client/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 import { SignPsbtOptions } from "./psbt.js";
@@ -26,16 +26,15 @@ export abstract class SignerBtc extends Signer {
   /**
    * Sign and broadcast a PSBT.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign and broadcast.
+   * @param psbtHex - The hex string of PSBT to sign and broadcast.
    * @param options - Options for signing the PSBT.
-   * @returns A promise that resolves to the transaction ID (non-0x prefixed hex).
+   * @returns A promise that resolves to the transaction ID as a Hex string.
    */
   async signAndBroadcastPsbt(
     psbtHex: HexLike,
     options?: SignPsbtOptions,
-  ): Promise<string> {
-    // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
-    const signedPsbt = await this.signPsbt(hexFrom(psbtHex).slice(2), options);
+  ): Promise<Hex> {
+    const signedPsbt = await this.signPsbt(psbtHex, options);
     return this.broadcastPsbt(signedPsbt, options);
   }
 
@@ -144,26 +143,23 @@ export abstract class SignerBtc extends Signer {
   /**
    * Signs a Partially Signed Bitcoin Transaction (PSBT).
    *
-   * @param psbtHex - The hex string (without 0x prefix) of PSBT to sign.
+   * @param psbtHex - The hex string of PSBT to sign.
    * @param options - Options for signing the PSBT
-   * @returns A promise that resolves to the signed PSBT hex string (without 0x prefix)
+   * @returns A promise that resolves to the signed PSBT as a Hex string.
    */
-  abstract signPsbt(
-    psbtHex: HexLike,
-    options?: SignPsbtOptions,
-  ): Promise<string>;
+  abstract signPsbt(psbtHex: HexLike, options?: SignPsbtOptions): Promise<Hex>;
 
   /**
    * Broadcasts a PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of the PSBT to broadcast.
+   * @param psbtHex - The hex string of the PSBT to broadcast.
    * @param options - Options for broadcasting the PSBT.
-   * @returns A promise that resolves to the transaction ID (without 0x prefix).
+   * @returns A promise that resolves to the transaction ID as a Hex string.
    */
   async broadcastPsbt(
     _psbtHex: HexLike,
     _options?: SignPsbtOptions,
-  ): Promise<string> {
+  ): Promise<Hex> {
     throw new Error("Not implemented");
   }
 }
