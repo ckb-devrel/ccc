@@ -172,13 +172,13 @@ export class Signer extends ccc.SignerBtc {
   }
 
   /**
-   * Build default toSignInputs for all unsigned inputs
+   * Build default inputsToSign for all unsigned inputs
    */
-  private buildDefaultToSignInputs(
+  private buildDefaultinputsToSign(
     psbtHex: ccc.Hex,
     address: string,
-  ): ccc.ToSignInput[] {
-    const toSignInputs: ccc.ToSignInput[] = [];
+  ): ccc.InputToSignLike[] {
+    const inputsToSign: ccc.InputToSignLike[] = [];
 
     try {
       // Collect all unsigned inputs
@@ -192,7 +192,7 @@ export class Signer extends ccc.SignerBtc {
           (input.tapScriptSig && input.tapScriptSig.length > 0);
 
         if (!isSigned) {
-          toSignInputs.push({ index, address });
+          inputsToSign.push({ index, address });
         }
       });
 
@@ -202,33 +202,34 @@ export class Signer extends ccc.SignerBtc {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       throw new Error(
-        `Failed to parse PSBT hex. Please provide toSignInputs explicitly in options. Original error: ${errorMessage}`,
+        `Failed to parse PSBT hex. Please provide inputsToSign explicitly in options. Original error: ${errorMessage}`,
       );
     }
 
-    return toSignInputs;
+    return inputsToSign;
   }
 
   private async prepareSignPsbtParams(
     psbtHex: ccc.Hex,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<{
     psbtBase64: string;
     signInputs: Record<string, number[]>;
   }> {
-    let toSignInputs = options?.toSignInputs;
-    if (!toSignInputs || !toSignInputs.length) {
+    let inputsToSign = options?.inputsToSign;
+
+    if (!inputsToSign || !inputsToSign.length) {
       const address = await this.getBtcAccount();
-      toSignInputs = this.buildDefaultToSignInputs(psbtHex, address);
+      inputsToSign = this.buildDefaultinputsToSign(psbtHex, address);
     }
 
     const psbtBase64 = ccc.bytesTo(psbtHex, "base64");
 
-    const signInputs = toSignInputs.reduce(
+    const signInputs = inputsToSign.reduce(
       (acc, input) => {
         if (!input.address) {
           throw new Error(
-            "Xverse only supports signing with address. Please provide 'address' in toSignInputs.",
+            "Xverse only supports signing with address. Please provide 'address' in inputsToSign.",
           );
         }
         if (acc[input.address]) {
@@ -265,7 +266,7 @@ export class Signer extends ccc.SignerBtc {
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
       ccc.hexFrom(psbtHex),
@@ -294,7 +295,7 @@ export class Signer extends ccc.SignerBtc {
    */
   async broadcastPsbt(
     _psbtHex: ccc.HexLike,
-    _options?: ccc.SignPsbtOptions,
+    _options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     throw new Error(
       "Xverse does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
@@ -303,7 +304,7 @@ export class Signer extends ccc.SignerBtc {
 
   async signAndBroadcastPsbt(
     psbtHex: ccc.HexLike,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(

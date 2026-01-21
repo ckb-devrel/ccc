@@ -5,7 +5,7 @@ import { KnownScript } from "../../client/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
-import { SignPsbtOptions } from "./psbt.js";
+import { SignPsbtOptionsLike } from "./psbt.js";
 import { btcEcdsaPublicKeyHash } from "./verify.js";
 
 /**
@@ -32,7 +32,7 @@ export abstract class SignerBtc extends Signer {
    */
   async signAndBroadcastPsbt(
     psbtHex: HexLike,
-    options?: SignPsbtOptions,
+    options?: SignPsbtOptionsLike,
   ): Promise<Hex> {
     const signedPsbt = await this.signPsbt(psbtHex, options);
     return this.broadcastPsbt(signedPsbt, options);
@@ -147,7 +147,10 @@ export abstract class SignerBtc extends Signer {
    * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT as a Hex string.
    */
-  abstract signPsbt(psbtHex: HexLike, options?: SignPsbtOptions): Promise<Hex>;
+  abstract signPsbt(
+    psbtHex: HexLike,
+    options?: SignPsbtOptionsLike,
+  ): Promise<Hex>;
 
   /**
    * Broadcasts a PSBT to the Bitcoin network.
@@ -156,10 +159,8 @@ export abstract class SignerBtc extends Signer {
    * @param options - Options for broadcasting the PSBT.
    * @returns A promise that resolves to the transaction ID as a Hex string.
    */
-  async broadcastPsbt(
-    _psbtHex: HexLike,
-    _options?: SignPsbtOptions,
-  ): Promise<Hex> {
-    throw new Error("Not implemented");
-  }
+  abstract broadcastPsbt(
+    psbtHex: HexLike,
+    options?: SignPsbtOptionsLike,
+  ): Promise<Hex>;
 }

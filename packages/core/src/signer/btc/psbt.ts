@@ -1,7 +1,9 @@
+import { HexLike, hexFrom } from "../../hex/index.js";
+
 /**
  * Options for signing a PSBT (Partially Signed Bitcoin Transaction)
  */
-export type SignPsbtOptions = {
+export type SignPsbtOptionsLike = {
   /**
    * Whether to finalize the PSBT after signing.
    * Default is true.
@@ -10,14 +12,28 @@ export type SignPsbtOptions = {
   /**
    * Array of inputs to sign
    */
-  toSignInputs?: ToSignInput[];
+  inputsToSign?: InputToSignLike[];
 };
+
+export class SignPsbtOptions {
+  constructor(
+    public autoFinalized: boolean,
+    public inputsToSign: InputToSign[],
+  ) {}
+
+  static from(options?: SignPsbtOptionsLike): SignPsbtOptions {
+    return new SignPsbtOptions(
+      options?.autoFinalized ?? true,
+      options?.inputsToSign?.map((i) => InputToSign.from(i)) ?? [],
+    );
+  }
+}
 
 /**
  * Specification for an input to sign in a PSBT.
  * Must specify at least one of: address or pubkey.
  */
-export type ToSignInput = {
+export type InputToSignLike = {
   /**
    * Which input to sign (index in the PSBT inputs array)
    */
@@ -41,7 +57,7 @@ export type ToSignInput = {
       /**
        * The public key whose corresponding private key to use for signing.
        */
-      publicKey?: string;
+      publicKey?: HexLike;
     }
   | {
       /**
@@ -51,6 +67,26 @@ export type ToSignInput = {
       /**
        * The public key whose corresponding private key to use for signing.
        */
-      publicKey: string;
+      publicKey: HexLike;
     }
 );
+
+export class InputToSign {
+  constructor(
+    public index: number,
+    public sighashTypes?: number[],
+    public disableTweakSigner?: boolean,
+    public address?: string,
+    public publicKey?: string,
+  ) {}
+
+  static from(input: InputToSignLike): InputToSign {
+    return new InputToSign(
+      input.index,
+      input.sighashTypes,
+      input.disableTweakSigner,
+      input.address,
+      input.publicKey ? hexFrom(input.publicKey).slice(2) : undefined,
+    );
+  }
+}

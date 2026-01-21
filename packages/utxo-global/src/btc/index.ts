@@ -137,7 +137,7 @@ export class SignerBtc extends ccc.SignerBtc {
    */
   async signPsbt(
     _psbtHex: ccc.HexLike,
-    _options?: ccc.SignPsbtOptions,
+    _options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     throw new Error("UTXO Global PSBT signing not implemented yet");
   }
@@ -151,7 +151,7 @@ export class SignerBtc extends ccc.SignerBtc {
    */
   async broadcastPsbt(
     _psbtHex: ccc.HexLike,
-    _options?: ccc.SignPsbtOptions,
+    _options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     throw new Error("UTXO Global PSBT broadcasting not implemented yet");
   }

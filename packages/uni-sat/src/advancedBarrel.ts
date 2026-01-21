@@ -11,7 +11,7 @@ export interface Provider {
    * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT hex string
    */
-  signPsbt(psbtHex: string, options?: ccc.SignPsbtOptions): Promise<string>;
+  signPsbt(psbtHex: string, options?: ccc.SignPsbtOptionsLike): Promise<string>;
 
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.

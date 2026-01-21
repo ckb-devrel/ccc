@@ -207,9 +207,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
+    const formattedOptions = ccc.SignPsbtOptions.from(options);
 
     const config = this.getConfig();
     const { tx: signedPsbtHex } = await createPopup(
@@ -217,9 +218,9 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: ccc.hexFrom(psbtHex).slice(2),
-          options,
+          options: formattedOptions,
           signerAddress: address,
-          autoFinalized: options?.autoFinalized ?? true,
+          autoFinalized: formattedOptions.autoFinalized,
         },
         "popup",
         "/sign-psbt",
@@ -239,7 +240,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
    */
   async broadcastPsbt(
     _psbtHex: ccc.HexLike,
-    _options?: ccc.SignPsbtOptions,
+    _options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     throw new Error(
       "JoyID does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
@@ -248,9 +249,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
 
   async signAndBroadcastPsbt(
     psbtHex: ccc.HexLike,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
+    const formattedOptions = ccc.SignPsbtOptions.from(options);
 
     const config = this.getConfig();
     // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
@@ -259,7 +261,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: ccc.hexFrom(psbtHex).slice(2),
-          options,
+          options: formattedOptions,
           signerAddress: address,
           autoFinalized: true, // sendPsbt always finalizes
           isSend: true,
