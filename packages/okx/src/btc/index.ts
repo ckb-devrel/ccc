@@ -196,8 +196,8 @@ export class BitcoinSigner extends ccc.SignerBtc {
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string (without 0x prefix) of signed PSBT to broadcast.
-   * @returns A promise that resolves to the transaction ID (without 0x prefix)
+   * @param psbtHex - The hex string  of signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID as a Hex string
    */
   async broadcastPsbt(
     psbtHex: ccc.HexLike,
