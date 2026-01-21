@@ -53,8 +53,8 @@ export class UdtRegister extends Udt {
    *
    * @example
    * ```typescript
-   * const udt = new Udt(codeOutPoint, scriptConfig);
-   * const { tx, tokenHash } = await udt.register(
+   * const udtRegister = new UdtRegister(codeOutPoint, scriptConfig, { executor });
+   * const { tx, tokenHash } = await udtRegister.register(
    *   signer,
    *   { name: "My UDT", symbol: "MYT", decimals: 8, icon: "https://..." }
    * );
@@ -71,6 +71,7 @@ export class UdtRegister extends Udt {
     metadata: {
       name: string;
       symbol: string;
+      /** Must be an integer between 0 and 255. */
       decimals: number;
       icon: string;
     },
