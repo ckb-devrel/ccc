@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { Psbt } from "bitcoinjs-lib";
 import * as v from "valibot";
 import {
   Address,
@@ -168,5 +169,161 @@ export class Signer extends ccc.SignerBtc {
         }),
       )
     ).signature;
+  }
+
+  /**
+   * Build default inputsToSign for all unsigned inputs
+   */
+  private buildDefaultinputsToSign(
+    psbtHex: ccc.Hex,
+    address: string,
+  ): ccc.InputToSignLike[] {
+    const inputsToSign: ccc.InputToSignLike[] = [];
+
+    try {
+      // Collect all unsigned inputs
+      const psbt = Psbt.fromHex(psbtHex.slice(2));
+      psbt.data.inputs.forEach((input, index) => {
+        const isSigned =
+          input.finalScriptSig ||
+          input.finalScriptWitness ||
+          input.tapKeySig ||
+          (input.partialSig && input.partialSig.length > 0) ||
+          (input.tapScriptSig && input.tapScriptSig.length > 0);
+
+        if (!isSigned) {
+          inputsToSign.push({ index, address });
+        }
+      });
+
+      // If no unsigned inputs found, the PSBT is already fully signed
+      // Let the wallet handle this case (likely a no-op or error)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `Failed to parse PSBT hex. Please provide inputsToSign explicitly in options. Original error: ${errorMessage}`,
+      );
+    }
+
+    return inputsToSign;
+  }
+
+  private async prepareSignPsbtParams(
+    psbtHex: ccc.Hex,
+    options?: ccc.SignPsbtOptionsLike,
+  ): Promise<{
+    psbtBase64: string;
+    signInputs: Record<string, number[]>;
+  }> {
+    let inputsToSign = options?.inputsToSign;
+
+    if (!inputsToSign || !inputsToSign.length) {
+      const address = await this.getBtcAccount();
+      inputsToSign = this.buildDefaultinputsToSign(psbtHex, address);
+    }
+
+    const psbtBase64 = ccc.bytesTo(psbtHex, "base64");
+
+    const signInputs = inputsToSign.reduce(
+      (acc, input) => {
+        if (!input.address) {
+          throw new Error(
+            "Xverse only supports signing with address. Please provide 'address' in inputsToSign.",
+          );
+        }
+        if (acc[input.address]) {
+          acc[input.address].push(input.index);
+        } else {
+          acc[input.address] = [input.index];
+        }
+        return acc;
+      },
+      {} as Record<string, number[]>,
+    );
+
+    return { psbtBase64, signInputs };
+  }
+
+  /**
+   * Signs a PSBT using Xverse wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT as a Hex string
+   *
+   * @remarks
+   * Xverse accepts:
+   * - psbt: A string representing the PSBT to sign, encoded in base64
+   * - signInputs: A Record<string, number[]> where:
+   *   - keys are the addresses to use for signing
+   *   - values are the indexes of the inputs to sign with each address
+   *
+   * Xverse returns:
+   * - psbt: The base64 encoded signed PSBT
+   *
+   * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
+   */
+  async signPsbt(
+    psbtHex: ccc.HexLike,
+    options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      ccc.hexFrom(psbtHex),
+      options,
+    );
+
+    const signedPsbtBase64 = (
+      await checkResponse(
+        this.provider.request("signPsbt", {
+          psbt: psbtBase64,
+          signInputs,
+          broadcast: false,
+        }),
+      )
+    ).psbt;
+
+    return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
+  }
+
+  /**
+   * Broadcasts a PSBT to the Bitcoin network.
+   *
+   * @remarks
+   * Xverse does not support broadcasting a signed PSBT directly.
+   * It only supports "Sign and Broadcast" as a single atomic operation via `signAndBroadcastPsbt`.
+   */
+  async broadcastPsbt(
+    _psbtHex: ccc.HexLike,
+    _options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    throw new Error(
+      "Xverse does not support broadcasting signed PSBTs directly. Use signAndBroadcastPsbt instead.",
+    );
+  }
+
+  async signAndBroadcastPsbt(
+    psbtHex: ccc.HexLike,
+    options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
+    const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
+      ccc.hexFrom(psbtHex),
+      options,
+    );
+
+    const result = await checkResponse(
+      this.provider.request("signPsbt", {
+        psbt: psbtBase64,
+        signInputs,
+        broadcast: true,
+      }),
+    );
+
+    if (!result.txid) {
+      throw new Error("Failed to broadcast PSBT");
+    }
+
+    return ccc.hexFrom(result.txid);
   }
 }

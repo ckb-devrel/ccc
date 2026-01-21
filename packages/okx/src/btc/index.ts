@@ -176,4 +176,34 @@ export class BitcoinSigner extends ccc.SignerBtc {
 
     return this.provider.signMessage(challenge, "ecdsa");
   }
+
+  /**
+   * Signs a PSBT using OKX wallet.
+   *
+   * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT as a Hex string
+   */
+  async signPsbt(
+    psbtHex: ccc.HexLike,
+    options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    return ccc.hexFrom(
+      await this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options),
+    );
+  }
+
+  /**
+   * Broadcasts a signed PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string  of signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID as a Hex string
+   */
+  async broadcastPsbt(
+    psbtHex: ccc.HexLike,
+    _options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    const txid = await this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
+    return ccc.hexFrom(txid);
+  }
 }
