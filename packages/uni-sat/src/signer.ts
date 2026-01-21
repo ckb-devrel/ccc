@@ -160,7 +160,7 @@ export class Signer extends ccc.SignerBtc {
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     return ccc.hexFrom(
       await this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options),
@@ -175,7 +175,7 @@ export class Signer extends ccc.SignerBtc {
    */
   async broadcastPsbt(
     psbtHex: ccc.HexLike,
-    _options?: ccc.SignPsbtOptions,
+    _options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     const txid = await this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
     return ccc.hexFrom(txid);
