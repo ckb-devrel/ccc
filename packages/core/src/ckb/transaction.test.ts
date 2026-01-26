@@ -1234,7 +1234,7 @@ describe("Transaction", () => {
         ],
       });
 
-      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
 
       expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
       expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledWith(tx);
@@ -1252,7 +1252,7 @@ describe("Transaction", () => {
         ],
       });
 
-      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
 
       // Verify both methods were called
       expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();
@@ -1293,7 +1293,7 @@ describe("Transaction", () => {
         ],
       });
 
-      await tx.completeByFeePayer(client, mockFeePayer1);
+      await tx.completeByFeePayer(mockFeePayer1);
 
       expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledTimes(1);
       expect(mockFeePayer1.completeTxFee).toHaveBeenCalledTimes(1);
@@ -1312,7 +1312,7 @@ describe("Transaction", () => {
       });
 
       // Should not throw with empty fee payer list
-      await expect(tx.completeByFeePayer(client)).resolves.not.toThrow();
+      await expect(tx.completeByFeePayer()).resolves.not.toThrow();
     });
 
     it("should handle multiple fee payers in sequence", async () => {
@@ -1349,7 +1349,7 @@ describe("Transaction", () => {
         callOrder.push("complete2");
       });
 
-      await tx.completeByFeePayer(client, mockFeePayer1, mockFeePayer2);
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
 
       // Verify order: all prepareTransaction calls first, then all completeTxFee calls
       expect(callOrder).toEqual([
@@ -1375,9 +1375,9 @@ describe("Transaction", () => {
         mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
       ).mockRejectedValue(error);
 
-      await expect(
-        tx.completeByFeePayer(client, mockFeePayer1),
-      ).rejects.toThrow("Prepare transaction failed");
+      await expect(tx.completeByFeePayer(mockFeePayer1)).rejects.toThrow(
+        "Prepare transaction failed",
+      );
     });
 
     it("should propagate errors from completeTxFee", async () => {
@@ -1395,9 +1395,9 @@ describe("Transaction", () => {
         mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
       ).mockRejectedValue(error);
 
-      await expect(
-        tx.completeByFeePayer(client, mockFeePayer1),
-      ).rejects.toThrow("Complete fee failed");
+      await expect(tx.completeByFeePayer(mockFeePayer1)).rejects.toThrow(
+        "Complete fee failed",
+      );
     });
 
     it("should handle fee payer that modifies transaction in prepareTransaction", async () => {
@@ -1427,7 +1427,7 @@ describe("Transaction", () => {
         mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
       ).mockResolvedValue(modifiedTx);
 
-      await tx.completeByFeePayer(client, mockFeePayer1);
+      await tx.completeByFeePayer(mockFeePayer1);
 
       // prepareTransaction is called with a clone of the original transaction
       expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();

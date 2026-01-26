@@ -80,15 +80,11 @@ export class Signature {
  */
 export abstract class Signer extends FeePayerFromAddress {
   constructor(protected client_: Client) {
-    super();
+    super(client_);
   }
 
   abstract get type(): SignerType;
   abstract get signType(): SignerSignType;
-
-  get client(): Client {
-    return this.client_;
-  }
 
   // Returns the preference if we need to switch network
   // undefined otherwise

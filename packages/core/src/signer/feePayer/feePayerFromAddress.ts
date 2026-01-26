@@ -1,7 +1,12 @@
+import { Address } from "../../address/index.js";
 import { Script } from "../../ckb/script.js";
-import { CellOutput, Transaction } from "../../ckb/transaction.js";
+import {
+  Cell,
+  CellOutput,
+  Transaction,
+  TransactionLike,
+} from "../../ckb/transaction.js";
 import { ErrorTransactionInsufficientCapacity } from "../../ckb/transactionErrors.js";
-import { Client } from "../../client/client.js";
 import { ClientCollectableSearchKeyFilterLike } from "../../client/clientTypes.advanced.js";
 import { fixedPointFrom, Zero } from "../../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
@@ -34,15 +39,6 @@ export interface FeePayerFromAddressOptionsLike {
 }
 
 export abstract class FeePayerFromAddress extends FeePayer {
-  changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
-  feeRate?: NumLike;
-  filter?: ClientCollectableSearchKeyFilterLike;
-  options?: {
-    feeRateBlockRange?: NumLike;
-    maxFeeRate?: NumLike;
-    shouldAddInputs?: boolean;
-  };
-
   /**
    * Gets an array of addresses associated with the signer as strings.
    *
@@ -54,53 +50,53 @@ export abstract class FeePayerFromAddress extends FeePayer {
     );
   }
 
+  /**
+   * Gets an array of Address objects associated with the signer.
+   *
+   * @returns A promise that resolves to an array of Address objects.
+   */
+  async getAddressObjs(): Promise<Address[]> {
+    throw new Error("FeePayer.getAddressObjs not implemented");
+  }
+
+  /**
+   * Gets the recommended Address object for the signer.
+   *
+   * @param _preference - Optional preference parameter.
+   * @returns A promise that resolves to the recommended Address object.
+   */
+  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
+    return (await this.getAddressObjs())[0];
+  }
+
+  /**
+   * Gets the recommended address for the signer as a string.
+   *
+   * @param preference - Optional preference parameter.
+   * @returns A promise that resolves to the recommended address as a string.
+   */
+  async getRecommendedAddress(preference?: unknown): Promise<string> {
+    return (await this.getRecommendedAddressObj(preference)).toString();
+  }
+
   async completeTxFee(
-    tx: Transaction,
-    client: Client,
+    txLike: TransactionLike,
     options?: FeeRateOptionsLike,
-  ): Promise<void> {
-    await this.completeFee(tx, client, options);
-  }
-
-  mergeOptions(
-    manualOptions?: FeePayerFromAddressOptionsLike,
-  ): FeePayerFromAddressOptionsLike {
-    return {
-      changeFn: manualOptions?.changeFn ?? this.changeFn,
-      feeRate: manualOptions?.feeRate ?? this.feeRate,
-      filter: manualOptions?.filter ?? this.filter,
-      options: manualOptions?.options ?? this.options,
-    };
-  }
-
-  setOptionalProperties(props: {
-    changeFn?: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike;
-    feeRate?: NumLike;
-    filter?: ClientCollectableSearchKeyFilterLike;
-    options?: {
-      feeRateBlockRange?: NumLike;
-      maxFeeRate?: NumLike;
-      shouldAddInputs?: boolean;
-    };
-  }): void {
-    this.changeFn = props.changeFn;
-    this.feeRate = props.feeRate;
-    this.filter = props.filter;
-    this.options = props.options;
+  ): Promise<Transaction> {
+    const tx = Transaction.from(txLike);
+    await this.completeFee(tx, options);
+    return tx;
   }
 
   async completeFee(
     tx: Transaction,
-    client: Client,
     options?: FeePayerFromAddressOptionsLike,
   ): Promise<[number, boolean]> {
-    const mergedOptions = this.mergeOptions(options);
-
     // Get fee rate at first
-    const feeRate = await FeePayer.getFeeRate(client, mergedOptions);
+    const feeRate = await FeePayer.getFeeRate(this.client, options);
 
     // Complete all inputs extra infos for cache
-    await tx.getInputsCapacity(client);
+    await tx.getInputsCapacity(this.client);
 
     let leastFee = Zero;
     let leastExtraCapacity = Zero;
@@ -114,14 +110,13 @@ export abstract class FeePayerFromAddress extends FeePayer {
     // ===
     while (true) {
       collected += await (async () => {
-        if (!(mergedOptions.options?.shouldAddInputs ?? true)) {
+        if (!(options?.options?.shouldAddInputs ?? true)) {
           return 0;
         }
 
         try {
           return await this.completeInputsByCapacity(
             tx,
-            client,
             leastFee + leastExtraCapacity,
             options,
           );
@@ -139,7 +134,7 @@ export abstract class FeePayerFromAddress extends FeePayer {
         }
       })();
 
-      const fee = await tx.getFee(client);
+      const fee = await tx.getFee(this.client);
       if (fee < leastFee + leastExtraCapacity) {
         // Not enough capacity are collected, it should only happens when shouldAddInputs is false
         throw new ErrorTransactionInsufficientCapacity(
@@ -165,7 +160,7 @@ export abstract class FeePayerFromAddress extends FeePayer {
       const txCopy = tx.clone();
       const needed = numFrom(
         await Promise.resolve(
-          mergedOptions.changeFn?.(txCopy, fee - leastFee) ??
+          options?.changeFn?.(txCopy, fee - leastFee) ??
             defaultChangeFn(
               txCopy,
               (await this.getRecommendedAddressObj()).script,
@@ -179,7 +174,7 @@ export abstract class FeePayerFromAddress extends FeePayer {
         continue;
       }
 
-      if ((await txCopy.getFee(client)) !== leastFee) {
+      if ((await txCopy.getFee(this.client)) !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
@@ -202,24 +197,82 @@ export abstract class FeePayerFromAddress extends FeePayer {
     }
   }
 
+  async completeInputs<T>(
+    tx: Transaction,
+    filter: ClientCollectableSearchKeyFilterLike,
+    accumulator: (
+      acc: T,
+      v: Cell,
+      i: number,
+      array: Cell[],
+    ) => Promise<T | undefined> | T | undefined,
+    init: T,
+  ): Promise<{
+    addedCount: number;
+    accumulated?: T;
+  }> {
+    const collectedCells = [];
+
+    let acc: T = init;
+    let fulfilled = false;
+    for (const address of await this.getAddressObjs()) {
+      for await (const cell of this.client.findCells({
+        script: address.script,
+        scriptType: "lock",
+        filter,
+        scriptSearchMode: "exact",
+        withData: true,
+      })) {
+        if (
+          tx.inputs.some(({ previousOutput }) =>
+            previousOutput.eq(cell.outPoint),
+          )
+        ) {
+          continue;
+        }
+        const i = collectedCells.push(cell);
+        const next = await Promise.resolve(
+          accumulator(acc, cell, i - 1, collectedCells),
+        );
+        if (next === undefined) {
+          fulfilled = true;
+          break;
+        }
+        acc = next;
+      }
+      if (fulfilled) {
+        break;
+      }
+    }
+
+    collectedCells.forEach((cell) => tx.addInput(cell));
+    if (fulfilled) {
+      return {
+        addedCount: collectedCells.length,
+      };
+    }
+
+    return {
+      addedCount: collectedCells.length,
+      accumulated: acc,
+    };
+  }
+
   async completeInputsByCapacity(
     tx: Transaction,
-    client: Client,
     capacityTweak?: NumLike,
     options?: FeePayerFromAddressOptionsLike,
   ): Promise<number> {
     const expectedCapacity =
       tx.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
-    const inputsCapacity = await tx.getInputsCapacity(client);
+    const inputsCapacity = await tx.getInputsCapacity(this.client);
     if (inputsCapacity >= expectedCapacity) {
       return 0;
     }
 
-    const mergedOptions = this.mergeOptions(options);
     const { addedCount, accumulated } = await this.completeInputs(
       tx,
-      client,
-      mergedOptions.filter ?? {
+      options?.filter ?? {
         scriptLenRange: [0, 1],
         outputDataLenRange: [0, 1],
       },

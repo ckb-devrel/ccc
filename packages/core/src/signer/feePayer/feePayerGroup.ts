@@ -1,10 +1,10 @@
-import { Transaction, TransactionLike } from "../../ckb/transaction.js";
-import { Client } from "../../client/client.js";
+import { ClientCollectableSearchKeyFilterLike } from "../../advancedBarrel.js";
+import { Cell, Transaction, TransactionLike } from "../../ckb/transaction.js";
 import { FeePayer, FeeRateOptionsLike } from "./feePayer.js";
 
 export class FeePayerGroup extends FeePayer {
   constructor(private feePayers: FeePayer[]) {
-    super();
+    super(feePayers[0].client);
   }
 
   async prepareTransaction(txLike: TransactionLike): Promise<Transaction> {
@@ -15,13 +15,39 @@ export class FeePayerGroup extends FeePayer {
     return tx;
   }
 
-  async completeTxFee(
+  async completeInputs<T>(
     tx: Transaction,
-    client: Client,
-    options?: FeeRateOptionsLike,
-  ): Promise<void> {
+    filter: ClientCollectableSearchKeyFilterLike,
+    accumulator: (
+      acc: T,
+      v: Cell,
+      i: number,
+      array: Cell[],
+    ) => Promise<T | undefined> | T | undefined,
+    init: T,
+  ): Promise<{
+    addedCount: number;
+    accumulated?: T;
+  }> {
+    let addedCount = 0;
+    let accumulated: T | undefined;
     for (const payer of this.feePayers) {
-      await payer.completeTxFee(tx, client, options);
+      const { addedCount: payerAddedCount, accumulated: payerAccumulated } =
+        await payer.completeInputs(tx, filter, accumulator, init);
+      addedCount += payerAddedCount;
+      accumulated = accumulated ?? payerAccumulated;
     }
+    return { addedCount, accumulated };
+  }
+
+  async completeTxFee(
+    txLike: TransactionLike,
+    options?: FeeRateOptionsLike,
+  ): Promise<Transaction> {
+    let tx = Transaction.from(txLike);
+    for (const payer of this.feePayers) {
+      tx = await payer.completeTxFee(tx, options);
+    }
+    return tx;
   }
 }

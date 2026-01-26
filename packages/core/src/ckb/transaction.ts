@@ -1957,7 +1957,6 @@ export class Transaction extends mol.Entity.Base<
   }> {
     const { addedCount, accumulated } = await from.completeInputs(
       this,
-      from.client,
       filter,
       accumulator,
       init,
@@ -1972,7 +1971,6 @@ export class Transaction extends mol.Entity.Base<
   ): Promise<number> {
     const addedCount = await from.completeInputsByCapacity(
       this,
-      from.client,
       capacityTweak,
       {
         filter,
@@ -2165,7 +2163,7 @@ export class Transaction extends mol.Entity.Base<
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const result = await from.completeFee(this, from.client, {
+    const result = await from.completeFee(this, {
       changeFn: change,
       feeRate: expectedFeeRate,
       filter,
@@ -2279,17 +2277,14 @@ export class Transaction extends mol.Entity.Base<
     return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
   }
 
-  async completeByFeePayer(
-    client: Client,
-    ...feePayers: FeePayer[]
-  ): Promise<void> {
+  async completeByFeePayer(...feePayers: FeePayer[]): Promise<void> {
     let tx = this.clone();
     for (const feePayer of feePayers) {
       tx = await feePayer.prepareTransaction(tx);
     }
 
     for (const feePayer of feePayers) {
-      await feePayer.completeTxFee(tx, client);
+      await feePayer.completeTxFee(tx);
     }
 
     this.copy(tx);
