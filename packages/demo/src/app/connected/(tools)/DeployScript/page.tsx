@@ -449,8 +449,9 @@ export default function DeployScript() {
               <Message title="Address Mismatch Warning" type="error">
                 <div className="space-y-1 text-sm">
                   <p>
-                    The cell's lock address does not match your wallet address.
-                    You will not be able to unlock this cell to update it.
+                    The cell&apos;s lock address does not match your wallet
+                    address. You will not be able to unlock this cell to update
+                    it.
                   </p>
                   <p className="mt-2">
                     <span className="font-medium">Cell Lock:</span>{" "}
@@ -477,8 +478,8 @@ export default function DeployScript() {
             {isAddressMatch === true && (
               <Message title="Address Match" type="success">
                 <div className="text-sm">
-                  The cell's lock address matches your wallet address. You can
-                  update this cell.
+                  The cell&apos;s lock address matches your wallet address. You
+                  can update this cell.
                 </div>
               </Message>
             )}
