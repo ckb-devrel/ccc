@@ -1268,9 +1268,7 @@ describe("Transaction", () => {
         mockFeePayer2.completeTxFee as ReturnType<typeof vi.fn>
       ).mock.calls[0];
       expect(completeTxFee1Call[0]).toBeInstanceOf(ccc.Transaction);
-      expect(completeTxFee1Call[1]).toBe(client);
       expect(completeTxFee2Call[0]).toBeInstanceOf(ccc.Transaction);
-      expect(completeTxFee2Call[1]).toBe(client);
 
       // Verify prepareTransaction was called before completeTxFee
       // by checking the order of calls
@@ -1437,10 +1435,7 @@ describe("Transaction", () => {
       expect(prepareCallArg).toBeInstanceOf(ccc.Transaction);
       expect(prepareCallArg.outputs.length).toBe(1);
       // completeTxFee should be called with the modified transaction returned by prepareTransaction
-      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(
-        modifiedTx,
-        client,
-      );
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(modifiedTx);
     });
   });
 });
