@@ -1,5 +1,6 @@
 "use client";
 
+import { BigButton } from "@/src/components/BigButton";
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
@@ -74,6 +75,38 @@ function ConfirmationModal({
   );
 }
 
+function TypeIdCellButton({
+  cell,
+  onSelect,
+  isSelected,
+}: {
+  cell: ccc.Cell;
+  onSelect: () => void;
+  isSelected: boolean;
+}) {
+  const typeIdArgs = cell.cellOutput.type?.args || "";
+  const dataSize = cell.outputData ? ccc.bytesFrom(cell.outputData).length : 0;
+
+  return (
+    <BigButton
+      key={ccc.hexFrom(cell.outPoint.toBytes())}
+      size="sm"
+      iconName="FileCode"
+      onClick={onSelect}
+      className={isSelected ? "border-purple-500 bg-purple-50" : ""}
+    >
+      <div className="text-md flex flex-col">
+        <span className="font-mono text-xs break-all">
+          {formatString(typeIdArgs, 8, 6)}
+        </span>
+        <span className="-mt-1 text-xs text-gray-500">
+          {formatFileSize(dataSize)}
+        </span>
+      </div>
+    </BigButton>
+  );
+}
+
 export default function DeployScript() {
   const { signer, createSender } = useApp();
   const { log, error } = createSender("Deploy Script");
@@ -93,6 +126,8 @@ export default function DeployScript() {
   const [isAddressMatch, setIsAddressMatch] = useState<boolean | null>(null);
   const [isCheckingCell, setIsCheckingCell] = useState(false);
   const [cellCheckError, setCellCheckError] = useState<string>("");
+  const [typeIdCells, setTypeIdCells] = useState<ccc.Cell[]>([]);
+  const [isScanningCells, setIsScanningCells] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastCheckedTypeIdRef = useRef<string>("");
   const isCheckingRef = useRef<boolean>(false);
@@ -109,6 +144,44 @@ export default function DeployScript() {
     signer.getRecommendedAddress().then((addr) => {
       setUserAddress(addr);
     });
+  }, [signer]);
+
+  // Scan for all Type ID cells locked under the user's address
+  useEffect(() => {
+    if (!signer) {
+      setTypeIdCells([]);
+      return;
+    }
+
+    setIsScanningCells(true);
+    (async () => {
+      try {
+        const { script: lock } = await signer.getRecommendedAddressObj();
+        const typeIdScript = await ccc.Script.fromKnownScript(
+          signer.client,
+          ccc.KnownScript.TypeId,
+          "",
+        );
+
+        const cells: ccc.Cell[] = [];
+        for await (const cell of signer.client.findCells({
+          script: typeIdScript,
+          scriptType: "type",
+          scriptSearchMode: "prefix",
+          withData: true,
+          filter: {
+            script: lock,
+          },
+        })) {
+          cells.push(cell);
+          setTypeIdCells([...cells]);
+        }
+      } catch (err) {
+        console.error("Error scanning Type ID cells:", err);
+      } finally {
+        setIsScanningCells(false);
+      }
+    })();
   }, [signer]);
 
   // Compare addresses when both are available
@@ -161,7 +234,42 @@ export default function DeployScript() {
     }
   };
 
-  // Automatically check Type ID cell when typeIdArgs changes
+  // Handle selecting a Type ID cell from the scanned list
+  const handleSelectTypeIdCell = async (cell: ccc.Cell) => {
+    const cellTypeIdArgs = cell.cellOutput.type?.args || "";
+
+    // Set the typeIdArgs
+    setTypeIdArgs(cellTypeIdArgs);
+
+    // Directly set the found cell since we already have it
+    setFoundCell(cell);
+
+    // Calculate and set the cell's lock address
+    try {
+      const address = ccc.Address.fromScript(
+        cell.cellOutput.lock,
+        client,
+      ).toString();
+      setFoundCellAddress(address);
+      setCellCheckError("");
+
+      // Since we scanned cells locked under user's address, address always matches
+      setIsAddressMatch(true);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setCellCheckError(`Error getting cell address: ${errorMessage}`);
+      setFoundCellAddress("");
+      setIsAddressMatch(null);
+    }
+
+    // Update the last checked ref to prevent redundant lookup
+    const normalizedTypeIdArgs = cellTypeIdArgs.startsWith("0x")
+      ? cellTypeIdArgs.slice(2)
+      : cellTypeIdArgs;
+    lastCheckedTypeIdRef.current = normalizedTypeIdArgs;
+  };
+
+  // Automatically check Type ID cell when typeIdArgs changes (for manual input)
   useEffect(() => {
     // Normalize Type ID args for comparison
     const normalizedTypeIdArgs = typeIdArgs.trim().startsWith("0x")
@@ -260,7 +368,6 @@ export default function DeployScript() {
     return () => {
       clearTimeout(timeoutId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typeIdArgs, client]);
 
   const handleDeploy = async () => {
@@ -394,13 +501,70 @@ export default function DeployScript() {
       <div className="flex w-full flex-col items-stretch">
         <Message title="Hint" type="info">
           Upload a file to deploy it as a CKB cell with Type ID trait. The file
-          will be stored on-chain and can be referenced by its Type ID. Leave
-          Type ID args empty to create a new cell, or provide existing Type ID
-          args to update an existing cell.
+          will be stored on-chain and can be referenced by its Type ID. Select
+          an existing Type ID cell below to update it, or leave empty to create
+          a new cell.
         </Message>
 
+        {isScanningCells && (
+          <Message title="Scanning..." type="info">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
+              <span>Scanning for Type ID cells...</span>
+            </div>
+          </Message>
+        )}
+
+        {typeIdCells.length > 0 && (
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Select Existing Type ID Cell (Optional)
+            </label>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {typeIdCells.map((cell) => {
+                const cellTypeIdArgs = cell.cellOutput.type?.args || "";
+                const normalizedCellTypeIdArgs = cellTypeIdArgs.startsWith("0x")
+                  ? cellTypeIdArgs.slice(2)
+                  : cellTypeIdArgs;
+                const normalizedTypeIdArgs = typeIdArgs.trim().startsWith("0x")
+                  ? typeIdArgs.trim().slice(2)
+                  : typeIdArgs.trim();
+                const isSelected =
+                  normalizedCellTypeIdArgs === normalizedTypeIdArgs &&
+                  normalizedTypeIdArgs !== "";
+
+                return (
+                  <TypeIdCellButton
+                    key={ccc.hexFrom(cell.outPoint.toBytes())}
+                    cell={cell}
+                    onSelect={() => {
+                      handleSelectTypeIdCell(cell);
+                    }}
+                    isSelected={isSelected}
+                  />
+                );
+              })}
+            </div>
+            {typeIdArgs && (
+              <Button
+                variant="info"
+                className="mt-2"
+                onClick={() => {
+                  setTypeIdArgs("");
+                  setFoundCell(null);
+                  setFoundCellAddress("");
+                  setIsAddressMatch(null);
+                  setCellCheckError("");
+                }}
+              >
+                Clear Selection
+              </Button>
+            )}
+          </div>
+        )}
+
         <TextInput
-          label="Type ID Args (Optional)"
+          label="Type ID Args (Optional - Manual Input)"
           placeholder="Leave empty to create new, or enter existing Type ID args (64 hex chars) to update"
           state={[typeIdArgs, setTypeIdArgs]}
         />
