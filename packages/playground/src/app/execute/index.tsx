@@ -1,8 +1,5 @@
 import * as ecc from "@bitcoinerlab/secp256k1";
-import * as cccLib from "@ckb-ccc/ccc";
-import * as cccAdvancedLib from "@ckb-ccc/ccc/advanced";
 import { ccc } from "@ckb-ccc/connector-react";
-import * as dobRenderLib from "@nervina-labs/dob-render";
 import * as bitcoin from "bitcoinjs-lib";
 import * as React from "react";
 
@@ -117,6 +114,7 @@ export async function execute(
         },
         signer,
         client: signer.client,
+        bitcoin,
       };
     }
 
