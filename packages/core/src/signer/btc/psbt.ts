@@ -1,4 +1,4 @@
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 
 /**
  * Options for signing a PSBT (Partially Signed Bitcoin Transaction)
@@ -22,6 +22,9 @@ export class SignPsbtOptions {
   ) {}
 
   static from(options?: SignPsbtOptionsLike): SignPsbtOptions {
+    if (options instanceof SignPsbtOptions) {
+      return options;
+    }
     return new SignPsbtOptions(
       options?.autoFinalized ?? true,
       options?.inputsToSign?.map((i) => InputToSign.from(i)) ?? [],
@@ -77,16 +80,19 @@ export class InputToSign {
     public sighashTypes?: number[],
     public disableTweakSigner?: boolean,
     public address?: string,
-    public publicKey?: string,
+    public publicKey?: Hex,
   ) {}
 
   static from(input: InputToSignLike): InputToSign {
+    if (input instanceof InputToSign) {
+      return input;
+    }
     return new InputToSign(
       input.index,
       input.sighashTypes,
       input.disableTweakSigner,
       input.address,
-      input.publicKey ? hexFrom(input.publicKey).slice(2) : undefined,
+      input.publicKey ? hexFrom(input.publicKey) : undefined,
     );
   }
 }
