@@ -1,4 +1,4 @@
-import { BtcAssetsApiContext } from "./index.js";
+import { BtcAssetsApiContext } from "./api.js";
 
 export enum ErrorCodes {
   UNKNOWN,
@@ -60,17 +60,5 @@ export class BtcAssetsApiError extends Error {
       ErrorMessages[code] ?? ErrorMessages[ErrorCodes.UNKNOWN];
     const message = comment ? `${prefixMessage}: ${comment}` : undefined;
     return new BtcAssetsApiError({ code, message, context });
-  }
-}
-
-export class OfflineBtcAssetsDataSourceError extends Error {
-  public code = ErrorCodes.UNKNOWN;
-
-  constructor(errorCode: ErrorCodes, message?: string) {
-    const msg =
-      message ?? ErrorMessages[errorCode] ?? ErrorMessages[ErrorCodes.UNKNOWN];
-    super(msg);
-    this.code = errorCode;
-    Object.setPrototypeOf(this, OfflineBtcAssetsDataSourceError.prototype);
   }
 }

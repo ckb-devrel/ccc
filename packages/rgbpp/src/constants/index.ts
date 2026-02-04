@@ -14,6 +14,12 @@ export const UNIQUE_TYPE_OUTPUT_INDEX = 1;
 
 export const DEFAULT_CONFIRMATIONS = 6;
 
+/** Default polling interval in milliseconds for waiting transaction confirmation */
+export const DEFAULT_CONFIRMATION_POLL_INTERVAL = 30_000;
+
+/** Default polling interval in milliseconds for SPV proof polling */
+export const DEFAULT_SPV_POLL_INTERVAL = 30_000;
+
 export const RGBPP_MAX_CELL_NUM = 255;
 
 export const RGBPP_UNLOCK_PARAMS_IDENTIFIER = "RGBPP_UNLOCK_PARAMS";

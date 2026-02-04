@@ -1,4 +1,4 @@
-import { ccc, mol } from "@ckb-ccc/shell";
+import { ccc, mol } from "@ckb-ccc/core";
 
 export interface RgbppUdtToken {
   decimal: number;
@@ -9,12 +9,6 @@ export interface RgbppUdtToken {
 export interface UtxoSeal {
   txId: string;
   index: number;
-}
-
-export interface ScriptInfo {
-  name: string;
-  script: ccc.Script;
-  cellDep: ccc.CellDep;
 }
 
 // struct ExtraCommitmentData {

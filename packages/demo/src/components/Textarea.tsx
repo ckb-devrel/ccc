@@ -1,13 +1,15 @@
+import React from "react";
+
 export function Textarea(
   props: React.ComponentPropsWithoutRef<"textarea"> & {
     state: [string, (v: string) => void];
-    label?: string;
+    label?: React.ReactNode;
   },
 ) {
   return (
     <div className={`relative bg-white/75 p-4 ${props.className ?? ""}`}>
       {props.label ? (
-        <label className="text-sm">{props.label}</label>
+        <label className="flex items-center text-sm">{props.label}</label>
       ) : undefined}
       <textarea
         {...props}

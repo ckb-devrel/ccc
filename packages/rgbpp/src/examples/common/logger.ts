@@ -1,6 +1,6 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join, parse } from "path";
 import { fileURLToPath } from "url";
 import { inspect } from "util";
@@ -40,7 +40,7 @@ export class RgbppTxLogger {
       try {
         this.logFilePath = join(
           options.dir ?? RgbppTxLogger.defaultDir(),
-          options.fileName
+          options.fileName,
         );
 
         parse(this.logFilePath);
@@ -53,7 +53,8 @@ export class RgbppTxLogger {
           writeFileSync(this.logFilePath, JSON.stringify(this.currentLog));
         } else {
           const content = readFileSync(this.logFilePath, "utf8");
-          const txLog = JSON.parse(content);
+
+          const txLog = JSON.parse(content) as RgbppTxLog;
           if (typeof txLog !== "object" || txLog === null) {
             throw new Error("content must be an object of RgbppTxLog");
           }
@@ -75,7 +76,7 @@ export class RgbppTxLogger {
 
   static createFromLogFile(
     fileName: string,
-    dir = RgbppTxLogger.defaultDir()
+    dir = RgbppTxLogger.defaultDir(),
   ): RgbppTxLogger {
     return new RgbppTxLogger({ fileName, dir });
   }
@@ -128,7 +129,11 @@ export class RgbppTxLogger {
   getLogValue(key: string, doPrint = false): unknown {
     const value = this.currentLog[key];
     if (doPrint) {
-      console.log(`${key}: ${value ?? ""}`);
+      if (typeof value === "object" && value !== null) {
+        console.log(`${key}: ${inspect(value, { depth: null, colors: true })}`);
+      } else {
+        console.log(`${key}: ${String(value ?? "")}`);
+      }
     }
     return value;
   }
@@ -164,9 +169,10 @@ export class RgbppTxLogger {
         JSON.stringify(
           this.currentLog,
           (_, value) =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             typeof value === "bigint" ? ccc.numToHex(value) : value,
-          2
-        )
+          2,
+        ),
       );
       console.log("Log saved to", parse(filePath).base);
     } catch (error) {

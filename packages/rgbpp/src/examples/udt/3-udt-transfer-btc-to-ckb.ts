@@ -1,37 +1,44 @@
-import { ccc } from "@ckb-ccc/shell";
-
-import { ScriptInfo } from "../../types/rgbpp/index.js";
+import { ccc } from "@ckb-ccc/core";
+import { Udt } from "@ckb-ccc/udt";
 
 import "../common/load-env.js";
 
 import { initializeRgbppEnv } from "../common/env.js";
 
-import { testnetSudtInfo } from "../common/assets.js";
 import { RgbppTxLogger } from "../common/logger.js";
 
 const {
   rgbppBtcWallet,
   rgbppUdtClient,
   utxoBasedAccountAddress,
-  ckbRgbppUnlockSinger,
+  ckbRgbppUnlockSigner,
   ckbClient,
   ckbSigner,
 } = await initializeRgbppEnv();
 
 async function btcUdtToCkb({
-  udtScriptInfo,
+  udtScriptArgs,
+  customUdtScriptInfo,
   receivers,
 }: {
-  udtScriptInfo: ScriptInfo;
+  udtScriptArgs: ccc.Hex;
+  customUdtScriptInfo?: ccc.ScriptInfo;
   receivers: { address: string; amount: bigint }[];
 }) {
-  const udt = new ccc.udt.Udt(
-    udtScriptInfo.cellDep.outPoint,
-    udtScriptInfo.script,
+  const scriptInfo =
+    customUdtScriptInfo ??
+    (await ckbClient.getKnownScript(ccc.KnownScript.XUdt));
+  const udtInstance = new Udt(
+    scriptInfo.cellDeps[0].cellDep.outPoint,
+    ccc.Script.from({
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
+      args: udtScriptArgs,
+    }),
   );
 
-  let { res: tx } = await udt.transfer(
-    ckbSigner as unknown as ccc.Signer,
+  const { res: tx } = await udtInstance.transfer(
+    ckbSigner,
     await Promise.all(
       receivers.map(async (receiver) => ({
         to: await rgbppUdtClient.buildBtcTimeLockScript(receiver.address),
@@ -40,11 +47,12 @@ async function btcUdtToCkb({
     ),
   );
 
-  const txWithInputs = await udt.completeChangeToLock(
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+  const txWithInputs = await udtInstance.completeChangeToLock(
     tx,
-    ckbRgbppUnlockSinger,
+    ckbRgbppUnlockSigner,
     // merge multiple inputs to a single change output
-    rgbppUdtClient.buildPseudoRgbppLockScript(),
+    pseudoRgbppLock,
   );
 
   const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({
@@ -53,7 +61,7 @@ async function btcUdtToCkb({
     rgbppUdtClient,
     btcChangeAddress: utxoBasedAccountAddress,
     receiverBtcAddresses: [],
-    feeRate: 28,
+    // feeRate: 5,
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
@@ -66,36 +74,19 @@ async function btcUdtToCkb({
   );
 
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
 const logger = new RgbppTxLogger({ opType: "udt-transfer-btc-to-ckb" });
 
 btcUdtToCkb({
-  // udtScriptInfo: {
-  //   name: ccc.KnownScript.XUdt,
-  //   script: await ccc.Script.fromKnownScript(
-  //     ckbClient,
-  //     ccc.KnownScript.XUdt,
-  //     "0x29e04d8c0c246cc1b0027d7aa8a31f56f740134a56d056bb5efdbb00d3c78a44",
-  //   ),
-  //   cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-  //     .cellDep,
-  // },
-
-  udtScriptInfo: {
-    ...testnetSudtInfo,
-    script: await ccc.Script.from({
-      ...testnetSudtInfo.script,
-      args: "0x2f72f0890769a3f0b53d6e40f63e511ec3991fea33a318c129dc5c8a1dce4a64",
-    }),
-  },
-
+  udtScriptArgs:
+    "0x88017813e410f63a21074a54f3a025cfa8319201b43588b50d869c1a2843b76f",
   receivers: [
     {
       address: await ckbSigner.getRecommendedAddress(),
@@ -112,8 +103,9 @@ btcUdtToCkb({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

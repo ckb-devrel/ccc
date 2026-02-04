@@ -1,4 +1,4 @@
-import { OutPoint } from "@ckb-ccc/shell";
+import { OutPoint } from "@ckb-ccc/core";
 
 export function deduplicateByOutPoint<T extends { outPoint: OutPoint }>(
   items: T[],

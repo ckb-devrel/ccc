@@ -1,4 +1,4 @@
-import { spore } from "@ckb-ccc/shell";
+import { spore } from "@ckb-ccc/spore";
 
 import "../common/load-env.js";
 
@@ -17,7 +17,7 @@ async function btcSporeToCkb({
     rgbppBtcWallet,
     rgbppUdtClient,
     utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
+    ckbRgbppUnlockSigner,
     ckbClient,
     ckbSigner,
   } = await initializeRgbppEnv();
@@ -46,12 +46,12 @@ async function btcSporeToCkb({
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
@@ -68,8 +68,9 @@ btcSporeToCkb({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

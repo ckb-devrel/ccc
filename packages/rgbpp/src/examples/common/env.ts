@@ -1,10 +1,10 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
-import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/pk/wallet.js";
-import { ScriptInfo } from "../../types/rgbpp/index.js";
+import { PrivateKeyRgbppBtcWallet } from "../../bitcoin/wallet/private-key.js";
 
 import { parseAddressType } from "../../bitcoin/index.js";
-import { CkbRgbppUnlockSinger } from "../../signer/index.js";
+import { ClientScriptProvider } from "../../configs/index.js";
+import { CkbRgbppUnlockSigner } from "../../signer/index.js";
 import { NetworkConfig, PredefinedNetwork } from "../../types/network.js";
 import { RgbppUdtClient } from "../../udt/index.js";
 import { buildNetworkConfig, isMainnet } from "../../utils/index.js";
@@ -17,24 +17,15 @@ const btcAssetsApiUrl = process.env.BTC_ASSETS_API_URL!;
 const btcAssetsApiToken = process.env.BTC_ASSETS_API_TOKEN!;
 const btcAssetsApiOrigin = process.env.BTC_ASSETS_API_ORIGIN!;
 
-export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
+export async function initializeRgbppEnv(): Promise<{
   ckbClient: ccc.Client;
   ckbSigner: ccc.SignerCkbPrivateKey;
   networkConfig: NetworkConfig;
   utxoBasedAccountAddress: string;
   rgbppUdtClient: RgbppUdtClient;
   rgbppBtcWallet: PrivateKeyRgbppBtcWallet;
-  ckbRgbppUnlockSinger: CkbRgbppUnlockSinger;
+  ckbRgbppUnlockSigner: CkbRgbppUnlockSigner;
 }> {
-  const scripts = scriptInfos?.reduce(
-    (acc: Record<string, any>, { name, script, cellDep }) => {
-      acc.scripts[name] = script;
-      acc.cellDeps[name] = cellDep;
-      return acc;
-    },
-    { scripts: {}, cellDeps: {} },
-  );
-
   const ckbClient = isMainnet(utxoBasedChainName)
     ? new ccc.ClientPublicMainnet()
     : new ccc.ClientPublicTestnet();
@@ -45,10 +36,13 @@ export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
 
   const networkConfig = buildNetworkConfig(
     utxoBasedChainName as PredefinedNetwork,
-    scripts,
   );
 
-  const rgbppUdtClient = new RgbppUdtClient(networkConfig, ckbClient);
+  const rgbppUdtClient = new RgbppUdtClient(
+    networkConfig,
+    ckbClient,
+    new ClientScriptProvider(ckbClient),
+  );
 
   const rgbppBtcWallet = new PrivateKeyRgbppBtcWallet(
     utxoBasedChainPrivateKey,
@@ -58,6 +52,7 @@ export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
       url: btcAssetsApiUrl,
       token: btcAssetsApiToken,
       origin: btcAssetsApiOrigin,
+      isMainnet: networkConfig.isMainnet,
     },
   );
 
@@ -68,12 +63,11 @@ export async function initializeRgbppEnv(scriptInfos?: ScriptInfo[]): Promise<{
     utxoBasedAccountAddress: await rgbppBtcWallet.getAddress(),
     rgbppUdtClient,
     rgbppBtcWallet,
-    ckbRgbppUnlockSinger: new CkbRgbppUnlockSinger(
+    ckbRgbppUnlockSigner: new CkbRgbppUnlockSigner({
       ckbClient,
-      await rgbppBtcWallet.getAddress(),
-      rgbppBtcWallet,
-      rgbppBtcWallet,
-      rgbppUdtClient.getRgbppScriptInfos(),
-    ),
+      rgbppBtcAddress: await rgbppBtcWallet.getAddress(),
+      btcDataSource: rgbppBtcWallet,
+      scriptInfos: await rgbppUdtClient.scriptManager.getRgbppScriptInfos(),
+    }),
   };
 }

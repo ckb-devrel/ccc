@@ -1,4 +1,5 @@
-import { ccc, spore } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { spore } from "@ckb-ccc/spore";
 
 import "../common/load-env.js";
 
@@ -16,17 +17,19 @@ async function transferSpore(
     rgbppBtcWallet,
     rgbppUdtClient,
     utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
+    ckbRgbppUnlockSigner,
     ckbClient,
     ckbSigner,
   } = await initializeRgbppEnv();
+
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
 
   let ckbPartialTx = ccc.Transaction.from({});
   for (const { sporeTypeArgs } of transfers) {
     const { tx: _ckbPartialTx } = await spore.transferSpore({
       signer: ckbSigner,
       id: sporeTypeArgs,
-      to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+      to: pseudoRgbppLock,
       tx: ckbPartialTx,
     });
     ckbPartialTx = _ckbPartialTx;
@@ -50,12 +53,12 @@ async function transferSpore(
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
@@ -78,8 +81,9 @@ transferSpore([
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

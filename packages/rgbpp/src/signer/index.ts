@@ -6,14 +6,17 @@ import {
   SignerType,
   Transaction,
   TransactionLike,
-} from "@ckb-ccc/shell";
+} from "@ckb-ccc/core";
+import { spore } from "@ckb-ccc/spore";
 
 import { transactionToHex } from "../bitcoin/index.js";
 
-import { TX_ID_PLACEHOLDER } from "../constants/index.js";
-import { SimpleBtcClient } from "../interfaces/btc.js";
-import { SpvProofProvider } from "../interfaces/spv.js";
-import { PredefinedScriptName } from "../types/script.js";
+import {
+  DEFAULT_SPV_POLL_INTERVAL,
+  TX_ID_PLACEHOLDER,
+} from "../constants/index.js";
+import { RgbppBtcDataSource } from "../interfaces/btc.js";
+import { RgbppScriptName } from "../types/script.js";
 import { SpvProof } from "../types/spv.js";
 import { deduplicateByOutPoint } from "../utils/common.js";
 import { trimHexPrefix } from "../utils/encoder.js";
@@ -29,15 +32,24 @@ import {
 } from "../utils/script.js";
 import { pollForSpvProof } from "../utils/spv.js";
 
-export class CkbRgbppUnlockSinger extends ccc.Signer {
+export interface CkbRgbppUnlockSignerParams {
+  ckbClient: ccc.Client;
+  rgbppBtcAddress: string;
+  btcDataSource: RgbppBtcDataSource;
+  scriptInfos: Record<RgbppScriptName, ccc.ScriptInfo>;
+  /** Polling interval in milliseconds for SPV proof polling (default: 30000, minimum: 5000) */
+  spvPollInterval?: number;
+}
+
+export class CkbRgbppUnlockSigner extends ccc.Signer {
   // map of script code hash to script name
-  private readonly scriptMap: Record<string, PredefinedScriptName>;
+  private readonly scriptMap: Record<string, ccc.KnownScript>;
   private readonly rgbppScriptInfos: {
-    [PredefinedScriptName.RgbppLock]: {
+    [ccc.KnownScript.RgbppLock]: {
       script: ccc.Script;
       cellDep: ccc.CellDep;
     };
-    [PredefinedScriptName.BtcTimeLock]: {
+    [ccc.KnownScript.BtcTimeLock]: {
       script: ccc.Script;
       cellDep: ccc.CellDep;
     };
@@ -45,31 +57,50 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
 
   private spvProofCache = new Map<string, Promise<SpvProof>>();
   private cacheExpiryTime = 600_000;
-  private spvPollInterval = 10_000;
+  private readonly spvPollInterval: number;
+  private readonly rgbppBtcAddress: string;
+  private readonly btcDataSource: RgbppBtcDataSource;
 
-  constructor(
-    ckbClient: ccc.Client,
-    private readonly rgbppBtcAddress: string,
-    private readonly spvProofProvider: SpvProofProvider,
-    private readonly simpleBtcClient: SimpleBtcClient,
-    scriptInfos: Record<
-      PredefinedScriptName,
-      { script: ccc.Script; cellDep: ccc.CellDep }
-    >,
-  ) {
+  constructor({
+    ckbClient,
+    rgbppBtcAddress,
+    btcDataSource,
+    scriptInfos,
+    spvPollInterval,
+  }: CkbRgbppUnlockSignerParams) {
     super(ckbClient);
+    this.rgbppBtcAddress = rgbppBtcAddress;
+    this.btcDataSource = btcDataSource;
+
     this.scriptMap = Object.fromEntries(
       Object.entries(scriptInfos).map(([key, value]) => [
-        value.script.codeHash,
-        key as PredefinedScriptName,
+        value.codeHash,
+        key as ccc.KnownScript,
       ]),
     );
+
+    // Convert ccc.ScriptInfo to internal format
+    const convertScriptInfo = (info: ccc.ScriptInfo) => ({
+      script: ccc.Script.from({
+        codeHash: info.codeHash,
+        hashType: info.hashType,
+        args: "",
+      }),
+      cellDep: info.cellDeps[0].cellDep,
+    });
+
     this.rgbppScriptInfos = {
-      [PredefinedScriptName.RgbppLock]:
-        scriptInfos[PredefinedScriptName.RgbppLock],
-      [PredefinedScriptName.BtcTimeLock]:
-        scriptInfos[PredefinedScriptName.BtcTimeLock],
+      [ccc.KnownScript.RgbppLock]: convertScriptInfo(
+        scriptInfos[ccc.KnownScript.RgbppLock],
+      ),
+      [ccc.KnownScript.BtcTimeLock]: convertScriptInfo(
+        scriptInfos[ccc.KnownScript.BtcTimeLock],
+      ),
     };
+    this.spvPollInterval = Math.max(
+      spvPollInterval ?? DEFAULT_SPV_POLL_INTERVAL,
+      5_000,
+    );
   }
 
   get type(): SignerType {
@@ -80,12 +111,12 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
     return SignerSignType.Unknown;
   }
 
-  getScriptName(script?: ccc.Script): PredefinedScriptName | undefined {
+  getScriptName(script?: ccc.Script): ccc.KnownScript | undefined {
     return script ? this.scriptMap[script.codeHash] : undefined;
   }
 
   async collectCellDeps(tx: Transaction): Promise<ccc.CellDep[]> {
-    const scriptNames = new Set<PredefinedScriptName>(
+    const scriptNames = new Set<ccc.KnownScript>(
       [
         ...(
           await Promise.all(
@@ -101,13 +132,13 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
           )
         ).flat(),
         ...tx.outputs.map((output) => this.getScriptName(output.type)),
-      ].filter((name): name is PredefinedScriptName => !!name),
+      ].filter((name): name is ccc.KnownScript => !!name),
     );
 
-    let cellDeps = Array.from(scriptNames).flatMap((name) => {
+    const cellDeps = Array.from(scriptNames).flatMap((name) => {
       if (
-        name === PredefinedScriptName.RgbppLock ||
-        name === PredefinedScriptName.BtcTimeLock
+        name === ccc.KnownScript.RgbppLock ||
+        name === ccc.KnownScript.BtcTimeLock
       ) {
         return [
           this.rgbppScriptInfos[name].cellDep,
@@ -126,7 +157,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
     // TODO: extract into a method
     // ? * handle cluster transfer in spore transfer because of not being able to use cluster mode
     const clusterScriptInfos = Object.values(
-      ccc.spore.getClusterScriptInfos(this.client),
+      spore.getClusterScriptInfos(this.client),
     );
     const clusterIndicesInInputs: number[] = [];
     const clusterIndicesInOutputs: number[] = [];
@@ -164,7 +195,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
       const inputCluster = tx.inputs[clusterIndicesInInputs[0]];
       await inputCluster.completeExtraInfos(this.client);
       const inputClusterId = inputCluster.cellOutput!.type!.args;
-      const { cell: inputClusterCell } = await ccc.spore.assertCluster(
+      const { cell: inputClusterCell } = await spore.assertCluster(
         this.client,
         inputClusterId,
       );
@@ -207,14 +238,14 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
   }
 
   private async getSpvProof(btcTxId: string): Promise<SpvProof> {
-    let spvProof = this.spvProofCache.get(btcTxId);
+    const spvProof = this.spvProofCache.get(btcTxId);
 
     if (spvProof) {
       return spvProof;
     }
 
     const proofPromise = pollForSpvProof(
-      this.spvProofProvider,
+      this.btcDataSource,
       btcTxId,
       0,
       this.spvPollInterval,
@@ -243,7 +274,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
   }
 
   async getRawBtcTxHex(txId: string): Promise<string> {
-    const hex = await this.simpleBtcClient.getTransactionHex(txId);
+    const hex = await this.btcDataSource.getTransactionHex(txId);
     const parseTx = bitcoin.Transaction.fromHex(hex);
     return transactionToHex(parseTx, false);
   }
@@ -252,8 +283,8 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
     const outputs = tx.outputs.filter((output) => output.lock);
     const rgbppOutput = outputs.find((output) =>
       isUsingOneOfScripts(output.lock, [
-        this.rgbppScriptInfos[PredefinedScriptName.RgbppLock].script,
-        this.rgbppScriptInfos[PredefinedScriptName.BtcTimeLock].script,
+        this.rgbppScriptInfos[ccc.KnownScript.RgbppLock].script,
+        this.rgbppScriptInfos[ccc.KnownScript.BtcTimeLock].script,
       ]),
     );
     if (!rgbppOutput) {
@@ -291,8 +322,6 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
 
     const rgbppWitness = ccc.WitnessArgs.from({
       lock: rgbppUnlock,
-      inputType: "",
-      outputType: "",
     }).toBytes();
 
     tx.inputs.forEach((_, index) => {
@@ -314,12 +343,12 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
     tx.witnesses = tx.witnesses.slice(0, tx.inputs.length);
 
     let btcTxId: string | undefined;
-    let rgbppLockArgs: ccc.Hex[] = [];
+    const rgbppLockArgs: ccc.Hex[] = [];
     for (const output of tx.outputs) {
       if (
         isSameScriptTemplate(
           output.lock,
-          this.rgbppScriptInfos[PredefinedScriptName.RgbppLock].script,
+          this.rgbppScriptInfos[ccc.KnownScript.RgbppLock].script,
         )
       ) {
         btcTxId = getTxIdFromScriptArgs(output.lock.args);
@@ -327,7 +356,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
       } else if (
         isSameScriptTemplate(
           output.lock,
-          this.rgbppScriptInfos[PredefinedScriptName.BtcTimeLock].script,
+          this.rgbppScriptInfos[ccc.KnownScript.BtcTimeLock].script,
         )
       ) {
         btcTxId = getTxIdFromScriptArgs(output.lock.args);
@@ -338,7 +367,6 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
       throw new Error("Invalid transaction");
     }
 
-    let cobuild: ccc.Hex;
     if (rgbppLockArgs.length > 0) {
       let currentCobuild = pseudoCobuild;
       const pseudoArg = trimHexPrefix(pseudoRgbppLockArgs());
@@ -356,10 +384,10 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
           currentCobuild.substring(index + pseudoArg.length);
         lastIndex = index + trimHexPrefix(lockArg).length;
       }
-      pseudoCobuild = currentCobuild as ccc.Hex;
+      pseudoCobuild = currentCobuild;
     }
 
-    cobuild = pseudoCobuild.replace(
+    const cobuild = pseudoCobuild.replace(
       btcTxIdInReverseByteOrder(TX_ID_PLACEHOLDER),
       btcTxIdInReverseByteOrder(btcTxId),
     ) as ccc.Hex;
@@ -378,7 +406,7 @@ export class CkbRgbppUnlockSinger extends ccc.Signer {
   }
 
   async getAddressObjs(): Promise<ccc.Address[]> {
-    const rgbppCellOutputs = await this.simpleBtcClient.getRgbppCellOutputs(
+    const rgbppCellOutputs = await this.btcDataSource.getRgbppCellOutputs(
       this.rgbppBtcAddress,
     );
 

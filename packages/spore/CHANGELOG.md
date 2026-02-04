@@ -1,5 +1,30 @@
 # @ckb-ccc/spore
 
+## 1.5.17
+### Patch Changes
+
+- Updated dependencies [[`a96dec6`](https://github.com/ckb-devrel/ccc/commit/a96dec6d0517113391b0edc510f1af821a45d5a8)]:
+  - @ckb-ccc/core@1.12.5
+
+## 1.5.16
+### Patch Changes
+
+- Updated dependencies [[`b4aa99f`](https://github.com/ckb-devrel/ccc/commit/b4aa99f1b87c1d14117a15fa1fcac6f9e60b43c1)]:
+  - @ckb-ccc/core@1.12.4
+
+## 1.5.15
+### Patch Changes
+
+- Updated dependencies [[`6a3be47`](https://github.com/ckb-devrel/ccc/commit/6a3be477b40870dc40d491ce51e667f61f70965e)]:
+  - @ckb-ccc/core@1.12.3
+
+## 1.5.14
+### Patch Changes
+
+
+
+- [#324](https://github.com/ckb-devrel/ccc/pull/324) [`3aa4425`](https://github.com/ckb-devrel/ccc/commit/3aa4425c6f7d756ceb464f58716b1a89620e2d5b) Thanks [@ashuralyk](https://github.com/ashuralyk)! - Enable searching manual proxy lock for cluster in LockProxy mode
+
 ## 1.5.13
 ### Patch Changes
 

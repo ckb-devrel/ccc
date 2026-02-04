@@ -2,14 +2,14 @@ import ecc from "@bitcoinerlab/secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 
-import { trimHexPrefix } from "../../../utils/index.js";
-import { AddressType } from "../../types/tx.js";
+import { trimHexPrefix } from "../../utils/index.js";
+import { AddressType } from "../types/address.js";
 import {
   isSupportedAddressType,
   SUPPORTED_ADDRESS_TYPES,
   toBtcNetwork,
-  toXOnly,
-} from "../../utils/index.js";
+} from "../utils/index.js";
+import { toXOnly } from "../utils/script.js";
 
 bitcoin.initEccLib(ecc);
 const ECPair = ECPairFactory(ecc);
@@ -163,7 +163,8 @@ export function transactionToHex(
   tx: bitcoin.Transaction,
   withWitness?: boolean,
 ): string {
-  const buffer: Buffer = tx["__toBuffer"](
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
+  const buffer: Buffer = (tx as any)["__toBuffer"](
     undefined,
     undefined,
     withWitness ?? false,

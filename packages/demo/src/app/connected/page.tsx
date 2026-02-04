@@ -51,7 +51,13 @@ const TABS: [ReactNode, string, keyof typeof icons, string][] = [
   ["Hash", "/utils/Hash", "Barcode", "text-violet-500"],
   ["Mnemonic", "/utils/Mnemonic", "SquareAsterisk", "text-fuchsia-500"],
   ["Keystore", "/utils/Keystore", "Notebook", "text-rose-500"],
-  ["Issue RGB++ xUDT", "/connected/IssueRgbppXUdt", "Rss", "text-sky-500"],
+  ["Issue RGB++ xUDT", "/connected/IssueRgbppXUdt", "Badge", "text-sky-500"],
+  [
+    "Transfer RGB++ xUDT",
+    "/connected/TransferRgbppXUdt",
+    "Banknote",
+    "text-sky-500",
+  ],
 ];
 /* eslint-enable react/jsx-key */
 

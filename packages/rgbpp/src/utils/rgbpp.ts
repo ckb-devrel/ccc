@@ -1,8 +1,9 @@
 import { sha256 } from "js-sha256";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
-import { convertToOutput, InitOutput, TxOutput } from "../bitcoin/index.js";
+import { InitOutput, TxOutput } from "../bitcoin/types/transaction.js";
+import { convertToOutput } from "../bitcoin/utils/transaction.js";
 
 import {
   BLANK_TX_ID,
@@ -173,17 +174,19 @@ export const isCommitmentMatched = (
 };
 
 // RGB++ related outputs
-export const buildBtcRgbppOutputs = (
+export const buildBtcRgbppOutputs = async (
   ckbPartialTx: ccc.Transaction,
   btcChangeAddress: string,
   receiverBtcAddresses: string[],
   btcDustLimit: number,
   rgbppUdtClient: RgbppUdtClient,
-): TxOutput[] => {
+): Promise<TxOutput[]> => {
   const commitment = calculateCommitment(ckbPartialTx);
 
-  const rgbppLockScriptTemplate = rgbppUdtClient.rgbppLockScriptTemplate();
-  const btcTimeLockScriptTemplate = rgbppUdtClient.btcTimeLockScriptTemplate();
+  const rgbppLockScriptTemplate =
+    await rgbppUdtClient.rgbppLockScriptTemplate();
+  const btcTimeLockScriptTemplate =
+    await rgbppUdtClient.btcTimeLockScriptTemplate();
 
   const outputs: InitOutput[] = [];
   let lastCkbTypedOutputIndex = -1;

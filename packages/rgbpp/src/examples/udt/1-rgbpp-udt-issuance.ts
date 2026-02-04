@@ -1,8 +1,8 @@
-import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
+import { UtxoSeal } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 import { issuanceAmount, udtToken } from "../common/assets.js";
 import { initializeRgbppEnv } from "../common/env.js";
 import { RgbppTxLogger } from "../common/logger.js";
@@ -12,22 +12,25 @@ const {
   rgbppBtcWallet,
   rgbppUdtClient,
   utxoBasedAccountAddress,
-  ckbRgbppUnlockSinger,
+  ckbRgbppUnlockSigner,
   ckbClient,
   ckbSigner,
 } = await initializeRgbppEnv();
 
 async function issueUdt({
-  udtScriptInfo,
+  customUdtScriptInfo,
   utxoSeal,
 }: {
-  udtScriptInfo: ScriptInfo;
+  customUdtScriptInfo?: ccc.ScriptInfo;
   utxoSeal?: UtxoSeal;
-}) {
+} = {}) {
   if (!utxoSeal) {
-    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 10 });
+    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
   }
 
+  const udtScriptInfo =
+    customUdtScriptInfo ??
+    (await ckbClient.getKnownScript(ccc.KnownScript.XUdt));
   const rgbppIssuanceCells = await prepareRgbppCells(
     ckbClient,
     ckbSigner,
@@ -52,7 +55,7 @@ async function issueUdt({
     rgbppUdtClient,
     btcChangeAddress: utxoBasedAccountAddress,
     receiverBtcAddresses: [utxoBasedAccountAddress],
-    feeRate: 28,
+    // feeRate: 5,
   });
   logger.logCkbTx("indexedCkbPartialTx", indexedCkbPartialTx);
 
@@ -64,46 +67,30 @@ async function issueUdt({
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   // > Commitment must cover all Inputs and Outputs where Type is not null;
   // https://github.com/utxostack/RGBPlusPlus-design/blob/main/docs/lockscript-design-prd-en.md#requirements-and-limitations-on-isomorphic-binding
   // https://github.com/fghdotio/rgbpp/blob/main/contracts/rgbpp-lock/src/main.rs#L197-L200
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
+  logger.logCkbTx("ckbFinalTx", ckbFinalTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
 const logger = new RgbppTxLogger({ opType: "udt-issuance" });
 
-issueUdt({
-  udtScriptInfo: {
-    name: ccc.KnownScript.XUdt,
-    script: await ccc.Script.fromKnownScript(
-      ckbClient,
-      ccc.KnownScript.XUdt,
-      "",
-    ),
-    cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-      .cellDep,
-  },
-
-  // udtScriptInfo: testnetSudtInfo,
-
-  utxoSeal: {
-    txId: "45a32a70556205a6f0523448406218ea12c1b61c10a2df8f844ec0a2609ccb6c",
-    index: 2,
-  },
-})
+issueUdt()
   .then(() => {
     logger.saveOnSuccess();
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

@@ -1,61 +1,48 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import {
   TX_ID_PLACEHOLDER,
   UNIQUE_TYPE_OUTPUT_INDEX,
 } from "../constants/index.js";
 
-import { ScriptManager } from "../configs/index.js";
+import { ScriptManager } from "../configs/script-manager.js";
 import { deadLock } from "../configs/scripts/index.js";
-import { NetworkConfig, UtxoSeal } from "../types/index.js";
+import { NetworkConfig } from "../types/network.js";
+import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
 import { RgbppUdtIssuance } from "../types/rgbpp/udt.js";
-import { PredefinedScriptName } from "../types/script.js";
+import { IScriptProvider, RgbppScriptName } from "../types/script.js";
+import { deduplicateByOutPoint } from "../utils/common.js";
+import { u128ToLe } from "../utils/encoder.js";
+import { encodeRgbppUdtToken } from "../utils/rgbpp.js";
 import {
-  deduplicateByOutPoint,
-  encodeRgbppUdtToken,
   isUsingOneOfScripts,
-  u128ToLe,
   updateScriptArgsWithTxId,
-} from "../utils/index.js";
+} from "../utils/script.js";
 
 export class RgbppUdtClient {
-  private scriptManager: ScriptManager;
+  public scriptManager: ScriptManager;
 
   constructor(
-    networkConfig: NetworkConfig,
+    _networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
+    scriptProvider: IScriptProvider,
   ) {
-    this.scriptManager = new ScriptManager(
-      networkConfig.scripts,
-      networkConfig.cellDeps,
-    );
+    this.scriptManager = new ScriptManager(scriptProvider);
   }
 
-  getRgbppScriptInfos() {
-    return this.scriptManager.getScriptInfos();
+  async rgbppLockScriptTemplate(): Promise<ccc.Script> {
+    return this.scriptManager.rgbppLockScriptTemplate();
   }
 
-  getRgbppScriptInfoByName(name: PredefinedScriptName) {
-    return this.scriptManager.getScriptInfoByName(name);
+  async btcTimeLockScriptTemplate(): Promise<ccc.Script> {
+    return this.scriptManager.btcTimeLockScriptTemplate();
   }
 
-  rgbppLockScriptTemplate() {
-    return this.scriptManager.getScriptInfoByName(
-      PredefinedScriptName.RgbppLock,
-    ).script;
-  }
-
-  btcTimeLockScriptTemplate() {
-    return this.scriptManager.getScriptInfoByName(
-      PredefinedScriptName.BtcTimeLock,
-    ).script;
-  }
-
-  buildRgbppLockScript(utxoSeal: UtxoSeal) {
+  async buildRgbppLockScript(utxoSeal: UtxoSeal): Promise<ccc.Script> {
     return this.scriptManager.buildRgbppLockScript(utxoSeal);
   }
 
-  buildPseudoRgbppLockScript() {
+  async buildPseudoRgbppLockScript(): Promise<ccc.Script> {
     return this.scriptManager.buildPseudoRgbppLockScript();
   }
 
@@ -74,16 +61,35 @@ export class RgbppUdtClient {
     );
   }
 
+  async getRgbppScriptInfos(): Promise<
+    Record<RgbppScriptName, ccc.ScriptInfo>
+  > {
+    const [rgbppLock, btcTimeLock, uniqueType] = await Promise.all([
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
+      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.UniqueType),
+    ]);
+
+    return {
+      [ccc.KnownScript.RgbppLock]: rgbppLock,
+      [ccc.KnownScript.BtcTimeLock]: btcTimeLock,
+      [ccc.KnownScript.UniqueType]: uniqueType,
+    } as Record<RgbppScriptName, ccc.ScriptInfo>;
+  }
+
   // * It's assumed that all the tx.outputs are rgbpp/btc time lock scripts.
-  injectTxIdToRgbppCkbTx = (
+  injectTxIdToRgbppCkbTx = async (
     tx: ccc.Transaction,
     txId: string,
-  ): ccc.Transaction => {
-    const outputs = tx.outputs.map((output, index) => {
+  ): Promise<ccc.Transaction> => {
+    const rgbppLockTemplate = await this.rgbppLockScriptTemplate();
+    const btcTimeLockTemplate = await this.btcTimeLockScriptTemplate();
+
+    const outputs = tx.outputs.map((output, _index) => {
       if (
         !isUsingOneOfScripts(output.lock, [
-          this.rgbppLockScriptTemplate(),
-          this.btcTimeLockScriptTemplate(),
+          rgbppLockTemplate,
+          btcTimeLockTemplate,
         ])
       ) {
         throw new Error(
@@ -106,6 +112,48 @@ export class RgbppUdtClient {
     });
   };
 
+  async createRgbppUdtIssuanceCells(
+    signer: ccc.Signer,
+    utxoSeal: UtxoSeal,
+  ): Promise<ccc.Cell[]> {
+    const rgbppLockScript = await this.buildRgbppLockScript(utxoSeal);
+
+    const rgbppCellsGen = signer.client.findCellsByLock(rgbppLockScript);
+    const rgbppCells: ccc.Cell[] = [];
+    for await (const cell of rgbppCellsGen) {
+      rgbppCells.push(cell);
+    }
+
+    if (rgbppCells.length !== 0) {
+      console.log("Using existing RGB++ cell");
+      return rgbppCells;
+    }
+
+    console.log("RGB++ cell not found, creating a new one");
+    const tx = ccc.Transaction.default();
+
+    // If additional capacity is required when used as an input in a transaction, it can always be supplemented in `completeInputsByCapacity`.
+    tx.addOutput({
+      lock: rgbppLockScript,
+    });
+
+    await tx.completeInputsByCapacity(signer);
+    await tx.completeFeeBy(signer);
+    const txHash = await signer.sendTransaction(tx);
+    await signer.client.waitTransaction(txHash);
+    console.log(`RGB++ cell created, txHash: ${txHash}`);
+
+    const cell = await signer.client.getCellLive({
+      txHash,
+      index: 0,
+    });
+    if (!cell) {
+      throw new Error("Cell not found");
+    }
+
+    return [cell];
+  }
+
   async issuanceCkbPartialTx(
     params: RgbppUdtIssuance,
   ): Promise<ccc.Transaction> {
@@ -116,20 +164,37 @@ export class RgbppUdtClient {
     const rgpbbLiveCells = deduplicateByOutPoint(params.rgbppLiveCells);
 
     const tx = ccc.Transaction.default();
-    rgpbbLiveCells.forEach((cell) => {
-      const cellInput = ccc.CellInput.from({
-        previousOutput: cell.outPoint,
-      });
-      cellInput.completeExtraInfos(this.ckbClient);
+    await Promise.all(
+      rgpbbLiveCells.map(async (cell) => {
+        const cellInput = ccc.CellInput.from({
+          previousOutput: cell.outPoint,
+        });
+        await cellInput.completeExtraInfos(this.ckbClient);
 
-      tx.inputs.push(cellInput);
-    });
+        tx.inputs.push(cellInput);
+      }),
+    );
+
+    const pseudoRgbppLock =
+      await this.scriptManager.buildPseudoRgbppLockScript();
+    const btcTimeLock = await this.scriptManager.buildBtcTimeLockScript(
+      deadLock,
+      TX_ID_PLACEHOLDER,
+    );
+    const uniqueType = await this.scriptManager.buildUniqueTypeScript(
+      tx.inputs[0],
+      UNIQUE_TYPE_OUTPUT_INDEX,
+    );
+    const uniqueTypeInfo = await this.scriptManager.getKnownScriptInfo(
+      ccc.KnownScript.UniqueType,
+    );
 
     tx.addOutput(
       {
-        lock: this.scriptManager.buildPseudoRgbppLockScript(),
+        lock: pseudoRgbppLock,
         type: ccc.Script.from({
-          ...params.udtScriptInfo.script,
+          codeHash: params.udtScriptInfo.codeHash,
+          hashType: params.udtScriptInfo.hashType,
           args: params.rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
         }),
       },
@@ -138,22 +203,15 @@ export class RgbppUdtClient {
 
     tx.addOutput(
       {
-        lock: this.scriptManager.buildBtcTimeLockScript(
-          deadLock,
-          TX_ID_PLACEHOLDER,
-        ),
-        type: this.scriptManager.buildUniqueTypeScript(
-          tx.inputs[0],
-          UNIQUE_TYPE_OUTPUT_INDEX,
-        ),
+        lock: btcTimeLock,
+        type: uniqueType,
       },
       encodeRgbppUdtToken(params.token),
     );
 
     tx.addCellDeps(
-      params.udtScriptInfo.cellDep,
-      this.scriptManager.getScriptInfoByName(PredefinedScriptName.UniqueType)
-        .cellDep,
+      params.udtScriptInfo.cellDeps[0].cellDep,
+      uniqueTypeInfo.cellDeps[0].cellDep,
     );
 
     return tx;

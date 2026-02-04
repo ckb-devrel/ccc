@@ -1,6 +1,6 @@
 import { Psbt, Transaction } from "bitcoinjs-lib";
 
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import {
   btcTxIdInReverseByteOrder,
@@ -10,54 +10,119 @@ import {
   parseUtxoSealFromScriptArgs,
   pseudoRgbppLockArgs,
   pseudoRgbppLockArgsForCommitment,
+  retryWithBackoff,
+  trimHexPrefix,
   u32ToHex,
 } from "../../utils/index.js";
+import { RetryOptions } from "../../utils/retry.js";
 
 import {
   BLANK_TX_ID,
   BTC_TX_PSEUDO_INDEX,
+  DEFAULT_CONFIRMATION_POLL_INTERVAL,
   TX_ID_PLACEHOLDER,
 } from "../../constants/index.js";
 
 import { UtxoSeal } from "../../types/rgbpp/rgbpp.js";
 
-import { BtcAssetsApiBase } from "../service/base.js";
-import { BtcAssetApiConfig } from "../types/btc-assets-api.js";
-import { RgbppBtcTxParams } from "../types/rgbpp.js";
+import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
 import {
+  BtcApiBalance,
   BtcApiRecommendedFeeRates,
   BtcApiSentTransaction,
   BtcApiTransaction,
   BtcApiTransactionHex,
   BtcApiUtxo,
+} from "../types/api.js";
+import { PublicKeyProvider } from "../types/public-key.js";
+import { RgbppBtcTxParams } from "../types/rgbpp.js";
+import {
+  BtcApiBalanceParams,
   BtcApiUtxoParams,
   TxInputData,
   TxOutput,
   Utxo,
   UtxoSealOptions,
-} from "../types/tx.js";
+} from "../types/transaction.js";
 import {
   getAddressType,
   isOpReturnScriptPubkey,
   toBtcNetwork,
   utxoToInputData,
 } from "../utils/index.js";
-import { transactionToHex } from "./pk/account.js";
+import { transactionToHex } from "./account.js";
+import {
+  CachedPublicKeyProvider,
+  CompositePublicKeyProvider,
+  WalletPublicKeyProvider,
+} from "./public-key.js";
 
 import { NetworkConfig } from "../../types/network.js";
 import { RgbppApiSpvProof } from "../../types/spv.js";
 
 const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
 
-export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
+export abstract class RgbppBtcWallet {
+  protected btcAssetsApi: BtcAssetsApiBase;
+  protected networkConfig: NetworkConfig;
+  protected publicKeyProvider: PublicKeyProvider;
+  private cachedProvider: CachedPublicKeyProvider;
+
   constructor(
-    protected networkConfig: NetworkConfig,
+    networkConfig: NetworkConfig,
     btcAssetApiConfig: BtcAssetApiConfig,
   ) {
-    super(btcAssetApiConfig);
+    this.btcAssetsApi = new BtcAssetsApiBase(btcAssetApiConfig);
+    this.networkConfig = networkConfig;
+
+    // Initialize public key providers
+    this.cachedProvider = new CachedPublicKeyProvider();
+    this.publicKeyProvider = new CompositePublicKeyProvider([
+      this.cachedProvider,
+      new WalletPublicKeyProvider(this),
+    ]);
   }
 
+  /**
+   * Get the current wallet address
+   */
   abstract getAddress(): Promise<string>;
+
+  /**
+   * Get the public key for the current wallet address
+   * @returns Public key in hex format (33-byte compressed format)
+   */
+  abstract getPublicKey(): Promise<string>;
+
+  /**
+   * Register a public key for a specific address
+   * This is useful when you need to spend UTXOs from addresses other than the current wallet
+   *
+   * @param address - Bitcoin address
+   * @param publicKey - Public key in hex format (33-byte compressed or 32-byte x-only format)
+   *
+   * @example
+   * ```typescript
+   * // Register a public key for a service address
+   * wallet.registerPublicKey(
+   *   "bc1p_service_address_xxx",
+   *   "02abc123..." // 33-byte compressed public key
+   * );
+   * ```
+   */
+  registerPublicKey(address: string, publicKey: string): void {
+    this.cachedProvider.addMapping(address, publicKey);
+  }
+
+  /**
+   * Set a custom public key provider
+   * This will replace the default composite provider
+   *
+   * @param provider - The public key provider to use
+   */
+  setPublicKeyProvider(provider: PublicKeyProvider): void {
+    this.publicKeyProvider = provider;
+  }
 
   async buildPsbt(
     params: RgbppBtcTxParams,
@@ -84,17 +149,17 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
 
     const inputs = await this.buildInputs(utxoSeals);
 
+    // Pre-fetch script templates for comparison
+    const rgbppLockTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
+    const btcTimeLockTemplate =
+      await rgbppUdtClient.btcTimeLockScriptTemplate();
+
     // adjust index in rgbpp lock args of outputs
     let rgbppIndex = 0;
     const commitmentOutputs: ccc.CellOutput[] = [];
     const indexedOutputs: ccc.CellOutput[] = [];
     for (const output of ckbPartialTx.outputs) {
-      if (
-        isSameScriptTemplate(
-          output.lock,
-          rgbppUdtClient.rgbppLockScriptTemplate(),
-        )
-      ) {
+      if (isSameScriptTemplate(output.lock, rgbppLockTemplate)) {
         indexedOutputs.push(
           ccc.CellOutput.from({
             ...output,
@@ -120,12 +185,7 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
           }),
         );
         rgbppIndex++;
-      } else if (
-        isSameScriptTemplate(
-          output.lock,
-          rgbppUdtClient.btcTimeLockScriptTemplate(),
-        )
-      ) {
+      } else if (isSameScriptTemplate(output.lock, btcTimeLockTemplate)) {
         indexedOutputs.push(output);
         commitmentOutputs.push(
           ccc.CellOutput.from({
@@ -147,7 +207,7 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     commitmentTx.outputs = commitmentOutputs;
     indexedTx.outputs = indexedOutputs;
 
-    const rgbppOutputs = buildBtcRgbppOutputs(
+    const rgbppOutputs = await buildBtcRgbppOutputs(
       commitmentTx,
       btcChangeAddress,
       receiverBtcAddresses,
@@ -176,9 +236,17 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   abstract signAndBroadcast(psbt: Psbt): Promise<string>;
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
+    const uniqueSeals = this.deduplicateUtxoSeals(utxoSeals);
+
+    if (uniqueSeals.length < utxoSeals.length) {
+      console.warn(
+        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`,
+      );
+    }
+
     const inputs: TxInputData[] = [];
     // TODO: parallel
-    for (const utxoSeal of utxoSeals) {
+    for (const utxoSeal of uniqueSeals) {
       const tx = await this.getTransaction(utxoSeal.txId);
       if (!tx) {
         continue;
@@ -191,28 +259,57 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
       const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
       if (isOpReturnScriptPubkey(scriptBuffer)) {
         inputs.push(
-          utxoToInputData({
-            txid: utxoSeal.txId,
-            vout: utxoSeal.index,
-            value: vout.value,
-            scriptPk: vout.scriptpubkey,
-          } as Utxo),
+          await utxoToInputData(
+            {
+              txid: utxoSeal.txId,
+              vout: utxoSeal.index,
+              value: vout.value,
+              scriptPk: vout.scriptpubkey,
+            } as Utxo,
+            this.publicKeyProvider,
+          ),
         );
         continue;
       }
 
       inputs.push(
-        utxoToInputData({
-          txid: utxoSeal.txId,
-          vout: utxoSeal.index,
-          value: vout.value,
-          scriptPk: vout.scriptpubkey,
-          address: vout.scriptpubkey_address,
-          addressType: getAddressType(vout.scriptpubkey_address),
-        } as Utxo),
+        await utxoToInputData(
+          {
+            txid: utxoSeal.txId,
+            vout: utxoSeal.index,
+            value: vout.value,
+            scriptPk: vout.scriptpubkey,
+            address: vout.scriptpubkey_address,
+            addressType: getAddressType(vout.scriptpubkey_address),
+          } as Utxo,
+          this.publicKeyProvider,
+        ),
       );
     }
     return inputs;
+  }
+
+  /**
+   * Deduplicate UTXO seals based on txId and index
+   * @private
+   */
+  private deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
+    if (!utxoSeals || utxoSeals.length === 0) {
+      return [];
+    }
+
+    const seen = new Map<string, UtxoSeal>();
+
+    for (const seal of utxoSeals) {
+      const normalizedTxId = seal.txId?.toLowerCase() ?? "";
+      const key = `${normalizedTxId}:${seal.index}`;
+
+      if (!seen.has(key)) {
+        seen.set(key, seal);
+      }
+    }
+
+    return Array.from(seen.values());
   }
 
   rawTxHex(tx: Transaction): string {
@@ -278,7 +375,7 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
 
     let filteredUtxos = utxos;
     if (knownInputs) {
-      filteredUtxos = utxos.filter((utxo) => {
+      filteredUtxos = utxos.filter((utxo: BtcApiUtxo) => {
         return !knownInputs.some(
           (input) => input.hash === utxo.txid && input.index === utxo.vout,
         );
@@ -328,7 +425,7 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     feeRate?: number,
   ) {
     // Ensure we have enough inputs to cover outputs
-    let totalInputValue = inputs.reduce(
+    const totalInputValue = inputs.reduce(
       (acc, input) => acc + input.witnessUtxo.value,
       0,
     );
@@ -364,7 +461,9 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
       }
     }
 
-    return Math.ceil(bufferedVirtualSize * feeRate);
+    return Math.ceil(
+      bufferedVirtualSize * (feeRate ?? this.networkConfig.btcFeeRate),
+    );
   }
 
   /**
@@ -534,12 +633,19 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
     );
   }
 
-  async prepareUtxoSeal(options?: UtxoSealOptions): Promise<UtxoSeal> {
+  async prepareUtxoSeal(
+    options?: UtxoSealOptions,
+    retryOptions?: RetryOptions,
+  ): Promise<UtxoSeal> {
     const targetValue = options?.targetValue ?? this.networkConfig.btcDustLimit;
     const feeRate = options?.feeRate ?? this.networkConfig.btcFeeRate;
     const btcUtxoParams = options?.btcUtxoParams ?? {
       only_non_rgbpp_utxos: true,
     };
+    const confirmationPollInterval = Math.max(
+      options?.confirmationPollInterval ?? DEFAULT_CONFIRMATION_POLL_INTERVAL,
+      5_000,
+    );
 
     const outputs = [
       {
@@ -573,16 +679,28 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
       psbt.addOutput(output);
     });
 
-    const txId = await this.signAndBroadcast(psbt);
-    console.log(`[prepareUtxoSeal] Transaction ${txId} sent`);
+    const txId = trimHexPrefix(await this.signAndBroadcast(psbt));
 
-    let btcTx = await this.getTransaction(txId);
+    // Wait for transaction to be indexed by API with retry mechanism
+    let btcTx = await retryWithBackoff(() => this.getTransaction(txId), {
+      maxRetries: retryOptions?.maxRetries,
+      initialDelay: retryOptions?.initialDelay,
+    });
+
+    // Wait for confirmation
+    const intervalSeconds = confirmationPollInterval / 1000;
     while (!btcTx.status.confirmed) {
       console.log(
-        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting 30 seconds...`,
+        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
-      btcTx = await this.getTransaction(txId);
+      await ccc.sleep(confirmationPollInterval);
+      try {
+        btcTx = await this.getTransaction(txId);
+      } catch (error) {
+        console.warn(
+          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
+        );
+      }
     }
 
     return {
@@ -592,19 +710,36 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   }
 
   getTransaction(txId: string) {
-    return this.request<BtcApiTransaction>(`/bitcoin/v1/transaction/${txId}`);
+    return this.btcAssetsApi.request<BtcApiTransaction>(
+      `/bitcoin/v1/transaction/${txId}`,
+    );
   }
 
   async getTransactionHex(txId: string) {
-    const { hex } = await this.request<BtcApiTransactionHex>(
+    const { hex } = await this.btcAssetsApi.request<BtcApiTransactionHex>(
       `/bitcoin/v1/transaction/${txId}/hex`,
     );
     return hex;
   }
 
   getUtxos(address: string, params?: BtcApiUtxoParams) {
-    return this.request<BtcApiUtxo[]>(
+    return this.btcAssetsApi.request<BtcApiUtxo[]>(
       `/bitcoin/v1/address/${address}/unspent`,
+      {
+        params,
+      },
+    );
+  }
+
+  /**
+   * Get the balance of a Bitcoin address
+   * @param address The Bitcoin address
+   * @param params Optional parameters for balance query
+   * @returns Balance information including total, available, pending, dust, and RGB++ satoshi amounts
+   */
+  getBalance(address: string, params?: BtcApiBalanceParams) {
+    return this.btcAssetsApi.request<BtcApiBalance>(
+      `/bitcoin/v1/address/${address}/balance`,
       {
         params,
       },
@@ -613,12 +748,15 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
 
   async getRgbppSpvProof(btcTxId: string, confirmations: number) {
     const spvProof: RgbppApiSpvProof | null =
-      await this.request<RgbppApiSpvProof>("/rgbpp/v1/btc-spv/proof", {
-        params: {
-          btc_txid: btcTxId,
-          confirmations,
+      await this.btcAssetsApi.request<RgbppApiSpvProof>(
+        "/rgbpp/v1/btc-spv/proof",
+        {
+          params: {
+            btc_txid: btcTxId,
+            confirmations,
+          },
         },
-      });
+      );
 
     return spvProof
       ? {
@@ -632,13 +770,13 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   }
 
   getRecommendedFee() {
-    return this.request<BtcApiRecommendedFeeRates>(
+    return this.btcAssetsApi.request<BtcApiRecommendedFeeRates>(
       `/bitcoin/v1/fees/recommended`,
     );
   }
 
   async sendTransaction(txHex: string): Promise<string> {
-    const { txid: txId } = await this.post<BtcApiSentTransaction>(
+    const { txid: txId } = await this.btcAssetsApi.post<BtcApiSentTransaction>(
       "/bitcoin/v1/transaction",
       {
         body: JSON.stringify({
@@ -650,10 +788,10 @@ export abstract class RgbppBtcWallet extends BtcAssetsApiBase {
   }
 
   async getRgbppCellOutputs(btcAddress: string) {
-    const res = await this.request<{ cellOutput: ccc.CellOutput }[]>(
-      `/rgbpp/v1/address/${btcAddress}/assets`,
-    );
+    const res = await this.btcAssetsApi.request<
+      { cellOutput: ccc.CellOutput }[]
+    >(`/rgbpp/v1/address/${btcAddress}/assets`);
 
-    return res.map((item) => item.cellOutput);
+    return res.map((item: { cellOutput: ccc.CellOutput }) => item.cellOutput);
   }
 }

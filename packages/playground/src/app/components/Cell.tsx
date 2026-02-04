@@ -176,7 +176,7 @@ export function Cell({
       return 0;
     }
 
-    const total = cellOutput.capacity;
+    const total = ccc.numMax(cellOutput.capacity, 1);
     const freeSize =
       total -
       ccc.fixedPointFrom(

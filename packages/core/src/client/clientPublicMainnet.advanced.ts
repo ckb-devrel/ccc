@@ -290,7 +290,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x1911208b136957d5f7c1708a8835edfe8ae1d02700d5cb2c3a6aacf4d5906306",
+                "0x99b116dd1e4f1fa903b70112ae672c18bb34241d3d03a9ad555cd2a611be7327",
               index: 0,
             },
             depType: "code",
@@ -466,7 +466,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
+                "0xcb4d9f9726e66306bfda6359d39d3bea8b4e5345d0f95f26a3e51626ebe82a63",
               index: 0,
             },
             depType: "code",
@@ -483,7 +483,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x04c5c3e69f1aa6ee27fb9de3d15a81704e387ab3b453965adbe0b6ca343c6f41",
+                "0xcb4d9f9726e66306bfda6359d39d3bea8b4e5345d0f95f26a3e51626ebe82a63",
               index: 1,
             },
             depType: "code",
@@ -500,7 +500,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
+                "0x3d1c26b966504b09253ad84173bf3baa7b8135c5ff520c32cf70b631c1d08b9b",
               index: 0,
             },
             depType: "code",
@@ -517,7 +517,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x6257bf4297ee75fcebe2654d8c5f8d93bc9fc1b3dc62b8cef54ffe166162e996",
+                "0x3d1c26b966504b09253ad84173bf3baa7b8135c5ff520c32cf70b631c1d08b9b",
               index: 1,
             },
             depType: "code",

@@ -1,4 +1,4 @@
-import { spore } from "@ckb-ccc/shell";
+import { spore } from "@ckb-ccc/spore";
 
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 
@@ -22,10 +22,12 @@ async function ckbSporeToBtc({
     utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
   }
 
+  const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+
   const { tx } = await spore.transferSpore({
     signer: ckbSigner,
     id: sporeTypeArgs,
-    to: rgbppUdtClient.buildRgbppLockScript(utxoSeal),
+    to: rgbppLock,
   });
 
   await tx.completeFeeBy(ckbSigner);
@@ -46,8 +48,9 @@ ckbSporeToBtc({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

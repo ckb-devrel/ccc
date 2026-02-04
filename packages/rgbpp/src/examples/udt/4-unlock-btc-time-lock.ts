@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import {
   buildBtcTimeUnlockWitness,
@@ -7,9 +7,7 @@ import {
   pollForSpvProof,
 } from "../../utils/index.js";
 
-import { PredefinedScriptName } from "../../types/script.js";
-
-import { testnetSudtCellDep } from "../common/assets.js";
+import { testnetSudtInfo } from "../common/assets.js";
 
 import "../common/load-env.js";
 
@@ -29,29 +27,32 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
 
   const tx = ccc.Transaction.default();
 
-  btcTimeLockCells.forEach((cell) => {
-    const cellInput = ccc.CellInput.from({
-      previousOutput: cell.outPoint,
-    });
-    cellInput.completeExtraInfos(ckbClient);
-    tx.inputs.push(cellInput);
+  await Promise.all(
+    btcTimeLockCells.map(async (cell) => {
+      const cellInput = ccc.CellInput.from({
+        previousOutput: cell.outPoint,
+      });
+      await cellInput.completeExtraInfos(ckbClient);
+      tx.inputs.push(cellInput);
 
-    tx.addOutput(
-      {
-        lock: parseBtcTimeLockArgs(cell.cellOutput.lock.args).lock,
-        type: cell.cellOutput.type,
-        // * https://github.com/utxostack/rgbpp/blob/main/contracts/btc-time-lock/src/main.rs#L97
-        capacity: cell.cellOutput.capacity,
-      },
-      cell.outputData,
-    );
-  });
+      tx.addOutput(
+        {
+          lock: parseBtcTimeLockArgs(cell.cellOutput.lock.args).lock,
+          type: cell.cellOutput.type,
+          // * https://github.com/utxostack/rgbpp/blob/main/contracts/btc-time-lock/src/main.rs#L97
+          capacity: cell.cellOutput.capacity,
+        },
+        cell.outputData,
+      );
+    }),
+  );
 
-  const btcTimeLockCellDep = rgbppUdtClient.getRgbppScriptInfoByName(
-    PredefinedScriptName.BtcTimeLock,
-  ).cellDep;
+  const btcTimeLockInfo = await rgbppUdtClient.scriptManager.getKnownScriptInfo(
+    ccc.KnownScript.BtcTimeLock,
+  );
+  const btcTimeLockCellDep = btcTimeLockInfo.cellDeps[0].cellDep;
   tx.cellDeps.push(
-    testnetSudtCellDep,
+    testnetSudtInfo.cellDeps[0].cellDep,
     btcTimeLockCellDep,
     ccc.CellDep.from({
       outPoint: {
@@ -62,7 +63,7 @@ async function unlockBtcTimeLock(btcTimeLockArgs: string) {
     }),
   );
 
-  for await (const btcTimeLockCell of btcTimeLockCells) {
+  for (const btcTimeLockCell of btcTimeLockCells) {
     const { btcTxId, confirmations } = parseBtcTimeLockArgs(
       btcTimeLockCell.cellOutput.lock.args,
     );
@@ -104,8 +105,9 @@ unlockBtcTimeLock(
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

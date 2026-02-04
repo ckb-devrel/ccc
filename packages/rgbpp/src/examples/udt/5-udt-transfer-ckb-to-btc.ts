@@ -1,6 +1,7 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { Udt } from "@ckb-ccc/udt";
 
-import { ScriptInfo, UtxoSeal } from "../../types/rgbpp/index.js";
+import { UtxoSeal } from "../../types/rgbpp/index.js";
 
 import "../common/load-env.js";
 
@@ -13,31 +14,41 @@ const { rgbppBtcWallet, rgbppUdtClient, ckbClient, ckbSigner } =
 
 async function ckbUdtToBtc({
   utxoSeal,
-  udtScriptInfo,
+  udtScriptArgs,
+  customUdtScriptInfo,
   amount,
 }: {
   utxoSeal?: UtxoSeal;
-  udtScriptInfo: ScriptInfo;
-
+  udtScriptArgs: ccc.Hex;
+  customUdtScriptInfo?: ccc.ScriptInfo;
   amount: bigint;
 }) {
   if (!utxoSeal) {
-    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal({ feeRate: 28 });
+    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
   }
 
-  const udt = new ccc.udt.Udt(
-    udtScriptInfo.cellDep.outPoint,
-    udtScriptInfo.script,
+  const scriptInfo =
+    customUdtScriptInfo ??
+    (await ckbClient.getKnownScript(ccc.KnownScript.XUdt));
+  const udtInstance = new Udt(
+    scriptInfo.cellDeps[0].cellDep.outPoint,
+    ccc.Script.from({
+      codeHash: scriptInfo.codeHash,
+      hashType: scriptInfo.hashType,
+      args: udtScriptArgs,
+    }),
   );
 
-  let { res: tx } = await udt.transfer(ckbSigner as unknown as ccc.Signer, [
+  const rgbppLock = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+
+  const { res: tx } = await udtInstance.transfer(ckbSigner, [
     {
-      to: rgbppUdtClient.buildRgbppLockScript(utxoSeal),
+      to: rgbppLock,
       amount: ccc.fixedPointFrom(amount),
     },
   ]);
 
-  const txWithInputs = await udt.completeBy(tx, ckbSigner);
+  const txWithInputs = await udtInstance.completeBy(tx, ckbSigner);
   await txWithInputs.completeFeeBy(ckbSigner);
   const signedTx = await ckbSigner.signTransaction(txWithInputs);
   const txHash = await ckbSigner.client.sendTransaction(signedTx);
@@ -48,42 +59,21 @@ async function ckbUdtToBtc({
 const logger = new RgbppTxLogger({ opType: "udt-transfer-ckb-to-btc" });
 
 ckbUdtToBtc({
-  // utxoSeal: {
-  //   txId: "499559be0d125f1387c11844919961fcdbd37c44bdaacab987754fb25d367c8f",
-  //   index: 0,
-  // },
-
-  udtScriptInfo: {
-    name: ccc.KnownScript.XUdt,
-    script: await ccc.Script.fromKnownScript(
-      ckbClient,
-      ccc.KnownScript.XUdt,
-      "0x868c505051f06bb41646bd1b442dbed8035d91abd9ac7acc4bda3bab267e6ac7",
-    ),
-    cellDep: (await ckbClient.getKnownScript(ccc.KnownScript.XUdt)).cellDeps[0]
-      .cellDep,
-  },
-
-  // udtScriptInfo: {
-  //   ...testnetSudtInfo,
-  //   script: await ccc.Script.from({
-  //     ...testnetSudtInfo.script,
-  //     args: "0x07bccc105cdd747019a843d8bd0b5424efc33beb20b4f0db0f925e97f30c465f",
-  //   }),
-  // },
-
-  amount: ccc.fixedPointFrom(11),
+  udtScriptArgs:
+    "0x88017813e410f63a21074a54f3a025cfa8319201b43588b50d869c1a2843b76f",
+  amount: ccc.fixedPointFrom(1),
 })
   .then(() => {
     logger.saveOnSuccess();
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 
 /* 
-pnpm tsx packages/rgbpp/src/examples/udt/5-udt-ckb-to-btc.ts
+pnpm tsx packages/rgbpp/src/examples/udt/5-udt-transfer-ckb-to-btc.ts
 */

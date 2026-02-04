@@ -1,4 +1,5 @@
-import { ccc, spore } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
+import { spore } from "@ckb-ccc/spore";
 import { SporeDataView } from "@ckb-ccc/spore/advanced";
 
 import "../common/load-env.js";
@@ -20,15 +21,17 @@ async function createSpore({
     rgbppBtcWallet,
     rgbppUdtClient,
     utxoBasedAccountAddress,
-    ckbRgbppUnlockSinger,
+    ckbRgbppUnlockSigner,
     ckbClient,
     ckbSigner,
   } = await initializeRgbppEnv();
 
+  const pseudoRgbppLock = await rgbppUdtClient.buildPseudoRgbppLockScript();
+
   const { tx: transferClusterTx } = await spore.transferSporeCluster({
     signer: ckbSigner,
     id: receiverInfo[0].rawSporeData.clusterId!,
-    to: rgbppUdtClient.buildPseudoRgbppLockScript(), // new cluster output
+    to: pseudoRgbppLock, // new cluster output
   });
 
   let ckbPartialTx: ccc.Transaction = transferClusterTx;
@@ -36,7 +39,7 @@ async function createSpore({
     const { tx: _ckbPartialTx, id } = await spore.createSpore({
       signer: ckbSigner,
       data: receiver.rawSporeData,
-      to: rgbppUdtClient.buildPseudoRgbppLockScript(),
+      to: pseudoRgbppLock,
       // cannot use cluster mode here as cluster's lock needs to be updated
       clusterMode: "skip",
       tx: ckbPartialTx,
@@ -66,13 +69,13 @@ async function createSpore({
     btcTxId,
   );
   const rgbppSignedCkbTx =
-    await ckbRgbppUnlockSinger.signTransaction(ckbPartialTxInjected);
+    await ckbRgbppUnlockSigner.signTransaction(ckbPartialTxInjected);
 
   await rgbppSignedCkbTx.completeFeeBy(ckbSigner);
 
   const ckbFinalTx = await ckbSigner.signTransaction(rgbppSignedCkbTx);
   const txHash = await ckbSigner.client.sendTransaction(ckbFinalTx);
-  await ckbRgbppUnlockSinger.client.waitTransaction(txHash);
+  await ckbRgbppUnlockSigner.client.waitTransaction(txHash);
   logger.add("ckbTxId", txHash, true);
 }
 
@@ -159,8 +162,9 @@ createSpore({
     process.exit(0);
   })
   .catch((e) => {
-    console.log(e.message);
-    logger.saveOnError(e);
+    const error = e instanceof Error ? e : new Error(String(e));
+    console.log(error.message);
+    logger.saveOnError(error);
     process.exit(1);
   });
 

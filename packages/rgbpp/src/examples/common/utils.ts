@@ -1,17 +1,18 @@
-import { ccc } from "@ckb-ccc/shell";
+import { ccc } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../../types/rgbpp/index.js";
 import { RgbppUdtClient } from "../../udt/index.js";
 
+// TODO: prepare ckb issuance cells, move to rgbppUdtClient
 export async function prepareRgbppCells(
   ckbClient: ccc.Client,
   ckbSigner: ccc.SignerCkbPrivateKey,
   utxoSeal: UtxoSeal,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
-  const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+  const rgbppLockScript = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
 
-  const rgbppCellsGen = await ckbClient.findCellsByLock(rgbppLockScript);
+  const rgbppCellsGen = ckbClient.findCellsByLock(rgbppLockScript);
   const rgbppCells: ccc.Cell[] = [];
   for await (const cell of rgbppCellsGen) {
     rgbppCells.push(cell);
@@ -54,12 +55,13 @@ export async function collectRgbppCells(
   typeScript: ccc.Script,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
-  let rgbppLiveCells: ccc.Cell[] = [];
+  const rgbppLiveCells: ccc.Cell[] = [];
 
   await Promise.all(
     utxoSeals.map(async (utxoSeal) => {
-      const rgbppLockScript = rgbppUdtClient.buildRgbppLockScript(utxoSeal);
-      const rgbppCellsGen = await ckbClient.findCellsByLock(
+      const rgbppLockScript =
+        await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+      const rgbppCellsGen = ckbClient.findCellsByLock(
         rgbppLockScript,
         typeScript,
       );
@@ -81,8 +83,9 @@ export async function collectBtcTimeLockCells(
   btcTimeLockArgs: string,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<ccc.Cell[]> {
-  const btcTimeLockCellsGen = await ckbClient.findCellsByLock({
-    ...rgbppUdtClient.btcTimeLockScriptTemplate(),
+  const btcTimeLockTemplate = await rgbppUdtClient.btcTimeLockScriptTemplate();
+  const btcTimeLockCellsGen = ckbClient.findCellsByLock({
+    ...btcTimeLockTemplate,
     args: btcTimeLockArgs,
   });
   const btcTimeLockCells: ccc.Cell[] = [];
@@ -99,7 +102,7 @@ export async function collectUdtCells(
 ): Promise<ccc.Cell[]> {
   const lock = (await ccc.Address.fromString(ckbAddress, ckbClient)).script;
 
-  const udtCellsGen = await ckbClient.findCellsByLock(lock, udtTypeScript);
+  const udtCellsGen = ckbClient.findCellsByLock(lock, udtTypeScript);
   const udtCells: ccc.Cell[] = [];
   for await (const cell of udtCellsGen) {
     udtCells.push(cell);
