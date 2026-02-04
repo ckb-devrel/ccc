@@ -10,7 +10,7 @@ import {
 } from "../../client/index.js";
 import { Hex } from "../../hex/index.js";
 import { Num } from "../../num/index.js";
-import { verifyMessageBtcEcdsa } from "../btc/index.js";
+import { verifyMessageBtcEcdsa } from "../btc/verify.js";
 import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";

@@ -1,5 +1,19 @@
 # @ckb-ccc/core
 
+## 1.12.5
+### Patch Changes
+
+
+
+- [#354](https://github.com/ckb-devrel/ccc/pull/354) [`a96dec6`](https://github.com/ckb-devrel/ccc/commit/a96dec6d0517113391b0edc510f1af821a45d5a8) Thanks [@RetricSu](https://github.com/RetricSu)! - chore(core): bump nostr-lock mainnet cell deps
+
+## 1.12.4
+### Patch Changes
+
+
+
+- [#350](https://github.com/ckb-devrel/ccc/pull/350) [`b4aa99f`](https://github.com/ckb-devrel/ccc/commit/b4aa99f1b87c1d14117a15fa1fcac6f9e60b43c1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): circular dependency due to btc.verify
+
 ## 1.12.3
 ### Patch Changes
 
