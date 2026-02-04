@@ -11,6 +11,7 @@ import {
   pseudoRgbppLockArgs,
   pseudoRgbppLockArgsForCommitment,
   retryWithBackoff,
+  trimHexPrefix,
   u32ToHex,
 } from "../../utils/index.js";
 import { RetryOptions } from "../../utils/retry.js";
@@ -678,7 +679,7 @@ export abstract class RgbppBtcWallet {
       psbt.addOutput(output);
     });
 
-    const txId = await this.signAndBroadcast(psbt);
+    const txId = trimHexPrefix(await this.signAndBroadcast(psbt));
 
     // Wait for transaction to be indexed by API with retry mechanism
     let btcTx = await retryWithBackoff(() => this.getTransaction(txId), {

@@ -1,6 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import { Psbt } from "bitcoinjs-lib";
 import { NetworkConfig } from "../../types/network.js";
+import { trimHexPrefix } from "../../utils/index.js";
 import { BtcAssetApiConfig } from "../api/config.js";
 import { RgbppBtcWallet } from "./base.js";
 
@@ -31,7 +32,9 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
     psbt: Psbt,
     options?: ccc.SignPsbtOptionsLike,
   ): Promise<string> {
-    return this.signer.signAndBroadcastPsbt(psbt.toHex(), options);
+    return this.signer
+      .signAndBroadcastPsbt(psbt.toHex(), options)
+      .then(trimHexPrefix);
   }
 }
 
