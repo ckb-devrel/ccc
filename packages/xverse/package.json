@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/xverse",
-  "version": "1.0.29",
+  "version": "1.0.31",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Xverse",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -57,7 +57,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "bitcoinjs-lib": "6.1.6",
+    "bitcoinjs-lib": "^7.0.0",
     "valibot": "^1.1.0"
   },
   "packageManager": "pnpm@10.8.1"

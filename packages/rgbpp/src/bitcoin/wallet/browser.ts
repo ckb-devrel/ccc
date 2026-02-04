@@ -29,9 +29,9 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
 
   async signAndBroadcast(
     psbt: Psbt,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<string> {
-    return this.signer.signAndPushPsbt(psbt.toHex(), options);
+    return this.signer.signAndBroadcastPsbt(psbt.toHex(), options);
   }
 }
 

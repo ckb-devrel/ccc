@@ -47,7 +47,7 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
    */
   private formatOptionsToSignInputs(
     psbt: Psbt,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Array<{ index: number; disableTweakSigner?: boolean }> {
     const account = this.account;
     const accountScript = addressToScriptPublicKeyHex(
@@ -56,8 +56,8 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
     );
 
     // If options are provided, validate and use them
-    if (options?.toSignInputs && options.toSignInputs.length > 0) {
-      return options.toSignInputs.map((input: ccc.ToSignInput) => {
+    if (options?.inputsToSign && options.inputsToSign.length > 0) {
+      return options.inputsToSign.map((input: ccc.InputToSignLike) => {
         const index = Number(input.index);
         if (isNaN(index)) {
           throw new Error("Invalid index in toSignInput");
@@ -77,14 +77,14 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
             account.addressType === AddressType.P2TR
               ? toXOnly(account.keyPair.publicKey).toString("hex")
               : fullPubkey;
+          const inputPubkeyStr = ccc
+            .hexFrom(input.publicKey)
+            .replace(/^0x/i, "");
 
           // Accept both full pubkey and x-only pubkey for Taproot
-          if (
-            input.publicKey !== fullPubkey &&
-            input.publicKey !== xOnlyPubkey
-          ) {
+          if (inputPubkeyStr !== fullPubkey && inputPubkeyStr !== xOnlyPubkey) {
             throw new Error(
-              `Invalid public key in toSignInput. Expected ${fullPubkey} or ${xOnlyPubkey}, got ${input.publicKey}`,
+              `Invalid public key in toSignInput. Expected ${fullPubkey} or ${xOnlyPubkey}, got ${inputPubkeyStr}`,
             );
           }
         }
@@ -147,7 +147,7 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
 
   async signPsbt(
     psbt: Psbt,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<Transaction> {
     const account = this.account;
     const tweaked = tweakSigner(account.keyPair, {
@@ -207,13 +207,13 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
 
   async signAndBroadcast(
     psbt: Psbt,
-    options?: ccc.SignPsbtOptions,
+    options?: ccc.SignPsbtOptionsLike,
   ): Promise<string> {
     // Always finalize for signAndBroadcast
-    const finalOptions: ccc.SignPsbtOptions = {
+    const finalOptions: ccc.SignPsbtOptionsLike = {
       ...options,
       autoFinalized: true, // Force finalization
-      toSignInputs: options?.toSignInputs || [],
+      inputsToSign: options?.inputsToSign ?? [],
     };
 
     const tx = await this.signPsbt(psbt, finalOptions);

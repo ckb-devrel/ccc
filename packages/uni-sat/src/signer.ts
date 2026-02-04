@@ -107,11 +107,7 @@ export class Signer extends ccc.SignerBtc {
    * @returns A promise that resolves when the connection is established.
    */
   async connect(): Promise<void> {
-    const accounts = await this.provider.requestAccounts();
-    console.log("connected accounts", accounts);
-    if (accounts.length === 0) {
-      throw new Error("No accounts found");
-    }
+    await this.provider.requestAccounts();
     await this.ensureNetwork();
   }
 
@@ -158,26 +154,30 @@ export class Signer extends ccc.SignerBtc {
   /**
    * Signs a PSBT using UniSat wallet.
    *
-   * @param psbtHex - The hex string of PSBT to sign
-   * @returns A promise that resolves to the signed PSBT hex string
+   * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT as a Hex string
    */
   async signPsbt(
-    psbtHex: string,
-    options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
-    return this.provider.signPsbt(psbtHex, options);
+    psbtHex: ccc.HexLike,
+    options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    return ccc.hexFrom(
+      await this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options),
+    );
   }
 
   /**
    * Broadcasts a signed PSBT to the Bitcoin network.
    *
-   * @param psbtHex - The hex string of signed PSBT to broadcast
-   * @returns A promise that resolves to the transaction ID
+   * @param psbtHex - The hex string of signed PSBT to broadcast.
+   * @returns A promise that resolves to the transaction ID as a Hex string
    */
-  async pushPsbt(
-    psbtHex: string,
-    _options?: ccc.SignPsbtOptions,
-  ): Promise<string> {
-    return this.provider.pushPsbt(psbtHex);
+  async broadcastPsbt(
+    psbtHex: ccc.HexLike,
+    _options?: ccc.SignPsbtOptionsLike,
+  ): Promise<ccc.Hex> {
+    const txid = await this.provider.pushPsbt(ccc.hexFrom(psbtHex).slice(2));
+    return ccc.hexFrom(txid);
   }
 }
