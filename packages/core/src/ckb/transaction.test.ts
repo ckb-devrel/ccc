@@ -656,6 +656,15 @@ describe("Transaction", () => {
         expect(cellOutput.capacity).toBe(1000n);
       });
 
+      it("should not modify capacity when data is not provided", () => {
+        const cellOutput = ccc.CellOutput.from({
+          capacity: 0n,
+          lock,
+        });
+
+        expect(cellOutput.capacity).toBe(0n);
+      });
+
       it("should calculate capacity automatically when capacity is 0", () => {
         const outputData = "0x1234"; // 2 bytes
         const cellOutput = ccc.CellOutput.from(
@@ -810,6 +819,30 @@ describe("Transaction", () => {
         const expectedCapacity2 = 8 + lock.occupiedSize + 2;
         expect(tx.outputs[1].capacity).toBe(
           ccc.fixedPointFrom(expectedCapacity2),
+        );
+      });
+
+      it("should automatically fill capacity considering outputData while deserialization", () => {
+        const outputsData = ["0x1234"];
+        const calculatedTx = ccc.Transaction.from({
+          outputs: [
+            {
+              lock,
+            },
+          ],
+          outputsData,
+        });
+        calculatedTx.outputs[0].capacity = 0n;
+        const data = calculatedTx.toBytes();
+        expect(ccc.hexFrom(data)).toBe(
+          "0xb30000000c000000af000000a30000001c0000002000000024000000280000002c00000095000000000000000000000000000000000000006900000008000000610000001000000018000000610000000000000000000000490000001000000030000000310000009bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8011400000036053c1bbc237e164137c03664fe8384b2cf9b260e0000000800000002000000123404000000",
+        );
+        const tx = ccc.Transaction.fromBytes(data);
+
+        // Should use outputData for calculation
+        const expectedCapacity = 8 + lock.occupiedSize + 2;
+        expect(tx.outputs[0].capacity).toBe(
+          ccc.fixedPointFrom(expectedCapacity),
         );
       });
 

@@ -10,7 +10,7 @@ import {
 } from "../../client/index.js";
 import { Hex } from "../../hex/index.js";
 import { Num } from "../../num/index.js";
-import { verifyMessageBtcEcdsa } from "../btc/index.js";
+import { verifyMessageBtcEcdsa } from "../btc/verify.js";
 import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
@@ -155,6 +155,17 @@ export abstract class Signer {
       case SignerSignType.Unknown:
         throw new Error("Unknown signer sign type");
     }
+  }
+
+  static async fromSignature(
+    _client: Client,
+    _signature: Signature,
+    _message?: string | BytesLike | null,
+    ..._addresses: (string | string[])[]
+  ): Promise<Signer | undefined> {
+    throw Error(
+      "Signer.fromSignature should be override to avoid circular references",
+    );
   }
 
   /**

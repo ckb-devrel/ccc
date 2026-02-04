@@ -128,6 +128,12 @@ export abstract class Entity {
       }
     }
 
+    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
+    Impl.encode = undefined as any;
+    Impl.decode = undefined as any;
+    Impl.fromBytes = undefined as any;
+    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
+
     return Impl;
   }
 
@@ -168,15 +174,21 @@ export function codec<
     },
   >(Constructor: ConstructorType, ..._: unknown[]) {
     Constructor.byteLength = codec.byteLength;
-    Constructor.encode = function (encodable: TypeLike) {
-      return codec.encode(encodable);
-    };
-    Constructor.decode = function (bytesLike: BytesLike) {
-      return Constructor.from(codec.decode(bytesLike));
-    };
-    Constructor.fromBytes = function (bytes: BytesLike) {
-      return Constructor.from(codec.decode(bytes));
-    };
+    if (Constructor.encode === undefined) {
+      Constructor.encode = function (encodable: TypeLike) {
+        return codec.encode(encodable);
+      };
+    }
+    if (Constructor.decode === undefined) {
+      Constructor.decode = function (bytesLike: BytesLike) {
+        return Constructor.from(codec.decode(bytesLike));
+      };
+    }
+    if (Constructor.fromBytes === undefined) {
+      Constructor.fromBytes = function (bytes: BytesLike) {
+        return Constructor.from(codec.decode(bytes));
+      };
+    }
 
     return Constructor;
   };

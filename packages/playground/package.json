@@ -16,6 +16,8 @@
     "@monaco-editor/react": "^4.7.0",
     "@nervina-labs/dob-render": "^0.2.5",
     "@next/third-parties": "^15.5.2",
+    "@noble/curves": "^1.9.7",
+    "@noble/hashes": "^1.8.0",
     "@shikijs/monaco": "^3.12.0",
     "axios": "^1.11.0",
     "bech32": "^2.0.0",
