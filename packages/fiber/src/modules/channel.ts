@@ -57,29 +57,46 @@ export class ChannelModule {
   }
 
   /**
-   * Accept a channel
+   * Accept a channel opening request from a peer.
+   * @returns The final channel ID (different from the temporary channel ID).
    */
   async acceptChannel(params: {
     temporary_channel_id: string;
     funding_amount: string;
-    max_tlc_value_in_flight: string;
-    max_tlc_number_in_flight: string;
-    tlc_min_value: string;
-    tlc_fee_proportional_millionths: string;
-    tlc_expiry_delta: string;
-  }): Promise<void> {
-    const u128Params = {
-      ...params,
+    shutdown_script?: Script;
+    max_tlc_value_in_flight?: string;
+    max_tlc_number_in_flight?: string;
+    tlc_min_value?: string;
+    tlc_fee_proportional_millionths?: string;
+    tlc_expiry_delta?: string;
+  }): Promise<Hash256> {
+    const u128Params: Record<string, unknown> = {
+      temporary_channel_id: params.temporary_channel_id,
       funding_amount: decimalToU128(params.funding_amount),
-      max_tlc_value_in_flight: decimalToU128(params.max_tlc_value_in_flight),
-      max_tlc_number_in_flight: decimalToU128(params.max_tlc_number_in_flight),
-      tlc_min_value: decimalToU128(params.tlc_min_value),
-      tlc_fee_proportional_millionths: decimalToU128(
-        params.tlc_fee_proportional_millionths,
-      ),
-      tlc_expiry_delta: decimalToU128(params.tlc_expiry_delta),
     };
-    return this.client.call("accept_channel", [u128Params]);
+    if (params.shutdown_script != null)
+      u128Params.shutdown_script = params.shutdown_script;
+    if (params.max_tlc_value_in_flight != null)
+      u128Params.max_tlc_value_in_flight = decimalToU128(
+        params.max_tlc_value_in_flight,
+      );
+    if (params.max_tlc_number_in_flight != null)
+      u128Params.max_tlc_number_in_flight = decimalToU128(
+        params.max_tlc_number_in_flight,
+      );
+    if (params.tlc_min_value != null)
+      u128Params.tlc_min_value = decimalToU128(params.tlc_min_value);
+    if (params.tlc_fee_proportional_millionths != null)
+      u128Params.tlc_fee_proportional_millionths = decimalToU128(
+        params.tlc_fee_proportional_millionths,
+      );
+    if (params.tlc_expiry_delta != null)
+      u128Params.tlc_expiry_delta = decimalToU128(params.tlc_expiry_delta);
+    const result = await this.client.call<{ channel_id: Hash256 }>(
+      "accept_channel",
+      [u128Params],
+    );
+    return result.channel_id;
   }
 
   /**
@@ -123,12 +140,17 @@ export class ChannelModule {
   }
 
   /**
-   * List channels
+   * List channels.
+   * @param peer_id - Optional peer ID to filter channels.
+   * @param include_closed - Whether to include closed channels (default false).
    */
-  async listChannels(): Promise<Channel[]> {
+  async listChannels(params?: {
+    peer_id?: string;
+    include_closed?: boolean;
+  }): Promise<Channel[]> {
     const response = await this.client.call<{ channels: Channel[] }>(
       "list_channels",
-      [{}],
+      [params ?? {}],
     );
     return response.channels.map((channel) => ({
       ...channel,
@@ -148,13 +170,17 @@ export class ChannelModule {
   }
 
   /**
-   * Shutdown channel
+   * Shutdown a channel.
+   * @param channel_id - The channel ID to shut down.
+   * @param close_script - Optional script to receive channel balance (secp256k1_blake160_sighash_all only).
+   * @param fee_rate - Optional fee rate for the closing transaction.
+   * @param force - If true, close_script and fee_rate are ignored and defaults from open are used (default false).
    */
   async shutdownChannel(params: {
     channel_id: Hash256;
-    close_script: Script;
+    close_script?: Script;
+    fee_rate?: string | number;
     force?: boolean;
-    fee_rate: bigint;
   }): Promise<void> {
     return this.client.call("shutdown_channel", [params]);
   }

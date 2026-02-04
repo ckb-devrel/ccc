@@ -4,16 +4,19 @@ import { NodeInfo } from "../types.js";
 import { u64ToDecimal } from "../utils/number.js";
 
 interface RawNodeInfo {
+  version?: string;
+  commit_hash?: string;
   node_name: string;
   addresses: string[];
   node_id: string;
-  timestamp: bigint;
+  timestamp?: string | number;
   chain_hash: string;
-  auto_accept_min_ckb_funding_amount: bigint;
-  auto_accept_channel_ckb_funding_amount: bigint;
-  tlc_expiry_delta: bigint;
-  tlc_min_value: bigint;
-  tlc_fee_proportional_millionths: bigint;
+  open_channel_auto_accept_min_ckb_funding_amount?: string | number;
+  auto_accept_min_ckb_funding_amount?: string | number;
+  auto_accept_channel_ckb_funding_amount: string | number;
+  tlc_expiry_delta: string | number;
+  tlc_min_value: string | number;
+  tlc_fee_proportional_millionths: string | number;
   channel_count: string;
   pending_channel_count: string;
   peers_count: string;
@@ -35,31 +38,47 @@ export class InfoModule {
    */
   async nodeInfo(): Promise<NodeInfo> {
     const response = await this.client.call<RawNodeInfo>("node_info", []);
+    const minCkb =
+      response.open_channel_auto_accept_min_ckb_funding_amount ??
+      response.auto_accept_min_ckb_funding_amount;
     return {
+      version: response.version,
+      commit_hash: response.commit_hash,
       node_name: response.node_name,
       addresses: response.addresses,
       node_id: response.node_id,
-      timestamp: response.timestamp
-        ? u64ToDecimal(response.timestamp, true)
-        : "",
-      chain_hash: response.chain_hash,
-      auto_accept_min_ckb_funding_amount:
-        response.auto_accept_min_ckb_funding_amount
-          ? fixedPointToString(response.auto_accept_min_ckb_funding_amount)
+      timestamp:
+        response.timestamp != null
+          ? typeof response.timestamp === "string"
+            ? response.timestamp
+            : u64ToDecimal(
+                typeof response.timestamp === "bigint"
+                  ? response.timestamp
+                  : BigInt(Number(response.timestamp)),
+                true,
+              )
           : "",
+      chain_hash: response.chain_hash,
+      open_channel_auto_accept_min_ckb_funding_amount:
+        minCkb != null ? String(minCkb) : undefined,
+      auto_accept_min_ckb_funding_amount:
+        minCkb != null ? fixedPointToString(minCkb) : undefined,
       auto_accept_channel_ckb_funding_amount:
-        response.auto_accept_channel_ckb_funding_amount
+        response.auto_accept_channel_ckb_funding_amount != null
           ? fixedPointToString(response.auto_accept_channel_ckb_funding_amount)
           : "",
-      tlc_expiry_delta: response.tlc_expiry_delta
-        ? fixedPointToString(response.tlc_expiry_delta)
-        : "",
-      tlc_min_value: response.tlc_min_value
-        ? fixedPointToString(response.tlc_min_value)
-        : "",
-      tlc_fee_proportional_millionths: response.tlc_fee_proportional_millionths
-        ? fixedPointToString(response.tlc_fee_proportional_millionths)
-        : "",
+      tlc_expiry_delta:
+        response.tlc_expiry_delta != null
+          ? fixedPointToString(response.tlc_expiry_delta)
+          : "",
+      tlc_min_value:
+        response.tlc_min_value != null
+          ? fixedPointToString(response.tlc_min_value)
+          : "",
+      tlc_fee_proportional_millionths:
+        response.tlc_fee_proportional_millionths != null
+          ? fixedPointToString(response.tlc_fee_proportional_millionths)
+          : "",
       channel_count: response.channel_count
         ? Number(response.channel_count).toString()
         : "0",

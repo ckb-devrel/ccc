@@ -10,11 +10,15 @@ export class PeerModule {
   constructor(private client: FiberClient) {}
 
   /**
-   * Connect to a peer node
-   * @param address Full peer address including peer ID (e.g. "/ip4/127.0.0.1/tcp/8119/p2p/Qm...")
+   * Connect to a peer node.
+   * @param address - MultiAddr of the peer (e.g. "/ip4/127.0.0.1/tcp/8119/p2p/Qm...")
+   * @param save - Optional; whether to save the peer address to the peer store.
    */
-  async connectPeer(address: string): Promise<void> {
-    return this.client.call("connect_peer", [{ address }]);
+  async connectPeer(
+    address: string,
+    save?: boolean,
+  ): Promise<void> {
+    return this.client.call("connect_peer", [{ address, save }]);
   }
 
   /**

@@ -1,5 +1,8 @@
 import { FiberClient } from "./client.js";
+import { CchModule } from "./modules/cch.js";
 import { ChannelModule } from "./modules/channel.js";
+import { DevModule } from "./modules/dev.js";
+import { GraphModule } from "./modules/graph.js";
 import { InfoModule } from "./modules/info.js";
 import { InvoiceModule } from "./modules/invoice.js";
 import { PaymentModule } from "./modules/payment.js";
@@ -14,12 +17,24 @@ import {
 } from "./types.js";
 
 export { FiberClient } from "./client.js";
+export { CchModule } from "./modules/cch.js";
 export { ChannelModule } from "./modules/channel.js";
+export { DevModule } from "./modules/dev.js";
+export { GraphModule } from "./modules/graph.js";
 export { InfoModule } from "./modules/info.js";
 export { InvoiceModule } from "./modules/invoice.js";
 export { PaymentModule } from "./modules/payment.js";
 export { PeerModule } from "./modules/peer.js";
 export * from "./types.js";
+
+export type { CchOrderResult } from "./modules/cch.js";
+export type { RemoveTlcReasonParam } from "./modules/dev.js";
+export type { GraphChannelsResult, GraphNodesResult } from "./modules/graph.js";
+export type { NewInvoiceParams, NewInvoiceResult } from "./modules/invoice.js";
+export type {
+  SendPaymentParams,
+  SendPaymentResult,
+} from "./modules/payment.js";
 
 export interface FiberSDKConfig {
   endpoint: string;
@@ -32,9 +47,9 @@ export class FiberSDK {
   public invoice: InvoiceModule;
   public peer: PeerModule;
   public info: InfoModule;
-  // public graph: GraphModule;
-  // public dev: DevModule;
-  // public cch: CchModule;
+  public graph: GraphModule;
+  public dev: DevModule;
+  public cch: CchModule;
 
   constructor(config: FiberSDKConfig) {
     const client = new FiberClient({
@@ -47,16 +62,19 @@ export class FiberSDK {
     this.invoice = new InvoiceModule(client);
     this.peer = new PeerModule(client);
     this.info = new InfoModule(client);
-    // this.graph = new GraphModule(client);
-    // this.dev = new DevModule(client);
-    // this.cch = new CchModule(client);
+    this.graph = new GraphModule(client);
+    this.dev = new DevModule(client);
+    this.cch = new CchModule(client);
   }
 
   /**
-   * List all channels
+   * List all channels (optionally filter by peer_id or include closed).
    */
-  async listChannels(): Promise<Channel[]> {
-    return this.channel.listChannels();
+  async listChannels(params?: {
+    peer_id?: string;
+    include_closed?: boolean;
+  }): Promise<Channel[]> {
+    return this.channel.listChannels(params);
   }
 
   /**
@@ -88,13 +106,13 @@ export class FiberSDK {
   }
 
   /**
-   * Close channel
+   * Shutdown a channel.
    */
   async shutdownChannel(params: {
     channel_id: Hash256;
-    close_script: Script;
+    close_script?: Script;
+    fee_rate?: string | number;
     force?: boolean;
-    fee_rate: bigint;
   }): Promise<void> {
     return this.channel.shutdownChannel(params);
   }
@@ -107,13 +125,11 @@ export class FiberSDK {
   }
 
   /**
-   * Send payment
+   * Send a payment (see payment.sendPayment for full params).
    */
-  async sendPayment(params: {
-    payment_hash: string;
-    amount: bigint;
-    fee_rate: bigint;
-  }): Promise<void> {
+  async sendPayment(
+    params: import("./modules/payment.js").SendPaymentParams,
+  ): Promise<import("./modules/payment.js").SendPaymentResult> {
     return this.payment.sendPayment(params);
   }
 
@@ -125,22 +141,19 @@ export class FiberSDK {
   }
 
   /**
-   * Create new invoice
+   * Create a new invoice (see invoice.newInvoice for full params).
    */
-  async newInvoice(params: {
-    amount: bigint;
-    description?: string;
-    expiry?: bigint;
-    payment_secret?: string;
-  }): Promise<CkbInvoice> {
+  async newInvoice(
+    params: import("./modules/invoice.js").NewInvoiceParams,
+  ): Promise<import("./modules/invoice.js").NewInvoiceResult> {
     return this.invoice.newInvoice(params);
   }
 
   /**
-   * Get invoice information
+   * Get invoice by payment hash.
    */
-  async getInvoice(payment_hash: string): Promise<{
-    status: string;
+  async getInvoice(payment_hash: Hash256): Promise<{
+    status: import("./types.js").CkbInvoiceStatus;
     invoice_address: string;
     invoice: CkbInvoice;
   }> {
@@ -148,31 +161,37 @@ export class FiberSDK {
   }
 
   /**
-   * Cancel invoice
+   * Cancel an invoice (only when status is Open).
    */
-  async cancelInvoice(payment_hash: string): Promise<void> {
+  async cancelInvoice(payment_hash: Hash256): Promise<{
+    invoice_address: string;
+    invoice: CkbInvoice;
+    status: import("./types.js").CkbInvoiceStatus;
+  }> {
     return this.invoice.cancelInvoice(payment_hash);
   }
 
   /**
-   * Get payment information
+   * Get payment by payment hash.
    */
-  async getPayment(payment_hash: string): Promise<{
+  async getPayment(payment_hash: Hash256): Promise<{
     status: PaymentSessionStatus;
     payment_hash: Hash256;
-    created_at: bigint;
-    last_updated_at: bigint;
+    created_at: string | number;
+    last_updated_at: string | number;
     failed_error?: string;
-    fee: bigint;
+    fee: string | number;
+    custom_records?: import("./types.js").PaymentCustomRecords;
+    router: import("./types.js").SessionRouteNode[];
   }> {
     return this.payment.getPayment(payment_hash);
   }
 
   /**
-   * Connect to node
+   * Connect to a peer (optionally save address to peer store).
    */
-  async connectPeer(address: string): Promise<void> {
-    return this.peer.connectPeer(address);
+  async connectPeer(address: string, save?: boolean): Promise<void> {
+    return this.peer.connectPeer(address, save);
   }
 
   /**

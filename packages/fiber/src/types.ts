@@ -86,9 +86,16 @@ export interface Script {
   args: string;
 }
 
+export interface OutPoint {
+  tx_hash: Hash256;
+  index: string | number;
+}
+
 export interface Channel {
   channel_id: Hash256;
-  peer_id: Pubkey;
+  is_public: boolean;
+  channel_outpoint?: OutPoint;
+  peer_id: string;
   funding_udt_type_script?: Script;
   state: string;
   local_balance: string;
@@ -97,63 +104,65 @@ export interface Channel {
   received_tlc_balance: string;
   latest_commitment_transaction_hash?: Hash256;
   created_at: string;
-  last_updated_at: string;
+  last_updated_at?: string;
   enabled: boolean;
   tlc_expiry_delta: string;
   tlc_fee_proportional_millionths: string;
 }
 
+export interface ChannelUpdateInfo {
+  timestamp: string | number;
+  enabled: boolean;
+  outbound_liquidity?: string | number;
+  tlc_expiry_delta: string | number;
+  tlc_minimum_value: string | number;
+  fee_rate: string | number;
+}
+
 export interface ChannelInfo {
-  channel_outpoint: {
-    tx_hash: Hash256;
-    index: bigint;
-  };
+  channel_outpoint: OutPoint;
   node1: Pubkey;
   node2: Pubkey;
-  created_timestamp: bigint;
-  last_updated_timestamp_of_node1?: bigint;
-  last_updated_timestamp_of_node2?: bigint;
-  fee_rate_of_node1?: bigint;
-  fee_rate_of_node2?: bigint;
-  capacity: bigint;
+  created_timestamp: string | number;
+  update_info_of_node1?: ChannelUpdateInfo;
+  update_info_of_node2?: ChannelUpdateInfo;
+  capacity: string | number;
   chain_hash: Hash256;
   udt_type_script?: Script;
 }
 
+export interface InvoiceSignature {
+  pubkey: Pubkey;
+  signature: string;
+}
+
 export interface CkbInvoice {
   currency: Currency;
-  amount?: bigint;
-  signature?: {
-    pubkey: Pubkey;
-    signature: string;
-  };
+  amount?: string | number;
+  signature?: InvoiceSignature;
   data: {
-    payment_hash: string;
-    timestamp: bigint;
-    expiry?: bigint;
+    timestamp: string | number;
+    payment_hash: Hash256;
+    attrs?: Array<unknown>;
+    expiry?: string | number;
     description?: string;
     description_hash?: string;
     payment_secret?: string;
-    features?: bigint;
-    route_hints?: Array<{
-      pubkey: Pubkey;
-      channel_outpoint: {
-        tx_hash: Hash256;
-        index: bigint;
-      };
-      fee_rate: bigint;
-      tlc_expiry_delta: bigint;
-    }>;
+    features?: string | number;
+    route_hints?: HopHint[];
   };
 }
 
 export interface NodeInfo {
+  version?: string;
+  commit_hash?: string;
   node_name: string;
   addresses: string[];
   node_id: Pubkey;
   timestamp: string;
   chain_hash: Hash256;
-  auto_accept_min_ckb_funding_amount: string;
+  open_channel_auto_accept_min_ckb_funding_amount?: string;
+  auto_accept_min_ckb_funding_amount?: string;
   auto_accept_channel_ckb_funding_amount: string;
   tlc_expiry_delta: string;
   tlc_min_value: string;
@@ -162,26 +171,33 @@ export interface NodeInfo {
   pending_channel_count: string;
   peers_count: string;
   udt_cfg_infos: Record<string, unknown>;
-  default_funding_lock_script?: {
-    code_hash: string;
-    hash_type: string;
-    args: string;
-  };
+  default_funding_lock_script?: Script;
 }
 
 export interface PaymentCustomRecords {
   data: Record<string, string>;
 }
 
+export interface SessionRouteNode {
+  pubkey: Pubkey;
+  amount: string | number;
+  channel_outpoint: OutPoint;
+}
+
 export interface SessionRoute {
-  nodes: Array<{
-    pubkey: Pubkey;
-    amount: bigint;
-    channel_outpoint?: {
-      tx_hash: Hash256;
-      index: bigint;
-    };
-  }>;
+  nodes: SessionRouteNode[];
+}
+
+export interface RouterHop {
+  target: Pubkey;
+  channel_outpoint: OutPoint;
+  amount_received: string | number;
+  incoming_tlc_expiry: string | number;
+}
+
+export interface HopRequire {
+  pubkey: Pubkey;
+  channel_outpoint?: OutPoint;
 }
 
 export interface NodeStatus {
@@ -220,8 +236,9 @@ export interface CchOrder {
 
 export enum CchOrderStatus {
   Pending = "Pending",
-  Processing = "Processing",
-  Completed = "Completed",
+  Accepted = "Accepted",
+  InFlight = "InFlight",
+  Succeeded = "Succeeded",
   Failed = "Failed",
 }
 
@@ -232,10 +249,7 @@ export enum HashAlgorithm {
 
 export interface HopHint {
   pubkey: Pubkey;
-  channel_outpoint: {
-    tx_hash: Hash256;
-    index: bigint;
-  };
-  fee_rate: bigint;
-  tlc_expiry_delta: bigint;
+  channel_outpoint: OutPoint;
+  fee_rate: string | number;
+  tlc_expiry_delta: string | number;
 }
