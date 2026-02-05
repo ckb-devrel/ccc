@@ -37,7 +37,7 @@ export async function readFileAsBytes(file: File): Promise<Uint8Array> {
   });
 }
 
-export function FileUploadArea({
+export default function FileUploadArea({
   file,
   onFileChange,
 }: {
