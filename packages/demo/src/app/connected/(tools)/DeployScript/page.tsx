@@ -1,7 +1,7 @@
 "use client";
 
-import { FileUploadArea } from "@/src/app/utils/(tools)/FileUpload/page";
-import { TxConfirm } from "@/src/app/utils/(tools)/TxConfirm/page";
+import FileUploadArea from "@/src/app/utils/(tools)/FileUpload/page";
+import TxConfirm from "@/src/app/utils/(tools)/TxConfirm/page";
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";

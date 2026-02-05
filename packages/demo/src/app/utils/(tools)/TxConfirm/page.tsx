@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 
-export function TxConfirm({
+export default function TxConfirm({
   isOpen,
   message,
   txHash,
