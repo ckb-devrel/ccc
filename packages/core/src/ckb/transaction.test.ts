@@ -58,6 +58,20 @@ describe("Transaction", () => {
         },
       );
 
+      // Mock the findCells method to return our mock UDT cells
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          if (
+            searchKey.filter?.script &&
+            ccc.Script.from(searchKey.filter.script).eq(type)
+          ) {
+            for (const cell of mockUdtCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
       // Mock client.getCell to return the cell data for inputs
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         const cell = mockUdtCells.find((c) => c.outPoint.eq(outPoint));
@@ -263,9 +277,12 @@ describe("Transaction", () => {
 
     it("should use only one cell when user has only one cell available", async () => {
       // Mock signer to return only one cell
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          if (
+            searchKey.filter?.script &&
+            ccc.Script.from(searchKey.filter.script).eq(type)
+          ) {
             yield mockUdtCells[0]; // Only yield the first cell
           }
         },
@@ -321,6 +338,18 @@ describe("Transaction", () => {
         async function* (filter) {
           // Return capacity cells for general queries
           if (!filter.script || filter.scriptLenRange) {
+            for (const cell of mockCapacityCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
+      // Mock the findCells method to return capacity cells
+      vi.spyOn(client, "findCells").mockImplementation(
+        async function* (searchKey) {
+          // Return capacity cells for general queries
+          if (!searchKey.filter?.script || searchKey.filter?.scriptLenRange) {
             for (const cell of mockCapacityCells) {
               yield cell;
             }
@@ -551,7 +580,15 @@ describe("Transaction", () => {
       );
 
       // Verify that findCells was called with the custom filter
-      expect(signer.findCells).toHaveBeenCalledWith(customFilter, true);
+      for (const address of await signer.getAddressObjs()) {
+        expect(client.findCells).toHaveBeenCalledWith({
+          script: address.script,
+          scriptType: "lock",
+          filter: customFilter,
+          scriptSearchMode: "exact",
+          withData: true,
+        });
+      }
     });
 
     it("should throw error when change function doesn't use all capacity", async () => {
@@ -1159,6 +1196,246 @@ describe("Transaction", () => {
           explicitCapacity - ccc.fixedPointFrom(cell.occupiedSize);
         expect(cell.capacityFree).toBe(expectedFreeCapacity);
       });
+    });
+  });
+
+  describe("Fee Payer Layer", () => {
+    let mockFeePayer1: ccc.FeePayer;
+    let mockFeePayer2: ccc.FeePayer;
+
+    beforeEach(() => {
+      // Create mock fee payers
+      mockFeePayer1 = {
+        prepareTransaction: vi
+          .fn()
+          .mockImplementation(async (tx: ccc.TransactionLike) =>
+            ccc.Transaction.from(tx),
+          ),
+        completeTxFee: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ccc.FeePayer;
+
+      mockFeePayer2 = {
+        prepareTransaction: vi
+          .fn()
+          .mockImplementation(async (tx: ccc.TransactionLike) =>
+            ccc.Transaction.from(tx),
+          ),
+        completeTxFee: vi.fn().mockResolvedValue(undefined),
+      } as unknown as ccc.FeePayer;
+    });
+
+    it("should call prepareTransaction on all fee payers", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
+
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledWith(tx);
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it("should call completeTxFee on all fee payers after prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
+
+      // Verify both methods were called
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();
+      expect(mockFeePayer2.prepareTransaction).toHaveBeenCalled();
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalled();
+      expect(mockFeePayer2.completeTxFee).toHaveBeenCalled();
+
+      // Verify completeTxFee was called with a Transaction and client
+      const completeTxFee1Call = (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
+      const completeTxFee2Call = (
+        mockFeePayer2.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.calls[0];
+      expect(completeTxFee1Call[0]).toBeInstanceOf(ccc.Transaction);
+      expect(completeTxFee2Call[0]).toBeInstanceOf(ccc.Transaction);
+
+      // Verify prepareTransaction was called before completeTxFee
+      // by checking the order of calls
+      const prepare1Order = (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mock.invocationCallOrder[0];
+      const complete1Order = (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mock.invocationCallOrder[0];
+      expect(prepare1Order).toBeLessThan(complete1Order);
+    });
+
+    it("should handle single fee payer", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      await tx.completeByFeePayer(mockFeePayer1);
+
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledTimes(1);
+      expect(mockFeePayer2.prepareTransaction).not.toHaveBeenCalled();
+      expect(mockFeePayer2.completeTxFee).not.toHaveBeenCalled();
+    });
+
+    it("should handle empty fee payer list", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      // Should not throw with empty fee payer list
+      await expect(tx.completeByFeePayer()).resolves.not.toThrow();
+    });
+
+    it("should handle multiple fee payers in sequence", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const callOrder: string[] = [];
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockImplementation(async (tx: ccc.TransactionLike) => {
+        callOrder.push("prepare1");
+        return ccc.Transaction.from(tx);
+      });
+      (
+        mockFeePayer2.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockImplementation(async (tx: ccc.TransactionLike) => {
+        callOrder.push("prepare2");
+        return ccc.Transaction.from(tx);
+      });
+      (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("complete1");
+      });
+      (
+        mockFeePayer2.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockImplementation(async () => {
+        callOrder.push("complete2");
+      });
+
+      await tx.completeByFeePayer(mockFeePayer1, mockFeePayer2);
+
+      // Verify order: all prepareTransaction calls first, then all completeTxFee calls
+      expect(callOrder).toEqual([
+        "prepare1",
+        "prepare2",
+        "complete1",
+        "complete2",
+      ]);
+    });
+
+    it("should propagate errors from prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const error = new Error("Prepare transaction failed");
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(error);
+
+      await expect(tx.completeByFeePayer(mockFeePayer1)).rejects.toThrow(
+        "Prepare transaction failed",
+      );
+    });
+
+    it("should propagate errors from completeTxFee", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const error = new Error("Complete fee failed");
+      (
+        mockFeePayer1.completeTxFee as ReturnType<typeof vi.fn>
+      ).mockRejectedValue(error);
+
+      await expect(tx.completeByFeePayer(mockFeePayer1)).rejects.toThrow(
+        "Complete fee failed",
+      );
+    });
+
+    it("should handle fee payer that modifies transaction in prepareTransaction", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+        ],
+      });
+
+      const modifiedTx = ccc.Transaction.from({
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(100),
+            lock,
+          },
+          {
+            capacity: ccc.fixedPointFrom(50),
+            lock,
+          },
+        ],
+      });
+
+      (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(modifiedTx);
+
+      await tx.completeByFeePayer(mockFeePayer1);
+
+      // prepareTransaction is called with a clone of the original transaction
+      expect(mockFeePayer1.prepareTransaction).toHaveBeenCalled();
+      const prepareCallArg = (
+        mockFeePayer1.prepareTransaction as ReturnType<typeof vi.fn>
+      ).mock.calls[0][0] as ccc.Transaction;
+      expect(prepareCallArg).toBeInstanceOf(ccc.Transaction);
+      expect(prepareCallArg.outputs.length).toBe(1);
+      // completeTxFee should be called with the modified transaction returned by prepareTransaction
+      expect(mockFeePayer1.completeTxFee).toHaveBeenCalledWith(modifiedTx);
     });
   });
 });
