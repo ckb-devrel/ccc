@@ -9,14 +9,15 @@ import { Message } from "@/src/components/Message";
 import { useApp } from "@/src/context";
 import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
-import { ReactNode, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import {
+  BurnButton,
   CellFoundSection,
   ClearSelectionButton,
   LoadingMessage,
   TypeIdCellButton,
 } from "./DeployScriptComponents";
-import { runDeploy } from "./deployLogic";
+import { runBurn, runDeploy } from "./deployLogic";
 import { useDeployScript } from "./useDeployScript";
 
 export default function DeployScript() {
@@ -36,6 +37,7 @@ export default function DeployScript() {
     typeIdArgs,
     setTypeIdArgs,
     typeIdCells,
+    cellCreationTimestamps,
     isScanningCells,
     foundCell,
     foundCellAddress,
@@ -45,7 +47,49 @@ export default function DeployScript() {
     handleSelectTypeIdCell,
     clearSelection,
     normalizeTypeIdArgs,
+    refreshTypeIdCells,
   } = useDeployScript();
+
+  const handleBurn = useCallback(async () => {
+    if (!signer || !foundCell) return;
+    if (isAddressMatch !== true) {
+      error("You can only burn a cell that you own.");
+      return;
+    }
+    setIsDeploying(true);
+    try {
+      const txHash = await runBurn(signer, foundCell, log);
+      if (!txHash) {
+        setIsDeploying(false);
+        return;
+      }
+      setIsWaitingConfirmation(true);
+      setConfirmationMessage("Waiting for burn transaction confirmation...");
+      setConfirmationTxHash(txHash);
+      log("Transaction sent:", explorerTransaction(txHash));
+      await signer.client.waitTransaction(txHash);
+      log("Transaction committed:", explorerTransaction(txHash));
+      clearSelection();
+      refreshTypeIdCells();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      error("Burn failed:", msg);
+    } finally {
+      setIsDeploying(false);
+      setIsWaitingConfirmation(false);
+      setConfirmationMessage("");
+      setConfirmationTxHash("");
+    }
+  }, [
+    signer,
+    foundCell,
+    isAddressMatch,
+    log,
+    error,
+    explorerTransaction,
+    clearSelection,
+    refreshTypeIdCells,
+  ]);
 
   const handleDeploy = useCallback(async () => {
     if (!signer) {
@@ -66,8 +110,8 @@ export default function DeployScript() {
         typeIdArgs,
         foundCell,
         isAddressMatch,
-        (msg, ...args) => log(msg, ...(args as ReactNode[])),
-        (msg, ...args) => error(msg, ...(args as ReactNode[])),
+        log,
+        error,
       );
 
       if (!txHash) {
@@ -82,6 +126,7 @@ export default function DeployScript() {
       log("Transaction sent:", explorerTransaction(txHash));
       await signer.client.waitTransaction(txHash);
       log("Transaction committed:", explorerTransaction(txHash));
+      refreshTypeIdCells();
 
       setIsWaitingConfirmation(false);
       setConfirmationMessage("");
@@ -104,6 +149,7 @@ export default function DeployScript() {
     log,
     error,
     explorerTransaction,
+    refreshTypeIdCells,
   ]);
 
   const normalizedInput = normalizeTypeIdArgs(typeIdArgs);
@@ -149,11 +195,29 @@ export default function DeployScript() {
                     index={index}
                     onSelect={() => handleSelectTypeIdCell(cell)}
                     isSelected={isSelected}
+                    creationTimestamp={
+                      cellCreationTimestamps[
+                        ccc.hexFrom(cell.outPoint.toBytes())
+                      ]
+                    }
                   />
                 );
               })}
             </div>
-            {typeIdArgs && <ClearSelectionButton onClick={clearSelection} />}
+            {typeIdArgs && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <ClearSelectionButton onClick={clearSelection} />
+                <BurnButton
+                  onClick={handleBurn}
+                  disabled={
+                    isAddressMatch !== true ||
+                    isDeploying ||
+                    !foundCell ||
+                    !signer
+                  }
+                />
+              </div>
+            )}
           </div>
         )}
 

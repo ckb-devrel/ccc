@@ -1,8 +1,9 @@
 import { readFileAsBytes } from "@/src/app/utils/(tools)/FileUpload/page";
 import { ccc } from "@ckb-ccc/connector-react";
+import { ReactNode } from "react";
 import { normalizeTypeIdArgs } from "./helpers";
 
-export type DeployLogger = (msg: string, ...args: unknown[]) => void;
+export type Logger = (...args: ReactNode[]) => void;
 
 export async function runDeploy(
   signer: ccc.Signer,
@@ -10,8 +11,8 @@ export async function runDeploy(
   typeIdArgs: string,
   foundCell: ccc.Cell | null,
   isAddressMatch: boolean | null,
-  log: DeployLogger,
-  error: DeployLogger,
+  log: Logger,
+  error: Logger,
 ): Promise<string | null> {
   const fileBytes = (await readFileAsBytes(file)) as ccc.Bytes;
   const { script } = await signer.getRecommendedAddressObj();
@@ -73,6 +74,26 @@ export async function runDeploy(
 
   await tx.completeFeeBy(signer);
   log("Sending transaction...");
+  const txHash = await signer.sendTransaction(tx);
+  log("Transaction sent:", txHash);
+  return txHash;
+}
+
+/** Burn the selected type_id cell: consume it and send capacity back to the lock (no type script). */
+export async function runBurn(
+  signer: ccc.Signer,
+  foundCell: ccc.Cell,
+  log: Logger,
+): Promise<string | null> {
+  const { lock } = foundCell.cellOutput;
+  const tx = ccc.Transaction.from({
+    inputs: [{ previousOutput: foundCell.outPoint }],
+    outputs: [{ lock, capacity: ccc.Zero }],
+    outputsData: ["0x"],
+  });
+  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.TypeId);
+  await tx.completeFeeChangeToOutput(signer, 0);
+  log("Sending burn transaction...");
   const txHash = await signer.sendTransaction(tx);
   log("Transaction sent:", txHash);
   return txHash;

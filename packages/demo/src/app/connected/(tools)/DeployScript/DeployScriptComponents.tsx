@@ -9,16 +9,30 @@ import { ccc } from "@ckb-ccc/connector-react";
 import { Loader2 } from "lucide-react";
 import { typeIdArgsToFourLines } from "./helpers";
 
+function formatCellCreationDate(timestampMs: number): string {
+  try {
+    return new Date(timestampMs).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
 export function TypeIdCellButton({
   cell,
   index,
   onSelect,
   isSelected,
+  creationTimestamp,
 }: {
   cell: ccc.Cell;
   index: number;
   onSelect: () => void;
   isSelected: boolean;
+  creationTimestamp?: number;
 }) {
   const typeIdArgs = cell.cellOutput.type?.args || "";
   const dataSize = cell.outputData ? ccc.bytesFrom(cell.outputData).length : 0;
@@ -36,6 +50,11 @@ export function TypeIdCellButton({
         <span className="shrink-0 text-xs font-medium text-gray-500">
           #{index + 1}
         </span>
+        {creationTimestamp != null && (
+          <span className="mt-0.5 shrink-0 text-[10px] font-normal text-gray-400">
+            {formatCellCreationDate(creationTimestamp)}
+          </span>
+        )}
         <div className="mt-1 flex w-full min-w-0 flex-col font-mono text-[10px]">
           {fourLines.map((line, i) => (
             <span key={i} className="truncate">
@@ -154,6 +173,25 @@ export function ClearSelectionButton({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="info" className="mt-2" onClick={onClick}>
       Clear Selection
+    </Button>
+  );
+}
+
+export function BurnButton({
+  onClick,
+  disabled,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Button
+      variant="danger"
+      className="mt-2"
+      onClick={onClick}
+      disabled={disabled}
+    >
+      Burn
     </Button>
   );
 }

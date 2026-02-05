@@ -18,6 +18,10 @@ export function useDeployScript() {
   const [isAddressMatch, setIsAddressMatch] = useState<boolean | null>(null);
   const [isCheckingCell, setIsCheckingCell] = useState(false);
   const [cellCheckError, setCellCheckError] = useState("");
+  const [cellCreationTimestamps, setCellCreationTimestamps] = useState<
+    Record<string, number>
+  >({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const lastCheckedTypeIdRef = useRef("");
   const isCheckingRef = useRef(false);
@@ -42,7 +46,11 @@ export function useDeployScript() {
       .catch(() => setUserAddress(""));
   }, [signer]);
 
-  // Scan Type ID cells
+  // Scan Type ID cells (runs on signer change or force refresh)
+  const refreshTypeIdCells = useCallback(() => {
+    setRefreshTrigger((t) => t + 1);
+  }, []);
+
   useEffect(() => {
     if (!signer) {
       setTypeIdCells([]);
@@ -74,7 +82,34 @@ export function useDeployScript() {
         setIsScanningCells(false);
       }
     })();
-  }, [signer]);
+  }, [signer, refreshTrigger]);
+
+  // Fetch block header timestamp for each type_id cell (creation date)
+  useEffect(() => {
+    if (!client || typeIdCells.length === 0) {
+      setCellCreationTimestamps({});
+      return;
+    }
+    let cancelled = false;
+    const next: Record<string, number> = {};
+    (async () => {
+      for (const cell of typeIdCells) {
+        if (cancelled) return;
+        try {
+          const res = await client.getCellWithHeader(cell.outPoint);
+          if (cancelled || !res?.header) continue;
+          const key = ccc.hexFrom(cell.outPoint.toBytes());
+          next[key] = Number(res.header.timestamp);
+        } catch {
+          // ignore per-cell errors
+        }
+      }
+      if (!cancelled) setCellCreationTimestamps(next);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [client, typeIdCells]);
 
   // Derive address match from user + found cell address
   useEffect(() => {
@@ -192,6 +227,7 @@ export function useDeployScript() {
     typeIdArgs,
     setTypeIdArgs,
     typeIdCells,
+    cellCreationTimestamps,
     isScanningCells,
     foundCell,
     foundCellAddress,
@@ -201,5 +237,6 @@ export function useDeployScript() {
     handleSelectTypeIdCell,
     clearSelection,
     normalizeTypeIdArgs,
+    refreshTypeIdCells,
   };
 }
