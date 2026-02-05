@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  FileUploadArea,
+  formatFileSize,
+  readFileAsBytes,
+} from "@/src/app/utils/(tools)/FileUpload/page";
+import { TxConfirm } from "@/src/app/utils/(tools)/TxConfirm/page";
 import { BigButton } from "@/src/components/BigButton";
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
@@ -8,72 +14,8 @@ import { Message } from "@/src/components/Message";
 import { useApp } from "@/src/context";
 import { formatString, useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-}
-
-function formatDate(date: Date): string {
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-async function readFileAsBytes(file: File): Promise<ccc.Bytes> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result instanceof ArrayBuffer) {
-        resolve(new Uint8Array(e.target.result));
-      } else {
-        reject(new Error("Failed to read file"));
-      }
-    };
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-function ConfirmationModal({
-  isOpen,
-  message,
-  txHash,
-}: {
-  isOpen: boolean;
-  message: string;
-  txHash?: string;
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-          <div className="text-center">
-            <p className="text-lg font-semibold text-gray-800">{message}</p>
-            {txHash && (
-              <p className="mt-2 text-sm break-all text-gray-600">{txHash}</p>
-            )}
-            <p className="mt-4 text-sm text-gray-500">
-              Please wait for transaction confirmation...
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function typeIdArgsToFourLines(args: string): string[] {
   const str = args || "";
@@ -136,7 +78,6 @@ export default function DeployScript() {
   const { explorerTransaction, explorerAddress } = useGetExplorerLink();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [typeIdArgs, setTypeIdArgs] = useState<string>("");
   const [isWaitingConfirmation, setIsWaitingConfirmation] = useState(false);
@@ -150,7 +91,6 @@ export default function DeployScript() {
   const [cellCheckError, setCellCheckError] = useState<string>("");
   const [typeIdCells, setTypeIdCells] = useState<ccc.Cell[]>([]);
   const [isScanningCells, setIsScanningCells] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastCheckedTypeIdRef = useRef<string>("");
   const isCheckingRef = useRef<boolean>(false);
   const { client } = ccc.useCcc();
@@ -226,47 +166,6 @@ export default function DeployScript() {
       setIsAddressMatch(null);
     }
   }, [userAddress, foundCellAddress]);
-
-  const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
-      handleFileSelect(droppedFile);
-    }
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      handleFileSelect(selectedFile);
-    }
-  };
-
-  const handleClearFile = () => {
-    setFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
 
   // Handle selecting a Type ID cell from the scanned list
   const handleSelectTypeIdCell = async (cell: ccc.Cell) => {
@@ -401,7 +300,7 @@ export default function DeployScript() {
     setIsDeploying(true);
     try {
       log("Reading file...");
-      const fileBytes = await readFileAsBytes(file);
+      const fileBytes = (await readFileAsBytes(file)) as ccc.Bytes;
 
       log("Building transaction...");
       const { script } = await signer.getRecommendedAddressObj();
@@ -510,7 +409,7 @@ export default function DeployScript() {
 
   return (
     <>
-      <ConfirmationModal
+      <TxConfirm
         isOpen={isWaitingConfirmation}
         message={confirmationMessage}
         txHash={confirmationTxHash}
@@ -674,84 +573,7 @@ export default function DeployScript() {
           </Message>
         )}
 
-        <div
-          className={`relative my-4 rounded-lg border-2 border-dashed p-8 transition-colors ${
-            isDragging
-              ? "border-purple-500 bg-purple-50"
-              : "border-gray-300 bg-white/75"
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileInputChange}
-          />
-
-          {!file ? (
-            <div className="flex flex-col items-center justify-center gap-4">
-              <Upload className="h-12 w-12 text-gray-400" />
-              <div className="text-center">
-                <p className="text-lg font-semibold text-gray-700">
-                  Drag and drop a file here, or click to select
-                </p>
-                <p className="mt-2 text-sm text-gray-500">
-                  Select a file from your computer
-                </p>
-              </div>
-              <Button
-                variant="info"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Select File
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Upload className="h-5 w-5 text-purple-500" />
-                    <p className="text-lg font-semibold text-gray-800">
-                      {file.name}
-                    </p>
-                  </div>
-                  <div className="ml-7 space-y-1 text-sm text-gray-600">
-                    <p>
-                      <span className="font-medium">Size:</span>{" "}
-                      {formatFileSize(file.size)}
-                    </p>
-                    <p>
-                      <span className="font-medium">Type:</span>{" "}
-                      {file.type || "Unknown"}
-                    </p>
-                    <p>
-                      <span className="font-medium">Modified:</span>{" "}
-                      {formatDate(new Date(file.lastModified))}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleClearFile}
-                  className="ml-4 rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  aria-label="Clear file"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <Button
-                variant="info"
-                onClick={() => fileInputRef.current?.click()}
-                className="self-start"
-              >
-                Change File
-              </Button>
-            </div>
-          )}
-        </div>
+        <FileUploadArea file={file} onFileChange={setFile} />
 
         <ButtonsPanel>
           <Button
