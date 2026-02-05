@@ -9,7 +9,7 @@ import { useApp } from "@/src/context";
 import { formatString, useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
 import { Loader2, Upload, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 Bytes";
@@ -108,7 +108,7 @@ function TypeIdCellButton({
       size="sm"
       iconName="FileCode"
       onClick={onSelect}
-      className={isSelected ? "border-purple-500 bg-purple-50" : ""}
+      className={isSelected ? "border-2 border-purple-500 bg-purple-50" : ""}
     >
       <div className="text-md flex w-full min-w-0 flex-col">
         <span className="shrink-0 text-xs font-medium text-gray-500">
@@ -219,7 +219,7 @@ export default function DeployScript() {
   }, [signer]);
 
   // Compare addresses when both are available
-  useEffect(() => {
+  useMemo(() => {
     if (userAddress && foundCellAddress) {
       setIsAddressMatch(userAddress === foundCellAddress);
     } else {
