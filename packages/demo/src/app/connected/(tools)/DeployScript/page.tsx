@@ -9,7 +9,7 @@ import { useApp } from "@/src/context";
 import { formatString, useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
 import { Loader2, Upload, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 Bytes";
@@ -75,17 +75,32 @@ function ConfirmationModal({
   );
 }
 
+function typeIdArgsToFourLines(args: string): string[] {
+  const str = args || "";
+  if (!str.length) return [];
+  const chunkSize = Math.ceil(str.length / 4);
+  return [
+    str.slice(0, chunkSize),
+    str.slice(chunkSize, chunkSize * 2),
+    str.slice(chunkSize * 2, chunkSize * 3),
+    str.slice(chunkSize * 3),
+  ].filter(Boolean);
+}
+
 function TypeIdCellButton({
   cell,
+  index,
   onSelect,
   isSelected,
 }: {
   cell: ccc.Cell;
+  index: number;
   onSelect: () => void;
   isSelected: boolean;
 }) {
   const typeIdArgs = cell.cellOutput.type?.args || "";
   const dataSize = cell.outputData ? ccc.bytesFrom(cell.outputData).length : 0;
+  const fourLines = typeIdArgsToFourLines(typeIdArgs.slice(2));
 
   return (
     <BigButton
@@ -95,11 +110,18 @@ function TypeIdCellButton({
       onClick={onSelect}
       className={isSelected ? "border-purple-500 bg-purple-50" : ""}
     >
-      <div className="text-md flex flex-col">
-        <span className="font-mono text-xs break-all">
-          {formatString(typeIdArgs, 8, 6)}
+      <div className="text-md flex w-full min-w-0 flex-col">
+        <span className="shrink-0 text-xs font-medium text-gray-500">
+          #{index + 1}
         </span>
-        <span className="-mt-1 text-xs text-gray-500">
+        <div className="mt-1 flex w-full min-w-0 flex-col font-mono text-[10px]">
+          {fourLines.map((line, i) => (
+            <span key={i} className="truncate">
+              {line}
+            </span>
+          ))}
+        </div>
+        <span className="mt-2 shrink-0 truncate text-xs text-gray-500">
           {formatFileSize(dataSize)}
         </span>
       </div>
@@ -133,6 +155,13 @@ export default function DeployScript() {
   const isCheckingRef = useRef<boolean>(false);
   const { client } = ccc.useCcc();
 
+  const resetCellCheckState = useCallback((errorMessage = "") => {
+    setFoundCell(null);
+    setFoundCellAddress("");
+    setIsAddressMatch(null);
+    setCellCheckError(errorMessage);
+  }, []);
+
   // Get user's wallet address
   useEffect(() => {
     if (!signer) {
@@ -141,10 +170,15 @@ export default function DeployScript() {
       return;
     }
 
-    signer.getRecommendedAddress().then((addr) => {
-      setUserAddress(addr);
-    });
-  }, [signer]);
+    signer
+      .getRecommendedAddress()
+      .then((addr) => setUserAddress(addr))
+      .catch((err) => {
+        console.error("Failed to get recommended address:", err);
+        setUserAddress("");
+        error("Failed to get wallet address");
+      });
+  }, [signer, error]);
 
   // Scan for all Type ID cells locked under the user's address
   useEffect(() => {
@@ -257,9 +291,7 @@ export default function DeployScript() {
       setIsAddressMatch(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      setCellCheckError(`Error getting cell address: ${errorMessage}`);
-      setFoundCellAddress("");
-      setIsAddressMatch(null);
+      resetCellCheckState(`Error getting cell address: ${errorMessage}`);
     }
 
     // Update the last checked ref to prevent redundant lookup
@@ -287,10 +319,7 @@ export default function DeployScript() {
     // If empty, just clear state
     if (!typeIdArgs.trim()) {
       lastCheckedTypeIdRef.current = "";
-      setFoundCell(null);
-      setFoundCellAddress("");
-      setIsAddressMatch(null);
-      setCellCheckError("");
+      resetCellCheckState();
       return;
     }
 
@@ -306,20 +335,14 @@ export default function DeployScript() {
       try {
         const typeIdBytes = ccc.bytesFrom(normalizedTypeIdArgs);
         if (typeIdBytes.length !== 32) {
-          setFoundCell(null);
-          setFoundCellAddress("");
-          setIsAddressMatch(null);
-          setCellCheckError(
+          resetCellCheckState(
             "Type ID args must be 32 bytes (64 hex characters)",
           );
           isCheckingRef.current = false;
           return;
         }
       } catch {
-        setFoundCell(null);
-        setFoundCellAddress("");
-        setIsAddressMatch(null);
-        setCellCheckError("Invalid Type ID args format");
+        resetCellCheckState("Invalid Type ID args format");
         isCheckingRef.current = false;
         return;
       }
@@ -346,17 +369,11 @@ export default function DeployScript() {
           setCellCheckError("");
           // Address comparison will be handled by useEffect
         } else {
-          setFoundCell(null);
-          setFoundCellAddress("");
-          setIsAddressMatch(null);
-          setCellCheckError("Type ID cell not found on-chain");
+          resetCellCheckState("Type ID cell not found on-chain");
         }
       } catch (err) {
-        setFoundCell(null);
-        setFoundCellAddress("");
-        setIsAddressMatch(null);
         const errorMessage = err instanceof Error ? err.message : String(err);
-        setCellCheckError(`Error checking Type ID: ${errorMessage}`);
+        resetCellCheckState(`Error checking Type ID: ${errorMessage}`);
       } finally {
         setIsCheckingCell(false);
         isCheckingRef.current = false;
@@ -368,7 +385,7 @@ export default function DeployScript() {
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [typeIdArgs, client]);
+  });
 
   const handleDeploy = async () => {
     if (!signer) {
@@ -521,7 +538,7 @@ export default function DeployScript() {
               Select Existing Type ID Cell (Optional)
             </label>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
-              {typeIdCells.map((cell) => {
+              {typeIdCells.map((cell, index) => {
                 const cellTypeIdArgs = cell.cellOutput.type?.args || "";
                 const normalizedCellTypeIdArgs = cellTypeIdArgs.startsWith("0x")
                   ? cellTypeIdArgs.slice(2)
@@ -537,6 +554,7 @@ export default function DeployScript() {
                   <TypeIdCellButton
                     key={ccc.hexFrom(cell.outPoint.toBytes())}
                     cell={cell}
+                    index={index}
                     onSelect={() => {
                       handleSelectTypeIdCell(cell);
                     }}
