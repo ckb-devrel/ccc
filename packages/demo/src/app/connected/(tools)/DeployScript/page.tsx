@@ -1,297 +1,57 @@
 "use client";
 
-import {
-  FileUploadArea,
-  formatFileSize,
-  readFileAsBytes,
-} from "@/src/app/utils/(tools)/FileUpload/page";
+import { FileUploadArea } from "@/src/app/utils/(tools)/FileUpload/page";
 import { TxConfirm } from "@/src/app/utils/(tools)/TxConfirm/page";
-import { BigButton } from "@/src/components/BigButton";
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
 import { Message } from "@/src/components/Message";
 import { useApp } from "@/src/context";
-import { formatString, useGetExplorerLink } from "@/src/utils";
+import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Loader2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
-function typeIdArgsToFourLines(args: string): string[] {
-  const str = args || "";
-  if (!str.length) return [];
-  const chunkSize = Math.ceil(str.length / 4);
-  return [
-    str.slice(0, chunkSize),
-    str.slice(chunkSize, chunkSize * 2),
-    str.slice(chunkSize * 2, chunkSize * 3),
-    str.slice(chunkSize * 3),
-  ].filter(Boolean);
-}
-
-function TypeIdCellButton({
-  cell,
-  index,
-  onSelect,
-  isSelected,
-}: {
-  cell: ccc.Cell;
-  index: number;
-  onSelect: () => void;
-  isSelected: boolean;
-}) {
-  const typeIdArgs = cell.cellOutput.type?.args || "";
-  const dataSize = cell.outputData ? ccc.bytesFrom(cell.outputData).length : 0;
-  const fourLines = typeIdArgsToFourLines(typeIdArgs.slice(2));
-
-  return (
-    <BigButton
-      key={ccc.hexFrom(cell.outPoint.toBytes())}
-      size="sm"
-      iconName="FileCode"
-      onClick={onSelect}
-      className={isSelected ? "border-2 border-purple-500 bg-purple-50" : ""}
-    >
-      <div className="text-md flex w-full min-w-0 flex-col">
-        <span className="shrink-0 text-xs font-medium text-gray-500">
-          #{index + 1}
-        </span>
-        <div className="mt-1 flex w-full min-w-0 flex-col font-mono text-[10px]">
-          {fourLines.map((line, i) => (
-            <span key={i} className="truncate">
-              {line}
-            </span>
-          ))}
-        </div>
-        <span className="mt-2 shrink-0 truncate text-xs text-gray-500">
-          {formatFileSize(dataSize)}
-        </span>
-      </div>
-    </BigButton>
-  );
-}
+import { ReactNode, useCallback, useState } from "react";
+import {
+  CellFoundSection,
+  ClearSelectionButton,
+  LoadingMessage,
+  TypeIdCellButton,
+} from "./DeployScriptComponents";
+import { runDeploy } from "./deployLogic";
+import { useDeployScript } from "./useDeployScript";
 
 export default function DeployScript() {
-  const { signer, createSender } = useApp();
+  const { createSender } = useApp();
   const { log, error } = createSender("Deploy Script");
-
-  const { explorerTransaction, explorerAddress } = useGetExplorerLink();
+  const { explorerTransaction } = useGetExplorerLink();
 
   const [file, setFile] = useState<File | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [typeIdArgs, setTypeIdArgs] = useState<string>("");
   const [isWaitingConfirmation, setIsWaitingConfirmation] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState<string>("");
-  const [confirmationTxHash, setConfirmationTxHash] = useState<string>("");
-  const [foundCell, setFoundCell] = useState<ccc.Cell | null>(null);
-  const [foundCellAddress, setFoundCellAddress] = useState<string>("");
-  const [userAddress, setUserAddress] = useState<string>("");
-  const [isAddressMatch, setIsAddressMatch] = useState<boolean | null>(null);
-  const [isCheckingCell, setIsCheckingCell] = useState(false);
-  const [cellCheckError, setCellCheckError] = useState<string>("");
-  const [typeIdCells, setTypeIdCells] = useState<ccc.Cell[]>([]);
-  const [isScanningCells, setIsScanningCells] = useState(false);
-  const lastCheckedTypeIdRef = useRef<string>("");
-  const isCheckingRef = useRef<boolean>(false);
-  const { client } = ccc.useCcc();
+  const [confirmationMessage, setConfirmationMessage] = useState("");
+  const [confirmationTxHash, setConfirmationTxHash] = useState("");
 
-  const resetCellCheckState = useCallback((errorMessage = "") => {
-    setFoundCell(null);
-    setFoundCellAddress("");
-    setIsAddressMatch(null);
-    setCellCheckError(errorMessage);
-  }, []);
+  const {
+    signer,
+    userAddress,
+    typeIdArgs,
+    setTypeIdArgs,
+    typeIdCells,
+    isScanningCells,
+    foundCell,
+    foundCellAddress,
+    isAddressMatch,
+    isCheckingCell,
+    cellCheckError,
+    handleSelectTypeIdCell,
+    clearSelection,
+    normalizeTypeIdArgs,
+  } = useDeployScript();
 
-  // Get user's wallet address
-  useEffect(() => {
-    if (!signer) {
-      setUserAddress("");
-      setIsAddressMatch(null);
-      return;
-    }
-
-    signer
-      .getRecommendedAddress()
-      .then((addr) => setUserAddress(addr))
-      .catch((err) => {
-        console.error("Failed to get recommended address:", err);
-        setUserAddress("");
-        error("Failed to get wallet address");
-      });
-  }, [signer, error]);
-
-  // Scan for all Type ID cells locked under the user's address
-  useEffect(() => {
-    if (!signer) {
-      setTypeIdCells([]);
-      return;
-    }
-
-    setIsScanningCells(true);
-    (async () => {
-      try {
-        const { script: lock } = await signer.getRecommendedAddressObj();
-        const typeIdScript = await ccc.Script.fromKnownScript(
-          signer.client,
-          ccc.KnownScript.TypeId,
-          "",
-        );
-
-        const cells: ccc.Cell[] = [];
-        for await (const cell of signer.client.findCells({
-          script: typeIdScript,
-          scriptType: "type",
-          scriptSearchMode: "prefix",
-          withData: true,
-          filter: {
-            script: lock,
-          },
-        })) {
-          cells.push(cell);
-          setTypeIdCells([...cells]);
-        }
-      } catch (err) {
-        console.error("Error scanning Type ID cells:", err);
-      } finally {
-        setIsScanningCells(false);
-      }
-    })();
-  }, [signer]);
-
-  // Compare addresses when both are available
-  useMemo(() => {
-    if (userAddress && foundCellAddress) {
-      setIsAddressMatch(userAddress === foundCellAddress);
-    } else {
-      setIsAddressMatch(null);
-    }
-  }, [userAddress, foundCellAddress]);
-
-  // Handle selecting a Type ID cell from the scanned list
-  const handleSelectTypeIdCell = async (cell: ccc.Cell) => {
-    const cellTypeIdArgs = cell.cellOutput.type?.args || "";
-
-    // Set the typeIdArgs
-    setTypeIdArgs(cellTypeIdArgs);
-
-    // Directly set the found cell since we already have it
-    setFoundCell(cell);
-
-    // Calculate and set the cell's lock address
-    try {
-      const address = ccc.Address.fromScript(
-        cell.cellOutput.lock,
-        client,
-      ).toString();
-      setFoundCellAddress(address);
-      setCellCheckError("");
-
-      // Since we scanned cells locked under user's address, address always matches
-      setIsAddressMatch(true);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      resetCellCheckState(`Error getting cell address: ${errorMessage}`);
-    }
-
-    // Update the last checked ref to prevent redundant lookup
-    const normalizedTypeIdArgs = cellTypeIdArgs.startsWith("0x")
-      ? cellTypeIdArgs.slice(2)
-      : cellTypeIdArgs;
-    lastCheckedTypeIdRef.current = normalizedTypeIdArgs;
-  };
-
-  // Automatically check Type ID cell when typeIdArgs changes (for manual input)
-  useEffect(() => {
-    // Normalize Type ID args for comparison
-    const normalizedTypeIdArgs = typeIdArgs.trim().startsWith("0x")
-      ? typeIdArgs.trim().slice(2)
-      : typeIdArgs.trim();
-
-    // Skip if already checked this value or currently checking
-    if (
-      lastCheckedTypeIdRef.current === normalizedTypeIdArgs ||
-      isCheckingRef.current
-    ) {
-      return;
-    }
-
-    // If empty, just clear state
-    if (!typeIdArgs.trim()) {
-      lastCheckedTypeIdRef.current = "";
-      resetCellCheckState();
-      return;
-    }
-
-    const checkTypeIdCell = async () => {
-      // Mark as checking to prevent concurrent checks
-      if (isCheckingRef.current) {
-        return;
-      }
-      isCheckingRef.current = true;
-      lastCheckedTypeIdRef.current = normalizedTypeIdArgs;
-
-      // Validate length
-      try {
-        const typeIdBytes = ccc.bytesFrom(normalizedTypeIdArgs);
-        if (typeIdBytes.length !== 32) {
-          resetCellCheckState(
-            "Type ID args must be 32 bytes (64 hex characters)",
-          );
-          isCheckingRef.current = false;
-          return;
-        }
-      } catch {
-        resetCellCheckState("Invalid Type ID args format");
-        isCheckingRef.current = false;
-        return;
-      }
-
-      setIsCheckingCell(true);
-      setCellCheckError("");
-
-      try {
-        const typeIdScript = await ccc.Script.fromKnownScript(
-          client,
-          ccc.KnownScript.TypeId,
-          normalizedTypeIdArgs,
-        );
-
-        const cell = await client.findSingletonCellByType(typeIdScript, true);
-
-        if (cell) {
-          setFoundCell(cell);
-          const address = ccc.Address.fromScript(
-            cell.cellOutput.lock,
-            client,
-          ).toString();
-          setFoundCellAddress(address);
-          setCellCheckError("");
-          // Address comparison will be handled by useEffect
-        } else {
-          resetCellCheckState("Type ID cell not found on-chain");
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        resetCellCheckState(`Error checking Type ID: ${errorMessage}`);
-      } finally {
-        setIsCheckingCell(false);
-        isCheckingRef.current = false;
-      }
-    };
-
-    // Debounce the check
-    const timeoutId = setTimeout(checkTypeIdCell, 500);
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  });
-
-  const handleDeploy = async () => {
+  const handleDeploy = useCallback(async () => {
     if (!signer) {
       error("Please connect a wallet first");
       return;
     }
-
     if (!file) {
       error("Please select a file to deploy");
       return;
@@ -300,112 +60,53 @@ export default function DeployScript() {
     setIsDeploying(true);
     try {
       log("Reading file...");
-      const fileBytes = (await readFileAsBytes(file)) as ccc.Bytes;
+      const txHash = await runDeploy(
+        signer,
+        file,
+        typeIdArgs,
+        foundCell,
+        isAddressMatch,
+        (msg, ...args) => log(msg, ...(args as ReactNode[])),
+        (msg, ...args) => error(msg, ...(args as ReactNode[])),
+      );
 
-      log("Building transaction...");
-      const { script } = await signer.getRecommendedAddressObj();
-
-      let tx: ccc.Transaction;
-      let typeIdArgsValue: string;
-
-      if (typeIdArgs.trim() !== "") {
-        // Update existing Type ID cell
-        if (!foundCell) {
-          error("Type ID cell not found. Please check the Type ID args.");
-          return;
-        }
-
-        // Check if addresses match
-        if (isAddressMatch === false) {
-          error(
-            "Cannot update cell: The cell's lock address does not match your wallet address. You cannot unlock this cell.",
-          );
-          return;
-        }
-
-        // Normalize Type ID args - remove 0x prefix if present
-        const normalizedTypeIdArgs = typeIdArgs.trim().startsWith("0x")
-          ? typeIdArgs.trim().slice(2)
-          : typeIdArgs.trim();
-
-        log("Updating existing Type ID cell...");
-
-        // Create transaction to update the cell
-        tx = ccc.Transaction.from({
-          inputs: [
-            {
-              previousOutput: foundCell.outPoint,
-            },
-          ],
-          outputs: [
-            {
-              ...foundCell.cellOutput,
-              capacity: ccc.Zero, // Zero capacity means the cell will be replaced with a new one
-            },
-          ],
-          outputsData: [fileBytes],
-        });
-
-        typeIdArgsValue = normalizedTypeIdArgs;
-      } else {
-        // Create new Type ID cell
-        tx = ccc.Transaction.from({
-          outputs: [
-            {
-              lock: script,
-              type: await ccc.Script.fromKnownScript(
-                signer.client,
-                ccc.KnownScript.TypeId,
-                "00".repeat(32),
-              ),
-            },
-          ],
-          outputsData: [fileBytes],
-        });
-
-        // Complete inputs for capacity
-        await tx.completeInputsAddOne(signer);
-
-        // Generate type_id from first input and output index
-        if (!tx.outputs[0].type) {
-          throw new Error("Unexpected disappeared output");
-        }
-        tx.outputs[0].type.args = ccc.hashTypeId(tx.inputs[0], 0);
-        typeIdArgsValue = tx.outputs[0].type.args;
-
-        log("Type ID created:", typeIdArgsValue);
+      if (!txHash) {
+        setIsDeploying(false);
+        return;
       }
 
-      // Complete fees
-      await tx.completeFeeBy(signer);
-
-      // Sign and send the transaction
-      log("Sending transaction...");
-      const txHash = await signer.sendTransaction(tx);
-      log("Transaction sent:", explorerTransaction(txHash));
-
-      // Show blocking confirmation modal
       setIsWaitingConfirmation(true);
       setConfirmationMessage("Waiting for transaction confirmation...");
       setConfirmationTxHash(txHash);
 
+      log("Transaction sent:", explorerTransaction(txHash));
       await signer.client.waitTransaction(txHash);
       log("Transaction committed:", explorerTransaction(txHash));
 
-      // Close modal after confirmation
       setIsWaitingConfirmation(false);
       setConfirmationMessage("");
       setConfirmationTxHash("");
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      error("Deployment failed:", errorMessage);
+      const msg = err instanceof Error ? err.message : String(err);
+      error("Deployment failed:", msg);
       setIsWaitingConfirmation(false);
       setConfirmationMessage("");
       setConfirmationTxHash("");
     } finally {
       setIsDeploying(false);
     }
-  };
+  }, [
+    signer,
+    file,
+    typeIdArgs,
+    foundCell,
+    isAddressMatch,
+    log,
+    error,
+    explorerTransaction,
+  ]);
+
+  const normalizedInput = normalizeTypeIdArgs(typeIdArgs);
 
   return (
     <>
@@ -423,12 +124,9 @@ export default function DeployScript() {
         </Message>
 
         {isScanningCells && (
-          <Message title="Scanning..." type="info">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-              <span>Scanning for Type ID cells...</span>
-            </div>
-          </Message>
+          <LoadingMessage title="Scanning...">
+            Scanning for Type ID cells...
+          </LoadingMessage>
         )}
 
         {typeIdCells.length > 0 && (
@@ -438,45 +136,24 @@ export default function DeployScript() {
             </label>
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               {typeIdCells.map((cell, index) => {
-                const cellTypeIdArgs = cell.cellOutput.type?.args || "";
-                const normalizedCellTypeIdArgs = cellTypeIdArgs.startsWith("0x")
-                  ? cellTypeIdArgs.slice(2)
-                  : cellTypeIdArgs;
-                const normalizedTypeIdArgs = typeIdArgs.trim().startsWith("0x")
-                  ? typeIdArgs.trim().slice(2)
-                  : typeIdArgs.trim();
+                const cellNorm = normalizeTypeIdArgs(
+                  cell.cellOutput.type?.args || "",
+                );
                 const isSelected =
-                  normalizedCellTypeIdArgs === normalizedTypeIdArgs &&
-                  normalizedTypeIdArgs !== "";
+                  cellNorm === normalizedInput && normalizedInput !== "";
 
                 return (
                   <TypeIdCellButton
                     key={ccc.hexFrom(cell.outPoint.toBytes())}
                     cell={cell}
                     index={index}
-                    onSelect={() => {
-                      handleSelectTypeIdCell(cell);
-                    }}
+                    onSelect={() => handleSelectTypeIdCell(cell)}
                     isSelected={isSelected}
                   />
                 );
               })}
             </div>
-            {typeIdArgs && (
-              <Button
-                variant="info"
-                className="mt-2"
-                onClick={() => {
-                  setTypeIdArgs("");
-                  setFoundCell(null);
-                  setFoundCellAddress("");
-                  setIsAddressMatch(null);
-                  setCellCheckError("");
-                }}
-              >
-                Clear Selection
-              </Button>
-            )}
+            {typeIdArgs && <ClearSelectionButton onClick={clearSelection} />}
           </div>
         )}
 
@@ -487,84 +164,18 @@ export default function DeployScript() {
         />
 
         {isCheckingCell && (
-          <Message title="Checking..." type="info">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-              <span>Searching for Type ID cell on-chain...</span>
-            </div>
-          </Message>
+          <LoadingMessage title="Checking...">
+            Searching for Type ID cell on-chain...
+          </LoadingMessage>
         )}
 
         {foundCell && !isCheckingCell && (
-          <>
-            <Message title="Cell Found" type="success">
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="font-medium">Transaction:</span>{" "}
-                  {explorerTransaction(foundCell.outPoint.txHash)}
-                </p>
-                <p>
-                  <span className="font-medium">Index:</span>{" "}
-                  {foundCell.outPoint.index}
-                </p>
-                <p>
-                  <span className="font-medium">Capacity:</span>{" "}
-                  {ccc.fixedPointToString(foundCell.cellOutput.capacity)} CKB
-                </p>
-                <p>
-                  <span className="font-medium">Lock Address:</span>{" "}
-                  {explorerAddress(
-                    foundCellAddress,
-                    formatString(foundCellAddress, 8, 6),
-                  )}
-                </p>
-                {foundCell.outputData && (
-                  <p>
-                    <span className="font-medium">Data Size:</span>{" "}
-                    {formatFileSize(ccc.bytesFrom(foundCell.outputData).length)}
-                  </p>
-                )}
-              </div>
-            </Message>
-            {isAddressMatch === false && (
-              <Message title="Address Mismatch Warning" type="error">
-                <div className="space-y-1 text-sm">
-                  <p>
-                    The cell&apos;s lock address does not match your wallet
-                    address. You will not be able to unlock this cell to update
-                    it.
-                  </p>
-                  <p className="mt-2">
-                    <span className="font-medium">Cell Lock:</span>{" "}
-                    {explorerAddress(
-                      foundCellAddress,
-                      formatString(foundCellAddress, 8, 6),
-                    )}
-                  </p>
-                  <p>
-                    <span className="font-medium">Your Address:</span>{" "}
-                    {userAddress
-                      ? explorerAddress(
-                          userAddress,
-                          formatString(userAddress, 8, 6),
-                        )
-                      : "Not connected"}
-                  </p>
-                  <p className="mt-2 font-semibold">
-                    Deployment will fail because you cannot unlock this cell.
-                  </p>
-                </div>
-              </Message>
-            )}
-            {isAddressMatch === true && (
-              <Message title="Address Match" type="success">
-                <div className="text-sm">
-                  The cell&apos;s lock address matches your wallet address. You
-                  can update this cell.
-                </div>
-              </Message>
-            )}
-          </>
+          <CellFoundSection
+            foundCell={foundCell}
+            foundCellAddress={foundCellAddress}
+            isAddressMatch={isAddressMatch}
+            userAddress={userAddress}
+          />
         )}
 
         {cellCheckError && !isCheckingCell && (
