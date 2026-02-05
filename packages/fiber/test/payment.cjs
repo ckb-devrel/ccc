@@ -87,19 +87,23 @@ async function testGetPayment() {
       // Output detailed information
       console.log("\nPayment detailed information:");
       console.log("Status:", payment.status);
-      console.log("Payment hash:", payment.payment_hash);
+      console.log("Payment hash:", payment.paymentHash);
       console.log(
         "Created time:",
-        new Date(hexToNumber(payment.created_at)).toLocaleString(),
+        payment.createdAt
+          ? new Date(Number(payment.createdAt)).toLocaleString()
+          : "—",
       );
       console.log(
         "Last updated time:",
-        new Date(hexToNumber(payment.last_updated_at)).toLocaleString(),
+        payment.lastUpdatedAt
+          ? new Date(Number(payment.lastUpdatedAt)).toLocaleString()
+          : "—",
       );
-      if (payment.failed_error) {
-        console.log("Failure reason:", payment.failed_error);
+      if (payment.failedError) {
+        console.log("Failure reason:", payment.failedError);
       }
-      console.log("Fee:", hexToNumber(payment.fee));
+      console.log("Fee:", payment.fee);
     } catch (error) {
       if (error.error) {
         handleRPCError(error);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 interface PaymentForm {
   amount: string;

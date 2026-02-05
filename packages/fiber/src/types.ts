@@ -1,3 +1,8 @@
+/**
+ * Fiber SDK types (camelCase). Converted to/from snake_case at the RPC boundary.
+ * @see https://github.com/nervosnetwork/fiber/blob/main/src/rpc/README.md
+ */
+
 export type Hash256 = string;
 export type Pubkey = string;
 
@@ -11,11 +16,7 @@ export interface RPCRequest<T = unknown> {
 export interface RPCResponse<T = unknown> {
   jsonrpc: string;
   result?: T;
-  error?: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
+  error?: { code: number; message: string; data?: unknown };
   id: number;
 }
 
@@ -45,27 +46,27 @@ export enum PaymentType {
 }
 
 export interface Payment {
-  payment_hash: string;
-  payment_preimage: string;
+  paymentHash: string;
+  paymentPreimage: string;
   amount: bigint;
   fee: bigint;
   status: PaymentStatus;
   type: PaymentType;
-  created_at: bigint;
-  completed_at?: bigint;
+  createdAt: bigint;
+  completedAt?: bigint;
 }
 
 export interface PaymentResult {
-  payment_hash: string;
+  paymentHash: string;
   status: PaymentStatus;
   fee: bigint;
 }
 
 export interface Peer {
-  node_id: Pubkey;
+  nodeId: Pubkey;
   address: string;
-  is_connected: boolean;
-  last_connected_at?: bigint;
+  isConnected: boolean;
+  lastConnectedAt?: bigint;
 }
 
 export enum PaymentSessionStatus {
@@ -81,54 +82,54 @@ export enum RemoveTlcReason {
 }
 
 export interface Script {
-  code_hash: string;
-  hash_type: string;
+  codeHash: string;
+  hashType: string;
   args: string;
 }
 
 export interface OutPoint {
-  tx_hash: Hash256;
+  txHash: Hash256;
   index: string | number;
 }
 
 export interface Channel {
-  channel_id: Hash256;
-  is_public: boolean;
-  channel_outpoint?: OutPoint;
-  peer_id: string;
-  funding_udt_type_script?: Script;
+  channelId: Hash256;
+  isPublic: boolean;
+  channelOutpoint?: OutPoint;
+  peerId: string;
+  fundingUdtTypeScript?: Script;
   state: string;
-  local_balance: string;
-  offered_tlc_balance: string;
-  remote_balance: string;
-  received_tlc_balance: string;
-  latest_commitment_transaction_hash?: Hash256;
-  created_at: string;
-  last_updated_at?: string;
+  localBalance: string;
+  offeredTlcBalance: string;
+  remoteBalance: string;
+  receivedTlcBalance: string;
+  latestCommitmentTransactionHash?: Hash256;
+  createdAt: string;
+  lastUpdatedAt?: string;
   enabled: boolean;
-  tlc_expiry_delta: string;
-  tlc_fee_proportional_millionths: string;
+  tlcExpiryDelta: string;
+  tlcFeeProportionalMillionths: string;
 }
 
 export interface ChannelUpdateInfo {
   timestamp: string | number;
   enabled: boolean;
-  outbound_liquidity?: string | number;
-  tlc_expiry_delta: string | number;
-  tlc_minimum_value: string | number;
-  fee_rate: string | number;
+  outboundLiquidity?: string | number;
+  tlcExpiryDelta: string | number;
+  tlcMinimumValue: string | number;
+  feeRate: string | number;
 }
 
 export interface ChannelInfo {
-  channel_outpoint: OutPoint;
+  channelOutpoint: OutPoint;
   node1: Pubkey;
   node2: Pubkey;
-  created_timestamp: string | number;
-  update_info_of_node1?: ChannelUpdateInfo;
-  update_info_of_node2?: ChannelUpdateInfo;
+  createdTimestamp: string | number;
+  updateInfoOfNode1?: ChannelUpdateInfo;
+  updateInfoOfNode2?: ChannelUpdateInfo;
   capacity: string | number;
-  chain_hash: Hash256;
-  udt_type_script?: Script;
+  chainHash: Hash256;
+  udtTypeScript?: Script;
 }
 
 export interface InvoiceSignature {
@@ -142,36 +143,36 @@ export interface CkbInvoice {
   signature?: InvoiceSignature;
   data: {
     timestamp: string | number;
-    payment_hash: Hash256;
+    paymentHash: Hash256;
     attrs?: Array<unknown>;
     expiry?: string | number;
     description?: string;
-    description_hash?: string;
-    payment_secret?: string;
+    descriptionHash?: string;
+    paymentSecret?: string;
     features?: string | number;
-    route_hints?: HopHint[];
+    routeHints?: HopHint[];
   };
 }
 
 export interface NodeInfo {
   version?: string;
-  commit_hash?: string;
-  node_name: string;
+  commitHash?: string;
+  nodeName: string;
   addresses: string[];
-  node_id: Pubkey;
+  nodeId: Pubkey;
   timestamp: string;
-  chain_hash: Hash256;
-  open_channel_auto_accept_min_ckb_funding_amount?: string;
-  auto_accept_min_ckb_funding_amount?: string;
-  auto_accept_channel_ckb_funding_amount: string;
-  tlc_expiry_delta: string;
-  tlc_min_value: string;
-  tlc_fee_proportional_millionths: string;
-  channel_count: string;
-  pending_channel_count: string;
-  peers_count: string;
-  udt_cfg_infos: Record<string, unknown>;
-  default_funding_lock_script?: Script;
+  chainHash: Hash256;
+  openChannelAutoAcceptMinCkbFundingAmount?: string;
+  autoAcceptMinCkbFundingAmount?: string;
+  autoAcceptChannelCkbFundingAmount: string;
+  tlcExpiryDelta: string;
+  tlcMinValue: string;
+  tlcFeeProportionalMillionths: string;
+  channelCount: string;
+  pendingChannelCount: string;
+  peersCount: string;
+  udtCfgInfos: Record<string, unknown>;
+  defaultFundingLockScript?: Script;
 }
 
 export interface PaymentCustomRecords {
@@ -181,7 +182,7 @@ export interface PaymentCustomRecords {
 export interface SessionRouteNode {
   pubkey: Pubkey;
   amount: string | number;
-  channel_outpoint: OutPoint;
+  channelOutpoint: OutPoint;
 }
 
 export interface SessionRoute {
@@ -190,47 +191,47 @@ export interface SessionRoute {
 
 export interface RouterHop {
   target: Pubkey;
-  channel_outpoint: OutPoint;
-  amount_received: string | number;
-  incoming_tlc_expiry: string | number;
+  channelOutpoint: OutPoint;
+  amountReceived: string | number;
+  incomingTlcExpiry: string | number;
 }
 
 export interface HopRequire {
   pubkey: Pubkey;
-  channel_outpoint?: OutPoint;
+  channelOutpoint?: OutPoint;
 }
 
 export interface NodeStatus {
-  is_online: boolean;
-  last_sync_time: bigint;
-  connected_peers: number;
-  total_channels: number;
+  isOnline: boolean;
+  lastSyncTime: bigint;
+  connectedPeers: number;
+  totalChannels: number;
 }
 
 export interface NodeVersion {
   version: string;
-  commit_hash: string;
-  build_time: string;
+  commitHash: string;
+  buildTime: string;
 }
 
 export interface NetworkInfo {
-  network_type: "mainnet" | "testnet" | "devnet";
-  chain_hash: string;
-  block_height: bigint;
-  block_hash: string;
+  networkType: "mainnet" | "testnet" | "devnet";
+  chainHash: string;
+  blockHeight: bigint;
+  blockHash: string;
 }
 
 export interface CchOrder {
   timestamp: bigint;
   expiry: bigint;
-  ckb_final_tlc_expiry_delta: bigint;
+  ckbFinalTlcExpiryDelta: bigint;
   currency: Currency;
-  wrapped_btc_type_script?: Script;
-  btc_pay_req: string;
-  ckb_pay_req: string;
-  payment_hash: string;
-  amount_sats: bigint;
-  fee_sats: bigint;
+  wrappedBtcTypeScript?: Script;
+  btcPayReq: string;
+  ckbPayReq: string;
+  paymentHash: string;
+  amountSats: bigint;
+  feeSats: bigint;
   status: CchOrderStatus;
 }
 
@@ -249,7 +250,7 @@ export enum HashAlgorithm {
 
 export interface HopHint {
   pubkey: Pubkey;
-  channel_outpoint: OutPoint;
-  fee_rate: string | number;
-  tlc_expiry_delta: string | number;
+  channelOutpoint: OutPoint;
+  feeRate: string | number;
+  tlcExpiryDelta: string | number;
 }

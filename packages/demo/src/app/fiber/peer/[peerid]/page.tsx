@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { decimalToHex, hexToDecimal } from "@/src/utils/hex";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFiber } from "../../context/FiberContext";
-import { hexToDecimal, decimalToHex } from '@/src/utils/hex';
-import { shannonToCKB } from "../../utils/numbers"
+import { shannonToCKB } from "../../utils/numbers";
 
 interface ChannelState {
   fundingAmount: string;
@@ -25,11 +25,13 @@ export default function peerDetail() {
   const peerId = params?.peerid as string;
   const { fiber } = useFiber();
   const [channels, setChannels] = useState<any[]>([]);
-  const [channelStates, setChannelStates] = useState<Record<string, ChannelState>>({});
+  const [channelStates, setChannelStates] = useState<
+    Record<string, ChannelState>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const channelStatesRef = useRef(channelStates);
   const initialized = useRef(false);
- 
+
   // 更新 ref 当 channelStates 改变时
   useEffect(() => {
     channelStatesRef.current = channelStates;
@@ -40,13 +42,15 @@ export default function peerDetail() {
     setIsLoading(true);
     try {
       const channelList = await fiber.listChannels();
-      const filteredChannelList = channelList.filter((channel: any) => channel.peer_id === peerId);
+      const filteredChannelList = channelList.filter(
+        (channel: any) => channel.peer_id === peerId,
+      );
       setChannels(filteredChannelList);
-      
+
       // 只在需要时更新 channelStates
       const newChannelStates: Record<string, ChannelState> = {};
       let hasChanges = false;
-      
+
       channelList.forEach((channel: any) => {
         const existingState = channelStatesRef.current[channel.channel_id];
         if (!existingState) {
@@ -65,7 +69,7 @@ export default function peerDetail() {
           newChannelStates[channel.channel_id] = existingState;
         }
       });
-      
+
       if (hasChanges) {
         setChannelStates(newChannelStates);
       }
@@ -144,7 +148,7 @@ export default function peerDetail() {
             code_hash:
               "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
             hash_type: "type",
-            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
+            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
           },
           force: true,
           fee_rate: BigInt(state.feeRate),
@@ -156,7 +160,7 @@ export default function peerDetail() {
             code_hash:
               "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
             hash_type: "type",
-            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
+            args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
           },
           force: false,
           fee_rate: BigInt(state.feeRate),
@@ -178,10 +182,10 @@ export default function peerDetail() {
 
   return (
     <div className="flex w-9/12 flex-col items-center items-stretch gap-2">
-        <>
+      <>
         <h2 className="mb-2 text-lg font-bold">Peer Info</h2>
         <p>{peerId}</p>
-        </>
+      </>
 
       {channels.length > 0 && (
         <div className="mt-4 w-full rounded-lg border bg-white p-4">
@@ -204,11 +208,15 @@ export default function peerDetail() {
                   </p>
                   <p>
                     <span className="font-semibold">Local Balance:</span>{" "}
-                    {shannonToCKB(hexToDecimal(channel.local_balance).toString())}
+                    {shannonToCKB(
+                      hexToDecimal(channel.local_balance).toString(),
+                    )}
                   </p>
                   <p>
                     <span className="font-semibold">Remote Balance:</span>{" "}
-                    {shannonToCKB(hexToDecimal(channel.remote_balance).toString())}
+                    {shannonToCKB(
+                      hexToDecimal(channel.remote_balance).toString(),
+                    )}
                   </p>
                 </div>
                 <div>
@@ -216,11 +224,18 @@ export default function peerDetail() {
                     <TextInput
                       label="Funding Amount (Decimal)"
                       state={[
-                        shannonToCKB(hexToDecimal(channelStates[channel.channel_id]?.fundingAmount || "0xba43b7400").toString()),
+                        shannonToCKB(
+                          hexToDecimal(
+                            channelStates[channel.channel_id]?.fundingAmount ||
+                              "0xba43b7400",
+                          ).toString(),
+                        ),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
-                            fundingAmount: shannonToCKB(decimalToHex(parseInt(value) || 0)),
+                            fundingAmount: shannonToCKB(
+                              decimalToHex(parseInt(value) || 0),
+                            ),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
@@ -236,7 +251,9 @@ export default function peerDetail() {
                     <TextInput
                       label="Fee Rate (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.feeRate || "0x3FC").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.feeRate || "0x3FC",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -256,7 +273,10 @@ export default function peerDetail() {
                     <TextInput
                       label="TLC Expiry Delta (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcExpiryDelta || "0x100").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.tlcExpiryDelta ||
+                            "0x100",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -276,7 +296,10 @@ export default function peerDetail() {
                     <TextInput
                       label="TLC Minimum Value (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcMinValue || "0x0").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.tlcMinValue ||
+                            "0x0",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -296,11 +319,16 @@ export default function peerDetail() {
                     <TextInput
                       label="TLC Fee Proportional Millionths (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcFeeProportionalMillionths || "0x0").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]
+                            ?.tlcFeeProportionalMillionths || "0x0",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
-                            tlcFeeProportionalMillionths: decimalToHex(parseInt(value) || 0),
+                            tlcFeeProportionalMillionths: decimalToHex(
+                              parseInt(value) || 0,
+                            ),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
@@ -408,8 +436,6 @@ export default function peerDetail() {
           </div>
         </div>
       )}
-
-     
 
       <ButtonsPanel>
         {fiber && (

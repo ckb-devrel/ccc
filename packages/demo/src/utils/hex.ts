@@ -5,7 +5,7 @@
  */
 export function hexToDecimal(hex: string): number {
   // 移除0x前缀（如果存在）
-  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
   // 使用parseInt将十六进制转换为十进制
   return parseInt(cleanHex, 16);
 }
@@ -17,4 +17,4 @@ export function hexToDecimal(hex: string): number {
  */
 export function decimalToHex(decimal: number): string {
   return `0x${decimal.toString(16)}`;
-} 
+}

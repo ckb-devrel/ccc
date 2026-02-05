@@ -1,14 +1,14 @@
 "use client";
 
-import { Button } from "@/src/components/Button";
-import { useEffect, useState, useCallback } from "react";
-import { TextInput } from "@/src/components/Input";
-import { useRouter } from "next/navigation";
-import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { FiberSDK } from "@ckb-ccc/fiber";
-import { useFiber } from "./context/FiberContext";
 import { BigButton } from "@/src/components/BigButton";
-import { shannonToCKB } from "./utils/numbers"
+import { Button } from "@/src/components/Button";
+import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { FiberSDK } from "@ckb-ccc/fiber";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useFiber } from "./context/FiberContext";
+import { shannonToCKB } from "./utils/numbers";
 
 export default function Page() {
   const router = useRouter();
@@ -152,13 +152,16 @@ export default function Page() {
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <p>
                   <span className="font-semibold">Min CKB Funding Amount:</span>{" "}
-                  {shannonToCKB(nodeInfo.auto_accept_min_ckb_funding_amount) || "0"}
+                  {shannonToCKB(nodeInfo.auto_accept_min_ckb_funding_amount) ||
+                    "0"}
                 </p>
                 <p>
                   <span className="font-semibold">
                     Channel CKB Funding Amount:
                   </span>{" "}
-                  {shannonToCKB(nodeInfo.auto_accept_channel_ckb_funding_amount) || "0"}
+                  {shannonToCKB(
+                    nodeInfo.auto_accept_channel_ckb_funding_amount,
+                  ) || "0"}
                 </p>
                 <p>
                   <span className="font-semibold">TLC Expiry Delta:</span>{" "}
@@ -198,7 +201,9 @@ export default function Page() {
             {/* 默认资金锁定脚本 */}
             {nodeInfo.default_funding_lock_script && (
               <div>
-                <h3 className="mb-2 font-semibold">Default Funding Lock Script</h3>
+                <h3 className="mb-2 font-semibold">
+                  Default Funding Lock Script
+                </h3>
                 <div className="space-y-2">
                   <p>
                     <span className="font-semibold">Code Hash:</span>{" "}
@@ -217,14 +222,15 @@ export default function Page() {
             )}
 
             {/* UDT配置 */}
-            {nodeInfo.udt_cfg_infos && Object.keys(nodeInfo.udt_cfg_infos).length > 0 && (
-              <div>
-                <h3 className="mb-2 font-semibold">UDT Configuration</h3>
-                <pre className="whitespace-pre-wrap rounded bg-gray-50 p-2">
-                  {JSON.stringify(nodeInfo.udt_cfg_infos, null, 2)}
-                </pre>
-              </div>
-            )}
+            {nodeInfo.udt_cfg_infos &&
+              Object.keys(nodeInfo.udt_cfg_infos).length > 0 && (
+                <div>
+                  <h3 className="mb-2 font-semibold">UDT Configuration</h3>
+                  <pre className="rounded bg-gray-50 p-2 whitespace-pre-wrap">
+                    {JSON.stringify(nodeInfo.udt_cfg_infos, null, 2)}
+                  </pre>
+                </div>
+              )}
           </div>
         </div>
       )}

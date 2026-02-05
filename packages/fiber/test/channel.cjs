@@ -60,26 +60,24 @@ async function testListChannels() {
         console.log("\nChannel details:");
         channels.forEach((channel, index) => {
           console.log(`\nChannel ${index + 1}:`);
-          console.log("Channel ID:", channel.channel_id);
-          console.log("Peer ID:", channel.peer_id);
-          console.log("State:", channel.state_name);
-          console.log("State Flags:", channel.state_flags);
-          console.log("Local Balance:", hexToNumber(channel.local_balance));
-          console.log("Remote Balance:", hexToNumber(channel.remote_balance));
+          console.log("Channel ID:", channel.channelId);
+          console.log("Peer ID:", channel.peerId);
+          console.log("State:", channel.state);
+          console.log("Local Balance:", channel.localBalance);
+          console.log("Remote Balance:", channel.remoteBalance);
           console.log(
             "Created At:",
-            new Date(hexToNumber(channel.created_at)).toLocaleString(),
+            channel.createdAt
+              ? new Date(Number(channel.createdAt)).toLocaleString()
+              : "—",
           );
-          console.log("Is Public:", channel.is_public ? "Yes" : "No");
-          console.log("Is Enabled:", channel.is_enabled ? "Yes" : "No");
-          console.log(
-            "TLC Expiry Delta:",
-            hexToNumber(channel.tlc_expiry_delta),
-          );
-          console.log("TLC Min Value:", hexToNumber(channel.tlc_min_value));
+          console.log("Is Public:", channel.isPublic ? "Yes" : "No");
+          console.log("Is Enabled:", channel.enabled ? "Yes" : "No");
+          console.log("TLC Expiry Delta:", channel.tlcExpiryDelta);
+          console.log("TLC Min Value:", channel.tlcMinValue);
           console.log(
             "TLC Fee Proportion:",
-            hexToNumber(channel.tlc_fee_proportional_millionths),
+            channel.tlcFeeProportionalMillionths,
           );
         });
       } else {
@@ -127,11 +125,11 @@ async function testAbandonChannel() {
       // Select first channel for closure
       const channelToClose = channels[0];
       console.log("\nChannel to close:");
-      console.log("Channel ID:", channelToClose.channel_id);
-      console.log("Peer ID:", channelToClose.peer_id);
+      console.log("Channel ID:", channelToClose.channelId);
+      console.log("Peer ID:", channelToClose.peerId);
       console.log("State:", channelToClose.state);
 
-      await sdk.abandonChannel(channelToClose.channel_id);
+      await sdk.abandonChannel(channelToClose.channelId);
     } catch (error) {
       if (error.error) {
         handleRPCError(error);
@@ -152,8 +150,8 @@ async function testNewChannel() {
   const peerId = "QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo";
   console.log("Calling open_channel method, Peer ID:", peerId);
   const result = await sdk.openChannel({
-    peer_id: peerId,
-    funding_amount: "0xba43b7400", // 100 CKB
+    peerId,
+    fundingAmount: "0xba43b7400", // 100 CKB
     public: true,
   });
   console.log("Open channel result:", result);
@@ -173,10 +171,10 @@ async function testUpdateAndShutdownChannel() {
 
   // Select first channel for closure
   const channelToClose = channels[0];
-  const channelId = channelToClose.channel_id;
+  const channelId = channelToClose.channelId;
 
   // Check channel state
-  if (channelToClose.state_name === "NEGOTIATING_FUNDING") {
+  if (channelToClose.state === "NEGOTIATING_FUNDING") {
     console.log("Channel is in funding negotiation stage, cannot close");
     return;
   }
@@ -189,14 +187,14 @@ async function testUpdateAndShutdownChannel() {
 
   console.log("Calling shutdown_channel method, Channel ID:", channelId);
   const result2 = await sdk.shutdownChannel({
-    channel_id: channelId,
-    close_script: {
-      code_hash:
+    channelId,
+    closeScript: {
+      codeHash:
         "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-      hash_type: "type",
+      hashType: "type",
       args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
     },
-    fee_rate: "0x3FC",
+    feeRate: "0x3FC",
     force: false,
   });
   console.log("Channel closure result:", result2);

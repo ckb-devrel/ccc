@@ -98,7 +98,7 @@ async function testListChannels() {
     console.log("正在调用 list_channels 方法，节点 ID:", peerId);
 
     const result = await sdk.listChannels({
-      peer_id: peerId,
+      peerId,
     });
 
     console.log("通道列表:", result);

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { useFiber } from "../context/FiberContext";
+import { TextInput } from "@/src/components/Input";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { useFiber } from "../context/FiberContext";
 
 interface Invoice {
   amount: bigint;
@@ -110,7 +110,7 @@ export default function InvoicePage() {
                       {new Date(Number(invoice.created_at)).toLocaleString()}
                     </p>
                   </div>
-                  <div className="break-all text-sm text-gray-500">
+                  <div className="text-sm break-all text-gray-500">
                     {invoice.invoice}
                   </div>
                 </div>

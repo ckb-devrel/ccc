@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { FiberSDK } from "@ckb-ccc/fiber";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface PeerInfo {
   pubkey: string;
@@ -119,7 +119,7 @@ export default function Peer() {
               peers.map((peer) => (
                 <div
                   key={peer.peer_id}
-                  className="flex bg-white items-center justify-between rounded-lg border p-3"
+                  className="flex items-center justify-between rounded-lg border bg-white p-3"
                   onClick={() => router.push(`/fiber/peer/${peer.peer_id}`)}
                 >
                   <div>

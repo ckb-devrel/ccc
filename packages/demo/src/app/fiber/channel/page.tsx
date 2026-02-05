@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/src/components/Button";
-import { TextInput } from "@/src/components/Input";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
+import { TextInput } from "@/src/components/Input";
+import { decimalToHex, hexToDecimal } from "@/src/utils/hex";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFiber } from "../context/FiberContext";
-import { hexToDecimal, decimalToHex } from '@/src/utils/hex';
-import { shannonToCKB } from "../utils/numbers"
 
 interface ChannelState {
   fundingAmount: string;
@@ -31,7 +30,9 @@ export default function Channel() {
   const [channels, setChannels] = useState<any[]>([]);
   const [peers, setPeers] = useState<any[]>([]);
   const [peerAddress, setPeerAddress] = useState("");
-  const [channelStates, setChannelStates] = useState<Record<string, ChannelState>>({});
+  const [channelStates, setChannelStates] = useState<
+    Record<string, ChannelState>
+  >({});
   const [isLoading, setIsLoading] = useState(false);
   const channelStatesRef = useRef(channelStates);
   const initialized = useRef(false);
@@ -53,11 +54,11 @@ export default function Channel() {
     try {
       const channelList = await fiber.listChannels();
       setChannels(channelList);
-      
+
       // 只在需要时更新 channelStates
       const newChannelStates: Record<string, ChannelState> = {};
       let hasChanges = false;
-      
+
       channelList.forEach((channel: any) => {
         const existingState = channelStatesRef.current[channel.channel_id];
         if (!existingState) {
@@ -76,7 +77,7 @@ export default function Channel() {
           newChannelStates[channel.channel_id] = existingState;
         }
       });
-      
+
       if (hasChanges) {
         setChannelStates(newChannelStates);
       }
@@ -150,8 +151,8 @@ export default function Channel() {
     if (!state) return;
     try {
       // 确保channelId是有效的十六进制字符串
-      if (!channelId.startsWith('0x')) {
-        channelId = '0x' + channelId;
+      if (!channelId.startsWith("0x")) {
+        channelId = "0x" + channelId;
       }
 
       const params = {
@@ -160,7 +161,7 @@ export default function Channel() {
           code_hash:
             "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
           hash_type: "type",
-          args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d"
+          args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
         },
         force: state.forceClose,
         fee_rate: state.feeRate,
@@ -183,7 +184,6 @@ export default function Channel() {
       }
     }
   };
-
 
   const handleOpenChannel = async () => {
     if (!fiber) return;
@@ -309,7 +309,10 @@ export default function Channel() {
                     <TextInput
                       label="Funding Amount (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.fundingAmount || "0xba43b7400").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.fundingAmount ||
+                            "0xba43b7400",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -329,7 +332,9 @@ export default function Channel() {
                     <TextInput
                       label="Fee Rate (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.feeRate || "0x3FC").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.feeRate || "0x3FC",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -349,7 +354,10 @@ export default function Channel() {
                     <TextInput
                       label="TLC Expiry Delta (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcExpiryDelta || "0x100").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.tlcExpiryDelta ||
+                            "0x100",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -369,7 +377,10 @@ export default function Channel() {
                     <TextInput
                       label="TLC Minimum Value (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcMinValue || "0x0").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]?.tlcMinValue ||
+                            "0x0",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
@@ -389,11 +400,16 @@ export default function Channel() {
                     <TextInput
                       label="TLC Fee Proportional Millionths (Decimal)"
                       state={[
-                        hexToDecimal(channelStates[channel.channel_id]?.tlcFeeProportionalMillionths || "0x0").toString(),
+                        hexToDecimal(
+                          channelStates[channel.channel_id]
+                            ?.tlcFeeProportionalMillionths || "0x0",
+                        ).toString(),
                         (value) => {
                           const newState = {
                             ...channelStates[channel.channel_id],
-                            tlcFeeProportionalMillionths: decimalToHex(parseInt(value) || 0),
+                            tlcFeeProportionalMillionths: decimalToHex(
+                              parseInt(value) || 0,
+                            ),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
