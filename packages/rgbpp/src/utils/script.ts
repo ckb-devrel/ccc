@@ -1,11 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../bitcoin/types/rgbpp/rgbpp.js";
-import {
-  prependHexPrefix,
-  reverseHexByteOrder,
-  trimHexPrefix,
-} from "./encoder.js";
 
 export const isSameScriptTemplate = (
   lock1: ccc.Script,
@@ -27,36 +22,37 @@ export const updateScriptArgsWithTxId = (
   args: ccc.Hex,
   txId: string,
 ): string => {
-  const argsLength = trimHexPrefix(args).length;
-  if (argsLength < (32 + 2) * 2) {
+  const argsBytes = ccc.bytesFrom(args);
+  if (argsBytes.length < 32 + 2) {
     throw new Error("Lock args length is invalid");
   }
-  return prependHexPrefix(
-    `${trimHexPrefix(args).substring(0, argsLength - 32 * 2)}${trimHexPrefix(
-      reverseHexByteOrder(prependHexPrefix(txId)),
-    )}`,
+  const txIdBytes = ccc.bytesFrom(txId).reverse();
+  const newArgs = ccc.bytesConcat(
+    argsBytes.subarray(0, argsBytes.length - 32),
+    txIdBytes,
   );
+  return ccc.hexFrom(newArgs);
 };
 
 export function getTxIdFromScriptArgs(args: ccc.Hex): string {
-  if (args.length < 32 * 2) {
+  const argsBytes = ccc.bytesFrom(args);
+  if (argsBytes.length < 32) {
     throw new Error("Lock args length is invalid");
   }
 
-  return trimHexPrefix(
-    reverseHexByteOrder(args.substring(args.length - 32 * 2) as ccc.Hex),
+  return ccc.bytesTo(
+    argsBytes.subarray(argsBytes.length - 32).reverse(),
+    "hex",
   );
 }
 
 export function getTxIndexFromScriptArgs(args: ccc.Hex): number {
-  if (args.length < 32 * 2) {
+  const argsBytes = ccc.bytesFrom(args);
+  if (argsBytes.length < 32) {
     throw new Error("Lock args length is invalid");
   }
 
-  return parseInt(
-    reverseHexByteOrder(trimHexPrefix(args.substring(0, 8)) as ccc.Hex),
-    16,
-  );
+  return Number(ccc.numLeFromBytes(argsBytes.subarray(0, 4)));
 }
 
 export function parseUtxoSealFromScriptArgs(args: ccc.Hex): UtxoSeal {
