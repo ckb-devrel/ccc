@@ -72,7 +72,7 @@ export class RgbppUdtIssuanceService {
           args: rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
         }),
       },
-      ccc.numLeToBytes(params.amount * BigInt(10 ** params.token.decimal), 16),
+      ccc.numLeToBytes(params.amount * 10n ** BigInt(params.token.decimal), 16),
     );
 
     tx.addOutput(

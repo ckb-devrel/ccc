@@ -148,26 +148,6 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
   return sha256(hash.array());
 };
 
-export const isCommitmentMatched = (
-  commitment: string,
-  ckbPartialTx: ccc.Transaction,
-  lastCkbTypedOutputIndex: number,
-): boolean => {
-  return (
-    commitment ===
-    calculateCommitment(
-      ccc.Transaction.from({
-        inputs: ckbPartialTx.inputs,
-        outputs: ckbPartialTx.outputs.slice(0, lastCkbTypedOutputIndex + 1),
-        outputsData: ckbPartialTx.outputsData.slice(
-          0,
-          lastCkbTypedOutputIndex + 1,
-        ),
-      }),
-    )
-  );
-};
-
 // RGB++ related outputs
 export const buildBtcRgbppOutputs = async (
   ckbPartialTx: ccc.Transaction,
@@ -176,8 +156,6 @@ export const buildBtcRgbppOutputs = async (
   btcDustLimit: number,
   rgbppUdtClient: RgbppUdtClient,
 ): Promise<TxOutput[]> => {
-  const commitment = calculateCommitment(ckbPartialTx);
-
   const rgbppLockScriptTemplate =
     await rgbppUdtClient.rgbppLockScriptTemplate();
   const btcTimeLockScriptTemplate =
@@ -215,9 +193,13 @@ export const buildBtcRgbppOutputs = async (
     throw new Error("Invalid outputs");
   }
 
-  if (!isCommitmentMatched(commitment, ckbPartialTx, lastCkbTypedOutputIndex)) {
-    throw new Error("Commitment mismatch");
-  }
+  const rgbppPartialTx = ccc.Transaction.from({
+    inputs: ckbPartialTx.inputs,
+    outputs: ckbPartialTx.outputs.slice(0, lastCkbTypedOutputIndex + 1),
+    outputsData: ckbPartialTx.outputsData.slice(0, lastCkbTypedOutputIndex + 1),
+  });
+
+  const commitment = calculateCommitment(rgbppPartialTx);
 
   // place the commitment as the first output
   outputs.unshift({
