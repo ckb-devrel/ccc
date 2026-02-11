@@ -30,9 +30,9 @@ export type ExtraCommitmentDataLike = {
     outputLen: mol.Uint8,
   }),
 )
-export class ExtraCommitmentDataCCC extends mol.Entity.Base<
+export class ExtraCommitmentData extends mol.Entity.Base<
   ExtraCommitmentDataLike,
-  ExtraCommitmentDataCCC
+  ExtraCommitmentData
 >() {
   constructor(
     public inputLen: ccc.Num,
@@ -41,8 +41,8 @@ export class ExtraCommitmentDataCCC extends mol.Entity.Base<
     super();
   }
 
-  static from(ec: ExtraCommitmentDataLike): ExtraCommitmentDataCCC {
-    return new ExtraCommitmentDataCCC(
+  static from(ec: ExtraCommitmentDataLike): ExtraCommitmentData {
+    return new ExtraCommitmentData(
       ccc.numFrom(ec.inputLen),
       ccc.numFrom(ec.outputLen),
     );
@@ -71,7 +71,7 @@ export type RgbppUnlockLike = {
 @mol.codec(
   mol.table({
     version: mol.Uint16,
-    extraData: ExtraCommitmentDataCCC,
+    extraData: ExtraCommitmentData,
     btcTx: mol.Bytes,
     btcTxProof: mol.Bytes,
   }),
@@ -82,7 +82,7 @@ export class RgbppUnlock extends mol.Entity.Base<
 >() {
   constructor(
     public version: ccc.Num,
-    public extraData: ExtraCommitmentDataCCC,
+    public extraData: ExtraCommitmentData,
     public btcTx: ccc.Hex,
     public btcTxProof: ccc.Hex,
   ) {
@@ -92,7 +92,7 @@ export class RgbppUnlock extends mol.Entity.Base<
   static from(ru: RgbppUnlockLike): RgbppUnlock {
     return new RgbppUnlock(
       ccc.numFrom(ru.version),
-      ExtraCommitmentDataCCC.from(ru.extraData),
+      ExtraCommitmentData.from(ru.extraData),
       ccc.hexFrom(ru.btcTx),
       ccc.hexFrom(ru.btcTxProof),
     );
