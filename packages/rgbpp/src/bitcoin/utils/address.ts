@@ -62,19 +62,11 @@ export function decodeAddress(address: string): {
       } else if (decodeBase58.version === testnet.pubKeyHash) {
         networkType = NetworkType.TESTNET;
         addressType = AddressType.P2PKH;
-      } else if (decodeBase58.version === regtest.pubKeyHash) {
-        // do not work
-        networkType = NetworkType.REGTEST;
-        addressType = AddressType.P2PKH;
       } else if (decodeBase58.version === mainnet.scriptHash) {
         networkType = NetworkType.MAINNET;
         addressType = AddressType.P2SH_P2WPKH;
       } else if (decodeBase58.version === testnet.scriptHash) {
         networkType = NetworkType.TESTNET;
-        addressType = AddressType.P2SH_P2WPKH;
-      } else if (decodeBase58.version === regtest.scriptHash) {
-        // do not work
-        networkType = NetworkType.REGTEST;
         addressType = AddressType.P2SH_P2WPKH;
       }
 
