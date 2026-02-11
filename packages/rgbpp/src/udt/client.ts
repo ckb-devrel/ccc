@@ -3,7 +3,6 @@ import { ccc } from "@ckb-ccc/core";
 import { TX_ID_PLACEHOLDER } from "../bitcoin/constants/index.js";
 
 import { ScriptManager } from "../bitcoin/configs/script-manager.js";
-import { NetworkConfig } from "../bitcoin/types/network.js";
 import { UtxoSeal } from "../bitcoin/types/rgbpp/rgbpp.js";
 import { RgbppUdtIssuance } from "../bitcoin/types/rgbpp/udt.js";
 import { IScriptProvider, RgbppScriptName } from "../bitcoin/types/script.js";
@@ -19,7 +18,6 @@ export class RgbppUdtClient {
   private issuanceService: RgbppUdtIssuanceService;
 
   constructor(
-    _networkConfig: NetworkConfig,
     private ckbClient: ccc.Client,
     scriptProvider: IScriptProvider,
   ) {
@@ -61,17 +59,7 @@ export class RgbppUdtClient {
   async getRgbppScriptInfos(): Promise<
     Record<RgbppScriptName, ccc.ScriptInfo>
   > {
-    const [rgbppLock, btcTimeLock, uniqueType] = await Promise.all([
-      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.RgbppLock),
-      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.BtcTimeLock),
-      this.scriptManager.getKnownScriptInfo(ccc.KnownScript.UniqueType),
-    ]);
-
-    return {
-      [ccc.KnownScript.RgbppLock]: rgbppLock,
-      [ccc.KnownScript.BtcTimeLock]: btcTimeLock,
-      [ccc.KnownScript.UniqueType]: uniqueType,
-    } as Record<RgbppScriptName, ccc.ScriptInfo>;
+    return this.scriptManager.getRgbppScriptInfos();
   }
 
   // * It's assumed that all the tx.outputs are rgbpp/btc time lock scripts.
