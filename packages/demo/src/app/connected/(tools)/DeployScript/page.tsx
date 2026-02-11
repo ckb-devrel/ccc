@@ -10,14 +10,14 @@ import { useApp } from "@/src/context";
 import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
 import { useCallback, useState } from "react";
+import { runBurn, runDeploy } from "./deployLogic";
 import {
   BurnButton,
   CellFoundSection,
   ClearSelectionButton,
   LoadingMessage,
   TypeIdCellButton,
-} from "./DeployScriptComponents";
-import { runBurn, runDeploy } from "./deployLogic";
+} from "./deployScriptComponents";
 import { useDeployScript } from "./useDeployScript";
 
 export default function DeployScript() {
