@@ -3,14 +3,9 @@
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { FiberSDK } from "@ckb-ccc/fiber";
+import type { PeerInfo } from "@ckb-ccc/fiber";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-interface PeerInfo {
-  pubkey: string;
-  peer_id: string;
-  addresses: string[];
-}
 
 export default function Peer() {
   const [fiber, setFiber] = useState<FiberSDK | null>(null);
@@ -38,8 +33,7 @@ export default function Peer() {
     try {
       const peerList = await fiber.listPeers();
       console.log(peerList);
-      //@ts-expect-error
-      setPeers(peerList.peers);
+      setPeers(peerList);
     } catch (error) {
       console.error("Failed to list peers:", error);
     } finally {
@@ -118,21 +112,21 @@ export default function Peer() {
             {peers.length > 0 &&
               peers.map((peer) => (
                 <div
-                  key={peer.peer_id}
+                  key={peer.peerId}
                   className="flex items-center justify-between rounded-lg border bg-white p-3"
-                  onClick={() => router.push(`/fiber/peer/${peer.peer_id}`)}
+                  onClick={() => router.push(`/fiber/peer/${peer.peerId}`)}
                 >
                   <div>
-                    <p className="font-medium">Peer ID: {peer.peer_id}</p>
+                    <p className="font-medium">Peer ID: {peer.peerId}</p>
                     <p className="text-sm text-gray-600">
                       Pubkey: {peer.pubkey}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Addresses: {peer.addresses.join(", ")}
+                      Address: {peer.address}
                     </p>
                   </div>
                   <Button
-                    onClick={() => disconnectPeer(peer.peer_id)}
+                    onClick={() => disconnectPeer(peer.peerId)}
                     disabled={isLoading}
                     variant="danger"
                   >

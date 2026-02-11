@@ -4,10 +4,10 @@ import type {
   HopHint,
   HopRequire,
   PaymentCustomRecords,
-  PaymentSessionStatus,
+  PaymentStatus,
   RouterHop,
   Script,
-  SessionRouteNode,
+  SessionRoute,
 } from "../types.js";
 
 export interface SendPaymentParams {
@@ -30,25 +30,26 @@ export interface SendPaymentParams {
 
 export interface SendPaymentResult {
   paymentHash: Hash256;
-  status: PaymentSessionStatus;
+  status: PaymentStatus;
   createdAt: string | number;
   lastUpdatedAt: string | number;
   failedError?: string;
   fee: string | number;
   customRecords?: PaymentCustomRecords;
-  router: SessionRouteNode[];
+  /** Routes used (e.g. for MPP, one entry per path). */
+  routers: SessionRoute[];
 }
 
 /** RPC response for get_payment. */
 export interface GetPaymentResult {
   paymentHash: Hash256;
-  status: PaymentSessionStatus;
+  status: PaymentStatus;
   createdAt: string | number;
   lastUpdatedAt: string | number;
   failedError?: string;
   fee: string | number;
   customRecords?: PaymentCustomRecords;
-  router: SessionRouteNode[];
+  routers: SessionRoute[];
 }
 
 /** RPC response for build_router. */
@@ -64,7 +65,9 @@ export class PaymentApi {
   }
 
   async getPayment(paymentHash: Hash256): Promise<GetPaymentResult> {
-    return this.rpc.callCamel<GetPaymentResult>("get_payment", [paymentHash]);
+    return this.rpc.callCamel<GetPaymentResult>("get_payment", [
+      { paymentHash },
+    ]);
   }
 
   async buildRouter(params: {

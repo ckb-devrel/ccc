@@ -1,10 +1,12 @@
 /**
  * Fiber SDK types (camelCase). Converted to/from snake_case at the RPC boundary.
- * @see https://github.com/nervosnetwork/fiber/blob/main/src/rpc/README.md
+ * @see https://github.com/nervosnetwork/fiber/blob/v0.6.1/crates/fiber-lib/src/rpc/README.md
  */
 
 export type Hash256 = string;
 export type Pubkey = string;
+/** Secp256k1 secret key (RPC type Privkey). */
+export type Privkey = string;
 
 export interface RPCRequest<T = unknown> {
   jsonrpc: string;
@@ -32,12 +34,6 @@ export enum CkbInvoiceStatus {
   Expired = "Expired",
   Received = "Received",
   Paid = "Paid",
-}
-
-export enum PaymentStatus {
-  Pending = "Pending",
-  Succeeded = "Succeeded",
-  Failed = "Failed",
 }
 
 export enum PaymentType {
@@ -69,7 +65,7 @@ export interface Peer {
   lastConnectedAt?: bigint;
 }
 
-export enum PaymentSessionStatus {
+export enum PaymentStatus {
   Created = "Created",
   Inflight = "Inflight",
   Success = "Success",
@@ -92,6 +88,18 @@ export interface OutPoint {
   index: string | number;
 }
 
+export type TlcStatus = { Outbound: unknown } | { Inbound: unknown };
+
+export interface Htlc {
+  id: number;
+  amount: string | number;
+  paymentHash: Hash256;
+  expiry: string | number;
+  forwardingChannelId?: Hash256;
+  forwardingTlcId?: number;
+  status: TlcStatus | string;
+}
+
 export interface Channel {
   channelId: Hash256;
   isPublic: boolean;
@@ -103,12 +111,14 @@ export interface Channel {
   offeredTlcBalance: string;
   remoteBalance: string;
   receivedTlcBalance: string;
+  pendingTlcs?: Htlc[];
   latestCommitmentTransactionHash?: Hash256;
   createdAt: string;
   lastUpdatedAt?: string;
   enabled: boolean;
   tlcExpiryDelta: string;
   tlcFeeProportionalMillionths: string;
+  shutdownTransactionHash?: Hash256;
 }
 
 export interface ChannelUpdateInfo {
@@ -137,42 +147,77 @@ export interface InvoiceSignature {
   signature: string;
 }
 
+/**
+ * Invoice attribute (RPC type Attribute). Enum with values per doc:
+ * FinalHtlcTimeout (deprecated), FinalHtlcMinimumExpiryDelta, ExpiryTime,
+ * Description, FallbackAddr, UdtScript, PayeePublicKey, HashAlgorithm, Feature, PaymentSecret.
+ */
+export type Attribute =
+  | { FinalHtlcTimeout: string | number }
+  | { FinalHtlcMinimumExpiryDelta: string | number }
+  | { ExpiryTime: string | number }
+  | { Description: string }
+  | { FallbackAddr: string }
+  | { UdtScript: Script }
+  | { PayeePublicKey: Pubkey }
+  | { HashAlgorithm: HashAlgorithm }
+  | { Feature: string[] }
+  | { PaymentSecret: Hash256 };
+
+/** Invoice metadata (RPC type InvoiceData): timestamp, payment_hash, attrs. */
+export interface InvoiceData {
+  timestamp: string | number;
+  paymentHash: Hash256;
+  attrs?: Attribute[];
+}
+
+/** RPC type CkbInvoice: currency, amount, signature, data (InvoiceData). */
 export interface CkbInvoice {
   currency: Currency;
   amount?: string | number;
   signature?: InvoiceSignature;
-  data: {
-    timestamp: string | number;
-    paymentHash: Hash256;
-    attrs?: Array<unknown>;
-    expiry?: string | number;
-    description?: string;
-    descriptionHash?: string;
-    paymentSecret?: string;
-    features?: string | number;
-    routeHints?: HopHint[];
-  };
+  data: InvoiceData;
+}
+
+/** UDT script (RPC type UdtScript): code_hash, hash_type, args. */
+export interface UdtScript {
+  codeHash: string;
+  hashType: string;
+  args: string;
+}
+
+/** UDT config (RPC type UdtCfgInfos). Configuration for UDTs. */
+export type UdtCfgInfos = UdtArgInfo[];
+
+/** UDT argument info (RPC type UdtArgInfo). */
+export interface UdtArgInfo {
+  name: string;
+  script: UdtScript;
+  autoAcceptAmount?: string | number;
+  cellDeps?: unknown[];
 }
 
 export interface NodeInfo {
   version?: string;
   commitHash?: string;
-  nodeName: string;
-  addresses: string[];
   nodeId: Pubkey;
-  timestamp: string;
+  features?: string[];
+  nodeName?: string;
+  addresses: string[];
+  /** Latest timestamp set by the owner for the node announcement. */
+  timestamp?: string;
   chainHash: Hash256;
   openChannelAutoAcceptMinCkbFundingAmount?: string;
   autoAcceptMinCkbFundingAmount?: string;
   autoAcceptChannelCkbFundingAmount: string;
+  defaultFundingLockScript?: Script;
   tlcExpiryDelta: string;
   tlcMinValue: string;
   tlcFeeProportionalMillionths: string;
   channelCount: string;
   pendingChannelCount: string;
   peersCount: string;
-  udtCfgInfos: Record<string, unknown>;
-  defaultFundingLockScript?: Script;
+  udtCfgInfos: UdtCfgInfos;
 }
 
 export interface PaymentCustomRecords {
@@ -237,8 +282,9 @@ export interface CchOrder {
 
 export enum CchOrderStatus {
   Pending = "Pending",
-  Accepted = "Accepted",
-  InFlight = "InFlight",
+  IncomingAccepted = "IncomingAccepted",
+  OutgoingInFlight = "OutgoingInFlight",
+  OutgoingSettled = "OutgoingSettled",
   Succeeded = "Succeeded",
   Failed = "Failed",
 }

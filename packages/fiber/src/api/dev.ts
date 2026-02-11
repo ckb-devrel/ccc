@@ -50,7 +50,8 @@ export class DevApi {
     );
   }
 
-  async removeWatchChannel(channelId: Hash256): Promise<void> {
-    await this.rpc.callCamel("remove_watch_channel", [{ channelId }]);
+  /** Manually trigger CheckShutdownTx on all channels. Dev only. */
+  async checkChannelShutdown(params: { channelId: Hash256 }): Promise<void> {
+    await this.rpc.callCamel("check_channel_shutdown", [params]);
   }
 }

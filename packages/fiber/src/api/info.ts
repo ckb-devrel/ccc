@@ -1,15 +1,16 @@
 import { ccc } from "@ckb-ccc/core";
 import { u64ToDecimal } from "../numeric.js";
 import { FiberClient } from "../rpc/client.js";
-import type { NodeInfo } from "../types.js";
+import type { NodeInfo, UdtCfgInfos } from "../types.js";
 
 /** Raw RPC response for node_info (camelCase after conversion). */
 interface NodeInfoRpcResponse {
   version?: string;
   commitHash?: string;
-  nodeName: string;
-  addresses: string[];
   nodeId: string;
+  features?: string[];
+  nodeName?: string;
+  addresses: string[];
   timestamp?: string | number;
   chainHash: string;
   openChannelAutoAcceptMinCkbFundingAmount?: string | number;
@@ -21,7 +22,7 @@ interface NodeInfoRpcResponse {
   channelCount: string;
   pendingChannelCount: string;
   peersCount: string;
-  udtCfgInfos: Record<string, unknown>;
+  udtCfgInfos: UdtCfgInfos;
   defaultFundingLockScript?: {
     codeHash: string;
     hashType: string;
@@ -51,9 +52,10 @@ export class InfoApi {
     return {
       version: raw.version,
       commitHash: raw.commitHash,
+      nodeId: raw.nodeId,
+      features: raw.features ?? [],
       nodeName: raw.nodeName,
       addresses: raw.addresses,
-      nodeId: raw.nodeId,
       timestamp: formatTimestamp(raw.timestamp),
       chainHash: raw.chainHash,
       openChannelAutoAcceptMinCkbFundingAmount:
@@ -63,6 +65,7 @@ export class InfoApi {
       autoAcceptChannelCkbFundingAmount: formatNum(
         raw.autoAcceptChannelCkbFundingAmount,
       ),
+      defaultFundingLockScript: raw.defaultFundingLockScript,
       tlcExpiryDelta: formatNum(raw.tlcExpiryDelta),
       tlcMinValue: formatNum(raw.tlcMinValue),
       tlcFeeProportionalMillionths: formatNum(raw.tlcFeeProportionalMillionths),
@@ -72,7 +75,6 @@ export class InfoApi {
         : "0",
       peersCount: raw.peersCount ? String(Number(raw.peersCount)) : "0",
       udtCfgInfos: raw.udtCfgInfos,
-      defaultFundingLockScript: raw.defaultFundingLockScript,
     };
   }
 }

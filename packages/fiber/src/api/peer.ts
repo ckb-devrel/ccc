@@ -1,9 +1,10 @@
 import { FiberClient } from "../rpc/client.js";
 
+/** Peer info from list_peers (address is the one used for connecting). */
 export interface PeerInfo {
   pubkey: string;
   peerId: string;
-  addresses: string[];
+  address: string;
 }
 
 /** RPC response for list_peers. */

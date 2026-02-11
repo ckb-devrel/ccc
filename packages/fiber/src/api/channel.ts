@@ -1,9 +1,4 @@
-import {
-  decimalToU128,
-  decimalToU64,
-  u128ToDecimal,
-  u64ToDecimal,
-} from "../numeric.js";
+import { decimalToU128, decimalToU64 } from "../numeric.js";
 import { FiberClient } from "../rpc/client.js";
 import type { Channel, Hash256, Script } from "../types.js";
 
@@ -17,9 +12,9 @@ interface AcceptChannelResult {
   channelId: Hash256;
 }
 
-/** RPC response for list_channels. */
+/** RPC response for list_channels: array of Channel. */
 interface ListChannelsResult {
-  channels: Record<string, unknown>[];
+  channels: Channel[];
 }
 
 const CHANNEL_ID_HEX_LEN = 66;
@@ -35,29 +30,6 @@ function toU128Payload(
       out[key] = fn(String(v));
   }
   return out;
-}
-
-function toStr(v: unknown): string {
-  return typeof v === "string" ? v : String(v ?? "");
-}
-
-function mapChannel(raw: Record<string, unknown>): Channel {
-  return {
-    ...raw,
-    localBalance: u128ToDecimal(toStr(raw.localBalance)),
-    remoteBalance: u128ToDecimal(toStr(raw.remoteBalance)),
-    offeredTlcBalance: u128ToDecimal(toStr(raw.offeredTlcBalance)),
-    receivedTlcBalance: u128ToDecimal(toStr(raw.receivedTlcBalance)),
-    tlcExpiryDelta: u128ToDecimal(toStr(raw.tlcExpiryDelta)),
-    tlcFeeProportionalMillionths: u128ToDecimal(
-      toStr(raw.tlcFeeProportionalMillionths),
-    ),
-    createdAt: u64ToDecimal(toStr(raw.createdAt), true),
-    lastUpdatedAt:
-      raw.lastUpdatedAt != null
-        ? u64ToDecimal(toStr(raw.lastUpdatedAt), true)
-        : undefined,
-  } as Channel;
 }
 
 export class ChannelApi {
@@ -113,7 +85,7 @@ export class ChannelApi {
     if (params.maxTlcValueInFlight != null)
       payload.maxTlcValueInFlight = decimalToU128(params.maxTlcValueInFlight);
     if (params.maxTlcNumberInFlight != null)
-      payload.maxTlcNumberInFlight = decimalToU128(params.maxTlcNumberInFlight);
+      payload.maxTlcNumberInFlight = decimalToU64(params.maxTlcNumberInFlight);
     if (params.tlcMinValue != null)
       payload.tlcMinValue = decimalToU128(params.tlcMinValue);
     if (params.tlcFeeProportionalMillionths != null)
@@ -121,7 +93,7 @@ export class ChannelApi {
         params.tlcFeeProportionalMillionths,
       );
     if (params.tlcExpiryDelta != null)
-      payload.tlcExpiryDelta = decimalToU128(params.tlcExpiryDelta);
+      payload.tlcExpiryDelta = decimalToU64(params.tlcExpiryDelta);
 
     const res = await this.rpc.callCamel<AcceptChannelResult>(
       "accept_channel",
@@ -150,7 +122,7 @@ export class ChannelApi {
     const res = await this.rpc.callCamel<ListChannelsResult>("list_channels", [
       params ?? {},
     ]);
-    return res.channels.map(mapChannel);
+    return res.channels;
   }
 
   async shutdownChannel(params: {

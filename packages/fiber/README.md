@@ -2,6 +2,8 @@
 
 Fiber SDK is a JavaScript/TypeScript library for interacting with Fiber nodes. It provides easy-to-use APIs for managing channels, payments, invoices, and node information.
 
+**API alignment:** This SDK follows the [Fiber Node RPC (v0.6.1)](https://github.com/nervosnetwork/fiber/blob/v0.6.1/crates/fiber-lib/src/rpc/README.md). All method names and types use camelCase in JS/TS and are converted to/from snake_case at the RPC boundary.
+
 ## Features
 
 - Channel management (open, close, query channels)
@@ -171,12 +173,12 @@ Parameters:
 
 Return Parameters:
 
-- `status`: Payment status
-- `payment_hash`: Payment hash
-- `created_at`: Creation time (hexadecimal timestamp)
-- `last_updated_at`: Last update time (hexadecimal timestamp)
-- `failed_error`: Failure reason (if any)
-- `fee`: Fee amount (hexadecimal)
+- `status`: Payment status (`Created` | `Inflight` | `Success` | `Failed`)
+- `paymentHash`: Payment hash
+- `createdAt`, `lastUpdatedAt`: Timestamps (milliseconds)
+- `failedError`: Failure reason (if any)
+- `fee`: Fee amount
+- `routers`: Array of session routes (one per path; used for MPP)
 
 ### Invoice Management
 

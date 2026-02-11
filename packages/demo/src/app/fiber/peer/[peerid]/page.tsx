@@ -43,7 +43,7 @@ export default function peerDetail() {
     try {
       const channelList = await fiber.listChannels();
       const filteredChannelList = channelList.filter(
-        (channel: any) => channel.peer_id === peerId,
+        (channel: any) => channel.peerId === peerId,
       );
       setChannels(filteredChannelList);
 
@@ -52,12 +52,12 @@ export default function peerDetail() {
       let hasChanges = false;
 
       channelList.forEach((channel: any) => {
-        const existingState = channelStatesRef.current[channel.channel_id];
+        const existingState = channelStatesRef.current[channel.channelId];
         if (!existingState) {
           hasChanges = true;
-          newChannelStates[channel.channel_id] = {
-            fundingAmount: channel.funding_amount || "0xba43b7400",
-            feeRate: channel.fee_rate || "0x3FC",
+          newChannelStates[channel.channelId] = {
+            fundingAmount: channel.fundingAmount ?? "0xba43b7400",
+            feeRate: channel.feeRate ?? "0x3FC",
             tlcExpiryDelta: "0x100",
             tlcMinValue: "0x0",
             tlcFeeProportionalMillionths: "0x0",
@@ -66,7 +66,7 @@ export default function peerDetail() {
             forceClose: false,
           };
         } else {
-          newChannelStates[channel.channel_id] = existingState;
+          newChannelStates[channel.channelId] = existingState;
         }
       });
 
@@ -86,7 +86,7 @@ export default function peerDetail() {
     if (!state) return;
     try {
       // 首先检查通道是否存在
-      const channel = channels.find((c) => c.channel_id === channelId);
+      const channel = channels.find((c) => c.channelId === channelId);
       if (!channel) {
         console.error("Channel not found:", channelId);
         alert("通道不存在或已被关闭");
@@ -104,11 +104,11 @@ export default function peerDetail() {
       }
 
       await fiber.channel.updateChannel({
-        channel_id: channelId,
+        channelId,
         enabled: state.isEnabled,
-        tlc_expiry_delta: BigInt(state.tlcExpiryDelta),
-        tlc_minimum_value: BigInt(state.tlcMinValue),
-        tlc_fee_proportional_millionths: BigInt(
+        tlcExpiryDelta: BigInt(state.tlcExpiryDelta),
+        tlcMinimumValue: BigInt(state.tlcMinValue),
+        tlcFeeProportionalMillionths: BigInt(
           state.tlcFeeProportionalMillionths,
         ),
       });
@@ -143,27 +143,27 @@ export default function peerDetail() {
     try {
       if (state.forceClose) {
         await fiber.channel.shutdownChannel({
-          channel_id: channelId,
-          close_script: {
-            code_hash:
+          channelId: channelId,
+          closeScript: {
+            codeHash:
               "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-            hash_type: "type",
+            hashType: "type",
             args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
           },
           force: true,
-          fee_rate: BigInt(state.feeRate),
+          feeRate: BigInt(state.feeRate),
         });
       } else {
         await fiber.channel.shutdownChannel({
-          channel_id: channelId,
-          close_script: {
-            code_hash:
+          channelId: channelId,
+          closeScript: {
+            codeHash:
               "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-            hash_type: "type",
+            hashType: "type",
             args: "0xcc015401df73a3287d8b2b19f0cc23572ac8b14d",
           },
           force: false,
-          fee_rate: BigInt(state.feeRate),
+          feeRate: BigInt(state.feeRate),
         });
       }
       console.log("Channel shutdown initiated successfully");
@@ -196,11 +196,11 @@ export default function peerDetail() {
                 <div>
                   <p>
                     <span className="font-semibold">Channel ID:</span>{" "}
-                    {channel.channel_id}
+                    {channel.channelId}
                   </p>
                   <p>
                     <span className="font-semibold">Peer ID:</span>{" "}
-                    {channel.peer_id}
+                    {channel.peerId}
                   </p>
                   <p>
                     <span className="font-semibold">State:</span>{" "}
@@ -226,20 +226,20 @@ export default function peerDetail() {
                       state={[
                         shannonToCKB(
                           hexToDecimal(
-                            channelStates[channel.channel_id]?.fundingAmount ||
+                            channelStates[channel.channelId]?.fundingAmount ||
                               "0xba43b7400",
                           ).toString(),
                         ),
                         (value) => {
                           const newState = {
-                            ...channelStates[channel.channel_id],
+                            ...channelStates[channel.channelId],
                             fundingAmount: shannonToCKB(
                               decimalToHex(parseInt(value) || 0),
                             ),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
-                            [channel.channel_id]: newState,
+                            [channel.channelId]: newState,
                           }));
                         },
                       ]}
@@ -252,16 +252,16 @@ export default function peerDetail() {
                       label="Fee Rate (Decimal)"
                       state={[
                         hexToDecimal(
-                          channelStates[channel.channel_id]?.feeRate || "0x3FC",
+                          channelStates[channel.channelId]?.feeRate || "0x3FC",
                         ).toString(),
                         (value) => {
                           const newState = {
-                            ...channelStates[channel.channel_id],
+                            ...channelStates[channel.channelId],
                             feeRate: decimalToHex(parseInt(value) || 0),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
-                            [channel.channel_id]: newState,
+                            [channel.channelId]: newState,
                           }));
                         },
                       ]}
@@ -274,17 +274,17 @@ export default function peerDetail() {
                       label="TLC Expiry Delta (Decimal)"
                       state={[
                         hexToDecimal(
-                          channelStates[channel.channel_id]?.tlcExpiryDelta ||
+                          channelStates[channel.channelId]?.tlcExpiryDelta ||
                             "0x100",
                         ).toString(),
                         (value) => {
                           const newState = {
-                            ...channelStates[channel.channel_id],
+                            ...channelStates[channel.channelId],
                             tlcExpiryDelta: decimalToHex(parseInt(value) || 0),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
-                            [channel.channel_id]: newState,
+                            [channel.channelId]: newState,
                           }));
                         },
                       ]}
@@ -297,17 +297,17 @@ export default function peerDetail() {
                       label="TLC Minimum Value (Decimal)"
                       state={[
                         hexToDecimal(
-                          channelStates[channel.channel_id]?.tlcMinValue ||
+                          channelStates[channel.channelId]?.tlcMinValue ||
                             "0x0",
                         ).toString(),
                         (value) => {
                           const newState = {
-                            ...channelStates[channel.channel_id],
+                            ...channelStates[channel.channelId],
                             tlcMinValue: decimalToHex(parseInt(value) || 0),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
-                            [channel.channel_id]: newState,
+                            [channel.channelId]: newState,
                           }));
                         },
                       ]}
@@ -320,19 +320,19 @@ export default function peerDetail() {
                       label="TLC Fee Proportional Millionths (Decimal)"
                       state={[
                         hexToDecimal(
-                          channelStates[channel.channel_id]
+                          channelStates[channel.channelId]
                             ?.tlcFeeProportionalMillionths || "0x0",
                         ).toString(),
                         (value) => {
                           const newState = {
-                            ...channelStates[channel.channel_id],
+                            ...channelStates[channel.channelId],
                             tlcFeeProportionalMillionths: decimalToHex(
                               parseInt(value) || 0,
                             ),
                           };
                           setChannelStates((prev) => ({
                             ...prev,
-                            [channel.channel_id]: newState,
+                            [channel.channelId]: newState,
                           }));
                         },
                       ]}
@@ -343,69 +343,69 @@ export default function peerDetail() {
                   <div className="mt-1 flex items-center">
                     <input
                       type="checkbox"
-                      id={`isPublic-${channel.channel_id}`}
+                      id={`isPublic-${channel.channelId}`}
                       checked={
-                        channelStates[channel.channel_id]?.isPublic ?? true
+                        channelStates[channel.channelId]?.isPublic ?? true
                       }
                       onChange={(e) => {
                         const newState = {
-                          ...channelStates[channel.channel_id],
+                          ...channelStates[channel.channelId],
                           isPublic: e.target.checked,
                         };
                         setChannelStates((prev) => ({
                           ...prev,
-                          [channel.channel_id]: newState,
+                          [channel.channelId]: newState,
                         }));
                       }}
                       className="mr-2"
                     />
-                    <label htmlFor={`isPublic-${channel.channel_id}`}>
+                    <label htmlFor={`isPublic-${channel.channelId}`}>
                       Public Channel
                     </label>
                   </div>
                   <div className="mt-1 flex items-center">
                     <input
                       type="checkbox"
-                      id={`isEnabled-${channel.channel_id}`}
+                      id={`isEnabled-${channel.channelId}`}
                       checked={
-                        channelStates[channel.channel_id]?.isEnabled ?? true
+                        channelStates[channel.channelId]?.isEnabled ?? true
                       }
                       onChange={(e) => {
                         const newState = {
-                          ...channelStates[channel.channel_id],
+                          ...channelStates[channel.channelId],
                           isEnabled: e.target.checked,
                         };
                         setChannelStates((prev) => ({
                           ...prev,
-                          [channel.channel_id]: newState,
+                          [channel.channelId]: newState,
                         }));
                       }}
                       className="mr-2"
                     />
-                    <label htmlFor={`isEnabled-${channel.channel_id}`}>
+                    <label htmlFor={`isEnabled-${channel.channelId}`}>
                       Enabled
                     </label>
                   </div>
                   <div className="mt-1 flex items-center">
                     <input
                       type="checkbox"
-                      id={`forceClose-${channel.channel_id}`}
+                      id={`forceClose-${channel.channelId}`}
                       checked={
-                        channelStates[channel.channel_id]?.forceClose ?? false
+                        channelStates[channel.channelId]?.forceClose ?? false
                       }
                       onChange={(e) => {
                         const newState = {
-                          ...channelStates[channel.channel_id],
+                          ...channelStates[channel.channelId],
                           forceClose: e.target.checked,
                         };
                         setChannelStates((prev) => ({
                           ...prev,
-                          [channel.channel_id]: newState,
+                          [channel.channelId]: newState,
                         }));
                       }}
                       className="mr-2"
                     />
-                    <label htmlFor={`forceClose-${channel.channel_id}`}>
+                    <label htmlFor={`forceClose-${channel.channelId}`}>
                       Force Close
                     </label>
                   </div>
@@ -414,19 +414,19 @@ export default function peerDetail() {
                 <div className="flex">
                   <Button
                     className="ml-2"
-                    onClick={() => updateChannel(channel.channel_id)}
+                    onClick={() => updateChannel(channel.channelId)}
                   >
                     Update Channel
                   </Button>
                   <Button
                     className="ml-2"
-                    onClick={() => abandonChannel(channel.channel_id)}
+                    onClick={() => abandonChannel(channel.channelId)}
                   >
                     Abandon Channel
                   </Button>
                   <Button
                     className="ml-2"
-                    onClick={() => shutdownChannel(channel.channel_id)}
+                    onClick={() => shutdownChannel(channel.channelId)}
                   >
                     Shutdown Channel
                   </Button>

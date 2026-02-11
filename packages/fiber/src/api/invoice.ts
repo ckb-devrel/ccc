@@ -19,12 +19,17 @@ export interface NewInvoiceParams {
   amount: string | number;
   description?: string;
   currency: Currency;
-  paymentPreimage: Hash256;
+  /** Preimage (use for normal invoice; omit with paymentHash for hold invoice). */
+  paymentPreimage?: Hash256;
+  /** Payment hash for hold invoice (preimage must be absent). */
+  paymentHash?: Hash256;
   expiry?: string | number;
   fallbackAddress?: string;
   finalExpiryDelta?: string | number;
   udtTypeScript?: Script;
   hashAlgorithm?: HashAlgorithm;
+  /** Whether to allow multi-part payment. */
+  allowMpp?: boolean;
 }
 
 export interface NewInvoiceResult {
@@ -53,5 +58,13 @@ export class InvoiceApi {
     return this.rpc.callCamel<GetInvoiceResult>("cancel_invoice", [
       { paymentHash },
     ]);
+  }
+
+  /** Settle an invoice by providing the preimage. */
+  async settleInvoice(params: {
+    paymentHash: Hash256;
+    paymentPreimage: Hash256;
+  }): Promise<void> {
+    await this.rpc.callCamel("settle_invoice", [params]);
   }
 }

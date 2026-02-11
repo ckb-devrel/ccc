@@ -16,9 +16,9 @@ import type {
   Hash256,
   NodeInfo,
   PaymentCustomRecords,
-  PaymentSessionStatus,
+  PaymentStatus,
   Script,
-  SessionRouteNode,
+  SessionRoute,
 } from "./types.js";
 
 export interface FiberSDKConfig {
@@ -129,14 +129,14 @@ export class FiberSDK {
   }
 
   async getPayment(paymentHash: Hash256): Promise<{
-    status: PaymentSessionStatus;
+    status: PaymentStatus;
     paymentHash: Hash256;
     createdAt: string | number;
     lastUpdatedAt: string | number;
     failedError?: string;
     fee: string | number;
     customRecords?: PaymentCustomRecords;
-    router: SessionRouteNode[];
+    routers: SessionRoute[];
   }> {
     return this.payment.getPayment(paymentHash);
   }
