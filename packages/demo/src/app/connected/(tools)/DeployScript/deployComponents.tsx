@@ -102,7 +102,7 @@ export function CellFoundSection({
 
   return (
     <>
-      <Message title="Cell Found" type="success">
+      <Message title="Cell Found" type="success" expandable={false}>
         <div className="space-y-1 text-sm">
           <p>
             <span className="font-medium">Transaction:</span>{" "}
@@ -132,7 +132,11 @@ export function CellFoundSection({
         </div>
       </Message>
       {isAddressMatch === false && (
-        <Message title="Address Mismatch Warning" type="error">
+        <Message
+          title="Address Mismatch Warning"
+          type="error"
+          expandable={false}
+        >
           <div className="space-y-1 text-sm">
             <p>
               The cell&apos;s lock address does not match your wallet address.
@@ -158,7 +162,7 @@ export function CellFoundSection({
         </Message>
       )}
       {isAddressMatch === true && (
-        <Message title="Address Match" type="success">
+        <Message title="Address Match" type="success" expandable={false}>
           <div className="text-sm">
             The cell&apos;s lock address matches your wallet address. You can
             update this cell.

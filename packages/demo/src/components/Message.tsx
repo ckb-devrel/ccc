@@ -7,6 +7,7 @@ export interface MessageProps {
   type?: "error" | "warning" | "info" | "success";
   lines?: number;
   className?: string;
+  expandable?: boolean;
 }
 
 export function Message({
@@ -15,8 +16,9 @@ export function Message({
   type = "info",
   lines,
   className = "",
+  expandable = true,
 }: MessageProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!expandable);
 
   let colorClass = "";
   let bgColorClass = "";
@@ -41,10 +43,12 @@ export function Message({
       break;
   }
 
+  const showFull = expandable ? isExpanded : true;
+
   return (
     <div
-      onClick={() => setIsExpanded(!isExpanded)}
-      className={`my-2 flex cursor-pointer flex-col items-start rounded-md p-4 ${bgColorClass} ${className}`}
+      onClick={expandable ? () => setIsExpanded(!isExpanded) : undefined}
+      className={`my-2 flex flex-col items-start rounded-md p-4 ${bgColorClass} ${className} ${expandable ? "cursor-pointer" : ""}`}
     >
       {title ? (
         <div className="flex w-full items-center">
@@ -57,9 +61,9 @@ export function Message({
         </div>
       ) : undefined}
       <div
-        className={`relative mt-2 ${isExpanded ? "" : "line-clamp-1"}`}
+        className={`relative mt-2 ${showFull ? "" : "line-clamp-1"}`}
         style={
-          isExpanded
+          showFull
             ? {}
             : {
                 WebkitLineClamp: `${lines ?? 2}`,
