@@ -130,7 +130,7 @@ export class BtcTimeLock extends mol.Entity.Base<
   constructor(
     public lockScript: ccc.Script,
     public after: ccc.Num,
-    public btcTxid: string,
+    public btcTxid: ccc.Hex,
   ) {
     super();
   }
