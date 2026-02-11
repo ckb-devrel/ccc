@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import lodash from "lodash";
+import { DEFAULT_DUST_LIMIT } from "../constants/index.js";
 import { AddressType } from "../types/address.js";
 import { PublicKeyProvider } from "../types/public-key.js";
 import {
@@ -99,11 +100,11 @@ export function convertToOutput(output: InitOutput): TxOutput {
     throw new Error("Unsupported output");
   }
 
-  const minUtxoSatoshi = 546;
+  const minUtxoSatoshi = result.minUtxoSatoshi ?? DEFAULT_DUST_LIMIT;
   const isOpReturnOutput =
     "script" in result && isOpReturnScriptPubkey(result.script);
   if (!isOpReturnOutput && result.value < minUtxoSatoshi) {
-    throw new Error("value is less than minUtxoSatoshi");
+    throw new Error(`value is less than minUtxoSatoshi (${minUtxoSatoshi})`);
   }
 
   return result;

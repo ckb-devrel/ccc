@@ -76,8 +76,8 @@ export class RgbppUdtIssuanceService {
     );
 
     tx.addCellDeps(
-      params.udtScriptInfo.cellDeps[0].cellDep,
-      uniqueTypeInfo.cellDeps[0].cellDep,
+      ...params.udtScriptInfo.cellDeps.map((dep) => dep.cellDep),
+      ...uniqueTypeInfo.cellDeps.map((dep) => dep.cellDep),
     );
 
     return tx;

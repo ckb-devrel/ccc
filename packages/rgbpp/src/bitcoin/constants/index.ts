@@ -23,3 +23,7 @@ export const DEFAULT_SPV_POLL_INTERVAL = 30_000;
 export const RGBPP_MAX_CELL_NUM = 255;
 
 export const RGBPP_UNLOCK_PARAMS_IDENTIFIER = "RGBPP_UNLOCK_PARAMS";
+
+export const DEFAULT_DUST_LIMIT = 546;
+
+export const DEFAULT_FEE_RATE = 1;

@@ -5,7 +5,3 @@ export const deadLock = ccc.Script.from({
   hashType: "data",
   args: "0x",
 });
-
-export const DEFAULT_DUST_LIMIT = 546;
-
-export const DEFAULT_FEE_RATE = 1;
