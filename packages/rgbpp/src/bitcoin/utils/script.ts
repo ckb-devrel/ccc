@@ -1,5 +1,5 @@
+import { ccc } from "@ckb-ccc/core";
 import * as bitcoin from "bitcoinjs-lib";
-import { trimHexPrefix } from "../../utils/encoder.js";
 
 /**
  * Convert data to OP_RETURN script pubkey.
@@ -12,7 +12,7 @@ import { trimHexPrefix } from "../../utils/encoder.js";
  */
 export function dataToOpReturnScriptPubkey(data: Buffer | string): Buffer {
   if (typeof data === "string") {
-    data = Buffer.from(trimHexPrefix(data), "hex");
+    data = Buffer.from(ccc.bytesFrom(data));
   }
 
   const payment = bitcoin.payments.embed({ data: [data] });
