@@ -1,5 +1,5 @@
+import { ccc } from "@ckb-ccc/core";
 import lodash from "lodash";
-import { trimHexPrefix } from "../../utils/encoder.js";
 import { AddressType } from "../types/address.js";
 import { PublicKeyProvider } from "../types/public-key.js";
 import {
@@ -42,7 +42,7 @@ export async function utxoToInputData(
       index: utxo.vout,
       witnessUtxo: {
         value: utxo.value,
-        script: Buffer.from(trimHexPrefix(utxo.scriptPk), "hex"),
+        script: Buffer.from(ccc.bytesFrom(utxo.scriptPk)),
       },
     };
     return data;
@@ -70,9 +70,9 @@ export async function utxoToInputData(
       index: utxo.vout,
       witnessUtxo: {
         value: utxo.value,
-        script: Buffer.from(trimHexPrefix(utxo.scriptPk), "hex"),
+        script: Buffer.from(ccc.bytesFrom(utxo.scriptPk)),
       },
-      tapInternalKey: toXOnly(Buffer.from(trimHexPrefix(pubkey), "hex")),
+      tapInternalKey: toXOnly(Buffer.from(ccc.bytesFrom(pubkey))),
     };
     return data;
   }

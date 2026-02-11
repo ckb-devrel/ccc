@@ -21,24 +21,19 @@ import {
 } from "../bitcoin/types/rgbpp/rgbpp.js";
 import { RgbppUdtClient } from "../udt/index.js";
 import { isSameScriptTemplate, isUsingOneOfScripts } from "../utils/script.js";
-import {
-  prependHexPrefix,
-  reverseHexByteOrder,
-  trimHexPrefix,
-  u32ToHex,
-  u32ToLe,
-  u64ToLe,
-  u8ToHex,
-  utf8ToHex,
-} from "./encoder.js";
 
 export const encodeRgbppUdtToken = (token: RgbppUdtToken): string => {
-  const decimal = u8ToHex(token.decimal);
-  const name = trimHexPrefix(utf8ToHex(token.name));
-  const nameSize = trimHexPrefix(u8ToHex(name.length / 2));
-  const symbol = trimHexPrefix(utf8ToHex(token.symbol));
-  const symbolSize = trimHexPrefix(u8ToHex(symbol.length / 2));
-  return `${decimal}${nameSize}${name}${symbolSize}${symbol}`;
+  const name = ccc.bytesFrom(token.name, "utf8");
+  const symbol = ccc.bytesFrom(token.symbol, "utf8");
+  return ccc.hexFrom(
+    ccc.bytesConcat(
+      ccc.numToBytes(token.decimal, 1),
+      ccc.numToBytes(name.length, 1),
+      name,
+      ccc.numToBytes(symbol.length, 1),
+      symbol,
+    ),
+  );
 };
 
 /**
@@ -47,15 +42,16 @@ export const encodeRgbppUdtToken = (token: RgbppUdtToken): string => {
  * Whenever you're displaying or searching for transaction/block hashes, you use the reverse byte order.
  */
 export const buildRgbppLockArgs = (utxoSeal: UtxoSeal): ccc.Hex => {
-  return prependHexPrefix(
-    `${u32ToHex(utxoSeal.index, true)}${btcTxIdInReverseByteOrder(
-      utxoSeal.txId,
-    )}`,
+  return ccc.hexFrom(
+    ccc.bytesConcat(
+      ccc.numLeToBytes(utxoSeal.index, 4),
+      ccc.bytesFrom(utxoSeal.txId).reverse(),
+    ),
   );
 };
 
 export function btcTxIdInReverseByteOrder(btcTxId: string): string {
-  return trimHexPrefix(reverseHexByteOrder(prependHexPrefix(btcTxId)));
+  return ccc.bytesTo(ccc.bytesFrom(btcTxId).reverse(), "hex");
 }
 
 export function pseudoRgbppLockArgs(): ccc.Hex {
@@ -81,7 +77,7 @@ export const buildBtcTimeLockArgs = (
     BtcTimeLock.encode({
       lockScript: receiverLock,
       after: confirmations,
-      btcTxid: reverseHexByteOrder(prependHexPrefix(btcTxId)),
+      btcTxid: ccc.hexFrom(ccc.bytesFrom(btcTxId).reverse()),
     }),
   );
 };
@@ -93,7 +89,7 @@ export const buildUniqueTypeArgs = (
   const input = ccc.bytesFrom(firstInput.toBytes());
   const s = new ccc.HasherCkb();
   s.update(input);
-  s.update(ccc.bytesFrom(prependHexPrefix(u64ToLe(BigInt(firstOutputIndex)))));
+  s.update(ccc.numLeToBytes(firstOutputIndex, 8));
   return s.digest().slice(0, 42);
 };
 
@@ -110,8 +106,8 @@ export const buildRgbppUnlock = (
         inputLen,
         outputLen,
       },
-      btcTx: prependHexPrefix(btcLikeTxBytes),
-      btcTxProof: prependHexPrefix(btcLikeTxProof),
+      btcTx: ccc.hexFrom(btcLikeTxBytes),
+      btcTxProof: ccc.hexFrom(btcLikeTxProof),
     }),
   );
 };
@@ -120,7 +116,7 @@ export const buildRgbppUnlock = (
 // refer to https://github.com/ckb-cell/rgbpp/blob/0c090b039e8d026aad4336395b908af283a70ebf/contracts/rgbpp-lock/src/main.rs#L173-L211
 export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
   const hash = sha256.create();
-  hash.update(ccc.bytesFrom(utf8ToHex("RGB++")));
+  hash.update(ccc.bytesFrom("RGB++", "utf8"));
   const version = [0, 0];
   hash.update(version);
 
@@ -137,16 +133,15 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
   hash.update([inputs.length, outputs.length]);
 
   for (const input of inputs) {
-    hash.update(ccc.bytesFrom(input.previousOutput.toBytes()));
+    hash.update(input.previousOutput.toBytes());
   }
   for (let index = 0; index < outputs.length; index++) {
     const outputData = outputsData[index];
-    hash.update(ccc.bytesFrom(outputs[index].toBytes()));
+    hash.update(outputs[index].toBytes());
 
-    const outputDataLen = u32ToLe(trimHexPrefix(outputData).length / 2);
-    const odl = ccc.bytesFrom(prependHexPrefix(outputDataLen));
+    const outputDataLen = ccc.numLeToBytes(ccc.bytesFrom(outputData).length, 4);
     const od = ccc.bytesFrom(outputData);
-    hash.update(odl);
+    hash.update(outputDataLen);
     hash.update(od);
   }
   // double sha256
