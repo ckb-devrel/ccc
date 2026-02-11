@@ -110,14 +110,19 @@ export class ScriptManager {
     });
   }
 
-  /* 
-  https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#type-id
-
-  There are two ways to create a new cell with a specific type id.
-
-    1. Create a transaction which uses any out point as tx.inputs[0] and has a output cell whose type script is Type ID. The output cell's type script args is the hash of tx.inputs[0] and its output index. Because any out point can only be used once as an input, tx.inputs[0] and thus the new type id must be different in each creation transaction.
-    2. Destroy an old cell with a specific type id and create a new cell with the same type id in the same transaction.
-  */
+  /**
+   * Build unique type script by firstInput and outputIndex
+   *
+   * @see https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#type-id
+   *
+   * There are two ways to create a new cell with a specific type id.
+   *
+   * 1. Create a transaction which uses any out point as tx.inputs[0] and has a output cell whose type script is Type ID. The output cell's type script args is the hash of tx.inputs[0] and its output index. Because any out point can only be used once as an input, tx.inputs[0] and thus the new type id must be different in each creation transaction.
+   * 2. Destroy an old cell with a specific type id and create a new cell with the same type id in the same transaction.
+   *
+   * @param firstInput - The first input of the transaction
+   * @param outputIndex - The index of the output cell
+   */
   async buildUniqueTypeScript(
     firstInput: ccc.CellInput,
     outputIndex: number,

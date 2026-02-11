@@ -21,7 +21,15 @@ export class RgbppUdtIssuanceService {
       throw new RgbppValidationError("rgbppLiveCells is empty");
     }
 
-    const rgbppLiveCells = deduplicateByOutPoint(params.rgbppLiveCells);
+    const rgbppLiveCells = deduplicateByOutPoint(
+      [...params.rgbppLiveCells].sort((a, b) => {
+        const txHashCmp = a.outPoint.txHash.localeCompare(b.outPoint.txHash);
+        if (txHashCmp !== 0) return txHashCmp;
+        if (a.outPoint.index < b.outPoint.index) return -1;
+        if (a.outPoint.index > b.outPoint.index) return 1;
+        return 0;
+      }),
+    );
 
     const tx = ccc.Transaction.default();
     await Promise.all(
