@@ -16,7 +16,10 @@ export function dataToOpReturnScriptPubkey(data: Buffer | string): Buffer {
   }
 
   const payment = bitcoin.payments.embed({ data: [data] });
-  return payment.output!;
+  if (!payment.output) {
+    throw new Error("Failed to create OP_RETURN script. Data cannot be empty.");
+  }
+  return payment.output;
 }
 
 /**

@@ -32,15 +32,13 @@ export class RgbppUdtIssuanceService {
     );
 
     const tx = ccc.Transaction.default();
-    await Promise.all(
-      rgbppLiveCells.map(async (cell) => {
-        const cellInput = ccc.CellInput.from({
-          previousOutput: cell.outPoint,
-        });
-        await cellInput.completeExtraInfos(ckbClient);
-        tx.inputs.push(cellInput);
-      }),
-    );
+    for (const cell of rgbppLiveCells) {
+      const cellInput = ccc.CellInput.from({
+        previousOutput: cell.outPoint,
+      });
+      await cellInput.completeExtraInfos(ckbClient);
+      tx.inputs.push(cellInput);
+    }
 
     const pseudoRgbppLock =
       await this.scriptManager.buildPseudoRgbppLockScript();
