@@ -23,7 +23,7 @@ export const updateScriptArgsWithTxId = (
   txId: string,
 ): string => {
   const argsBytes = ccc.bytesFrom(args);
-  if (argsBytes.length < 32 + 2) {
+  if (argsBytes.length < 32) {
     throw new Error("Lock args length is invalid");
   }
   const txIdBytes = ccc.bytesFrom(txId).reverse();
@@ -34,7 +34,7 @@ export const updateScriptArgsWithTxId = (
   return ccc.hexFrom(newArgs);
 };
 
-export function getTxIdFromScriptArgs(args: ccc.Hex): string {
+export function getTxIdFromRgbppLockArgs(args: ccc.Hex): string {
   const argsBytes = ccc.bytesFrom(args);
   if (argsBytes.length < 32) {
     throw new Error("Lock args length is invalid");
@@ -46,7 +46,7 @@ export function getTxIdFromScriptArgs(args: ccc.Hex): string {
   );
 }
 
-export function getTxIndexFromScriptArgs(args: ccc.Hex): number {
+export function getTxIndexFromRgbppLockArgs(args: ccc.Hex): number {
   const argsBytes = ccc.bytesFrom(args);
   if (argsBytes.length < 32) {
     throw new Error("Lock args length is invalid");
@@ -55,9 +55,9 @@ export function getTxIndexFromScriptArgs(args: ccc.Hex): number {
   return Number(ccc.numLeFromBytes(argsBytes.subarray(0, 4)));
 }
 
-export function parseUtxoSealFromScriptArgs(args: ccc.Hex): UtxoSeal {
+export function parseUtxoSealFromRgbppLockArgs(args: ccc.Hex): UtxoSeal {
   return {
-    txId: getTxIdFromScriptArgs(args),
-    index: getTxIndexFromScriptArgs(args),
+    txId: getTxIdFromRgbppLockArgs(args),
+    index: getTxIndexFromRgbppLockArgs(args),
   };
 }
