@@ -26,7 +26,7 @@ export enum KnownScript {
   EasyToDiscoverType = "EasyToDiscoverType",
   TimeLock = "TimeLock",
 
-  // RGB++ related scripts (default using Bitcoin Testnet3)
+  // RGB++ related scripts
   RgbppLock = "RgbppLock",
   BtcTimeLock = "BtcTimeLock",
 }
