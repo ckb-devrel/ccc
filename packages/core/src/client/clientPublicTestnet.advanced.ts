@@ -469,4 +469,72 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
         },
       ],
     },
+    [KnownScript.RgbppLock]: {
+      codeHash:
+        "0x61ca7a4796a4eb19ca4f0d065cb9b10ddcf002f10f7cbb810c706cb6bb5c3248",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x0d1567da0979f78b297d5311442669fbd1bd853c8be324c5ab6da41e7a1ed6e5",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xa3bc8441df149def76cfe15fec7b1e51d949548bc27fb7a75e9d4b3ef1c12c7f",
+          },
+        },
+        // Rgbpp lock config cell dep for Bitcoin Testnet3
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x0d1567da0979f78b297d5311442669fbd1bd853c8be324c5ab6da41e7a1ed6e5",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
+    [KnownScript.BtcTimeLock]: {
+      codeHash:
+        "0x00cdf8fab0f8ac638758ebf5ea5e4052b1d71e8a77b9f43139718621f6849326",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8fb747ff0416a43e135c583b028f98c7b81d3770551b196eb7ba1062dd9acc94",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            hashType: "type",
+            args: "0xc9828585e6dd2afacb9e6e8ca7deb0975121aabee5c7983178a45509ffaec984",
+          },
+        },
+        // btc time lock config cell dep for Bitcoin Testnet3
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x8fb747ff0416a43e135c583b028f98c7b81d3770551b196eb7ba1062dd9acc94",
+              index: 1,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
   });
