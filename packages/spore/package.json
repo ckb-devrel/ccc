@@ -62,5 +62,8 @@
     "@ckb-ccc/core": "workspace:*",
     "axios": "^1.11.0"
   },
+  "peerDependencies": {
+    "satori": "^0.10.13"
+  },
   "packageManager": "pnpm@10.8.1"
 }

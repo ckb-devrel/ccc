@@ -52,6 +52,9 @@ importers:
 
   packages/ccc:
     dependencies:
+      '@ckb-ccc/dob-render':
+        specifier: workspace:*
+        version: link:../dob-render
       '@ckb-ccc/eip6963':
         specifier: workspace:*
         version: link:../eip6963
@@ -403,6 +406,52 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
+
+  packages/dob-render:
+    dependencies:
+      '@ckb-ccc/spore':
+        specifier: workspace:*
+        version: link:../spore
+      axios:
+        specifier: ^1.11.0
+        version: 1.11.0
+      satori:
+        specifier: ^0.10.13
+        version: 0.10.14
+      svgson:
+        specifier: ^5.3.1
+        version: 5.3.1
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.34.0
+        version: 9.34.0
+      '@types/node':
+        specifier: ^24.3.0
+        version: 24.3.0
+      eslint:
+        specifier: ^9.34.0
+        version: 9.34.0(jiti@2.5.1)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@9.34.0(jiti@2.5.1))
+      eslint-plugin-prettier:
+        specifier: ^5.5.4
+        version: 5.5.4(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.34.0(jiti@2.5.1)))(eslint@9.34.0(jiti@2.5.1))(prettier@3.6.2)
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      prettier-plugin-organize-imports:
+        specifier: ^4.2.0
+        version: 4.2.0(prettier@3.6.2)(typescript@5.9.2)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.2
+      typescript-eslint:
+        specifier: ^8.41.0
+        version: 8.41.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
 
   packages/docs:
     dependencies:
@@ -1008,6 +1057,9 @@ importers:
       axios:
         specifier: ^1.11.0
         version: 1.11.0
+      satori:
+        specifier: ^0.10.13
+        version: 0.10.14
     devDependencies:
       '@eslint/js':
         specifier: ^9.34.0
