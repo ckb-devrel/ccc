@@ -98,7 +98,7 @@ function adaptNodeWorkerToBrowserWorker(nodeWorker: NodeWorker): Worker {
       nodeWorker.postMessage(data);
     },
     terminate() {
-      nodeWorker.terminate();
+      void nodeWorker.terminate();
     },
     get onmessage() {
       return onmessageFn;
