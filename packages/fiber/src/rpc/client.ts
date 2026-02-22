@@ -71,14 +71,27 @@ export class FiberClient {
       }
       return result;
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const { code, message } = parseRpcError(err);
       if (message.includes("Method not found")) {
         throw new RPCError({
           code: -32601,
           message: `RPC method "${method}" not found`,
         });
       }
-      throw new RPCError({ code: -1, message });
+      throw new RPCError({ code, message });
     }
   }
+}
+
+function parseRpcError(err: unknown): { code: number; message: string } {
+  const obj: Record<string, unknown> =
+    err && typeof err === "object" ? (err as Record<string, unknown>) : {};
+  const code = typeof obj.code === "number" ? obj.code : -1;
+  const message =
+    err instanceof Error
+      ? err.message
+      : typeof obj.message === "string"
+        ? obj.message
+        : String(err);
+  return { code, message };
 }

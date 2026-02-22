@@ -6,5 +6,6 @@
     "outDir": "./dist",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
-  }
+  },
+  "include": ["src/**/*", "vitest.setup.ts", "scripts/**/*.mjs"]
 }
