@@ -1,41 +1,11 @@
 import { FiberClient } from "../rpc/client.js";
 import type {
   CkbInvoice,
-  CkbInvoiceStatus,
-  Currency,
+  GetInvoiceResult,
   Hash256,
-  HashAlgorithm,
-  Script,
+  NewInvoiceParams,
+  NewInvoiceResult,
 } from "../types.js";
-
-/** RPC response for get_invoice and cancel_invoice. */
-export interface GetInvoiceResult {
-  invoiceAddress: string;
-  invoice: CkbInvoice;
-  status: CkbInvoiceStatus;
-}
-
-export interface NewInvoiceParams {
-  amount: string | number;
-  description?: string;
-  currency: Currency;
-  /** Preimage (use for normal invoice; omit with paymentHash for hold invoice). */
-  paymentPreimage?: Hash256;
-  /** Payment hash for hold invoice (preimage must be absent). */
-  paymentHash?: Hash256;
-  expiry?: string | number;
-  fallbackAddress?: string;
-  finalExpiryDelta?: string | number;
-  udtTypeScript?: Script;
-  hashAlgorithm?: HashAlgorithm;
-  /** Whether to allow multi-part payment. */
-  allowMpp?: boolean;
-}
-
-export interface NewInvoiceResult {
-  invoiceAddress: string;
-  invoice: CkbInvoice;
-}
 
 export class InvoiceApi {
   constructor(private readonly rpc: FiberClient) {}

@@ -8,20 +8,16 @@ import type {
   SendPaymentParams,
   SendPaymentWithRouterParams,
 } from "../types.js";
-export type SendPaymentResult = PaymentResult;
-export type GetPaymentResult = PaymentResult;
 
 export class PaymentApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async sendPayment(params: SendPaymentParams): Promise<PaymentResult> {
-    return this.rpc.callCamel<SendPaymentResult>("send_payment", [params]);
+    return this.rpc.callCamel<PaymentResult>("send_payment", [params]);
   }
 
   async getPayment(paymentHash: Hash256): Promise<PaymentResult> {
-    return this.rpc.callCamel<GetPaymentResult>("get_payment", [
-      { paymentHash },
-    ]);
+    return this.rpc.callCamel<PaymentResult>("get_payment", [{ paymentHash }]);
   }
 
   async buildRouter(params: {
@@ -36,7 +32,7 @@ export class PaymentApi {
   async sendPaymentWithRouter(
     params: SendPaymentWithRouterParams,
   ): Promise<PaymentResult> {
-    return this.rpc.callCamel<SendPaymentResult>("send_payment_with_router", [
+    return this.rpc.callCamel<PaymentResult>("send_payment_with_router", [
       params,
     ]);
   }

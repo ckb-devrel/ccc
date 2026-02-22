@@ -37,37 +37,26 @@ export interface OutPoint {
   index: string | number;
 }
 export type Channel = CamelizeDeep<fiber.Channel>;
-export type ChannelUpdateInfo = CamelizeDeep<fiber.ChannelUpdateInfo>;
-export type ChannelInfo = CamelizeDeep<fiber.ChannelInfo>;
+export type OpenChannelParams = CamelizeDeep<fiber.OpenChannelParams>;
+export type OpenChannelResult = CamelizeDeep<fiber.OpenChannelResult>;
+export type AbandonChannelParams = CamelizeDeep<fiber.AbandonChannelParams>;
+export type AcceptChannelParams = CamelizeDeep<fiber.AcceptChannelParams>;
+export type AcceptChannelResult = CamelizeDeep<fiber.AcceptChannelResult>;
+export type ListChannelsParams = CamelizeDeep<fiber.ListChannelsParams>;
+export type ListChannelsResult = CamelizeDeep<fiber.ListChannelsResult>;
+export type ShutdownChannelParams = CamelizeDeep<fiber.ShutdownChannelParams>;
+export type UpdateChannelParams = CamelizeDeep<fiber.UpdateChannelParams>;
 export type Attribute = CamelizeDeep<fiber.Attribute>;
 export type InvoiceData = CamelizeDeep<fiber.InvoiceData>;
 export type CkbInvoice = CamelizeDeep<fiber.CkbInvoice>;
-export type UdtScript = CamelizeDeep<fiber.UdtScript>;
-export type UdtArgInfo = CamelizeDeep<fiber.UdtArgInfo>;
-export type UdtCfgInfos = CamelizeDeep<fiber.UdtCfgInfos>;
-export interface NodeInfo {
-  version: string;
-  commitHash: string;
-  nodeId: Pubkey;
-  features?: string[];
-  nodeName?: string;
-  addresses: string[];
-  /** Latest timestamp set by the owner for the node announcement. */
-  timestamp?: string;
-  chainHash: Hash256;
-  openChannelAutoAcceptMinCkbFundingAmount?: string;
-  autoAcceptMinCkbFundingAmount?: string;
-  autoAcceptChannelCkbFundingAmount: string;
-  defaultFundingLockScript?: Script;
-  tlcExpiryDelta: string;
-  tlcMinValue: string;
-  tlcFeeProportionalMillionths: string;
-  channelCount: string;
-  pendingChannelCount: string;
-  peersCount: string;
-  udtCfgInfos: UdtCfgInfos;
-}
-export type GraphNodeInfo = CamelizeDeep<fiber.NodeInfo>;
+export type NewInvoiceParams = CamelizeDeep<fiber.NewInvoiceParams> & {
+  /** Payment hash for hold invoice (preimage must be absent). */
+  paymentHash?: Hash256;
+  /** Whether to allow multi-part payment. */
+  allowMpp?: boolean;
+};
+export type NewInvoiceResult = CamelizeDeep<fiber.InvoiceResult>;
+export type GetInvoiceResult = CamelizeDeep<fiber.GetInvoiceResult>;
 export type PaymentCustomRecords = CamelizeDeep<fiber.PaymentCustomRecords>;
 export type SessionRouteNode = CamelizeDeep<fiber.SessionRouteNode>;
 export type RouterHop = CamelizeDeep<fiber.RouterHop>;
@@ -78,26 +67,3 @@ export type SendPaymentWithRouterParams =
   CamelizeDeep<fiber.SendPaymentWithRouterParams>;
 export type PaymentResult = CamelizeDeep<fiber.GetPaymentCommandResult>;
 export type BuildRouterResult = CamelizeDeep<fiber.BuildPaymentRouterResult>;
-
-export interface CchOrder {
-  timestamp: bigint;
-  expiry: bigint;
-  ckbFinalTlcExpiryDelta: bigint;
-  currency: Currency;
-  wrappedBtcTypeScript?: Script;
-  btcPayReq: string;
-  ckbPayReq: string;
-  paymentHash: string;
-  amountSats: bigint;
-  feeSats: bigint;
-  status: CchOrderStatus;
-}
-
-export enum CchOrderStatus {
-  Pending = "Pending",
-  IncomingAccepted = "IncomingAccepted",
-  OutgoingInFlight = "OutgoingInFlight",
-  OutgoingSettled = "OutgoingSettled",
-  Succeeded = "Succeeded",
-  Failed = "Failed",
-}
