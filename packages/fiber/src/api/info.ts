@@ -50,8 +50,8 @@ export class InfoApi {
       raw.openChannelAutoAcceptMinCkbFundingAmount ??
       raw.autoAcceptMinCkbFundingAmount;
     return {
-      version: raw.version,
-      commitHash: raw.commitHash,
+      version: raw.version ?? "",
+      commitHash: raw.commitHash ?? "",
       nodeId: raw.nodeId,
       features: raw.features ?? [],
       nodeName: raw.nodeName,

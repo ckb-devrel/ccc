@@ -1,70 +1,24 @@
 import { FiberClient } from "../rpc/client.js";
 import type {
+  BuildRouterResult,
   Hash256,
-  HopHint,
   HopRequire,
-  PaymentCustomRecords,
-  PaymentStatus,
-  RouterHop,
+  PaymentResult,
   Script,
-  SessionRoute,
+  SendPaymentParams,
+  SendPaymentWithRouterParams,
 } from "../types.js";
-
-export interface SendPaymentParams {
-  targetPubkey?: string;
-  amount?: string | number;
-  paymentHash?: Hash256;
-  finalTlcExpiryDelta?: string | number;
-  tlcExpiryLimit?: string | number;
-  invoice?: string;
-  timeout?: string | number;
-  maxFeeAmount?: string | number;
-  maxParts?: number;
-  keysend?: boolean;
-  udtTypeScript?: Script;
-  allowSelfPayment?: boolean;
-  customRecords?: PaymentCustomRecords;
-  hopHints?: HopHint[];
-  dryRun?: boolean;
-}
-
-export interface SendPaymentResult {
-  paymentHash: Hash256;
-  status: PaymentStatus;
-  createdAt: string | number;
-  lastUpdatedAt: string | number;
-  failedError?: string;
-  fee: string | number;
-  customRecords?: PaymentCustomRecords;
-  /** Routes used (e.g. for MPP, one entry per path). */
-  routers: SessionRoute[];
-}
-
-/** RPC response for get_payment. */
-export interface GetPaymentResult {
-  paymentHash: Hash256;
-  status: PaymentStatus;
-  createdAt: string | number;
-  lastUpdatedAt: string | number;
-  failedError?: string;
-  fee: string | number;
-  customRecords?: PaymentCustomRecords;
-  routers: SessionRoute[];
-}
-
-/** RPC response for build_router. */
-export interface BuildRouterResult {
-  routerHops: RouterHop[];
-}
+export type SendPaymentResult = PaymentResult;
+export type GetPaymentResult = PaymentResult;
 
 export class PaymentApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async sendPayment(params: SendPaymentParams): Promise<SendPaymentResult> {
+  async sendPayment(params: SendPaymentParams): Promise<PaymentResult> {
     return this.rpc.callCamel<SendPaymentResult>("send_payment", [params]);
   }
 
-  async getPayment(paymentHash: Hash256): Promise<GetPaymentResult> {
+  async getPayment(paymentHash: Hash256): Promise<PaymentResult> {
     return this.rpc.callCamel<GetPaymentResult>("get_payment", [
       { paymentHash },
     ]);
@@ -79,15 +33,9 @@ export class PaymentApi {
     return this.rpc.callCamel<BuildRouterResult>("build_router", [params]);
   }
 
-  async sendPaymentWithRouter(params: {
-    paymentHash?: Hash256;
-    router: RouterHop[];
-    invoice?: string;
-    customRecords?: PaymentCustomRecords;
-    keysend?: boolean;
-    udtTypeScript?: Script;
-    dryRun?: boolean;
-  }): Promise<SendPaymentResult> {
+  async sendPaymentWithRouter(
+    params: SendPaymentWithRouterParams,
+  ): Promise<PaymentResult> {
     return this.rpc.callCamel<SendPaymentResult>("send_payment_with_router", [
       params,
     ]);

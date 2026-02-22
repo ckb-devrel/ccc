@@ -8,17 +8,21 @@ import {
   PaymentApi,
   PeerApi,
 } from "./api/index.js";
+import type { NewInvoiceParams, NewInvoiceResult } from "./api/invoice.js";
 import type { PeerInfo } from "./api/peer.js";
 import { FiberClient } from "./rpc/client.js";
 import type {
   Channel,
   CkbInvoice,
+  CkbInvoiceStatus,
   Hash256,
   NodeInfo,
   PaymentCustomRecords,
+  PaymentResult,
   PaymentStatus,
   Script,
-  SessionRoute,
+  SendPaymentParams,
+  SessionRouteNode,
 } from "./types.js";
 
 export interface FiberSDKConfig {
@@ -96,9 +100,7 @@ export class FiberSDK {
     return this.channel.abandonChannel(channelId);
   }
 
-  async sendPayment(
-    params: import("./api/payment.js").SendPaymentParams,
-  ): Promise<import("./api/payment.js").SendPaymentResult> {
+  async sendPayment(params: SendPaymentParams): Promise<PaymentResult> {
     return this.payment.sendPayment(params);
   }
 
@@ -106,14 +108,12 @@ export class FiberSDK {
     return this.invoice.parseInvoice(invoice);
   }
 
-  async newInvoice(
-    params: import("./api/invoice.js").NewInvoiceParams,
-  ): Promise<import("./api/invoice.js").NewInvoiceResult> {
+  async newInvoice(params: NewInvoiceParams): Promise<NewInvoiceResult> {
     return this.invoice.newInvoice(params);
   }
 
   async getInvoice(paymentHash: Hash256): Promise<{
-    status: import("./types.js").CkbInvoiceStatus;
+    status: CkbInvoiceStatus;
     invoiceAddress: string;
     invoice: CkbInvoice;
   }> {
@@ -123,7 +123,7 @@ export class FiberSDK {
   async cancelInvoice(paymentHash: Hash256): Promise<{
     invoiceAddress: string;
     invoice: CkbInvoice;
-    status: import("./types.js").CkbInvoiceStatus;
+    status: CkbInvoiceStatus;
   }> {
     return this.invoice.cancelInvoice(paymentHash);
   }
@@ -136,7 +136,7 @@ export class FiberSDK {
     failedError?: string;
     fee: string | number;
     customRecords?: PaymentCustomRecords;
-    routers: SessionRoute[];
+    router?: SessionRouteNode[];
   }> {
     return this.payment.getPayment(paymentHash);
   }
