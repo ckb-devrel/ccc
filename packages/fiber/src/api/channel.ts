@@ -12,7 +12,7 @@ function withAmounts(
     const v = out[key];
     if (typeof v === "string" || typeof v === "number") {
       out[key] =
-        kind === "fixed8" ? ccc.fixedPointFrom(String(v), 8) : BigInt(v);
+        kind === "fixed8" ? ccc.fixedPointFrom(String(v), 8) : ccc.numFrom(v);
     }
   }
   return out;
@@ -21,7 +21,7 @@ function withAmounts(
 export class ChannelApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async openChannel(params: fiber.OpenChannelParams): Promise<fiber.Hash256> {
+  async openChannel(params: fiber.OpenChannelParams): Promise<ccc.Hex> {
     const payload = withAmounts(params as Record<string, unknown>, {
       fundingAmount: "fixed8",
       commitmentDelayEpoch: "fixed8",
@@ -36,12 +36,10 @@ export class ChannelApi {
       "open_channel",
       [payload],
     );
-    return res.temporaryChannelId as fiber.Hash256;
+    return res.temporaryChannelId as ccc.Hex;
   }
 
-  async acceptChannel(
-    params: fiber.AcceptChannelParams,
-  ): Promise<fiber.Hash256> {
+  async acceptChannel(params: fiber.AcceptChannelParams): Promise<ccc.Hex> {
     const payload = withAmounts(params as Record<string, unknown>, {
       fundingAmount: "fixed8",
       maxTlcValueInFlight: "fixed8",
@@ -54,7 +52,7 @@ export class ChannelApi {
       "accept_channel",
       [payload],
     );
-    return res.channelId as fiber.Hash256;
+    return res.channelId as ccc.Hex;
   }
 
   async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {

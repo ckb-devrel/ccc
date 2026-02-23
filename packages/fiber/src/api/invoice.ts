@@ -1,3 +1,4 @@
+import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
 import type * as fiber from "../types.js";
 
@@ -7,34 +8,48 @@ export class InvoiceApi {
   async newInvoice(
     params: fiber.NewInvoiceParams,
   ): Promise<fiber.NewInvoiceResult> {
-    return this.rpc.callCamel<fiber.NewInvoiceResult>("new_invoice", [params]);
-  }
-
-  async parseInvoice(invoice: string): Promise<fiber.CkbInvoice> {
-    return this.rpc.callCamel<fiber.CkbInvoice>("parse_invoice", [{ invoice }]);
-  }
-
-  async getInvoice(
-    paymentHash: fiber.Hash256,
-  ): Promise<fiber.GetInvoiceResult> {
-    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [
-      { paymentHash },
+    return this.rpc.callCamel<fiber.NewInvoiceResult>("new_invoice", [
+      {
+        ...params,
+        paymentHash: params.paymentHash
+          ? ccc.hexFrom(params.paymentHash)
+          : undefined,
+      },
     ]);
   }
 
+  async parseInvoice(
+    params: fiber.ParseInvoiceParams,
+  ): Promise<fiber.ParseInvoiceResult> {
+    return this.rpc.callCamel<fiber.ParseInvoiceResult>("parse_invoice", [
+      params,
+    ]);
+  }
+
+  async getInvoice(
+    params: fiber.InvoiceParams,
+  ): Promise<fiber.GetInvoiceResult> {
+    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [params]);
+  }
+
   async cancelInvoice(
-    paymentHash: fiber.Hash256,
+    params: fiber.InvoiceParams,
   ): Promise<fiber.GetInvoiceResult> {
     return this.rpc.callCamel<fiber.GetInvoiceResult>("cancel_invoice", [
-      { paymentHash },
+      params,
     ]);
   }
 
   /** Settle an invoice by providing the preimage. */
   async settleInvoice(params: {
-    paymentHash: fiber.Hash256;
-    paymentPreimage: fiber.Hash256;
+    paymentHash: ccc.HexLike;
+    paymentPreimage: ccc.HexLike;
   }): Promise<void> {
-    await this.rpc.callCamel("settle_invoice", [params]);
+    await this.rpc.callCamel("settle_invoice", [
+      {
+        paymentHash: ccc.hexFrom(params.paymentHash),
+        paymentPreimage: ccc.hexFrom(params.paymentPreimage),
+      },
+    ]);
   }
 }

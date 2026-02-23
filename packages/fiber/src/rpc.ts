@@ -74,13 +74,7 @@ export class FiberClient {
    * Use this when you already have snake_case params (e.g. raw RPC).
    */
   async call<T>(method: string, params: unknown[]): Promise<T> {
-    const normalized =
-      params.length === 0 || (params.length === 1 && params[0] === null)
-        ? []
-        : params;
-    const serialized = normalized.map((p) =>
-      p === null || p === undefined ? {} : serializeRpcParams(p),
-    );
+    const serialized = (params ?? []).map((p) => serializeRpcParams(p));
     return this.request(method, serialized) as Promise<T>;
   }
 
@@ -89,15 +83,8 @@ export class FiberClient {
    * Use this for the public SDK API.
    */
   async callCamel<T>(method: string, params: unknown[]): Promise<T> {
-    const normalized =
-      params.length === 0 || (params.length === 1 && params[0] === null)
-        ? []
-        : params;
-    const snakeParams = normalized.map((p) =>
-      p === null || p === undefined ? {} : camelToSnake(p),
-    );
-    const serialized = snakeParams.map((p) =>
-      p === null || p === undefined ? {} : serializeRpcParams(p),
+    const serialized = (params ?? []).map((p) =>
+      serializeRpcParams(camelToSnake(p)),
     );
     const result = await this.request(method, serialized);
     return snakeToCamel(result) as T;

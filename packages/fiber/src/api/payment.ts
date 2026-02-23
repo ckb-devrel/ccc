@@ -10,18 +10,15 @@ export class PaymentApi {
     return this.rpc.callCamel<fiber.PaymentResult>("send_payment", [params]);
   }
 
-  async getPayment(paymentHash: fiber.Hash256): Promise<fiber.PaymentResult> {
-    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [
-      { paymentHash },
-    ]);
+  async getPayment(
+    params: fiber.GetPaymentParams,
+  ): Promise<fiber.PaymentResult> {
+    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [params]);
   }
 
-  async buildRouter(params: {
-    amount?: string | number;
-    udtTypeScript?: fiber.Script;
-    hopsInfo: fiber.HopRequire[];
-    finalTlcExpiryDelta?: string | number;
-  }): Promise<fiber.BuildRouterResult> {
+  async buildRouter(
+    params: fiber.BuildRouterParams,
+  ): Promise<fiber.BuildRouterResult> {
     return this.rpc.callCamel<fiber.BuildRouterResult>("build_router", [
       params,
     ]);

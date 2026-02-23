@@ -4,6 +4,7 @@
  * node B at RPC_PORT_B. When FIBER_RPC_URL is set: uses that single node for all tests. No mock fallback;
  * distinct FIBER_NODE_UNAVAILABLE on failure.
  */
+import { ccc } from "@ckb-ccc/core";
 import { Fiber, randomSecretKey } from "@nervosnetwork/fiber-js";
 import crypto from "node:crypto";
 import { createServer, type Server } from "node:http";
@@ -18,9 +19,9 @@ vi.mock("@joyid/ckb", () => ({
 const RPC_PORT_A = 18227;
 const RPC_PORT_B = 18229;
 
-/** Helper to build hex strings that satisfy `0x${string}` in param types. */
-function hex(bytes: number): `0x${string}` {
-  return ("0x" + "00".repeat(bytes)) as `0x${string}`;
+/** Helper to build hex strings (ccc.Hex) for param types. */
+function hex(bytes: number): ccc.Hex {
+  return ("0x" + "00".repeat(bytes)) as ccc.Hex;
 }
 
 /** Get a readable cause string from an unknown error. */
@@ -420,8 +421,8 @@ afterAll(async () => {
 describe("Fiber SDK", () => {
   // Channel tests run in definition order (sequence.shuffle: false). Two distinct channel creations: one Ready (for shutdown), one pending (for abandon). Then list, then shutdown, abandon.
   describe("channel", () => {
-    let channelIdForShutdown: string | null = null; // Ready channel from open + accept
-    let channelIdForAbandon: string | null = null; // Pending channel from open only
+    let channelIdForShutdown: ccc.Hex | null = null; // Ready channel from open + accept
+    let channelIdForAbandon: ccc.Hex | null = null; // Pending channel from open only
 
     it("openChannel and acceptChannel create Ready channel for shutdown", async () => {
       if (!twoNodesMode || !nodeBPeerId) {
@@ -496,8 +497,7 @@ describe("Fiber SDK", () => {
   describe("invoice", () => {
     it("newInvoice returns invoice address and invoice", async () => {
       const sdk = createSdk();
-      const preimage = ("0x" +
-        crypto.randomBytes(32).toString("hex")) as `0x${string}`;
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const result = await sdk.newInvoice({
         amount: "0x5f5e100",
         currency: "Fibt",
@@ -525,8 +525,7 @@ describe("Fiber SDK", () => {
 
     it("getInvoice returns invoice when it exists", async () => {
       const sdk = createSdk();
-      const preimage = ("0x" +
-        crypto.randomBytes(32).toString("hex")) as `0x${string}`;
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
         amount: "0x5f5e100",
         currency: "Fibt",
@@ -535,7 +534,7 @@ describe("Fiber SDK", () => {
         expiry: "0xe10",
         finalExpiryDelta: "0x9283C0",
       });
-      const paymentHash = created.invoice.data.paymentHash as string;
+      const paymentHash = created.invoice.data.paymentHash as ccc.Hex;
       const got = await sdk.getInvoice(paymentHash);
       expect(got).toHaveProperty("status");
       expect(got).toHaveProperty("invoice");
@@ -544,8 +543,7 @@ describe("Fiber SDK", () => {
 
     it("cancelInvoice succeeds when invoice exists", async () => {
       const sdk = createSdk();
-      const preimage = ("0x" +
-        crypto.randomBytes(32).toString("hex")) as `0x${string}`;
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
         amount: "0x5f5e100",
         currency: "Fibt",
@@ -554,14 +552,14 @@ describe("Fiber SDK", () => {
         expiry: "0xe10",
         finalExpiryDelta: "0x9283C0",
       });
-      const paymentHash = created.invoice.data.paymentHash as string;
+      const paymentHash = created.invoice.data.paymentHash as ccc.Hex;
       const result = await sdk.cancelInvoice(paymentHash);
       expect(result).toHaveProperty("status");
     });
   });
 
   describe("payment", () => {
-    let paymentHashFromSend: string | null = null; // Set by sendPayment test for getPayment to verify
+    let paymentHashFromSend: ccc.Hex | null = null; // Set by sendPayment test for getPayment to verify
 
     it("buildRouter succeeds when channel graph has path", async () => {
       const sdk = createSdk();
@@ -581,7 +579,7 @@ describe("Fiber SDK", () => {
       }
       // Only call when we have real channel; may still get "no path" if graph has no route
       const router = await sdk.payment.buildRouter({
-        hopsInfo: [{ pubkey, channelOutpoint: outpoint }],
+        hopsInfo: [{ pubkey, channelOutpoint: outpoint as ccc.Hex }],
       });
       expect(router).toBeDefined();
     });
@@ -592,8 +590,7 @@ describe("Fiber SDK", () => {
       if (channels.length === 0) {
         return;
       }
-      const preimage = ("0x" +
-        crypto.randomBytes(32).toString("hex")) as `0x${string}`;
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
         amount: "0x5f5e100",
         currency: "Fibt",
@@ -606,9 +603,8 @@ describe("Fiber SDK", () => {
         invoice: created.invoiceAddress,
       });
       expect(result).toBeDefined();
-      paymentHashFromSend =
-        (result as { paymentHash?: string }).paymentHash ??
-        (created.invoice.data.paymentHash as string);
+      paymentHashFromSend = ((result as { paymentHash?: ccc.Hex })
+        .paymentHash ?? created.invoice.data.paymentHash) as ccc.Hex;
     });
 
     it("getPayment returns payment when session exists after sendPayment", async () => {
@@ -658,14 +654,12 @@ describe("Fiber SDK", () => {
     describe("invoice", () => {
       it("getInvoice rejects when payment hash not found", async () => {
         const sdk = createSdk();
-        const unknownHash = "0x" + "00".repeat(32);
-        await expect(sdk.getInvoice(unknownHash)).rejects.toThrow();
+        await expect(sdk.getInvoice(hex(32))).rejects.toThrow();
       });
 
       it("cancelInvoice rejects when invoice not found", async () => {
         const sdk = createSdk();
-        const unknownHash = "0x" + "00".repeat(32);
-        await expect(sdk.cancelInvoice(unknownHash)).rejects.toThrow();
+        await expect(sdk.cancelInvoice(hex(32))).rejects.toThrow();
       });
 
       it("parseInvoice rejects when invoice string is invalid", async () => {
@@ -679,8 +673,7 @@ describe("Fiber SDK", () => {
     describe("payment", () => {
       it("getPayment rejects when payment session not found", async () => {
         const sdk = createSdk();
-        const unknownHash = "0x" + "00".repeat(32);
-        await expect(sdk.getPayment(unknownHash)).rejects.toThrow();
+        await expect(sdk.getPayment(hex(32))).rejects.toThrow();
       });
 
       it("buildRouter rejects when no path found", async () => {

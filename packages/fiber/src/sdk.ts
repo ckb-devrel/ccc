@@ -1,3 +1,4 @@
+import { ccc } from "@ckb-ccc/core";
 import { ChannelApi, InvoiceApi, PaymentApi } from "./api/index.js";
 import { FiberClient } from "./rpc.js";
 import type * as fiber from "./types.js";
@@ -31,7 +32,7 @@ export class FiberSDK {
     return this.channel.listChannels(params);
   }
 
-  async openChannel(params: fiber.OpenChannelParams): Promise<fiber.Hash256> {
+  async openChannel(params: fiber.OpenChannelParams): Promise<ccc.Hex> {
     return this.channel.openChannel(params);
   }
 
@@ -50,7 +51,10 @@ export class FiberSDK {
   }
 
   async parseInvoice(invoice: string): Promise<fiber.CkbInvoice> {
-    return this.invoice.parseInvoice(invoice);
+    const result = await this.invoice.parseInvoice({
+      invoice,
+    });
+    return result.invoice;
   }
 
   async newInvoice(
@@ -59,20 +63,24 @@ export class FiberSDK {
     return this.invoice.newInvoice(params);
   }
 
-  async getInvoice(
-    paymentHash: fiber.Hash256,
-  ): Promise<fiber.GetInvoiceResult> {
-    return this.invoice.getInvoice(paymentHash);
+  async getInvoice(paymentHash: ccc.HexLike): Promise<fiber.GetInvoiceResult> {
+    return this.invoice.getInvoice({
+      paymentHash: ccc.hexFrom(paymentHash),
+    });
   }
 
   async cancelInvoice(
-    paymentHash: fiber.Hash256,
+    paymentHash: ccc.HexLike,
   ): Promise<fiber.GetInvoiceResult> {
-    return this.invoice.cancelInvoice(paymentHash);
+    return this.invoice.cancelInvoice({
+      paymentHash: ccc.hexFrom(paymentHash),
+    });
   }
 
-  async getPayment(paymentHash: fiber.Hash256): Promise<fiber.PaymentResult> {
-    return this.payment.getPayment(paymentHash);
+  async getPayment(paymentHash: ccc.HexLike): Promise<fiber.PaymentResult> {
+    return this.payment.getPayment({
+      paymentHash: ccc.hexFrom(paymentHash),
+    });
   }
 }
 
