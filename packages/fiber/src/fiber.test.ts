@@ -19,6 +19,19 @@ vi.mock("@joyid/ckb", () => ({
 const RPC_PORT_A = 18227;
 const RPC_PORT_B = 18229;
 
+/** Fixed8 scale (8 decimals). Caller is responsible for scaling amounts. */
+const FIXED8_SCALE = 10n ** 8n;
+/** Channel test funding amount in fixed8: 500 × 10^8. */
+const CHANNEL_TEST_FUNDING_AMOUNT_FIXED8 = ccc.numToHex(500n * FIXED8_SCALE);
+/** Channel test fee rate (shannons per kw). */
+const CHANNEL_TEST_FEE_RATE = 1020;
+/** Invoice test amount (e.g. 100M minimal units). */
+const INVOICE_TEST_AMOUNT = 100_000_000;
+/** Invoice test expiry (seconds, e.g. 3600 = 1 hour). */
+const INVOICE_TEST_EXPIRY_SEC = 3600;
+/** Invoice test final HTLC expiry delta. */
+const INVOICE_TEST_FINAL_EXPIRY_DELTA = 9_600_000;
+
 /** Helper to build hex strings (ccc.Hex) for param types. */
 function hex(bytes: number): ccc.Hex {
   return ("0x" + "00".repeat(bytes)) as ccc.Hex;
@@ -432,13 +445,13 @@ describe("Fiber SDK", () => {
       const sdkB = createSdkB();
       const tempId = await sdkA.openChannel({
         peerId: nodeBPeerId,
-        fundingAmount: "0xba43b7400",
+        fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
         public: true,
       });
       expect(tempId).toMatch(/^0x[a-fA-F0-9]+$/);
       const readyChannelId = await sdkB.channel.acceptChannel({
         temporaryChannelId: tempId,
-        fundingAmount: "0xba43b7400",
+        fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
       });
       channelIdForShutdown = readyChannelId;
     });
@@ -450,7 +463,7 @@ describe("Fiber SDK", () => {
       const sdkA = createSdk();
       const tempId = await sdkA.openChannel({
         peerId: nodeBPeerId,
-        fundingAmount: "0xba43b7400",
+        fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
         public: true,
       });
       expect(tempId).toMatch(/^0x[a-fA-F0-9]+$/);
@@ -480,7 +493,7 @@ describe("Fiber SDK", () => {
       const sdk = createSdk();
       await sdk.shutdownChannel({
         channelId: channelIdForShutdown,
-        feeRate: "0x3FC",
+        feeRate: CHANNEL_TEST_FEE_RATE,
         force: false,
       });
     });
@@ -499,12 +512,12 @@ describe("Fiber SDK", () => {
       const sdk = createSdk();
       const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const result = await sdk.newInvoice({
-        amount: "0x5f5e100",
+        amount: INVOICE_TEST_AMOUNT,
         currency: "Fibt",
         paymentPreimage: preimage,
         description: "test invoice",
-        expiry: "0xe10",
-        finalExpiryDelta: "0x9283C0",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
       });
       expect(result).toHaveProperty("invoiceAddress");
       expect(result).toHaveProperty("invoice");
@@ -514,9 +527,10 @@ describe("Fiber SDK", () => {
 
     it("parseInvoice returns invoice object", async () => {
       const sdk = createSdk();
-      const result = await sdk.parseInvoice(
-        "fibt1000000001pcsaug0p0exgfw0pnm6vk0rnt4xefskmrz0k2vqxr4lnrms60qasvc54jagg2hk8v40k88exmp04pn5cpcnrcsw5lk9w0w6l0m3k84e2ax4v6gq9ne2n77u4p8h3npx6tuufqftq8eyqxw9t4upaw4f89xukcee79rm0p0jv92d5ckq7pmvm09ma3psheu3rfyy9atlrdr4el6ys8yqurl2m74msuykljp35j0s47vpw8h3crfp5ldp8kp4xlusqk6rad3ssgwn2a429qlpgfgjrtj3gzy26w50cy7gypgjm6mjgaz2ff5q4am0avf6paxja2gh2wppjagqlg466yzty0r0pfz8qpuzqgq43mkgx",
-      );
+      const result = await sdk.parseInvoice({
+        invoice:
+          "fibt1000000001pcsaug0p0exgfw0pnm6vk0rnt4xefskmrz0k2vqxr4lnrms60qasvc54jagg2hk8v40k88exmp04pn5cpcnrcsw5lk9w0w6l0m3k84e2ax4v6gq9ne2n77u4p8h3npx6tuufqftq8eyqxw9t4upaw4f89xukcee79rm0p0jv92d5ckq7pmvm09ma3psheu3rfyy9atlrdr4el6ys8yqurl2m74msuykljp35j0s47vpw8h3crfp5ldp8kp4xlusqk6rad3ssgwn2a429qlpgfgjrtj3gzy26w50cy7gypgjm6mjgaz2ff5q4am0avf6paxja2gh2wppjagqlg466yzty0r0pfz8qpuzqgq43mkgx",
+      });
       const invoice = getInvoiceFromParseResult(result);
       expect(invoice).toHaveProperty("currency");
       expect(invoice).toHaveProperty("data");
@@ -527,12 +541,12 @@ describe("Fiber SDK", () => {
       const sdk = createSdk();
       const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
-        amount: "0x5f5e100",
+        amount: INVOICE_TEST_AMOUNT,
         currency: "Fibt",
         paymentPreimage: preimage,
         description: "getInvoice test",
-        expiry: "0xe10",
-        finalExpiryDelta: "0x9283C0",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
       });
       const paymentHash = created.invoice.data.paymentHash;
       const got = await sdk.getInvoice(paymentHash);
@@ -545,12 +559,12 @@ describe("Fiber SDK", () => {
       const sdk = createSdk();
       const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
-        amount: "0x5f5e100",
+        amount: INVOICE_TEST_AMOUNT,
         currency: "Fibt",
         paymentPreimage: preimage,
         description: "cancelInvoice test",
-        expiry: "0xe10",
-        finalExpiryDelta: "0x9283C0",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
       });
       const paymentHash = created.invoice.data.paymentHash;
       const result = await sdk.cancelInvoice(paymentHash);
@@ -592,12 +606,12 @@ describe("Fiber SDK", () => {
       }
       const preimage = ccc.hexFrom(crypto.randomBytes(32));
       const created = await sdk.newInvoice({
-        amount: "0x5f5e100",
+        amount: INVOICE_TEST_AMOUNT,
         currency: "Fibt",
         paymentPreimage: preimage,
         description: "sendPayment test",
-        expiry: "0xe10",
-        finalExpiryDelta: "0x9283C0",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
       });
       const result = await sdk.sendPayment({
         invoice: created.invoiceAddress,
@@ -627,7 +641,7 @@ describe("Fiber SDK", () => {
         await expect(
           sdk.openChannel({
             peerId: "QmNonExistentPeer000000000000000000000000000",
-            fundingAmount: "0xba43b7400",
+            fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
             public: true,
           }),
         ).rejects.toThrow();
@@ -638,7 +652,7 @@ describe("Fiber SDK", () => {
         await expect(
           sdk.shutdownChannel({
             channelId: hex(32),
-            feeRate: "0x3FC",
+            feeRate: CHANNEL_TEST_FEE_RATE,
             force: false,
           }),
         ).rejects.toThrow();
@@ -666,7 +680,7 @@ describe("Fiber SDK", () => {
       it("parseInvoice rejects when invoice string is invalid", async () => {
         const sdk = createSdk();
         await expect(
-          sdk.parseInvoice("invalid-invoice-string"),
+          sdk.parseInvoice({ invoice: "invalid-invoice-string" }),
         ).rejects.toThrow();
       });
     });

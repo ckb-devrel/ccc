@@ -1,79 +1,53 @@
 import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
-import type * as fiber from "../types/index.js";
-
-/** Convert amount-like params to bigint for RPC (fixed 8 decimals or raw bigint). */
-function withAmounts(
-  params: Record<string, unknown>,
-  keys: Record<string, "fixed8" | "bigint">,
-): Record<string, unknown> {
-  const out = { ...params };
-  for (const [key, kind] of Object.entries(keys)) {
-    const v = out[key];
-    if (typeof v === "string" || typeof v === "number") {
-      out[key] =
-        kind === "fixed8" ? ccc.fixedPointFrom(String(v), 8) : ccc.numFrom(v);
-    }
-  }
-  return out;
-}
+import * as fiber from "../types/index.js";
 
 export class ChannelApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async openChannel(params: fiber.OpenChannelParams): Promise<ccc.Hex> {
-    const payload = withAmounts(params as unknown as Record<string, unknown>, {
-      fundingAmount: "fixed8",
-      commitmentDelayEpoch: "fixed8",
-      commitmentFeeRate: "fixed8",
-      fundingFeeRate: "bigint",
-      tlcExpiryDelta: "bigint",
-      tlcMinValue: "fixed8",
-      tlcFeeProportionalMillionths: "fixed8",
-      maxTlcValueInFlight: "bigint",
-    });
+  async openChannel(params: fiber.OpenChannelParamsLike): Promise<ccc.Hex> {
+    const normalized = fiber.OpenChannelParams.from(params);
     const res = await this.rpc.callCamel<fiber.OpenChannelResult>(
       "open_channel",
-      [payload],
+      [{ ...normalized }],
     );
     return res.temporaryChannelId;
   }
 
-  async acceptChannel(params: fiber.AcceptChannelParams): Promise<ccc.Hex> {
-    const payload = withAmounts(params as unknown as Record<string, unknown>, {
-      fundingAmount: "fixed8",
-      maxTlcValueInFlight: "fixed8",
-      maxTlcNumberInFlight: "bigint",
-      tlcMinValue: "fixed8",
-      tlcFeeProportionalMillionths: "fixed8",
-      tlcExpiryDelta: "bigint",
-    });
+  async acceptChannel(params: fiber.AcceptChannelParamsLike): Promise<ccc.Hex> {
+    const normalized = fiber.AcceptChannelParams.from(params);
     const res = await this.rpc.callCamel<fiber.AcceptChannelResult>(
       "accept_channel",
-      [payload],
+      [{ ...normalized }],
     );
     return res.channelId;
   }
 
-  async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {
-    await this.rpc.callCamel("abandon_channel", [params]);
+  async abandonChannel(params: fiber.AbandonChannelParamsLike): Promise<void> {
+    const normalized = fiber.AbandonChannelParams.from(params);
+    await this.rpc.callCamel("abandon_channel", [{ ...normalized }]);
   }
 
   async listChannels(
-    params?: fiber.ListChannelsParams,
+    params?: fiber.ListChannelsParamsLike,
   ): Promise<fiber.Channel[]> {
+    const normalized = fiber.ListChannelsParams.from(params ?? {});
     const res = await this.rpc.callCamel<fiber.ListChannelsResult>(
       "list_channels",
-      [params ?? {}],
+      [{ ...normalized }],
     );
     return res.channels;
   }
 
-  async shutdownChannel(params: fiber.ShutdownChannelParams): Promise<void> {
-    await this.rpc.callCamel("shutdown_channel", [params]);
+  async shutdownChannel(
+    params: fiber.ShutdownChannelParamsLike,
+  ): Promise<void> {
+    const normalized = fiber.ShutdownChannelParams.from(params);
+    await this.rpc.callCamel("shutdown_channel", [{ ...normalized }]);
   }
 
-  async updateChannel(params: fiber.UpdateChannelParams): Promise<void> {
-    await this.rpc.callCamel("update_channel", [params]);
+  async updateChannel(params: fiber.UpdateChannelParamsLike): Promise<void> {
+    const normalized = fiber.UpdateChannelParams.from(params);
+    await this.rpc.callCamel("update_channel", [{ ...normalized }]);
   }
 }

@@ -27,45 +27,47 @@ export class FiberSDK {
   }
 
   async listChannels(
-    params?: fiber.ListChannelsParams,
+    params?: fiber.ListChannelsParamsLike,
   ): Promise<fiber.Channel[]> {
     return this.channel.listChannels(params);
   }
 
-  async openChannel(params: fiber.OpenChannelParams): Promise<ccc.Hex> {
+  async openChannel(params: fiber.OpenChannelParamsLike): Promise<ccc.Hex> {
     return this.channel.openChannel(params);
   }
 
-  async shutdownChannel(params: fiber.ShutdownChannelParams): Promise<void> {
+  async shutdownChannel(
+    params: fiber.ShutdownChannelParamsLike,
+  ): Promise<void> {
     return this.channel.shutdownChannel(params);
   }
 
-  async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {
+  async abandonChannel(params: fiber.AbandonChannelParamsLike): Promise<void> {
     return this.channel.abandonChannel(params);
   }
 
   async sendPayment(
-    params: fiber.SendPaymentParams,
+    params: fiber.SendPaymentParamsLike,
   ): Promise<fiber.PaymentResult> {
     return this.payment.sendPayment(params);
   }
 
-  async parseInvoice(invoice: string): Promise<fiber.CkbInvoice> {
-    const result = await this.invoice.parseInvoice({
-      invoice,
-    });
+  async parseInvoice(
+    params: fiber.ParseInvoiceParamsLike,
+  ): Promise<fiber.CkbInvoice> {
+    const result = await this.invoice.parseInvoice(params);
     return result.invoice;
   }
 
   async newInvoice(
-    params: fiber.NewInvoiceParams,
+    params: fiber.NewInvoiceParamsLike,
   ): Promise<fiber.NewInvoiceResult> {
     return this.invoice.newInvoice(params);
   }
 
   async getInvoice(paymentHash: ccc.HexLike): Promise<fiber.GetInvoiceResult> {
     return this.invoice.getInvoice({
-      paymentHash: ccc.hexFrom(paymentHash),
+      paymentHash,
     });
   }
 
@@ -73,13 +75,13 @@ export class FiberSDK {
     paymentHash: ccc.HexLike,
   ): Promise<fiber.GetInvoiceResult> {
     return this.invoice.cancelInvoice({
-      paymentHash: ccc.hexFrom(paymentHash),
+      paymentHash,
     });
   }
 
   async getPayment(paymentHash: ccc.HexLike): Promise<fiber.PaymentResult> {
     return this.payment.getPayment({
-      paymentHash: ccc.hexFrom(paymentHash),
+      paymentHash,
     });
   }
 }

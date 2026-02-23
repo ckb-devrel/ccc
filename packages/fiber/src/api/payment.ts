@@ -1,34 +1,42 @@
 import { FiberClient } from "../rpc.js";
-import type * as fiber from "../types/index.js";
+import * as fiber from "../types/index.js";
 
 export class PaymentApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async sendPayment(
-    params: fiber.SendPaymentParams,
+    params: fiber.SendPaymentParamsLike,
   ): Promise<fiber.PaymentResult> {
-    return this.rpc.callCamel<fiber.PaymentResult>("send_payment", [params]);
+    const normalized = fiber.SendPaymentCommandParams.from(params);
+    return this.rpc.callCamel<fiber.PaymentResult>("send_payment", [
+      { ...normalized },
+    ]);
   }
 
   async getPayment(
-    params: fiber.GetPaymentParams,
+    params: fiber.GetPaymentParamsLike,
   ): Promise<fiber.PaymentResult> {
-    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [params]);
+    const normalized = fiber.GetPaymentCommandParams.from(params);
+    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [
+      { ...normalized },
+    ]);
   }
 
   async buildRouter(
-    params: fiber.BuildRouterParams,
+    params: fiber.BuildRouterParamsLike,
   ): Promise<fiber.BuildRouterResult> {
+    const normalized = fiber.BuildRouterParams.from(params);
     return this.rpc.callCamel<fiber.BuildRouterResult>("build_router", [
-      params,
+      { ...normalized },
     ]);
   }
 
   async sendPaymentWithRouter(
-    params: fiber.SendPaymentWithRouterParams,
+    params: fiber.SendPaymentWithRouterParamsLike,
   ): Promise<fiber.PaymentResult> {
+    const normalized = fiber.SendPaymentWithRouterParams.from(params);
     return this.rpc.callCamel<fiber.PaymentResult>("send_payment_with_router", [
-      params,
+      { ...normalized },
     ]);
   }
 }

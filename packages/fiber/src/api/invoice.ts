@@ -1,42 +1,43 @@
 import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
-import type * as fiber from "../types/index.js";
+import * as fiber from "../types/index.js";
 
 export class InvoiceApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async newInvoice(
-    params: fiber.NewInvoiceParams,
+    params: fiber.NewInvoiceParamsLike,
   ): Promise<fiber.NewInvoiceResult> {
+    const normalized = fiber.NewInvoiceParams.from(params);
     return this.rpc.callCamel<fiber.NewInvoiceResult>("new_invoice", [
-      {
-        ...params,
-        paymentHash: params.paymentHash
-          ? ccc.hexFrom(params.paymentHash)
-          : undefined,
-      },
+      { ...normalized },
     ]);
   }
 
   async parseInvoice(
-    params: fiber.ParseInvoiceParams,
+    params: fiber.ParseInvoiceParamsLike,
   ): Promise<fiber.ParseInvoiceResult> {
+    const normalized = fiber.ParseInvoiceParams.from(params);
     return this.rpc.callCamel<fiber.ParseInvoiceResult>("parse_invoice", [
-      params,
+      { ...normalized },
     ]);
   }
 
   async getInvoice(
-    params: fiber.InvoiceParams,
+    params: fiber.InvoiceParamsLike,
   ): Promise<fiber.GetInvoiceResult> {
-    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [params]);
+    const normalized = fiber.InvoiceParams.from(params);
+    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [
+      { ...normalized },
+    ]);
   }
 
   async cancelInvoice(
-    params: fiber.InvoiceParams,
+    params: fiber.InvoiceParamsLike,
   ): Promise<fiber.GetInvoiceResult> {
+    const normalized = fiber.InvoiceParams.from(params);
     return this.rpc.callCamel<fiber.GetInvoiceResult>("cancel_invoice", [
-      params,
+      { ...normalized },
     ]);
   }
 
