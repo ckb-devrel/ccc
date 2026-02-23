@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
-import type * as fiber from "../types.js";
+import type * as fiber from "../types/index.js";
 
 export class InvoiceApi {
   constructor(private readonly rpc: FiberClient) {}

@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import { ChannelApi, InvoiceApi, PaymentApi } from "./api/index.js";
 import { FiberClient } from "./rpc.js";
-import type * as fiber from "./types.js";
+import type * as fiber from "./types/index.js";
 
 export interface FiberSDKConfig {
   endpoint: string;

@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
-import type * as fiber from "../types.js";
+import type * as fiber from "../types/index.js";
 
 /** Convert amount-like params to bigint for RPC (fixed 8 decimals or raw bigint). */
 function withAmounts(
@@ -22,7 +22,7 @@ export class ChannelApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async openChannel(params: fiber.OpenChannelParams): Promise<ccc.Hex> {
-    const payload = withAmounts(params as Record<string, unknown>, {
+    const payload = withAmounts(params as unknown as Record<string, unknown>, {
       fundingAmount: "fixed8",
       commitmentDelayEpoch: "fixed8",
       commitmentFeeRate: "fixed8",
@@ -36,11 +36,11 @@ export class ChannelApi {
       "open_channel",
       [payload],
     );
-    return res.temporaryChannelId as ccc.Hex;
+    return res.temporaryChannelId;
   }
 
   async acceptChannel(params: fiber.AcceptChannelParams): Promise<ccc.Hex> {
-    const payload = withAmounts(params as Record<string, unknown>, {
+    const payload = withAmounts(params as unknown as Record<string, unknown>, {
       fundingAmount: "fixed8",
       maxTlcValueInFlight: "fixed8",
       maxTlcNumberInFlight: "bigint",
@@ -52,7 +52,7 @@ export class ChannelApi {
       "accept_channel",
       [payload],
     );
-    return res.channelId as ccc.Hex;
+    return res.channelId;
   }
 
   async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {

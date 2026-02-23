@@ -8,7 +8,6 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 
 export default [
-  { ignores: ["dist/**", "dist.commonjs/**"] },
   ...tseslint.config({
     files: ["**/*.ts"],
     extends: [

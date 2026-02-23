@@ -534,7 +534,7 @@ describe("Fiber SDK", () => {
         expiry: "0xe10",
         finalExpiryDelta: "0x9283C0",
       });
-      const paymentHash = created.invoice.data.paymentHash as ccc.Hex;
+      const paymentHash = created.invoice.data.paymentHash;
       const got = await sdk.getInvoice(paymentHash);
       expect(got).toHaveProperty("status");
       expect(got).toHaveProperty("invoice");
@@ -552,7 +552,7 @@ describe("Fiber SDK", () => {
         expiry: "0xe10",
         finalExpiryDelta: "0x9283C0",
       });
-      const paymentHash = created.invoice.data.paymentHash as ccc.Hex;
+      const paymentHash = created.invoice.data.paymentHash;
       const result = await sdk.cancelInvoice(paymentHash);
       expect(result).toHaveProperty("status");
     });
@@ -579,7 +579,7 @@ describe("Fiber SDK", () => {
       }
       // Only call when we have real channel; may still get "no path" if graph has no route
       const router = await sdk.payment.buildRouter({
-        hopsInfo: [{ pubkey, channelOutpoint: outpoint as ccc.Hex }],
+        hopsInfo: [{ pubkey, channelOutpoint: ccc.hexFrom(outpoint) }],
       });
       expect(router).toBeDefined();
     });
@@ -603,8 +603,9 @@ describe("Fiber SDK", () => {
         invoice: created.invoiceAddress,
       });
       expect(result).toBeDefined();
-      paymentHashFromSend = ((result as { paymentHash?: ccc.Hex })
-        .paymentHash ?? created.invoice.data.paymentHash) as ccc.Hex;
+      paymentHashFromSend =
+        (result as { paymentHash?: ccc.Hex }).paymentHash ??
+        created.invoice.data.paymentHash;
     });
 
     it("getPayment returns payment when session exists after sendPayment", async () => {
