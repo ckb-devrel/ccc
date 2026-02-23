@@ -1,39 +1,39 @@
-import { FiberClient } from "../rpc/client.js";
-import type {
-  CkbInvoice,
-  GetInvoiceResult,
-  Hash256,
-  NewInvoiceParams,
-  NewInvoiceResult,
-} from "../types.js";
+import { FiberClient } from "../rpc.js";
+import type * as fiber from "../types.js";
 
 export class InvoiceApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async newInvoice(params: NewInvoiceParams): Promise<NewInvoiceResult> {
-    return this.rpc.callCamel<NewInvoiceResult>("new_invoice", [params]);
+  async newInvoice(
+    params: fiber.NewInvoiceParams,
+  ): Promise<fiber.NewInvoiceResult> {
+    return this.rpc.callCamel<fiber.NewInvoiceResult>("new_invoice", [params]);
   }
 
-  async parseInvoice(invoice: string): Promise<CkbInvoice> {
-    return this.rpc.callCamel<CkbInvoice>("parse_invoice", [{ invoice }]);
+  async parseInvoice(invoice: string): Promise<fiber.CkbInvoice> {
+    return this.rpc.callCamel<fiber.CkbInvoice>("parse_invoice", [{ invoice }]);
   }
 
-  async getInvoice(paymentHash: Hash256): Promise<GetInvoiceResult> {
-    return this.rpc.callCamel<GetInvoiceResult>("get_invoice", [
+  async getInvoice(
+    paymentHash: fiber.Hash256,
+  ): Promise<fiber.GetInvoiceResult> {
+    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [
       { paymentHash },
     ]);
   }
 
-  async cancelInvoice(paymentHash: Hash256): Promise<GetInvoiceResult> {
-    return this.rpc.callCamel<GetInvoiceResult>("cancel_invoice", [
+  async cancelInvoice(
+    paymentHash: fiber.Hash256,
+  ): Promise<fiber.GetInvoiceResult> {
+    return this.rpc.callCamel<fiber.GetInvoiceResult>("cancel_invoice", [
       { paymentHash },
     ]);
   }
 
   /** Settle an invoice by providing the preimage. */
   async settleInvoice(params: {
-    paymentHash: Hash256;
-    paymentPreimage: Hash256;
+    paymentHash: fiber.Hash256;
+    paymentPreimage: fiber.Hash256;
   }): Promise<void> {
     await this.rpc.callCamel("settle_invoice", [params]);
   }

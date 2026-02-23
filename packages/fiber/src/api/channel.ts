@@ -1,18 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
-import { FiberClient } from "../rpc/client.js";
-import type {
-  AbandonChannelParams,
-  AcceptChannelParams,
-  AcceptChannelResult,
-  Channel,
-  Hash256,
-  ListChannelsParams,
-  ListChannelsResult,
-  OpenChannelParams,
-  OpenChannelResult,
-  ShutdownChannelParams,
-  UpdateChannelParams,
-} from "../types.js";
+import { FiberClient } from "../rpc.js";
+import type * as fiber from "../types.js";
 
 /** Convert amount-like params to bigint for RPC (fixed 8 decimals or raw bigint). */
 function withAmounts(
@@ -33,7 +21,7 @@ function withAmounts(
 export class ChannelApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async openChannel(params: OpenChannelParams): Promise<Hash256> {
+  async openChannel(params: fiber.OpenChannelParams): Promise<fiber.Hash256> {
     const payload = withAmounts(params as Record<string, unknown>, {
       fundingAmount: "fixed8",
       commitmentDelayEpoch: "fixed8",
@@ -44,13 +32,16 @@ export class ChannelApi {
       tlcFeeProportionalMillionths: "fixed8",
       maxTlcValueInFlight: "bigint",
     });
-    const res = await this.rpc.callCamel<OpenChannelResult>("open_channel", [
-      payload,
-    ]);
-    return res.temporaryChannelId as Hash256;
+    const res = await this.rpc.callCamel<fiber.OpenChannelResult>(
+      "open_channel",
+      [payload],
+    );
+    return res.temporaryChannelId as fiber.Hash256;
   }
 
-  async acceptChannel(params: AcceptChannelParams): Promise<Hash256> {
+  async acceptChannel(
+    params: fiber.AcceptChannelParams,
+  ): Promise<fiber.Hash256> {
     const payload = withAmounts(params as Record<string, unknown>, {
       fundingAmount: "fixed8",
       maxTlcValueInFlight: "fixed8",
@@ -59,29 +50,32 @@ export class ChannelApi {
       tlcFeeProportionalMillionths: "fixed8",
       tlcExpiryDelta: "bigint",
     });
-    const res = await this.rpc.callCamel<AcceptChannelResult>(
+    const res = await this.rpc.callCamel<fiber.AcceptChannelResult>(
       "accept_channel",
       [payload],
     );
-    return res.channelId as Hash256;
+    return res.channelId as fiber.Hash256;
   }
 
-  async abandonChannel(params: AbandonChannelParams): Promise<void> {
+  async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {
     await this.rpc.callCamel("abandon_channel", [params]);
   }
 
-  async listChannels(params?: ListChannelsParams): Promise<Channel[]> {
-    const res = await this.rpc.callCamel<ListChannelsResult>("list_channels", [
-      params ?? {},
-    ]);
+  async listChannels(
+    params?: fiber.ListChannelsParams,
+  ): Promise<fiber.Channel[]> {
+    const res = await this.rpc.callCamel<fiber.ListChannelsResult>(
+      "list_channels",
+      [params ?? {}],
+    );
     return res.channels;
   }
 
-  async shutdownChannel(params: ShutdownChannelParams): Promise<void> {
+  async shutdownChannel(params: fiber.ShutdownChannelParams): Promise<void> {
     await this.rpc.callCamel("shutdown_channel", [params]);
   }
 
-  async updateChannel(params: UpdateChannelParams): Promise<void> {
+  async updateChannel(params: fiber.UpdateChannelParams): Promise<void> {
     await this.rpc.callCamel("update_channel", [params]);
   }
 }

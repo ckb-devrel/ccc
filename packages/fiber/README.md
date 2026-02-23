@@ -1,296 +1,179 @@
 # Fiber SDK
 
-Fiber SDK is a JavaScript/TypeScript library for interacting with Fiber nodes. It provides easy-to-use APIs for managing channels, payments, invoices, and node information.
+A TypeScript/JavaScript SDK for building on [Fiber](https://github.com/nervosnetwork/fiber)—the Nervos payment channel network. One client, one config, and a small set of methods for channels, invoices, and payments. Built for the [CCC](https://github.com/ckb-devrel/ccc) stack with camelCase APIs and full type exports.
 
-**API alignment:** This SDK follows the [Fiber Node RPC (v0.6.1)](https://github.com/nervosnetwork/fiber/blob/v0.6.1/crates/fiber-lib/src/rpc/README.md). All method names and types use camelCase in JS/TS and are converted to/from snake_case at the RPC boundary.
+---
 
-## Features
+## Why use it
 
-- Channel management (open, close, query channels)
-- Payment processing (send and query payments)
-- Invoice management (create, parse, query invoices)
-- Node information query
-- Node connection management
+- **Single entry point** — `FiberSDK` wraps channel, invoice, and payment RPC so you don’t deal with raw RPC or snake_case.
+- **TypeScript-first** — All params and results are typed; import `Channel`, `PaymentResult`, `NewInvoiceParams`, etc. from the package.
+- **Minimal surface** — Focused on the operations you need: open/close channels, create and resolve invoices, send and track payments.
+- **Fiber-native** — Talks to a running Fiber node over HTTP; no extra runtimes. Use it in Node or the browser.
 
-## Installation
+---
+
+## Install
 
 ```bash
 npm install @ckb-ccc/fiber
 ```
 
-## Usage
+---
 
-### Initialize SDK
+## Quick start
 
-```javascript
+Create a client and point it at your Fiber node:
+
+```ts
 import { FiberSDK } from "@ckb-ccc/fiber";
 
 const sdk = new FiberSDK({
-  endpoint: "http://127.0.0.1:8227", // Fiber node RPC address
-  timeout: 5000, // Request timeout in milliseconds
+  endpoint: "http://127.0.0.1:8227",
+  timeout: 5000, // optional, milliseconds
 });
 ```
 
-## API Reference
+Then use the same `sdk` for channels, invoices, and payments:
 
-### Channel Management
-
-#### listChannels
-
-List all channel information.
-
-```javascript
-const channels = await sdk.channel.listChannels();
+```ts
+const channels = await sdk.listChannels();
+const { invoiceAddress, invoice } = await sdk.newInvoice({
+  amount: "0x5f5e100",
+  currency: "Fibt",
+  description: "Coffee",
+  expiry: "0xe10",
+  finalExpiryDelta: "0x9283C0",
+});
+const payment = await sdk.sendPayment({ invoice: invoiceAddress });
 ```
 
-Return Parameters:
+That’s the core loop: create an invoice, share `invoiceAddress`, and the payer calls `sendPayment` with it.
 
-- `channels`: Array of channels, each containing:
-  - `channel_id`: Channel ID
-  - `peer_id`: Peer node ID
-  - `state_name`: Channel state name
-  - `state_flags`: Channel state flags
-  - `local_balance`: Local balance (hexadecimal)
-  - `remote_balance`: Remote balance (hexadecimal)
-  - `created_at`: Creation time (hexadecimal timestamp)
-  - `is_public`: Whether the channel is public
-  - `is_enabled`: Whether the channel is enabled
-  - `tlc_expiry_delta`: TLC expiry delta
-  - `tlc_min_value`: TLC minimum amount
-  - `tlc_fee_proportional_millionths`: TLC fee proportion
+---
 
-#### openChannel
+## SDK at a glance
 
-Open a new channel.
+| Domain      | What it does                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Channel** | List channels, open new ones (with a peer), accept incoming opens, shut down or abandon channels.                                       |
+| **Invoice** | Create invoices (with amount, currency, optional preimage), parse invoice strings, get or cancel by payment hash, settle with preimage. |
+| **Payment** | Send a payment from an invoice address, or with a pre-built router; get payment status by hash.                                         |
 
-```javascript
-const result = await sdk.channel.openChannel({
-  peer_id: "QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89", // Peer node ID
-  funding_amount: "0xba43b7400", // Channel funding amount (hexadecimal)
-  public: true, // Whether the channel is public
-  funding_udt_type_script: {
-    // Optional UDT type script
-    code_hash: "0x...",
-    hash_type: "type",
-    args: "0x...",
-  },
-  shutdown_script: {
-    // Optional shutdown script
-    code_hash: "0x...",
-    hash_type: "type",
-    args: "0x...",
-  },
-  commitment_delay_epoch: "0x...", // Optional commitment delay epoch
-  commitment_fee_rate: "0x...", // Optional commitment fee rate
-  funding_fee_rate: "0x...", // Optional funding fee rate
-  tlc_expiry_delta: "0x...", // Optional TLC expiry delta
-  tlc_min_value: "0x...", // Optional TLC minimum value
-  tlc_fee_proportional_millionths: "0x...", // Optional TLC fee proportion
-  max_tlc_value_in_flight: "0x...", // Optional maximum TLC value in flight
-  max_tlc_number_in_flight: "0x...", // Optional maximum TLC number in flight
+All of this is available either as **top-level methods** on `FiberSDK` or as **domain objects** `sdk.channel`, `sdk.invoice`, and `sdk.payment` when you need extra methods (e.g. `acceptChannel`, `buildRouter`, `settleInvoice`). Types are exported so you can type your own functions with `Channel`, `PaymentResult`, `NewInvoiceParams`, and so on.
+
+---
+
+## Channels
+
+Channels are the links between your node and others. You list them, open new ones toward a peer, and either shut them down cleanly (when they’re open) or abandon them (e.g. when an open never completed).
+
+**List and open**
+
+```ts
+const channels = await sdk.listChannels();
+// Optional filter: sdk.listChannels({ includeClosed: false })
+
+const temporaryChannelId = await sdk.openChannel({
+  peerId: "<peer multiaddr or id>",
+  fundingAmount: "0xba43b7400",
+  public: true,
 });
 ```
 
-Parameters:
+The counterparty accepts with `sdk.channel.acceptChannel({ temporaryChannelId, fundingAmount, ... })` and gets back the final `channelId`. You use that `channelId` later to shut down or update the channel.
 
-- `peer_id`: Peer node ID
-- `funding_amount`: Channel funding amount (hexadecimal)
-- `public`: Whether the channel is public
-- `funding_udt_type_script`: Optional UDT type script
-- `shutdown_script`: Optional shutdown script
-- `commitment_delay_epoch`: Optional commitment delay epoch
-- `commitment_fee_rate`: Optional commitment fee rate
-- `funding_fee_rate`: Optional funding fee rate
-- `tlc_expiry_delta`: Optional TLC expiry delta
-- `tlc_min_value`: Optional TLC minimum value
-- `tlc_fee_proportional_millionths`: Optional TLC fee proportion
-- `max_tlc_value_in_flight`: Optional maximum TLC value in flight
-- `max_tlc_number_in_flight`: Optional maximum TLC number in flight
+**Shut down or abandon**
 
-#### shutdownChannel
-
-Close a channel.
-
-```javascript
-await sdk.channel.shutdownChannel({
-  channel_id: "channel_id", // Channel ID
-  close_script: {
-    code_hash:
-      "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-    hash_type: "type",
-    args: "0xea076cd91e879a3c189d94068e1584c3fbcc1876",
-  },
-  fee_rate: "0x3FC", // Fee rate (hexadecimal)
-  force: false, // Whether to force close
+```ts
+await sdk.shutdownChannel({
+  channelId: readyChannelId,
+  feeRate: "0x3FC",
+  force: false,
 });
+
+await sdk.abandonChannel({ channelId: temporaryChannelId });
 ```
 
-Parameters:
+Use `shutdownChannel` for an established channel you want to close; use `abandonChannel` for a channel that never reached “ready” (e.g. a stuck open).
 
-- `channel_id`: Channel ID
-- `close_script`: Close script
-  - `code_hash`: Code hash
-  - `hash_type`: Hash type
-  - `args`: Arguments
-- `fee_rate`: Fee rate (hexadecimal)
-- `force`: Whether to force close
+---
 
-### Payment Processing
+## Invoices
 
-#### sendPayment
+Invoices represent a request to be paid: amount, currency, optional description and expiry. You create one, share the **invoice address**, and the payer pays to that address.
 
-Send a payment.
+**Create and share**
 
-```javascript
-await sdk.payment.sendPayment({
-  payment_hash: "payment_hash", // Payment hash
-  amount: "0x5f5e100", // Amount (hexadecimal)
-  fee_rate: "0x3FC", // Fee rate (hexadecimal)
-  custom_records: {}, // Optional custom records
-  route: {}, // Optional route information
+```ts
+const { invoiceAddress, invoice } = await sdk.newInvoice({
+  amount: "0x5f5e100",
+  currency: "Fibt",
+  description: "Order #42",
+  expiry: "0xe10",
+  finalExpiryDelta: "0x9283C0",
 });
+// Send invoiceAddress to the payer (e.g. QR or link).
+// Keep invoice.data.paymentHash to look up or cancel later.
 ```
 
-Parameters:
+For keysend-style flows you can pass `paymentPreimage`; for hold invoices, pass `paymentHash` instead. Full options are in the `NewInvoiceParams` type.
 
-- `payment_hash`: Payment hash
-- `amount`: Amount (hexadecimal)
-- `fee_rate`: Fee rate (hexadecimal)
-- `custom_records`: Optional custom records
-- `route`: Optional route information
+**Parse, get, cancel**
 
-#### getPayment
-
-Query payment status.
-
-```javascript
-const payment = await sdk.payment.getPayment("payment_hash");
+```ts
+const parsed = await sdk.parseInvoice(invoiceAddress);
+const info = await sdk.getInvoice(invoice.data.paymentHash);
+await sdk.cancelInvoice(invoice.data.paymentHash);
 ```
 
-Parameters:
+Settling an invoice with a preimage (e.g. after receiving a payment) is done via `sdk.invoice.settleInvoice({ paymentHash, paymentPreimage })`.
 
-- `payment_hash`: Payment hash
+---
 
-Return Parameters:
+## Payments
 
-- `status`: Payment status (`Created` | `Inflight` | `Success` | `Failed`)
-- `paymentHash`: Payment hash
-- `createdAt`, `lastUpdatedAt`: Timestamps (milliseconds)
-- `failedError`: Failure reason (if any)
-- `fee`: Fee amount
-- `routers`: Array of session routes (one per path; used for MPP)
+Payments are “send money to this invoice.” You pass the invoice address (or a pre-built router via `sdk.payment`), and the node figures out routing and state updates.
 
-### Invoice Management
+**Send and track**
 
-#### newInvoice
-
-Create a new invoice.
-
-```javascript
-const invoice = await sdk.invoice.newInvoice({
-  amount: "0x5f5e100", // Amount (hexadecimal)
-  description: "test invoice", // Optional description
-  expiry: "0xe10", // Optional expiry time (hexadecimal)
-  payment_secret: "0x...", // Optional payment secret
+```ts
+const result = await sdk.sendPayment({
+  invoice: invoiceAddress,
 });
+// result.paymentHash, result.status, result.fee, ...
+
+const status = await sdk.getPayment(result.paymentHash);
 ```
 
-Parameters:
+If you prefer to build the route yourself, use `sdk.payment.buildRouter(...)` and `sdk.payment.sendPaymentWithRouter(...)`. All payment results and params are typed (`PaymentResult`, `SendPaymentParams`, etc.).
 
-- `amount`: Amount (hexadecimal)
-- `description`: Optional description
-- `expiry`: Optional expiry time (hexadecimal)
-- `payment_secret`: Optional payment secret
+---
 
-#### parseInvoice
+## Basic usage flows
 
-Parse an invoice.
+**Flow 1: Receive payment**  
+Create an invoice with `newInvoice`, expose `invoiceAddress` to the payer. They call `sendPayment({ invoice: invoiceAddress })`. You can poll or use `getInvoice(paymentHash)` / `getPayment(paymentHash)` as needed.
 
-```javascript
-const parsedInvoice = await sdk.invoice.parseInvoice("invoice_string");
-```
+**Flow 2: Send payment**  
+Obtain an invoice string (e.g. from the receiver). Optionally `parseInvoice` to inspect it. Call `sendPayment({ invoice })`. Use `getPayment(paymentHash)` to check status and fee.
 
-Parameters:
+**Flow 3: Channel lifecycle**  
+Open with `openChannel`; the other side calls `acceptChannel`. Once ready, use `listChannels` to see state and balances. To close, use `shutdownChannel`; if the channel never became ready, use `abandonChannel`.
 
-- `invoice_string`: Invoice string
+---
 
-Return Parameters:
+## TypeScript and exports
 
-- Parsed invoice information object
+- All APIs use **camelCase** (e.g. `paymentHash`, `invoiceAddress`). The SDK converts to/from the Fiber RPC’s snake_case.
+- You can import **types** from the package and use them as `fiber.Channel`, `fiber.PaymentResult`, `fiber.NewInvoiceParams`, etc., or as standalone types depending on how you import.
+- Besides `FiberSDK`, the package exports `ChannelApi`, `InvoiceApi`, `PaymentApi`, and `FiberClient` for custom wiring, plus key-conversion helpers from `keys.js`.
 
-#### getInvoice
+For full type definitions and optional parameters, use your editor’s IntelliSense or open `src/types.ts` in the repo.
 
-Query invoice status.
+---
 
-```javascript
-const invoiceInfo = await sdk.invoice.getInvoice("payment_hash");
-```
+## Learn more
 
-Parameters:
-
-- `payment_hash`: Payment hash
-
-Return Parameters:
-
-- `status`: Invoice status
-- `invoice_address`: Invoice address
-- `invoice`: Invoice details
-  - `payment_hash`: Payment hash
-  - `amount`: Amount
-  - `description`: Description
-  - `expiry`: Expiry time
-  - `created_at`: Creation time
-
-#### cancelInvoice
-
-Cancel an invoice.
-
-```javascript
-await sdk.invoice.cancelInvoice("payment_hash");
-```
-
-Parameters:
-
-- `payment_hash`: Payment hash
-
-### Node Management
-
-#### nodeInfo
-
-Get node information.
-
-```javascript
-const nodeInfo = await sdk.nodeInfo();
-```
-
-Return Parameters:
-
-- `node_name`: Node name
-- `node_id`: Node ID
-- `addresses`: Node addresses list
-- `chain_hash`: Chain hash
-- `auto_accept_min_ckb_funding_amount`: Minimum CKB funding amount for auto-accept
-- `udt_cfg_infos`: UDT configuration information
-- `timestamp`: Timestamp
-
-#### connectPeer
-
-Connect to a peer node.
-
-```javascript
-await sdk.peer.connectPeer(
-  "/ip4/127.0.0.1/tcp/8119/p2p/QmbKyzq9qUmymW2Gi8Zq7kKVpPiNA1XUJ6uMvsUC4F3p89",
-);
-```
-
-Parameters:
-
-- `address`: Full peer address including peer ID (e.g. "/ip4/127.0.0.1/tcp/8119/p2p/Qm...")
-
-#### disconnectPeer
-
-Disconnect from a peer node.
-
-```
-
-```
+- [Fiber](https://github.com/nervosnetwork/fiber) — Node implementation and RPC.
+- [CCC](https://github.com/ckb-devrel/ccc) — CKBer’s Codebase / Common Chains Connector.

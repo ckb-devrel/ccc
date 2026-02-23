@@ -1,22 +1,6 @@
 import { ChannelApi, InvoiceApi, PaymentApi } from "./api/index.js";
-import { FiberClient } from "./rpc/client.js";
-import type {
-  AbandonChannelParams,
-  Channel,
-  CkbInvoice,
-  GetInvoiceResult,
-  Hash256,
-  ListChannelsParams,
-  NewInvoiceParams,
-  NewInvoiceResult,
-  OpenChannelParams,
-  PaymentCustomRecords,
-  PaymentResult,
-  PaymentStatus,
-  SendPaymentParams,
-  SessionRouteNode,
-  ShutdownChannelParams,
-} from "./types.js";
+import { FiberClient } from "./rpc.js";
+import type * as fiber from "./types.js";
 
 export interface FiberSDKConfig {
   endpoint: string;
@@ -41,52 +25,53 @@ export class FiberSDK {
     this.invoice = new InvoiceApi(rpc);
   }
 
-  async listChannels(params?: ListChannelsParams): Promise<Channel[]> {
+  async listChannels(
+    params?: fiber.ListChannelsParams,
+  ): Promise<fiber.Channel[]> {
     return this.channel.listChannels(params);
   }
 
-  async openChannel(params: OpenChannelParams): Promise<Hash256> {
+  async openChannel(params: fiber.OpenChannelParams): Promise<fiber.Hash256> {
     return this.channel.openChannel(params);
   }
 
-  async shutdownChannel(params: ShutdownChannelParams): Promise<void> {
+  async shutdownChannel(params: fiber.ShutdownChannelParams): Promise<void> {
     return this.channel.shutdownChannel(params);
   }
 
-  async abandonChannel(params: AbandonChannelParams): Promise<void> {
+  async abandonChannel(params: fiber.AbandonChannelParams): Promise<void> {
     return this.channel.abandonChannel(params);
   }
 
-  async sendPayment(params: SendPaymentParams): Promise<PaymentResult> {
+  async sendPayment(
+    params: fiber.SendPaymentParams,
+  ): Promise<fiber.PaymentResult> {
     return this.payment.sendPayment(params);
   }
 
-  async parseInvoice(invoice: string): Promise<CkbInvoice> {
+  async parseInvoice(invoice: string): Promise<fiber.CkbInvoice> {
     return this.invoice.parseInvoice(invoice);
   }
 
-  async newInvoice(params: NewInvoiceParams): Promise<NewInvoiceResult> {
+  async newInvoice(
+    params: fiber.NewInvoiceParams,
+  ): Promise<fiber.NewInvoiceResult> {
     return this.invoice.newInvoice(params);
   }
 
-  async getInvoice(paymentHash: Hash256): Promise<GetInvoiceResult> {
+  async getInvoice(
+    paymentHash: fiber.Hash256,
+  ): Promise<fiber.GetInvoiceResult> {
     return this.invoice.getInvoice(paymentHash);
   }
 
-  async cancelInvoice(paymentHash: Hash256): Promise<GetInvoiceResult> {
+  async cancelInvoice(
+    paymentHash: fiber.Hash256,
+  ): Promise<fiber.GetInvoiceResult> {
     return this.invoice.cancelInvoice(paymentHash);
   }
 
-  async getPayment(paymentHash: Hash256): Promise<{
-    status: PaymentStatus;
-    paymentHash: Hash256;
-    createdAt: string | number;
-    lastUpdatedAt: string | number;
-    failedError?: string;
-    fee: string | number;
-    customRecords?: PaymentCustomRecords;
-    router?: SessionRouteNode[];
-  }> {
+  async getPayment(paymentHash: fiber.Hash256): Promise<fiber.PaymentResult> {
     return this.payment.getPayment(paymentHash);
   }
 }

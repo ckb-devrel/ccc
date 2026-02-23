@@ -1,7 +1,53 @@
 import { ccc } from "@ckb-ccc/core";
-import { camelToSnake, snakeToCamel } from "../keys.js";
-import { RPCError } from "./error.js";
-import { serializeRpcParams } from "./serialize.js";
+import { camelToSnake, snakeToCamel } from "./keys.js";
+
+/**
+ * Error thrown when a Fiber RPC call fails (server error or method not found).
+ */
+export class RPCError extends Error {
+  constructor(
+    public readonly error: { code: number; message: string; data?: unknown },
+  ) {
+    super(`[RPC Error ${error.code}] ${error.message}`);
+    this.name = "RPCError";
+  }
+}
+
+/**
+ * Serializes JavaScript values for Fiber JSON-RPC: bigint and number become hex strings.
+ * Other values are passed through; objects and arrays are traversed recursively.
+ */
+export function serializeRpcParams(value: unknown): unknown {
+  if (typeof value === "bigint" || typeof value === "number") {
+    return "0x" + value.toString(16);
+  }
+  if (Array.isArray(value)) {
+    return value.map(serializeRpcParams);
+  }
+  if (value !== null && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    if (Object.keys(obj).length === 0) return obj;
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(obj)) {
+      out[key] = serializeRpcParams(obj[key]);
+    }
+    return out;
+  }
+  return value;
+}
+
+function parseRpcError(err: unknown): { code: number; message: string } {
+  const obj: Record<string, unknown> =
+    err && typeof err === "object" ? (err as Record<string, unknown>) : {};
+  const code = typeof obj.code === "number" ? obj.code : -1;
+  const message =
+    err instanceof Error
+      ? err.message
+      : typeof obj.message === "string"
+        ? obj.message
+        : String(err);
+  return { code, message };
+}
 
 export interface FiberClientConfig extends ccc.RequestorJsonRpcConfig {
   endpoint: string;
@@ -81,17 +127,4 @@ export class FiberClient {
       throw new RPCError({ code, message });
     }
   }
-}
-
-function parseRpcError(err: unknown): { code: number; message: string } {
-  const obj: Record<string, unknown> =
-    err && typeof err === "object" ? (err as Record<string, unknown>) : {};
-  const code = typeof obj.code === "number" ? obj.code : -1;
-  const message =
-    err instanceof Error
-      ? err.message
-      : typeof obj.message === "string"
-        ? obj.message
-        : String(err);
-  return { code, message };
 }

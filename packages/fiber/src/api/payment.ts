@@ -1,38 +1,36 @@
-import { FiberClient } from "../rpc/client.js";
-import type {
-  BuildRouterResult,
-  Hash256,
-  HopRequire,
-  PaymentResult,
-  Script,
-  SendPaymentParams,
-  SendPaymentWithRouterParams,
-} from "../types.js";
+import { FiberClient } from "../rpc.js";
+import type * as fiber from "../types.js";
 
 export class PaymentApi {
   constructor(private readonly rpc: FiberClient) {}
 
-  async sendPayment(params: SendPaymentParams): Promise<PaymentResult> {
-    return this.rpc.callCamel<PaymentResult>("send_payment", [params]);
+  async sendPayment(
+    params: fiber.SendPaymentParams,
+  ): Promise<fiber.PaymentResult> {
+    return this.rpc.callCamel<fiber.PaymentResult>("send_payment", [params]);
   }
 
-  async getPayment(paymentHash: Hash256): Promise<PaymentResult> {
-    return this.rpc.callCamel<PaymentResult>("get_payment", [{ paymentHash }]);
+  async getPayment(paymentHash: fiber.Hash256): Promise<fiber.PaymentResult> {
+    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [
+      { paymentHash },
+    ]);
   }
 
   async buildRouter(params: {
     amount?: string | number;
-    udtTypeScript?: Script;
-    hopsInfo: HopRequire[];
+    udtTypeScript?: fiber.Script;
+    hopsInfo: fiber.HopRequire[];
     finalTlcExpiryDelta?: string | number;
-  }): Promise<BuildRouterResult> {
-    return this.rpc.callCamel<BuildRouterResult>("build_router", [params]);
+  }): Promise<fiber.BuildRouterResult> {
+    return this.rpc.callCamel<fiber.BuildRouterResult>("build_router", [
+      params,
+    ]);
   }
 
   async sendPaymentWithRouter(
-    params: SendPaymentWithRouterParams,
-  ): Promise<PaymentResult> {
-    return this.rpc.callCamel<PaymentResult>("send_payment_with_router", [
+    params: fiber.SendPaymentWithRouterParams,
+  ): Promise<fiber.PaymentResult> {
+    return this.rpc.callCamel<fiber.PaymentResult>("send_payment_with_router", [
       params,
     ]);
   }
