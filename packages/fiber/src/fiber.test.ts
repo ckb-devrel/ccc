@@ -79,38 +79,7 @@ let RPC_URL_B: string = `http://127.0.0.1:${RPC_PORT_B}`;
 /** Distinct error code when the native Fiber node is not available (e.g. fiber-js failed to start). */
 export const FIBER_NODE_UNAVAILABLE = "FIBER_NODE_UNAVAILABLE";
 
-/** Distinct JSON-RPC error data type for Fiber invocation failures (for bug fixing). */
 const FIBER_RPC_ERROR_TYPE = "FIBER_INVOKE_ERROR";
-
-function fiberConfig(opts: {
-  fiberPort: number;
-  rpcPort: number;
-  bootnodeAddrs: string[];
-  databasePrefix: string;
-}): string {
-  const bootnodeYaml =
-    opts.bootnodeAddrs.length === 0
-      ? "  bootnode_addrs: []"
-      : `  bootnode_addrs:\n${opts.bootnodeAddrs.map((a) => `    - "${a}"`).join("\n")}`;
-  return `
-fiber:
-  listening_addr: "/ip4/127.0.0.1/tcp/${opts.fiberPort}"
-${bootnodeYaml}
-  announce_listening_addr: false
-  announced_addrs: []
-  chain: testnet
-  scripts: []
-rpc:
-  listening_addr: "127.0.0.1:${opts.rpcPort}"
-ckb:
-  rpc_url: "https://testnet.ckbapp.dev/"
-  udt_whitelist: []
-services:
-  - fiber
-  - rpc
-  - ckb
-`.trim();
-}
 
 type FiberLike = {
   invokeCommand(name: string, args?: unknown[]): Promise<unknown>;
@@ -125,14 +94,44 @@ type FiberLike = {
   stop(): Promise<void>;
 };
 
+type NodeConfig = {
+  fiberPort: number;
+  rpcPort: number;
+  databasePrefix: string;
+  bootnodeAddrs?: string[];
+};
+
 let rpcServer: Server | null = null;
 let rpcServerB: Server | null = null;
 let fiberInstance: FiberLike | null = null;
 let fiberInstanceB: FiberLike | null = null;
-/** True when two in-process nodes are running (not when using FIBER_RPC_URL). */
 let twoNodesMode = false;
-/** Node B's peer id (set when two nodes started); use for openChannel from A. */
 let nodeBPeerId: string | null = null;
+
+function fiberConfig(c: NodeConfig): string {
+  const bootnodeYaml =
+    (c.bootnodeAddrs?.length ?? 0) === 0
+      ? "  bootnode_addrs: []"
+      : `  bootnode_addrs:\n${c.bootnodeAddrs!.map((a) => `    - "${a}"`).join("\n")}`;
+  return `
+fiber:
+  listening_addr: "/ip4/127.0.0.1/tcp/${c.fiberPort}"
+${bootnodeYaml}
+  announce_listening_addr: false
+  announced_addrs: []
+  chain: testnet
+  scripts: []
+rpc:
+  listening_addr: "127.0.0.1:${c.rpcPort}"
+ckb:
+  rpc_url: "https://testnet.ckbapp.dev/"
+  udt_whitelist: []
+services:
+  - fiber
+  - rpc
+  - ckb
+`.trim();
+}
 
 function createRpcServer(fiber: FiberLike): Server {
   return createServer((req, res) => {
@@ -151,7 +150,6 @@ function createRpcServer(fiber: FiberLike): Server {
         let id: number | undefined;
         try {
           const payload = JSON.parse(body) as {
-            jsonrpc: string;
             method: string;
             params?: unknown[];
             id: number;
@@ -159,18 +157,10 @@ function createRpcServer(fiber: FiberLike): Server {
           const { method, params = [], id: payloadId } = payload;
           id = payloadId;
           res.setHeader("Content-Type", "application/json");
-
           const result = await fiber.invokeCommand(method, params);
-          res.end(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              result: result,
-              id,
-            }),
-          );
+          res.end(JSON.stringify({ jsonrpc: "2.0", result, id }));
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          const errorId = id ?? getJsonRpcId(body, 0);
           res.end(
             JSON.stringify({
               jsonrpc: "2.0",
@@ -179,12 +169,19 @@ function createRpcServer(fiber: FiberLike): Server {
                 message,
                 data: { type: FIBER_RPC_ERROR_TYPE, message },
               },
-              id: errorId,
+              id: id ?? getJsonRpcId(body, 0),
             }),
           );
         }
       })();
     });
+  });
+}
+
+function listenPromise(server: Server, port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.listen(port, "127.0.0.1", () => resolve());
+    server.on("error", reject);
   });
 }
 
@@ -215,203 +212,149 @@ async function rpcCall(
   return data.result;
 }
 
-/** Get node_id and addresses from a Fiber node (method node_info). If RPC returns no addresses, build one from listening port. */
+/** Get node_id and addresses from node_info; build p2p address from port if none returned. */
 async function getNodeInfo(
   baseUrl: string,
-  fallbackFiberPort?: number,
+  fiberPort?: number,
 ): Promise<{ nodeId: string; addresses: string[] }> {
-  let raw: unknown;
-  try {
-    raw = await rpcCall(baseUrl, "node_info", []);
-  } catch {
-    raw = null;
+  const obj = (await rpcCall(baseUrl, "node_info", []).catch(
+    () => null,
+  )) as Record<string, unknown> | null;
+  const rawId = obj?.node_id ?? obj?.nodeId;
+  const nodeId = typeof rawId === "string" ? rawId : "";
+  let addresses: string[] =
+    obj && Array.isArray(obj.addresses) ? (obj.addresses as string[]) : [];
+  if (addresses.length === 0 && nodeId && fiberPort != null) {
+    addresses = [`/ip4/127.0.0.1/tcp/${fiberPort}/p2p/${nodeId}`];
   }
-  const obj =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const rawId = obj.node_id ?? (obj as { nodeId?: string }).nodeId;
-  const nodeId =
-    typeof obj.node_id === "string"
-      ? obj.node_id
-      : typeof (obj as { nodeId?: string }).nodeId === "string"
-        ? (obj as { nodeId: string }).nodeId
-        : typeof rawId === "string"
-          ? rawId
-          : "";
-  let addrs = Array.isArray(obj.addresses) ? (obj.addresses as string[]) : [];
-  if (addrs.length === 0 && nodeId && fallbackFiberPort !== undefined) {
-    addrs = [`/ip4/127.0.0.1/tcp/${fallbackFiberPort}/p2p/${nodeId}`];
-  }
-  return { nodeId, addresses: addrs };
+  return { nodeId, addresses };
 }
 
-/** Check availability of an external Fiber node via HTTP RPC. */
 async function checkExternalFiberAvailability(url: string): Promise<void> {
-  const body = JSON.stringify({
-    jsonrpc: "2.0",
-    method: "list_channels",
-    params: [{}],
-    id: 1,
-  });
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body,
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "list_channels",
+      params: [{}],
+      id: 1,
+    }),
   });
-  if (!res.ok) {
+  if (!res.ok)
     throw new Error(
-      `${FIBER_NODE_UNAVAILABLE}: Fiber node at ${url} returned HTTP ${res.status}.`,
+      `${FIBER_NODE_UNAVAILABLE}: ${url} returned HTTP ${res.status}`,
     );
-  }
-  const data = (await res.json()) as {
-    error?: { message?: string };
-    result?: unknown;
-  };
-  if (data.error) {
+  const data = (await res.json()) as { error?: { message?: string } };
+  if (data.error)
     throw new Error(
-      `${FIBER_NODE_UNAVAILABLE}: Fiber node at ${url} returned error: ${data.error.message ?? JSON.stringify(data.error)}.`,
+      `${FIBER_NODE_UNAVAILABLE}: ${data.error.message ?? JSON.stringify(data.error)}`,
     );
-  }
+}
+
+/** Start one Fiber node + RPC server; throws with FIBER_NODE_UNAVAILABLE on failure. */
+async function startOneNode(
+  config: NodeConfig,
+  rpcPort: number,
+): Promise<{
+  fiber: FiberLike;
+  server: Server;
+  url: string;
+  nodeInfo: { nodeId: string; addresses: string[] };
+}> {
+  const fiber = new Fiber() as FiberLike;
+  await fiber
+    .start(
+      fiberConfig(config),
+      randomSecretKey(),
+      randomSecretKey(),
+      undefined,
+      "info",
+      config.databasePrefix,
+    )
+    .catch((err) => {
+      throw new Error(
+        `${FIBER_NODE_UNAVAILABLE}: Fiber could not start. Cause: ${errorCause(err)}`,
+      );
+    });
+  await fiber.invokeCommand("list_channels", [{}]).catch((err) => {
+    throw new Error(
+      `${FIBER_NODE_UNAVAILABLE}: list_channels failed. ${err instanceof Error ? err.message : err}`,
+    );
+  });
+  const server = createRpcServer(fiber);
+  await listenPromise(server, rpcPort);
+  const url = `http://127.0.0.1:${rpcPort}`;
+  const nodeInfo = await getNodeInfo(url, config.fiberPort);
+  return { fiber, server, url, nodeInfo };
+}
+
+function closeServer(s: Server | null): Promise<void> {
+  if (!s) return Promise.resolve();
+  return new Promise((resolve) => s.close(() => resolve()));
+}
+
+async function stopFiber(f: FiberLike | null): Promise<void> {
+  if (f)
+    try {
+      await f.stop();
+    } catch {
+      /* ignore */
+    }
 }
 
 async function startFiberAndServer(): Promise<void> {
   const externalUrl = process.env.FIBER_RPC_URL?.trim();
   if (externalUrl) {
-    RPC_URL = externalUrl.replace(/\/$/, "");
-    RPC_URL_B = RPC_URL;
+    RPC_URL = RPC_URL_B = externalUrl.replace(/\/$/, "");
     await checkExternalFiberAvailability(RPC_URL);
     return;
   }
 
   twoNodesMode = true;
-  let fiberA: FiberLike;
-  let fiberB: FiberLike;
+  const nodeA = await startOneNode(
+    { fiberPort: 8228, rpcPort: 8227, databasePrefix: "/wasm-a" },
+    RPC_PORT_A,
+  );
+  fiberInstance = nodeA.fiber;
+  rpcServer = nodeA.server;
+  RPC_URL = nodeA.url;
 
-  try {
-    const instanceA = new Fiber() as FiberLike;
-    await instanceA.start(
-      fiberConfig({
-        fiberPort: 8228,
-        rpcPort: 8227,
-        bootnodeAddrs: [],
-        databasePrefix: "/wasm-a",
-      }),
-      randomSecretKey(),
-      randomSecretKey(),
-      undefined,
-      "info",
-      "/wasm-a",
+  const bootnodeAddr =
+    nodeA.nodeInfo.addresses.find((a) => a.includes("/p2p/Qm")) ??
+    nodeA.nodeInfo.addresses[0];
+  const nodeB = await startOneNode(
+    {
+      fiberPort: 8230,
+      rpcPort: 8229,
+      databasePrefix: "/wasm-b",
+      bootnodeAddrs: bootnodeAddr?.includes("Qm") ? [bootnodeAddr] : [],
+    },
+    RPC_PORT_B,
+  );
+  fiberInstanceB = nodeB.fiber;
+  rpcServerB = nodeB.server;
+  RPC_URL_B = nodeB.url;
+
+  nodeBPeerId = nodeB.nodeInfo.nodeId.startsWith("Qm")
+    ? nodeB.nodeInfo.nodeId
+    : null;
+  const nodeBAddr = nodeB.nodeInfo.addresses.find((a) => a.includes("/p2p/Qm"));
+  if (nodeBAddr)
+    await rpcCall(RPC_URL, "connect_peer", [{ address: nodeBAddr }]).catch(
+      () => {},
     );
-    fiberA = instanceA;
-  } catch (err) {
-    throw new Error(
-      `${FIBER_NODE_UNAVAILABLE}: native Fiber node A could not be started. Cause: ${errorCause(err)}`,
-    );
-  }
-
-  fiberInstance = fiberA;
-  await checkFiberAvailability(fiberA);
-  rpcServer = createRpcServer(fiberA);
-  await new Promise<void>((resolve, reject) => {
-    rpcServer!.listen(RPC_PORT_A, "127.0.0.1", () => resolve());
-    rpcServer!.on("error", reject);
-  });
-
-  const nodeAInfo = await getNodeInfo(RPC_URL, 8228);
-  const nodeAAddr =
-    nodeAInfo.addresses.find((a) => a.includes("/p2p/") && a.includes("Qm")) ??
-    nodeAInfo.addresses[0];
-  // Bootnode multiaddr must use PeerId (Qm...), not Pubkey (hex). If we only have hex node_id, start B without bootnode and connect after.
-
-  try {
-    const instanceB = new Fiber() as FiberLike;
-    await instanceB.start(
-      fiberConfig({
-        fiberPort: 8230,
-        rpcPort: 8229,
-        bootnodeAddrs: nodeAAddr && nodeAAddr.includes("Qm") ? [nodeAAddr] : [],
-        databasePrefix: "/wasm-b",
-      }),
-      randomSecretKey(),
-      randomSecretKey(),
-      undefined,
-      "info",
-      "/wasm-b",
-    );
-    fiberB = instanceB;
-  } catch (err) {
-    throw new Error(
-      `${FIBER_NODE_UNAVAILABLE}: native Fiber node B could not be started. Cause: ${errorCause(err)}`,
-    );
-  }
-
-  fiberInstanceB = fiberB;
-  await checkFiberAvailability(fiberB);
-  rpcServerB = createRpcServer(fiberB);
-  await new Promise<void>((resolve, reject) => {
-    rpcServerB!.listen(RPC_PORT_B, "127.0.0.1", () => resolve());
-    rpcServerB!.on("error", reject);
-  });
-
-  const nodeBInfo = await getNodeInfo(RPC_URL_B, 8230);
-  nodeBPeerId = nodeBInfo.nodeId || null;
-  const nodeBAddr =
-    nodeBInfo.addresses.find((a) => a.includes("/p2p/")) ??
-    nodeBInfo.addresses[0];
-  // Only call connect_peer when we have a PeerId-style multiaddr (Qm...); hex pubkey causes parse error
-  if (nodeBAddr && nodeBAddr.includes("/p2p/Qm")) {
-    try {
-      await rpcCall(RPC_URL, "connect_peer", [{ address: nodeBAddr }]);
-    } catch {
-      // Peer connection best-effort; tests may still run
-    }
-  }
-  // open_channel expects PeerId (Qm...); node_info may return node_id as Pubkey (hex). Use PeerId only when we have it.
-  if (nodeBPeerId && !nodeBPeerId.startsWith("Qm")) {
-    nodeBPeerId = null;
-  }
-}
-
-/** Verify the in-process Fiber node responds to RPC; throws with FIBER_NODE_UNAVAILABLE if not. */
-async function checkFiberAvailability(fiber: FiberLike): Promise<void> {
-  try {
-    await fiber.invokeCommand("list_channels", [{}]);
-  } catch (err) {
-    const cause = err instanceof Error ? err.message : String(err);
-    throw new Error(
-      `${FIBER_NODE_UNAVAILABLE}: Fiber node did not respond to list_channels. Cause: ${cause}`,
-    );
-  }
 }
 
 async function stopServer(): Promise<void> {
-  if (rpcServerB) {
-    await new Promise<void>((resolve) => {
-      rpcServerB!.close(() => resolve());
-    });
-    rpcServerB = null;
-  }
-  if (rpcServer) {
-    await new Promise<void>((resolve) => {
-      rpcServer!.close(() => resolve());
-    });
-    rpcServer = null;
-  }
-  if (fiberInstanceB) {
-    try {
-      await fiberInstanceB.stop();
-    } catch {
-      // ignore
-    }
-    fiberInstanceB = null;
-  }
-  if (fiberInstance) {
-    try {
-      await fiberInstance.stop();
-    } catch {
-      // ignore
-    }
-    fiberInstance = null;
-  }
+  await closeServer(rpcServerB);
+  rpcServerB = null;
+  await closeServer(rpcServer);
+  rpcServer = null;
+  await stopFiber(fiberInstanceB);
+  fiberInstanceB = null;
+  await stopFiber(fiberInstance);
+  fiberInstance = null;
   twoNodesMode = false;
 }
 
