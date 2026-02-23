@@ -14,17 +14,18 @@ import type {
   UpdateChannelParams,
 } from "../types.js";
 
-const CHANNEL_ID_HEX_LEN = 66;
-
-function toU128Payload(
+/** Convert amount-like params to bigint for RPC (fixed 8 decimals or raw bigint). */
+function withAmounts(
   params: Record<string, unknown>,
-  mapping: Record<string, (v: string) => bigint>,
+  keys: Record<string, "fixed8" | "bigint">,
 ): Record<string, unknown> {
   const out = { ...params };
-  for (const [key, fn] of Object.entries(mapping)) {
+  for (const [key, kind] of Object.entries(keys)) {
     const v = out[key];
-    if (v != null && (typeof v === "string" || typeof v === "number"))
-      out[key] = fn(String(v));
+    if (typeof v === "string" || typeof v === "number") {
+      out[key] =
+        kind === "fixed8" ? ccc.fixedPointFrom(String(v), 8) : BigInt(v);
+    }
   }
   return out;
 }
@@ -33,15 +34,15 @@ export class ChannelApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async openChannel(params: OpenChannelParams): Promise<Hash256> {
-    const payload = toU128Payload(params as Record<string, unknown>, {
-      fundingAmount: (v: string) => ccc.fixedPointFrom(v, 8),
-      commitmentDelayEpoch: (v: string) => ccc.fixedPointFrom(v, 8),
-      commitmentFeeRate: (v: string) => ccc.fixedPointFrom(v, 8),
-      fundingFeeRate: (v: string) => BigInt(v),
-      tlcExpiryDelta: (v: string) => BigInt(v),
-      tlcMinValue: (v: string) => ccc.fixedPointFrom(v, 8),
-      tlcFeeProportionalMillionths: (v: string) => ccc.fixedPointFrom(v, 8),
-      maxTlcValueInFlight: (v: string) => BigInt(v),
+    const payload = withAmounts(params as Record<string, unknown>, {
+      fundingAmount: "fixed8",
+      commitmentDelayEpoch: "fixed8",
+      commitmentFeeRate: "fixed8",
+      fundingFeeRate: "bigint",
+      tlcExpiryDelta: "bigint",
+      tlcMinValue: "fixed8",
+      tlcFeeProportionalMillionths: "fixed8",
+      maxTlcValueInFlight: "bigint",
     });
     const res = await this.rpc.callCamel<OpenChannelResult>("open_channel", [
       payload,
@@ -50,31 +51,14 @@ export class ChannelApi {
   }
 
   async acceptChannel(params: AcceptChannelParams): Promise<Hash256> {
-    const payload: Record<string, unknown> = {
-      temporaryChannelId: params.temporaryChannelId,
-      fundingAmount: ccc.fixedPointFrom(String(params.fundingAmount), 8),
-    };
-    if (params.shutdownScript != null)
-      payload.shutdownScript = params.shutdownScript;
-    if (params.maxTlcValueInFlight != null)
-      payload.maxTlcValueInFlight = ccc.fixedPointFrom(
-        String(params.maxTlcValueInFlight),
-        8,
-      );
-    if (params.maxTlcNumberInFlight != null)
-      payload.maxTlcNumberInFlight = BigInt(
-        String(params.maxTlcNumberInFlight),
-      );
-    if (params.tlcMinValue != null)
-      payload.tlcMinValue = ccc.fixedPointFrom(String(params.tlcMinValue), 8);
-    if (params.tlcFeeProportionalMillionths != null)
-      payload.tlcFeeProportionalMillionths = ccc.fixedPointFrom(
-        String(params.tlcFeeProportionalMillionths),
-        8,
-      );
-    if (params.tlcExpiryDelta != null)
-      payload.tlcExpiryDelta = BigInt(String(params.tlcExpiryDelta));
-
+    const payload = withAmounts(params as Record<string, unknown>, {
+      fundingAmount: "fixed8",
+      maxTlcValueInFlight: "fixed8",
+      maxTlcNumberInFlight: "bigint",
+      tlcMinValue: "fixed8",
+      tlcFeeProportionalMillionths: "fixed8",
+      tlcExpiryDelta: "bigint",
+    });
     const res = await this.rpc.callCamel<AcceptChannelResult>(
       "accept_channel",
       [payload],
@@ -83,16 +67,6 @@ export class ChannelApi {
   }
 
   async abandonChannel(params: AbandonChannelParams): Promise<void> {
-    const channelId = params.channelId as Hash256;
-    if (
-      !channelId?.startsWith("0x") ||
-      channelId.length !== CHANNEL_ID_HEX_LEN
-    ) {
-      throw new Error("Channel ID must be a 0x-prefixed 64-char hex string");
-    }
-    const channels = await this.listChannels();
-    const exists = channels.some((c) => c.channelId === channelId);
-    if (!exists) throw new Error(`Channel not found: ${channelId}`);
     await this.rpc.callCamel("abandon_channel", [params]);
   }
 

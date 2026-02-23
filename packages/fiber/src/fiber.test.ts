@@ -418,7 +418,44 @@ afterAll(async () => {
 }, 5000);
 
 describe("Fiber SDK", () => {
+  // Channel tests run in definition order (sequence.shuffle: false). Two distinct channel creations: one Ready (for shutdown), one pending (for abandon). Then list, then shutdown, abandon.
   describe("channel", () => {
+    let channelIdForShutdown: string | null = null; // Ready channel from open + accept
+    let channelIdForAbandon: string | null = null; // Pending channel from open only
+
+    it("openChannel and acceptChannel create Ready channel for shutdown", async () => {
+      if (!twoNodesMode || !nodeBPeerId) {
+        return;
+      }
+      const sdkA = createSdk();
+      const sdkB = createSdkB();
+      const tempId = await sdkA.openChannel({
+        peerId: nodeBPeerId,
+        fundingAmount: "0xba43b7400",
+        public: true,
+      });
+      expect(tempId).toMatch(/^0x[a-fA-F0-9]+$/);
+      const readyChannelId = await sdkB.channel.acceptChannel({
+        temporaryChannelId: tempId,
+        fundingAmount: "0xba43b7400",
+      });
+      channelIdForShutdown = readyChannelId;
+    });
+
+    it("openChannel without accept creates pending channel for abandon", async () => {
+      if (!twoNodesMode || !nodeBPeerId) {
+        return;
+      }
+      const sdkA = createSdk();
+      const tempId = await sdkA.openChannel({
+        peerId: nodeBPeerId,
+        fundingAmount: "0xba43b7400",
+        public: true,
+      });
+      expect(tempId).toMatch(/^0x[a-fA-F0-9]+$/);
+      channelIdForAbandon = tempId;
+    });
+
     it("listChannels returns array", async () => {
       const sdk = createSdk();
       const channels = await sdk.listChannels();
@@ -435,48 +472,24 @@ describe("Fiber SDK", () => {
       expect(Array.isArray(channels)).toBe(true);
     });
 
-    it("openChannel returns temporary channel id when two nodes connected", async () => {
-      if (!twoNodesMode || !nodeBPeerId) {
-        return; // Skip when single node or node_info did not return PeerId (Qm...)
+    it("shutdownChannel for the Ready channel", async () => {
+      if (channelIdForShutdown == null) {
+        return;
       }
-      const sdkA = createSdk();
-      const temporaryChannelId = await sdkA.openChannel({
-        peerId: nodeBPeerId,
-        fundingAmount: "0xba43b7400",
-        public: true,
-      });
-      expect(typeof temporaryChannelId).toBe("string");
-      expect(temporaryChannelId).toMatch(/^0x[a-fA-F0-9]+$/);
-    });
-
-    it("shutdownChannel accepts params", async () => {
       const sdk = createSdk();
-      const channels = await sdk.listChannels();
-      if (channels.length === 0) {
-        return; // No channel; skip so we do not call RPC with fake id (would log error)
-      }
-      const channelId =
-        typeof channels[0].channelId === "string"
-          ? channels[0].channelId
-          : hex(32);
       await sdk.shutdownChannel({
-        channelId,
+        channelId: channelIdForShutdown,
         feeRate: "0x3FC",
         force: false,
       });
     });
 
-    it("abandonChannel accepts params", async () => {
-      const sdk = createSdk();
-      const channels = await sdk.listChannels();
-      if (channels.length === 0) {
-        return; // No channel; skip so we do not call RPC with fake id (would log error)
+    it("abandonChannel for the pending channel", async () => {
+      if (channelIdForAbandon == null) {
+        return;
       }
-      const channelId =
-        typeof channels[0].channelId === "string"
-          ? channels[0].channelId
-          : hex(32);
-      await sdk.abandonChannel({ channelId });
+      const sdk = createSdk();
+      await sdk.abandonChannel({ channelId: channelIdForAbandon });
     });
   });
 
@@ -548,9 +561,7 @@ describe("Fiber SDK", () => {
   });
 
   describe("payment", () => {
-    it("getPayment is callable when payment session exists", async () => {
-      // No payment session without a full payment flow; skip RPC to avoid "not found" error log
-    });
+    let paymentHashFromSend: string | null = null; // Set by sendPayment test for getPayment to verify
 
     it("buildRouter succeeds when channel graph has path", async () => {
       const sdk = createSdk();
@@ -576,7 +587,6 @@ describe("Fiber SDK", () => {
     });
 
     it("sendPayment succeeds with valid invoice when path exists", async () => {
-      // Only call sendPayment when we have a channel path (two nodes + channel); else skip to avoid "no path" error log
       const sdk = createSdk();
       const channels = await sdk.listChannels();
       if (channels.length === 0) {
@@ -596,6 +606,101 @@ describe("Fiber SDK", () => {
         invoice: created.invoiceAddress,
       });
       expect(result).toBeDefined();
+      paymentHashFromSend =
+        (result as { paymentHash?: string }).paymentHash ??
+        (created.invoice.data.paymentHash as string);
+    });
+
+    it("getPayment returns payment when session exists after sendPayment", async () => {
+      if (paymentHashFromSend == null) {
+        return;
+      }
+      const sdk = createSdk();
+      const payment = await sdk.getPayment(paymentHashFromSend);
+      expect(payment).toHaveProperty("paymentHash");
+      expect(payment).toHaveProperty("status");
+      expect(payment.paymentHash).toBe(paymentHashFromSend);
+    });
+  });
+
+  describe("failure scenarios", () => {
+    describe("channel", () => {
+      it("openChannel rejects when peer is not connected", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.openChannel({
+            peerId: "QmNonExistentPeer000000000000000000000000000",
+            fundingAmount: "0xba43b7400",
+            public: true,
+          }),
+        ).rejects.toThrow();
+      });
+
+      it("shutdownChannel rejects when channel does not exist", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.shutdownChannel({
+            channelId: hex(32),
+            feeRate: "0x3FC",
+            force: false,
+          }),
+        ).rejects.toThrow();
+      });
+
+      it("abandonChannel rejects when channel does not exist", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.abandonChannel({ channelId: hex(32) }),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe("invoice", () => {
+      it("getInvoice rejects when payment hash not found", async () => {
+        const sdk = createSdk();
+        const unknownHash = "0x" + "00".repeat(32);
+        await expect(sdk.getInvoice(unknownHash)).rejects.toThrow();
+      });
+
+      it("cancelInvoice rejects when invoice not found", async () => {
+        const sdk = createSdk();
+        const unknownHash = "0x" + "00".repeat(32);
+        await expect(sdk.cancelInvoice(unknownHash)).rejects.toThrow();
+      });
+
+      it("parseInvoice rejects when invoice string is invalid", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.parseInvoice("invalid-invoice-string"),
+        ).rejects.toThrow();
+      });
+    });
+
+    describe("payment", () => {
+      it("getPayment rejects when payment session not found", async () => {
+        const sdk = createSdk();
+        const unknownHash = "0x" + "00".repeat(32);
+        await expect(sdk.getPayment(unknownHash)).rejects.toThrow();
+      });
+
+      it("buildRouter rejects when no path found", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.payment.buildRouter({
+            hopsInfo: [{ pubkey: hex(33), channelOutpoint: hex(36) }],
+          }),
+        ).rejects.toThrow();
+      });
+
+      it("sendPayment rejects when invoice is expired or invalid", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.sendPayment({
+            invoice:
+              "fibt1000000001pcsaug0p0exgfw0pnm6vkkya5ul6wxurhh09qf9tuwwaufqnr3uzwpplgcrjpeuhe6w4rudppfkytvm4jekf6ymmwqk2h0ajvr5uhjpwfd9aga09ahpy88hz2um4l9t0xnpk3m9wlf22m2yjcshv3k4g5x7c68fn0gs6a35dw5r56cc3uztyf96l55ayeuvnd9fl4yrt68y086xn6qgjhf4n7xkml62gz5ecypm3xz0wdd59tfhtrhwvp5qlps959vmpf4jygdkspxn8xalparwj8h9ts6v6v0rf7vvhhku40z9sa4txxmgsjzwqzme4ddazxrfrlkc9m4uysh27zgqlx7jrfgvjw7rcqpmsrlga",
+          }),
+        ).rejects.toThrow();
+      });
     });
   });
 });
