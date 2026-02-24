@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { ChannelApi, InvoiceApi, PaymentApi } from "./api/index.js";
+import { ChannelApi, InfoApi, InvoiceApi, PaymentApi } from "./api/index.js";
 import { FiberClient } from "./rpc.js";
 import type * as fiber from "./types/index.js";
 
@@ -15,6 +15,7 @@ export class FiberSDK {
   readonly channel: ChannelApi;
   readonly payment: PaymentApi;
   readonly invoice: InvoiceApi;
+  readonly info: InfoApi;
 
   constructor(config: FiberSDKConfig) {
     const rpc = new FiberClient({
@@ -24,6 +25,11 @@ export class FiberSDK {
     this.channel = new ChannelApi(rpc);
     this.payment = new PaymentApi(rpc);
     this.invoice = new InvoiceApi(rpc);
+    this.info = new InfoApi(rpc);
+  }
+
+  async getNodeInfo(): Promise<fiber.NodeInfo> {
+    return this.info.getNodeInfo();
   }
 
   async listChannels(

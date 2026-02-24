@@ -375,6 +375,17 @@ afterAll(async () => {
 }, 5000);
 
 describe("Fiber SDK", () => {
+  describe("info", () => {
+    it("getNodeInfo returns nodeId and addresses", async () => {
+      const sdk = createSdk();
+      const info = await sdk.getNodeInfo();
+      expect(info).toHaveProperty("nodeId");
+      expect(typeof info.nodeId).toBe("string");
+      expect(info).toHaveProperty("addresses");
+      expect(Array.isArray(info.addresses)).toBe(true);
+    });
+  });
+
   // Channel tests run in definition order (sequence.shuffle: false). Two distinct channel creations: one Ready (for shutdown), one pending (for abandon). Then list, then shutdown, abandon.
   describe("channel", () => {
     let channelIdForShutdown: ccc.Hex | null = null; // Ready channel from open + accept
