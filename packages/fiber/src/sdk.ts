@@ -1,5 +1,11 @@
 import { ccc } from "@ckb-ccc/core";
-import { ChannelApi, InfoApi, InvoiceApi, PaymentApi } from "./api/index.js";
+import {
+  ChannelApi,
+  InfoApi,
+  InvoiceApi,
+  PaymentApi,
+  PeerApi,
+} from "./api/index.js";
 import { FiberClient } from "./rpc.js";
 import type * as fiber from "./types/index.js";
 
@@ -16,6 +22,7 @@ export class FiberSDK {
   readonly payment: PaymentApi;
   readonly invoice: InvoiceApi;
   readonly info: InfoApi;
+  readonly peer: PeerApi;
 
   constructor(config: FiberSDKConfig) {
     const rpc = new FiberClient({
@@ -26,6 +33,7 @@ export class FiberSDK {
     this.payment = new PaymentApi(rpc);
     this.invoice = new InvoiceApi(rpc);
     this.info = new InfoApi(rpc);
+    this.peer = new PeerApi(rpc);
   }
 
   async getNodeInfo(): Promise<fiber.NodeInfo> {
@@ -89,6 +97,18 @@ export class FiberSDK {
     return this.payment.getPayment({
       paymentHash,
     });
+  }
+
+  async connectPeer(params: fiber.ConnectPeerParamsLike): Promise<void> {
+    return this.peer.connectPeer(params);
+  }
+
+  async disconnectPeer(params: fiber.DisconnectPeerParamsLike): Promise<void> {
+    return this.peer.disconnectPeer(params);
+  }
+
+  async listPeers(): Promise<fiber.PeerInfo[]> {
+    return this.peer.listPeers();
   }
 }
 

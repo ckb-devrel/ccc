@@ -36,13 +36,6 @@ export default function Home() {
         >
           Private Key
         </BigButton>
-        <BigButton
-          onClick={() => router.push("/fiber")}
-          iconName="Key"
-          className="text-emerald-500"
-        >
-          Fiber
-        </BigButton>
       </div>
       <Link
         href="/utils"

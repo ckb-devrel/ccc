@@ -1,11 +1,8 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "outDir": "./dist",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
-  },
-  "include": ["src/**/*", "vitest.setup.ts", "scripts/**/*.mjs"]
+  }
 }

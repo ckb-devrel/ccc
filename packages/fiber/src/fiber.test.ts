@@ -107,6 +107,7 @@ let fiberInstance: FiberLike | null = null;
 let fiberInstanceB: FiberLike | null = null;
 let twoNodesMode = false;
 let nodeBPeerId: string | null = null;
+let nodeBAddr: string | null = null;
 
 function fiberConfig(c: NodeConfig): string {
   const bootnodeYaml =
@@ -339,7 +340,8 @@ async function startFiberAndServer(): Promise<void> {
   nodeBPeerId = nodeB.nodeInfo.nodeId.startsWith("Qm")
     ? nodeB.nodeInfo.nodeId
     : null;
-  const nodeBAddr = nodeB.nodeInfo.addresses.find((a) => a.includes("/p2p/Qm"));
+  nodeBAddr =
+    nodeB.nodeInfo.addresses.find((a) => a.includes("/p2p/Qm")) ?? null;
   if (nodeBAddr)
     await rpcCall(RPC_URL, "connect_peer", [{ address: nodeBAddr }]).catch(
       () => {},
@@ -383,6 +385,38 @@ describe("Fiber SDK", () => {
       expect(typeof info.nodeId).toBe("string");
       expect(info).toHaveProperty("addresses");
       expect(Array.isArray(info.addresses)).toBe(true);
+    });
+  });
+
+  describe("peer", () => {
+    it("listPeers returns array", async () => {
+      const sdk = createSdk();
+      const peers = await sdk.listPeers();
+      expect(Array.isArray(peers)).toBe(true);
+    });
+
+    it("listPeers returns peers with peerId, address, pubkey when present", async () => {
+      const sdk = createSdk();
+      const peers = await sdk.listPeers();
+      expect(Array.isArray(peers)).toBe(true);
+      for (const peer of peers) {
+        expect(peer).toHaveProperty("peerId");
+        expect(peer).toHaveProperty("address");
+        expect(peer).toHaveProperty("pubkey");
+        expect(typeof peer.peerId).toBe("string");
+        expect(typeof peer.address).toBe("string");
+        expect(typeof peer.pubkey).toBe("string");
+      }
+    });
+
+    it("connectPeer with valid address does not throw", async () => {
+      if (!twoNodesMode || !nodeBAddr) {
+        return;
+      }
+      const sdk = createSdk();
+      await expect(
+        sdk.connectPeer({ address: nodeBAddr, save: true }),
+      ).resolves.toBeUndefined();
     });
   });
 
@@ -589,6 +623,17 @@ describe("Fiber SDK", () => {
   });
 
   describe("failure scenarios", () => {
+    describe("peer", () => {
+      it("disconnectPeer rejects when peer does not exist", async () => {
+        const sdk = createSdk();
+        await expect(
+          sdk.disconnectPeer({
+            peerId: "QmNonExistentPeer000000000000000000000000000",
+          }),
+        ).rejects.toThrow();
+      });
+    });
+
     describe("channel", () => {
       it("openChannel rejects when peer is not connected", async () => {
         const sdk = createSdk();
