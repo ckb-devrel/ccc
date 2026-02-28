@@ -2427,6 +2427,42 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
 }
 
 /**
+ * Checks whether a NervosDAO transaction exceeds the 64-output limit.
+ * Returns true if the transaction is DAO-related and has more than 64 outputs.
+ * Short-circuits to false when outputs <= 64.
+ *
+ * @param tx - The transaction to check
+ * @param client - CKB client for resolving the NervosDAO script and input cell info
+ * @returns true if the DAO output limit is exceeded
+ */
+export async function isDaoOutputLimitExceeded(
+  tx: Transaction,
+  client: Client,
+): Promise<boolean> {
+  if (tx.outputs.length <= 64) {
+    return false;
+  }
+
+  const { codeHash, hashType } = await client.getKnownScript(
+    KnownScript.NervosDao,
+  );
+  const dao = Script.from({ codeHash, hashType, args: "0x" });
+
+  if (tx.outputs.some((o) => o.type?.eq(dao))) {
+    return true;
+  }
+
+  for (const input of tx.inputs) {
+    await input.completeExtraInfos(client);
+    if (input.cellOutput?.type?.eq(dao)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Calculate Nervos DAO profit between two blocks.
  * This function computes the profit earned from a Nervos DAO deposit
  * based on the capacity and the time period between deposit and withdrawal.
