@@ -1,5 +1,5 @@
-import { SinceLike, Transaction, TransactionLike } from "../../ckb/index.js";
-import { Client, KnownScript, ScriptInfoLike } from "../../client/index.js";
+import { Transaction, TransactionLike } from "../../ckb/index.js";
+import { Client } from "../../client/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
 import { MultisigCkbWitnessLike } from "./multisigCkbWitness.js";
 import {
@@ -7,44 +7,50 @@ import {
   verifyMessageSecp256k1,
 } from "./secp256k1Signing.js";
 import { SignerCkbPrivateKey } from "./signerCkbPrivateKey.js";
-import { SignerMultisigCkbReadonly } from "./signerMultisigCkbReadonly.js";
+import {
+  OmniLockMultisigOptions,
+  SignerMultisigOmniLockReadonly,
+} from "./signerMultisigOmniLockReadonly.js";
 
 /**
- * A class extending Signer that provides access to a CKB multisig script and supports signing operations.
+ * A signing-capable signer for Omnilock cells using CKB multisig auth (0x06).
+ *
+ * Extends SignerMultisigOmniLockReadonly with the ability to sign transactions
+ * using a single private key. For M-of-N multisig, each guard creates an
+ * instance with their own private key. Partial signatures are aggregated via
+ * `aggregateTransactions()`.
+ *
  * @public
  */
-export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
+export class SignerMultisigOmniLockPrivateKey extends SignerMultisigOmniLockReadonly {
   private readonly privateKey: Hex;
   private readonly signer: SignerCkbPrivateKey;
 
   /**
-   * Creates an instance of SignerMultisigCkbPrivateKey.
+   * Creates an instance of SignerMultisigOmniLockPrivateKey.
    *
    * @param client - The client instance.
-   * @param privateKey - The private key.
-   * @param multisigInfo - The multisig information.
-   * @param options - The options.
+   * @param privateKey - The secp256k1 private key for this guard.
+   * @param multisigInfoLike - The multisig configuration (all public keys, threshold, mustMatch).
+   * @param options - Omnilock-specific options (flags, ACP minimums, script override).
    */
   constructor(
     client: Client,
     privateKey: HexLike,
-    multisigInfo: MultisigCkbWitnessLike,
-    options?: {
-      since?: SinceLike | null;
-      scriptInfos?: (KnownScript | ScriptInfoLike)[] | null;
-    } | null,
+    multisigInfoLike: MultisigCkbWitnessLike,
+    options?: OmniLockMultisigOptions | null,
   ) {
-    super(client, multisigInfo, options);
+    super(client, multisigInfoLike, options);
 
     this.privateKey = hexFrom(privateKey);
     this.signer = new SignerCkbPrivateKey(client, this.privateKey);
   }
 
   /**
-   * Sign a transaction only (without preparing).
+   * Sign a transaction with this guard's private key.
    *
-   * @param txLike - The transaction to sign.
-   * @returns The signed transaction.
+   * Finds the first empty signature slot in the multisig witness and fills it.
+   * If this key has already signed, the transaction is returned unchanged.
    */
   async signOnlyTransaction(txLike: TransactionLike): Promise<Transaction> {
     let tx = Transaction.from(txLike);
@@ -55,7 +61,6 @@ export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
         continue;
       }
 
-      // === Find a position for the signature ===
       tx = await this.prepareWitnessArgsAt(
         tx,
         info.position,
@@ -63,7 +68,7 @@ export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
           if (
             witness.signatures.some(
               (sig) =>
-                sig !== SignerMultisigCkbPrivateKey.EmptySignature &&
+                sig !== SignerMultisigOmniLockPrivateKey.EmptySignature &&
                 verifyMessageSecp256k1(
                   info.message,
                   sig,
@@ -71,19 +76,18 @@ export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
                 ),
             )
           ) {
-            // Has signed
+            // Already signed by this key
             return;
           }
 
           const empty = witness.signatures.findIndex(
-            (sig) => sig === SignerMultisigCkbPrivateKey.EmptySignature,
+            (sig) => sig === SignerMultisigOmniLockPrivateKey.EmptySignature,
           );
           if (empty === -1) {
             return;
           }
 
           const signature = signMessageSecp256k1(info.message, this.privateKey);
-
           witness.signatures[empty] = signature;
         },
       );
