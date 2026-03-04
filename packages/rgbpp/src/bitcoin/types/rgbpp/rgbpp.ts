@@ -1,5 +1,8 @@
 import { ccc, mol } from "@ckb-ccc/core";
 
+import { RgbppUdtClient } from "../../../udt/index.js";
+import { BtcApiUtxoParams } from "../transaction.js";
+
 export interface RgbppUdtToken {
   decimal: number;
   name: string;
@@ -173,4 +176,14 @@ export class BtcTimeUnlock extends mol.Entity.Base<
   static from(btul: BtcTimeUnlockLike): BtcTimeUnlock {
     return new BtcTimeUnlock(ccc.hexFrom(btul.btcTxProof));
   }
+}
+
+export interface RgbppBtcTxParams {
+  ckbPartialTx: ccc.Transaction;
+  ckbClient: ccc.Client;
+  rgbppUdtClient: RgbppUdtClient;
+  receiverBtcAddresses: string[];
+  btcChangeAddress: string;
+  btcUtxoParams?: BtcApiUtxoParams;
+  feeRate?: number;
 }

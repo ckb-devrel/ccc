@@ -1,0 +1,795 @@
+import { Psbt, Transaction } from "bitcoinjs-lib";
+
+import { ccc } from "@ckb-ccc/core";
+
+import {
+  btcTxIdInReverseByteOrder,
+  buildBtcRgbppOutputs,
+  calculateCommitment,
+  isSameScriptTemplate,
+  parseUtxoSealFromRgbppLockArgs,
+  pseudoRgbppLockArgs,
+  pseudoRgbppLockArgsForCommitment,
+  RetryOptions,
+  retryWithBackoff,
+  trimHexPrefix,
+} from "../../utils/index.js";
+
+import {
+  BLANK_TX_ID,
+  BTC_TX_PSEUDO_INDEX,
+  DEFAULT_CONFIRMATION_POLL_INTERVAL,
+  TX_ID_PLACEHOLDER,
+} from "../constants/index.js";
+
+import { UtxoSeal } from "../types/index.js";
+
+import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
+import {
+  BtcApiBalance,
+  BtcApiRecommendedFeeRates,
+  BtcApiSentTransaction,
+  BtcApiTransaction,
+  BtcApiTransactionHex,
+  BtcApiUtxo,
+} from "../types/api.js";
+import { RgbppBtcTxParams } from "../types/index.js";
+import { PublicKeyProvider } from "../types/public-key.js";
+import {
+  BtcApiBalanceParams,
+  BtcApiUtxoParams,
+  TxInputData,
+  TxOutput,
+  Utxo,
+  UtxoSealOptions,
+} from "../types/transaction.js";
+import {
+  getAddressType,
+  isOpReturnScriptPubkey,
+  toBtcNetwork,
+  utxoToInputData,
+} from "../utils/index.js";
+import { transactionToHex } from "./account.js";
+import {
+  CachedPublicKeyProvider,
+  CompositePublicKeyProvider,
+  WalletPublicKeyProvider,
+} from "./public-key.js";
+
+import { NetworkConfig, RgbppApiSpvProof } from "../types/index.js";
+
+const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
+
+export abstract class RgbppBtcWallet {
+  protected btcAssetsApi: BtcAssetsApiBase;
+  protected networkConfig: NetworkConfig;
+  protected publicKeyProvider: PublicKeyProvider;
+  private cachedProvider: CachedPublicKeyProvider;
+
+  constructor(
+    networkConfig: NetworkConfig,
+    btcAssetApiConfig: BtcAssetApiConfig,
+  ) {
+    this.btcAssetsApi = new BtcAssetsApiBase(btcAssetApiConfig);
+    this.networkConfig = networkConfig;
+
+    // Initialize public key providers
+    this.cachedProvider = new CachedPublicKeyProvider();
+    this.publicKeyProvider = new CompositePublicKeyProvider([
+      this.cachedProvider,
+      new WalletPublicKeyProvider(this),
+    ]);
+  }
+
+  /**
+   * Get the current wallet address
+   */
+  abstract getAddress(): Promise<string>;
+
+  /**
+   * Get the public key for the current wallet address
+   * @returns Public key in hex format (33-byte compressed format)
+   */
+  abstract getPublicKey(): Promise<string>;
+
+  /**
+   * Register a public key for a specific address
+   * This is useful when you need to spend UTXOs from addresses other than the current wallet
+   *
+   * @param address - Bitcoin address
+   * @param publicKey - Public key in hex format (33-byte compressed or 32-byte x-only format)
+   *
+   * @example
+   * ```typescript
+   * // Register a public key for a service address
+   * wallet.registerPublicKey(
+   *   "bc1p_service_address_xxx",
+   *   "02abc123..." // 33-byte compressed public key
+   * );
+   * ```
+   */
+  registerPublicKey(address: string, publicKey: string): void {
+    this.cachedProvider.addMapping(address, publicKey);
+  }
+
+  /**
+   * Set a custom public key provider
+   * This will replace the default composite provider
+   *
+   * @param provider - The public key provider to use
+   */
+  setPublicKeyProvider(provider: PublicKeyProvider): void {
+    this.publicKeyProvider = provider;
+  }
+
+  async buildPsbt(
+    params: RgbppBtcTxParams,
+  ): Promise<{ psbt: Psbt; indexedCkbPartialTx: ccc.Transaction }> {
+    const {
+      ckbPartialTx,
+      ckbClient,
+      rgbppUdtClient,
+      btcChangeAddress,
+      receiverBtcAddresses,
+      feeRate,
+      btcUtxoParams,
+    } = params;
+
+    const commitmentTx = ckbPartialTx.clone();
+    const indexedTx = ckbPartialTx.clone();
+
+    const utxoSeals = await Promise.all(
+      ckbPartialTx.inputs.map(async (input) => {
+        await input.completeExtraInfos(ckbClient);
+        return parseUtxoSealFromRgbppLockArgs(input.cellOutput!.lock.args);
+      }),
+    );
+
+    const inputs = await this.buildInputs(utxoSeals);
+
+    // Pre-fetch script templates for comparison
+    const rgbppLockTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
+    const btcTimeLockTemplate =
+      await rgbppUdtClient.btcTimeLockScriptTemplate();
+
+    // adjust index in rgbpp lock args of outputs
+    let rgbppIndex = 0;
+    const commitmentOutputs: ccc.CellOutput[] = [];
+    const indexedOutputs: ccc.CellOutput[] = [];
+    for (const output of ckbPartialTx.outputs) {
+      if (isSameScriptTemplate(output.lock, rgbppLockTemplate)) {
+        indexedOutputs.push(
+          ccc.CellOutput.from({
+            ...output,
+            lock: {
+              ...output.lock,
+              args: output.lock.args.replace(
+                ccc.hexFrom(ccc.numLeToBytes(BTC_TX_PSEUDO_INDEX, 4)).slice(2),
+                ccc.hexFrom(ccc.numLeToBytes(rgbppIndex + 1, 4)).slice(2),
+              ),
+            },
+          }),
+        );
+        commitmentOutputs.push(
+          ccc.CellOutput.from({
+            ...output,
+            lock: {
+              ...output.lock,
+              args: output.lock.args.replace(
+                pseudoRgbppLockArgs(),
+                pseudoRgbppLockArgsForCommitment(rgbppIndex + 1),
+              ),
+            },
+          }),
+        );
+        rgbppIndex++;
+      } else if (isSameScriptTemplate(output.lock, btcTimeLockTemplate)) {
+        indexedOutputs.push(output);
+        commitmentOutputs.push(
+          ccc.CellOutput.from({
+            ...output,
+            lock: {
+              ...output.lock,
+              args: output.lock.args.replace(
+                btcTxIdInReverseByteOrder(TX_ID_PLACEHOLDER),
+                btcTxIdInReverseByteOrder(BLANK_TX_ID),
+              ),
+            },
+          }),
+        );
+      } else {
+        indexedOutputs.push(output);
+        commitmentOutputs.push(output);
+      }
+    }
+    commitmentTx.outputs = commitmentOutputs;
+    indexedTx.outputs = indexedOutputs;
+
+    const rgbppOutputs = await buildBtcRgbppOutputs(
+      commitmentTx,
+      btcChangeAddress,
+      receiverBtcAddresses,
+      this.networkConfig.btcDustLimit,
+      rgbppUdtClient,
+    );
+
+    const { balancedInputs, balancedOutputs } = await this.balanceInputsOutputs(
+      inputs,
+      rgbppOutputs,
+      btcUtxoParams,
+      feeRate,
+    );
+
+    const psbt = new Psbt({ network: toBtcNetwork(this.networkConfig.name) });
+    balancedInputs.forEach((input) => {
+      psbt.data.addInput(input);
+    });
+    balancedOutputs.forEach((output) => {
+      psbt.addOutput(output);
+    });
+
+    return { psbt, indexedCkbPartialTx: indexedTx };
+  }
+
+  abstract signAndBroadcast(psbt: Psbt): Promise<string>;
+
+  async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
+    const uniqueSeals = this.deduplicateUtxoSeals(utxoSeals);
+
+    if (uniqueSeals.length < utxoSeals.length) {
+      console.warn(
+        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`,
+      );
+    }
+
+    const inputs: TxInputData[] = [];
+    // TODO: parallel
+    for (const utxoSeal of uniqueSeals) {
+      const tx = await this.getTransaction(utxoSeal.txId);
+      if (!tx) {
+        continue;
+      }
+      const vout = tx.vout[utxoSeal.index];
+      if (!vout) {
+        continue;
+      }
+
+      const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
+      if (isOpReturnScriptPubkey(scriptBuffer)) {
+        inputs.push(
+          await utxoToInputData(
+            {
+              txid: utxoSeal.txId,
+              vout: utxoSeal.index,
+              value: vout.value,
+              scriptPk: vout.scriptpubkey,
+            } as Utxo,
+            this.publicKeyProvider,
+          ),
+        );
+        continue;
+      }
+
+      inputs.push(
+        await utxoToInputData(
+          {
+            txid: utxoSeal.txId,
+            vout: utxoSeal.index,
+            value: vout.value,
+            scriptPk: vout.scriptpubkey,
+            address: vout.scriptpubkey_address,
+            addressType: getAddressType(vout.scriptpubkey_address),
+          } as Utxo,
+          this.publicKeyProvider,
+        ),
+      );
+    }
+    return inputs;
+  }
+
+  /**
+   * Deduplicate UTXO seals based on txId and index
+   * @private
+   */
+  private deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
+    if (!utxoSeals || utxoSeals.length === 0) {
+      return [];
+    }
+
+    const seen = new Map<string, UtxoSeal>();
+
+    for (const seal of utxoSeals) {
+      const normalizedTxId = seal.txId?.toLowerCase() ?? "";
+      const key = `${normalizedTxId}:${seal.index}`;
+
+      if (!seen.has(key)) {
+        seen.set(key, seal);
+      }
+    }
+
+    return Array.from(seen.values());
+  }
+
+  rawTxHex(tx: Transaction): string {
+    return transactionToHex(tx, false);
+  }
+
+  async balanceInputsOutputs(
+    inputs: TxInputData[],
+    outputs: TxOutput[],
+    btcUtxoParams?: BtcApiUtxoParams,
+    feeRate?: number,
+  ): Promise<{
+    balancedInputs: TxInputData[];
+    balancedOutputs: TxOutput[];
+  }> {
+    let ins = inputs.slice();
+
+    let fulfilled = false;
+    let changeValue = 0;
+    const outsValue = outputs.reduce((acc, output) => acc + output.value, 0);
+
+    while (!fulfilled) {
+      const insValue = ins.reduce(
+        (acc, input) => acc + input.witnessUtxo.value,
+        0,
+      );
+      const requiredFee = await this.estimateFee(ins, outputs, feeRate);
+
+      if (insValue > outsValue + requiredFee) {
+        changeValue = insValue - outsValue - requiredFee;
+        fulfilled = true;
+      } else {
+        const { inputs: extraInputs } = await this.collectUtxos(
+          outsValue + requiredFee - insValue,
+          btcUtxoParams ?? {
+            only_non_rgbpp_utxos: true,
+          },
+          ins,
+        );
+        ins = [...ins, ...extraInputs];
+      }
+    }
+
+    if (changeValue >= this.networkConfig.btcDustLimit) {
+      outputs.push({
+        address: await this.getAddress(),
+        value: changeValue,
+      });
+    }
+
+    return {
+      balancedInputs: ins,
+      balancedOutputs: outputs,
+    };
+  }
+
+  async collectUtxos(
+    requiredValue: number,
+    params?: BtcApiUtxoParams,
+    knownInputs?: TxInputData[],
+  ): Promise<{ inputs: TxInputData[]; changeValue: number }> {
+    const utxos = await this.getUtxos(await this.getAddress(), params);
+
+    let filteredUtxos = utxos;
+    if (knownInputs) {
+      filteredUtxos = utxos.filter((utxo: BtcApiUtxo) => {
+        return !knownInputs.some(
+          (input) => input.hash === utxo.txid && input.index === utxo.vout,
+        );
+      });
+    }
+
+    if (filteredUtxos.length === 0) {
+      throw new Error("Insufficient funds");
+    }
+
+    const selectedUtxos: BtcApiUtxo[] = [];
+    let totalValue = 0;
+
+    for (const utxo of filteredUtxos) {
+      selectedUtxos.push(utxo);
+      totalValue += utxo.value;
+
+      if (totalValue >= requiredValue) {
+        break;
+      }
+    }
+
+    if (totalValue < requiredValue) {
+      throw new Error(
+        `Insufficient funds: needed ${requiredValue}, but only found ${totalValue}`,
+      );
+    }
+
+    return {
+      inputs: await this.buildInputs(
+        selectedUtxos.map((utxo) => ({
+          txId: utxo.txid,
+          index: utxo.vout,
+        })),
+      ),
+      changeValue: totalValue - requiredValue,
+    };
+  }
+
+  /**
+   * Estimate transaction fee without requiring actual signing
+   * This avoids triggering wallet confirmation dialogs for fee estimation
+   */
+  async estimateFee(
+    inputs: TxInputData[],
+    outputs: TxOutput[],
+    feeRate?: number,
+  ) {
+    // Ensure we have enough inputs to cover outputs
+    const totalInputValue = inputs.reduce(
+      (acc, input) => acc + input.witnessUtxo.value,
+      0,
+    );
+    const totalOutputValue = outputs.reduce(
+      (acc, output) => acc + output.value,
+      0,
+    );
+
+    let balancedInputs = [...inputs];
+    if (totalInputValue < totalOutputValue) {
+      const { inputs: extraInputs } = await this.collectUtxos(
+        totalOutputValue - totalInputValue,
+        {
+          only_non_rgbpp_utxos: false,
+          min_satoshi: 1000,
+        },
+      );
+      balancedInputs = [...inputs, ...extraInputs];
+    }
+
+    // Estimate transaction size based on input/output types without signing
+    const virtualSize = this.estimateVirtualSize(balancedInputs, outputs);
+    const bufferedVirtualSize = virtualSize + DEFAULT_VIRTUAL_SIZE_BUFFER;
+
+    if (!feeRate) {
+      try {
+        feeRate = (await this.getRecommendedFee()).fastestFee;
+      } catch (error) {
+        feeRate = this.networkConfig.btcFeeRate;
+        console.warn(
+          `Failed to get recommended fee rate: ${String(error)}, using default fee rate ${this.networkConfig.btcFeeRate}`,
+        );
+      }
+    }
+
+    return Math.ceil(
+      bufferedVirtualSize * (feeRate ?? this.networkConfig.btcFeeRate),
+    );
+  }
+
+  /**
+   * Estimate virtual size of a transaction
+   * Based on Bitcoin transaction structure and different address types
+   */
+  private estimateVirtualSize(
+    inputs: TxInputData[],
+    outputs: TxOutput[],
+  ): number {
+    // Base transaction size (version + locktime + input count + output count)
+    let baseSize =
+      4 +
+      4 +
+      this.getVarIntSize(inputs.length) +
+      this.getVarIntSize(outputs.length);
+
+    // Calculate input sizes
+    let witnessSize = 0;
+    for (const input of inputs) {
+      // Each input: txid (32) + vout (4) + scriptSig length + scriptSig + sequence (4)
+      baseSize += 32 + 4 + 4; // txid + vout + sequence
+
+      // Determine address type from the input
+      const addressType = this.getInputAddressType(input);
+
+      switch (addressType) {
+        case "P2WPKH":
+          // P2WPKH: scriptSig is empty, witness has 2 items (signature + pubkey)
+          baseSize += 1; // empty scriptSig
+          witnessSize += 1 + 1 + 72 + 1 + 33; // witness stack count + sig length + sig + pubkey length + pubkey
+          break;
+        case "P2TR":
+          // P2TR: scriptSig is empty, witness has 1 item (signature)
+          baseSize += 1; // empty scriptSig
+          witnessSize += 1 + 1 + 64; // witness stack count + sig length + sig
+          break;
+        case "P2PKH":
+          // P2PKH: scriptSig has signature + pubkey, no witness
+          baseSize += 1 + 72 + 33; // scriptSig length + sig + pubkey
+          break;
+        default:
+          // Default estimation for unknown types
+          baseSize += 1 + 107; // average scriptSig size
+          break;
+      }
+    }
+
+    // Calculate output sizes
+    for (const output of outputs) {
+      // Each output: value (8) + scriptPubKey length + scriptPubKey
+      baseSize += 8; // value
+
+      if ("address" in output && output.address) {
+        const addressType = this.getOutputAddressType(output.address);
+        switch (addressType) {
+          case "P2WPKH":
+            baseSize += 1 + 22; // length + scriptPubKey
+            break;
+          case "P2TR":
+            baseSize += 1 + 34; // length + scriptPubKey
+            break;
+          case "P2PKH":
+            baseSize += 1 + 25; // length + scriptPubKey
+            break;
+          default:
+            baseSize += 1 + 25; // default size
+            break;
+        }
+      } else if ("script" in output && output.script) {
+        // For script outputs, use the actual script length
+        baseSize +=
+          this.getVarIntSize(output.script.length) + output.script.length;
+      } else {
+        // Default for unknown output types
+        baseSize += 1 + 25;
+      }
+    }
+
+    // Add witness header if there are witness inputs
+    if (witnessSize > 0) {
+      witnessSize += 2; // witness marker + flag
+    }
+
+    // Calculate weight: base_size * 4 + witness_size
+    const weight = baseSize * 4 + witnessSize;
+
+    // Virtual size is weight / 4, rounded up
+    return Math.ceil(weight / 4);
+  }
+
+  /**
+   * Get the size of a variable integer
+   */
+  private getVarIntSize(value: number): number {
+    if (value < 0xfd) return 1;
+    if (value <= 0xffff) return 3;
+    if (value <= 0xffffffff) return 5;
+    return 9;
+  }
+
+  /**
+   * Determine address type from input data
+   */
+  private getInputAddressType(input: TxInputData): string {
+    // Check if it's a Taproot input
+    if (input.tapInternalKey) {
+      return "P2TR";
+    }
+
+    // Check if it has witness data (P2WPKH or P2WSH)
+    if (input.witnessUtxo) {
+      const script = input.witnessUtxo.script;
+      if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
+        return "P2WPKH";
+      }
+      if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
+        return "P2WSH";
+      }
+    }
+
+    // Default to P2PKH for legacy inputs
+    return "P2PKH";
+  }
+
+  /**
+   * Determine address type from output address
+   */
+  private getOutputAddressType(address: string): string {
+    if (
+      address.startsWith("bc1p") ||
+      address.startsWith("tb1p") ||
+      address.startsWith("bcrt1p")
+    ) {
+      return "P2TR";
+    }
+    if (
+      address.startsWith("bc1") ||
+      address.startsWith("tb1") ||
+      address.startsWith("bcrt1")
+    ) {
+      return "P2WPKH";
+    }
+    if (address.startsWith("3") || address.startsWith("2")) {
+      return "P2SH";
+    }
+    return "P2PKH";
+  }
+
+  isCommitmentMatched(
+    commitment: string,
+    ckbPartialTx: ccc.Transaction,
+    lastCkbTypedOutputIndex: number,
+  ): boolean {
+    return (
+      commitment ===
+      calculateCommitment(
+        ccc.Transaction.from({
+          inputs: ckbPartialTx.inputs,
+          outputs: ckbPartialTx.outputs.slice(0, lastCkbTypedOutputIndex + 1),
+          outputsData: ckbPartialTx.outputsData.slice(
+            0,
+            lastCkbTypedOutputIndex + 1,
+          ),
+        }),
+      )
+    );
+  }
+
+  async prepareUtxoSeal(
+    options?: UtxoSealOptions,
+    retryOptions?: RetryOptions,
+  ): Promise<UtxoSeal> {
+    const targetValue = options?.targetValue ?? this.networkConfig.btcDustLimit;
+    const feeRate = options?.feeRate ?? this.networkConfig.btcFeeRate;
+    const btcUtxoParams = options?.btcUtxoParams ?? {
+      only_non_rgbpp_utxos: true,
+    };
+    const confirmationPollInterval = Math.max(
+      options?.confirmationPollInterval ?? DEFAULT_CONFIRMATION_POLL_INTERVAL,
+      5_000,
+    );
+
+    const outputs = [
+      {
+        address: await this.getAddress(),
+        value: targetValue,
+      },
+    ];
+
+    const utxos = await this.getUtxos(await this.getAddress(), btcUtxoParams);
+    if (utxos.length === 0) {
+      throw new Error("Insufficient funds");
+    }
+    const inputs = await this.buildInputs([
+      {
+        txId: utxos[0].txid,
+        index: utxos[0].vout,
+      },
+    ]);
+
+    const { balancedInputs, balancedOutputs } = await this.balanceInputsOutputs(
+      inputs,
+      outputs,
+      btcUtxoParams,
+      feeRate,
+    );
+    const psbt = new Psbt({ network: toBtcNetwork(this.networkConfig.name) });
+    balancedInputs.forEach((input) => {
+      psbt.data.addInput(input);
+    });
+    balancedOutputs.forEach((output) => {
+      psbt.addOutput(output);
+    });
+
+    const txId = trimHexPrefix(await this.signAndBroadcast(psbt));
+
+    // Wait for transaction to be indexed by API with retry mechanism
+    let btcTx = await retryWithBackoff(() => this.getTransaction(txId), {
+      maxRetries: retryOptions?.maxRetries,
+      initialDelay: retryOptions?.initialDelay,
+    });
+
+    // Wait for confirmation
+    const intervalSeconds = confirmationPollInterval / 1000;
+    while (!btcTx.status.confirmed) {
+      console.log(
+        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`,
+      );
+      await ccc.sleep(confirmationPollInterval);
+      try {
+        btcTx = await this.getTransaction(txId);
+      } catch (error) {
+        console.warn(
+          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
+        );
+      }
+    }
+
+    return {
+      txId,
+      index: 0,
+    };
+  }
+
+  getTransaction(txId: string) {
+    return this.btcAssetsApi.request<BtcApiTransaction>(
+      `/bitcoin/v1/transaction/${txId}`,
+    );
+  }
+
+  async getTransactionHex(txId: string) {
+    const { hex } = await this.btcAssetsApi.request<BtcApiTransactionHex>(
+      `/bitcoin/v1/transaction/${txId}/hex`,
+    );
+    return hex;
+  }
+
+  getUtxos(address: string, params?: BtcApiUtxoParams) {
+    return this.btcAssetsApi.request<BtcApiUtxo[]>(
+      `/bitcoin/v1/address/${address}/unspent`,
+      {
+        params,
+      },
+    );
+  }
+
+  /**
+   * Get the balance of a Bitcoin address
+   * @param address The Bitcoin address
+   * @param params Optional parameters for balance query
+   * @returns Balance information including total, available, pending, dust, and RGB++ satoshi amounts
+   */
+  getBalance(address: string, params?: BtcApiBalanceParams) {
+    return this.btcAssetsApi.request<BtcApiBalance>(
+      `/bitcoin/v1/address/${address}/balance`,
+      {
+        params,
+      },
+    );
+  }
+
+  async getRgbppSpvProof(btcTxId: string, confirmations: number) {
+    const spvProof: RgbppApiSpvProof | null =
+      await this.btcAssetsApi.request<RgbppApiSpvProof>(
+        "/rgbpp/v1/btc-spv/proof",
+        {
+          params: {
+            btc_txid: btcTxId,
+            confirmations,
+          },
+        },
+      );
+
+    return spvProof
+      ? {
+          proof: spvProof.proof as ccc.Hex,
+          spvClientOutpoint: ccc.OutPoint.from({
+            txHash: spvProof.spv_client.tx_hash,
+            index: spvProof.spv_client.index,
+          }),
+        }
+      : null;
+  }
+
+  getRecommendedFee() {
+    return this.btcAssetsApi.request<BtcApiRecommendedFeeRates>(
+      `/bitcoin/v1/fees/recommended`,
+    );
+  }
+
+  async sendTransaction(txHex: string): Promise<string> {
+    const { txid: txId } = await this.btcAssetsApi.post<BtcApiSentTransaction>(
+      "/bitcoin/v1/transaction",
+      {
+        body: JSON.stringify({
+          txhex: txHex,
+        }),
+      },
+    );
+    return txId;
+  }
+
+  async getRgbppCellOutputs(btcAddress: string) {
+    const res = await this.btcAssetsApi.request<
+      { cellOutput: ccc.CellOutput }[]
+    >(`/rgbpp/v1/address/${btcAddress}/assets`);
+
+    return res.map((item: { cellOutput: ccc.CellOutput }) => item.cellOutput);
+  }
+}
