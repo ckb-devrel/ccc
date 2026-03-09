@@ -1,42 +1,48 @@
-import { Hex } from "@ckb-ccc/core";
-import { FiberRPC } from "./rpc";
+import type { Hex } from "@ckb-ccc/core";
+import { FiberSDK } from "@ckb-ccc/fiber";
 
 export class FiberNode {
-  public readonly rpc: FiberRPC;
+  readonly sdk: FiberSDK;
 
   constructor(
     public readonly url: string,
     public readonly peerId: string,
     public readonly address: string,
   ) {
-    this.rpc = new FiberRPC(url);
+    this.sdk = new FiberSDK({ endpoint: url, timeout: 30_000 });
   }
 
-  private generateRandomPaymentImage() {
-    // use crypto to generate a 32 byte random hash
-    const paymentHash = crypto.getRandomValues(new Uint8Array(32));
+  /** RPC-like API for compatibility: connectPeer, listChannels. */
+  get rpc() {
+    return {
+      connectPeer: (params: { address: string; save?: boolean }) =>
+        this.sdk.connectPeer(params),
+      listChannels: (params?: { peerId?: string; includeClosed?: boolean }) =>
+        this.sdk.listChannels(params),
+    };
+  }
+
+  private generateRandomPaymentPreimage(): Hex {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
     return (
       "0x" +
-      Array.from(paymentHash)
+      Array.from(bytes)
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("")
-    );
+    ) as Hex;
   }
 
   async createCKBInvoice(amount: Hex, description: string) {
-    const paymentImage = this.generateRandomPaymentImage();
-    return await this.rpc.newInvoice({
+    return this.sdk.newInvoice({
       amount,
       currency: "Fibt",
       description,
       expiry: "0xe10",
-      payment_preimage: paymentImage,
+      paymentPreimage: this.generateRandomPaymentPreimage(),
     });
   }
 
   async sendPayment(invoice: string) {
-    return await this.rpc.sendPayment({
-      invoice,
-    });
+    return this.sdk.sendPayment({ invoice });
   }
 }

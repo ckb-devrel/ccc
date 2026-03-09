@@ -30,7 +30,11 @@
     "format": "prettier --write . && eslint --fix ./src",
     "test": "vitest",
     "test:ci": "vitest run",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "space-invader:build": "pnpm run build && pnpm --filter template-vite run build",
+    "space-invader:dev": "pnpm --filter template-vite run dev",
+    "space-invader:dev:with-nodes": "vitest run scripts/start-game-nodes.e2e.ts",
+    "space-invader:preview": "pnpm --filter template-vite run preview"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

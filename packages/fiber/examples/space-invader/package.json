@@ -19,7 +19,8 @@
     "vite": "^5.4.21"
   },
   "dependencies": {
-    "@ckb-ccc/core": "^1.12.3",
+    "@ckb-ccc/core": "workspace:*",
+    "@ckb-ccc/fiber": "workspace:*",
     "@tailwindcss/vite": "^4.0.9",
     "phaser": "^3.80.1",
     "tailwindcss": "^4.0.9"

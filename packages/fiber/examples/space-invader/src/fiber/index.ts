@@ -1,25 +1,22 @@
 import { Hex } from "@ckb-ccc/core";
+import { getFiberConfig } from "~/config/fiber.config";
 import { FiberNode } from "./node";
 
 export const amountPerPoint = 1 * 10 ** 8; // 1 CKB per point
 
-const node1 = {
-  peerId: "QmdW4WGRUfqQ8hx92Uaufx4n3TXrJUoDP666BQwbqiDrnv",
-  address:
-    "/ip4/127.0.0.1/tcp/8228/p2p/QmdW4WGRUfqQ8hx92Uaufx4n3TXrJUoDP666BQwbqiDrnv",
-  url: "/node1-api",
-};
-
-const node2 = {
-  peerId: "QmcFpUnjRvMyqbFBTn94wwF8LZodvPWpK39Wg9pYr2i4TQ",
-  address:
-    "/ip4/127.0.0.1/tcp/8238/p2p/QmcFpUnjRvMyqbFBTn94wwF8LZodvPWpK39Wg9pYr2i4TQ",
-  url: "/node2-api",
-};
-
 export async function prepareNodes() {
-  const bossNode = new FiberNode(node1.url, node1.peerId, node1.address);
-  const playerNode = new FiberNode(node2.url, node2.peerId, node2.address);
+  const config = await getFiberConfig();
+  const { boss: bossPeer, player: playerPeer } = config;
+  const bossNode = new FiberNode(
+    bossPeer.url,
+    bossPeer.peerId,
+    bossPeer.address,
+  );
+  const playerNode = new FiberNode(
+    playerPeer.url,
+    playerPeer.peerId,
+    playerPeer.address,
+  );
   console.log("bossNode", bossNode);
   console.log("playerNode", playerNode);
 
@@ -27,11 +24,11 @@ export async function prepareNodes() {
     address: playerNode.address,
   });
 
-  const myChannels = await bossNode.rpc.listChannels({
-    peer_id: playerNode.peerId,
+  const channels = await bossNode.rpc.listChannels({
+    peerId: playerNode.peerId,
   });
-  const activeChannel = myChannels.channels.filter(
-    (channel) => channel.state.state_name === "CHANNEL_READY",
+  const activeChannel = channels.filter(
+    (channel) => channel.state.stateName === "CHANNEL_READY",
   );
   console.log("activeChannel", activeChannel);
   return { bossNode, playerNode };
@@ -48,7 +45,7 @@ export async function payPlayerPoints(
     amount,
     "player hit the boss!",
   );
-  const result = await bossNode.sendPayment(invoice.invoice_address);
+  const result = await bossNode.sendPayment(invoice.invoiceAddress);
   console.log(`boss pay player ${points} CKB`);
   console.log("invoice", invoice);
   console.log("payment result", result);
@@ -64,7 +61,7 @@ export async function payBossPoints(
     amount,
     "boss hit the player!",
   );
-  const result = await playerNode.sendPayment(invoice.invoice_address);
+  const result = await playerNode.sendPayment(invoice.invoiceAddress);
   console.log(`player pay boss ${points} CKB`);
   console.log("invoice", invoice);
   console.log("payment result", result);

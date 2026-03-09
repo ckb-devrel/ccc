@@ -37,22 +37,41 @@ Before running the game, you need to set up the Fiber Network environment:
 
 ## Getting Started
 
-1. Clone the repository
-2. Install dependencies:
+### Option A: Run with two Fiber nodes (launcher)
+
+From the monorepo root or `packages/fiber`, you can start two fiber-js nodes and the game in one command:
+
+```bash
+cd packages/fiber
+pnpm run space-invader:dev:with-nodes
+```
+
+This starts two Fiber nodes (RPC on 8227 and 8237), connects them, writes `public/fiber.config.generated.json`, and runs the game dev server. Press Ctrl+C to stop nodes and server.
+
+**Real CKB in channels:** To fund channels with real testnet CKB (≥500 CKB per node), set these env vars with 32-byte hex keys (with or without `0x` prefix) for pre-funded testnet addresses:
+
+- `FIBER_CKB_SECRET_KEY_A` – CKB secret for node A (boss)
+- `FIBER_CKB_SECRET_KEY_B` – CKB secret for node B (player)
+
+If unset, nodes use random keys (channels will not have real CKB). Optional P2P identity keys: `FIBER_FIBER_KEY_A`, `FIBER_FIBER_KEY_B`.
+
+### Option B: Use your own nodes
+
+1. Clone the repository and install dependencies:
 
 ```bash
 pnpm install
 ```
 
-1. Configure your Fiber nodes (refer to [Fiber Network documentation](http://fiber.world/docs))
-2. Update your nodes information in `src/fiber/index.ts`
-3. Start the development server:
+2. Configure your Fiber nodes (refer to [Fiber Network documentation](http://fiber.world/docs)).
+3. Update peer information in `src/config/fiber.config.ts` (or provide a generated config at `public/fiber.config.generated.json`).
+4. Start the development server:
 
 ```bash
 pnpm run dev
 ```
 
-1. Build for production:
+### Build for production
 
 ```bash
 pnpm run build
