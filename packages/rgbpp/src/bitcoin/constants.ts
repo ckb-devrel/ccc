@@ -1,8 +1,12 @@
-import { sha256 } from "js-sha256";
+import { ccc } from "@ckb-ccc/core";
+import { sha256 } from "@noble/hashes/sha2";
 
 const TX_ID_PLACEHOLDER_PRE_IMAGE =
   "sha256 this for easy replacement in spore co-build witness";
-export const TX_ID_PLACEHOLDER = sha256(TX_ID_PLACEHOLDER_PRE_IMAGE);
+export const TX_ID_PLACEHOLDER = ccc.bytesTo(
+  sha256(ccc.bytesFrom(TX_ID_PLACEHOLDER_PRE_IMAGE)),
+  "hex",
+);
 
 // https://github.com/utxostack/rgbpp/blob/main/contracts/rgbpp-lock/src/main.rs#L228
 export const BLANK_TX_ID =
