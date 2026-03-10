@@ -11,7 +11,7 @@ import {
   DEFAULT_CONFIRMATIONS,
   RGBPP_MAX_CELL_NUM,
   TX_ID_PLACEHOLDER,
-} from "../bitcoin/constants/index.js";
+} from "../bitcoin/constants.js";
 
 import { BtcTimeLock, RgbppUnlock, UtxoSeal } from "../bitcoin/types/index.js";
 import { RgbppUdtClient } from "../udt/index.js";
