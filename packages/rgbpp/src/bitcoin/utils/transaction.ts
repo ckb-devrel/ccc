@@ -2,7 +2,7 @@ import lodash from "lodash";
 
 import { ccc } from "@ckb-ccc/core";
 
-import { DEFAULT_DUST_LIMIT } from "../constants/index.js";
+import { DEFAULT_DUST_LIMIT } from "../constants.js";
 import {
   AddressType,
   InitOutput,

@@ -20,7 +20,7 @@ import {
   BTC_TX_PSEUDO_INDEX,
   DEFAULT_CONFIRMATION_POLL_INTERVAL,
   TX_ID_PLACEHOLDER,
-} from "../constants/index.js";
+} from "../constants.js";
 
 import {
   BtcApiBalance,
