@@ -2,7 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import {
   TX_ID_PLACEHOLDER,
   UNIQUE_TYPE_OUTPUT_INDEX,
-} from "../bitcoin/constants/index.js";
+} from "../bitcoin/constants.js";
 import { deduplicateByOutPoint } from "../bitcoin/utils/common.js";
 import { deadLock } from "./constants.js";
 import { RgbppValidationError } from "./error.js";

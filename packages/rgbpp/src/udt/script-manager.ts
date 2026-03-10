@@ -7,7 +7,7 @@ import {
   pseudoRgbppLockArgs,
 } from "../utils/index.js";
 
-import { DEFAULT_CONFIRMATIONS } from "../bitcoin/constants/index.js";
+import { DEFAULT_CONFIRMATIONS } from "../bitcoin/constants.js";
 import { UtxoSeal } from "../bitcoin/types/index.js";
 import { IScriptProvider, RgbppScriptName } from "./types.js";
 

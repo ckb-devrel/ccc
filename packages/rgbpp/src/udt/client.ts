@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { TX_ID_PLACEHOLDER } from "../bitcoin/constants/index.js";
+import { TX_ID_PLACEHOLDER } from "../bitcoin/constants.js";
 import { UtxoSeal } from "../bitcoin/types/index.js";
 import {
   isUsingOneOfScripts,
