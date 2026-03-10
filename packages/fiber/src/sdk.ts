@@ -50,6 +50,10 @@ export class FiberSDK {
     return this.channel.openChannel(params);
   }
 
+  async acceptChannel(params: fiber.AcceptChannelParamsLike): Promise<ccc.Hex> {
+    return this.channel.acceptChannel(params);
+  }
+
   async shutdownChannel(
     params: fiber.ShutdownChannelParamsLike,
   ): Promise<void> {
