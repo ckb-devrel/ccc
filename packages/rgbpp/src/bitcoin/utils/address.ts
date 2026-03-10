@@ -1,6 +1,6 @@
 import * as bitcoin from "bitcoinjs-lib";
-import { AddressType } from "../types/address.js";
-import { PredefinedNetwork } from "../types/network.js";
+
+import { AddressType, PredefinedNetwork } from "../types/index.js";
 
 export enum NetworkType {
   MAINNET,

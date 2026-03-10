@@ -4,7 +4,7 @@ import { Psbt, Transaction } from "bitcoinjs-lib";
 import { ccc } from "@ckb-ccc/core";
 
 import { BtcAssetApiConfig } from "../api/index.js";
-import { AddressType } from "../types/index.js";
+import { AddressType, NetworkConfig } from "../types/index.js";
 import { toXOnly } from "../utils/index.js";
 import {
   addressToScriptPublicKeyHex,
@@ -12,8 +12,6 @@ import {
   createBtcAccount,
   tweakSigner,
 } from "./account.js";
-
-import { NetworkConfig } from "../types/index.js";
 import { RgbppBtcWallet } from "./base.js";
 
 export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
