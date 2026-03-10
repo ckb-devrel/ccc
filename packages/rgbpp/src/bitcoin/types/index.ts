@@ -4,6 +4,5 @@ export * from "./error.js";
 export * from "./network.js";
 export * from "./public-key.js";
 export * from "./rgbpp/index.js";
-export * from "./script.js";
 export * from "./spv.js";
 export * from "./transaction.js";

@@ -1,5 +1,6 @@
-import { ccc } from "@ckb-ccc/core";
 import * as bitcoin from "bitcoinjs-lib";
+
+import { ccc } from "@ckb-ccc/core";
 
 /**
  * Convert data to OP_RETURN script pubkey.

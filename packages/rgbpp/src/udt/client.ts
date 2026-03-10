@@ -1,17 +1,15 @@
 import { ccc } from "@ckb-ccc/core";
 
 import { TX_ID_PLACEHOLDER } from "../bitcoin/constants/index.js";
-
-import { ScriptManager } from "../bitcoin/configs/script-manager.js";
-import { UtxoSeal } from "../bitcoin/types/rgbpp/rgbpp.js";
-import { RgbppUdtIssuance } from "../bitcoin/types/rgbpp/udt.js";
-import { IScriptProvider, RgbppScriptName } from "../bitcoin/types/script.js";
+import { UtxoSeal } from "../bitcoin/types/index.js";
 import {
   isUsingOneOfScripts,
   updateScriptArgsWithTxId,
-} from "../utils/script.js";
+} from "../utils/index.js";
 import { RgbppInvalidLockError, RgbppValidationError } from "./error.js";
 import { RgbppUdtIssuanceService } from "./issuance.js";
+import { ScriptManager } from "./script-manager.js";
+import { IScriptProvider, RgbppScriptName, RgbppUdtIssuance } from "./types.js";
 
 export class RgbppUdtClient {
   public scriptManager: ScriptManager;

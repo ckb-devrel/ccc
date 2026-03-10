@@ -1,8 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 import { Psbt } from "bitcoinjs-lib";
-import { trimHexPrefix } from "../../utils/index.js";
-import { BtcAssetApiConfig } from "../api/config.js";
+import { BtcAssetApiConfig } from "../api/index.js";
 import { NetworkConfig } from "../types/index.js";
+import { trimHexPrefix } from "../utils/index.js";
 import { RgbppBtcWallet } from "./base.js";
 
 // TODO: add default btc asset api URL
@@ -34,7 +34,7 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
   ): Promise<string> {
     return this.signer
       .signAndBroadcastPsbt(psbt.toHex(), options)
-      .then(trimHexPrefix);
+      .then((hex) => trimHexPrefix(hex));
   }
 }
 

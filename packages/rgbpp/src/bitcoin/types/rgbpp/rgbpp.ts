@@ -3,12 +3,6 @@ import { ccc, mol } from "@ckb-ccc/core";
 import { RgbppUdtClient } from "../../../udt/index.js";
 import { BtcApiUtxoParams } from "../transaction.js";
 
-export interface RgbppUdtToken {
-  decimal: number;
-  name: string;
-  symbol: string;
-}
-
 export interface UtxoSeal {
   txId: string;
   index: number;

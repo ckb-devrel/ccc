@@ -1,14 +1,16 @@
-import { ccc } from "@ckb-ccc/core";
 import lodash from "lodash";
+
+import { ccc } from "@ckb-ccc/core";
+
 import { DEFAULT_DUST_LIMIT } from "../constants/index.js";
-import { AddressType } from "../types/address.js";
-import { PublicKeyProvider } from "../types/public-key.js";
 import {
+  AddressType,
   InitOutput,
+  PublicKeyProvider,
   TxInputData,
   TxOutput,
   Utxo,
-} from "../types/transaction.js";
+} from "../types/index.js";
 import { isSupportedAddressType, SUPPORTED_ADDRESS_TYPES } from "./address.js";
 import {
   dataToOpReturnScriptPubkey,

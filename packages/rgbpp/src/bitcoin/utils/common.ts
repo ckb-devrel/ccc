@@ -28,3 +28,6 @@ export function isDomain(domain: string, allowLocalhost?: boolean): boolean {
   const regex = /^(?:[-A-Za-z0-9]+\.)+[A-Za-z]{2,}$/;
   return regex.test(domain);
 }
+
+export const trimHexPrefix = (hex: string): string =>
+  hex.startsWith("0x") ? hex.substring(2) : hex;

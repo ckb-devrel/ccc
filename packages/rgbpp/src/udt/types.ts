@@ -1,5 +1,18 @@
 import { ccc } from "@ckb-ccc/core";
 
+export interface RgbppUdtToken {
+  decimal: number;
+  name: string;
+  symbol: string;
+}
+
+export interface RgbppUdtIssuance {
+  token: RgbppUdtToken;
+  amount: bigint;
+  rgbppLiveCells: ccc.Cell[];
+  udtScriptInfo: ccc.ScriptInfo;
+}
+
 /**
  * Script provider interface
  * Implement this interface to provide custom script sources

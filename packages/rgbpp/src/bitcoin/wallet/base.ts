@@ -2,6 +2,7 @@ import { Psbt, Transaction } from "bitcoinjs-lib";
 
 import { ccc } from "@ckb-ccc/core";
 
+// TODO: re-arrange utils
 import {
   btcTxIdInReverseByteOrder,
   buildBtcRgbppOutputs,
@@ -12,7 +13,6 @@ import {
   pseudoRgbppLockArgsForCommitment,
   RetryOptions,
   retryWithBackoff,
-  trimHexPrefix,
 } from "../../utils/index.js";
 
 import {
@@ -22,31 +22,33 @@ import {
   TX_ID_PLACEHOLDER,
 } from "../constants/index.js";
 
-import { UtxoSeal } from "../types/index.js";
-
-import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
 import {
   BtcApiBalance,
+  BtcApiBalanceParams,
   BtcApiRecommendedFeeRates,
   BtcApiSentTransaction,
   BtcApiTransaction,
   BtcApiTransactionHex,
   BtcApiUtxo,
-} from "../types/api.js";
-import { RgbppBtcTxParams } from "../types/index.js";
-import { PublicKeyProvider } from "../types/public-key.js";
-import {
-  BtcApiBalanceParams,
   BtcApiUtxoParams,
+  NetworkConfig,
+  PublicKeyProvider,
+  RgbppApiSpvProof,
+  RgbppBtcTxParams,
   TxInputData,
   TxOutput,
   Utxo,
+  UtxoSeal,
   UtxoSealOptions,
-} from "../types/transaction.js";
+} from "../types/index.js";
+
+import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
+
 import {
   getAddressType,
   isOpReturnScriptPubkey,
   toBtcNetwork,
+  trimHexPrefix,
   utxoToInputData,
 } from "../utils/index.js";
 import { transactionToHex } from "./account.js";
@@ -55,8 +57,6 @@ import {
   CompositePublicKeyProvider,
   WalletPublicKeyProvider,
 } from "./public-key.js";
-
-import { NetworkConfig, RgbppApiSpvProof } from "../types/index.js";
 
 const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
 
