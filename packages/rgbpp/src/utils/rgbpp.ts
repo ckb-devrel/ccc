@@ -1,4 +1,4 @@
-import { sha256 } from "js-sha256";
+import { sha256 } from "@noble/hashes/sha2";
 
 import { ccc } from "@ckb-ccc/core";
 
@@ -67,11 +67,7 @@ export const buildUniqueTypeArgs = (
   firstInput: ccc.CellInput,
   firstOutputIndex: number,
 ) => {
-  const input = ccc.bytesFrom(firstInput.toBytes());
-  const s = new ccc.HasherCkb();
-  s.update(input);
-  s.update(ccc.numLeToBytes(firstOutputIndex, 8));
-  return s.digest().slice(0, 42);
+  return ccc.hashTypeId(firstInput, firstOutputIndex).slice(0, 42);
 };
 
 export const buildRgbppUnlock = (
@@ -98,7 +94,7 @@ export const buildRgbppUnlock = (
 export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
   const hash = sha256.create();
   hash.update(ccc.bytesFrom("RGB++", "utf8"));
-  const version = [0, 0];
+  const version = new Uint8Array([0, 0]);
   hash.update(version);
 
   const { inputs, outputs, outputsData } = ckbPartialTx;
@@ -111,7 +107,7 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
       "The inputs or outputs length of RGB++ CKB virtual tx cannot be greater than 255",
     );
   }
-  hash.update([inputs.length, outputs.length]);
+  hash.update(new Uint8Array([inputs.length, outputs.length]));
 
   for (const input of inputs) {
     hash.update(input.previousOutput.toBytes());
@@ -126,7 +122,7 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
     hash.update(od);
   }
   // double sha256
-  return sha256(hash.array());
+  return ccc.bytesTo(sha256(hash.digest()), "hex");
 };
 
 // RGB++ related outputs
