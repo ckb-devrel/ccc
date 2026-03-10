@@ -5,10 +5,11 @@ import {
   buildRgbppLockArgs,
   buildUniqueTypeArgs,
   pseudoRgbppLockArgs,
-} from "../../utils/rgbpp.js";
-import { DEFAULT_CONFIRMATIONS } from "../constants/index.js";
-import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
-import { IScriptProvider, RgbppScriptName } from "../types/script.js";
+} from "../utils/index.js";
+
+import { DEFAULT_CONFIRMATIONS } from "../bitcoin/constants/index.js";
+import { UtxoSeal } from "../bitcoin/types/index.js";
+import { IScriptProvider, RgbppScriptName } from "./types.js";
 
 /**
  * ScriptManager - Manages and builds RGB++ related scripts

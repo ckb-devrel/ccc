@@ -2,8 +2,8 @@ import { sha256 } from "js-sha256";
 
 import { ccc } from "@ckb-ccc/core";
 
-import { InitOutput, TxOutput } from "../bitcoin/types/transaction.js";
-import { convertToOutput } from "../bitcoin/utils/transaction.js";
+import { InitOutput, TxOutput } from "../bitcoin/types/index.js";
+import { convertToOutput } from "../bitcoin/utils/index.js";
 
 import {
   BLANK_TX_ID,
@@ -13,28 +13,9 @@ import {
   TX_ID_PLACEHOLDER,
 } from "../bitcoin/constants/index.js";
 
-import {
-  BtcTimeLock,
-  RgbppUdtToken,
-  RgbppUnlock,
-  UtxoSeal,
-} from "../bitcoin/types/rgbpp/rgbpp.js";
+import { BtcTimeLock, RgbppUnlock, UtxoSeal } from "../bitcoin/types/index.js";
 import { RgbppUdtClient } from "../udt/index.js";
-import { isSameScriptTemplate, isUsingOneOfScripts } from "../utils/script.js";
-
-export const encodeRgbppUdtToken = (token: RgbppUdtToken): string => {
-  const name = ccc.bytesFrom(token.name, "utf8");
-  const symbol = ccc.bytesFrom(token.symbol, "utf8");
-  return ccc.hexFrom(
-    ccc.bytesConcat(
-      ccc.numToBytes(token.decimal, 1),
-      ccc.numToBytes(name.length, 1),
-      name,
-      ccc.numToBytes(symbol.length, 1),
-      symbol,
-    ),
-  );
-};
+import { isSameScriptTemplate, isUsingOneOfScripts } from "../utils/index.js";
 
 /**
  * https://learnmeabitcoin.com/technical/general/byte-order/

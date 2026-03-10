@@ -1,14 +1,14 @@
 import { ccc } from "@ckb-ccc/core";
-import { ScriptManager } from "../bitcoin/configs/script-manager.js";
-import { deadLock } from "../bitcoin/configs/scripts/index.js";
 import {
   TX_ID_PLACEHOLDER,
   UNIQUE_TYPE_OUTPUT_INDEX,
 } from "../bitcoin/constants/index.js";
-import { RgbppUdtIssuance } from "../bitcoin/types/rgbpp/udt.js";
 import { deduplicateByOutPoint } from "../bitcoin/utils/common.js";
-import { encodeRgbppUdtToken } from "../utils/rgbpp.js";
+import { deadLock } from "./constants.js";
 import { RgbppValidationError } from "./error.js";
+import { ScriptManager } from "./script-manager.js";
+import { RgbppUdtIssuance } from "./types.js";
+import { encodeRgbppUdtToken } from "./utils.js";
 
 export class RgbppUdtIssuanceService {
   constructor(private scriptManager: ScriptManager) {}
