@@ -200,7 +200,7 @@ export class PrivateKeyRgbppBtcWallet extends RgbppBtcWallet {
 
   async sendTx(tx: Transaction): Promise<string> {
     const txHex = tx.toHex();
-    return this.sendTransaction(txHex);
+    return this.apiClient.sendTransaction(txHex);
   }
 
   async signAndBroadcast(
