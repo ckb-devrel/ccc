@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 
+import { RgbppBtcDataSource } from "../../interfaces/index.js";
 import {
   BtcApiBalance,
   BtcApiBalanceParams,
@@ -20,7 +21,7 @@ import { BtcAssetsApiBase } from "./base.js";
  * Encapsulates all endpoint URLs and response types in one place.
  * Consumers use typed methods instead of raw `request<T>(url)` calls.
  */
-export class BtcApiClient {
+export class BtcApiClient implements RgbppBtcDataSource {
   constructor(private base: BtcAssetsApiBase) {}
 
   getTransaction(txId: string) {
