@@ -38,29 +38,16 @@ export class BrowserRgbppBtcWallet extends RgbppBtcWallet {
   }
 }
 
+/**
+ * Create a BrowserRgbppBtcWallet from a SignerBtc.
+ *
+ * TODO: Wallet capability validation (e.g. whether the signer fully implements
+ * signAndBroadcastPsbt) should be enforced at the ccc.SignerBtc.
+ */
 export function createBrowserRgbppBtcWallet(
   signer: ccc.SignerBtc,
   networkConfig: NetworkConfig,
   btcAssetApiConfig: BtcAssetApiConfig,
-): BrowserRgbppBtcWallet | null {
-  // Check if wallet is supported using duck typing instead of constructor.name
-  // to avoid issues with minified code in production builds
-  const isSupported =
-    "provider" in signer || // UniSat, Xverse
-    "providers" in signer || // OKX
-    ("name" in signer &&
-      typeof (signer as { name?: string }).name === "string"); // JoyID
-
-  if (isSupported) {
-    return new BrowserRgbppBtcWallet(signer, networkConfig, btcAssetApiConfig);
-  }
-
-  return null;
-}
-
-/**
- * Get supported wallet names
- */
-export function getSupportedWallets(): string[] {
-  return ["UniSat", "OKX", "JoyID", "Xverse"];
+): BrowserRgbppBtcWallet {
+  return new BrowserRgbppBtcWallet(signer, networkConfig, btcAssetApiConfig);
 }
