@@ -81,10 +81,9 @@ export function decodeAddress(address: string): {
     }
   }
 
-  return {
-    addressType: AddressType.UNKNOWN,
-    networkType: NetworkType.MAINNET,
-  };
+  throw new Error(
+    `Unable to decode address: "${address}". Unrecognized format.`,
+  );
 }
 
 export function getAddressType(address: string): AddressType {

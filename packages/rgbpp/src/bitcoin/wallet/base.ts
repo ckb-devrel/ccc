@@ -23,6 +23,7 @@ import {
 } from "../constants.js";
 
 import {
+  AddressType,
   BtcApiBalance,
   BtcApiBalanceParams,
   BtcApiRecommendedFeeRates,
@@ -247,27 +248,23 @@ export abstract class RgbppBtcWallet {
     for (const utxoSeal of uniqueSeals) {
       const tx = await this.getTransaction(utxoSeal.txId);
       if (!tx) {
-        continue;
+        throw new Error(
+          `Transaction ${utxoSeal.txId} not found. The referenced UTXO may not exist or the API may be unavailable.`,
+        );
       }
       const vout = tx.vout[utxoSeal.index];
       if (!vout) {
-        continue;
+        throw new Error(
+          `Output index ${utxoSeal.index} not found in transaction ${utxoSeal.txId} (tx has ${tx.vout.length} outputs).`,
+        );
       }
 
       const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
       if (isOpReturnScriptPubkey(scriptBuffer)) {
-        inputs.push(
-          await utxoToInputData(
-            {
-              txid: utxoSeal.txId,
-              vout: utxoSeal.index,
-              value: vout.value,
-              scriptPk: vout.scriptpubkey,
-            } as Utxo,
-            this.publicKeyProvider,
-          ),
+        throw new Error(
+          `Output ${utxoSeal.index} of transaction ${utxoSeal.txId} is an OP_RETURN output, which is unspendable. ` +
+            `RGBPP lock args should not reference OP_RETURN outputs.`,
         );
-        continue;
       }
 
       inputs.push(
@@ -434,14 +431,28 @@ export abstract class RgbppBtcWallet {
 
     let balancedInputs = [...inputs];
     if (totalInputValue < totalOutputValue) {
-      const { inputs: extraInputs } = await this.collectUtxos(
-        totalOutputValue - totalInputValue,
-        {
-          only_non_rgbpp_utxos: false,
-          min_satoshi: 1000,
-        },
-      );
-      balancedInputs = [...inputs, ...extraInputs];
+      // Create a dummy input to represent the additional UTXO needed
+      // avoiding a full network request just to estimate transaction size
+      const address = await this.getAddress();
+      const addressType = getAddressType(address);
+      const dummyInput = {
+        witnessUtxo: { value: 0, script: Buffer.alloc(0) },
+      } as unknown as TxInputData;
+
+      if (addressType === AddressType.P2TR) {
+        dummyInput.tapInternalKey = Buffer.alloc(32);
+      } else if (addressType === AddressType.P2WPKH) {
+        const script = Buffer.alloc(22);
+        script[0] = 0x00;
+        script[1] = 0x14;
+        dummyInput.witnessUtxo.script = script;
+      } else if (addressType === AddressType.P2WSH) {
+        const script = Buffer.alloc(34);
+        script[0] = 0x00;
+        script[1] = 0x20;
+        dummyInput.witnessUtxo.script = script;
+      }
+      balancedInputs = [...inputs, dummyInput];
     }
 
     // Estimate transaction size based on input/output types without signing
@@ -516,15 +527,15 @@ export abstract class RgbppBtcWallet {
       baseSize += 8; // value
 
       if ("address" in output && output.address) {
-        const addressType = this.getOutputAddressType(output.address);
+        const addressType = getAddressType(output.address);
         switch (addressType) {
-          case "P2WPKH":
+          case AddressType.P2WPKH:
             baseSize += 1 + 22; // length + scriptPubKey
             break;
-          case "P2TR":
+          case AddressType.P2TR:
             baseSize += 1 + 34; // length + scriptPubKey
             break;
-          case "P2PKH":
+          case AddressType.P2PKH:
             baseSize += 1 + 25; // length + scriptPubKey
             break;
           default:
@@ -587,30 +598,6 @@ export abstract class RgbppBtcWallet {
     return "P2PKH";
   }
 
-  /**
-   * Determine address type from output address
-   */
-  private getOutputAddressType(address: string): string {
-    if (
-      address.startsWith("bc1p") ||
-      address.startsWith("tb1p") ||
-      address.startsWith("bcrt1p")
-    ) {
-      return "P2TR";
-    }
-    if (
-      address.startsWith("bc1") ||
-      address.startsWith("tb1") ||
-      address.startsWith("bcrt1")
-    ) {
-      return "P2WPKH";
-    }
-    if (address.startsWith("3") || address.startsWith("2")) {
-      return "P2SH";
-    }
-    return "P2PKH";
-  }
-
   isCommitmentMatched(
     commitment: string,
     ckbPartialTx: ccc.Transaction,
@@ -652,16 +639,7 @@ export abstract class RgbppBtcWallet {
       },
     ];
 
-    const utxos = await this.getUtxos(await this.getAddress(), btcUtxoParams);
-    if (utxos.length === 0) {
-      throw new Error("Insufficient funds");
-    }
-    const inputs = await this.buildInputs([
-      {
-        txId: utxos[0].txid,
-        index: utxos[0].vout,
-      },
-    ]);
+    const { inputs } = await this.collectUtxos(targetValue, btcUtxoParams);
 
     const { balancedInputs, balancedOutputs } = await this.balanceInputsOutputs(
       inputs,
