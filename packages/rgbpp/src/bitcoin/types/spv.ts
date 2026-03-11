@@ -1,9 +1,6 @@
-import { ccc } from "@ckb-ccc/core";
+import { SpvProof } from "../../interfaces/spv.js";
 
-export interface SpvProof {
-  proof: ccc.Hex;
-  spvClientOutpoint: ccc.OutPoint;
-}
+export { SpvProof };
 
 export interface RgbppApiSpvProof {
   proof: string;
