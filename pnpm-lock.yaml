@@ -956,15 +956,6 @@ importers:
       '@ckb-ccc/core':
         specifier: workspace:*
         version: link:../core
-      '@ckb-lumos/base':
-        specifier: ^0.23.0
-        version: 0.23.0
-      '@ckb-lumos/bi':
-        specifier: ^0.23.0
-        version: 0.23.0
-      '@ckb-lumos/codec':
-        specifier: ^0.23.0
-        version: 0.23.0
       '@noble/hashes':
         specifier: ^1.4.0
         version: 1.8.0
@@ -2208,16 +2199,8 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@ckb-lumos/base@0.23.0':
-    resolution: {integrity: sha512-8aLFsUyWIK0rT7GQlYFuXyiG5lQ2bLRK2GvUsxv5G7I3nJ1UyxjwvVOdtlsR/cwhzOam3ujwqASqBIayBL6GLA==}
-    engines: {node: '>=12.0.0'}
-
   '@ckb-lumos/base@0.24.0-next.2':
     resolution: {integrity: sha512-VCXYpykJ+OhjbcCp3imwt9rk3Ie2T8jyCjSXExkoyKY+QT+EI856p37KBbBdO4r7gguVtADnJS+WLIZoNm5Bvw==}
-    engines: {node: '>=12.0.0'}
-
-  '@ckb-lumos/bi@0.23.0':
-    resolution: {integrity: sha512-KAy+lyVpL+Al4XD+c9tHrA9DSpHkMusyXtTS81aNZi5MyL6F9jrVmFcqLorhfyfl8Fsv2sEjMe5Neo2Y+w/RJQ==}
     engines: {node: '>=12.0.0'}
 
   '@ckb-lumos/bi@0.24.0-next.2':
@@ -2226,10 +2209,6 @@ packages:
 
   '@ckb-lumos/ckb-indexer@0.24.0-next.2':
     resolution: {integrity: sha512-VuTyXjulQR1fl3RzfObSBRlFfCdzRi13G120MP9OChH7zaLNartWmPycPF1xcv/FfZIcfCT+dGqUFc+vc7qfGw==}
-    engines: {node: '>=12.0.0'}
-
-  '@ckb-lumos/codec@0.23.0':
-    resolution: {integrity: sha512-FwYooXnsFDjlHHnlFnCTB1UbBzV72I0VjkRpeauFk5nQ4+/75xl28ywK3J14M+0aHTnYU9msXUTRDAGqC0CaNQ==}
     engines: {node: '>=12.0.0'}
 
   '@ckb-lumos/codec@0.24.0-next.2':
@@ -2254,10 +2233,6 @@ packages:
 
   '@ckb-lumos/rpc@0.24.0-next.2':
     resolution: {integrity: sha512-C/Vjvbh+GStxA/9vcj6oI1apZQRoydIvc8T1DR5Dh3F9K1q8NUSnJ43bLNOcwusdMWDkRNNS0jyoKirtLJy5Hg==}
-    engines: {node: '>=12.0.0'}
-
-  '@ckb-lumos/toolkit@0.23.0':
-    resolution: {integrity: sha512-7LTsUFfoNCBWJLgh+V/QFnemjGw+y4mmLeQvubwYuJqIPIhIpwKUuKRzkvVG8snA8xVQSfjSSQOs5m3mKp66Kg==}
     engines: {node: '>=12.0.0'}
 
   '@ckb-lumos/toolkit@0.24.0-next.2':
@@ -8114,10 +8089,6 @@ packages:
   lodash.debounce@4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
 
-  lodash.isequal@4.5.0:
-    resolution: {integrity: sha512-pDo3lu8Jhfjqls6GkMgpahsF9kCyayhgykjyLMNFTKWrpVdAQtYyB4muAMWozBB4ig/dtWAmsMxLEI8wuz+DYQ==}
-    deprecated: This package is deprecated. Use require('node:util').isDeepStrictEqual instead.
-
   lodash.memoize@4.1.2:
     resolution: {integrity: sha512-t7j+NzmgnQzTAYXcsHYLgimltOV1MXHtlOWf6GjL9Kj8GK5FInw5JotxvbOs+IvV1/Dzo04/fCGfLVs7aXb4Ag==}
 
@@ -12399,17 +12370,6 @@ snapshots:
       human-id: 4.1.1
       prettier: 2.8.8
 
-  '@ckb-lumos/base@0.23.0':
-    dependencies:
-      '@ckb-lumos/bi': 0.23.0
-      '@ckb-lumos/codec': 0.23.0
-      '@ckb-lumos/toolkit': 0.23.0
-      '@types/blake2b': 2.1.3
-      '@types/lodash.isequal': 4.5.8
-      blake2b: 2.1.4
-      js-xxhash: 1.0.4
-      lodash.isequal: 4.5.0
-
   '@ckb-lumos/base@0.24.0-next.2':
     dependencies:
       '@ckb-lumos/bi': 0.24.0-next.2
@@ -12419,10 +12379,6 @@ snapshots:
       '@types/lodash.isequal': 4.5.8
       blake2b: 2.1.4
       js-xxhash: 1.0.4
-
-  '@ckb-lumos/bi@0.23.0':
-    dependencies:
-      jsbi: 4.3.2
 
   '@ckb-lumos/bi@0.24.0-next.2':
     dependencies:
@@ -12439,10 +12395,6 @@ snapshots:
       events: 3.3.0
     transitivePeerDependencies:
       - encoding
-
-  '@ckb-lumos/codec@0.23.0':
-    dependencies:
-      '@ckb-lumos/bi': 0.23.0
 
   '@ckb-lumos/codec@0.24.0-next.2':
     dependencies:
@@ -12500,10 +12452,6 @@ snapshots:
       cross-fetch: 3.2.0
     transitivePeerDependencies:
       - encoding
-
-  '@ckb-lumos/toolkit@0.23.0':
-    dependencies:
-      '@ckb-lumos/bi': 0.23.0
 
   '@ckb-lumos/toolkit@0.24.0-next.2':
     dependencies:
@@ -20120,8 +20068,6 @@ snapshots:
       p-locate: 6.0.0
 
   lodash.debounce@4.0.8: {}
-
-  lodash.isequal@4.5.0: {}
 
   lodash.memoize@4.1.2: {}
 
