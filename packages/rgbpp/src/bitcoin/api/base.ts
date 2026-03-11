@@ -1,4 +1,5 @@
 import lodash from "lodash";
+
 import {
   BaseApiRequestOptions,
   BaseApis,
@@ -78,12 +79,17 @@ export class BtcAssetsApiBase implements BaseApis {
     let ok: boolean = false;
     try {
       text = await res.text();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      json = JSON.parse(text);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      ok = json?.ok ?? res.ok ?? false;
+      if (text) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        json = JSON.parse(text);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        ok = json?.ok ?? res.ok ?? false;
+      } else {
+        ok = res.ok;
+      }
     } catch {
-      // do nothing
+      // JSON.parse failed on non-empty text
+      // We'll handle this decode error below
     }
 
     let comment: string | undefined;
@@ -121,12 +127,19 @@ export class BtcAssetsApiBase implements BaseApis {
       }
     }
 
-    if (status === 200 && !json) {
-      throw BtcAssetsApiError.withComment(
-        ErrorCodes.ASSETS_API_RESPONSE_DECODE_ERROR,
-        comment,
-        context,
-      );
+    if (status === 200) {
+      if (text && !json) {
+        // 200 OK, but we had body text that failed JSON parsing
+        throw BtcAssetsApiError.withComment(
+          ErrorCodes.ASSETS_API_RESPONSE_DECODE_ERROR,
+          "Failed to decode JSON response",
+          context,
+        );
+      }
+      if (!text) {
+        return "" as unknown as T;
+      }
+      return (json ?? text) as unknown as T;
     }
     if (status === 401) {
       throw BtcAssetsApiError.withComment(

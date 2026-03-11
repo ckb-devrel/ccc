@@ -158,11 +158,21 @@ function tapTweakHash(publicKey: Buffer, hash: Buffer | undefined): Buffer {
 /**
  * Convert a bitcoin.Transaction to hex string.
  * Note if using for RGBPP proof, shouldn't set the "withWitness" param to "true".
+ *
+ * Uses bitcoinjs-lib v6.1.6 internal API (__toBuffer) for non-witness serialization.
+ * Version is pinned in package.json. If upgrading bitcoinjs-lib, verify this still works.
  */
 export function transactionToHex(
   tx: bitcoin.Transaction,
   withWitness?: boolean,
 ): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (tx as any)["__toBuffer"] !== "function") {
+    throw new Error(
+      "bitcoinjs-lib internal API changed. " +
+        "transactionToHex requires __toBuffer. Check bitcoinjs-lib version (expected 6.1.6).",
+    );
+  }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
   const buffer: Buffer = (tx as any)["__toBuffer"](
     undefined,

@@ -94,8 +94,7 @@ export function convertToOutput(output: InitOutput): TxOutput {
       protected: output.protected,
       minUtxoSatoshi: output.minUtxoSatoshi,
     };
-  }
-  if ("address" in output || "script" in output) {
+  } else if ("address" in output || "script" in output) {
     result = lodash.cloneDeep(output);
   }
   if (!result) {

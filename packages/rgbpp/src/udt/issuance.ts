@@ -22,13 +22,13 @@ export class RgbppUdtIssuanceService {
     }
 
     const rgbppLiveCells = deduplicateByOutPoint(
-      [...params.rgbppLiveCells].sort((a, b) => {
-        const txHashCmp = a.outPoint.txHash.localeCompare(b.outPoint.txHash);
-        if (txHashCmp !== 0) return txHashCmp;
-        if (a.outPoint.index < b.outPoint.index) return -1;
-        if (a.outPoint.index > b.outPoint.index) return 1;
-        return 0;
-      }),
+      [...params.rgbppLiveCells].sort((a, b) =>
+        a.outPoint.txHash === b.outPoint.txHash
+          ? Number(a.outPoint.index - b.outPoint.index)
+          : a.outPoint.txHash < b.outPoint.txHash
+            ? -1
+            : 1,
+      ),
     );
 
     const tx = ccc.Transaction.default();
@@ -61,6 +61,24 @@ export class RgbppUdtIssuanceService {
       throw new RgbppValidationError("uniqueTypeInfo.cellDeps is empty");
     }
 
+    if (
+      !Number.isInteger(params.token.decimal) ||
+      params.token.decimal < 0 ||
+      params.token.decimal > 38
+    ) {
+      throw new RgbppValidationError(
+        `Invalid token decimal: ${params.token.decimal}. Must be an integer between 0 and 38.`,
+      );
+    }
+
+    const MAX_U128 = (1n << 128n) - 1n;
+    const tokenAmount = params.amount * 10n ** BigInt(params.token.decimal);
+    if (tokenAmount < 0n || tokenAmount > MAX_U128) {
+      throw new RgbppValidationError(
+        `Token amount ${tokenAmount} overflows 128-bit unsigned integer (max ${MAX_U128}).`,
+      );
+    }
+
     tx.addOutput(
       {
         lock: pseudoRgbppLock,
@@ -70,7 +88,7 @@ export class RgbppUdtIssuanceService {
           args: rgbppLiveCells[0].cellOutput.lock.hash(), // unique ID of udt token
         }),
       },
-      ccc.numLeToBytes(params.amount * 10n ** BigInt(params.token.decimal), 16),
+      ccc.numLeToBytes(tokenAmount, 16),
     );
 
     tx.addOutput(
