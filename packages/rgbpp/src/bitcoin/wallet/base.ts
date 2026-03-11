@@ -30,6 +30,7 @@ import {
   UtxoSealOptions,
 } from "../types/index.js";
 
+import { RgbppBtcDataSource } from "../../interfaces/index.js";
 import {
   BtcApiClient,
   BtcAssetApiConfig,
@@ -51,6 +52,10 @@ export abstract class RgbppBtcWallet {
   protected publicKeyProvider: PublicKeyProvider;
   protected txBuilder: BtcTransactionBuilder;
   private cachedPubKeyProvider: CachedPublicKeyProvider;
+
+  get btcDataSource(): RgbppBtcDataSource {
+    return this.apiClient;
+  }
 
   constructor(
     networkConfig: NetworkConfig,
