@@ -23,63 +23,56 @@ import {
 } from "../constants.js";
 
 import {
-  AddressType,
-  BtcApiBalance,
-  BtcApiBalanceParams,
-  BtcApiRecommendedFeeRates,
-  BtcApiSentTransaction,
-  BtcApiTransaction,
-  BtcApiTransactionHex,
-  BtcApiUtxo,
-  BtcApiUtxoParams,
   NetworkConfig,
   PublicKeyProvider,
-  RgbppApiSpvProof,
   RgbppBtcTxParams,
-  TxInputData,
-  TxOutput,
-  Utxo,
   UtxoSeal,
   UtxoSealOptions,
 } from "../types/index.js";
 
-import { BtcAssetApiConfig, BtcAssetsApiBase } from "../api/index.js";
-
 import {
-  getAddressType,
-  isOpReturnScriptPubkey,
-  toBtcNetwork,
-  trimHexPrefix,
-  utxoToInputData,
-} from "../utils/index.js";
+  BtcApiClient,
+  BtcAssetApiConfig,
+  BtcAssetsApiBase,
+} from "../api/index.js";
+
+import { toBtcNetwork, trimHexPrefix } from "../utils/index.js";
 import { transactionToHex } from "./account.js";
 import {
   CachedPublicKeyProvider,
   CompositePublicKeyProvider,
   WalletPublicKeyProvider,
 } from "./public-key.js";
-
-const DEFAULT_VIRTUAL_SIZE_BUFFER = 20;
+import { BtcTransactionBuilder } from "./tx-builder.js";
 
 export abstract class RgbppBtcWallet {
-  protected btcAssetsApi: BtcAssetsApiBase;
+  protected apiClient: BtcApiClient;
   protected networkConfig: NetworkConfig;
   protected publicKeyProvider: PublicKeyProvider;
-  private cachedProvider: CachedPublicKeyProvider;
+  protected txBuilder: BtcTransactionBuilder;
+  private cachedPubKeyProvider: CachedPublicKeyProvider;
 
   constructor(
     networkConfig: NetworkConfig,
     btcAssetApiConfig: BtcAssetApiConfig,
   ) {
-    this.btcAssetsApi = new BtcAssetsApiBase(btcAssetApiConfig);
+    this.apiClient = new BtcApiClient(new BtcAssetsApiBase(btcAssetApiConfig));
     this.networkConfig = networkConfig;
 
     // Initialize public key providers
-    this.cachedProvider = new CachedPublicKeyProvider();
+    this.cachedPubKeyProvider = new CachedPublicKeyProvider();
     this.publicKeyProvider = new CompositePublicKeyProvider([
-      this.cachedProvider,
+      this.cachedPubKeyProvider,
       new WalletPublicKeyProvider(this),
     ]);
+
+    // Initialize transaction builder with wallet dependencies
+    this.txBuilder = new BtcTransactionBuilder(
+      this.apiClient,
+      this.networkConfig,
+      this.publicKeyProvider,
+      () => this.getAddress(),
+    );
   }
 
   /**
@@ -110,7 +103,7 @@ export abstract class RgbppBtcWallet {
    * ```
    */
   registerPublicKey(address: string, publicKey: string): void {
-    this.cachedProvider.addMapping(address, publicKey);
+    this.cachedPubKeyProvider.addMapping(address, publicKey);
   }
 
   /**
@@ -146,7 +139,7 @@ export abstract class RgbppBtcWallet {
       }),
     );
 
-    const inputs = await this.buildInputs(utxoSeals);
+    const inputs = await this.txBuilder.buildInputs(utxoSeals);
 
     // Pre-fetch script templates for comparison
     const rgbppLockTemplate = await rgbppUdtClient.rgbppLockScriptTemplate();
@@ -214,12 +207,13 @@ export abstract class RgbppBtcWallet {
       rgbppUdtClient,
     );
 
-    const { balancedInputs, balancedOutputs } = await this.balanceInputsOutputs(
-      inputs,
-      rgbppOutputs,
-      btcUtxoParams,
-      feeRate,
-    );
+    const { balancedInputs, balancedOutputs } =
+      await this.txBuilder.balanceInputsOutputs(
+        inputs,
+        rgbppOutputs,
+        btcUtxoParams,
+        feeRate,
+      );
 
     const psbt = new Psbt({ network: toBtcNetwork(this.networkConfig.name) });
     balancedInputs.forEach((input) => {
@@ -234,368 +228,8 @@ export abstract class RgbppBtcWallet {
 
   abstract signAndBroadcast(psbt: Psbt): Promise<string>;
 
-  async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
-    const uniqueSeals = this.deduplicateUtxoSeals(utxoSeals);
-
-    if (uniqueSeals.length < utxoSeals.length) {
-      console.warn(
-        `[RgbppBtcWallet] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`,
-      );
-    }
-
-    const inputs: TxInputData[] = [];
-    // TODO: parallel
-    for (const utxoSeal of uniqueSeals) {
-      const tx = await this.getTransaction(utxoSeal.txId);
-      if (!tx) {
-        throw new Error(
-          `Transaction ${utxoSeal.txId} not found. The referenced UTXO may not exist or the API may be unavailable.`,
-        );
-      }
-      const vout = tx.vout[utxoSeal.index];
-      if (!vout) {
-        throw new Error(
-          `Output index ${utxoSeal.index} not found in transaction ${utxoSeal.txId} (tx has ${tx.vout.length} outputs).`,
-        );
-      }
-
-      const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
-      if (isOpReturnScriptPubkey(scriptBuffer)) {
-        throw new Error(
-          `Output ${utxoSeal.index} of transaction ${utxoSeal.txId} is an OP_RETURN output, which is unspendable. ` +
-            `RGBPP lock args should not reference OP_RETURN outputs.`,
-        );
-      }
-
-      inputs.push(
-        await utxoToInputData(
-          {
-            txid: utxoSeal.txId,
-            vout: utxoSeal.index,
-            value: vout.value,
-            scriptPk: vout.scriptpubkey,
-            address: vout.scriptpubkey_address,
-            addressType: getAddressType(vout.scriptpubkey_address),
-          } as Utxo,
-          this.publicKeyProvider,
-        ),
-      );
-    }
-    return inputs;
-  }
-
-  /**
-   * Deduplicate UTXO seals based on txId and index
-   * @private
-   */
-  private deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
-    if (!utxoSeals || utxoSeals.length === 0) {
-      return [];
-    }
-
-    const seen = new Map<string, UtxoSeal>();
-
-    for (const seal of utxoSeals) {
-      const normalizedTxId = seal.txId?.toLowerCase() ?? "";
-      const key = `${normalizedTxId}:${seal.index}`;
-
-      if (!seen.has(key)) {
-        seen.set(key, seal);
-      }
-    }
-
-    return Array.from(seen.values());
-  }
-
   rawTxHex(tx: Transaction): string {
     return transactionToHex(tx, false);
-  }
-
-  async balanceInputsOutputs(
-    inputs: TxInputData[],
-    outputs: TxOutput[],
-    btcUtxoParams?: BtcApiUtxoParams,
-    feeRate?: number,
-  ): Promise<{
-    balancedInputs: TxInputData[];
-    balancedOutputs: TxOutput[];
-  }> {
-    let ins = inputs.slice();
-
-    let fulfilled = false;
-    let changeValue = 0;
-    const outsValue = outputs.reduce((acc, output) => acc + output.value, 0);
-
-    while (!fulfilled) {
-      const insValue = ins.reduce(
-        (acc, input) => acc + input.witnessUtxo.value,
-        0,
-      );
-      const requiredFee = await this.estimateFee(ins, outputs, feeRate);
-
-      if (insValue > outsValue + requiredFee) {
-        changeValue = insValue - outsValue - requiredFee;
-        fulfilled = true;
-      } else {
-        const { inputs: extraInputs } = await this.collectUtxos(
-          outsValue + requiredFee - insValue,
-          btcUtxoParams ?? {
-            only_non_rgbpp_utxos: true,
-          },
-          ins,
-        );
-        ins = [...ins, ...extraInputs];
-      }
-    }
-
-    if (changeValue >= this.networkConfig.btcDustLimit) {
-      outputs.push({
-        address: await this.getAddress(),
-        value: changeValue,
-      });
-    }
-
-    return {
-      balancedInputs: ins,
-      balancedOutputs: outputs,
-    };
-  }
-
-  async collectUtxos(
-    requiredValue: number,
-    params?: BtcApiUtxoParams,
-    knownInputs?: TxInputData[],
-  ): Promise<{ inputs: TxInputData[]; changeValue: number }> {
-    const utxos = await this.getUtxos(await this.getAddress(), params);
-
-    let filteredUtxos = utxos;
-    if (knownInputs) {
-      filteredUtxos = utxos.filter((utxo: BtcApiUtxo) => {
-        return !knownInputs.some(
-          (input) => input.hash === utxo.txid && input.index === utxo.vout,
-        );
-      });
-    }
-
-    if (filteredUtxos.length === 0) {
-      throw new Error("Insufficient funds");
-    }
-
-    const selectedUtxos: BtcApiUtxo[] = [];
-    let totalValue = 0;
-
-    for (const utxo of filteredUtxos) {
-      selectedUtxos.push(utxo);
-      totalValue += utxo.value;
-
-      if (totalValue >= requiredValue) {
-        break;
-      }
-    }
-
-    if (totalValue < requiredValue) {
-      throw new Error(
-        `Insufficient funds: needed ${requiredValue}, but only found ${totalValue}`,
-      );
-    }
-
-    return {
-      inputs: await this.buildInputs(
-        selectedUtxos.map((utxo) => ({
-          txId: utxo.txid,
-          index: utxo.vout,
-        })),
-      ),
-      changeValue: totalValue - requiredValue,
-    };
-  }
-
-  /**
-   * Estimate transaction fee without requiring actual signing
-   * This avoids triggering wallet confirmation dialogs for fee estimation
-   */
-  async estimateFee(
-    inputs: TxInputData[],
-    outputs: TxOutput[],
-    feeRate?: number,
-  ) {
-    // Ensure we have enough inputs to cover outputs
-    const totalInputValue = inputs.reduce(
-      (acc, input) => acc + input.witnessUtxo.value,
-      0,
-    );
-    const totalOutputValue = outputs.reduce(
-      (acc, output) => acc + output.value,
-      0,
-    );
-
-    let balancedInputs = [...inputs];
-    if (totalInputValue < totalOutputValue) {
-      // Create a dummy input to represent the additional UTXO needed
-      // avoiding a full network request just to estimate transaction size
-      const address = await this.getAddress();
-      const addressType = getAddressType(address);
-      const dummyInput = {
-        witnessUtxo: { value: 0, script: Buffer.alloc(0) },
-      } as unknown as TxInputData;
-
-      if (addressType === AddressType.P2TR) {
-        dummyInput.tapInternalKey = Buffer.alloc(32);
-      } else if (addressType === AddressType.P2WPKH) {
-        const script = Buffer.alloc(22);
-        script[0] = 0x00;
-        script[1] = 0x14;
-        dummyInput.witnessUtxo.script = script;
-      } else if (addressType === AddressType.P2WSH) {
-        const script = Buffer.alloc(34);
-        script[0] = 0x00;
-        script[1] = 0x20;
-        dummyInput.witnessUtxo.script = script;
-      }
-      balancedInputs = [...inputs, dummyInput];
-    }
-
-    // Estimate transaction size based on input/output types without signing
-    const virtualSize = this.estimateVirtualSize(balancedInputs, outputs);
-    const bufferedVirtualSize = virtualSize + DEFAULT_VIRTUAL_SIZE_BUFFER;
-
-    if (!feeRate) {
-      try {
-        feeRate = (await this.getRecommendedFee()).fastestFee;
-      } catch (error) {
-        feeRate = this.networkConfig.btcFeeRate;
-        console.warn(
-          `Failed to get recommended fee rate: ${String(error)}, using default fee rate ${this.networkConfig.btcFeeRate}`,
-        );
-      }
-    }
-
-    return Math.ceil(
-      bufferedVirtualSize * (feeRate ?? this.networkConfig.btcFeeRate),
-    );
-  }
-
-  /**
-   * Estimate virtual size of a transaction
-   * Based on Bitcoin transaction structure and different address types
-   */
-  private estimateVirtualSize(
-    inputs: TxInputData[],
-    outputs: TxOutput[],
-  ): number {
-    // Base transaction size (version + locktime + input count + output count)
-    let baseSize =
-      4 +
-      4 +
-      this.getVarIntSize(inputs.length) +
-      this.getVarIntSize(outputs.length);
-
-    // Calculate input sizes
-    let witnessSize = 0;
-    for (const input of inputs) {
-      // Each input: txid (32) + vout (4) + scriptSig length + scriptSig + sequence (4)
-      baseSize += 32 + 4 + 4; // txid + vout + sequence
-
-      // Determine address type from the input
-      const addressType = this.getInputAddressType(input);
-
-      switch (addressType) {
-        case "P2WPKH":
-          // P2WPKH: scriptSig is empty, witness has 2 items (signature + pubkey)
-          baseSize += 1; // empty scriptSig
-          witnessSize += 1 + 1 + 72 + 1 + 33; // witness stack count + sig length + sig + pubkey length + pubkey
-          break;
-        case "P2TR":
-          // P2TR: scriptSig is empty, witness has 1 item (signature)
-          baseSize += 1; // empty scriptSig
-          witnessSize += 1 + 1 + 64; // witness stack count + sig length + sig
-          break;
-        case "P2PKH":
-          // P2PKH: scriptSig has signature + pubkey, no witness
-          baseSize += 1 + 72 + 33; // scriptSig length + sig + pubkey
-          break;
-        default:
-          // Default estimation for unknown types
-          baseSize += 1 + 107; // average scriptSig size
-          break;
-      }
-    }
-
-    // Calculate output sizes
-    for (const output of outputs) {
-      // Each output: value (8) + scriptPubKey length + scriptPubKey
-      baseSize += 8; // value
-
-      if ("address" in output && output.address) {
-        const addressType = getAddressType(output.address);
-        switch (addressType) {
-          case AddressType.P2WPKH:
-            baseSize += 1 + 22; // length + scriptPubKey
-            break;
-          case AddressType.P2TR:
-            baseSize += 1 + 34; // length + scriptPubKey
-            break;
-          case AddressType.P2PKH:
-            baseSize += 1 + 25; // length + scriptPubKey
-            break;
-          default:
-            baseSize += 1 + 25; // default size
-            break;
-        }
-      } else if ("script" in output && output.script) {
-        // For script outputs, use the actual script length
-        baseSize +=
-          this.getVarIntSize(output.script.length) + output.script.length;
-      } else {
-        // Default for unknown output types
-        baseSize += 1 + 25;
-      }
-    }
-
-    // Add witness header if there are witness inputs
-    if (witnessSize > 0) {
-      witnessSize += 2; // witness marker + flag
-    }
-
-    // Calculate weight: base_size * 4 + witness_size
-    const weight = baseSize * 4 + witnessSize;
-
-    // Virtual size is weight / 4, rounded up
-    return Math.ceil(weight / 4);
-  }
-
-  /**
-   * Get the size of a variable integer
-   */
-  private getVarIntSize(value: number): number {
-    if (value < 0xfd) return 1;
-    if (value <= 0xffff) return 3;
-    if (value <= 0xffffffff) return 5;
-    return 9;
-  }
-
-  /**
-   * Determine address type from input data
-   */
-  private getInputAddressType(input: TxInputData): string {
-    // Check if it's a Taproot input
-    if (input.tapInternalKey) {
-      return "P2TR";
-    }
-
-    // Check if it has witness data (P2WPKH or P2WSH)
-    if (input.witnessUtxo) {
-      const script = input.witnessUtxo.script;
-      if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) {
-        return "P2WPKH";
-      }
-      if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) {
-        return "P2WSH";
-      }
-    }
-
-    // Default to P2PKH for legacy inputs
-    return "P2PKH";
   }
 
   isCommitmentMatched(
@@ -639,14 +273,18 @@ export abstract class RgbppBtcWallet {
       },
     ];
 
-    const { inputs } = await this.collectUtxos(targetValue, btcUtxoParams);
-
-    const { balancedInputs, balancedOutputs } = await this.balanceInputsOutputs(
-      inputs,
-      outputs,
+    const { inputs } = await this.txBuilder.collectUtxos(
+      targetValue,
       btcUtxoParams,
-      feeRate,
     );
+
+    const { balancedInputs, balancedOutputs } =
+      await this.txBuilder.balanceInputsOutputs(
+        inputs,
+        outputs,
+        btcUtxoParams,
+        feeRate,
+      );
     const psbt = new Psbt({ network: toBtcNetwork(this.networkConfig.name) });
     balancedInputs.forEach((input) => {
       psbt.data.addInput(input);
@@ -658,10 +296,13 @@ export abstract class RgbppBtcWallet {
     const txId = trimHexPrefix(await this.signAndBroadcast(psbt));
 
     // Wait for transaction to be indexed by API with retry mechanism
-    let btcTx = await retryWithBackoff(() => this.getTransaction(txId), {
-      maxRetries: retryOptions?.maxRetries,
-      initialDelay: retryOptions?.initialDelay,
-    });
+    let btcTx = await retryWithBackoff(
+      () => this.apiClient.getTransaction(txId),
+      {
+        maxRetries: retryOptions?.maxRetries,
+        initialDelay: retryOptions?.initialDelay,
+      },
+    );
 
     // Wait for confirmation
     const intervalSeconds = confirmationPollInterval / 1000;
@@ -671,7 +312,7 @@ export abstract class RgbppBtcWallet {
       );
       await ccc.sleep(confirmationPollInterval);
       try {
-        btcTx = await this.getTransaction(txId);
+        btcTx = await this.apiClient.getTransaction(txId);
       } catch (error) {
         console.warn(
           `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
@@ -683,91 +324,5 @@ export abstract class RgbppBtcWallet {
       txId,
       index: 0,
     };
-  }
-
-  getTransaction(txId: string) {
-    return this.btcAssetsApi.request<BtcApiTransaction>(
-      `/bitcoin/v1/transaction/${txId}`,
-    );
-  }
-
-  async getTransactionHex(txId: string) {
-    const { hex } = await this.btcAssetsApi.request<BtcApiTransactionHex>(
-      `/bitcoin/v1/transaction/${txId}/hex`,
-    );
-    return hex;
-  }
-
-  getUtxos(address: string, params?: BtcApiUtxoParams) {
-    return this.btcAssetsApi.request<BtcApiUtxo[]>(
-      `/bitcoin/v1/address/${address}/unspent`,
-      {
-        params,
-      },
-    );
-  }
-
-  /**
-   * Get the balance of a Bitcoin address
-   * @param address The Bitcoin address
-   * @param params Optional parameters for balance query
-   * @returns Balance information including total, available, pending, dust, and RGB++ satoshi amounts
-   */
-  getBalance(address: string, params?: BtcApiBalanceParams) {
-    return this.btcAssetsApi.request<BtcApiBalance>(
-      `/bitcoin/v1/address/${address}/balance`,
-      {
-        params,
-      },
-    );
-  }
-
-  async getRgbppSpvProof(btcTxId: string, confirmations: number) {
-    const spvProof: RgbppApiSpvProof | null =
-      await this.btcAssetsApi.request<RgbppApiSpvProof>(
-        "/rgbpp/v1/btc-spv/proof",
-        {
-          params: {
-            btc_txid: btcTxId,
-            confirmations,
-          },
-        },
-      );
-
-    return spvProof
-      ? {
-          proof: spvProof.proof as ccc.Hex,
-          spvClientOutpoint: ccc.OutPoint.from({
-            txHash: spvProof.spv_client.tx_hash,
-            index: spvProof.spv_client.index,
-          }),
-        }
-      : null;
-  }
-
-  getRecommendedFee() {
-    return this.btcAssetsApi.request<BtcApiRecommendedFeeRates>(
-      `/bitcoin/v1/fees/recommended`,
-    );
-  }
-
-  async sendTransaction(txHex: string): Promise<string> {
-    const { txid: txId } = await this.btcAssetsApi.post<BtcApiSentTransaction>(
-      "/bitcoin/v1/transaction",
-      {
-        body: JSON.stringify({
-          txhex: txHex,
-        }),
-      },
-    );
-    return txId;
-  }
-
-  async getRgbppCellOutputs(btcAddress: string) {
-    const res = await this.btcAssetsApi.request<
-      { cellOutput: ccc.CellOutput }[]
-    >(`/rgbpp/v1/address/${btcAddress}/assets`);
-
-    return res.map((item: { cellOutput: ccc.CellOutput }) => item.cellOutput);
   }
 }
