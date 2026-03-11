@@ -1012,6 +1012,91 @@ importers:
         specifier: ^8.41.0
         version: 8.41.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
 
+  packages/rgbpp:
+    dependencies:
+      '@bitcoinerlab/secp256k1':
+        specifier: 1.1.1
+        version: 1.1.1
+      '@ckb-ccc/core':
+        specifier: workspace:*
+        version: link:../core
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.8.0
+      bip32:
+        specifier: 4.0.0
+        version: 4.0.0
+      bitcoinjs-lib:
+        specifier: 6.1.6
+        version: 6.1.6
+      ecpair:
+        specifier: 2.1.0
+        version: 2.1.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
+    devDependencies:
+      '@ckb-ccc/spore':
+        specifier: workspace:*
+        version: link:../spore
+      '@ckb-ccc/udt':
+        specifier: workspace:*
+        version: link:../udt
+      '@eslint/js':
+        specifier: ^9.34.0
+        version: 9.34.0
+      '@exact-realty/multipart-parser':
+        specifier: ^1.0.13
+        version: 1.0.14
+      '@types/jest':
+        specifier: ^29.5.14
+        version: 29.5.14
+      '@types/lodash':
+        specifier: ^4.17.14
+        version: 4.17.20
+      '@types/node':
+        specifier: ^22.10.6
+        version: 22.19.3
+      copyfiles:
+        specifier: ^2.4.1
+        version: 2.4.1
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      eslint:
+        specifier: ^9.34.0
+        version: 9.34.0(jiti@2.5.1)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@9.34.0(jiti@2.5.1))
+      eslint-plugin-prettier:
+        specifier: ^5.5.4
+        version: 5.5.4(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.34.0(jiti@2.5.1)))(eslint@9.34.0(jiti@2.5.1))(prettier@3.6.2)
+      jest:
+        specifier: ^29.7.0
+        version: 29.7.0(@types/node@22.19.3)(ts-node@10.9.2(@types/node@22.19.3)(typescript@5.9.2))
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
+      prettier-plugin-organize-imports:
+        specifier: ^4.2.0
+        version: 4.2.0(prettier@3.6.2)(typescript@5.9.2)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+      ts-jest:
+        specifier: ^29.2.5
+        version: 29.4.1(@babel/core@7.28.3)(@jest/transform@30.1.1)(@jest/types@30.0.5)(babel-jest@30.1.1(@babel/core@7.28.3))(jest-util@30.0.5)(jest@29.7.0(@types/node@22.19.3)(ts-node@10.9.2(@types/node@22.19.3)(typescript@5.9.2)))(typescript@5.9.2)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.2
+      typescript-eslint:
+        specifier: ^8.41.0
+        version: 8.49.0(eslint@9.34.0(jiti@2.5.1))(typescript@5.9.2)
+
   packages/shell:
     dependencies:
       '@ckb-ccc/core':
