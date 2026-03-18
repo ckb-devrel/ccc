@@ -1,5 +1,12 @@
+import * as ecc from "@bitcoinerlab/secp256k1";
 import { ccc } from "@ckb-ccc/connector-react";
+import * as bitcoin from "bitcoinjs-lib";
 import * as React from "react";
+
+// Initialize the ECC library for bitcoinjs-lib to support Schnorr signatures (Taproot).
+// This must be done once globally before any PSBT operations.
+bitcoin.initEccLib(ecc);
+
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
@@ -107,6 +114,7 @@ export async function execute(
         },
         signer,
         client: signer.client,
+        bitcoin,
       };
     }
 

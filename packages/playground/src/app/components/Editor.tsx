@@ -157,7 +157,7 @@ export function Editor({
           });
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
+            "import { ccc } from '@ckb-ccc/core'; import * as bitcoin from 'bitcoinjs-lib'; export { bitcoin }; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
