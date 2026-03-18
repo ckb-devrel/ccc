@@ -81,3 +81,7 @@ export function hashCkb(...data: BytesLike[]): Hex {
   data.forEach((d) => hasher.update(d));
   return hasher.digest();
 }
+
+export function hashCkbShort(...data: BytesLike[]): Hex {
+  return hashCkb(...data).slice(0, HASH_CKB_SHORT_LENGTH * 2 + 2) as Hex;
+}

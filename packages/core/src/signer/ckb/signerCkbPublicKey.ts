@@ -2,7 +2,7 @@ import { Address } from "../../address/index.js";
 import { bytesFrom } from "../../bytes/index.js";
 import { Script, Transaction, TransactionLike } from "../../ckb/index.js";
 import { CellDepInfo, Client, KnownScript } from "../../client/index.js";
-import { HASH_CKB_SHORT_LENGTH, hashCkb } from "../../hasher/index.js";
+import { hashCkbShort } from "../../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 import { SECP256K1_SIGNATURE_LENGTH } from "./secp256k1Signing.js";
@@ -48,7 +48,7 @@ export class SignerCkbPublicKey extends Signer {
     return Address.fromKnownScript(
       this.client,
       KnownScript.Secp256k1Blake160,
-      bytesFrom(hashCkb(this.publicKey)).slice(0, HASH_CKB_SHORT_LENGTH),
+      hashCkbShort(this.publicKey),
     );
   }
 

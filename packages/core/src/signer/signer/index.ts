@@ -509,6 +509,12 @@ export abstract class SignerMultisig extends Signer {
   abstract getMemberThreshold(): Promise<number>;
 
   /**
+   * Get the count of required member of the multisig script.
+   * @returns The must match count.
+   */
+  abstract getMemberRequiredCount(): Promise<number>;
+
+  /**
    * Get the number of signatures in the transaction.
    * @param _ - The transaction.
    * @returns The number of signatures.

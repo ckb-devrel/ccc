@@ -1,10 +1,8 @@
 import { SinceLike, Transaction, TransactionLike } from "../../ckb/index.js";
 import { Client, KnownScript, ScriptInfoLike } from "../../client/index.js";
+import { hashCkbShort } from "../../hasher/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
-import {
-  signMessageSecp256k1,
-  verifyMessageSecp256k1,
-} from "./secp256k1Signing.js";
+import { signMessageSecp256k1 } from "./secp256k1Signing.js";
 import { SignerCkbPrivateKey } from "./signerCkbPrivateKey.js";
 import {
   MultisigCkbWitnessLike,
@@ -51,6 +49,14 @@ export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
   async signOnlyTransaction(txLike: TransactionLike): Promise<Transaction> {
     let tx = Transaction.from(txLike);
 
+    const thisPubkeyHash = hashCkbShort(this.signer.publicKey);
+
+    const index = this.multisigInfo.publicKeyHashes.indexOf(thisPubkeyHash);
+    if (index === -1) {
+      return tx;
+    }
+    const isSelfRequired = index < this.multisigInfo.mustMatch;
+
     for (const { script } of await this.scriptInfos) {
       const info = await this.getSignInfo(tx, script);
       if (!info) {
@@ -62,31 +68,47 @@ export class SignerMultisigCkbPrivateKey extends SignerMultisigCkbReadonly {
         tx,
         info.position,
         async (witness) => {
-          if (
-            witness.signatures.some(
-              (sig) =>
-                sig !== SignerMultisigCkbPrivateKey.EmptySignature &&
-                verifyMessageSecp256k1(
-                  info.message,
-                  sig,
-                  this.signer.publicKey,
-                ),
-            )
-          ) {
-            // Has signed
-            return;
+          // We re-evaluate the signatures to filter invalid / excessive signatures
+          const signatures: Hex[] = [];
+          let requiredCount = 0;
+
+          // === Returns if: ===
+          // === 1. This signer already signed the transaction ===
+          // === 2. The transaction already has enough flexible signatures, and this signer is not required ===
+          // === 3. `mustMatch` equals to `threshold` but we have more this signer is not required.
+          for (const {
+            pubkeyHash,
+            signature,
+            isRequired,
+          } of witness.generatePublicKeyHashesFromSignatures(info.message)) {
+            if (pubkeyHash === thisPubkeyHash) {
+              // Has signed
+              return;
+            }
+
+            if (isRequired) {
+              requiredCount += 1;
+            } else if (
+              signatures.length - requiredCount >=
+              this.multisigInfo.flexibleThreshold
+            ) {
+              // Too many flexible signatures
+              if (!isSelfRequired) {
+                return;
+              }
+              continue;
+            }
+
+            signatures.push(signature);
+            if (signatures.length >= this.multisigInfo.threshold) {
+              // Too many signatures and the flexible detect doesn't work. Only happens if all signatures are required.
+              return;
+            }
           }
+          // === This signature is required or it's flexible but we don't have enough flexible signatures ===
 
-          const empty = witness.signatures.findIndex(
-            (sig) => sig === SignerMultisigCkbPrivateKey.EmptySignature,
-          );
-          if (empty === -1) {
-            return;
-          }
-
-          const signature = signMessageSecp256k1(info.message, this.privateKey);
-
-          witness.signatures[empty] = signature;
+          signatures.push(signMessageSecp256k1(info.message, this.privateKey));
+          witness.signatures = signatures;
         },
       );
     }

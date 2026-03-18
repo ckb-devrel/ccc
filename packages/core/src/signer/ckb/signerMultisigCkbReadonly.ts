@@ -1,5 +1,5 @@
 import { Address } from "../../address/index.js";
-import { Bytes, bytesConcat, bytesFrom } from "../../bytes/index.js";
+import { Bytes, bytesConcat, bytesFrom, BytesLike } from "../../bytes/index.js";
 import {
   Script,
   ScriptLike,
@@ -19,7 +19,11 @@ import {
   ScriptInfoLike,
 } from "../../client/index.js";
 import { codec, Entity } from "../../codec/index.js";
-import { HASH_CKB_SHORT_LENGTH, hashCkb } from "../../hasher/index.js";
+import {
+  HASH_CKB_SHORT_LENGTH,
+  hashCkb,
+  hashCkbShort,
+} from "../../hasher/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
 import { numFrom, NumLike, numToBytes } from "../../num/index.js";
 import { apply, reduceAsync } from "../../utils/index.js";
@@ -175,6 +179,13 @@ export class MultisigCkbWitness extends Entity.Base<
   }
 
   /**
+   * Get the threshold of flexible signatures.
+   */
+  get flexibleThreshold() {
+    return this.threshold - this.mustMatch;
+  }
+
+  /**
    * Get the script args of the multisig script.
    *
    * @param since - The since value.
@@ -204,6 +215,81 @@ export class MultisigCkbWitness extends Entity.Base<
       this.threshold === other.threshold &&
       this.mustMatch === other.mustMatch
     );
+  }
+
+  /**
+   * Generate valid public key hashes and their signatures from the witness.
+   * This method filters out invalid signatures, duplicate signatures, and signatures not in the multisig script.
+   *
+   * @param message - The message signed.
+   * @returns A generator of public key hashes, signatures, and whether the signature is required.
+   */
+  *generatePublicKeyHashesFromSignatures(message: BytesLike): Generator<{
+    pubkeyHash: Hex;
+    signature: Hex;
+    isRequired: boolean;
+  }> {
+    const publicKeyHashesFromSignature = new Set<Hex>();
+
+    for (const signature of this.signatures.filter(
+      (sig) => sig !== SignerMultisigCkbReadonly.EmptySignature,
+    )) {
+      const pubkey = (() => {
+        try {
+          return recoverMessageSecp256k1(message, signature);
+        } catch (_) {
+          // Ignore invalid signature
+          return;
+        }
+      })();
+      if (pubkey === undefined) {
+        continue;
+      }
+
+      const pubkeyHash = hashCkbShort(pubkey);
+      if (publicKeyHashesFromSignature.has(pubkeyHash)) {
+        continue;
+      }
+
+      const index = this.publicKeyHashes.indexOf(pubkeyHash);
+      if (index === -1) {
+        continue;
+      }
+      publicKeyHashesFromSignature.add(pubkeyHash);
+      const isRequired = index < this.mustMatch;
+
+      yield {
+        pubkeyHash,
+        signature,
+        isRequired,
+      };
+    }
+  }
+
+  /**
+   * Calculate the number of matched signatures in the witness.
+   *
+   * @param message - The message signed.
+   * @returns The number of required and flexible signatures.
+   */
+  calcMatchedSignaturesCount(message: BytesLike): {
+    required: number;
+    flexible: number;
+  } {
+    let required = 0;
+    let flexible = 0;
+
+    for (const { isRequired } of this.generatePublicKeyHashesFromSignatures(
+      message,
+    )) {
+      if (isRequired) {
+        required += 1;
+      } else {
+        flexible += 1;
+      }
+    }
+
+    return { required, flexible };
   }
 }
 
@@ -288,6 +374,15 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
    */
   async getMemberThreshold() {
     return this.multisigInfo.threshold;
+  }
+
+  /**
+   * Get the count of required member of the multisig script.
+   *
+   * @returns The must match count.
+   */
+  async getMemberRequiredCount() {
+    return this.multisigInfo.mustMatch;
   }
 
   async connect(): Promise<void> {}
@@ -379,22 +474,22 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     const multisigWitness =
       this.decodeWitnessArgs(witnessArgs) ?? this.multisigInfo.clone();
 
-    multisigWitness.signatures = multisigWitness.signatures.slice(
+    const transformed = MultisigCkbWitness.from(
+      (await transformer?.(multisigWitness, witnessArgs)) ?? multisigWitness,
+    );
+
+    transformed.signatures = transformed.signatures.slice(
       0,
       this.multisigInfo.threshold,
     );
-    multisigWitness.signatures.push(
+    transformed.signatures.push(
       ...Array.from(
-        new Array(
-          this.multisigInfo.threshold - multisigWitness.signatures.length,
-        ),
+        new Array(this.multisigInfo.threshold - transformed.signatures.length),
         () => SignerMultisigCkbReadonly.EmptySignature,
       ),
     );
 
-    witnessArgs.lock = MultisigCkbWitness.from(
-      (await transformer?.(multisigWitness, witnessArgs)) ?? multisigWitness,
-    ).toHex();
+    witnessArgs.lock = transformed.toHex();
     tx.setWitnessArgsAt(index, witnessArgs);
 
     return tx;
@@ -438,7 +533,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
   }
 
   /**
-   * Get the number of signatures in the transaction.
+   * Get the number of valid signatures in the transaction.
    *
    * @param txLike - The transaction.
    * @returns The number of signatures.
@@ -450,25 +545,25 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     let minSignaturesCount = undefined;
 
     for (const { script } of await this.scriptInfos) {
-      const index = await tx.findInputIndexByLock(script, this.client);
-      if (index === undefined) {
+      const info = await this.getSignInfo(tx, script);
+      if (info === undefined) {
         continue;
       }
 
-      const multisigWitness = this.decodeWitnessArgsAt(tx, index);
-
+      const multisigWitness = this.decodeWitnessArgsAt(tx, info.position);
       if (!multisigWitness) {
         minSignaturesCount = 0;
-      } else {
-        minSignaturesCount = Math.min(
-          minSignaturesCount ?? 256,
-          multisigWitness.signatures.reduce(
-            (acc, s) =>
-              acc + (s === SignerMultisigCkbReadonly.EmptySignature ? 0 : 1),
-            0,
-          ),
-        );
+        continue;
       }
+
+      const { required, flexible } = multisigWitness.calcMatchedSignaturesCount(
+        info.message,
+      );
+
+      minSignaturesCount = Math.min(
+        minSignaturesCount ?? 256,
+        required + Math.min(flexible, this.multisigInfo.flexibleThreshold),
+      );
     }
 
     return minSignaturesCount;
@@ -535,6 +630,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     }
 
     let res = Transaction.from(txs[0]);
+
     for (const { script } of await this.scriptInfos) {
       const info = await this.getSignInfo(res, script);
       if (info === undefined) {
@@ -542,6 +638,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
       }
 
       const signatures = new Map<Hex, Hex>();
+      let requiredCount = 0;
       for (const txLike of txs) {
         const tx = Transaction.from(txLike);
         const multisigWitness = this.decodeWitnessArgsAt(tx, info.position);
@@ -550,12 +647,29 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
           continue;
         }
 
-        for (const sig of multisigWitness.signatures) {
-          try {
-            signatures.set(recoverMessageSecp256k1(info.message, sig), sig);
-          } catch (_) {
-            // Ignore invalid signatures
+        for (const {
+          pubkeyHash,
+          signature,
+          isRequired,
+        } of multisigWitness.generatePublicKeyHashesFromSignatures(
+          info.message,
+        )) {
+          if (signatures.has(pubkeyHash)) {
+            continue;
           }
+
+          if (isRequired) {
+            // A required public key
+            requiredCount += 1;
+          } else if (
+            signatures.size - requiredCount >=
+            this.multisigInfo.flexibleThreshold
+          ) {
+            // Not a required public key, and we have too many optional public key
+            continue;
+          }
+
+          signatures.set(pubkeyHash, signature);
           if (signatures.size >= this.multisigInfo.threshold) {
             break;
           }
