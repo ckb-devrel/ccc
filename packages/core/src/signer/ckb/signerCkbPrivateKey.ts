@@ -1,11 +1,13 @@
-import { secp256k1 } from "@noble/curves/secp256k1";
-import { bytesConcat, bytesFrom, BytesLike } from "../../bytes/index.js";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { bytesFrom, BytesLike } from "../../bytes/index.js";
 import { Transaction, TransactionLike, WitnessArgs } from "../../ckb/index.js";
 import { Client } from "../../client/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
-import { numBeToBytes } from "../../num/index.js";
+import {
+  messageHashCkbSecp256k1,
+  signMessageSecp256k1,
+} from "./secp256k1Signing.js";
 import { SignerCkbPublicKey } from "./signerCkbPublicKey.js";
-import { messageHashCkbSecp256k1 } from "./verifyCkbSecp256k1.js";
 
 /**
  * @public
@@ -24,19 +26,7 @@ export class SignerCkbPrivateKey extends SignerCkbPublicKey {
   }
 
   async _signMessage(message: HexLike): Promise<Hex> {
-    const signature = secp256k1.sign(
-      bytesFrom(message),
-      bytesFrom(this.privateKey),
-    );
-    const { r, s, recovery } = signature;
-
-    return hexFrom(
-      bytesConcat(
-        numBeToBytes(r, 32),
-        numBeToBytes(s, 32),
-        numBeToBytes(recovery, 1),
-      ),
-    );
+    return signMessageSecp256k1(message, this.privateKey);
   }
 
   async signMessageRaw(message: string | BytesLike): Promise<Hex> {

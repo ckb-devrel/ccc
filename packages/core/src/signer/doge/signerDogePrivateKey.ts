@@ -1,4 +1,4 @@
-import { secp256k1 } from "@noble/curves/secp256k1";
+import { secp256k1 } from "@noble/curves/secp256k1.js";
 import {
   Bytes,
   bytesConcat,
@@ -87,10 +87,13 @@ export class SignerDogePrivateKey extends SignerDoge {
     const signature = secp256k1.sign(
       messageHashDogeEcdsa(challenge),
       this.privateKey,
+      {
+        format: "recovered",
+        prehash: false,
+      },
     );
-
     return bytesTo(
-      bytesConcat([31 + signature.recovery], signature.toCompactRawBytes()),
+      bytesConcat([31 + Number(signature[0])], signature.slice(1)),
       "base64",
     );
   }

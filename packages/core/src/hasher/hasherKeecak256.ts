@@ -1,4 +1,4 @@
-import { keccak_256 } from "@noble/hashes/sha3";
+import { keccak_256 } from "@noble/hashes/sha3.js";
 import { BytesLike, bytesFrom } from "../bytes/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import { Hasher } from "./hasher.js";

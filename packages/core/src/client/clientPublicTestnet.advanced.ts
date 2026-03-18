@@ -54,6 +54,23 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
         },
       ],
     },
+    [KnownScript.Secp256k1MultisigV2Beta]: {
+      codeHash:
+        "0x765b3ed6ae264b335d07e73ac332bf2c0f38f8d3340ed521cb447b4c42dd5f09",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xf2013f123b2cb745e3fdf5c935a3925647496f88090503eef58332a9245b4172",
+              index: 0,
+            },
+            depType: "depGroup",
+          },
+        },
+      ],
+    },
     [KnownScript.Secp256k1MultisigV2]: {
       codeHash:
         "0x36c971b8d41fbd94aabca77dc75e826729ac98447b46f91e00796155dddb0d29",

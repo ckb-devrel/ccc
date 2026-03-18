@@ -12,46 +12,42 @@
   },
   "sideEffects": false,
   "main": "./dist.commonjs/index.js",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
       "require": "./dist.commonjs/index.js",
-      "default": "./dist.commonjs/index.js"
-    },
-    "./barrel": {
-      "import": "./dist/barrel.js",
-      "require": "./dist.commonjs/barrel.js",
-      "default": "./dist.commonjs/barrel.js"
-    },
-    "./advancedBarrel": {
-      "import": "./dist/advancedBarrel.js",
-      "require": "./dist.commonjs/advancedBarrel.js",
-      "default": "./dist.commonjs/advancedBarrel.js"
+      "import": "./dist/index.mjs"
     },
     "./advanced": {
-      "import": "./dist/advanced.js",
       "require": "./dist.commonjs/advanced.js",
-      "default": "./dist.commonjs/advanced.js"
-    }
+      "import": "./dist/advanced.mjs"
+    },
+    "./advancedBarrel": {
+      "require": "./dist.commonjs/advancedBarrel.js",
+      "import": "./dist/advancedBarrel.mjs"
+    },
+    "./barrel": {
+      "require": "./dist.commonjs/barrel.js",
+      "import": "./dist/barrel.mjs"
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
     "test": "vitest",
     "test:ci": "vitest run",
-    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "build": "tsdown",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
     "@types/ws": "^8.18.1",
-    "copyfiles": "^2.4.1",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "rimraf": "^6.0.1",
+    "tsdown": "0.19.0-beta.3",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.41.0",
     "vitest": "^3.2.4"
@@ -61,9 +57,9 @@
   },
   "dependencies": {
     "@joyid/ckb": "^1.1.2",
-    "@noble/ciphers": "^0.5.3",
-    "@noble/curves": "^1.9.7",
-    "@noble/hashes": "^1.8.0",
+    "@noble/ciphers": "^2.1.1",
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
     "bech32": "^2.0.0",
     "bs58check": "^4.0.0",
     "buffer": "^6.0.3",
@@ -71,5 +67,6 @@
     "isomorphic-ws": "^5.0.0",
     "ws": "^8.18.3"
   },
-  "packageManager": "pnpm@10.8.1"
+  "packageManager": "pnpm@10.8.1",
+  "types": "./dist.commonjs/index.d.ts"
 }
