@@ -4,5 +4,6 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist.commonjs"
-  }
+  },
+  "include": ["src/**/*"]
 }

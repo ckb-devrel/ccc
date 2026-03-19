@@ -1,15 +1,9 @@
-/**
- * Channel RPC types (camelCase). Enumerated from @nervosnetwork/fiber-js channel.d.ts.
- * Params are standalone classes with static from(like) for CCC-style flexible inputs.
- * Amounts (e.g. fundingAmount) are NumLike; caller is responsible for fixed8 (8 decimals).
- */
 import { ccc } from "@ckb-ccc/core";
 
 // ─── OpenChannel ───────────────────────────────────────────────────────────
 
 export type OpenChannelParamsLike = {
   peerId: string;
-  /** Amount in fixed8 (caller must scale by 10^8 if using human units). */
   fundingAmount: ccc.NumLike;
   public?: boolean;
   fundingUdtTypeScript?: ccc.ScriptLike;
@@ -107,7 +101,6 @@ export class AbandonChannelParams {
 
 export type AcceptChannelParamsLike = {
   temporaryChannelId: ccc.HexLike;
-  /** Amount in fixed8 (caller must scale by 10^8 if using human units). */
   fundingAmount: ccc.NumLike;
   shutdownScript?: ccc.ScriptLike;
   maxTlcValueInFlight?: ccc.NumLike;

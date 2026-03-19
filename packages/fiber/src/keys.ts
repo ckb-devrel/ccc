@@ -1,7 +1,3 @@
-/**
- * Recursive key conversion between camelCase (CCC SDK) and snake_case (Fiber RPC).
- */
-
 function camelToSnakeKey(s: string): string {
   return s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }
@@ -29,12 +25,12 @@ function convertKeys(value: unknown, keyFn: (key: string) => string): unknown {
   return value;
 }
 
-/** Convert object keys from camelCase to snake_case (recursive). Used when sending params to Fiber RPC. */
+// Convert object keys from camelCase to snake_case (recursive). Used when sending params to Fiber RPC.
 export function camelToSnake<T = unknown>(value: T): unknown {
   return convertKeys(value, camelToSnakeKey);
 }
 
-/** Convert object keys from snake_case to camelCase (recursive). Used when receiving results from Fiber RPC. */
+// Convert object keys from snake_case to camelCase (recursive). Used when receiving results from Fiber RPC.
 export function snakeToCamel<T = unknown>(value: T): unknown {
   return convertKeys(value, snakeToCamelKey);
 }

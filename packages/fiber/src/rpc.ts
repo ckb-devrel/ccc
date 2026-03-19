@@ -2,18 +2,6 @@ import { ccc } from "@ckb-ccc/core";
 import { camelToSnake, snakeToCamel } from "./keys.js";
 
 /**
- * Error thrown when a Fiber RPC call fails (server error or method not found).
- */
-export class RPCError extends Error {
-  constructor(
-    public readonly error: { code: number; message: string; data?: unknown },
-  ) {
-    super(`[RPC Error ${error.code}] ${error.message}`);
-    this.name = "RPCError";
-  }
-}
-
-/**
  * Serializes JavaScript values for Fiber JSON-RPC: bigint and number become hex strings.
  * Other values are passed through; objects and arrays are traversed recursively.
  */
@@ -36,19 +24,6 @@ export function serializeRpcParams(value: unknown): unknown {
   return value;
 }
 
-function parseRpcError(err: unknown): { code: number; message: string } {
-  const obj: Record<string, unknown> =
-    err && typeof err === "object" ? (err as Record<string, unknown>) : {};
-  const code = typeof obj.code === "number" ? obj.code : -1;
-  const message =
-    err instanceof Error
-      ? err.message
-      : typeof obj.message === "string"
-        ? obj.message
-        : String(err);
-  return { code, message };
-}
-
 export interface FiberClientConfig extends ccc.RequestorJsonRpcConfig {
   endpoint: string;
 }
@@ -69,20 +44,7 @@ export class FiberClient {
     });
   }
 
-  /**
-   * Call a Fiber RPC method. Params are serialized for JSON (bigint/number → hex).
-   * Use this when you already have snake_case params (e.g. raw RPC).
-   */
   async call<T>(method: string, params: unknown[]): Promise<T> {
-    const serialized = (params ?? []).map((p) => serializeRpcParams(p));
-    return this.request(method, serialized) as Promise<T>;
-  }
-
-  /**
-   * Call a Fiber RPC method with camelCase params; converts to snake_case for the wire and result back to camelCase.
-   * Use this for the public SDK API.
-   */
-  async callCamel<T>(method: string, params: unknown[]): Promise<T> {
     const serialized = (params ?? []).map((p) =>
       serializeRpcParams(camelToSnake(p)),
     );
@@ -94,24 +56,10 @@ export class FiberClient {
     method: string,
     serialized: unknown[],
   ): Promise<unknown> {
-    try {
-      const result = await this.requestor.request(method, serialized);
-      if (result === undefined) {
-        throw new RPCError({
-          code: -1,
-          message: `RPC method "${method}" failed`,
-        });
-      }
-      return result;
-    } catch (err) {
-      const { code, message } = parseRpcError(err);
-      if (message.includes("Method not found")) {
-        throw new RPCError({
-          code: -32601,
-          message: `RPC method "${method}" not found`,
-        });
-      }
-      throw new RPCError({ code, message });
+    const result = await this.requestor.request(method, serialized);
+    if (result === undefined) {
+      throw new Error(`RPC method "${method}" failed`);
     }
+    return result;
   }
 }

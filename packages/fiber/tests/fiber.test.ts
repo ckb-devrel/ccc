@@ -1,22 +1,18 @@
 /**
  * Integration tests for Fiber SDK (channel, invoice, payment).
- * When running in-process: starts two Fiber nodes (A and B) so tests can target either node; node A at RPC_PORT_A,
- * node B at RPC_PORT_B. When FIBER_RPC_URL is set: uses that single node for all tests. No mock fallback;
- * distinct FIBER_NODE_UNAVAILABLE on failure.
+ * Starts an in-process Fiber node via FiberRuntime and exercises the SDK
+ * against the HTTP JSON-RPC bridge it provides.
  *
- * Failure-scenario tests call the real node with invalid data (e.g. zero channel_id, invalid invoice string).
- * You may see "Error: invalid data" (and sometimes "failed to parse: ... invalid character '0' at byte 0") in the
- * console from the fiber WASM worker. These are expected: the node rejects the request and the SDK correctly
- * receives the error and the test passes. The message is the node's internal error before it is returned as JSON-RPC
- * error. It is not harmful and does not indicate an SDK bug. If the node expected a different param format (e.g. hex
- * with/without "0x"), that would be a fiber-js/fiber node concern; our SDK sends standard 0x-prefixed hex.
+ * Failure-scenario tests call the real node with invalid data (e.g. zero
+ * channel_id, invalid invoice string). Error messages from the fiber WASM
+ * worker in the console are expected — the node rejects the request and the
+ * SDK correctly surfaces the error. They are not SDK bugs.
  */
 import { ccc } from "@ckb-ccc/core";
-import { Fiber, randomSecretKey } from "@nervosnetwork/fiber-js";
 import crypto from "node:crypto";
-import { createServer, type Server } from "node:http";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { FiberSDK } from "./sdk.js";
+import { FiberSDK } from "../src/sdk.js";
+import { FiberRuntime, installNodePolyfills } from "./runtime/index.js";
 
 vi.mock("@joyid/ckb", () => ({
   verifySignature: async () => true,
@@ -24,7 +20,6 @@ vi.mock("@joyid/ckb", () => ({
 }));
 
 const RPC_PORT = 18227;
-const RPC_URL = `http://127.0.0.1:${RPC_PORT}`;
 const FIXED8_SCALE = 10n ** 8n;
 const CHANNEL_TEST_FUNDING_AMOUNT_FIXED8 = ccc.numToHex(500n * FIXED8_SCALE);
 const CHANNEL_TEST_FEE_RATE = 1020;
@@ -32,155 +27,27 @@ const INVOICE_TEST_AMOUNT = 100_000_000;
 const INVOICE_TEST_EXPIRY_SEC = 3600;
 const INVOICE_TEST_FINAL_EXPIRY_DELTA = 9_600_000;
 
-type NodeConfig = {
-  fiberPort: number;
-  rpcPort: number;
-  databasePrefix: string;
-  bootnodeAddrs?: string[];
-};
-
 function hex(bytes: number): ccc.Hex {
   return ("0x" + "00".repeat(bytes)) as ccc.Hex;
 }
 
-function fiberConfig(c: NodeConfig): string {
-  const bootnodeYaml =
-    (c.bootnodeAddrs?.length ?? 0) === 0
-      ? "  bootnode_addrs: []"
-      : `  bootnode_addrs:\n${c.bootnodeAddrs!.map((a) => `    - "${a}"`).join("\n")}`;
-  return `
-fiber:
-  listening_addr: "/ip4/127.0.0.1/tcp/${c.fiberPort}"
-${bootnodeYaml}
-  announce_listening_addr: false
-  announced_addrs: []
-  chain: testnet
-  scripts: []
-rpc:
-  listening_addr: "127.0.0.1:${c.rpcPort}"
-ckb:
-  rpc_url: "https://testnet.ckbapp.dev/"
-  udt_whitelist: []
-services:
-  - fiber
-  - rpc
-  - ckb
-`.trim();
-}
-
-function createRpcServer(fiber: Fiber): Server {
-  return createServer((req, res) => {
-    if (req.method !== "POST" || req.url !== "/") {
-      res.writeHead(404);
-      res.end();
-      return;
-    }
-    let body = "";
-    req.setEncoding("utf8");
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-    req.on("end", () => {
-      void (async () => {
-        let id: number | undefined;
-        try {
-          const payload = JSON.parse(body) as {
-            method: string;
-            params?: unknown[];
-            id: number;
-          };
-          const { method, params = [], id: payloadId } = payload;
-          id = payloadId;
-          res.setHeader("Content-Type", "application/json");
-          const result = (await fiber.invokeCommand(method, params)) as unknown;
-          res.end(JSON.stringify({ jsonrpc: "2.0", result, id }));
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          res.end(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              error: {
-                code: -32603,
-                message,
-              },
-              id: id ?? 0,
-            }),
-          );
-        }
-      })();
-    });
-  });
-}
-
-function listenPromise(server: Server, port: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.listen(port, "127.0.0.1", () => resolve());
-    server.on("error", reject);
-  });
-}
-
-async function startOneNode(
-  config: NodeConfig,
-  rpcPort: number,
-): Promise<{
-  fiber: Fiber;
-  server: Server;
-  nodeInfo: { nodeId: string; addresses: string[] };
-}> {
-  const fiberKeyPair = randomSecretKey();
-  const fiber = new Fiber();
-  await fiber
-    .start(
-      fiberConfig(config),
-      fiberKeyPair,
-      randomSecretKey(),
-      undefined,
-      "info",
-      config.databasePrefix,
-    )
-    .catch((err) => {
-      throw new Error(`Fiber could not start. Cause: ${err}`);
-    });
-  const server = createRpcServer(fiber);
-  await listenPromise(server, rpcPort);
-  const nodeInfo = await fiber.nodeInfo();
-  return {
-    fiber,
-    server,
-    nodeInfo: {
-      nodeId: nodeInfo.node_id,
-      addresses: nodeInfo.addresses,
-    },
-  };
-}
-
-let rpcServer: Server | null = null;
-let fiberInstance: Fiber | null = null;
-
-async function startFiberAndServer(): Promise<void> {
-  const fiberNode = await startOneNode(
-    { fiberPort: 8228, rpcPort: 8227, databasePrefix: "/wasm-fiber" },
-    RPC_PORT,
-  );
-  fiberInstance = fiberNode.fiber;
-  rpcServer = fiberNode.server;
-}
-
-async function stopServer(): Promise<void> {
-  rpcServer?.close();
-  await fiberInstance?.stop();
-}
+let runtime: FiberRuntime;
 
 function createSdk(): FiberSDK {
-  return new FiberSDK({ endpoint: RPC_URL, timeout: 10000 });
+  return new FiberSDK({ endpoint: runtime.info.rpcUrl, timeout: 10000 });
 }
 
 beforeAll(async () => {
-  await startFiberAndServer();
+  runtime = new FiberRuntime();
+  await runtime.start({
+    config: { fiberPort: 8228, databasePrefix: "/wasm-fiber" },
+    storage: { type: "memory" },
+    rpcPort: RPC_PORT,
+  });
 }, 60000);
 
 afterAll(async () => {
-  await stopServer();
+  await runtime?.stop();
 }, 5000);
 
 describe("Fiber SDK", () => {

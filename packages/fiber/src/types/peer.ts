@@ -1,9 +1,3 @@
-/**
- * Peer RPC types (camelCase). Aligned with @nervosnetwork/fiber-js peer types
- * (https://github.com/nervosnetwork/fiber/blob/develop/fiber-js/src/types/peer.ts).
- * Params are standalone classes with static from(like) for CCC-style flexible inputs.
- */
-
 // ─── ConnectPeer ───────────────────────────────────────────────────────────
 
 export type ConnectPeerParamsLike = {

@@ -2,8 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts", "scripts/**/*.e2e.ts"],
-    setupFiles: ["./vitest.setup.ts"],
+    include: ["tests/**/*.test.ts"],
     sequence: {
       shuffle: false,
     },

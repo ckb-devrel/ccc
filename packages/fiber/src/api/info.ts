@@ -5,6 +5,6 @@ export class InfoApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async getNodeInfo(): Promise<fiber.NodeInfo> {
-    return this.rpc.callCamel<fiber.NodeInfo>("node_info", []);
+    return this.rpc.call<fiber.NodeInfo>("node_info", []);
   }
 }

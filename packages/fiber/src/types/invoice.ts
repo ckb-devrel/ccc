@@ -1,8 +1,3 @@
-/**
- * Invoice RPC types (camelCase). Enumerated from @nervosnetwork/fiber-js invoice.d.ts.
- * Params are standalone classes with static from(like) for CCC-style flexible inputs.
- * Hex amount/expiry are normalized to minimal form (no leading zeros) for RPC.
- */
 import { ccc } from "@ckb-ccc/core";
 
 /** Minimal hex for RPC (avoids "redundant leading zeros" errors). */

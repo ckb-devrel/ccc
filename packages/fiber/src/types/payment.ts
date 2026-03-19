@@ -1,7 +1,3 @@
-/**
- * Payment RPC types (camelCase). Enumerated from @nervosnetwork/fiber-js payment.d.ts.
- * Params and nested types are standalone classes with static from(like).
- */
 import { ccc } from "@ckb-ccc/core";
 
 export type PaymentSessionStatus =
@@ -10,12 +6,10 @@ export type PaymentSessionStatus =
   | "Success"
   | "Failed";
 
-/** Like-suffixed for param input; values normalized in PaymentCustomRecords.from(). */
 export type PaymentCustomRecordsLike = {
   [key: string]: ccc.HexLike;
 };
 
-/** Normalized custom records (class); build from Like via PaymentCustomRecords.from(like). */
 export class PaymentCustomRecords {
   constructor(public readonly record: Record<string, ccc.Hex>) {}
 
@@ -40,7 +34,6 @@ export type SessionRouteNode = {
   channelOutpoint: ccc.Hex;
 };
 
-/** Plain shape for RPC result (server returns object, not class instance). */
 export type PaymentCustomRecordsPlain = Record<string, ccc.Hex>;
 
 export type GetPaymentCommandResult = {

@@ -8,7 +8,7 @@ export class PaymentApi {
     params: fiber.SendPaymentParamsLike,
   ): Promise<fiber.PaymentResult> {
     const normalized = fiber.SendPaymentCommandParams.from(params);
-    return this.rpc.callCamel<fiber.PaymentResult>("send_payment", [
+    return this.rpc.call<fiber.PaymentResult>("send_payment", [
       { ...normalized },
     ]);
   }
@@ -17,7 +17,7 @@ export class PaymentApi {
     params: fiber.GetPaymentParamsLike,
   ): Promise<fiber.PaymentResult> {
     const normalized = fiber.GetPaymentCommandParams.from(params);
-    return this.rpc.callCamel<fiber.PaymentResult>("get_payment", [
+    return this.rpc.call<fiber.PaymentResult>("get_payment", [
       { ...normalized },
     ]);
   }
@@ -26,7 +26,7 @@ export class PaymentApi {
     params: fiber.BuildRouterParamsLike,
   ): Promise<fiber.BuildRouterResult> {
     const normalized = fiber.BuildRouterParams.from(params);
-    return this.rpc.callCamel<fiber.BuildRouterResult>("build_router", [
+    return this.rpc.call<fiber.BuildRouterResult>("build_router", [
       { ...normalized },
     ]);
   }
@@ -35,7 +35,7 @@ export class PaymentApi {
     params: fiber.SendPaymentWithRouterParamsLike,
   ): Promise<fiber.PaymentResult> {
     const normalized = fiber.SendPaymentWithRouterParams.from(params);
-    return this.rpc.callCamel<fiber.PaymentResult>("send_payment_with_router", [
+    return this.rpc.call<fiber.PaymentResult>("send_payment_with_router", [
       { ...normalized },
     ]);
   }

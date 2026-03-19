@@ -6,19 +6,16 @@ export class PeerApi {
 
   async connectPeer(params: fiber.ConnectPeerParamsLike): Promise<void> {
     const normalized = fiber.ConnectPeerParams.from(params);
-    await this.rpc.callCamel("connect_peer", [{ ...normalized }]);
+    await this.rpc.call("connect_peer", [{ ...normalized }]);
   }
 
   async disconnectPeer(params: fiber.DisconnectPeerParamsLike): Promise<void> {
     const normalized = fiber.DisconnectPeerParams.from(params);
-    await this.rpc.callCamel("disconnect_peer", [{ ...normalized }]);
+    await this.rpc.call("disconnect_peer", [{ ...normalized }]);
   }
 
   async listPeers(): Promise<fiber.PeerInfo[]> {
-    const res = await this.rpc.callCamel<fiber.ListPeerResult>(
-      "list_peers",
-      [],
-    );
+    const res = await this.rpc.call<fiber.ListPeerResult>("list_peers", []);
     return res.peers;
   }
 }

@@ -9,7 +9,7 @@ export class InvoiceApi {
     params: fiber.NewInvoiceParamsLike,
   ): Promise<fiber.NewInvoiceResult> {
     const normalized = fiber.NewInvoiceParams.from(params);
-    return this.rpc.callCamel<fiber.NewInvoiceResult>("new_invoice", [
+    return this.rpc.call<fiber.NewInvoiceResult>("new_invoice", [
       { ...normalized },
     ]);
   }
@@ -18,7 +18,7 @@ export class InvoiceApi {
     params: fiber.ParseInvoiceParamsLike,
   ): Promise<fiber.ParseInvoiceResult> {
     const normalized = fiber.ParseInvoiceParams.from(params);
-    return this.rpc.callCamel<fiber.ParseInvoiceResult>("parse_invoice", [
+    return this.rpc.call<fiber.ParseInvoiceResult>("parse_invoice", [
       { ...normalized },
     ]);
   }
@@ -27,7 +27,7 @@ export class InvoiceApi {
     params: fiber.InvoiceParamsLike,
   ): Promise<fiber.GetInvoiceResult> {
     const normalized = fiber.InvoiceParams.from(params);
-    return this.rpc.callCamel<fiber.GetInvoiceResult>("get_invoice", [
+    return this.rpc.call<fiber.GetInvoiceResult>("get_invoice", [
       { ...normalized },
     ]);
   }
@@ -36,7 +36,7 @@ export class InvoiceApi {
     params: fiber.InvoiceParamsLike,
   ): Promise<fiber.GetInvoiceResult> {
     const normalized = fiber.InvoiceParams.from(params);
-    return this.rpc.callCamel<fiber.GetInvoiceResult>("cancel_invoice", [
+    return this.rpc.call<fiber.GetInvoiceResult>("cancel_invoice", [
       { ...normalized },
     ]);
   }
@@ -46,7 +46,7 @@ export class InvoiceApi {
     paymentHash: ccc.HexLike;
     paymentPreimage: ccc.HexLike;
   }): Promise<void> {
-    await this.rpc.callCamel("settle_invoice", [
+    await this.rpc.call("settle_invoice", [
       {
         paymentHash: ccc.hexFrom(params.paymentHash),
         paymentPreimage: ccc.hexFrom(params.paymentPreimage),
