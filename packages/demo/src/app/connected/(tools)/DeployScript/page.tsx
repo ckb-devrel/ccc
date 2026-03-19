@@ -128,16 +128,13 @@ export default function DeployScript() {
       log("Transaction committed:", explorerTransaction(txHash));
       refreshTypeIdCells();
 
-      setIsWaitingConfirmation(false);
-      setConfirmationMessage("");
-      setConfirmationTxHash("");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       error("Deployment failed:", msg);
+    } finally {
       setIsWaitingConfirmation(false);
       setConfirmationMessage("");
       setConfirmationTxHash("");
-    } finally {
       setIsDeploying(false);
     }
   }, [

@@ -74,8 +74,8 @@ export function useDeployScript() {
           filter: { script: lock },
         })) {
           cells.push(cell);
-          setTypeIdCells([...cells]);
         }
+        setTypeIdCells(cells);
       } catch {
         // ignore
       } finally {
