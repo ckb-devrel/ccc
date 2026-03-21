@@ -14,7 +14,6 @@ import { reduceAsync, sleep } from "../utils/index.js";
 import { ClientCache } from "./cache/index.js";
 import { ClientCacheMemory } from "./cache/memory.js";
 import {
-  ClientCollectableSearchKeyLike,
   DEFAULT_MAX_FEE_RATE,
   DEFAULT_MIN_FEE_RATE,
 } from "./clientTypes.advanced.js";
@@ -23,6 +22,7 @@ import {
   CellDepInfoLike,
   ClientBlock,
   ClientBlockHeader,
+  ClientCollectableSearchKeyLike,
   ClientFindCellsResponse,
   ClientFindTransactionsGroupedResponse,
   ClientFindTransactionsResponse,
@@ -125,7 +125,7 @@ export abstract class Client {
    */
   async getFeeRate(
     blockRange?: NumLike,
-    options?: { maxFeeRate?: NumLike },
+    options?: { maxFeeRate?: NumLike } | null,
   ): Promise<Num> {
     const feeRate = numMax(
       (await this.getFeeRateStatistics(blockRange)).median ?? Zero,
