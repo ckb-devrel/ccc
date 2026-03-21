@@ -127,7 +127,6 @@ export default function DeployScript() {
       await signer.client.waitTransaction(txHash);
       log("Transaction committed:", explorerTransaction(txHash));
       refreshTypeIdCells();
-
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       error("Deployment failed:", msg);
