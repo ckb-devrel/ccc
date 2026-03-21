@@ -175,16 +175,14 @@ export function useDeployScript() {
           resetCellCheckState(
             "Type ID args must be 32 bytes (64 hex characters)",
           );
+          isCheckingRef.current = false;
           return;
         }
       } catch {
         resetCellCheckState("Invalid Type ID args format");
-        return;
-      } finally {
         isCheckingRef.current = false;
+        return;
       }
-
-      isCheckingRef.current = true;
 
       setIsCheckingCell(true);
       setCellCheckError("");
