@@ -1,13 +1,20 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
-import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
 import {
   ClientBlockHeader,
+  ClientCollectableSearchKeyFilterLike,
   type CellDepInfoLike,
   type Client,
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
 import { Codec, Entity, codec } from "../codec/index.js";
+import {
+  FeePayer,
+  FeePayerCompleteFeeChangeFn,
+  FeePayerCompleteInputsContext,
+  FeePayerCompleteInputsOptionsLike,
+  FeePayerFromAddress,
+} from "../feePayer/index.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
@@ -21,15 +28,11 @@ import {
   numToBytes,
   numToHex,
 } from "../num/index.js";
-import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
 import { Epoch } from "./epoch.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
-import {
-  ErrorTransactionInsufficientCapacity,
-  ErrorTransactionInsufficientCoin,
-} from "./transactionErrors.js";
+import { ErrorTransactionInsufficientCoin } from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
 export const DepTypeCodec: Codec<DepTypeLike, DepType> = Codec.from({
@@ -1899,8 +1902,18 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     }, Zero);
   }
 
+  /**
+   * Completes transaction inputs using an accumulator function.
+   *
+   * @param from - The fee payer to collect cells from.
+   * @param filter - The filter for selecting cells.
+   * @param accumulator - A function that accumulates cells until a condition is met.
+   * @param init - The initial value for the accumulator.
+   * @returns A promise that resolves to the number of inputs added and the final accumulated value.
+   * @deprecated Use `FeePayer.completeInputs` instead.
+   */
   async completeInputs<T>(
-    from: Signer,
+    from: FeePayerFromAddress,
     filter: ClientCollectableSearchKeyFilterLike,
     accumulator: (
       acc: T,
@@ -1913,106 +1926,63 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     addedCount: number;
     accumulated?: T;
   }> {
-    const collectedCells = [];
-
-    let acc: T = init;
-    let fulfilled = false;
-    for await (const cell of from.findCells(filter, true)) {
-      if (
-        this.inputs.some(({ previousOutput }) =>
-          previousOutput.eq(cell.outPoint),
-        )
-      ) {
-        continue;
-      }
-      const i = collectedCells.push(cell);
-      const next = await Promise.resolve(
-        accumulator(acc, cell, i - 1, collectedCells),
-      );
-      if (next === undefined) {
-        fulfilled = true;
-        break;
-      }
-      acc = next;
-    }
-
-    collectedCells.forEach((cell) => this.addInput(cell));
-    if (fulfilled) {
-      return {
-        addedCount: collectedCells.length,
-      };
-    }
-
-    return {
-      addedCount: collectedCells.length,
-      accumulated: acc,
-    };
-  }
-
-  async completeInputsByCapacity(
-    from: Signer,
-    capacityTweak?: NumLike,
-    filter?: ClientCollectableSearchKeyFilterLike,
-  ): Promise<number> {
-    const expectedCapacity =
-      this.getOutputsCapacity() + numFrom(capacityTweak ?? 0);
-    const inputsCapacity = await this.getInputsCapacity(from.client);
-    if (inputsCapacity >= expectedCapacity) {
-      return 0;
-    }
-
-    const { addedCount, accumulated } = await this.completeInputs(
-      from,
-      filter ?? {
-        scriptLenRange: [0, 1],
-        outputDataLenRange: [0, 1],
-      },
-      (acc, { cellOutput: { capacity } }) => {
-        const sum = acc + capacity;
-        return sum >= expectedCapacity ? undefined : sum;
-      },
-      inputsCapacity,
-    );
-
-    if (accumulated === undefined) {
-      return addedCount;
-    }
-
-    throw new ErrorTransactionInsufficientCapacity(
-      expectedCapacity - accumulated,
-    );
-  }
-
-  async completeInputsAll(
-    from: Signer,
-    filter?: ClientCollectableSearchKeyFilterLike,
-  ): Promise<number> {
-    const { addedCount } = await this.completeInputs(
-      from,
-      filter ?? {
-        scriptLenRange: [0, 1],
-        outputDataLenRange: [0, 1],
-      },
-      (acc, { cellOutput: { capacity } }) => acc + capacity,
-      Zero,
-    );
-
-    return addedCount;
+    const res = await from.completeInputs(this, accumulator, init, { filter });
+    this.copy(res.tx);
+    return res;
   }
 
   /**
-   * Complete inputs by UDT balance
+   * Completes transaction inputs to satisfy a required capacity.
    *
-   * This method succeeds only if enough balance is collected.
+   * @param from - The fee payer to collect cells from.
+   * @param capacityTweak - Optional additional capacity needed.
+   * @param filter - Optional filter for selecting cells.
+   * @returns A promise that resolves to the number of inputs added.
+   * @deprecated Use `FeePayer.completeInputsByCapacity` instead.
+   */
+  async completeInputsByCapacity(
+    from: FeePayerFromAddress,
+    capacityTweak?: NumLike,
+    filter?: ClientCollectableSearchKeyFilterLike,
+  ): Promise<number> {
+    const res = await from.completeInputsByCapacity(this, capacityTweak, {
+      filter,
+    });
+    this.copy(res.tx);
+    return res.addedCount;
+  }
+
+  /**
+   * Completes transaction inputs by adding all available cells from the fee payer.
    *
-   * It will try to collect at least two inputs, even when the first input already contains enough balance, to avoid extra occupation fees introduced by the change cell. An edge case: If the first cell has the same amount as the output, a new cell is not needed.
-   * @param from - The signer to complete the inputs.
-   * @param type - The type script of the UDT.
-   * @param balanceTweak - The tweak of the balance.
+   * @param from - The fee payer to collect cells from.
+   * @param filter - Optional filter for selecting cells.
+   * @returns A promise that resolves to the number of inputs added.
+   * @deprecated Use `FeePayer.completeInputsAll` instead.
+   */
+  async completeInputsAll(
+    from: FeePayerFromAddress,
+    filter?: ClientCollectableSearchKeyFilterLike,
+  ): Promise<number> {
+    const res = await from.completeInputsAll(this, { filter });
+    this.copy(res.tx);
+    return res.addedCount;
+  }
+
+  /**
+   * Completes transaction inputs to satisfy a required UDT balance.
+   *
+   * It will try to collect at least two inputs, even when the first input already contains enough balance,
+   * to avoid extra occupation fees introduced by the change cell. An edge case:
+   * If the first cell has the same amount as the output, a new cell is not needed.
+   *
+   * @param from - The fee payer to collect cells from.
+   * @param type - The UDT type script.
+   * @param balanceTweak - Optional additional balance needed.
    * @returns A promise that resolves to the number of inputs added.
    */
   async completeInputsByUdt(
-    from: Signer,
+    from: FeePayerFromAddress,
     type: ScriptLike,
     balanceTweak?: NumLike,
   ): Promise<number> {
@@ -2069,36 +2039,38 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     );
   }
 
+  /**
+   * Completes transaction inputs by adding exactly one more cell.
+   *
+   * @param from - The fee payer to collect cells from.
+   * @param filter - Optional filter for selecting cells.
+   * @returns A promise that resolves to the number of inputs added.
+   * @deprecated Use `FeePayer.completeInputsAddOne` instead.
+   */
   async completeInputsAddOne(
-    from: Signer,
+    from: FeePayerFromAddress,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    const { addedCount, accumulated } = await this.completeInputs(
-      from,
-      filter ?? {
-        scriptLenRange: [0, 1],
-        outputDataLenRange: [0, 1],
-      },
-      () => undefined,
-      true,
-    );
-
-    if (accumulated === undefined) {
-      return addedCount;
-    }
-
-    throw new Error(`Insufficient CKB, need at least one new cell`);
+    const res = await from.completeInputsAddOne(this, { filter });
+    this.copy(res.tx);
+    return res.addedCount;
   }
 
+  /**
+   * Completes transaction inputs by adding at least one cell if no inputs exist.
+   *
+   * @param from - The fee payer to collect cells from.
+   * @param filter - Optional filter for selecting cells.
+   * @returns A promise that resolves to the number of inputs added.
+   * @deprecated Use `FeePayer.completeInputsAtLeastOne` instead.
+   */
   async completeInputsAtLeastOne(
-    from: Signer,
+    from: FeePayerFromAddress,
     filter?: ClientCollectableSearchKeyFilterLike,
   ): Promise<number> {
-    if (this.inputs.length > 0) {
-      return 0;
-    }
-
-    return this.completeInputsAddOne(from, filter);
+    const res = await from.completeInputsAtLeastOne(this, { filter });
+    this.copy(res.tx);
+    return res.addedCount;
   }
 
   async getFee(client: Client): Promise<Num> {
@@ -2123,10 +2095,9 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * This method automatically calculates the required fee based on the transaction size and fee rate,
    * adds necessary inputs to cover the fee, and handles change outputs through the provided change function.
    *
-   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param from - The fee payer to complete inputs from and prepare the transaction.
    * @param change - A function that handles change capacity. It receives the transaction and excess capacity,
-   *                 and should return the additional capacity needed (0 if change is handled successfully,
-   *                 positive number if more capacity is needed for change cell creation).
+   *                 and should return the additional capacity needed (0 if change is handled successfully).
    * @param expectedFeeRate - The expected fee rate in shannons per 1000 bytes. If not provided,
    *                          it will be fetched from the client.
    * @param filter - Optional filter for selecting cells when adding inputs.
@@ -2136,15 +2107,14 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * @param options.shouldAddInputs - Whether to add inputs automatically. Defaults to true.
    * @returns A promise that resolves to a tuple containing:
    *          - The number of inputs added during the process
-   *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
+   *          - A boolean indicating whether the transaction was modified to handle the change.
    *
-   * @throws {ErrorTransactionInsufficientCapacity} When there's not enough capacity to cover the fee.
-   * @throws {Error} When the change function doesn't properly handle the available capacity.
+   * @deprecated Use `FeePayer.completeFeeChangeTo` instead.
    *
    * @example
    * ```typescript
    * const [addedInputs, hasChange] = await tx.completeFee(
-   *   signer,
+   *   feePayer,
    *   (tx, capacity) => {
    *     if (capacity >= 61_00000000n) { // Minimum for a change cell
    *       tx.addOutput({ capacity, lock: changeScript });
@@ -2157,8 +2127,11 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * ```
    */
   async completeFee(
-    from: Signer,
-    change: (tx: Transaction, capacity: Num) => Promise<NumLike> | NumLike,
+    from: FeePayer<
+      FeePayerCompleteInputsOptionsLike,
+      FeePayerCompleteInputsContext
+    >,
+    change: FeePayerCompleteFeeChangeFn,
     expectedFeeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
     options?: {
@@ -2167,101 +2140,17 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const feeRate =
-      expectedFeeRate ??
-      (await from.client.getFeeRate(options?.feeRateBlockRange, options));
-
-    // Complete all inputs extra infos for cache
-    await this.getInputsCapacity(from.client);
-
-    let leastFee = Zero;
-    let leastExtraCapacity = Zero;
-    let collected = 0;
-
-    // ===
-    // Usually, for the worst situation, three iterations are needed
-    // 1. First attempt to complete the transaction.
-    // 2. Not enough capacity for the change cell.
-    // 3. Fee increased by the change cell.
-    // ===
-    while (true) {
-      collected += await (async () => {
-        if (!(options?.shouldAddInputs ?? true)) {
-          return 0;
-        }
-
-        try {
-          return await this.completeInputsByCapacity(
-            from,
-            leastFee + leastExtraCapacity,
-            filter,
-          );
-        } catch (err) {
-          if (
-            err instanceof ErrorTransactionInsufficientCapacity &&
-            leastExtraCapacity !== Zero
-          ) {
-            throw new ErrorTransactionInsufficientCapacity(err.amount, {
-              isForChange: true,
-            });
-          }
-
-          throw err;
-        }
-      })();
-
-      const fee = await this.getFee(from.client);
-      if (fee < leastFee + leastExtraCapacity) {
-        // Not enough capacity are collected, it should only happens when shouldAddInputs is false
-        throw new ErrorTransactionInsufficientCapacity(
-          leastFee + leastExtraCapacity - fee,
-          { isForChange: leastExtraCapacity !== Zero },
-        );
-      }
-
-      await from.prepareTransaction(this);
-      if (leastFee === Zero) {
-        // The initial fee is calculated based on prepared transaction
-        // This should only happens during the first iteration
-        leastFee = this.estimateFee(feeRate);
-      }
-      // The extra capacity paid the fee without a change
-      // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
-      // So this only happens in the first iteration
-      if (fee === leastFee) {
-        return [collected, false];
-      }
-
-      // Invoke the change function on a transaction multiple times may cause problems, so we clone it
-      const tx = this.clone();
-      const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
-      if (needed > Zero) {
-        // No enough extra capacity to create new cells for change, collect inputs again
-        leastExtraCapacity = needed;
-        continue;
-      }
-
-      if ((await tx.getFee(from.client)) !== leastFee) {
-        throw new Error(
-          "The change function doesn't use all available capacity",
-        );
-      }
-
-      // New change cells created, update the fee
-      await from.prepareTransaction(tx);
-      const changedFee = tx.estimateFee(feeRate);
-      if (leastFee > changedFee) {
-        throw new Error("The change function removed existed transaction data");
-      }
-      // The fee has been paid
-      if (leastFee === changedFee) {
-        this.copy(tx);
-        return [collected, true];
-      }
-
-      // The fee after changing is more than the original fee
-      leastFee = changedFee;
-    }
+    const {
+      tx,
+      hasChanged,
+      context: { addedCount },
+    } = await from.completeFeeChangeTo(this, change, {
+      feeRate: expectedFeeRate,
+      filter,
+      ...options,
+    });
+    this.copy(tx);
+    return [addedCount, hasChanged];
   }
 
   /**
@@ -2269,7 +2158,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * This is a convenience method that automatically creates a change cell with the provided lock script
    * when there's excess capacity after paying the transaction fee.
    *
-   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param from - The fee payer to complete inputs from and prepare the transaction.
    * @param change - The lock script for the change output cell.
    * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
    * @param filter - Optional filter for selecting cells when adding inputs.
@@ -2281,6 +2170,8 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *          - The number of inputs added during the process
    *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
    *
+   * @deprecated Use `FeePayer.completeFeeChangeToLock` instead.
+   *
    * @example
    * ```typescript
    * const changeScript = Script.from({
@@ -2290,14 +2181,17 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * });
    *
    * const [addedInputs, hasChange] = await tx.completeFeeChangeToLock(
-   *   signer,
+   *   feePayer,
    *   changeScript,
    *   1000n // 1000 shannons per 1000 bytes
    * );
    * ```
    */
-  completeFeeChangeToLock(
-    from: Signer,
+  async completeFeeChangeToLock(
+    from: FeePayer<
+      FeePayerCompleteInputsOptionsLike,
+      FeePayerCompleteInputsContext
+    >,
     change: ScriptLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
@@ -2307,33 +2201,26 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const script = Script.from(change);
-
-    return this.completeFee(
-      from,
-      (tx, capacity) => {
-        const changeCell = CellOutput.from({ capacity: 0, lock: script });
-        const occupiedCapacity = fixedPointFrom(changeCell.occupiedSize);
-        if (capacity < occupiedCapacity) {
-          return occupiedCapacity;
-        }
-        changeCell.capacity = capacity;
-        tx.addOutput(changeCell);
-        return 0;
-      },
+    const {
+      tx,
+      hasChanged,
+      context: { addedCount },
+    } = await from.completeFeeChangeToLock(this, change, {
       feeRate,
       filter,
-      options,
-    );
+      ...options,
+    });
+    this.copy(tx);
+    return [addedCount, hasChanged];
   }
 
   /**
-   * Completes the transaction fee using the signer's recommended address for change.
-   * This is a convenience method that automatically uses the signer's recommended
+   * Completes the transaction fee using the fee payer's recommended address for change.
+   * This is a convenience method that automatically uses the fee payer's recommended
    * address as the change destination, making it easier to complete transactions
    * without manually specifying a change address.
    *
-   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param from - The fee payer to complete inputs from and prepare the transaction.
    * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
    * @param filter - Optional filter for selecting cells when adding inputs.
    * @param options - Optional configuration object.
@@ -2344,18 +2231,23 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *          - The number of inputs added during the process
    *          - A boolean indicating whether change outputs were created (true) or fee was paid without change (false)
    *
+   * @deprecated Use `FeePayer.completeFee` instead.
+   *
    * @example
    * ```typescript
    * const [addedInputs, hasChange] = await tx.completeFeeBy(
-   *   signer,
+   *   feePayer,
    *   1000n // 1000 shannons per 1000 bytes
    * );
    *
-   * // Change will automatically go to signer's recommended address
+   * // Change will automatically go to fee payer's recommended address
    * ```
    */
   async completeFeeBy(
-    from: Signer,
+    from: FeePayer<
+      FeePayerCompleteInputsOptionsLike,
+      FeePayerCompleteInputsContext
+    >,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
     options?: {
@@ -2364,9 +2256,13 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const { script } = await from.getRecommendedAddressObj();
-
-    return this.completeFeeChangeToLock(from, script, feeRate, filter, options);
+    const res = await from.completeFee(this, {
+      feeRate,
+      filter,
+      ...options,
+    });
+    this.copy(res.tx);
+    return [res.context.addedCount, res.hasChanged];
   }
 
   /**
@@ -2374,7 +2270,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * Instead of creating a new change output, this method adds any excess capacity
    * to the specified existing output in the transaction.
    *
-   * @param from - The signer to complete inputs from and prepare the transaction.
+   * @param from - The fee payer to complete inputs from and prepare the transaction.
    * @param index - The index of the existing output to add excess capacity to.
    * @param feeRate - Optional fee rate in shannons per 1000 bytes. If not provided, it will be fetched from the client.
    * @param filter - Optional filter for selecting cells when adding inputs.
@@ -2388,18 +2284,23 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @throws {Error} When the specified output index doesn't exist.
    *
+   * @deprecated Use `FeePayer.completeFeeChangeToOutput` instead.
+   *
    * @example
    * ```typescript
    * // Add excess capacity to the first output (index 0)
    * const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
-   *   signer,
+   *   feePayer,
    *   0, // Output index
    *   1000n // 1000 shannons per 1000 bytes
    * );
    * ```
    */
-  completeFeeChangeToOutput(
-    from: Signer,
+  async completeFeeChangeToOutput(
+    from: FeePayer<
+      FeePayerCompleteInputsOptionsLike,
+      FeePayerCompleteInputsContext
+    >,
     index: NumLike,
     feeRate?: NumLike,
     filter?: ClientCollectableSearchKeyFilterLike,
@@ -2409,20 +2310,17 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const change = Number(numFrom(index));
-    if (!this.outputs[change]) {
-      throw new Error("Non-existed output to change");
-    }
-    return this.completeFee(
-      from,
-      (tx, capacity) => {
-        tx.outputs[change].capacity += capacity;
-        return 0;
-      },
+    const {
+      tx,
+      hasChanged,
+      context: { addedCount },
+    } = await from.completeFeeChangeToOutput(this, index, {
       feeRate,
       filter,
-      options,
-    );
+      ...options,
+    });
+    this.copy(tx);
+    return [addedCount, hasChanged];
   }
 }
 
