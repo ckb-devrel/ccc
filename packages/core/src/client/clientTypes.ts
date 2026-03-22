@@ -17,11 +17,7 @@ import {
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { Num, NumLike, numFrom } from "../num/index.js";
 import { apply } from "../utils/index.js";
-import {
-  ClientCollectableSearchKeyFilterLike,
-  ClientCollectableSearchKeyLike,
-  clientSearchKeyRangeFrom,
-} from "./clientTypes.advanced.js";
+import { clientSearchKeyRangeFrom } from "./clientTypes.advanced.js";
 
 /**
  * @public
@@ -157,16 +153,49 @@ export class ClientTransactionResponse {
 }
 
 /**
+ * Options for filtering cells when searching for cells.
  * @public
  */
-export type ClientIndexerSearchKeyFilterLike =
-  ClientCollectableSearchKeyFilterLike & {
-    blockRange?: [NumLike, NumLike] | null;
-  };
+export type ClientCollectableSearchKeyFilterLike = {
+  /**
+   * The type script of the cell.
+   */
+  script?: ScriptLike | null;
+  /**
+   * The length range of the script.
+   */
+  scriptLenRange?: [NumLike, NumLike] | null;
+  /**
+   * The data of the cell.
+   */
+  outputData?: HexLike | null;
+  /**
+   * The search mode for the cell data.
+   */
+  outputDataSearchMode?: "prefix" | "exact" | "partial" | null;
+  /**
+   * The length range of the cell data.
+   */
+  outputDataLenRange?: [NumLike, NumLike] | null;
+  /**
+   * The capacity range of the cell.
+   */
+  outputCapacityRange?: [NumLike, NumLike] | null;
+};
 /**
+ * Options for filtering cells when searching for cells.
  * @public
  */
-export class ClientIndexerSearchKeyFilter {
+export class ClientCollectableSearchKeyFilter {
+  /**
+   * Creates an instance of ClientCollectableSearchKeyFilter.
+   * @param script - The type script of the cell.
+   * @param scriptLenRange - The length range of the script.
+   * @param outputData - The data of the cell.
+   * @param outputDataSearchMode - The search mode for the cell data.
+   * @param outputDataLenRange - The length range of the cell data.
+   * @param outputCapacityRange - The capacity range of the cell.
+   */
   constructor(
     public script: Script | undefined,
     public scriptLenRange: [Num, Num] | undefined,
@@ -174,9 +203,150 @@ export class ClientIndexerSearchKeyFilter {
     public outputDataSearchMode: "prefix" | "exact" | "partial" | undefined,
     public outputDataLenRange: [Num, Num] | undefined,
     public outputCapacityRange: [Num, Num] | undefined,
-    public blockRange: [Num, Num] | undefined,
   ) {}
 
+  /**
+   * Creates an instance of ClientCollectableSearchKeyFilter from a partial filter object.
+   * @param filterLike - The partial filter object.
+   * @returns An instance of ClientCollectableSearchKeyFilter.
+   */
+  static from(
+    filterLike: ClientCollectableSearchKeyFilterLike,
+  ): ClientCollectableSearchKeyFilter {
+    if (filterLike instanceof ClientCollectableSearchKeyFilter) {
+      return filterLike;
+    }
+
+    return new ClientCollectableSearchKeyFilter(
+      apply(Script.from, filterLike.script),
+      apply(clientSearchKeyRangeFrom, filterLike.scriptLenRange),
+      apply(hexFrom, filterLike.outputData),
+      filterLike.outputDataSearchMode ?? undefined,
+      apply(clientSearchKeyRangeFrom, filterLike.outputDataLenRange),
+      apply(clientSearchKeyRangeFrom, filterLike.outputCapacityRange),
+    );
+  }
+}
+
+/**
+ * Options for searching for cells.
+ * @public
+ */
+export type ClientCollectableSearchKeyLike = {
+  /**
+   * The script to search for.
+   */
+  script: ScriptLike;
+  /**
+   * The type of the script.
+   */
+  scriptType: "lock" | "type";
+  /**
+   * The search mode for the script.
+   */
+  scriptSearchMode: "prefix" | "exact" | "partial";
+  /**
+   * The filter to use when searching for cells.
+   */
+  filter?: ClientCollectableSearchKeyFilterLike | null;
+  /**
+   * Whether to include cell data in the response.
+   */
+  withData?: boolean | null;
+};
+/**
+ * Options for searching for cells.
+ * @public
+ */
+export class ClientCollectableSearchKey {
+  /**
+   * Creates an instance of ClientCollectableSearchKey.
+   * @param script - The script to search for.
+   * @param scriptType - The type of the script.
+   * @param scriptSearchMode - The search mode for the script.
+   * @param filter - The filter to use when searching for cells.
+   * @param withData - Whether to include cell data in the response.
+   */
+  constructor(
+    public script: Script,
+    public scriptType: "lock" | "type",
+    public scriptSearchMode: "prefix" | "exact" | "partial",
+    public filter: ClientCollectableSearchKeyFilter | undefined,
+    public withData: boolean | undefined,
+  ) {}
+
+  /**
+   * Creates an instance of ClientCollectableSearchKey from a partial search key object.
+   * @param keyLike - The partial search key object.
+   * @returns An instance of ClientCollectableSearchKey.
+   */
+  static from(
+    keyLike: ClientCollectableSearchKeyLike,
+  ): ClientCollectableSearchKey {
+    if (keyLike instanceof ClientCollectableSearchKey) {
+      return keyLike;
+    }
+
+    return new ClientCollectableSearchKey(
+      Script.from(keyLike.script),
+      keyLike.scriptType,
+      keyLike.scriptSearchMode,
+      apply(ClientCollectableSearchKeyFilter.from, keyLike.filter),
+      keyLike.withData ?? undefined,
+    );
+  }
+}
+
+/**
+ * Options for filtering cells when searching for cells on chain.
+ * @public
+ */
+export type ClientIndexerSearchKeyFilterLike =
+  ClientCollectableSearchKeyFilterLike & {
+    /**
+     * The block range to search for cells.
+     */
+    blockRange?: [NumLike, NumLike] | null;
+  };
+/**
+ * Options for filtering cells when searching for cells on chain.
+ * @public
+ */
+export class ClientIndexerSearchKeyFilter extends ClientCollectableSearchKeyFilter {
+  /**
+   * Creates an instance of ClientIndexerSearchKeyFilter.
+   * @param script - The type script of the cell.
+   * @param scriptLenRange - The length range of the script.
+   * @param outputData - The data of the cell.
+   * @param outputDataSearchMode - The search mode for the cell data.
+   * @param outputDataLenRange - The length range of the cell data.
+   * @param outputCapacityRange - The capacity range of the cell.
+   * @param blockRange - The block range to search for cells.
+   */
+  constructor(
+    script: Script | undefined,
+    scriptLenRange: [Num, Num] | undefined,
+    outputData: Hex | undefined,
+    outputDataSearchMode: "prefix" | "exact" | "partial" | undefined,
+    outputDataLenRange: [Num, Num] | undefined,
+    outputCapacityRange: [Num, Num] | undefined,
+    public blockRange: [Num, Num] | undefined,
+  ) {
+    super(
+      script,
+      scriptLenRange,
+      outputData,
+      outputDataSearchMode,
+      outputDataLenRange,
+      outputCapacityRange,
+    );
+  }
+
+  /**
+   * Creates an instance of ClientIndexerSearchKeyFilter from a partial filter object.
+   * @param filterLike - The partial filter object.
+   * @returns An instance of ClientIndexerSearchKeyFilter.
+   */
   static from(
     filterLike: ClientIndexerSearchKeyFilterLike,
   ): ClientIndexerSearchKeyFilter {
@@ -197,16 +367,29 @@ export class ClientIndexerSearchKeyFilter {
 }
 
 /**
+ * Options for searching for cells on chain.
  * @public
  */
 export type ClientIndexerSearchKeyLike = ClientCollectableSearchKeyLike & {
+  /**
+   * The filter to use when searching for cells.
+   */
   filter?: ClientIndexerSearchKeyFilterLike | null;
 };
 
 /**
+ * Options for searching for cells on chain.
  * @public
  */
 export class ClientIndexerSearchKey {
+  /**
+   * Creates an instance of ClientIndexerSearchKey.
+   * @param script - The script to search for.
+   * @param scriptType - The type of the script.
+   * @param scriptSearchMode - The search mode for the script.
+   * @param filter - The filter to use when searching for cells.
+   * @param withData - Whether to include cell data in the response.
+   */
   constructor(
     public script: Script,
     public scriptType: "lock" | "type",
@@ -215,6 +398,11 @@ export class ClientIndexerSearchKey {
     public withData: boolean | undefined,
   ) {}
 
+  /**
+   * Creates an instance of ClientIndexerSearchKey from a partial search key object.
+   * @param keyLike - The partial search key object.
+   * @returns An instance of ClientIndexerSearchKey.
+   */
   static from(keyLike: ClientIndexerSearchKeyLike): ClientIndexerSearchKey {
     if (keyLike instanceof ClientIndexerSearchKey) {
       return keyLike;

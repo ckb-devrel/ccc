@@ -93,7 +93,7 @@ export function buildTypeIdOperations<
       const { signer, receiver, data, tx: txLike } = props;
       const tx = ccc.Transaction.from(txLike ?? {});
 
-      await tx.completeInputsAtLeastOne(signer);
+      await signer.completeInputsAtLeastOne(tx);
       const id = await calculateTypeId(signer.client, tx);
 
       const scriptInfo = await getScriptInfo(signer.client);
