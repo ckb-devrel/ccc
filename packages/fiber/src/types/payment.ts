@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { toHex } from "../utils";
 
 export type PaymentSessionStatus =
   | "Created"
@@ -179,26 +180,20 @@ export class SendPaymentCommandParams {
   static from(like: SendPaymentCommandParamsLike): SendPaymentCommandParams {
     return new SendPaymentCommandParams(
       like.targetPubkey,
-      like.amount != null ? ccc.numToHex(like.amount) : undefined,
+      toHex(like.amount),
       like.paymentHash ? ccc.hexFrom(like.paymentHash) : undefined,
-      like.finalTlcExpiryDelta != null
-        ? ccc.numToHex(like.finalTlcExpiryDelta)
-        : undefined,
-      like.tlcExpiryLimit != null
-        ? ccc.numToHex(like.tlcExpiryLimit)
-        : undefined,
+      toHex(like.finalTlcExpiryDelta),
+      toHex(like.tlcExpiryLimit),
       like.invoice,
-      like.timeout != null ? ccc.numToHex(like.timeout) : undefined,
-      like.maxFeeAmount != null ? ccc.numToHex(like.maxFeeAmount) : undefined,
-      like.maxFeeRate != null ? ccc.numToHex(like.maxFeeRate) : undefined,
-      like.maxParts != null ? ccc.numToHex(like.maxParts) : undefined,
+      toHex(like.timeout),
+      toHex(like.maxFeeAmount),
+      toHex(like.maxFeeRate),
+      toHex(like.maxParts),
       like.trampolineHops,
       like.keysend,
-      like.udtTypeScript != null
-        ? ccc.Script.from(like.udtTypeScript)
-        : undefined,
+      like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
       like.allowSelfPayment,
-      like.customRecords != null
+      like.customRecords
         ? PaymentCustomRecords.from(like.customRecords)
         : undefined,
       like.hopHints?.map((h) => HopHint.from(h)),
@@ -227,13 +222,9 @@ export class BuildRouterParams {
   static from(like: BuildRouterParamsLike): BuildRouterParams {
     return new BuildRouterParams(
       like.hopsInfo.map((h) => HopRequire.from(h)),
-      like.amount != null ? ccc.numToHex(like.amount) : undefined,
-      like.udtTypeScript != null
-        ? ccc.Script.from(like.udtTypeScript)
-        : undefined,
-      like.finalTlcExpiryDelta != null
-        ? ccc.numToHex(like.finalTlcExpiryDelta)
-        : undefined,
+      toHex(like.amount),
+      like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
+      toHex(like.finalTlcExpiryDelta),
     );
   }
 }
@@ -272,13 +263,11 @@ export class SendPaymentWithRouterParams {
       like.router.map((r) => RouterHop.from(r)),
       like.paymentHash ? ccc.hexFrom(like.paymentHash) : undefined,
       like.invoice,
-      like.customRecords != null
+      like.customRecords
         ? PaymentCustomRecords.from(like.customRecords)
         : undefined,
       like.keysend,
-      like.udtTypeScript != null
-        ? ccc.Script.from(like.udtTypeScript)
-        : undefined,
+      like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
       like.dryRun,
     );
   }
@@ -286,9 +275,4 @@ export class SendPaymentWithRouterParams {
 
 // ─── Aliases ───────────────────────────────────────────────────────────────
 
-export type GetPaymentParamsLike = GetPaymentCommandParamsLike;
-export type GetPaymentParams = GetPaymentCommandParams;
 export type PaymentResult = GetPaymentCommandResult;
-export type SendPaymentParamsLike = SendPaymentCommandParamsLike;
-export type SendPaymentParams = SendPaymentCommandParams;
-export type BuildRouterResult = BuildPaymentRouterResult;

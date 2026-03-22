@@ -1,3 +1,5 @@
+import { ccc } from "@ckb-ccc/core";
+
 function camelToSnakeKey(s: string): string {
   return s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }
@@ -33,4 +35,8 @@ export function camelToSnake<T = unknown>(value: T): unknown {
 // Convert object keys from snake_case to camelCase (recursive). Used when receiving results from Fiber RPC.
 export function snakeToCamel<T = unknown>(value: T): unknown {
   return convertKeys(value, snakeToCamelKey);
+}
+
+export function toHex(value?: ccc.NumLike): ccc.Hex | undefined {
+  return value ? ccc.numToHex(value) : undefined;
 }

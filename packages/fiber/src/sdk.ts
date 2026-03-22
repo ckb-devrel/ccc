@@ -65,7 +65,7 @@ export class FiberSDK {
   }
 
   async sendPayment(
-    params: fiber.SendPaymentParamsLike,
+    params: fiber.SendPaymentCommandParamsLike,
   ): Promise<fiber.PaymentResult> {
     return this.payment.sendPayment(params);
   }

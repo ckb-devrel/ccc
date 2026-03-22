@@ -1,10 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-
-/** Minimal hex for RPC (avoids "redundant leading zeros" errors). */
-function toMinimalHex(h: ccc.NumLike): ccc.Hex {
-  const n = ccc.numFrom(h);
-  return `0x${n.toString(16)}`;
-}
+import { toHex } from "../utils";
 
 export type Currency = "Fibb" | "Fibt" | "Fibd";
 
@@ -73,18 +68,14 @@ export class NewInvoiceParams {
 
   static from(like: NewInvoiceParamsLike): NewInvoiceParams {
     return new NewInvoiceParams(
-      toMinimalHex(like.amount),
+      ccc.numToHex(like.amount),
       like.currency,
       ccc.hexFrom(like.paymentPreimage),
       like.description,
-      like.expiry != null ? toMinimalHex(like.expiry) : undefined,
+      toHex(like.expiry),
       like.fallbackAddress,
-      like.finalExpiryDelta != null
-        ? toMinimalHex(like.finalExpiryDelta)
-        : undefined,
-      like.udtTypeScript != null
-        ? ccc.Script.from(like.udtTypeScript)
-        : undefined,
+      toHex(like.finalExpiryDelta),
+      like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
       like.hashAlgorithm,
       like.paymentHash,
       like.allowMpp,
@@ -128,6 +119,27 @@ export class InvoiceParams {
 
   static from(like: InvoiceParamsLike): InvoiceParams {
     return new InvoiceParams(ccc.hexFrom(like.paymentHash));
+  }
+}
+
+// ─── SettleInvoice ─────────────────────────────────────────────────────────
+
+export type SettleInvoiceParamsLike = {
+  paymentHash: ccc.HexLike;
+  paymentPreimage: ccc.HexLike;
+};
+
+export class SettleInvoiceParams {
+  constructor(
+    public readonly paymentHash: ccc.Hex,
+    public readonly paymentPreimage: ccc.Hex,
+  ) {}
+
+  static from(like: SettleInvoiceParamsLike): SettleInvoiceParams {
+    return new SettleInvoiceParams(
+      ccc.hexFrom(like.paymentHash),
+      ccc.hexFrom(like.paymentPreimage),
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { toHex } from "../utils";
 
 // ─── OpenChannel ───────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export class OpenChannelParams {
   constructor(
     public readonly peerId: string,
     public readonly fundingAmount: ccc.Hex,
-    isPublic?: boolean,
+    private readonly _public?: boolean,
     public readonly fundingUdtTypeScript?: ccc.Script,
     public readonly shutdownScript?: ccc.Script,
     public readonly commitmentDelayEpoch?: ccc.Hex,
@@ -33,13 +34,10 @@ export class OpenChannelParams {
     public readonly tlcFeeProportionalMillionths?: ccc.Hex,
     public readonly maxTlcValueInFlight?: ccc.Hex,
     public readonly maxTlcNumberInFlight?: ccc.Hex,
-  ) {
-    this._isPublic = isPublic;
-  }
+  ) {}
 
-  private readonly _isPublic?: boolean;
   get public(): boolean | undefined {
-    return this._isPublic;
+    return this._public;
   }
 
   static from(like: OpenChannelParamsLike): OpenChannelParams {
@@ -47,34 +45,18 @@ export class OpenChannelParams {
       like.peerId,
       ccc.numToHex(like.fundingAmount),
       like.public,
-      like.fundingUdtTypeScript != null
+      like.fundingUdtTypeScript
         ? ccc.Script.from(like.fundingUdtTypeScript)
         : undefined,
-      like.shutdownScript != null
-        ? ccc.Script.from(like.shutdownScript)
-        : undefined,
-      like.commitmentDelayEpoch != null
-        ? ccc.numToHex(like.commitmentDelayEpoch)
-        : undefined,
-      like.commitmentFeeRate != null
-        ? ccc.numToHex(like.commitmentFeeRate)
-        : undefined,
-      like.fundingFeeRate != null
-        ? ccc.numToHex(like.fundingFeeRate)
-        : undefined,
-      like.tlcExpiryDelta != null
-        ? ccc.numToHex(like.tlcExpiryDelta)
-        : undefined,
-      like.tlcMinValue != null ? ccc.numToHex(like.tlcMinValue) : undefined,
-      like.tlcFeeProportionalMillionths != null
-        ? ccc.numToHex(like.tlcFeeProportionalMillionths)
-        : undefined,
-      like.maxTlcValueInFlight != null
-        ? ccc.numToHex(like.maxTlcValueInFlight)
-        : undefined,
-      like.maxTlcNumberInFlight != null
-        ? ccc.numToHex(like.maxTlcNumberInFlight)
-        : undefined,
+      like.shutdownScript ? ccc.Script.from(like.shutdownScript) : undefined,
+      toHex(like.commitmentDelayEpoch),
+      toHex(like.commitmentFeeRate),
+      toHex(like.fundingFeeRate),
+      toHex(like.tlcExpiryDelta),
+      toHex(like.tlcMinValue),
+      toHex(like.tlcFeeProportionalMillionths),
+      toHex(like.maxTlcValueInFlight),
+      toHex(like.maxTlcNumberInFlight),
     );
   }
 }
@@ -126,22 +108,12 @@ export class AcceptChannelParams {
     return new AcceptChannelParams(
       ccc.hexFrom(like.temporaryChannelId),
       ccc.numToHex(like.fundingAmount),
-      like.shutdownScript != null
-        ? ccc.Script.from(like.shutdownScript)
-        : undefined,
-      like.maxTlcValueInFlight != null
-        ? ccc.numToHex(like.maxTlcValueInFlight)
-        : undefined,
-      like.maxTlcNumberInFlight != null
-        ? ccc.numToHex(like.maxTlcNumberInFlight)
-        : undefined,
-      like.tlcMinValue != null ? ccc.numToHex(like.tlcMinValue) : undefined,
-      like.tlcFeeProportionalMillionths != null
-        ? ccc.numToHex(like.tlcFeeProportionalMillionths)
-        : undefined,
-      like.tlcExpiryDelta != null
-        ? ccc.numToHex(like.tlcExpiryDelta)
-        : undefined,
+      like.shutdownScript ? ccc.Script.from(like.shutdownScript) : undefined,
+      toHex(like.maxTlcValueInFlight),
+      toHex(like.maxTlcNumberInFlight),
+      toHex(like.tlcMinValue),
+      toHex(like.tlcFeeProportionalMillionths),
+      toHex(like.tlcExpiryDelta),
     );
   }
 }
@@ -218,8 +190,8 @@ export class ShutdownChannelParams {
   static from(like: ShutdownChannelParamsLike): ShutdownChannelParams {
     return new ShutdownChannelParams(
       ccc.hexFrom(like.channelId),
-      like.closeScript != null ? ccc.Script.from(like.closeScript) : undefined,
-      like.feeRate != null ? ccc.numToHex(like.feeRate) : undefined,
+      like.closeScript ? ccc.Script.from(like.closeScript) : undefined,
+      toHex(like.feeRate),
       like.force,
     );
   }
@@ -248,15 +220,9 @@ export class UpdateChannelParams {
     return new UpdateChannelParams(
       ccc.hexFrom(like.channelId),
       like.enabled,
-      like.tlcExpiryDelta != null
-        ? ccc.numToHex(like.tlcExpiryDelta)
-        : undefined,
-      like.tlcMinimumValue != null
-        ? ccc.numToHex(like.tlcMinimumValue)
-        : undefined,
-      like.tlcFeeProportionalMillionths != null
-        ? ccc.numToHex(like.tlcFeeProportionalMillionths)
-        : undefined,
+      toHex(like.tlcExpiryDelta),
+      toHex(like.tlcMinimumValue),
+      toHex(like.tlcFeeProportionalMillionths),
     );
   }
 }

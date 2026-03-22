@@ -7,7 +7,6 @@ dist.commonjs/
 .prettierrc
 tsconfig.json
 eslint.config.mjs
-.prettierrc
 
 tsconfig.tsbuildinfo
 .github/

@@ -12,7 +12,7 @@ import { ccc } from "@ckb-ccc/core";
 import crypto from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { FiberSDK } from "../src/sdk.js";
-import { FiberRuntime, installNodePolyfills } from "./runtime/index.js";
+import { FiberRuntime } from "./runtime/index.js";
 
 vi.mock("@joyid/ckb", () => ({
   verifySignature: async () => true,

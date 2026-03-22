@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { camelToSnake, snakeToCamel } from "./keys.js";
+import { camelToSnake, snakeToCamel } from "./utils.js";
 
 /**
  * Serializes JavaScript values for Fiber JSON-RPC: bigint and number become hex strings.

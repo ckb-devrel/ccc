@@ -1,4 +1,3 @@
-import { ccc } from "@ckb-ccc/core";
 import { FiberClient } from "../rpc.js";
 import * as fiber from "../types/index.js";
 
@@ -42,15 +41,8 @@ export class InvoiceApi {
   }
 
   /** Settle an invoice by providing the preimage. */
-  async settleInvoice(params: {
-    paymentHash: ccc.HexLike;
-    paymentPreimage: ccc.HexLike;
-  }): Promise<void> {
-    await this.rpc.call("settle_invoice", [
-      {
-        paymentHash: ccc.hexFrom(params.paymentHash),
-        paymentPreimage: ccc.hexFrom(params.paymentPreimage),
-      },
-    ]);
+  async settleInvoice(params: fiber.SettleInvoiceParamsLike): Promise<void> {
+    const normalized = fiber.SettleInvoiceParams.from(params);
+    await this.rpc.call("settle_invoice", [{ ...normalized }]);
   }
 }

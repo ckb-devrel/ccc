@@ -5,7 +5,7 @@ export class PaymentApi {
   constructor(private readonly rpc: FiberClient) {}
 
   async sendPayment(
-    params: fiber.SendPaymentParamsLike,
+    params: fiber.SendPaymentCommandParamsLike,
   ): Promise<fiber.PaymentResult> {
     const normalized = fiber.SendPaymentCommandParams.from(params);
     return this.rpc.call<fiber.PaymentResult>("send_payment", [
@@ -14,7 +14,7 @@ export class PaymentApi {
   }
 
   async getPayment(
-    params: fiber.GetPaymentParamsLike,
+    params: fiber.GetPaymentCommandParamsLike,
   ): Promise<fiber.PaymentResult> {
     const normalized = fiber.GetPaymentCommandParams.from(params);
     return this.rpc.call<fiber.PaymentResult>("get_payment", [
@@ -24,9 +24,9 @@ export class PaymentApi {
 
   async buildRouter(
     params: fiber.BuildRouterParamsLike,
-  ): Promise<fiber.BuildRouterResult> {
+  ): Promise<fiber.BuildPaymentRouterResult> {
     const normalized = fiber.BuildRouterParams.from(params);
-    return this.rpc.call<fiber.BuildRouterResult>("build_router", [
+    return this.rpc.call<fiber.BuildPaymentRouterResult>("build_router", [
       { ...normalized },
     ]);
   }
