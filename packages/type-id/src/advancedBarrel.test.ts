@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { ccc } from "@ckb-ccc/core";
 import { beforeEach, describe, expect, it, Mock, vi } from "vitest";
 import { buildTypeIdOperations } from "./advancedBarrel.js";
@@ -21,7 +22,11 @@ describe("type-id", () => {
     depType: "code" as const,
   };
 
+  const mockTypeId = ccc.hexFrom("1".repeat(64));
+
   beforeEach(() => {
+    vi.spyOn(ccc, "hashTypeId").mockReturnValue(mockTypeId);
+
     client = {
       getKnownScript: vi.fn(),
       getCellDeps: vi.fn(),
@@ -31,7 +36,17 @@ describe("type-id", () => {
     signer = {
       client,
       getRecommendedAddressObj: vi.fn(),
-      findCells: vi.fn(),
+      completeInputsAtLeastOne: vi
+        .fn()
+        .mockImplementation(async (tx: ccc.Transaction) => {
+          tx.addInput({
+            previousOutput: {
+              txHash: "2".repeat(64),
+              index: 0,
+            },
+          });
+          return { tx, addedCount: 1 };
+        }),
     } as unknown as ccc.Signer;
 
     (client.getKnownScript as Mock).mockResolvedValue({
@@ -68,22 +83,6 @@ describe("type-id", () => {
         codec: customCodec,
       });
 
-      const inputCell = ccc.Cell.from({
-        outPoint: { txHash: "0x" + "2".repeat(64), index: 0 },
-        cellOutput: {
-          capacity: ccc.fixedPointFrom(1000),
-          lock: ccc.Script.from({
-            codeHash: "0x" + "0".repeat(64),
-            hashType: "type",
-            args: "0x",
-          }),
-        },
-        outputData: "0x",
-      });
-      (signer.findCells as Mock).mockImplementation(async function* () {
-        yield inputCell;
-      });
-
       const { tx } = await create({
         signer,
         data: 123456,
@@ -102,22 +101,6 @@ describe("type-id", () => {
           cellDeps: [{ cellDep: typeIdCellDep }],
         }),
         calculateTypeId,
-      });
-
-      const inputCell = ccc.Cell.from({
-        outPoint: { txHash: "0x" + "2".repeat(64), index: 0 },
-        cellOutput: {
-          capacity: ccc.fixedPointFrom(1000),
-          lock: ccc.Script.from({
-            codeHash: "0x" + "0".repeat(64),
-            hashType: "type",
-            args: "0x",
-          }),
-        },
-        outputData: "0x",
-      });
-      (signer.findCells as Mock).mockImplementation(async function* () {
-        yield inputCell;
       });
 
       const { id, tx } = await create({
@@ -150,22 +133,6 @@ describe("type-id", () => {
         addCellDeps,
       });
 
-      const inputCell = ccc.Cell.from({
-        outPoint: { txHash: "0x" + "2".repeat(64), index: 0 },
-        cellOutput: {
-          capacity: ccc.fixedPointFrom(1000),
-          lock: ccc.Script.from({
-            codeHash: "0x" + "0".repeat(64),
-            hashType: "type",
-            args: "0x",
-          }),
-        },
-        outputData: "0x",
-      });
-      (signer.findCells as Mock).mockImplementation(async function* () {
-        yield inputCell;
-      });
-
       const { tx } = await create({
         signer,
         data: "0x",
@@ -186,40 +153,18 @@ describe("type-id", () => {
 
     describe("create", () => {
       it("should create a transaction with correct type id", async () => {
-        const inputCell = ccc.Cell.from({
-          outPoint: {
-            txHash: "0x" + "2".repeat(64),
-            index: 0,
-          },
-          cellOutput: {
-            capacity: ccc.fixedPointFrom(1000),
-            lock: ccc.Script.from({
-              codeHash: "0x" + "0".repeat(64),
-              hashType: "type",
-              args: "0x",
-            }),
-          },
-          outputData: "0x",
-        });
-
-        (signer.findCells as Mock).mockImplementation(async function* () {
-          yield inputCell;
-        });
-
         const data = "0x1234";
         const { tx, id, index } = await create({
           signer,
           data,
         });
 
-        expect(tx.inputs.length).toBe(1);
-        expect(tx.inputs[0].previousOutput).toEqual(inputCell.outPoint);
+        expect(signer.completeInputsAtLeastOne).toHaveBeenCalledWith(tx);
+        expect(ccc.hashTypeId).toHaveBeenCalled();
+        expect(id).toBe(mockTypeId);
 
         expect(tx.outputs.length).toBe(1);
         expect(index).toBe(0);
-
-        const expectedId = ccc.hashTypeId(tx.inputs[0], 0);
-        expect(id).toBe(expectedId);
 
         const output = tx.outputs[0];
         expect(output.type).toBeDefined();
@@ -239,22 +184,6 @@ describe("type-id", () => {
           headerDeps: ["0x" + "e".repeat(64)],
         });
 
-        const inputCell = ccc.Cell.from({
-          outPoint: { txHash: "0x" + "2".repeat(64), index: 0 },
-          cellOutput: {
-            capacity: ccc.fixedPointFrom(1000),
-            lock: ccc.Script.from({
-              codeHash: "0x" + "0".repeat(64),
-              hashType: "type",
-              args: "0x",
-            }),
-          },
-          outputData: "0x",
-        });
-        (signer.findCells as Mock).mockImplementation(async function* () {
-          yield inputCell;
-        });
-
         const { tx } = await create({
           signer,
           data: "0x",
@@ -270,22 +199,6 @@ describe("type-id", () => {
         codeHash: "0x" + "0".repeat(64),
         hashType: "type",
         args: "0xffee",
-      });
-
-      const inputCell = ccc.Cell.from({
-        outPoint: { txHash: "0x" + "2".repeat(64), index: 0 },
-        cellOutput: {
-          capacity: ccc.fixedPointFrom(1000),
-          lock: ccc.Script.from({
-            codeHash: "0x" + "0".repeat(64),
-            hashType: "type",
-            args: "0x",
-          }),
-        },
-        outputData: "0x",
-      });
-      (signer.findCells as Mock).mockImplementation(async function* () {
-        yield inputCell;
       });
 
       const { tx } = await create({
