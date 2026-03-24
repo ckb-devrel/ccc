@@ -111,14 +111,42 @@ export class BtcTransactionBuilder {
         (acc, input) => acc + input.witnessUtxo.value,
         0,
       );
-      const requiredFee = await this.estimateFee(ins, outputs, feeRate);
 
-      if (insValue > outsValue + requiredFee) {
-        changeValue = insValue - outsValue - requiredFee;
+      // Estimate fee assuming we will need a dummy change output
+      const dummyChangeOutput = {
+        address: await this.getAddress(),
+        value: 0,
+      };
+
+      const requiredFeeWithChange = await this.estimateFee(
+        ins,
+        [...outputs, dummyChangeOutput],
+        feeRate,
+      );
+      const requiredFeeWithoutChange = await this.estimateFee(
+        ins,
+        outputs,
+        feeRate,
+      );
+
+      if (
+        insValue >
+        outsValue + requiredFeeWithChange + this.networkConfig.btcDustLimit
+      ) {
+        // We have enough to create a change output
+        changeValue = insValue - outsValue - requiredFeeWithChange;
+        fulfilled = true;
+      } else if (insValue >= outsValue + requiredFeeWithoutChange) {
+        // We have enough to cover the fee without change output, but not enough to create a change output
+        // The remaining value will just go to miners as fee
+        changeValue = 0;
         fulfilled = true;
       } else {
         const { inputs: extraInputs } = await this.collectUtxos(
-          outsValue + requiredFee - insValue,
+          outsValue +
+            requiredFeeWithChange +
+            this.networkConfig.btcDustLimit -
+            insValue,
           btcUtxoParams ?? {
             only_non_rgbpp_utxos: true,
           },
