@@ -4,7 +4,7 @@ import { sha256 } from "@noble/hashes/sha2";
 const TX_ID_PLACEHOLDER_PRE_IMAGE =
   "sha256 this for easy replacement in spore co-build witness";
 export const TX_ID_PLACEHOLDER = ccc.bytesTo(
-  sha256(ccc.bytesFrom(TX_ID_PLACEHOLDER_PRE_IMAGE)),
+  sha256(ccc.bytesFrom(TX_ID_PLACEHOLDER_PRE_IMAGE, "utf8")),
   "hex",
 );
 
