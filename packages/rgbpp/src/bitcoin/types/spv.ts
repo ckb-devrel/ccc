@@ -1,6 +1,6 @@
-import { SpvProof } from "../../interfaces/spv.js";
+import type { SpvProof } from "../../interfaces/spv.js";
 
-export { SpvProof };
+export type { SpvProof };
 
 export interface RgbppApiSpvProof {
   proof: string;
