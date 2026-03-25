@@ -1,11 +1,17 @@
 import * as bitcoin from "bitcoinjs-lib";
-import { AddressType } from "../types/address.js";
-import { PredefinedNetwork } from "../types/network.js";
+import { NetworkType } from "./network.js";
 
-export enum NetworkType {
-  MAINNET,
-  TESTNET,
-  REGTEST, // deprecated
+// Read more about the available address types:
+// - P2WPKH: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh
+// - P2TR: https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki
+export enum AddressType {
+  P2PKH = "P2PKH",
+  P2WPKH = "P2WPKH",
+  P2TR = "P2TR",
+  P2SH_P2WPKH = "P2SH_P2WPKH",
+  P2WSH = "P2WSH",
+  P2SH = "P2SH",
+  UNKNOWN = "UNKNOWN",
 }
 
 export function decodeAddress(address: string): {
@@ -109,10 +115,4 @@ export const SUPPORTED_ADDRESS_TYPES = [AddressType.P2WPKH, AddressType.P2TR];
 
 export function isSupportedAddressType(at: AddressType): boolean {
   return SUPPORTED_ADDRESS_TYPES.includes(at);
-}
-
-export function toBtcNetwork(network: string): bitcoin.Network {
-  return network === (PredefinedNetwork.BitcoinMainnet as string)
-    ? bitcoin.networks.bitcoin
-    : bitcoin.networks.testnet;
 }

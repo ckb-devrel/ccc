@@ -64,7 +64,3 @@ export function isOpReturnScriptPubkey(script: Buffer): boolean {
   // No false condition matched, it's an OP_RETURN script
   return true;
 }
-
-export function toXOnly(pubKey: Buffer): Buffer {
-  return pubKey.length === 32 ? pubKey : pubKey.subarray(1, 33);
-}

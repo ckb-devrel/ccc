@@ -1,17 +1,16 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { TX_ID_PLACEHOLDER } from "../bitcoin/constants/index.js";
-
-import { ScriptManager } from "../bitcoin/configs/script-manager.js";
-import { UtxoSeal } from "../bitcoin/types/rgbpp/rgbpp.js";
-import { RgbppUdtIssuance } from "../bitcoin/types/rgbpp/udt.js";
-import { IScriptProvider, RgbppScriptName } from "../bitcoin/types/script.js";
+import { RgbppInvalidLockError, RgbppValidationError } from "../error.js";
 import {
+  IScriptProvider,
   isUsingOneOfScripts,
+  RGBPP_BTC_TX_ID_PLACEHOLDER,
+  RgbppScriptName,
+  ScriptManager,
   updateScriptArgsWithTxId,
-} from "../utils/script.js";
-import { RgbppInvalidLockError, RgbppValidationError } from "./error.js";
-import { RgbppUdtIssuanceService } from "./issuance.js";
+  UtxoSeal,
+} from "../script/index.js";
+import { RgbppUdtIssuance, RgbppUdtIssuanceService } from "./issuance.js";
 
 export class RgbppUdtClient {
   public scriptManager: ScriptManager;
@@ -51,7 +50,7 @@ export class RgbppUdtClient {
 
     return this.scriptManager.buildBtcTimeLockScript(
       receiverLock,
-      TX_ID_PLACEHOLDER,
+      RGBPP_BTC_TX_ID_PLACEHOLDER,
       confirmations,
     );
   }

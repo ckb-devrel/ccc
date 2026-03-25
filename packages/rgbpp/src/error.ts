@@ -15,13 +15,6 @@ export class RgbppValidationError extends RgbppError {
   }
 }
 
-export class RgbppCommitmentMismatchError extends RgbppError {
-  constructor() {
-    super("RGBPP_COMMITMENT_MISMATCH", "Commitment mismatch");
-    this.name = "RgbppCommitmentMismatchError";
-  }
-}
-
 export class RgbppInvalidLockError extends RgbppValidationError {
   constructor(expected: string[], actual: string) {
     super(

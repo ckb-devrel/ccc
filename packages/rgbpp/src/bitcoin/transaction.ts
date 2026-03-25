@@ -1,20 +1,85 @@
 import { ccc } from "@ckb-ccc/core";
+
 import lodash from "lodash";
-import { DEFAULT_DUST_LIMIT } from "../constants/index.js";
-import { AddressType } from "../types/address.js";
-import { PublicKeyProvider } from "../types/public-key.js";
+
 import {
-  InitOutput,
-  TxInputData,
-  TxOutput,
-  Utxo,
-} from "../types/transaction.js";
-import { isSupportedAddressType, SUPPORTED_ADDRESS_TYPES } from "./address.js";
+  AddressType,
+  isSupportedAddressType,
+  SUPPORTED_ADDRESS_TYPES,
+} from "./address.js";
+import { PublicKeyProvider, toXOnly } from "./public-key.js";
 import {
   dataToOpReturnScriptPubkey,
   isOpReturnScriptPubkey,
-  toXOnly,
 } from "./script.js";
+
+export interface BaseOutput {
+  txid: string;
+  vout: number;
+}
+
+export interface Output extends BaseOutput {
+  value: number;
+  scriptPk: string;
+}
+
+export interface Utxo extends Output {
+  addressType: AddressType;
+  address: string;
+  pubkey?: string;
+}
+
+export interface BtcApiUtxoParams {
+  only_non_rgbpp_utxos?: boolean;
+  only_confirmed?: boolean;
+  min_satoshi?: number;
+  no_cache?: boolean;
+}
+
+export interface BtcApiBalanceParams {
+  min_satoshi?: number;
+  no_cache?: boolean;
+}
+
+export interface TxInputData {
+  hash: string;
+  index: number;
+  witnessUtxo: { value: number; script: Buffer };
+  tapInternalKey?: Buffer;
+}
+
+export type TxOutput = TxAddressOutput | TxScriptOutput;
+
+export interface TxBaseOutput {
+  value: number;
+  fixed?: boolean;
+  protected?: boolean;
+  minUtxoSatoshi?: number;
+}
+
+export interface TxAddressOutput extends TxBaseOutput {
+  address: string;
+}
+
+export interface TxScriptOutput extends TxBaseOutput {
+  script: Buffer;
+}
+
+export type InitOutput = TxAddressOutput | TxDataOutput | TxScriptOutput;
+
+export interface TxDataOutput extends TxBaseOutput {
+  data: Buffer | string;
+}
+
+export interface UtxoSealOptions {
+  targetValue?: number;
+  feeRate?: number;
+  btcUtxoParams?: BtcApiUtxoParams;
+  /** Polling interval in milliseconds for waiting transaction confirmation (default: 30000) */
+  confirmationPollInterval?: number;
+}
+
+export const BTC_DEFAULT_DUST_LIMIT = 546;
 
 /**
  * Convert UTXO to PSBT input data
@@ -100,7 +165,7 @@ export function convertToOutput(output: InitOutput): TxOutput {
     throw new Error("Unsupported output");
   }
 
-  const minUtxoSatoshi = result.minUtxoSatoshi ?? DEFAULT_DUST_LIMIT;
+  const minUtxoSatoshi = result.minUtxoSatoshi ?? BTC_DEFAULT_DUST_LIMIT;
   const isOpReturnOutput =
     "script" in result && isOpReturnScriptPubkey(result.script);
   if (!isOpReturnOutput && result.value < minUtxoSatoshi) {

@@ -5,10 +5,15 @@ import {
   buildRgbppLockArgs,
   buildUniqueTypeArgs,
   pseudoRgbppLockArgs,
-} from "../../utils/rgbpp.js";
-import { DEFAULT_CONFIRMATIONS } from "../constants/index.js";
-import { UtxoSeal } from "../types/rgbpp/rgbpp.js";
-import { IScriptProvider, RgbppScriptName } from "../types/script.js";
+} from "./utils.js";
+
+import {
+  RGBPP_BTC_TX_DEFAULT_CONFIRMATIONS,
+  RgbppScriptName,
+  UtxoSeal,
+} from "./rgbpp.js";
+
+import { IScriptProvider } from "./provider.js";
 
 /**
  * ScriptManager - Manages and builds RGB++ related scripts
@@ -98,7 +103,7 @@ export class ScriptManager {
   async buildBtcTimeLockScript(
     receiverLock: ccc.Script,
     btcTxId: string,
-    confirmations = DEFAULT_CONFIRMATIONS,
+    confirmations = RGBPP_BTC_TX_DEFAULT_CONFIRMATIONS,
   ): Promise<ccc.Script> {
     const scriptInfo = await this.getKnownScriptInfo(
       ccc.KnownScript.BtcTimeLock,

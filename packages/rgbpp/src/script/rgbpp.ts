@@ -1,15 +1,26 @@
 import { ccc, mol } from "@ckb-ccc/core";
-
-export interface RgbppUdtToken {
-  decimal: number;
-  name: string;
-  symbol: string;
-}
+import { sha256 } from "@noble/hashes/sha2";
 
 export interface UtxoSeal {
   txId: string;
   index: number;
 }
+
+/**
+ * Required RGBPP scripts that must be provided
+ * @public
+ */
+export const RGBPP_REQUIRED_SCRIPTS = [
+  ccc.KnownScript.RgbppLock,
+  ccc.KnownScript.BtcTimeLock,
+  ccc.KnownScript.UniqueType,
+] as const;
+
+/**
+ * Type representing the required RGBPP script names
+ * @public
+ */
+export type RgbppScriptName = (typeof RGBPP_REQUIRED_SCRIPTS)[number];
 
 // struct ExtraCommitmentData {
 //   input_len: byte,
@@ -174,3 +185,27 @@ export class BtcTimeUnlock extends mol.Entity.Base<
     return new BtcTimeUnlock(ccc.hexFrom(btul.btcTxProof));
   }
 }
+
+// https://github.com/RGBPlusPlus/rgbpp/blob/main/contracts/rgbpp-lock/src/main.rs#L228
+export const RGBPP_BTC_BLANK_TX_ID =
+  "0000000000000000000000000000000000000000000000000000000000000000";
+
+export const RGBPP_BTC_TX_ID_PLACEHOLDER_PRE_IMAGE =
+  "sha256 this for easy replacement in spore co-build witness";
+export const RGBPP_BTC_TX_ID_PLACEHOLDER = ccc.bytesTo(
+  sha256(ccc.bytesFrom(RGBPP_BTC_TX_ID_PLACEHOLDER_PRE_IMAGE, "utf8")),
+  "hex",
+);
+
+export const RGBPP_BTC_TX_PSEUDO_INDEX = 0xffffffff; // 4,294,967,295 (max u32)
+
+export const RGBPP_BTC_TX_DEFAULT_CONFIRMATIONS = 6;
+
+export const RGBPP_UNIQUE_TYPE_OUTPUT_INDEX = 1;
+
+export const deadLock = ccc.Script.from({
+  codeHash:
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+  hashType: "data",
+  args: "0x",
+});

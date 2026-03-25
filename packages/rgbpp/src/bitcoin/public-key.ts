@@ -19,3 +19,7 @@ export interface PublicKeyProvider {
     addressType: AddressType,
   ): Promise<string | undefined>;
 }
+
+export function toXOnly(pubKey: Buffer): Buffer {
+  return pubKey.length === 32 ? pubKey : pubKey.subarray(1, 33);
+}
