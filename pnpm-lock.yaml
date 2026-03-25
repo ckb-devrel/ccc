@@ -965,6 +965,9 @@ importers:
       '@ckb-lumos/codec':
         specifier: ^0.23.0
         version: 0.23.0
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
       bip32:
         specifier: 4.0.0
         version: 4.0.0
@@ -974,9 +977,6 @@ importers:
       ecpair:
         specifier: 2.1.0
         version: 2.1.0
-      js-sha256:
-        specifier: ^0.11.0
-        version: 0.11.1
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -7882,9 +7882,6 @@ packages:
 
   joi@17.13.3:
     resolution: {integrity: sha512-otDA4ldcIx+ZXsKHWmp0YizCweVRZG96J10b0FevjfuncLO1oX59THoAmHkNubYJ+9gWsYsp5k8v4ib6oDv1fA==}
-
-  js-sha256@0.11.1:
-    resolution: {integrity: sha512-o6WSo/LUvY2uC4j7mO50a2ms7E/EAdbP0swigLV+nzHKTTaYnaLIWJ02VdXrsJX0vGedDESQnLsOekr94ryfjg==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -19926,8 +19923,6 @@ snapshots:
       '@sideway/address': 4.1.5
       '@sideway/formula': 3.0.1
       '@sideway/pinpoint': 2.0.0
-
-  js-sha256@0.11.1: {}
 
   js-tokens@4.0.0: {}
 
