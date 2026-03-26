@@ -1,5 +1,4 @@
 ---
-"@ckb-ccc/ccc-playground": minor
 "@ckb-ccc/fiber": patch
 ---
 
