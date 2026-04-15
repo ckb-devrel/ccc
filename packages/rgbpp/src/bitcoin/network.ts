@@ -5,12 +5,6 @@ import {
   BTC_DEFAULT_FEE_RATE,
 } from "./transaction/index.js";
 
-export enum NetworkType {
-  MAINNET,
-  TESTNET,
-  REGTEST, // deprecated
-}
-
 export enum PredefinedNetwork {
   BitcoinTestnet3 = "BitcoinTestnet3",
   BitcoinMainnet = "BitcoinMainnet",
