@@ -1,6 +1,10 @@
 import { ccc } from "@ckb-ccc/core";
 
 import {
+  ErrorBtcMissingPublicKey,
+  ErrorBtcUnsupportedAddressType,
+} from "../../error.js";
+import {
   AddressType,
   isSupportedAddressType,
   SUPPORTED_ADDRESS_TYPES,
@@ -72,10 +76,9 @@ export async function utxoToInputData(
   publicKeyProvider?: PublicKeyProvider,
 ): Promise<TxInputData> {
   if (!isSupportedAddressType(utxo.addressType)) {
-    throw new Error(
-      `Unsupported address type, only support ${SUPPORTED_ADDRESS_TYPES.join(
-        ", ",
-      )}`,
+    throw new ErrorBtcUnsupportedAddressType(
+      utxo.addressType,
+      SUPPORTED_ADDRESS_TYPES,
     );
   }
 
@@ -102,10 +105,7 @@ export async function utxoToInputData(
     }
 
     if (!pubkey) {
-      throw new Error(
-        `Missing pubkey for P2TR address ${utxo.address}. ` +
-          `Please provide a PublicKeyProvider or add pubkey to UTXO data.`,
-      );
+      throw new ErrorBtcMissingPublicKey(utxo.address);
     }
 
     const data = {
@@ -120,5 +120,8 @@ export async function utxoToInputData(
     return data;
   }
 
-  throw new Error("Unsupported address type");
+  throw new ErrorBtcUnsupportedAddressType(
+    utxo.addressType,
+    SUPPORTED_ADDRESS_TYPES,
+  );
 }

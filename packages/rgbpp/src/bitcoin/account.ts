@@ -2,6 +2,7 @@ import ecc from "@bitcoinerlab/secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 
+import { ErrorBtcUnsupportedAddressType } from "../error.js";
 import { removeHexPrefix } from "../utils/index.js";
 import {
   AddressType,
@@ -29,10 +30,9 @@ export function createBtcAccount(
   networkType: string,
 ): BtcAccount {
   if (!isSupportedAddressType(addressType)) {
-    throw new Error(
-      `Unsupported address type, only support ${SUPPORTED_ADDRESS_TYPES.join(
-        ", ",
-      )}`,
+    throw new ErrorBtcUnsupportedAddressType(
+      addressType,
+      SUPPORTED_ADDRESS_TYPES,
     );
   }
 
@@ -67,7 +67,10 @@ export function createBtcAccount(
     };
   }
 
-  throw new Error("Unsupported address type, only support P2WPKH and P2TR");
+  throw new ErrorBtcUnsupportedAddressType(
+    addressType,
+    SUPPORTED_ADDRESS_TYPES,
+  );
 }
 
 interface TweakableSigner extends bitcoin.Signer {

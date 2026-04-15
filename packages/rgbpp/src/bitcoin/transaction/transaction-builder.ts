@@ -3,6 +3,12 @@ import {
   BtcUtxo,
   BtcUtxoParams,
 } from "../../data-source/index.js";
+import {
+  ErrorBtcInsufficientFunds,
+  ErrorBtcOpReturnUtxo,
+  ErrorBtcTransactionNotFound,
+  ErrorBtcUtxoNotFound,
+} from "../../error.js";
 
 import { AddressType, getAddressType } from "../address.js";
 import { NetworkConfig } from "../network.js";
@@ -52,23 +58,20 @@ export class BtcTransactionBuilder {
     for (const utxoSeal of uniqueSeals) {
       const tx = await this.dataSource.getTransaction(utxoSeal.txid);
       if (!tx) {
-        throw new Error(
-          `Transaction ${utxoSeal.txid} not found. The referenced UTXO may not exist or the API may be unavailable.`,
-        );
+        throw new ErrorBtcTransactionNotFound(utxoSeal.txid);
       }
       const vout = tx.vout[utxoSeal.vout];
       if (!vout) {
-        throw new Error(
-          `Output index ${utxoSeal.vout} not found in transaction ${utxoSeal.txid} (tx has ${tx.vout.length} outputs).`,
+        throw new ErrorBtcUtxoNotFound(
+          utxoSeal.txid,
+          utxoSeal.vout,
+          tx.vout.length,
         );
       }
 
       const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
       if (isOpReturnScriptPubkey(scriptBuffer)) {
-        throw new Error(
-          `Output ${utxoSeal.vout} of transaction ${utxoSeal.txid} is an OP_RETURN output, which is unspendable. ` +
-            `RGBPP lock args should not reference OP_RETURN outputs.`,
-        );
+        throw new ErrorBtcOpReturnUtxo(utxoSeal.txid, utxoSeal.vout);
       }
 
       inputs.push(
@@ -186,7 +189,7 @@ export class BtcTransactionBuilder {
     }
 
     if (filteredUtxos.length === 0) {
-      throw new Error("Insufficient funds");
+      throw new ErrorBtcInsufficientFunds(requiredValue, 0);
     }
 
     const selectedUtxos: BtcUtxo[] = [];
@@ -202,9 +205,7 @@ export class BtcTransactionBuilder {
     }
 
     if (totalValue < requiredValue) {
-      throw new Error(
-        `Insufficient funds: needed ${requiredValue}, but only found ${totalValue}`,
-      );
+      throw new ErrorBtcInsufficientFunds(requiredValue, totalValue);
     }
 
     return {

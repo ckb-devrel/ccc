@@ -1,5 +1,6 @@
 import * as bitcoin from "bitcoinjs-lib";
 
+import { ErrorBtcInvalidAddress } from "../error.js";
 import { toBtcNetwork } from "./network.js";
 
 // Read more about the available address types:
@@ -109,9 +110,7 @@ export function decodeAddress(address: string): {
     }
   }
 
-  throw new Error(
-    `Unable to decode address: "${address}". Unrecognized format.`,
-  );
+  throw new ErrorBtcInvalidAddress(address);
 }
 
 export function getAddressType(address: string): AddressType {

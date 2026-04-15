@@ -3,6 +3,7 @@ import { sha256 } from "@noble/hashes/sha2";
 import { ccc, mol } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../bitcoin/transaction/index.js";
+import { ErrorRgbppInvalidLockArgs } from "../error.js";
 
 /**
  * Required RGBPP scripts that must be provided
@@ -304,7 +305,7 @@ export const updateScriptArgsWithTxId = (
 ): string => {
   const argsBytes = ccc.bytesFrom(args);
   if (argsBytes.length < 32) {
-    throw new Error("Lock args length is invalid");
+    throw new ErrorRgbppInvalidLockArgs(argsBytes.length, 32);
   }
   const txIdBytes = ccc.bytesFrom(txId).reverse();
   const newArgs = ccc.bytesConcat(
@@ -317,7 +318,7 @@ export const updateScriptArgsWithTxId = (
 export function getTxIdFromRgbppLockArgs(args: ccc.Hex): string {
   const argsBytes = ccc.bytesFrom(args);
   if (argsBytes.length < 32) {
-    throw new Error("Lock args length is invalid");
+    throw new ErrorRgbppInvalidLockArgs(argsBytes.length, 32);
   }
 
   return ccc.bytesTo(
@@ -329,7 +330,7 @@ export function getTxIdFromRgbppLockArgs(args: ccc.Hex): string {
 export function getTxIndexFromRgbppLockArgs(args: ccc.Hex): number {
   const argsBytes = ccc.bytesFrom(args);
   if (argsBytes.length < 32) {
-    throw new Error("Lock args length is invalid");
+    throw new ErrorRgbppInvalidLockArgs(argsBytes.length, 32);
   }
 
   return Number(ccc.numLeFromBytes(argsBytes.subarray(0, 4)));
