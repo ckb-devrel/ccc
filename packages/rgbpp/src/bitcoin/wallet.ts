@@ -3,6 +3,11 @@ import * as bitcoin from "bitcoinjs-lib";
 
 import { ccc } from "@ckb-ccc/core";
 
+import {
+  ErrorRgbppInvalidCellLock,
+  ErrorRgbppMaxCellExceeded,
+  ErrorRgbppNoTypedOutput,
+} from "../error.js";
 import { RetryOptions, retryWithBackoff } from "../utils/index.js";
 
 import {
@@ -150,7 +155,10 @@ export abstract class RgbppBtcWallet {
             btcTimeLockScriptTemplate,
           ])
         ) {
-          throw new Error("Invalid cell lock");
+          throw new ErrorRgbppInvalidCellLock(
+            ["RgbppLock", "BtcTimeLock"],
+            output.lock.codeHash,
+          );
         }
         lastCkbTypedOutputIndex = index;
       }
@@ -168,7 +176,7 @@ export abstract class RgbppBtcWallet {
     });
 
     if (lastCkbTypedOutputIndex < 0) {
-      throw new Error("Invalid outputs");
+      throw new ErrorRgbppNoTypedOutput();
     }
 
     const rgbppPartialTx = ccc.Transaction.from({
@@ -678,8 +686,9 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
     inputs.length > RGBPP_CKB_MAX_CELL ||
     outputs.length > RGBPP_CKB_MAX_CELL
   ) {
-    throw new Error(
-      "The inputs or outputs length of RGB++ CKB virtual tx cannot be greater than 255",
+    throw new ErrorRgbppMaxCellExceeded(
+      Math.max(inputs.length, outputs.length),
+      RGBPP_CKB_MAX_CELL,
     );
   }
   hash.update(new Uint8Array([inputs.length, outputs.length]));

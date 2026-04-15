@@ -58,10 +58,6 @@ ckbUdtToBtc({
   udtScriptArgs:
     "0xe6fa637f763fd63732146015b0964fe88f16996846b3d0a164bf15c069ff008b",
   amount: ccc.fixedPointFrom(1000),
-  utxoSeal: {
-    txid: "4908a7d9c5d424c2617624d38ca8a01849b041412d47a036f14f643152fcba52",
-    vout: 0,
-  },
 })
   .then(() => {
     process.exit(0);

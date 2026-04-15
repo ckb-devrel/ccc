@@ -1,5 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 
+import { ErrorRgbppScriptNotFound } from "../error.js";
+
 /**
  * Script provider interface
  * Implement this interface to provide custom script sources
@@ -70,7 +72,7 @@ export class StaticScriptProvider implements IScriptProvider {
   async getScriptInfo(name: ccc.KnownScript): Promise<ccc.ScriptInfo> {
     const info = this.scripts.get(name);
     if (!info) {
-      throw new Error(`Script not found: ${name}`);
+      throw new ErrorRgbppScriptNotFound(name);
     }
     return info;
   }
@@ -125,8 +127,8 @@ export class CompositeScriptProvider implements IScriptProvider {
     }
 
     // All providers failed
-    throw new Error(
-      `Failed to get script "${name}" from all providers:\n${errors.map((e, i) => `  [${i + 1}] ${e.message}`).join("\n")}`,
+    throw new ErrorRgbppScriptNotFound(
+      `${name} (all ${errors.length} providers failed)`,
     );
   }
 

@@ -13,6 +13,10 @@ import { transactionToHex } from "../bitcoin/transaction/index.js";
 
 import { pollForSpvProof, RgbppSpvProof } from "../data-source/index.js";
 import {
+  ErrorRgbppInvalidInputLock,
+  ErrorRgbppOutputNotFound,
+} from "../error.js";
+import {
   btcTxIdInReverseByteOrder,
   buildRgbppUnlock,
   deduplicateByOutPoint,
@@ -314,7 +318,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
       ]),
     );
     if (!rgbppOutput) {
-      throw new Error("Rgbpp or btcTimeLock output not found");
+      throw new ErrorRgbppOutputNotFound();
     }
     return getTxIdFromRgbppLockArgs(rgbppOutput.lock.args);
   }
@@ -344,8 +348,8 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
         ? this.getScriptName(input.cellOutput.lock)
         : undefined;
       if (scriptName !== ccc.KnownScript.RgbppLock) {
-        throw new Error(
-          `All inputs must use RGBPP lock, but found input with lock codeHash: ${input.cellOutput?.lock.codeHash}`,
+        throw new ErrorRgbppInvalidInputLock(
+          input.cellOutput?.lock.codeHash ?? "unknown",
         );
       }
     }

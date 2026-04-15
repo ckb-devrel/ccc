@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 
 import { UtxoSeal } from "../bitcoin/transaction/index.js";
-import { RgbppInvalidLockError, RgbppValidationError } from "../error.js";
+import { ErrorRgbppCellNotFound, ErrorRgbppInvalidCellLock } from "../error.js";
 import {
   IScriptProvider,
   isUsingOneOfScripts,
@@ -73,8 +73,8 @@ export class RgbppUdtClient {
           btcTimeLockTemplate,
         ])
       ) {
-        throw new RgbppInvalidLockError(
-          ["rgbpp", "btc time lock"],
+        throw new ErrorRgbppInvalidCellLock(
+          ["RgbppLock", "BtcTimeLock"],
           output.lock.codeHash,
         );
       }
@@ -127,7 +127,7 @@ export class RgbppUdtClient {
       index: 0,
     });
     if (!cell) {
-      throw new RgbppValidationError("Cell not found after issuance");
+      throw new ErrorRgbppCellNotFound(txHash);
     }
 
     return [cell];
