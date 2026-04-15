@@ -1,6 +1,6 @@
 import * as bitcoin from "bitcoinjs-lib";
 
-import { NetworkType, toBtcNetwork } from "./network.js";
+import { toBtcNetwork } from "./network.js";
 
 // Read more about the available address types:
 // - P2WPKH: https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh
@@ -37,7 +37,7 @@ export function addressToScriptPublicKeyHex(
 }
 
 export function decodeAddress(address: string): {
-  networkType: NetworkType;
+  network: bitcoin.Network;
   addressType: AddressType;
 } {
   const mainnet = bitcoin.networks.bitcoin;
@@ -45,7 +45,7 @@ export function decodeAddress(address: string): {
   const regtest = bitcoin.networks.regtest;
   let decodeBase58: bitcoin.address.Base58CheckResult;
   let decodeBech32: bitcoin.address.Bech32Result;
-  let networkType: NetworkType | undefined;
+  let network: bitcoin.Network | undefined;
   let addressType: AddressType | undefined;
   if (
     address.startsWith("bc1") ||
@@ -55,11 +55,11 @@ export function decodeAddress(address: string): {
     try {
       decodeBech32 = bitcoin.address.fromBech32(address);
       if (decodeBech32.prefix === mainnet.bech32) {
-        networkType = NetworkType.MAINNET;
+        network = mainnet;
       } else if (decodeBech32.prefix === testnet.bech32) {
-        networkType = NetworkType.TESTNET;
+        network = testnet;
       } else if (decodeBech32.prefix === regtest.bech32) {
-        networkType = NetworkType.REGTEST;
+        network = regtest;
       }
       if (decodeBech32.version === 0) {
         if (decodeBech32.data.length === 20) {
@@ -72,9 +72,9 @@ export function decodeAddress(address: string): {
           addressType = AddressType.P2TR;
         }
       }
-      if (networkType !== undefined && addressType !== undefined) {
+      if (network !== undefined && addressType !== undefined) {
         return {
-          networkType,
+          network,
           addressType,
         };
       }
@@ -85,22 +85,22 @@ export function decodeAddress(address: string): {
     try {
       decodeBase58 = bitcoin.address.fromBase58Check(address);
       if (decodeBase58.version === mainnet.pubKeyHash) {
-        networkType = NetworkType.MAINNET;
+        network = mainnet;
         addressType = AddressType.P2PKH;
       } else if (decodeBase58.version === testnet.pubKeyHash) {
-        networkType = NetworkType.TESTNET;
+        network = testnet;
         addressType = AddressType.P2PKH;
       } else if (decodeBase58.version === mainnet.scriptHash) {
-        networkType = NetworkType.MAINNET;
+        network = mainnet;
         addressType = AddressType.P2SH_P2WPKH;
       } else if (decodeBase58.version === testnet.scriptHash) {
-        networkType = NetworkType.TESTNET;
+        network = testnet;
         addressType = AddressType.P2SH_P2WPKH;
       }
 
-      if (networkType !== undefined && addressType !== undefined) {
+      if (network !== undefined && addressType !== undefined) {
         return {
-          networkType,
+          network,
           addressType,
         };
       }
