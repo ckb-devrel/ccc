@@ -1,6 +1,22 @@
-export * from "./btc-time-lock.js";
-export * from "./network.js";
+export function removeHexPrefix(hex: string): string {
+  return hex.startsWith("0x") ? hex.slice(2) : hex;
+}
+
+// Domain validation utility
+/**
+ * Check if target string is a valid domain.
+ * @exmaple
+ * isDomain('google.com') // => true
+ * isDomain('https://google.com') // => false
+ * isDomain('localhost') // => false
+ * isDomain('localhost', true) // => true
+ */
+export function isDomain(domain: string, allowLocalhost?: boolean): boolean {
+  if (allowLocalhost && domain === "localhost") {
+    return true;
+  }
+  const regex = /^(?:[-A-Za-z0-9]+\.)+[A-Za-z]{2,}$/;
+  return regex.test(domain);
+}
+
 export * from "./retry.js";
-export * from "./rgbpp.js";
-export * from "./script.js";
-export * from "./spv.js";
