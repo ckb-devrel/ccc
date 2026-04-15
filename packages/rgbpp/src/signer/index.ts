@@ -9,33 +9,32 @@ import {
 } from "@ckb-ccc/core";
 import { spore } from "@ckb-ccc/spore";
 
-import { transactionToHex } from "../bitcoin/wallet/index.js";
+import { transactionToHex } from "../bitcoin/transaction/index.js";
 
-import {
-  CONFIG_CELL_INDEX,
-  DEFAULT_SPV_POLL_INTERVAL,
-  TX_ID_PLACEHOLDER,
-} from "../bitcoin/constants.js";
-import {
-  deduplicateByOutPoint,
-  trimHexPrefix,
-} from "../bitcoin/utils/index.js";
-import { RgbppBtcDataSource, SpvProof } from "../interfaces/index.js";
-import { RgbppScriptName } from "../udt/types.js";
+import { pollForSpvProof, RgbppSpvProof } from "../data-source/index.js";
 import {
   btcTxIdInReverseByteOrder,
   buildRgbppUnlock,
+  deduplicateByOutPoint,
   getTxIdFromRgbppLockArgs,
   isSameScriptTemplate,
   isUsingOneOfScripts,
-  pollForSpvProof,
   pseudoRgbppLockArgs,
-} from "../utils/index.js";
+  RGBPP_BTC_TX_ID_PLACEHOLDER,
+  RGBPP_CONFIG_CELL_INDEX,
+  RgbppScriptName,
+} from "../script/index.js";
+import { removeHexPrefix } from "../utils/index.js";
+
+import {
+  DEFAULT_SPV_POLL_INTERVAL,
+  RgbppDataSource,
+} from "../data-source/index.js";
 
 export interface CkbRgbppUnlockSignerParams {
   ckbClient: ccc.Client;
   rgbppBtcAddress: string;
-  btcDataSource: RgbppBtcDataSource;
+  rgbppDataSource: RgbppDataSource;
   scriptInfos: Record<RgbppScriptName, ccc.ScriptInfo>;
   /** Polling interval in milliseconds for SPV proof polling (default: 30000, minimum: 5000) */
   spvPollIntervalMs?: number;
@@ -57,23 +56,23 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     };
   };
 
-  private spvProofCache = new Map<string, Promise<SpvProof>>();
+  private spvProofCache = new Map<string, Promise<RgbppSpvProof>>();
   private readonly cacheExpiryTime: number;
   private readonly spvPollIntervalMs: number;
   private readonly rgbppBtcAddress: string;
-  private readonly btcDataSource: RgbppBtcDataSource;
+  private readonly rgbppDataSource: RgbppDataSource;
 
   constructor({
     ckbClient,
     rgbppBtcAddress,
-    btcDataSource,
+    rgbppDataSource,
     scriptInfos,
     spvPollIntervalMs,
     cacheExpiryMs,
   }: CkbRgbppUnlockSignerParams) {
     super(ckbClient);
     this.rgbppBtcAddress = rgbppBtcAddress;
-    this.btcDataSource = btcDataSource;
+    this.rgbppDataSource = rgbppDataSource;
 
     // Validate required script infos
     const requiredScripts = [
@@ -164,7 +163,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
           ccc.CellDep.from({
             outPoint: {
               ...this.rgbppScriptInfos[name].cellDep.outPoint,
-              index: CONFIG_CELL_INDEX,
+              index: RGBPP_CONFIG_CELL_INDEX,
             },
             depType: this.rgbppScriptInfos[name].cellDep.depType,
           }),
@@ -246,7 +245,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     tx.cellDeps = await this.collectCellDeps(tx);
 
     const btcTxId = this.parseBtcTxIdFromScriptArgs(tx);
-    const spvProof = await this.getSpvProof(btcTxId);
+    const spvProof = await this.getRgbppSpvProof(btcTxId);
     tx.cellDeps.push(
       ccc.CellDep.from({
         outPoint: spvProof.spvClientOutpoint,
@@ -261,13 +260,13 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     const tx = ccc.Transaction.from(txLike);
 
     const btcTxId = this.parseBtcTxIdFromScriptArgs(tx);
-    const spvProof = await this.getSpvProof(btcTxId);
+    const spvProof = await this.getRgbppSpvProof(btcTxId);
 
     const rawBtcTxHex = await this.getRawBtcTxHex(btcTxId);
     return Promise.resolve(this.insertWitnesses(tx, rawBtcTxHex, spvProof));
   }
 
-  private async getSpvProof(btcTxId: string): Promise<SpvProof> {
+  private async getRgbppSpvProof(btcTxId: string): Promise<RgbppSpvProof> {
     const spvProof = this.spvProofCache.get(btcTxId);
 
     if (spvProof) {
@@ -275,7 +274,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     }
 
     const proofPromise = pollForSpvProof(
-      this.btcDataSource,
+      this.rgbppDataSource,
       btcTxId,
       0,
       this.spvPollIntervalMs,
@@ -301,7 +300,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   }
 
   private async getRawBtcTxHex(txId: string): Promise<string> {
-    const hex = await this.btcDataSource.getTransactionHex(txId);
+    const hex = await this.rgbppDataSource.getTransactionHex(txId);
     const parseTx = bitcoin.Transaction.fromHex(hex);
     return transactionToHex(parseTx, false);
   }
@@ -323,7 +322,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   async insertWitnesses(
     partialTx: ccc.Transaction,
     btcLikeTxBytes: string,
-    spvClient: SpvProof,
+    spvClient: RgbppSpvProof,
   ): Promise<ccc.Transaction> {
     const tx = partialTx.clone();
 
@@ -401,7 +400,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     let cobuildWitness: string = pseudoCobuild;
     if (rgbppLockArgs.length > 0) {
       let currentCobuild: string = pseudoCobuild;
-      const pseudoArg = trimHexPrefix(pseudoRgbppLockArgs());
+      const pseudoArg = removeHexPrefix(pseudoRgbppLockArgs());
       let lastIndex = 0;
 
       for (const lockArg of rgbppLockArgs) {
@@ -412,14 +411,16 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
 
         currentCobuild =
           currentCobuild.substring(0, index) +
-          trimHexPrefix(lockArg) +
+          removeHexPrefix(lockArg) +
           currentCobuild.substring(index + pseudoArg.length);
-        lastIndex = index + trimHexPrefix(lockArg).length;
+        lastIndex = index + removeHexPrefix(lockArg).length;
       }
       cobuildWitness = currentCobuild;
     }
 
-    const txIdPlaceholder = btcTxIdInReverseByteOrder(TX_ID_PLACEHOLDER);
+    const txIdPlaceholder = btcTxIdInReverseByteOrder(
+      RGBPP_BTC_TX_ID_PLACEHOLDER,
+    );
     const txIdReplacement = btcTxIdInReverseByteOrder(btcTxId);
     const finalCobuild = cobuildWitness.replace(
       new RegExp(txIdPlaceholder, "g"),
@@ -440,7 +441,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
   }
 
   async getAddressObjs(): Promise<ccc.Address[]> {
-    const rgbppCellOutputs = await this.btcDataSource.getRgbppCellOutputs(
+    const rgbppCellOutputs = await this.rgbppDataSource.getRgbppCellOutputs(
       this.rgbppBtcAddress,
     );
 
