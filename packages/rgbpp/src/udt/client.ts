@@ -1,26 +1,24 @@
 import { ccc } from "@ckb-ccc/core";
 
-import { TX_ID_PLACEHOLDER } from "../bitcoin/constants.js";
-import { UtxoSeal } from "../bitcoin/types/index.js";
+import { UtxoSeal } from "../bitcoin/transaction/index.js";
+import { RgbppInvalidLockError, RgbppValidationError } from "../error.js";
 import {
+  IScriptProvider,
   isUsingOneOfScripts,
+  RGBPP_BTC_TX_ID_PLACEHOLDER,
+  RgbppScriptName,
+  ScriptManager,
   updateScriptArgsWithTxId,
-} from "../utils/index.js";
-import { RgbppInvalidLockError, RgbppValidationError } from "./error.js";
-import { RgbppUdtIssuanceService } from "./issuance.js";
-import { ScriptManager } from "./script-manager.js";
-import { IScriptProvider, RgbppScriptName, RgbppUdtIssuance } from "./types.js";
+} from "../script/index.js";
 
 export class RgbppUdtClient {
   public scriptManager: ScriptManager;
-  private issuanceService: RgbppUdtIssuanceService;
 
   constructor(
     private ckbClient: ccc.Client,
     scriptProvider: IScriptProvider,
   ) {
     this.scriptManager = new ScriptManager(scriptProvider);
-    this.issuanceService = new RgbppUdtIssuanceService(this.scriptManager);
   }
 
   async rgbppLockScriptTemplate(): Promise<ccc.Script> {
@@ -49,7 +47,7 @@ export class RgbppUdtClient {
 
     return this.scriptManager.buildBtcTimeLockScript(
       receiverLock,
-      TX_ID_PLACEHOLDER,
+      RGBPP_BTC_TX_ID_PLACEHOLDER,
       confirmations,
     );
   }
@@ -133,14 +131,5 @@ export class RgbppUdtClient {
     }
 
     return [cell];
-  }
-
-  async issuanceCkbPartialTx(
-    params: RgbppUdtIssuance,
-  ): Promise<ccc.Transaction> {
-    return this.issuanceService.buildIssuanceCkbPartialTx(
-      params,
-      this.ckbClient,
-    );
   }
 }
