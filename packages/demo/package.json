@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@ckb-ccc/connector-react": "workspace:*",
+    "@nervosnetwork/fiber-js": "0.8.0",
     "@ckb-ccc/lumos-patches": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
