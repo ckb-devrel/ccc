@@ -299,20 +299,6 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
   clone(): CellOutput {
     return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
   }
-
-  /**
-   * Clone a CellOutput.
-   *
-   * @returns A cloned CellOutput instance.
-   *
-   * @example
-   * ```typescript
-   * const cellOutput1 = cellOutput0.clone();
-   * ```
-   */
-  clone(): CellOutput {
-    return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
-  }
 }
 export const CellOutputVec = mol.vector(CellOutput);
 

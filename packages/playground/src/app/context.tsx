@@ -39,28 +39,28 @@ export type Messages = [
 
 export const APP_CONTEXT = createContext<
   | {
-    enabledAnimate: boolean;
-    backgroundLifted: boolean;
-    setAnimate: (v: boolean) => void;
-    setBackgroundLifted: (v: boolean) => void;
+      enabledAnimate: boolean;
+      backgroundLifted: boolean;
+      setAnimate: (v: boolean) => void;
+      setBackgroundLifted: (v: boolean) => void;
 
-    signer: ccc.Signer;
-    openSigner: () => void;
-    disconnect: () => void;
-    openAction: ReactNode;
+      signer: ccc.Signer;
+      openSigner: () => void;
+      disconnect: () => void;
+      openAction: ReactNode;
 
-    messages: Messages;
-    clearMessage: () => void;
-    sendMessage: (
-      level: "error" | "info",
-      title: string,
-      msgs: unknown[],
-    ) => void;
-    createSender: (title: string) => {
-      log: (...msgs: unknown[]) => void;
-      error: (...msgs: unknown[]) => void;
-    };
-  }
+      messages: Messages;
+      clearMessage: () => void;
+      sendMessage: (
+        level: "error" | "info",
+        title: string,
+        msgs: unknown[],
+      ) => void;
+      createSender: (title: string) => {
+        log: (...msgs: unknown[]) => void;
+        error: (...msgs: unknown[]) => void;
+      };
+    }
   | undefined
 >(undefined);
 
