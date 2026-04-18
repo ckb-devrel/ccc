@@ -729,8 +729,8 @@ export const calculateCommitment = (ckbPartialTx: ccc.Transaction): string => {
     const outputData = outputsData[index];
     hash.update(outputs[index].toBytes());
 
-    const outputDataLen = ccc.numLeToBytes(ccc.bytesFrom(outputData).length, 4);
     const od = ccc.bytesFrom(outputData);
+    const outputDataLen = ccc.numLeToBytes(od.length, 4);
     hash.update(outputDataLen);
     hash.update(od);
   }
