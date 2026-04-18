@@ -60,6 +60,9 @@ export async function initializeRgbppEnv(): Promise<{
     addressType,
     networkConfig,
     rgbppDataSource,
+    {
+      logger: console,
+    },
   );
 
   return {

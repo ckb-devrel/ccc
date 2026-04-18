@@ -12,6 +12,7 @@ import {
   ErrorBtcUtxoNotFound,
 } from "../../error.js";
 import {
+  Logger,
   mapWithConcurrency,
   RetryOptions,
   retryWithBackoff,
@@ -35,6 +36,7 @@ import {
 export interface BtcTransactionBuilderOptions {
   concurrency?: number;
   retryOptions?: RetryOptions;
+  logger?: Logger;
 }
 
 /**
@@ -45,7 +47,10 @@ export interface BtcTransactionBuilderOptions {
  */
 export class BtcTransactionBuilder {
   private feeEstimator: BtcFeeEstimator;
-  private options: Required<BtcTransactionBuilderOptions>;
+  private options: BtcTransactionBuilderOptions & {
+    concurrency: number;
+    retryOptions: RetryOptions;
+  };
 
   constructor(
     private dataSource: BtcDataProvider,
@@ -58,6 +63,7 @@ export class BtcTransactionBuilder {
     this.options = {
       concurrency: options?.concurrency ?? 5,
       retryOptions: options?.retryOptions ?? { maxRetries: 3, initialDelay: 1 },
+      logger: options?.logger,
     };
   }
 
@@ -65,7 +71,7 @@ export class BtcTransactionBuilder {
     const uniqueSeals = deduplicateUtxoSeals(utxoSeals);
 
     if (uniqueSeals.length < utxoSeals.length) {
-      console.warn(
+      this.options.logger?.warn?.(
         `[BtcTransactionBuilder] Removed ${utxoSeals.length - uniqueSeals.length} duplicate UTXO(s) from inputs`,
       );
     }
@@ -292,7 +298,7 @@ export class BtcTransactionBuilder {
         feeRate = (await this.dataSource.getRecommendedFee()).fastestFee;
       } catch (error) {
         feeRate = this.networkConfig.btcFeeRate;
-        console.warn(
+        this.options.logger?.warn?.(
           `Failed to get recommended fee rate: ${String(error)}, using default fee rate ${this.networkConfig.btcFeeRate}`,
         );
       }
