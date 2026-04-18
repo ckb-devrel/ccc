@@ -8,7 +8,7 @@ import {
   ErrorRgbppMaxCellExceeded,
   ErrorRgbppNoTypedOutput,
 } from "../error.js";
-import { RetryOptions, retryWithBackoff } from "../utils/index.js";
+import { Logger, RetryOptions, retryWithBackoff } from "../utils/index.js";
 
 import {
   RGBPP_BTC_BLANK_TX_ID,
@@ -65,6 +65,7 @@ export interface RgbppBtcTxParams {
 
 export interface RgbppBtcWalletOptions {
   btcTxBuilderOptions?: BtcTransactionBuilderOptions;
+  logger?: Logger;
 }
 
 export abstract class RgbppBtcWallet {
@@ -89,7 +90,10 @@ export abstract class RgbppBtcWallet {
       this.networkConfig,
       this.publicKeyProvider,
       () => this.getAddress(),
-      this.options?.btcTxBuilderOptions,
+      {
+        ...this.options?.btcTxBuilderOptions,
+        logger: this.options?.logger,
+      },
     );
   }
 
@@ -430,14 +434,18 @@ export abstract class RgbppBtcWallet {
     // Wait for confirmation
     const intervalSeconds = confirmationPollInterval / 1000;
     while (!btcTx.status.confirmed) {
-      console.log(
-        `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`,
-      );
+      const logger = this.options?.logger;
+      const msg = `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`;
+      if (logger?.info) {
+        logger.info(msg);
+      } else if (logger?.log) {
+        logger.log(msg);
+      }
       await ccc.sleep(confirmationPollInterval);
       try {
         btcTx = await this.dataSource.getTransaction(txId);
       } catch (error) {
-        console.warn(
+        logger?.warn?.(
           `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
         );
       }
