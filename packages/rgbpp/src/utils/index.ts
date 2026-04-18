@@ -19,4 +19,5 @@ export function isDomain(domain: string, allowLocalhost?: boolean): boolean {
   return regex.test(domain);
 }
 
+export * from "./concurrency.js";
 export * from "./retry.js";

@@ -1,3 +1,5 @@
+import { ccc } from "@ckb-ccc/core";
+
 import {
   BtcDataProvider,
   BtcUtxo,
@@ -9,9 +11,11 @@ import {
   ErrorBtcTransactionNotFound,
   ErrorBtcUtxoNotFound,
 } from "../../error.js";
-
-import { ccc } from "@ckb-ccc/core";
-
+import {
+  mapWithConcurrency,
+  RetryOptions,
+  retryWithBackoff,
+} from "../../utils/index.js";
 import { AddressType, getAddressType } from "../address.js";
 import { NetworkConfig } from "../network.js";
 import { PublicKeyProvider } from "../public-key.js";
@@ -28,6 +32,11 @@ import {
   utxoToInputData,
 } from "./utxo.js";
 
+export interface BtcTransactionBuilderOptions {
+  concurrency?: number;
+  retryOptions?: RetryOptions;
+}
+
 /**
  * Handles BTC transaction building: input construction, UTXO collection,
  * fee estimation, and input/output balancing.
@@ -36,14 +45,20 @@ import {
  */
 export class BtcTransactionBuilder {
   private feeEstimator: BtcFeeEstimator;
+  private options: Required<BtcTransactionBuilderOptions>;
 
   constructor(
     private dataSource: BtcDataProvider,
     private networkConfig: NetworkConfig,
     private publicKeyProvider: PublicKeyProvider,
     private getAddress: () => Promise<string>,
+    options?: BtcTransactionBuilderOptions,
   ) {
     this.feeEstimator = new BtcFeeEstimator();
+    this.options = {
+      concurrency: options?.concurrency ?? 5,
+      retryOptions: options?.retryOptions ?? { maxRetries: 3, initialDelay: 1 },
+    };
   }
 
   async buildInputs(utxoSeals: UtxoSeal[]): Promise<TxInputData[]> {
@@ -55,29 +70,32 @@ export class BtcTransactionBuilder {
       );
     }
 
-    const inputs: TxInputData[] = [];
-    // TODO: parallel
-    for (const utxoSeal of uniqueSeals) {
-      const tx = await this.dataSource.getTransaction(utxoSeal.txid);
-      if (!tx) {
-        throw new ErrorBtcTransactionNotFound(utxoSeal.txid);
-      }
-      const vout = tx.vout[utxoSeal.vout];
-      if (!vout) {
-        throw new ErrorBtcUtxoNotFound(
-          utxoSeal.txid,
-          utxoSeal.vout,
-          tx.vout.length,
+    const inputs = await mapWithConcurrency(
+      uniqueSeals,
+      this.options.concurrency,
+      async (utxoSeal) => {
+        const tx = await retryWithBackoff(
+          () => this.dataSource.getTransaction(utxoSeal.txid),
+          this.options.retryOptions,
         );
-      }
+        if (!tx) {
+          throw new ErrorBtcTransactionNotFound(utxoSeal.txid);
+        }
+        const vout = tx.vout[utxoSeal.vout];
+        if (!vout) {
+          throw new ErrorBtcUtxoNotFound(
+            utxoSeal.txid,
+            utxoSeal.vout,
+            tx.vout.length,
+          );
+        }
 
-      const scriptBuffer = ccc.bytesFrom(vout.scriptpubkey);
-      if (isOpReturnScriptPubkey(scriptBuffer)) {
-        throw new ErrorBtcOpReturnUtxo(utxoSeal.txid, utxoSeal.vout);
-      }
+        const scriptBuffer = ccc.bytesFrom(vout.scriptpubkey);
+        if (isOpReturnScriptPubkey(scriptBuffer)) {
+          throw new ErrorBtcOpReturnUtxo(utxoSeal.txid, utxoSeal.vout);
+        }
 
-      inputs.push(
-        await utxoToInputData(
+        return utxoToInputData(
           {
             txid: utxoSeal.txid,
             vout: utxoSeal.vout,
@@ -87,9 +105,9 @@ export class BtcTransactionBuilder {
             addressType: getAddressType(vout.scriptpubkey_address),
           } as Utxo,
           this.publicKeyProvider,
-        ),
-      );
-    }
+        );
+      },
+    );
     return inputs;
   }
 

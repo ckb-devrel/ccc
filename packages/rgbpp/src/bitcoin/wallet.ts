@@ -19,8 +19,13 @@ import {
 } from "../script/index.js";
 
 import {
+  BtcTransactionBuilder,
+  BtcTransactionBuilderOptions,
+  InitOutput,
+  TxOutput,
   UtxoSeal,
   UtxoSealOptions,
+  convertToOutput,
   transactionToHex,
 } from "./transaction/index.js";
 
@@ -45,13 +50,6 @@ import {
   WalletPublicKeyProvider,
   toXOnly,
 } from "./public-key.js";
-import {
-  BtcTransactionBuilder,
-  InitOutput,
-  TxOutput,
-  convertToOutput,
-} from "./transaction/index.js";
-
 /** Default polling interval in milliseconds for waiting transaction confirmation */
 export const BTC_DEFAULT_CONFIRMATION_POLL_INTERVAL = 30_000;
 
@@ -65,6 +63,10 @@ export interface RgbppBtcTxParams {
   feeRate?: number;
 }
 
+export interface RgbppBtcWalletOptions {
+  btcTxBuilderOptions?: BtcTransactionBuilderOptions;
+}
+
 export abstract class RgbppBtcWallet {
   protected publicKeyProvider: PublicKeyProvider;
   protected txBuilder: BtcTransactionBuilder;
@@ -73,6 +75,7 @@ export abstract class RgbppBtcWallet {
   constructor(
     protected networkConfig: NetworkConfig,
     protected dataSource: BtcDataProvider,
+    protected options?: RgbppBtcWalletOptions,
   ) {
     // Initialize public key providers
     this.cachedPubKeyProvider = new CachedPublicKeyProvider();
@@ -81,12 +84,12 @@ export abstract class RgbppBtcWallet {
       new WalletPublicKeyProvider(this),
     ]);
 
-    // Initialize transaction builder with wallet dependencies
     this.txBuilder = new BtcTransactionBuilder(
       this.dataSource,
       this.networkConfig,
       this.publicKeyProvider,
       () => this.getAddress(),
+      this.options?.btcTxBuilderOptions,
     );
   }
 
@@ -455,8 +458,9 @@ export class RgbppPrivateKeyBtcWallet extends RgbppBtcWallet {
     addressType: AddressType,
     networkConfig: NetworkConfig,
     dataSource: BtcDataProvider,
+    options?: RgbppBtcWalletOptions,
   ) {
-    super(networkConfig, dataSource);
+    super(networkConfig, dataSource, options);
     this.account = createBtcAccount(
       privateKey,
       addressType,
@@ -658,8 +662,9 @@ export class RgbppBrowserBtcWallet extends RgbppBtcWallet {
     protected signer: ccc.SignerBtc,
     networkConfig: NetworkConfig,
     dataSource: BtcDataProvider,
+    options?: RgbppBtcWalletOptions,
   ) {
-    super(networkConfig, dataSource);
+    super(networkConfig, dataSource, options);
   }
 
   async getAddress(): Promise<string> {
