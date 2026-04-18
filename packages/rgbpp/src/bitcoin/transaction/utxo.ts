@@ -88,7 +88,7 @@ export async function utxoToInputData(
       index: utxo.vout,
       witnessUtxo: {
         value: utxo.value,
-        script: Buffer.from(ccc.bytesFrom(utxo.scriptPk)),
+        script: ccc.bytesFrom(utxo.scriptPk),
       },
     };
     return data;
@@ -113,9 +113,9 @@ export async function utxoToInputData(
       index: utxo.vout,
       witnessUtxo: {
         value: utxo.value,
-        script: Buffer.from(ccc.bytesFrom(utxo.scriptPk)),
+        script: ccc.bytesFrom(utxo.scriptPk),
       },
-      tapInternalKey: toXOnly(Buffer.from(ccc.bytesFrom(pubkey))),
+      tapInternalKey: toXOnly(ccc.bytesFrom(pubkey)),
     };
     return data;
   }

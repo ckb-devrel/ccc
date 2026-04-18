@@ -18,7 +18,11 @@ import {
   parseUtxoSealFromRgbppLockArgs,
 } from "../script/index.js";
 
-import { UtxoSeal, UtxoSealOptions } from "./transaction/index.js";
+import {
+  UtxoSeal,
+  UtxoSealOptions,
+  transactionToHex,
+} from "./transaction/index.js";
 
 import { BtcDataProvider } from "../data-source/index.js";
 
@@ -46,7 +50,6 @@ import {
   InitOutput,
   TxOutput,
   convertToOutput,
-  transactionToHex,
 } from "./transaction/index.js";
 
 /** Default polling interval in milliseconds for waiting transaction confirmation */
@@ -305,10 +308,23 @@ export abstract class RgbppBtcWallet {
       network: toBtcNetwork(this.networkConfig.name),
     });
     balancedInputs.forEach((input) => {
-      psbt.data.addInput(input);
+      psbt.data.addInput({
+        ...input,
+        witnessUtxo: {
+          ...input.witnessUtxo,
+          value: BigInt(input.witnessUtxo.value),
+        },
+      });
     });
     balancedOutputs.forEach((output) => {
-      psbt.addOutput(output);
+      if ("address" in output) {
+        psbt.addOutput({
+          address: output.address,
+          value: BigInt(output.value),
+        });
+      } else {
+        psbt.addOutput({ script: output.script, value: BigInt(output.value) });
+      }
     });
 
     return { psbt, indexedCkbPartialTx: indexedTx };
@@ -316,8 +332,8 @@ export abstract class RgbppBtcWallet {
 
   abstract signAndBroadcast(psbt: bitcoin.Psbt): Promise<string>;
 
-  rawTxHex(tx: bitcoin.Transaction): string {
-    return transactionToHex(tx, false);
+  rawTxHex(tx: bitcoin.Transaction, withWitness: boolean = false): string {
+    return transactionToHex(tx, withWitness);
   }
 
   isCommitmentMatched(
@@ -378,10 +394,23 @@ export abstract class RgbppBtcWallet {
       network: toBtcNetwork(this.networkConfig.name),
     });
     balancedInputs.forEach((input) => {
-      psbt.data.addInput(input);
+      psbt.data.addInput({
+        ...input,
+        witnessUtxo: {
+          ...input.witnessUtxo,
+          value: BigInt(input.witnessUtxo.value),
+        },
+      });
     });
     balancedOutputs.forEach((output) => {
-      psbt.addOutput(output);
+      if ("address" in output) {
+        psbt.addOutput({
+          address: output.address,
+          value: BigInt(output.value),
+        });
+      } else {
+        psbt.addOutput({ script: output.script, value: BigInt(output.value) });
+      }
     });
 
     const txId = removeHexPrefix(await this.signAndBroadcast(psbt));
@@ -440,7 +469,7 @@ export class RgbppPrivateKeyBtcWallet extends RgbppBtcWallet {
   }
 
   async getPublicKey(): Promise<string> {
-    return this.account.keyPair.publicKey.toString("hex");
+    return ccc.bytesTo(this.account.keyPair.publicKey, "hex");
   }
 
   /**
@@ -474,10 +503,10 @@ export class RgbppPrivateKeyBtcWallet extends RgbppBtcWallet {
 
         // Validate pubkey if provided
         if (input.publicKey) {
-          const fullPubkey = account.keyPair.publicKey.toString("hex");
+          const fullPubkey = ccc.bytesTo(account.keyPair.publicKey, "hex");
           const xOnlyPubkey =
             account.addressType === AddressType.P2TR
-              ? toXOnly(account.keyPair.publicKey).toString("hex")
+              ? ccc.bytesTo(toXOnly(account.keyPair.publicKey), "hex")
               : fullPubkey;
           const inputPubkeyStr = ccc
             .hexFrom(input.publicKey)
@@ -503,7 +532,7 @@ export class RgbppPrivateKeyBtcWallet extends RgbppBtcWallet {
       [];
 
     psbt.data.inputs.forEach((input, index) => {
-      let script: Buffer | null = null;
+      let script: Uint8Array | null = null;
 
       // Get script from witnessUtxo or nonWitnessUtxo
       if (input.witnessUtxo) {
@@ -530,7 +559,7 @@ export class RgbppPrivateKeyBtcWallet extends RgbppBtcWallet {
 
       // Only sign if script matches and not already signed
       if (script && !isSigned) {
-        const inputScriptHex = script.toString("hex");
+        const inputScriptHex = ccc.bytesTo(script, "hex");
         if (inputScriptHex === accountScript) {
           toSignInputs.push({ index });
         }

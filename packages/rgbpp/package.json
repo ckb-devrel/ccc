@@ -50,8 +50,8 @@
     "@noble/hashes": "^1.4.0",
     "@ckb-ccc/core": "workspace:*",
     "bip32": "4.0.0",
-    "bitcoinjs-lib": "6.1.6",
-    "ecpair": "2.1.0",
+    "bitcoinjs-lib": "7.0.1",
+    "ecpair": "3.0.1",
     "lodash": "^4.17.21"
   }
 }

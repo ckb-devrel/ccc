@@ -9,17 +9,17 @@ import * as bitcoin from "bitcoinjs-lib";
  *
  * @example
  * // <OP_RETURN> <size: 0x04> <data: 01020304>
- * isOpReturnScriptPubkey(Buffer.from('6a0401020304', 'hex')); // true
+ * isOpReturnScriptPubkey(ccc.bytesFrom('6a0401020304')); // true
  * // <OP_RETURN> <OP_PUSHDATA1> <size: 0x0f> <data: 746573742d636f6d6d69746d656e74>
- * isOpReturnScriptPubkey(Buffer.from('6a4c0f746573742d636f6d6d69746d656e74', 'hex')); // true
+ * isOpReturnScriptPubkey(ccc.bytesFrom('6a4c0f746573742d636f6d6d69746d656e74')); // true
  * // <OP_RETURN> <OP_PUSHDATA1>
- * isOpReturnScriptPubkey(Buffer.from('6a4c', 'hex')); // false
+ * isOpReturnScriptPubkey(ccc.bytesFrom('6a4c')); // false
  * // <OP_RETURN> <size: 0x01>
- * isOpReturnScriptPubkey(Buffer.from('6a01', 'hex')); // false
+ * isOpReturnScriptPubkey(ccc.bytesFrom('6a01')); // false
  * // <OP_DUP> ... (not an OP_RETURN script)
- * isOpReturnScriptPubkey(Buffer.from('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41e788ac', 'hex')); // false
+ * isOpReturnScriptPubkey(ccc.bytesFrom('76a914a802fc56c704ce87c42d7c92eb75e7896bdc41e788ac')); // false
  */
-export function isOpReturnScriptPubkey(script: Buffer): boolean {
+export function isOpReturnScriptPubkey(script: Uint8Array): boolean {
   const scripts = bitcoin.script.decompile(script);
   if (!scripts || scripts.length !== 2) {
     return false;
@@ -32,7 +32,7 @@ export function isOpReturnScriptPubkey(script: Buffer): boolean {
   }
   // Standard OP_RETURN data size is up to 80 bytes
   if (
-    !(data instanceof Buffer) ||
+    !(data instanceof Uint8Array) ||
     data.byteLength < 1 ||
     data.byteLength > 80
   ) {

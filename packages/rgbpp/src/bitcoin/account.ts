@@ -2,6 +2,8 @@ import ecc from "@bitcoinerlab/secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
 import { ECPairFactory } from "ecpair";
 
+import { ccc } from "@ckb-ccc/core";
+
 import { ErrorBtcUnsupportedAddressType } from "../error.js";
 import { removeHexPrefix } from "../utils/index.js";
 import {
@@ -37,12 +39,12 @@ export function createBtcAccount(
   }
 
   const network = toBtcNetwork(networkType);
-  const key = Buffer.from(removeHexPrefix(privateKey), "hex");
+  const key = ccc.bytesFrom(removeHexPrefix(privateKey));
   const keyPair = ECPair.fromPrivateKey(key, { network });
 
   if (addressType === AddressType.P2WPKH) {
     const p2wpkh = bitcoin.payments.p2wpkh({
-      pubkey: Buffer.from(keyPair.publicKey),
+      pubkey: keyPair.publicKey,
       network,
     });
     return {
@@ -59,7 +61,7 @@ export function createBtcAccount(
     });
     return {
       from: p2tr.address!,
-      fromPubkey: keyPair.publicKey.toString("hex"),
+      fromPubkey: ccc.bytesTo(keyPair.publicKey, "hex"),
       payment: p2tr,
       keyPair,
       addressType,
@@ -74,14 +76,14 @@ export function createBtcAccount(
 }
 
 interface TweakableSigner extends bitcoin.Signer {
-  privateKey?: Buffer;
+  privateKey?: Uint8Array;
 }
 
 export function tweakSigner<T extends TweakableSigner>(
   signer: T,
   options?: {
     network?: bitcoin.Network;
-    tweakHash?: Buffer;
+    tweakHash?: Uint8Array;
   },
 ): bitcoin.Signer {
   if (!signer.privateKey) {
@@ -101,14 +103,17 @@ export function tweakSigner<T extends TweakableSigner>(
     throw new Error("Invalid tweaked private key!");
   }
 
-  return ECPair.fromPrivateKey(Buffer.from(tweakedPrivateKey), {
+  return ECPair.fromPrivateKey(tweakedPrivateKey, {
     network: options?.network,
   });
 }
 
-function tapTweakHash(publicKey: Buffer, hash: Buffer | undefined): Buffer {
+function tapTweakHash(
+  publicKey: Uint8Array,
+  hash: Uint8Array | undefined,
+): Uint8Array {
   return bitcoin.crypto.taggedHash(
     "TapTweak",
-    Buffer.concat(hash ? [publicKey, hash] : [publicKey]),
+    hash ? new Uint8Array([...publicKey, ...hash]) : publicKey,
   );
 }

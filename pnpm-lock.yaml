@@ -899,8 +899,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       bitcoinjs-lib:
-        specifier: ^7.0.0
-        version: 7.0.0(typescript@5.9.2)
+        specifier: ^7.0.1
+        version: 7.0.1(typescript@5.9.2)
       isomorphic-ws:
         specifier: ^5.0.0
         version: 5.0.0(ws@8.18.3)
@@ -1027,11 +1027,11 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       bitcoinjs-lib:
-        specifier: 6.1.6
-        version: 6.1.6
+        specifier: 7.0.1
+        version: 7.0.1(typescript@5.9.2)
       ecpair:
-        specifier: 2.1.0
-        version: 2.1.0
+        specifier: 3.0.1
+        version: 3.0.1(typescript@5.9.2)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1434,8 +1434,8 @@ importers:
         specifier: workspace:*
         version: link:../core
       bitcoinjs-lib:
-        specifier: ^7.0.0
-        version: 7.0.0(typescript@5.9.2)
+        specifier: ^7.0.1
+        version: 7.0.1(typescript@5.9.2)
       valibot:
         specifier: ^1.1.0
         version: 1.1.0(typescript@5.9.2)
@@ -5584,10 +5584,6 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  bip174@2.1.1:
-    resolution: {integrity: sha512-mdFV5+/v0XyNYXjBS6CQPLo9ekCx4gtKZFnJm5PMto7Fs9hTTDpkkzOB7/FtluRI6JbUUAu+snTYfJRgHLZbZQ==}
-    engines: {node: '>=8.0.0'}
-
   bip174@3.0.0:
     resolution: {integrity: sha512-N3vz3rqikLEu0d6yQL8GTrSkpYb35NQKWMR7Hlza0lOj6ZOlvQ3Xr7N9Y+JPebaCVoEUHdBeBSuLxcHr71r+Lw==}
     engines: {node: '>=18.0.0'}
@@ -5599,12 +5595,8 @@ packages:
   birpc@4.0.0:
     resolution: {integrity: sha512-LShSxJP0KTmd101b6DRyGBj57LZxSDYWKitQNW/mi8GRMvZb078Uf9+pveax1DrVL89vm7mWe+TovdI/UDOuPw==}
 
-  bitcoinjs-lib@6.1.6:
-    resolution: {integrity: sha512-Fk8+Vc+e2rMoDU5gXkW9tD+313rhkm5h6N9HfZxXvYU9LedttVvmXKTgd9k5rsQJjkSfsv6XRM8uhJv94SrvcA==}
-    engines: {node: '>=8.0.0'}
-
-  bitcoinjs-lib@7.0.0:
-    resolution: {integrity: sha512-2W6dGXFd1KG3Bs90Bzb5+ViCeSKNIYkCUWZ4cvUzUgwnneiNNZ6Sk8twGNcjlesmxC0JyLc/958QycfpvXLg7A==}
+  bitcoinjs-lib@7.0.1:
+    resolution: {integrity: sha512-vwEmpL5Tpj0I0RBdNkcDMXePoaYSTeKY6mL6/l5esbnTs+jGdPDuLp4NY1hSh6Zk5wSgePygZ4Wx5JJao30Pww==}
     engines: {node: '>=18.0.0'}
 
   bl@4.1.0:
@@ -5674,9 +5666,6 @@ packages:
 
   bs58check@2.1.2:
     resolution: {integrity: sha512-0TS1jicxdU09dwJMNZtVAfzPi6Q6QeN0pM1Fkzrjn+XYHvzMKPU3pHVpva+769iNVSfIYWf7LJ6WR+BuuMf8cA==}
-
-  bs58check@3.0.1:
-    resolution: {integrity: sha512-hjuuJvoWEybo7Hn/0xOrczQKKEKD63WguEjlhLExYs2wUBcebDC1jDNK17eEAD2lYfw82d5ASC1d7K3SWszjaQ==}
 
   bs58check@4.0.0:
     resolution: {integrity: sha512-FsGDOnFg9aVI9erdriULkd/JjEWONV/lQE5aYziB5PoBsXRind56lh8doIZIc9X4HoxT5x4bLjMWN1/NB8Zp5g==}
@@ -6502,9 +6491,9 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  ecpair@2.1.0:
-    resolution: {integrity: sha512-cL/mh3MtJutFOvFc27GPZE2pWL3a3k4YvzUWEOvilnfZVlH3Jwgx/7d6tlD7/75tNk8TG2m+7Kgtz0SI1tWcqw==}
-    engines: {node: '>=8.0.0'}
+  ecpair@3.0.1:
+    resolution: {integrity: sha512-uz8wMFvtdr58TLrXnAesBsoMEyY8UudLOfApcyg40XfZjP+gt1xO4cuZSIkZ8hTMTQ8+ETgt7xSIV4eM7M6VNw==}
+    engines: {node: '>=20.0.0'}
 
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
@@ -11174,16 +11163,16 @@ packages:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
 
-  valibot@0.38.0:
-    resolution: {integrity: sha512-RCJa0fetnzp+h+KN9BdgYOgtsMAG9bfoJ9JSjIhFHobKWVWyzM3jjaeNTdpFK9tQtf3q1sguXeERJ/LcmdFE7w==}
+  valibot@1.1.0:
+    resolution: {integrity: sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw==}
     peerDependencies:
       typescript: '>=5'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  valibot@1.1.0:
-    resolution: {integrity: sha512-Nk8lX30Qhu+9txPYTwM0cFlWLdPFsFr6LblzqIySfbZph9+BFsAHsNvHOymEviUepeIW6KFHzpX8TKhbptBXXw==}
+  valibot@1.3.1:
+    resolution: {integrity: sha512-sfdRir/QFM0JaF22hqTroPc5xy4DimuGQVKFrzF1YfGwaS1nJot3Y8VqMdLO2Lg27fMzat2yD3pY5PbAYO39Gg==}
     peerDependencies:
       typescript: '>=5'
     peerDependenciesMeta:
@@ -11199,9 +11188,6 @@ packages:
 
   value-equal@1.0.1:
     resolution: {integrity: sha512-NOJ6JZCAWr0zlxZt+xqCHNTEKOsrks2HQd4MqhP1qy4z1SkbEP467eNx6TgDKXMvUOb+OENfJCZwM+16n7fRfw==}
-
-  varuint-bitcoin@1.1.2:
-    resolution: {integrity: sha512-4EVb+w4rx+YfVM32HQX42AbbT7/1f5zwAYhIujKXKk8NQK+JfRVl3pqT3hjNn/L+RstigmGGKVwHA/P0wgITZw==}
 
   varuint-bitcoin@2.0.0:
     resolution: {integrity: sha512-6QZbU/rHO2ZQYpWFDALCDSRsXbAs1VOEmXAxtbtjLtKuMJ/FQ8YbhfxlaiKv5nklci0M6lZtlZyxo9Q+qNnyog==}
@@ -11423,6 +11409,9 @@ packages:
 
   wif@2.0.6:
     resolution: {integrity: sha512-HIanZn1zmduSF+BQhkE+YXIbEiH0xPr1012QbFEGB0xsKqJii0/SqJjyn8dFv6y36kOznMgMB+LGcbZTJ1xACQ==}
+
+  wif@5.0.0:
+    resolution: {integrity: sha512-iFzrC/9ne740qFbNjTZ2FciSRJlHIXoxqk/Y5EnE08QOXu1WjJyCCswwDTYbohAOEnlCtLaAAQBhyaLRFh2hMA==}
 
   wildcard@2.0.1:
     resolution: {integrity: sha512-CC1bOL87PIWSBhDcTrdeLo6eGT7mCFtrg0uIJtqJUFyK+eJnzl8A1niH56uu7KMa5XFrtiV+AQuHO3n7DsHnLQ==}
@@ -16945,8 +16934,6 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  bip174@2.1.1: {}
-
   bip174@3.0.0:
     dependencies:
       uint8array-tools: 0.0.9
@@ -16961,23 +16948,14 @@ snapshots:
 
   birpc@4.0.0: {}
 
-  bitcoinjs-lib@6.1.6:
-    dependencies:
-      '@noble/hashes': 1.8.0
-      bech32: 2.0.0
-      bip174: 2.1.1
-      bs58check: 3.0.1
-      typeforce: 1.18.0
-      varuint-bitcoin: 1.1.2
-
-  bitcoinjs-lib@7.0.0(typescript@5.9.2):
+  bitcoinjs-lib@7.0.1(typescript@5.9.2):
     dependencies:
       '@noble/hashes': 1.8.0
       bech32: 2.0.0
       bip174: 3.0.0
       bs58check: 4.0.0(patch_hash=0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26)
       uint8array-tools: 0.0.9
-      valibot: 0.38.0(typescript@5.9.2)
+      valibot: 1.3.1(typescript@5.9.2)
       varuint-bitcoin: 2.0.0
     transitivePeerDependencies:
       - typescript
@@ -17103,11 +17081,6 @@ snapshots:
       bs58: 4.0.1
       create-hash: 1.2.0
       safe-buffer: 5.2.1
-
-  bs58check@3.0.1:
-    dependencies:
-      '@noble/hashes': 1.8.0
-      bs58: 5.0.0
 
   bs58check@4.0.0(patch_hash=0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26):
     dependencies:
@@ -17937,11 +17910,13 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  ecpair@2.1.0:
+  ecpair@3.0.1(typescript@5.9.2):
     dependencies:
-      randombytes: 2.1.0
-      typeforce: 1.18.0
-      wif: 2.0.6
+      uint8array-tools: 0.0.8
+      valibot: 1.3.1(typescript@5.9.2)
+      wif: 5.0.0
+    transitivePeerDependencies:
+      - typescript
 
   ee-first@1.1.1: {}
 
@@ -23944,11 +23919,11 @@ snapshots:
       '@types/istanbul-lib-coverage': 2.0.6
       convert-source-map: 2.0.0
 
-  valibot@0.38.0(typescript@5.9.2):
+  valibot@1.1.0(typescript@5.9.2):
     optionalDependencies:
       typescript: 5.9.2
 
-  valibot@1.1.0(typescript@5.9.2):
+  valibot@1.3.1(typescript@5.9.2):
     optionalDependencies:
       typescript: 5.9.2
 
@@ -23960,10 +23935,6 @@ snapshots:
   validator@13.15.15: {}
 
   value-equal@1.0.1: {}
-
-  varuint-bitcoin@1.1.2:
-    dependencies:
-      safe-buffer: 5.2.1
 
   varuint-bitcoin@2.0.0:
     dependencies:
@@ -24316,6 +24287,10 @@ snapshots:
   wif@2.0.6:
     dependencies:
       bs58check: 2.1.2
+
+  wif@5.0.0:
+    dependencies:
+      bs58check: 4.0.0(patch_hash=0848a2e3956f24abf1dd8620cba2a3f468393e489185d9536ad109f7e5712d26)
 
   wildcard@2.0.1: {}
 
