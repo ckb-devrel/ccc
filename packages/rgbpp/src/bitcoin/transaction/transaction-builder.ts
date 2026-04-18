@@ -280,8 +280,6 @@ export class BtcTransactionBuilder {
       }
     }
 
-    return Math.ceil(
-      bufferedVirtualSize * (feeRate ?? this.networkConfig.btcFeeRate),
-    );
+    return Math.ceil(bufferedVirtualSize * feeRate);
   }
 }

@@ -287,11 +287,19 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
     try {
       const proof = await proofPromise;
 
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.spvProofCache.get(btcTxId) === proofPromise) {
           this.spvProofCache.delete(btcTxId);
         }
       }, this.cacheExpiryTime);
+      if (
+        typeof timer === "object" &&
+        timer !== null &&
+        "unref" in timer &&
+        typeof timer.unref === "function"
+      ) {
+        timer.unref();
+      }
 
       return proof;
     } catch (error) {
