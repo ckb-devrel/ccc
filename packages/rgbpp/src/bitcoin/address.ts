@@ -1,5 +1,7 @@
 import * as bitcoin from "bitcoinjs-lib";
 
+import { ccc } from "@ckb-ccc/core";
+
 import { ErrorBtcInvalidAddress } from "../error.js";
 import { toBtcNetwork } from "./network.js";
 
@@ -34,7 +36,7 @@ export function addressToScriptPublicKeyHex(
   if (!script) {
     throw new Error("Invalid address!");
   }
-  return script.toString("hex");
+  return ccc.bytesTo(script, "hex");
 }
 
 export function decodeAddress(address: string): {

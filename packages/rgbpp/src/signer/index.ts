@@ -10,7 +10,6 @@ import {
 import { spore } from "@ckb-ccc/spore";
 
 import { transactionToHex } from "../bitcoin/transaction/index.js";
-
 import { pollForSpvProof, RgbppSpvProof } from "../data-source/index.js";
 import {
   ErrorRgbppInvalidInputLock,
@@ -305,8 +304,7 @@ export class CkbRgbppUnlockSigner extends ccc.Signer {
 
   private async getRawBtcTxHex(txId: string): Promise<string> {
     const hex = await this.rgbppDataSource.getTransactionHex(txId);
-    const parseTx = bitcoin.Transaction.fromHex(hex);
-    return transactionToHex(parseTx, false);
+    return transactionToHex(bitcoin.Transaction.fromHex(hex), false);
   }
 
   parseBtcTxIdFromScriptArgs(tx: ccc.Transaction): string {

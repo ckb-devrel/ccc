@@ -10,6 +10,8 @@ import {
   ErrorBtcUtxoNotFound,
 } from "../../error.js";
 
+import { ccc } from "@ckb-ccc/core";
+
 import { AddressType, getAddressType } from "../address.js";
 import { NetworkConfig } from "../network.js";
 import { PublicKeyProvider } from "../public-key.js";
@@ -69,7 +71,7 @@ export class BtcTransactionBuilder {
         );
       }
 
-      const scriptBuffer = Buffer.from(vout.scriptpubkey, "hex");
+      const scriptBuffer = ccc.bytesFrom(vout.scriptpubkey);
       if (isOpReturnScriptPubkey(scriptBuffer)) {
         throw new ErrorBtcOpReturnUtxo(utxoSeal.txid, utxoSeal.vout);
       }
@@ -242,18 +244,18 @@ export class BtcTransactionBuilder {
       const address = await this.getAddress();
       const addressType = getAddressType(address);
       const dummyInput = {
-        witnessUtxo: { value: 0, script: Buffer.alloc(0) },
+        witnessUtxo: { value: 0, script: new Uint8Array(0) },
       } as unknown as TxInputData;
 
       if (addressType === AddressType.P2TR) {
-        dummyInput.tapInternalKey = Buffer.alloc(32);
+        dummyInput.tapInternalKey = new Uint8Array(32);
       } else if (addressType === AddressType.P2WPKH) {
-        const script = Buffer.alloc(22);
+        const script = new Uint8Array(22);
         script[0] = 0x00;
         script[1] = 0x14;
         dummyInput.witnessUtxo.script = script;
       } else if (addressType === AddressType.P2WSH) {
-        const script = Buffer.alloc(34);
+        const script = new Uint8Array(34);
         script[0] = 0x00;
         script[1] = 0x20;
         dummyInput.witnessUtxo.script = script;

@@ -14,8 +14,8 @@ export const BTC_DEFAULT_CONFIRMATIONS = 6;
 export interface TxInputData {
   hash: string;
   index: number;
-  witnessUtxo: { value: number; script: Buffer };
-  tapInternalKey?: Buffer;
+  witnessUtxo: { value: number; script: Uint8Array };
+  tapInternalKey?: Uint8Array;
 }
 
 export type TxOutput = TxAddressOutput | TxScriptOutput;
@@ -32,13 +32,13 @@ export interface TxAddressOutput extends TxBaseOutput {
 }
 
 export interface TxScriptOutput extends TxBaseOutput {
-  script: Buffer;
+  script: Uint8Array;
 }
 
 export type InitOutput = TxAddressOutput | TxDataOutput | TxScriptOutput;
 
 export interface TxDataOutput extends TxBaseOutput {
-  data: Buffer | string;
+  data: Uint8Array | string;
 }
 
 export function convertToOutput(output: InitOutput): TxOutput {
@@ -74,13 +74,15 @@ export function convertToOutput(output: InitOutput): TxOutput {
  * The data size should be ranged in 1 to 80 bytes.
  *
  * @example
- * const data = Buffer.from('01020304', 'hex');
- * const scriptPk = dataToOpReturnScriptPubkey(data); // <Buffer 6a 04 01 02 03 04>
- * const scriptPkHex = scriptPk.toString('hex'); // 6a0401020304
+ * const data = ccc.bytesFrom('01020304');
+ * const scriptPk = dataToOpReturnScriptPubkey(data); // Uint8Array [0x6a, 0x04, 0x01, 0x02, 0x03, 0x04]
+ * const scriptPkHex = ccc.bytesTo(scriptPk, 'hex'); // 6a0401020304
  */
-export function dataToOpReturnScriptPubkey(data: Buffer | string): Buffer {
+export function dataToOpReturnScriptPubkey(
+  data: Uint8Array | string,
+): Uint8Array {
   if (typeof data === "string") {
-    data = Buffer.from(ccc.bytesFrom(data));
+    data = ccc.bytesFrom(data);
   }
 
   const payment = bitcoin.payments.embed({ data: [data] });
@@ -94,25 +96,18 @@ export function dataToOpReturnScriptPubkey(data: Buffer | string): Buffer {
  * Convert a bitcoin.Transaction to hex string.
  * Note if using for RGBPP proof, shouldn't set the "withWitness" param to "true".
  *
- * Uses bitcoinjs-lib v6.1.6 internal API (__toBuffer) for non-witness serialization.
- * Version is pinned in package.json. If upgrading bitcoinjs-lib, verify this still works.
+ * @param tx - The Bitcoin transaction object
+ * @param withWitness - Whether to include witness data (default: false)
+ * @returns Hex string of the transaction
  */
 export function transactionToHex(
   tx: bitcoin.Transaction,
-  withWitness?: boolean,
+  withWitness: boolean = false,
 ): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (typeof (tx as any)["__toBuffer"] !== "function") {
-    throw new Error(
-      "bitcoinjs-lib internal API changed. " +
-        "transactionToHex requires __toBuffer. Check bitcoinjs-lib version (expected 6.1.6).",
-    );
+  if (!withWitness) {
+    const _tx = tx.clone();
+    _tx.stripWitnesses();
+    return _tx.toHex();
   }
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-  const buffer: Buffer = (tx as any)["__toBuffer"](
-    undefined,
-    undefined,
-    withWitness ?? false,
-  );
-  return buffer.toString("hex");
+  return tx.toHex();
 }

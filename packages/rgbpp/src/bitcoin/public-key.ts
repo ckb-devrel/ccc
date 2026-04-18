@@ -125,6 +125,6 @@ export class CompositePublicKeyProvider implements PublicKeyProvider {
   }
 }
 
-export function toXOnly(pubKey: Buffer): Buffer {
+export function toXOnly(pubKey: Uint8Array): Uint8Array {
   return pubKey.length === 32 ? pubKey : pubKey.subarray(1, 33);
 }
