@@ -62,7 +62,7 @@ export class NewInvoiceParams {
     public readonly finalExpiryDelta?: ccc.Hex,
     public readonly udtTypeScript?: ccc.Script,
     public readonly hashAlgorithm?: HashAlgorithm,
-    public readonly paymentHash?: ccc.HexLike,
+    public readonly paymentHash?: ccc.Hex,
     public readonly allowMpp?: boolean,
   ) {}
 
@@ -77,7 +77,7 @@ export class NewInvoiceParams {
       toHex(like.finalExpiryDelta),
       like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
       like.hashAlgorithm,
-      like.paymentHash,
+      like.paymentHash ? ccc.hexFrom(like.paymentHash) : undefined,
       like.allowMpp,
     );
   }

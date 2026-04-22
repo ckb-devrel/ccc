@@ -229,11 +229,6 @@ export class UpdateChannelParams {
 
 // ─── OpenChannelWithExternalFunding ────────────────────────────────────────
 
-export type CellDepLike = {
-  depType: string;
-  outPoint: { txHash: ccc.HexLike; index: ccc.HexLike };
-};
-
 export type OpenChannelWithExternalFundingParamsLike = {
   pubkey: string;
   fundingAmount: ccc.NumLike;
@@ -241,7 +236,7 @@ export type OpenChannelWithExternalFundingParamsLike = {
   fundingUdtTypeScript?: ccc.ScriptLike;
   shutdownScript: ccc.ScriptLike;
   fundingLockScript: ccc.ScriptLike;
-  fundingLockScriptCellDeps?: CellDepLike[];
+  fundingLockScriptCellDeps?: ccc.CellDepLike[];
   commitmentDelayEpoch?: ccc.NumLike;
   commitmentFeeRate?: ccc.NumLike;
   fundingFeeRate?: ccc.NumLike;
@@ -260,7 +255,7 @@ export class OpenChannelWithExternalFundingParams {
     public readonly fundingLockScript: ccc.Script,
     private readonly _public?: boolean,
     public readonly fundingUdtTypeScript?: ccc.Script,
-    public readonly fundingLockScriptCellDeps?: CellDepLike[],
+    public readonly fundingLockScriptCellDeps?: ccc.CellDep[],
     public readonly commitmentDelayEpoch?: ccc.Hex,
     public readonly commitmentFeeRate?: ccc.Hex,
     public readonly fundingFeeRate?: ccc.Hex,
@@ -287,7 +282,9 @@ export class OpenChannelWithExternalFundingParams {
       like.fundingUdtTypeScript
         ? ccc.Script.from(like.fundingUdtTypeScript)
         : undefined,
-      like.fundingLockScriptCellDeps,
+      like.fundingLockScriptCellDeps
+        ? like.fundingLockScriptCellDeps.map(ccc.CellDep.from)
+        : undefined,
       toHex(like.commitmentDelayEpoch),
       toHex(like.commitmentFeeRate),
       toHex(like.fundingFeeRate),

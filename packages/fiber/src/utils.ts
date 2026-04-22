@@ -18,7 +18,7 @@ function convertKeys(value: unknown, keyFn: (key: string) => string): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => convertKeys(item, keyFn));
   }
-  if (typeof value === "object" && value.constructor === Object) {
+  if (typeof value === "object" && !(value instanceof Uint8Array)) {
     const obj = value as Record<string, unknown>;
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(obj)) {

@@ -7,7 +7,10 @@ import { camelToSnake, snakeToCamel } from "./utils.js";
  */
 export function serializeRpcParams(value: unknown): unknown {
   if (typeof value === "bigint" || typeof value === "number") {
-    return "0x" + value.toString(16);
+    return ccc.numToHex(value);
+  }
+  if (value instanceof Uint8Array) {
+    return ccc.hexFrom(value);
   }
   if (Array.isArray(value)) {
     return value.map(serializeRpcParams);
