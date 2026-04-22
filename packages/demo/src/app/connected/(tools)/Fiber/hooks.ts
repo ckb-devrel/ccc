@@ -1,7 +1,9 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { lsNodeKeyFor, readLs, writeLs } from "./config";
 import type {
+  CkbRpcScript,
+  CkbRpcTransaction,
   FiberInstance,
   FjChannel,
   FjGetInvoice,
@@ -16,9 +18,32 @@ import type {
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
-/** Extracts a human-readable message from an unknown thrown value. */
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+async function resolveLockCellDeps(
+  client: ccc.Client,
+  lock: ccc.Script,
+): Promise<CkbRpcTransaction["cell_deps"]> {
+  const infos = await Promise.allSettled(
+    Object.values(ccc.KnownScript).map((ks) => client.getKnownScript(ks)),
+  );
+  for (const res of infos) {
+    if (res.status !== "fulfilled") continue;
+    const info = res.value;
+    if (info.codeHash !== lock.codeHash || info.hashType !== lock.hashType)
+      continue;
+    const deps = await client.getCellDeps(...info.cellDeps);
+    return deps.map((dep) => ({
+      dep_type: dep.depType === "depGroup" ? "dep_group" : ("code" as const),
+      out_point: {
+        tx_hash: ccc.hexFrom(dep.outPoint.txHash),
+        index: ccc.numToHex(dep.outPoint.index),
+      },
+    }));
+  }
+  return [];
 }
 
 const MAX_LOGS = 500;
@@ -42,25 +67,19 @@ export function useActivityLog() {
 
 // ── Node identity key ─────────────────────────────────────────────────────────
 
-/**
- * Manages the node identity key derived from the connected wallet.
- *
- * On each wallet connection the hook checks localStorage for a previously
- * derived key. When the user explicitly calls `deriveKeys()` the wallet signs
- * SIGN_MESSAGE; the signature is hashed twice (via `hashCkb`) to produce two
- * independent 32-byte secp256k1 private keys:
- *   fiberKey = hashCkb(sig)        — P2P identity
- *   ckbKey   = hashCkb(fiberKey)   — CKB transaction signing
- */
 export function useNodeKey(signer: ccc.Signer | undefined, addLog: AddLog) {
   const [walletAddr, setWalletAddr] = useState("");
   const [storedKey, setStoredKey] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     let cancelled = false;
     signer.getInternalAddress().then((addr) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       setWalletAddr(addr);
       const saved = readLs(lsNodeKeyFor(addr));
       if (saved) {
@@ -75,23 +94,18 @@ export function useNodeKey(signer: ccc.Signer | undefined, addLog: AddLog) {
     };
   }, [signer, addLog]);
 
-  /**
-   * Signs SIGN_MESSAGE and derives the two key pairs.
-   * @returns [fiberKeyBytes, ckbKeyBytes] on success, or null on failure.
-   */
   const deriveKeys = useCallback(
-    async (message: string): Promise<[Uint8Array, Uint8Array] | null> => {
+    async (message: string): Promise<Uint8Array | null> => {
       if (!signer || !walletAddr) return null;
       addLog("info", `Signing "${message}"…`);
       try {
         const sig = await signer.signMessage(message);
         const sigBytes = new TextEncoder().encode(sig.signature);
         const fiberKeyHex = ccc.hashCkb(sigBytes);
-        const ckbKeyHex = ccc.hashCkb(ccc.bytesFrom(fiberKeyHex));
         setStoredKey(fiberKeyHex);
         writeLs(lsNodeKeyFor(walletAddr), fiberKeyHex);
         addLog("success", "Node identity key derived and persisted.");
-        return [ccc.bytesFrom(fiberKeyHex), ccc.bytesFrom(ckbKeyHex)];
+        return ccc.bytesFrom(fiberKeyHex);
       } catch (e) {
         addLog("error", `Key derivation failed: ${errMsg(e)}`);
         return null;
@@ -100,89 +114,24 @@ export function useNodeKey(signer: ccc.Signer | undefined, addLog: AddLog) {
     [signer, walletAddr, addLog],
   );
 
-  /**
-   * Rehydrates the key pair from the stored fiberKeyHex without signing.
-   * Use this on the COOP-restricted Fiber page where wallet pop-ups are broken.
-   */
-  const keysFromStored = useCallback((): [Uint8Array, Uint8Array] | null => {
+  // Avoids wallet pop-ups on COOP-restricted pages; uses the already-stored key.
+  const keysFromStored = useCallback((): Uint8Array | null => {
     if (!storedKey) return null;
-    const fiberKeyBytes = ccc.bytesFrom(storedKey);
-    const ckbKeyBytes = ccc.bytesFrom(ccc.hashCkb(fiberKeyBytes));
-    return [fiberKeyBytes, ckbKeyBytes];
+    return ccc.bytesFrom(storedKey);
   }, [storedKey]);
 
   return { walletAddr, storedKey, deriveKeys, keysFromStored };
-}
-
-// ── CKB address & balance derived from the stored node key ────────────────────
-
-/**
- * Derives the secp256k1_sighash CKB address and live-cell balance from the
- * stored fiber key.  The ckbKey is hashCkb(fiberKey); a temporary
- * SignerCkbPrivateKey is created against the connector's client so the
- * address matches whatever network the user has selected.
- */
-export function useCkbKeyInfo(storedKey: string | null, addLog: AddLog) {
-  const { client } = ccc.useCcc();
-  const [ckbAddress, setCkbAddress] = useState<string>("");
-  const [ckbBalance, setCkbBalance] = useState<bigint | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
-
-  // Memoised signer — recreated only when the key or network changes.
-  const ckbSigner = useMemo(() => {
-    if (!storedKey) return null;
-    const ckbKeyHex = ccc.hashCkb(ccc.bytesFrom(storedKey));
-    return new ccc.SignerCkbPrivateKey(client, ckbKeyHex);
-  }, [storedKey, client]);
-
-  // Derive address whenever the signer changes.
-  useEffect(() => {
-    if (!ckbSigner) {
-      setCkbAddress("");
-      setCkbBalance(null);
-      return;
-    }
-    ckbSigner
-      .getInternalAddress()
-      .then(setCkbAddress)
-      .catch(() => undefined);
-  }, [ckbSigner]);
-
-  const refreshBalance = useCallback(async () => {
-    if (!ckbSigner || !ckbAddress) return;
-    setIsLoadingBalance(true);
-    try {
-      setCkbBalance(await ckbSigner.getBalance());
-    } catch (e) {
-      addLog("error", `CKB balance query failed: ${errMsg(e)}`);
-    } finally {
-      setIsLoadingBalance(false);
-    }
-  }, [ckbSigner, ckbAddress, addLog]);
-
-  // Auto-fetch balance once the address is resolved.
-  useEffect(() => {
-    if (ckbAddress) refreshBalance();
-  }, [ckbAddress, refreshBalance]);
-
-  return { ckbAddress, ckbBalance, isLoadingBalance, refreshBalance };
 }
 
 // ── Fiber node lifecycle & RPC ────────────────────────────────────────────────
 
 export interface StartOptions {
   fiberKey: Uint8Array;
-  ckbKey: Uint8Array;
   dbPrefix: string;
-  /** YAML config passed directly to the fiber node. */
   configYaml: string | undefined;
 }
 
-/**
- * Manages the lifecycle of an in-browser fiber node and all RPC operations
- * against it. All `invokeCommand` calls use the fiber-js snake_case wire format.
- */
-export function useFiberNode(addLog: AddLog) {
+export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
   const fiberRef = useRef<FiberInstance | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -200,7 +149,9 @@ export function useFiberNode(addLog: AddLog) {
 
   // Redirect console output to the activity log while the node is running.
   useEffect(() => {
-    if (!isRunning) return;
+    if (!isRunning) {
+      return;
+    }
     const levels = [
       ["log", "info"],
       ["warn", "warn"],
@@ -225,7 +176,6 @@ export function useFiberNode(addLog: AddLog) {
     return fiberRef.current.invokeCommand(name, args) as Promise<T>;
   }
 
-  /** Serialise an RPC response for the activity log. */
   const logResponse = useCallback(
     (method: string, result: unknown) => {
       const text =
@@ -237,7 +187,6 @@ export function useFiberNode(addLog: AddLog) {
     [addLog],
   );
 
-  /** Resets all runtime node state to its idle defaults. */
   function resetState() {
     setIsRunning(false);
     setNodeInfo(null);
@@ -246,7 +195,9 @@ export function useFiberNode(addLog: AddLog) {
   }
 
   const refreshNodeData = useCallback(async () => {
-    if (!fiberRef.current) return;
+    if (!fiberRef.current) {
+      return;
+    }
     setIsRefreshing(true);
     addLog("info", "Refreshing node data…");
     try {
@@ -285,7 +236,7 @@ export function useFiberNode(addLog: AddLog) {
         await fiber.start(
           opts.configYaml,
           opts.fiberKey,
-          opts.ckbKey,
+          undefined,
           undefined,
           "info",
           opts.dbPrefix,
@@ -383,18 +334,128 @@ export function useFiberNode(addLog: AddLog) {
       fundingAmount: string,
       isPublic: boolean,
     ): Promise<FjOpenChannel> => {
+      if (!signer) throw new Error("No signer connected");
+
       addLog("info", `Opening channel with ${peerId.slice(0, 20)}…`);
-      const result = await invoke<FjOpenChannel>("open_channel", [
+
+      const addrs = await signer.getAddressObjs();
+      const lock = addrs[0].script;
+      const lockRpc: CkbRpcScript = {
+        code_hash: ccc.hexFrom(lock.codeHash),
+        hash_type: lock.hashType,
+        args: ccc.hexFrom(lock.args),
+      };
+
+      const lockCellDeps = await resolveLockCellDeps(signer.client, lock);
+
+      const openResult = await fiberRef.current!.openChannelWithExternalFunding(
         {
           pubkey: peerId,
           funding_amount: ccc.numToHex(Math.round(Number(fundingAmount) * 1e8)),
           public: isPublic,
+          shutdown_script: lockRpc,
+          funding_lock_script: lockRpc,
+          funding_lock_script_cell_deps:
+            lockCellDeps.length > 0 ? lockCellDeps : undefined,
         },
-      ]);
-      logResponse("open_channel", result);
-      return result;
+      );
+      logResponse("open_channel_with_external_funding", {
+        channel_id: openResult.channel_id,
+      });
+
+      // Convert unsigned CKB JSON-RPC tx → ccc.Transaction
+      const rpc = openResult.unsigned_funding_tx;
+      const ccTx = ccc.Transaction.from({
+        version: rpc.version,
+        cellDeps: rpc.cell_deps.map((d) => ({
+          depType: d.dep_type === "dep_group" ? "depGroup" : "code",
+          outPoint: { txHash: d.out_point.tx_hash, index: d.out_point.index },
+        })),
+        headerDeps: rpc.header_deps,
+        inputs: rpc.inputs.map((i) => ({
+          previousOutput: {
+            txHash: i.previous_output.tx_hash,
+            index: i.previous_output.index,
+          },
+          since: i.since,
+        })),
+        outputs: rpc.outputs.map((o) => ({
+          capacity: o.capacity,
+          lock: {
+            codeHash: o.lock.code_hash,
+            hashType: o.lock.hash_type,
+            args: o.lock.args,
+          },
+          type: o.type
+            ? {
+                codeHash: o.type.code_hash,
+                hashType: o.type.hash_type,
+                args: o.type.args,
+              }
+            : undefined,
+        })),
+        outputsData: rpc.outputs_data,
+        witnesses: rpc.witnesses,
+      });
+
+      // Populate live-cell data so the signer can compute the signing hash
+      for (const input of ccTx.inputs) {
+        const cell = await signer.client.getCell(input.previousOutput);
+        if (cell) {
+          input.cellOutput = cell.cellOutput;
+          input.outputData = cell.outputData;
+        }
+      }
+
+      addLog("info", "Signing funding transaction…");
+      const signedTx = await signer.signOnlyTransaction(ccTx);
+
+      // Convert signed ccc.Transaction back to CKB JSON-RPC format
+      const signedRpc: CkbRpcTransaction = {
+        version: ccc.numToHex(signedTx.version),
+        cell_deps: signedTx.cellDeps.map((d) => ({
+          dep_type: d.depType === "depGroup" ? "dep_group" : "code",
+          out_point: {
+            tx_hash: ccc.hexFrom(d.outPoint.txHash),
+            index: ccc.numToHex(d.outPoint.index),
+          },
+        })),
+        header_deps: signedTx.headerDeps.map((h) => ccc.hexFrom(h)),
+        inputs: signedTx.inputs.map((i) => ({
+          previous_output: {
+            tx_hash: ccc.hexFrom(i.previousOutput.txHash),
+            index: ccc.numToHex(i.previousOutput.index),
+          },
+          since: ccc.numToHex(i.since),
+        })),
+        outputs: signedTx.outputs.map((o) => ({
+          capacity: ccc.numToHex(o.capacity),
+          lock: {
+            code_hash: ccc.hexFrom(o.lock.codeHash),
+            hash_type: o.lock.hashType,
+            args: ccc.hexFrom(o.lock.args),
+          },
+          type: o.type
+            ? {
+                code_hash: ccc.hexFrom(o.type.codeHash),
+                hash_type: o.type.hashType,
+                args: ccc.hexFrom(o.type.args),
+              }
+            : undefined,
+        })),
+        outputs_data: signedTx.outputsData.map((d) => ccc.hexFrom(d)),
+        witnesses: signedTx.witnesses.map((w) => ccc.hexFrom(w)),
+      };
+
+      addLog("info", "Submitting signed funding transaction…");
+      const submitResult = await fiberRef.current!.submitSignedFundingTx({
+        channel_id: openResult.channel_id,
+        signed_funding_tx: signedRpc,
+      });
+      logResponse("submit_signed_funding_tx", submitResult);
+      return { channel_id: submitResult.channel_id };
     },
-    [addLog, logResponse],
+    [signer, addLog, logResponse],
   );
 
   const shutdownChannel = useCallback(

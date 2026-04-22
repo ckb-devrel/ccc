@@ -97,7 +97,9 @@ export function LogPanel({
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     autoScrollRef.current =
       el.scrollHeight - el.scrollTop - el.clientHeight < 32;
   }, []);
@@ -538,7 +540,6 @@ export function PaymentsTab({
 
 // ── Node info grid ────────────────────────────────────────────────────────────
 
-/** Converts a hex-encoded integer to a plain decimal string. */
 function hexToNum(hex: string): string {
   return String(Number(ccc.numFrom(hex)));
 }

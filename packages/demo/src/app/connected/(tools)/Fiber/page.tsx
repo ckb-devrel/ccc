@@ -35,12 +35,7 @@ import {
   SIGN_MESSAGE,
   writeLs,
 } from "./config";
-import {
-  useActivityLog,
-  useCkbKeyInfo,
-  useFiberNode,
-  useNodeKey,
-} from "./hooks";
+import { useActivityLog, useFiberNode, useNodeKey } from "./hooks";
 import type { Tab } from "./types";
 
 export default function FiberPage() {
@@ -63,9 +58,7 @@ export default function FiberPage() {
     signer,
     addLog,
   );
-  const { ckbAddress, ckbBalance, isLoadingBalance, refreshBalance } =
-    useCkbKeyInfo(storedKey, addLog);
-  const node = useFiberNode(addLog);
+  const node = useFiberNode(signer, addLog);
 
   // ── Derived values ───────────────────────────────────────────────────────────
   const dbPrefix = useMemo(
@@ -75,14 +68,13 @@ export default function FiberPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleStart = async () => {
-    // Use the cached key if available to avoid re-signing on every Start.
-    // If no key is stored yet, derive it now using the editable sign message.
-    const keys = keysFromStored() ?? (await deriveKeys(signMessage));
-    if (!keys) return;
+    const fiberKey = keysFromStored() ?? (await deriveKeys(signMessage));
+    if (!fiberKey) {
+      return;
+    }
     try {
       await node.startNode({
-        fiberKey: keys[0],
-        ckbKey: keys[1],
+        fiberKey,
         dbPrefix,
         configYaml: manualConfig || undefined,
       });
@@ -162,19 +154,17 @@ export default function FiberPage() {
                   />
                   <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-lg bg-gray-800 px-3 py-2 text-xs leading-relaxed font-normal text-gray-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                     Your wallet signs this text once to deterministically derive
-                    two secp256k1 private keys:
+                    a secp256k1 private key:
                     <br />
                     <br />
                     <span className="font-mono text-sky-300">fiberKey</span>
                     {" = hashCkb(signature)"} — Fiber P2P identity
                     <br />
-                    <span className="font-mono text-sky-300">ckbKey</span>
-                    {" = hashCkb(fiberKey)"} — CKB transaction signing
                     <br />
-                    <br />
-                    The same message always produces the same key pair. Changing
-                    it gives you a completely different node identity and CKB
-                    address.
+                    CKB channel funding transactions are signed by your
+                    connected wallet directly via CCC. The same message always
+                    produces the same node identity. Changing it gives you a
+                    completely different node identity.
                     <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800" />
                   </span>
                 </span>
@@ -182,8 +172,7 @@ export default function FiberPage() {
             </div>
 
             {storedKey && (
-              <div className="mb-3 space-y-2">
-                {/* Fiber key */}
+              <div className="mb-3">
                 <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
                   <span className="font-mono text-sm text-gray-600">
                     {maskKey(storedKey)}
@@ -198,46 +187,6 @@ export default function FiberPage() {
                     <Copy size={14} />
                   </button>
                 </div>
-                {/* CKB address & balance */}
-                {ckbAddress && (
-                  <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                    <div className="mb-1 flex items-center justify-between">
-                      <p className="text-xs text-gray-400">
-                        CKB Address (secp256k1_sighash)
-                      </p>
-                      <div className="flex items-center gap-2">
-                        {ckbBalance !== null && (
-                          <span className="text-xs font-medium text-gray-700">
-                            {(Number(ckbBalance) / 1e8).toFixed(4)} CKB
-                          </span>
-                        )}
-                        <button
-                          className="text-gray-400 hover:text-gray-700"
-                          onClick={refreshBalance}
-                          title="Refresh balance"
-                        >
-                          <RefreshCw
-                            size={12}
-                            className={isLoadingBalance ? "animate-spin" : ""}
-                          />
-                        </button>
-                        <button
-                          className="text-gray-400 hover:text-gray-700"
-                          onClick={() => {
-                            navigator.clipboard.writeText(ckbAddress);
-                            addLog("info", "CKB address copied.");
-                          }}
-                          title="Copy address"
-                        >
-                          <Copy size={12} />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="font-mono text-xs break-all text-gray-600">
-                      {ckbAddress}
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 

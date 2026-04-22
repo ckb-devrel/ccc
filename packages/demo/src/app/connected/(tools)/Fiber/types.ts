@@ -1,6 +1,5 @@
 // ── fiber-js snake_case wire types (subset used by this demo) ─────────────────
-// Defined locally so the page does not depend on @nervosnetwork/fiber-js
-// TypeScript declarations, which live in a separate workspace package.
+// Defined locally to avoid depending on @nervosnetwork/fiber-js TS declarations.
 
 export type FjNodeInfo = {
   version: string;
@@ -36,7 +35,31 @@ export type FjPayment = {
 };
 
 export type FjOpenChannel = {
-  temporary_channel_id: string;
+  channel_id: string;
+};
+
+// ── CKB JSON-RPC transaction format (used by external-funding flow) ───────────
+
+export type CkbRpcScript = {
+  code_hash: string;
+  hash_type: string;
+  args: string;
+};
+
+export type CkbRpcTransaction = {
+  version: string;
+  cell_deps: Array<{
+    dep_type: string;
+    out_point: { tx_hash: string; index: string };
+  }>;
+  header_deps: string[];
+  inputs: Array<{
+    previous_output: { tx_hash: string; index: string };
+    since: string;
+  }>;
+  outputs: Array<{ capacity: string; lock: CkbRpcScript; type?: CkbRpcScript }>;
+  outputs_data: string[];
+  witnesses: string[];
 };
 
 // ── Minimal Fiber instance interface (satisfies fiber-js Fiber class) ─────────
@@ -44,6 +67,21 @@ export type FjOpenChannel = {
 export type FiberInstance = {
   invokeCommand(name: string, args?: unknown[]): Promise<unknown>;
   stop(): Promise<void>;
+  openChannelWithExternalFunding(params: {
+    pubkey: string;
+    funding_amount: string;
+    public?: boolean;
+    shutdown_script: CkbRpcScript;
+    funding_lock_script: CkbRpcScript;
+    funding_lock_script_cell_deps?: Array<{
+      dep_type: string;
+      out_point: { tx_hash: string; index: string };
+    }>;
+  }): Promise<{ channel_id: string; unsigned_funding_tx: CkbRpcTransaction }>;
+  submitSignedFundingTx(params: {
+    channel_id: string;
+    signed_funding_tx: CkbRpcTransaction;
+  }): Promise<{ channel_id: string; funding_tx_hash: string }>;
 };
 
 // ── UI types ──────────────────────────────────────────────────────────────────
