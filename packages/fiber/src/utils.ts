@@ -1,5 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Constructor<T = object> = new (...args: any[]) => T;
+
 function camelToSnakeKey(s: string): string {
   return s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 }
