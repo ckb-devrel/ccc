@@ -17,7 +17,7 @@ export type UdtCfgInfos = UdtArgInfo[];
 export type NodeInfo = {
   version: string;
   commitHash: string;
-  nodeId: string;
+  pubkey: string;
   nodeName?: string;
   addresses: string[];
   chainHash: ccc.Hex;

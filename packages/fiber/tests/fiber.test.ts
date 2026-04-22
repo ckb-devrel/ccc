@@ -52,11 +52,11 @@ afterAll(async () => {
 
 describe("Fiber SDK", () => {
   describe("info", () => {
-    it("getNodeInfo returns nodeId and addresses", async () => {
+    it("getNodeInfo returns pubkey and addresses", async () => {
       const sdk = createSdk();
       const info = await sdk.getNodeInfo();
-      expect(info).toHaveProperty("nodeId");
-      expect(typeof info.nodeId).toBe("string");
+      expect(info).toHaveProperty("pubkey");
+      expect(typeof info.pubkey).toBe("string");
       expect(info).toHaveProperty("addresses");
     });
   });
@@ -85,7 +85,8 @@ describe("Fiber SDK", () => {
       const sdk = createSdk();
       await sdk
         .openChannel({
-          peerId: "QmZicX1EZumP6wkB9DpmV2xBQDm3pexRvqoYdhKotNjDFa",
+          pubkey:
+            "02a6e3e72e39e0e9e9c9a6b3f5d4c2b1a0e9f8d7c6b5a4d3c2b1a0e9f8d7c6b5a4",
           fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
           public: true,
         })

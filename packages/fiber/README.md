@@ -55,13 +55,13 @@ That’s the core loop: create an invoice (always pass `paymentPreimage`; option
 
 ## SDK at a glance
 
-| Domain      | What it does                                                                                                                                 |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Channel** | List channels, open and accept, shut down or abandon, update channel options (`sdk.channel.updateChannel`).                                  |
-| **Invoice** | Create, parse, get or cancel by payment hash, settle with preimage (`sdk.invoice.settleInvoice`).                                            |
-| **Payment** | Send a payment, get status by hash, build a router, send with a pre-built router.                                                            |
-| **Info**    | Node metadata via `getNodeInfo()` (`node_info` RPC).                                                                                         |
-| **Peer**    | `connectPeer`, `disconnectPeer`, `listPeers`.                                                                                                |
+| Domain      | What it does                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| **Channel** | List channels, open and accept, shut down or abandon, update channel options (`sdk.channel.updateChannel`). |
+| **Invoice** | Create, parse, get or cancel by payment hash, settle with preimage (`sdk.invoice.settleInvoice`).           |
+| **Payment** | Send a payment, get status by hash, build a router, send with a pre-built router.                           |
+| **Info**    | Node metadata via `getNodeInfo()` (`node_info` RPC).                                                        |
+| **Peer**    | `connectPeer`, `disconnectPeer`, `listPeers`.                                                               |
 
 Most calls exist both as **top-level methods** on `FiberSDK` and on **domain objects** `sdk.channel`, `sdk.invoice`, `sdk.payment`, `sdk.info`, and `sdk.peer`. Use the domain objects when a method is only there (e.g. `acceptChannel`, `buildRouter`, `settleInvoice`, `updateChannel`). Types are exported so you can annotate your code with `Channel`, `PaymentResult`, `NewInvoiceParamsLike`, `SettleInvoiceParamsLike`, and so on.
 

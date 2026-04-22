@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
-    "@nervosnetwork/fiber-js": "^0.7.0",
+    "@nervosnetwork/fiber-js": "^0.8.0",
     "@noble/curves": "^1.7.0",
     "@types/node": "^24.3.0",
     "bs58": "^6.0.0",

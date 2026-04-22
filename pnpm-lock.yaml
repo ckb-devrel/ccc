@@ -643,8 +643,8 @@ importers:
         specifier: ^9.34.0
         version: 9.34.0
       '@nervosnetwork/fiber-js':
-        specifier: ^0.7.0
-        version: 0.7.0
+        specifier: ^0.8.0
+        version: 0.8.1
       '@noble/curves':
         specifier: ^1.7.0
         version: 1.9.7
@@ -3630,8 +3630,8 @@ packages:
   '@nervosnetwork/ckb-types@0.109.5':
     resolution: {integrity: sha512-5jQNjFw76YCd+Ppl+0RvBWzxwvWaKfWC5wjVFFdNAieX7xksCHfZFIeow8je7AF8uVypwe56WlLBlblxw9NBBQ==}
 
-  '@nervosnetwork/fiber-js@0.7.0':
-    resolution: {integrity: sha512-CUAPJI8DfqIqSoKMxHvWGYXDX/tPE7F7isygTKzwVKEEuhGb5xWwdlVLK3r6/Uwgi0WAq9lPFobS8rUNgVQkqQ==}
+  '@nervosnetwork/fiber-js@0.8.1':
+    resolution: {integrity: sha512-T37qCsvrcVGeX1fjv6FrgwhfwiWPqvVmJfil5tirdYevvoZCcfigqrknMdl1lDar4l1HypDswD4szbD0b3Nz/w==}
 
   '@nestjs/cli@11.0.10':
     resolution: {integrity: sha512-4waDT0yGWANg0pKz4E47+nUrqIJv/UqrZ5wLPkCqc7oMGRMWKAaw1NDZ9rKsaqhqvxb2LfI5+uXOWr4yi94DOQ==}
@@ -14252,7 +14252,7 @@ snapshots:
 
   '@nervosnetwork/ckb-types@0.109.5': {}
 
-  '@nervosnetwork/fiber-js@0.7.0':
+  '@nervosnetwork/fiber-js@0.8.1':
     dependencies:
       async-mutex: 0.5.0
       stream-browserify: 3.0.0

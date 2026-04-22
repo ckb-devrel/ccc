@@ -64,6 +64,18 @@ export class FiberSDK {
     return this.channel.abandonChannel(params);
   }
 
+  async openChannelWithExternalFunding(
+    params: fiber.OpenChannelWithExternalFundingParamsLike,
+  ): Promise<fiber.OpenChannelWithExternalFundingResult> {
+    return this.channel.openChannelWithExternalFunding(params);
+  }
+
+  async submitSignedFundingTx(
+    params: fiber.SubmitSignedFundingTxParamsLike,
+  ): Promise<fiber.SubmitSignedFundingTxResult> {
+    return this.channel.submitSignedFundingTx(params);
+  }
+
   async sendPayment(
     params: fiber.SendPaymentCommandParamsLike,
   ): Promise<fiber.PaymentResult> {

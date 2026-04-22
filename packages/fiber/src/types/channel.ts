@@ -4,7 +4,7 @@ import { toHex } from "../utils";
 // ─── OpenChannel ───────────────────────────────────────────────────────────
 
 export type OpenChannelParamsLike = {
-  peerId: string;
+  pubkey: string;
   fundingAmount: ccc.NumLike;
   public?: boolean;
   fundingUdtTypeScript?: ccc.ScriptLike;
@@ -21,7 +21,7 @@ export type OpenChannelParamsLike = {
 
 export class OpenChannelParams {
   constructor(
-    public readonly peerId: string,
+    public readonly pubkey: string,
     public readonly fundingAmount: ccc.Hex,
     private readonly _public?: boolean,
     public readonly fundingUdtTypeScript?: ccc.Script,
@@ -42,7 +42,7 @@ export class OpenChannelParams {
 
   static from(like: OpenChannelParamsLike): OpenChannelParams {
     return new OpenChannelParams(
-      like.peerId,
+      like.pubkey,
       ccc.numToHex(like.fundingAmount),
       like.public,
       like.fundingUdtTypeScript
@@ -125,18 +125,18 @@ export type AcceptChannelResult = {
 // ─── ListChannels ──────────────────────────────────────────────────────────
 
 export type ListChannelsParamsLike = {
-  peerId?: string;
+  pubkey?: string;
   includeClosed?: boolean;
 };
 
 export class ListChannelsParams {
   constructor(
-    public readonly peerId?: string,
+    public readonly pubkey?: string,
     public readonly includeClosed?: boolean,
   ) {}
 
   static from(like: ListChannelsParamsLike): ListChannelsParams {
-    return new ListChannelsParams(like.peerId, like.includeClosed);
+    return new ListChannelsParams(like.pubkey, like.includeClosed);
   }
 }
 
@@ -151,7 +151,7 @@ export type Channel = {
   channelId: ccc.Hex;
   isPublic: boolean;
   channelOutpoint: ccc.Hex;
-  peerId: ccc.Hex;
+  pubkey: string;
   fundingUdtTypeScript?: ccc.Script;
   state: ChannelState;
   localBalance: ccc.Hex;
@@ -226,3 +226,109 @@ export class UpdateChannelParams {
     );
   }
 }
+
+// ─── OpenChannelWithExternalFunding ────────────────────────────────────────
+
+export type CellDepLike = {
+  depType: string;
+  outPoint: { txHash: ccc.HexLike; index: ccc.HexLike };
+};
+
+export type OpenChannelWithExternalFundingParamsLike = {
+  pubkey: string;
+  fundingAmount: ccc.NumLike;
+  public?: boolean;
+  fundingUdtTypeScript?: ccc.ScriptLike;
+  shutdownScript: ccc.ScriptLike;
+  fundingLockScript: ccc.ScriptLike;
+  fundingLockScriptCellDeps?: CellDepLike[];
+  commitmentDelayEpoch?: ccc.NumLike;
+  commitmentFeeRate?: ccc.NumLike;
+  fundingFeeRate?: ccc.NumLike;
+  tlcExpiryDelta?: ccc.NumLike;
+  tlcMinValue?: ccc.NumLike;
+  tlcFeeProportionalMillionths?: ccc.NumLike;
+  maxTlcValueInFlight?: ccc.NumLike;
+  maxTlcNumberInFlight?: ccc.NumLike;
+};
+
+export class OpenChannelWithExternalFundingParams {
+  constructor(
+    public readonly pubkey: string,
+    public readonly fundingAmount: ccc.Hex,
+    public readonly shutdownScript: ccc.Script,
+    public readonly fundingLockScript: ccc.Script,
+    private readonly _public?: boolean,
+    public readonly fundingUdtTypeScript?: ccc.Script,
+    public readonly fundingLockScriptCellDeps?: CellDepLike[],
+    public readonly commitmentDelayEpoch?: ccc.Hex,
+    public readonly commitmentFeeRate?: ccc.Hex,
+    public readonly fundingFeeRate?: ccc.Hex,
+    public readonly tlcExpiryDelta?: ccc.Hex,
+    public readonly tlcMinValue?: ccc.Hex,
+    public readonly tlcFeeProportionalMillionths?: ccc.Hex,
+    public readonly maxTlcValueInFlight?: ccc.Hex,
+    public readonly maxTlcNumberInFlight?: ccc.Hex,
+  ) {}
+
+  get public(): boolean | undefined {
+    return this._public;
+  }
+
+  static from(
+    like: OpenChannelWithExternalFundingParamsLike,
+  ): OpenChannelWithExternalFundingParams {
+    return new OpenChannelWithExternalFundingParams(
+      like.pubkey,
+      ccc.numToHex(like.fundingAmount),
+      ccc.Script.from(like.shutdownScript),
+      ccc.Script.from(like.fundingLockScript),
+      like.public,
+      like.fundingUdtTypeScript
+        ? ccc.Script.from(like.fundingUdtTypeScript)
+        : undefined,
+      like.fundingLockScriptCellDeps,
+      toHex(like.commitmentDelayEpoch),
+      toHex(like.commitmentFeeRate),
+      toHex(like.fundingFeeRate),
+      toHex(like.tlcExpiryDelta),
+      toHex(like.tlcMinValue),
+      toHex(like.tlcFeeProportionalMillionths),
+      toHex(like.maxTlcValueInFlight),
+      toHex(like.maxTlcNumberInFlight),
+    );
+  }
+}
+
+export type OpenChannelWithExternalFundingResult = {
+  channelId: ccc.Hex;
+  unsignedFundingTx: ccc.Transaction;
+};
+
+// ─── SubmitSignedFundingTx ─────────────────────────────────────────────────
+
+export type SubmitSignedFundingTxParamsLike = {
+  channelId: ccc.HexLike;
+  signedFundingTx: ccc.TransactionLike;
+};
+
+export class SubmitSignedFundingTxParams {
+  constructor(
+    public readonly channelId: ccc.Hex,
+    public readonly signedFundingTx: ccc.Transaction,
+  ) {}
+
+  static from(
+    like: SubmitSignedFundingTxParamsLike,
+  ): SubmitSignedFundingTxParams {
+    return new SubmitSignedFundingTxParams(
+      ccc.hexFrom(like.channelId),
+      ccc.Transaction.from(like.signedFundingTx),
+    );
+  }
+}
+
+export type SubmitSignedFundingTxResult = {
+  channelId: ccc.Hex;
+  fundingTxHash: ccc.Hex;
+};

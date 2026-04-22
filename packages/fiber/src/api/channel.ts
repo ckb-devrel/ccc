@@ -48,4 +48,24 @@ export class ChannelApi {
     const normalized = fiber.UpdateChannelParams.from(params);
     await this.rpc.call("update_channel", [{ ...normalized }]);
   }
+
+  async openChannelWithExternalFunding(
+    params: fiber.OpenChannelWithExternalFundingParamsLike,
+  ): Promise<fiber.OpenChannelWithExternalFundingResult> {
+    const normalized = fiber.OpenChannelWithExternalFundingParams.from(params);
+    return this.rpc.call<fiber.OpenChannelWithExternalFundingResult>(
+      "open_channel_with_external_funding",
+      [{ ...normalized }],
+    );
+  }
+
+  async submitSignedFundingTx(
+    params: fiber.SubmitSignedFundingTxParamsLike,
+  ): Promise<fiber.SubmitSignedFundingTxResult> {
+    const normalized = fiber.SubmitSignedFundingTxParams.from(params);
+    return this.rpc.call<fiber.SubmitSignedFundingTxResult>(
+      "submit_signed_funding_tx",
+      [{ ...normalized }],
+    );
+  }
 }
