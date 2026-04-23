@@ -1,0 +1,62 @@
+{
+  "name": "@ckb-ccc/fiber",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Fiber SDK",
+  "author": "ashuralyk <ashuralyk@live.com>",
+  "license": "MIT",
+  "private": false,
+  "homepage": "https://github.com/ckb-devrel/ccc",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ckb-devrel/ccc.git"
+  },
+  "sideEffects": false,
+  "main": "dist.commonjs/index.js",
+  "module": "dist/index.js",
+  "browser": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist.commonjs/index.js",
+      "default": "./dist.commonjs/index.js"
+    }
+  },
+  "scripts": {
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "lint": "eslint ./src",
+    "format": "prettier --write . && eslint --fix ./src",
+    "test": "vitest",
+    "test:ci": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "@nervosnetwork/fiber-js": "^0.8.0",
+    "@noble/curves": "^1.7.0",
+    "@types/node": "^24.3.0",
+    "bs58": "^6.0.0",
+    "copyfiles": "^2.4.1",
+    "dotenv": "^17.2.1",
+    "eslint": "^9.34.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "fake-indexeddb": "^6.2.5",
+    "prettier": "^3.6.2",
+    "prettier-linter-helpers": "^1.0.1",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4",
+    "web-worker": "^1.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@ckb-ccc/core": "workspace:*"
+  }
+}

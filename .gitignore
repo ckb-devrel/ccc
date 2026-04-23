@@ -12,3 +12,6 @@ packages/*/dist*
 .env*
 
 *.DS_Store
+
+.tmp-fiber-js
+.pnpm-store
