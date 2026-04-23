@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { toHex } from "../utils";
+import { toHex } from "../utils.js";
 
 export type PaymentSessionStatus =
   | "Created"

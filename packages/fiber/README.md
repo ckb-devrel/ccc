@@ -155,7 +155,7 @@ const info = await sdk.getInvoice(invoice.data.paymentHash);
 await sdk.cancelInvoice(invoice.data.paymentHash);
 ```
 
-`parseInvoice` on `FiberSDK` takes `{ invoice: string }` and returns a `CkbInvoice` (the API layer returns `{ invoice }` as `ParseInvoiceResult`).
+`parseInvoice` on `FiberSDK` takes `{ invoice: string }` and returns a `CkbInvoice`.
 
 Settling an invoice with a preimage is done via `sdk.invoice.settleInvoice({ paymentHash, paymentPreimage })` (typed as `SettleInvoiceParamsLike`).
 

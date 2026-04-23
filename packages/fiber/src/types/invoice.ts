@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { toHex } from "../utils";
+import { toHex } from "../utils.js";
 
 export type Currency = "Fibb" | "Fibt" | "Fibd";
 
@@ -13,14 +13,14 @@ export type CkbInvoiceStatus =
 export type HashAlgorithm = "ckb_hash" | "sha256";
 
 export type Attribute =
-  | { FinalHtlcMinimumExpiryDelta: ccc.Hex }
-  | { ExpiryTime: ccc.Hex }
-  | { Description: string }
-  | { FallbackAddr: string }
-  | { UdtScript: ccc.Hex }
-  | { PayeePublicKey: string }
-  | { HashAlgorithm: number }
-  | { Feature: ccc.Hex };
+  | { finalHtlcMinimumExpiryDelta: ccc.Hex }
+  | { expiryTime: ccc.Hex }
+  | { description: string }
+  | { fallbackAddr: string }
+  | { udtScript: ccc.Hex }
+  | { payeePublicKey: string }
+  | { hashAlgorithm: number }
+  | { feature: ccc.Hex };
 
 export type InvoiceData = {
   timestamp: ccc.Hex;
