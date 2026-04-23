@@ -69,30 +69,44 @@ describe("Fiber SDK", () => {
 
     it("connectPeer", async () => {
       const sdk = createSdk();
-      await sdk
-        .connectPeer({
+      await expect(
+        sdk.connectPeer({
           address:
             "/ip4/127.0.0.1/tcp/8228/p2p/QmZicX1EZumP6wkB9DpmV2xBQDm3pexRvqoYdhKotNjDFa",
-        })
-        .catch((err) => {
-          expect(err.message).toContain('RPC method "connect_peer" failed');
-        });
+        }),
+      ).rejects.toThrow('RPC method "connect_peer" failed');
+    });
+
+    it("disconnectPeer", async () => {
+      const sdk = createSdk();
+      // Use the node's own pubkey — it cannot be a connected peer of itself,
+      // so the node returns a domain error proving the method is recognised.
+      const { pubkey } = await sdk.getNodeInfo();
+      await expect(sdk.disconnectPeer({ pubkey })).rejects.toThrow();
     });
   });
 
   describe("channel", () => {
     it("openChannel", async () => {
       const sdk = createSdk();
-      await sdk
-        .openChannel({
+      await expect(
+        sdk.openChannel({
           pubkey:
             "02a6e3e72e39e0e9e9c9a6b3f5d4c2b1a0e9f8d7c6b5a4d3c2b1a0e9f8d7c6b5a4",
           fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
           public: true,
-        })
-        .catch((err) => {
-          expect(err.message).toContain("Invalid parameter");
-        });
+        }),
+      ).rejects.toThrow("Invalid parameter");
+    });
+
+    it("acceptChannel", async () => {
+      const sdk = createSdk();
+      await expect(
+        sdk.acceptChannel({
+          temporaryChannelId: hex(32),
+          fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
+        }),
+      ).rejects.toThrow();
     });
 
     it("listChannels", async () => {
@@ -103,22 +117,54 @@ describe("Fiber SDK", () => {
 
     it("shutdownChannel", async () => {
       const sdk = createSdk();
-      await sdk
-        .shutdownChannel({
+      await expect(
+        sdk.shutdownChannel({
           channelId: hex(32),
           feeRate: CHANNEL_TEST_FEE_RATE,
           force: false,
-        })
-        .catch((err) => {
-          expect(err.message).toContain("Channel not found error");
-        });
+        }),
+      ).rejects.toThrow("Channel not found error");
     });
 
     it("abandonChannel", async () => {
       const sdk = createSdk();
-      await sdk.abandonChannel({ channelId: hex(32) }).catch((err) => {
-        expect(err.message).toContain("Invalid parameter");
-      });
+      await expect(
+        sdk.abandonChannel({ channelId: hex(32) }),
+      ).rejects.toThrow("Invalid parameter");
+    });
+
+    it("updateChannel", async () => {
+      const sdk = createSdk();
+      await expect(
+        sdk.updateChannel({ channelId: hex(32), enabled: true }),
+      ).rejects.toThrow();
+    });
+
+    it("openChannelWithExternalFunding", async () => {
+      const sdk = createSdk();
+      await expect(
+        sdk.openChannelWithExternalFunding({
+          pubkey:
+            "02a6e3e72e39e0e9e9c9a6b3f5d4c2b1a0e9f8d7c6b5a4d3c2b1a0e9f8d7c6b5a4",
+          fundingAmount: CHANNEL_TEST_FUNDING_AMOUNT_FIXED8,
+          shutdownScript: { codeHash: hex(32), hashType: "type", args: "0x" },
+          fundingLockScript: {
+            codeHash: hex(32),
+            hashType: "type",
+            args: "0x",
+          },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("submitSignedFundingTx", async () => {
+      const sdk = createSdk();
+      await expect(
+        sdk.submitSignedFundingTx({
+          channelId: hex(32),
+          signedFundingTx: ccc.Transaction.from({ inputs: [], outputs: [] }),
+        }),
+      ).rejects.toThrow();
     });
   });
 
@@ -184,6 +230,28 @@ describe("Fiber SDK", () => {
       const result = await sdk.cancelInvoice(paymentHash);
       expect(result).toHaveProperty("status");
     });
+
+    it("settleInvoice", async () => {
+      const sdk = createSdk();
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
+      // Create a real invoice so the node knows the preimage↔hash pair.
+      // settle_invoice can only succeed after a TLC is received; on a single
+      // node it returns a domain state error proving the method is recognised.
+      const created = await sdk.newInvoice({
+        amount: INVOICE_TEST_AMOUNT,
+        currency: "Fibt",
+        paymentPreimage: preimage,
+        description: "settleInvoice test",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
+      });
+      await expect(
+        sdk.settleInvoice({
+          paymentHash: created.invoice.data.paymentHash,
+          paymentPreimage: preimage,
+        }),
+      ).rejects.toThrow();
+    });
   });
 
   describe("payment", () => {
@@ -198,13 +266,77 @@ describe("Fiber SDK", () => {
         expiry: INVOICE_TEST_EXPIRY_SEC,
         finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
       });
-      await sdk
-        .sendPayment({ invoice: created.invoiceAddress })
-        .catch((err) => {
-          expect(err.message).toContain(
-            "Send payment error: Failed to build route, Feature not enabled: allow_self_payment is not enabled, can not pay to self",
-          );
-        });
+      await expect(
+        sdk.sendPayment({ invoice: created.invoiceAddress }),
+      ).rejects.toThrow(
+        "Send payment error: Failed to build route, Feature not enabled: allow_self_payment is not enabled, can not pay to self",
+      );
+    });
+
+    it("getPayment", async () => {
+      const sdk = createSdk();
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
+      const created = await sdk.newInvoice({
+        amount: INVOICE_TEST_AMOUNT,
+        currency: "Fibt",
+        paymentPreimage: preimage,
+        description: "getPayment test",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
+      });
+      // Attempt a self-payment so the node processes the payment hash.
+      // Fiber may create a session (status: "Failed") even when routing fails,
+      // in which case getPayment returns a real record; otherwise it returns a
+      // domain "not found" error — both outcomes confirm RPC reachability.
+      await sdk.sendPayment({ invoice: created.invoiceAddress }).catch(() => {});
+      const result = await sdk
+        .getPayment(created.invoice.data.paymentHash)
+        .catch((e: Error) => e);
+      if (result instanceof Error) {
+        expect(result.message).not.toContain("Method not found");
+      } else {
+        expect(result).toHaveProperty("status");
+      }
+    });
+
+    it("buildRouter", async () => {
+      const sdk = createSdk();
+      // Use the node's own pubkey so the router reaches real address parsing
+      // before failing because no channels exist.
+      const { pubkey } = await sdk.getNodeInfo();
+      await expect(
+        sdk.buildRouter({
+          hopsInfo: [{ pubkey, channelOutpoint: hex(36) }],
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("sendPaymentWithRouter", async () => {
+      const sdk = createSdk();
+      const preimage = ccc.hexFrom(crypto.randomBytes(32));
+      const created = await sdk.newInvoice({
+        amount: INVOICE_TEST_AMOUNT,
+        currency: "Fibt",
+        paymentPreimage: preimage,
+        description: "sendPaymentWithRouter test",
+        expiry: INVOICE_TEST_EXPIRY_SEC,
+        finalExpiryDelta: INVOICE_TEST_FINAL_EXPIRY_DELTA,
+      });
+      // Use a real payment hash so the node resolves the invoice before
+      // failing on the invalid channel outpoint in the router.
+      await expect(
+        sdk.sendPaymentWithRouter({
+          paymentHash: created.invoice.data.paymentHash,
+          router: [
+            {
+              target: hex(33),
+              channelOutpoint: hex(36),
+              amountReceived: INVOICE_TEST_AMOUNT,
+              incomingTlcExpiry: 100,
+            },
+          ],
+        }),
+      ).rejects.toThrow();
     });
   });
 });

@@ -11,16 +11,14 @@ export type PaymentCustomRecordsLike = {
   [key: string]: ccc.HexLike;
 };
 
-export class PaymentCustomRecords {
-  constructor(public readonly record: Record<string, ccc.Hex>) {}
-
-  static from(like: PaymentCustomRecordsLike): PaymentCustomRecords {
-    const out: Record<string, ccc.Hex> = {};
-    for (const key of Object.keys(like)) {
-      out[key] = ccc.hexFrom(like[key]);
-    }
-    return new PaymentCustomRecords(out);
+function normalizeCustomRecords(
+  like: PaymentCustomRecordsLike,
+): PaymentCustomRecordsPlain {
+  const out: PaymentCustomRecordsPlain = {};
+  for (const key of Object.keys(like)) {
+    out[key] = ccc.hexFrom(like[key]);
   }
+  return out;
 }
 
 export type SessionRouteNodeLike = {
@@ -172,7 +170,7 @@ export class SendPaymentCommandParams {
     public readonly keysend?: boolean,
     public readonly udtTypeScript?: ccc.Script,
     public readonly allowSelfPayment?: boolean,
-    public readonly customRecords?: PaymentCustomRecords,
+    public readonly customRecords?: PaymentCustomRecordsPlain,
     public readonly hopHints?: HopHint[],
     public readonly dryRun?: boolean,
   ) {}
@@ -194,7 +192,7 @@ export class SendPaymentCommandParams {
       like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
       like.allowSelfPayment,
       like.customRecords
-        ? PaymentCustomRecords.from(like.customRecords)
+        ? normalizeCustomRecords(like.customRecords)
         : undefined,
       like.hopHints?.map((h) => HopHint.from(h)),
       like.dryRun,
@@ -250,7 +248,7 @@ export class SendPaymentWithRouterParams {
     public readonly router: RouterHop[],
     public readonly paymentHash?: ccc.Hex,
     public readonly invoice?: string,
-    public readonly customRecords?: PaymentCustomRecords,
+    public readonly customRecords?: PaymentCustomRecordsPlain,
     public readonly keysend?: boolean,
     public readonly udtTypeScript?: ccc.Script,
     public readonly dryRun?: boolean,
@@ -264,7 +262,7 @@ export class SendPaymentWithRouterParams {
       like.paymentHash ? ccc.hexFrom(like.paymentHash) : undefined,
       like.invoice,
       like.customRecords
-        ? PaymentCustomRecords.from(like.customRecords)
+        ? normalizeCustomRecords(like.customRecords)
         : undefined,
       like.keysend,
       like.udtTypeScript ? ccc.Script.from(like.udtTypeScript) : undefined,
