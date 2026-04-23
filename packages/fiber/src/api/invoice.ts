@@ -6,7 +6,9 @@ import type { Constructor } from "../utils.js";
 function toInvoiceParams(
   params: fiber.InvoiceParamsLike | ccc.HexLike,
 ): fiber.InvoiceParamsLike {
-  return typeof params === "object" && "paymentHash" in params
+  return typeof params === "object" &&
+    params !== null &&
+    "paymentHash" in params
     ? params
     : { paymentHash: params as ccc.HexLike };
 }

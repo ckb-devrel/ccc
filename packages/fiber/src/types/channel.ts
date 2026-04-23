@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { toHex } from "../utils";
+import { toHex } from "../utils.js";
 
 // ─── OpenChannel ───────────────────────────────────────────────────────────
 
@@ -20,24 +20,48 @@ export type OpenChannelParamsLike = {
 };
 
 export class OpenChannelParams {
-  constructor(
-    public readonly pubkey: string,
-    public readonly fundingAmount: ccc.Hex,
-    private readonly _public?: boolean,
-    public readonly fundingUdtTypeScript?: ccc.Script,
-    public readonly shutdownScript?: ccc.Script,
-    public readonly commitmentDelayEpoch?: ccc.Hex,
-    public readonly commitmentFeeRate?: ccc.Hex,
-    public readonly fundingFeeRate?: ccc.Hex,
-    public readonly tlcExpiryDelta?: ccc.Hex,
-    public readonly tlcMinValue?: ccc.Hex,
-    public readonly tlcFeeProportionalMillionths?: ccc.Hex,
-    public readonly maxTlcValueInFlight?: ccc.Hex,
-    public readonly maxTlcNumberInFlight?: ccc.Hex,
-  ) {}
+  public readonly pubkey: string;
+  public readonly fundingAmount: ccc.Hex;
+  public readonly "public"?: boolean;
+  public readonly fundingUdtTypeScript?: ccc.Script;
+  public readonly shutdownScript?: ccc.Script;
+  public readonly commitmentDelayEpoch?: ccc.Hex;
+  public readonly commitmentFeeRate?: ccc.Hex;
+  public readonly fundingFeeRate?: ccc.Hex;
+  public readonly tlcExpiryDelta?: ccc.Hex;
+  public readonly tlcMinValue?: ccc.Hex;
+  public readonly tlcFeeProportionalMillionths?: ccc.Hex;
+  public readonly maxTlcValueInFlight?: ccc.Hex;
+  public readonly maxTlcNumberInFlight?: ccc.Hex;
 
-  get public(): boolean | undefined {
-    return this._public;
+  constructor(
+    pubkey: string,
+    fundingAmount: ccc.Hex,
+    isPublic?: boolean,
+    fundingUdtTypeScript?: ccc.Script,
+    shutdownScript?: ccc.Script,
+    commitmentDelayEpoch?: ccc.Hex,
+    commitmentFeeRate?: ccc.Hex,
+    fundingFeeRate?: ccc.Hex,
+    tlcExpiryDelta?: ccc.Hex,
+    tlcMinValue?: ccc.Hex,
+    tlcFeeProportionalMillionths?: ccc.Hex,
+    maxTlcValueInFlight?: ccc.Hex,
+    maxTlcNumberInFlight?: ccc.Hex,
+  ) {
+    this.pubkey = pubkey;
+    this.fundingAmount = fundingAmount;
+    this["public"] = isPublic;
+    this.fundingUdtTypeScript = fundingUdtTypeScript;
+    this.shutdownScript = shutdownScript;
+    this.commitmentDelayEpoch = commitmentDelayEpoch;
+    this.commitmentFeeRate = commitmentFeeRate;
+    this.fundingFeeRate = fundingFeeRate;
+    this.tlcExpiryDelta = tlcExpiryDelta;
+    this.tlcMinValue = tlcMinValue;
+    this.tlcFeeProportionalMillionths = tlcFeeProportionalMillionths;
+    this.maxTlcValueInFlight = maxTlcValueInFlight;
+    this.maxTlcNumberInFlight = maxTlcNumberInFlight;
   }
 
   static from(like: OpenChannelParamsLike): OpenChannelParams {
@@ -248,26 +272,54 @@ export type OpenChannelWithExternalFundingParamsLike = {
 };
 
 export class OpenChannelWithExternalFundingParams {
-  constructor(
-    public readonly pubkey: string,
-    public readonly fundingAmount: ccc.Hex,
-    public readonly shutdownScript: ccc.Script,
-    public readonly fundingLockScript: ccc.Script,
-    private readonly _public?: boolean,
-    public readonly fundingUdtTypeScript?: ccc.Script,
-    public readonly fundingLockScriptCellDeps?: ccc.CellDep[],
-    public readonly commitmentDelayEpoch?: ccc.Hex,
-    public readonly commitmentFeeRate?: ccc.Hex,
-    public readonly fundingFeeRate?: ccc.Hex,
-    public readonly tlcExpiryDelta?: ccc.Hex,
-    public readonly tlcMinValue?: ccc.Hex,
-    public readonly tlcFeeProportionalMillionths?: ccc.Hex,
-    public readonly maxTlcValueInFlight?: ccc.Hex,
-    public readonly maxTlcNumberInFlight?: ccc.Hex,
-  ) {}
+  public readonly pubkey: string;
+  public readonly fundingAmount: ccc.Hex;
+  public readonly "public"?: boolean;
+  public readonly shutdownScript: ccc.Script;
+  public readonly fundingLockScript: ccc.Script;
+  public readonly fundingUdtTypeScript?: ccc.Script;
+  public readonly fundingLockScriptCellDeps?: ccc.CellDep[];
+  public readonly commitmentDelayEpoch?: ccc.Hex;
+  public readonly commitmentFeeRate?: ccc.Hex;
+  public readonly fundingFeeRate?: ccc.Hex;
+  public readonly tlcExpiryDelta?: ccc.Hex;
+  public readonly tlcMinValue?: ccc.Hex;
+  public readonly tlcFeeProportionalMillionths?: ccc.Hex;
+  public readonly maxTlcValueInFlight?: ccc.Hex;
+  public readonly maxTlcNumberInFlight?: ccc.Hex;
 
-  get public(): boolean | undefined {
-    return this._public;
+  constructor(
+    pubkey: string,
+    fundingAmount: ccc.Hex,
+    isPublic: boolean | undefined,
+    shutdownScript: ccc.Script,
+    fundingLockScript: ccc.Script,
+    fundingUdtTypeScript?: ccc.Script,
+    fundingLockScriptCellDeps?: ccc.CellDep[],
+    commitmentDelayEpoch?: ccc.Hex,
+    commitmentFeeRate?: ccc.Hex,
+    fundingFeeRate?: ccc.Hex,
+    tlcExpiryDelta?: ccc.Hex,
+    tlcMinValue?: ccc.Hex,
+    tlcFeeProportionalMillionths?: ccc.Hex,
+    maxTlcValueInFlight?: ccc.Hex,
+    maxTlcNumberInFlight?: ccc.Hex,
+  ) {
+    this.pubkey = pubkey;
+    this.fundingAmount = fundingAmount;
+    this["public"] = isPublic;
+    this.shutdownScript = shutdownScript;
+    this.fundingLockScript = fundingLockScript;
+    this.fundingUdtTypeScript = fundingUdtTypeScript;
+    this.fundingLockScriptCellDeps = fundingLockScriptCellDeps;
+    this.commitmentDelayEpoch = commitmentDelayEpoch;
+    this.commitmentFeeRate = commitmentFeeRate;
+    this.fundingFeeRate = fundingFeeRate;
+    this.tlcExpiryDelta = tlcExpiryDelta;
+    this.tlcMinValue = tlcMinValue;
+    this.tlcFeeProportionalMillionths = tlcFeeProportionalMillionths;
+    this.maxTlcValueInFlight = maxTlcValueInFlight;
+    this.maxTlcNumberInFlight = maxTlcNumberInFlight;
   }
 
   static from(
@@ -276,9 +328,9 @@ export class OpenChannelWithExternalFundingParams {
     return new OpenChannelWithExternalFundingParams(
       like.pubkey,
       ccc.numToHex(like.fundingAmount),
+      like.public,
       ccc.Script.from(like.shutdownScript),
       ccc.Script.from(like.fundingLockScript),
-      like.public,
       like.fundingUdtTypeScript
         ? ccc.Script.from(like.fundingUdtTypeScript)
         : undefined,
