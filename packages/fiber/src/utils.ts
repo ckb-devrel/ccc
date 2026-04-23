@@ -41,5 +41,7 @@ export function snakeToCamel<T = unknown>(value: T): unknown {
 }
 
 export function toHex(value?: ccc.NumLike): ccc.Hex | undefined {
-  return value !== undefined && value !== null ? ccc.numToHex(value) : undefined;
+  return value !== undefined && value !== null
+    ? ccc.numToHex(value)
+    : undefined;
 }

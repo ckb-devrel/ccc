@@ -128,9 +128,9 @@ describe("Fiber SDK", () => {
 
     it("abandonChannel", async () => {
       const sdk = createSdk();
-      await expect(
-        sdk.abandonChannel({ channelId: hex(32) }),
-      ).rejects.toThrow("Invalid parameter");
+      await expect(sdk.abandonChannel({ channelId: hex(32) })).rejects.toThrow(
+        "Invalid parameter",
+      );
     });
 
     it("updateChannel", async () => {
@@ -288,7 +288,9 @@ describe("Fiber SDK", () => {
       // Fiber may create a session (status: "Failed") even when routing fails,
       // in which case getPayment returns a real record; otherwise it returns a
       // domain "not found" error — both outcomes confirm RPC reachability.
-      await sdk.sendPayment({ invoice: created.invoiceAddress }).catch(() => {});
+      await sdk
+        .sendPayment({ invoice: created.invoiceAddress })
+        .catch(() => {});
       const result = await sdk
         .getPayment(created.invoice.data.paymentHash)
         .catch((e: Error) => e);
