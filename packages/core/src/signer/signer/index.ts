@@ -13,6 +13,7 @@ import { Num } from "../../num/index.js";
 import { verifyMessageBtcEcdsa } from "../btc/verify.js";
 import { verifyMessageCkbSecp256k1 } from "../ckb/verifyCkbSecp256k1.js";
 import { verifyMessageJoyId } from "../ckb/verifyJoyId.js";
+import { verifyMessageSuperise } from "../ckb/verifySuperise.js";
 import { verifyMessageDogeEcdsa } from "../doge/verify.js";
 import { verifyMessageEvmPersonal } from "../evm/verify.js";
 import { verifyMessageNostrEvent } from "../nostr/verify.js";
@@ -28,6 +29,7 @@ export enum SignerSignType {
   NostrEvent = "NostrEvent",
   CkbSecp256k1 = "CkbSecp256k1",
   DogeEcdsa = "DogeEcdsa",
+  SupeRISE = "SupeRISE",
 }
 
 /**
@@ -148,6 +150,12 @@ export abstract class Signer {
         );
       case SignerSignType.DogeEcdsa:
         return verifyMessageDogeEcdsa(
+          message,
+          signature.signature,
+          signature.identity,
+        );
+      case SignerSignType.SupeRISE:
+        return verifyMessageSuperise(
           message,
           signature.signature,
           signature.identity,
