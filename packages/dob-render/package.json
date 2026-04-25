@@ -1,8 +1,8 @@
 {
-  "name": "@ckb-ccc/ccc",
-  "version": "1.1.25",
-  "description": "CCC - CKBer's Codebase. Common Chains Connector.",
-  "author": "Hanssen0 <hanssen0@hanssen0.com>",
+  "name": "@ckb-ccc/dob-render",
+  "version": "1.0.1",
+  "description": "CCC - CKBer's Codebase. Common Chains Connector's render SDK for DOB protocol",
+  "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
   "private": false,
   "homepage": "https://github.com/ckb-devrel/ccc",
@@ -23,26 +23,16 @@
       "import": "./dist/barrel.js",
       "require": "./dist.commonjs/barrel.js",
       "default": "./dist.commonjs/barrel.js"
-    },
-    "./advancedBarrel": {
-      "import": "./dist/advancedBarrel.js",
-      "require": "./dist.commonjs/advancedBarrel.js",
-      "default": "./dist.commonjs/advancedBarrel.js"
-    },
-    "./advanced": {
-      "import": "./dist/advanced.js",
-      "require": "./dist.commonjs/advanced.js",
-      "default": "./dist.commonjs/advanced.js"
     }
   },
   "scripts": {
-    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
-    "copyfiles": "^2.4.1",
+    "@types/node": "^24.3.0",
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
@@ -56,16 +46,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/eip6963": "workspace:*",
-    "@ckb-ccc/joy-id": "workspace:*",
-    "@ckb-ccc/nip07": "workspace:*",
-    "@ckb-ccc/okx": "workspace:*",
-    "@ckb-ccc/rei": "workspace:*",
-    "@ckb-ccc/shell": "workspace:*",
-    "@ckb-ccc/uni-sat": "workspace:*",
-    "@ckb-ccc/utxo-global": "workspace:*",
-    "@ckb-ccc/xverse": "workspace:*",
-    "@ckb-ccc/dob-render": "workspace:*"
+    "@ckb-ccc/spore": "workspace:*",
+    "axios": "^1.11.0",
+    "satori": "^0.10.13",
+    "svgson": "^5.3.1"
   },
   "packageManager": "pnpm@10.8.1"
 }
