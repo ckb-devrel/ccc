@@ -1,0 +1,67 @@
+// Instructions to use this devcontainer:
+// 0. Make sure Docker or Podman is running.
+// 1. Install the VS Code extension "Dev Containers" (ms-vscode-remote.remote-containers).
+// 2. Open the Command Palette (Shift+Ctrl+P / Shift+Cmd+P) and  run "Dev Containers: Reopen in Container",
+//    alternatively "Dev Containers: Open Folder in Container".
+// 3. When finished, run "Dev Containers: Close Remote Connection" from the Command Palette to stop the container.
+// 4. To reclaim disk space, remove the stopped container/image with Docker/Podman,
+//    the container can be recreated from this config when needed.
+{
+  // Display name shown by editor when selecting this dev container
+  "name": "${localWorkspaceFolderBasename} Dev Environment",
+
+  // Base image from Microsoft devcontainers for a TypeScript + Node environment
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:24",
+
+  // Persisted volumes to speed installs and avoid repeated network requests
+  "mounts": [
+    // Share a pnpm store cache volume to speed package resolution and install times across projects/containers
+    "source=pnpm-cache,target=${containerWorkspaceFolder}/.pnpm-store,type=volume"
+  ],
+
+  // Run once after the container filesystem is created.
+  // - Fix ownership so the non-root node user can access workspace files
+  // - Install latest pnpm globally so postStartCommand and developer workflows use pnpm
+  "postCreateCommand": "sudo corepack enable && sudo chown -R node:node /home/node ${containerWorkspaceFolder}",
+
+  // Run each time the container starts. Ensures dependencies are installed inside the container user environment.
+  "postStartCommand": "pnpm install --frozen-lockfile",
+
+  // Use the non-root 'node' user provided by the base image for safer file access and to mirror deployment permissions
+  "remoteUser": "node",
+
+  "customizations": {
+    "vscode": {
+      // Recommended and enforced editor settings for consistent linting/validation across contributors
+      "settings": {
+        // Prefer editor config over global formatting where appropriate
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "eslint.validate": [
+          "json",
+          "javascript",
+          "javascriptreact",
+          "typescript",
+          "typescriptreact"
+        ],
+        // Disable telemetry to avoid sending usage data to Microsoft
+        "telemetry.enableTelemetry": false
+      },
+
+      // Recommended extensions preinstalled in the container to provide a consistent developer experience
+      "extensions": [
+        "streetsidesoftware.code-spell-checker", // basic spell checking in docs/comments
+        "bradlc.vscode-tailwindcss", // Tailwind CSS IntelliSense if project uses Tailwind
+        "dbaeumer.vscode-eslint", // ESLint integration for linting and autofix
+        "esbenp.prettier-vscode", // Prettier for consistent formatting
+        "yoavbls.pretty-ts-errors", // Improved TypeScript error messages
+        "davidanson.vscode-markdownlint", // Markdown linting for docs
+        "github.vscode-github-actions", // GitHub Actions workflow support
+        "github.vscode-pull-request-github" // PR and issue integration with GitHub
+      ]
+    }
+  }
+}
+
