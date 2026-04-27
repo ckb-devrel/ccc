@@ -1,41 +1,42 @@
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
-  </a>
-</p>
+# @ckb-ccc/rei
 
-<h1 align="center" style="font-size: 48px;">
-  CCC's support for REI Wallet
-</h1>
+Rei wallet signer for CCC. [Rei Wallet](https://reiwallet.io/) is a CKB-native browser extension wallet. As a native CKB wallet, Rei provides direct Secp256k1 signing without the cross-chain signature mapping needed by BTC/EVM wallets.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@ckb-ccc/rei"><img
-    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Frei"
-  /></a>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
-  <a href="https://live.ckbccc.com/"><img
-    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
-  /></a>
-  <a href="https://app.ckbccc.com/"><img
-    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
-  /></a>
-  <a href="https://docs.ckbccc.com/"><img
-    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
-  /></a>
-</p>
+[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Frei)](https://www.npmjs.com/package/@ckb-ccc/rei)
 
-<p align="center">
-  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
-  <br />
-  Empower yourself with CCC to discover the unlimited potential of CKB.
-  <br />
-  Interoperate with wallets from different chain ecosystems.
-  <br />
-  Fully enabling CKB's Turing completeness and cryptographic freedom power.
-</p>
+## Installation
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+```bash
+npm install @ckb-ccc/rei
+```
+
+> **Note**: In most cases you don't need to install this package directly. It is included automatically when you use `@ckb-ccc/ccc` (browser) or `@ckb-ccc/connector-react` (React).
+
+## Signer Type
+
+| Signer Class | Base Type | Chain | Description |
+|-------------|-----------|-------|-------------|
+| `ReiSigner` | `ccc.Signer` | CKB | Native CKB signing via the Rei browser extension |
+
+## Usage with React (Recommended)
+
+Rei appears automatically in the wallet modal:
+
+```tsx
+"use client";
+import { ccc } from "@ckb-ccc/connector-react";
+
+function App() {
+  return (
+    <ccc.Provider>
+      <MyComponent />
+    </ccc.Provider>
+  );
+}
+```
+
+## Links
+
+- [Rei Wallet](https://reiwallet.io/)
+- [CCC Documentation](https://docs.ckbccc.com)
+- [CCC GitHub](https://github.com/ckb-devrel/ccc)
