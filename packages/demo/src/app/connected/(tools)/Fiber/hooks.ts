@@ -100,7 +100,7 @@ export function useNodeKey(signer: ccc.Signer | undefined, addLog: AddLog) {
       addLog("info", `Signing "${message}"…`);
       try {
         const sig = await signer.signMessage(message);
-        const sigBytes = new TextEncoder().encode(sig.signature);
+        const sigBytes = ccc.bytesFrom(sig.signature);
         const fiberKeyHex = ccc.hashCkb(sigBytes);
         setStoredKey(fiberKeyHex);
         writeLs(lsNodeKeyFor(walletAddr), fiberKeyHex);
@@ -351,7 +351,7 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
       const openResult = await fiberRef.current!.openChannelWithExternalFunding(
         {
           pubkey: peerId,
-          funding_amount: ccc.numToHex(Math.round(Number(fundingAmount) * 1e8)),
+          funding_amount: ccc.numToHex(ccc.fixedPointFrom(fundingAmount, 8)),
           public: isPublic,
           shutdown_script: lockRpc,
           funding_lock_script: lockRpc,
@@ -475,7 +475,7 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
       const preimage = ccc.hexFrom(crypto.getRandomValues(new Uint8Array(32)));
       const result = await invoke<FjInvoice>("new_invoice", [
         {
-          amount: ccc.numToHex(ccc.numFrom(Math.round(Number(amount) * 1e8))),
+          amount: ccc.numToHex(ccc.fixedPointFrom(amount, 8)),
           currency: "Fibt",
           payment_preimage: preimage,
           description: description || undefined,

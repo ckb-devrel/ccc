@@ -22,7 +22,7 @@ export function writeLs(key: string, value: string): void {
 // ── Display helpers ───────────────────────────────────────────────────────────
 
 export function hexToCkb(hex: string): string {
-  return (Number(ccc.numFrom(hex)) / 1e8).toFixed(4);
+  return ccc.fixedPointToString(ccc.numFrom(hex), 8);
 }
 
 export function maskKey(key: string): string {
