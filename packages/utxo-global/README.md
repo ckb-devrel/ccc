@@ -1,41 +1,44 @@
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
-  </a>
-</p>
+# @ckb-ccc/utxo-global
 
-<h1 align="center" style="font-size: 32px;">
-  UTXO Global Wallet for Nervos - A New Horizon for Your Crypto Adventures!
-</h1>
+UTXO Global wallet signer for CCC. [UTXO Global](https://utxo.global/) is a multi-chain browser extension wallet that supports CKB, Bitcoin, and Dogecoin natively. It provides direct signing for CKB transactions as well as cross-chain signing from BTC and Doge.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@ckb-ccc/ccc"><img
-    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fccc"
-  /></a>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
-  <a href="https://live.ckbccc.com/"><img
-    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
-  /></a>
-  <a href="https://app.ckbccc.com/"><img
-    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
-  /></a>
-  <a href="https://docs.ckbccc.com/"><img
-    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
-  /></a>
-</p>
+[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Futxo-global)](https://www.npmjs.com/package/@ckb-ccc/utxo-global)
 
-<p align="center">
-  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
-  <br />
-  Empower yourself with CCC to discover the unlimited potential of CKB.
-  <br />
-  Interoperate with wallets from different chain ecosystems.
-  <br />
-  Fully enabling CKB's Turing completeness and cryptographic freedom power.
-</p>
+## Installation
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+```bash
+npm install @ckb-ccc/utxo-global
+```
+
+> **Note**: In most cases you don't need to install this package directly. It is included automatically when you use `@ckb-ccc/ccc` (browser) or `@ckb-ccc/connector-react` (React).
+
+## Supported Signer Types
+
+| Signer Class | Base Type | Chain | Description |
+|-------------|-----------|-------|-------------|
+| `SignerCkb` | `ccc.Signer` | CKB | Native CKB signing |
+| `SignerBtc` | `ccc.SignerBtc` | Bitcoin | Bitcoin signing mapped to CKB |
+| `SignerDoge` | `ccc.SignerDoge` | Dogecoin | Dogecoin signing mapped to CKB |
+
+## Usage with React (Recommended)
+
+UTXO Global appears automatically in the wallet modal:
+
+```tsx
+"use client";
+import { ccc } from "@ckb-ccc/connector-react";
+
+function App() {
+  return (
+    <ccc.Provider>
+      <MyComponent />
+    </ccc.Provider>
+  );
+}
+```
+
+## Links
+
+- [UTXO Global Website](https://utxo.global/)
+- [CCC Documentation](https://docs.ckbccc.com)
+- [CCC GitHub](https://github.com/ckb-devrel/ccc)

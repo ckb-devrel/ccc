@@ -1,51 +1,50 @@
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
-  </a>
-</p>
+# @ckb-ccc/uni-sat
 
-<h1 align="center" style="font-size: 48px;">
-  CCC's support for UniSat
-</h1>
+UniSat wallet signer for CCC. [UniSat](https://unisat.io/) is a popular Bitcoin wallet extension that supports BRC-20, Ordinals, and more. CCC maps UniSat's Bitcoin signatures to CKB-compatible addresses, enabling Bitcoin users to interact with the CKB blockchain.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@ckb-ccc/uni-sat"><img
-    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Funi-sat"
-  /></a>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
-  <a href="https://live.ckbccc.com/"><img
-    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
-  /></a>
-  <a href="https://app.ckbccc.com/"><img
-    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
-  /></a>
-  <a href="https://docs.ckbccc.com/"><img
-    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
-  /></a>
-</p>
+[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Funi-sat)](https://www.npmjs.com/package/@ckb-ccc/uni-sat)
 
-<p align="center">
-  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
-  <br />
-  Empower yourself with CCC to discover the unlimited potential of CKB.
-  <br />
-  Interoperate with wallets from different chain ecosystems.
-  <br />
-  Fully enabling CKB's Turing completeness and cryptographic freedom power.
-</p>
+## Installation
 
-## Preview
+```bash
+npm install @ckb-ccc/uni-sat
+```
 
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png" width="30%" />
-  </a>
-</p>
+> **Note**: In most cases you don't need to install this package directly. It is included automatically when you use `@ckb-ccc/ccc` (browser) or `@ckb-ccc/connector-react` (React).
 
-This project is still under active development, and we are looking forward to your feedback. [Try its demo now here](https://app.ckbccc.com/). It showcases how to use CCC for some basic scenarios in CKB.
+## Signer Type
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+| Signer Class | Base Type | Chain | Description |
+|-------------|-----------|-------|-------------|
+| `Signer` | `ccc.SignerBtc` | Bitcoin | Signs CKB transactions using the UniSat Bitcoin wallet |
+
+## How It Works
+
+1. UniSat signs a message with the user's Bitcoin private key
+2. CCC verifies the Bitcoin signature on-chain using CKB's cryptographic flexibility
+3. The user's CKB address is derived from their Bitcoin public key
+
+This means **Bitcoin users can use CKB without a separate CKB wallet**.
+
+## Usage with React (Recommended)
+
+UniSat appears automatically in the wallet modal:
+
+```tsx
+"use client";
+import { ccc } from "@ckb-ccc/connector-react";
+
+function App() {
+  return (
+    <ccc.Provider>
+      <MyComponent />
+    </ccc.Provider>
+  );
+}
+```
+
+## Links
+
+- [UniSat Website](https://unisat.io/)
+- [CCC Documentation](https://docs.ckbccc.com)
+- [CCC GitHub](https://github.com/ckb-devrel/ccc)

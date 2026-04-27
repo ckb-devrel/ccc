@@ -24,6 +24,9 @@
   <a href="https://docs.ckbccc.com/"><img
     alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
   /></a>
+  <a href="https://deepwiki.com/ckb-devrel/ccc">
+    <img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg">
+  </a>
 </p>
 
 <p align="center">
@@ -47,6 +50,49 @@ We design CCC to optimize various use cases, including:
 - **Connect Wallets**: Integrate the connector component in a minute or smoothly build a customized wallet connection UI, enabling your app to reach a wider audience.
 
 Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckbccc.com) to learn more about CCC. If you are new to the CKB, we also recommend [Nervos CKB Docs](https://docs.nervos.org/) for basic knowledge.
+
+## Core Concepts
+
+CKB uses the **Cell model** (a generalized UTXO model), **not** the account model used by Ethereum.
+
+- **Cell** = `capacity` + `lock script` + `type script` + `data`
+- **Transactions** consume existing Cells (inputs) and produce new Cells (outputs)
+- **capacity** is denominated in CKB (1 CKB = 10^8 Shannons). Use `ccc.fixedPointFrom(amount)` to convert
+- Every Cell must hold enough capacity to cover its own on-chain storage cost
+
+CCC uses a **declarative transaction composition** pattern — you describe what you want (outputs), and CCC figures out how (inputs, fees, change):
+
+```typescript
+// 1. Declare what you want
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: receiverLock, capacity: ccc.fixedPointFrom(100) }],
+});
+// 2. CCC auto-fills inputs and calculates fee
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+// 3. Sign and send
+const txHash = await signer.sendTransaction(tx);
+// 4. Wait for on-chain confirmation
+await client.waitTransaction(txHash);
+console.log(`Transaction confirmed: ${txHash}`);
+```
+
+### Package Selection Guide
+
+| Your Scenario | Install | Import |
+|---------------|---------|--------|
+| React frontend app | `npm install @ckb-ccc/connector-react` | `import { ccc } from "@ckb-ccc/connector-react"` |
+| Any frontend (Vue/Svelte/vanilla) | `npm install @ckb-ccc/connector` | `import { ccc } from "@ckb-ccc/connector"` |
+| Node.js backend / script | `npm install @ckb-ccc/shell` | `import { ccc } from "@ckb-ccc/shell"` |
+| Custom wallet UI (no built-in modal) | `npm install @ckb-ccc/ccc` | `import { ccc } from "@ckb-ccc/ccc"` |
+
+Additional packages for specific protocols:
+
+| Protocol | Package | Available via |
+|----------|---------|---------------|
+| UDT / xUDT tokens | `@ckb-ccc/udt` | `ccc.udt.*` |
+| Spore / DOB (NFTs) | `@ckb-ccc/spore` | `ccc.spore.*` |
+| SSRI protocol | `@ckb-ccc/ssri` | `ccc.ssri.*` |
 
 ## Try in the Playground
 
@@ -132,7 +178,37 @@ const txHash = await signer.sendTransaction(tx);
 
 That's it! The transaction is sent.
 
-[Click here to read the full example of transferring native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
+### Basic
+
+- [Transfer CKB](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts) — Send CKB to another address
+- [Transfer All CKB](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts) — Sweep all CKB from your cells
+- [Query Balance](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryBalance.ts) — 3 ways to check CKB balance
+- [Query Cells](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryCells.ts) — Find cells by lock/type script
+- [Query Transactions](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryTransactions.ts) — Transaction history for an address
+
+### Token (UDT)
+
+- [Transfer UDT](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts) — Transfer xUDT tokens
+
+### NFT (Spore)
+
+- [Create Spore](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/createSpore.ts) — Create an on-chain digital object
+- [Transfer Spore](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferSpore.ts) — Find and transfer a Spore
+
+### Nervos DAO
+
+- [Nervos DAO](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/dao.ts) — Deposit CKB and query DAO cells
+
+### Wallet & Signing
+
+- [Sign & Verify Message](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts) — Sign and verify arbitrary messages
+- [Custom Single Wallet UI](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUi.ts) — Build custom wallet connection UI
+- [Custom Multi Wallet UI](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUiWithController.ts) — Discover all available wallets
+- [MetaMask / EVM Integration](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/connectMetaMask.ts) — Connect EVM wallets to CKB
+
+### Backend (Node.js)
+
+- [Backend Transfer](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/backendTransfer.ts) — Server-side CKB transfer pattern
 
 Additional examples can be found in [the documentation](https://docs.ckbccc.com/docs/code-examples).
 
@@ -208,7 +284,7 @@ registerCustomLockScriptInfos(generateDefaultScriptInfos());
 
 - [CCC Playground](https://live.ckbccc.com/) and its [source code](https://github.com/ckb-devrel/ccc/tree/master/packages/playground) help you experiment with CCC instantly in browsers.
 - [Nervos CKB Docs](https://docs.nervos.org/) is the documentation website of Nervos CKB.
-- [Lumos](https://github.com/ckb-js/lumos) and its [Docs](https://lumos-website.vercel.app/): Lumos provides utils to help compose CKB transactions.
+- [Lumos](https://github.com/ckb-js/lumos) and its [Docs](https://lumos-website.vercel.app/): Lumos provides utils to help compose CKB transactions. **Note: Lumos is no longer actively maintained. We recommend using CCC for new projects.**
 - [RGB++ SDK](https://github.com/ckb-cell/rgbpp-sdk) and its [Design](https://github.com/ckb-cell/RGBPlusPlus-design): RGB++ is a protocol for issuing assets with Turing-completed VM on BTC L1.
 - [Spore SDK](https://github.com/sporeprotocol/spore-sdk) and its [Docs](https://docs.spore.pro/): The on-chain digital object (DOBs) protocol designed to empower ownership, distribution, and value capture.
 - [PW SDK](https://talk.nervos.org/t/lay2-pw-sdk-build-dapps-on-ckb-and-run-them-everywhere/4289) is not maintained anymore. It is the early-age wallet connector and a brave pioneer of the CKB ecosystem.

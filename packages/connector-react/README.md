@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center" style="font-size: 48px;">
-  CCC Connector for React
+  @ckb-ccc/connector-react
 </h1>
 
 <p align="center">
@@ -36,16 +36,136 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-## Use the Connector UI
+> React components and hooks for connecting CKB wallets (MetaMask, UniSat, JoyID, OKX, and more) to your React/Next.js app. Provides a built-in wallet connection modal, `useCcc` hook, and `useSigner` hook.
 
-Before using the Connector, wrap your UI with the CCC Provider:
+## Install
 
-```tsx
-<ccc.Provider>{/* Your application */}</ccc.Provider>
+```bash
+npm install @ckb-ccc/connector-react
 ```
 
-Check [the document for @ckb-ccc/connector-react](https://api.ckbccc.com/modules/_ckb_ccc_connector_react.index.ccc.html) for more information.
+## Quick Start
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+### 1. Wrap your app with `ccc.Provider`
+
+```tsx
+"use client"; // Required for Next.js App Router
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export default function App() {
+  return (
+    <ccc.Provider>
+      <YourApp />
+    </ccc.Provider>
+  );
+}
+```
+
+### 2. Use hooks in child components
+
+```tsx
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+function WalletButton() {
+  const { open, disconnect, wallet, signerInfo } = ccc.useCcc();
+  const signer = ccc.useSigner();
+
+  if (!signer) {
+    return <button onClick={open}>Connect Wallet</button>;
+  }
+
+  return (
+    <div>
+      <p>Connected: {wallet?.name}</p>
+      <button onClick={disconnect}>Disconnect</button>
+    </div>
+  );
+}
+```
+
+### 3. Send a transaction with the connected signer
+
+```tsx
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+function TransferButton() {
+  const signer = ccc.useSigner();
+
+  const handleTransfer = async () => {
+    if (!signer) return;
+
+    const { script: receiverLock } = await ccc.Address.fromString(
+      "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq...",
+      signer.client,
+    );
+
+    const tx = ccc.Transaction.from({
+      outputs: [{ capacity: ccc.fixedPointFrom(100), lock: receiverLock }],
+    });
+
+    await tx.completeInputsByCapacity(signer);
+    await tx.completeFeeBy(signer);
+    const txHash = await signer.sendTransaction(tx);
+    console.log("Sent:", txHash);
+  };
+
+  return <button onClick={handleTransfer} disabled={!signer}>Transfer 100 CKB</button>;
+}
+```
+
+## API Reference
+
+### `ccc.Provider`
+
+Wraps your app to provide wallet connection context. Props:
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `defaultClient` | `ccc.Client` | Default CKB client (defaults to testnet) |
+| `clientOptions` | `{ client, name, icon }[]` | Network options for user to choose |
+| `preferredNetworks` | `NetworkPreference[]` | Preferred networks |
+| `signerFilter` | `(signerInfo, wallet) => Promise<boolean>` | Filter which wallets to show |
+| `name` | `string` | App name shown in the modal |
+| `icon` | `string` | App icon shown in the modal |
+
+### `ccc.useCcc()`
+
+Returns the connection state:
+
+```typescript
+const {
+  open,       // () => void — open wallet connection modal
+  close,      // () => void — close the modal
+  disconnect, // () => void — disconnect current wallet
+  setClient,  // (client) => void — switch CKB client/network
+  client,     // ccc.Client — current CKB client
+  wallet,     // ccc.Wallet | undefined — connected wallet info
+  signerInfo, // ccc.SignerInfo | undefined — connected signer metadata
+} = ccc.useCcc();
+```
+
+### `ccc.useSigner()`
+
+Returns the connected `ccc.Signer` instance, or `undefined` if not connected:
+
+```typescript
+const signer = ccc.useSigner();
+// signer is ccc.Signer | undefined
+```
+
+## Notes
+
+- **`"use client"` is required** in Next.js App Router for any component using `ccc.Provider`, `useCcc`, or `useSigner`
+- All `ccc.*` types from `@ckb-ccc/core` are re-exported, so you only need one import
+- The connector automatically discovers installed wallets (MetaMask via EIP-6963, UniSat, JoyID, etc.)
+
+## Links
+
+- [API Reference](https://api.ckbccc.com/modules/_ckb_ccc_connector_react.index.ccc.html)
+- [Documentation](https://docs.ckbccc.com)
+- [GitHub](https://github.com/ckb-devrel/ccc)

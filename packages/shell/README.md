@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center" style="font-size: 64px;">
-  CCC Shell
+  @ckb-ccc/shell
 </h1>
 
 <p align="center">
@@ -36,6 +36,90 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+> CCC for **Node.js backends and scripts** — re-exports everything from `@ckb-ccc/core` without browser-specific UI components. Use this package when building server-side applications, CLI tools, or automation scripts.
+
+## Install
+
+```bash
+npm install @ckb-ccc/shell
+```
+
+## When to Use `@ckb-ccc/shell` vs Other Packages
+
+| Package | Environment | Includes Wallet UI? |
+|---------|-------------|:---:|
+| `@ckb-ccc/shell` | **Node.js / backend** | No |
+| `@ckb-ccc/ccc` | Browser (any framework) | No |
+| `@ckb-ccc/connector-react` | React / Next.js | Yes |
+
+## Quick Start: Query Balance (Node.js)
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+
+// Parse an address to get its lock script
+const { script: lock } = await ccc.Address.fromString(
+  "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq...",
+  client,
+);
+
+// Query balance
+const balance = await client.getBalanceSingle(lock);
+console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`);
+```
+
+## Quick Start: Transfer CKB (Node.js)
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+await signer.connect();
+
+// Parse receiver address
+const { script: receiverLock } = await ccc.Address.fromString(
+  "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq...",
+  client,
+);
+
+// Build, complete, and send transaction
+const tx = ccc.Transaction.from({
+  outputs: [{ capacity: ccc.fixedPointFrom(100), lock: receiverLock }],
+});
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log(`Sent: ${txHash}`);
+
+// Wait for confirmation
+await client.waitTransaction(txHash);
+console.log("Confirmed!");
+```
+
+## Quick Start: Find Cells
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+await signer.connect();
+
+// Iterate over all cells owned by the signer
+for await (const cell of signer.findCells({})) {
+  console.log(
+    `Cell: ${cell.outPoint.txHash}:${cell.outPoint.index}`,
+    `Capacity: ${ccc.fixedPointToString(cell.cellOutput.capacity)} CKB`,
+  );
+}
+```
+
+## Links
+
+- [API Reference](https://api.ckbccc.com)
+- [Documentation](https://docs.ckbccc.com)
+- [GitHub](https://github.com/ckb-devrel/ccc)

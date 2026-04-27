@@ -1,54 +1,54 @@
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
-  </a>
-</p>
+# @ckb-ccc/ssri
 
-<h1 align="center" style="font-size: 48px;">
-  CCC's Support for SSRI
-</h1>
+SSRI (Script-Sourced Rich Information) protocol support for CCC. SSRI is a standard for CKB scripts to expose metadata and callable methods, enabling rich interactions with on-chain scripts.
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@ckb-ccc/ssri"><img
-    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fssri"
-  /></a>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
-  <a href="https://live.ckbccc.com/"><img
-    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
-  /></a>
-  <a href="https://app.ckbccc.com/"><img
-    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
-  /></a>
-  <a href="https://docs.ckbccc.com/"><img
-    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
-  /></a>
-</p>
+[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Fssri)](https://www.npmjs.com/package/@ckb-ccc/ssri)
 
-<p align="center">
-  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
-  <br />
-  Empower yourself with CCC to discover the unlimited potential of CKB.
-  <br />
-  Interoperate with wallets from different chain ecosystems.
-  <br />
-  Fully enabling CKB's Turing completeness and cryptographic freedom power.
-</p>
+## Installation
 
-### Script-Sourced Rich Information
+```bash
+npm install @ckb-ccc/ssri
+```
 
-Read more about SSRI on [[EN/CN] Script-Sourced Rich Information - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256).
+> **Note**: This is the **base package** for SSRI-compliant script interaction. If you want to work with UDT tokens, use [`@ckb-ccc/udt`](https://www.npmjs.com/package/@ckb-ccc/udt) directly — it supports both SSRI-compliant UDT and legacy xUDT, and includes this package.
 
-NOTE: This is the base package for interaction with SSRI-Compliant scripts.
+## What is SSRI?
 
-If you are looking for UDT support, please refer directly to [@ckb-ccc/udt](https://www.npmjs.com/package/@ckb-ccc/udt) which supports both SSRI-compliant UDT and falling back to xUDT.
+SSRI (Script-Sourced Rich Information) allows CKB scripts to expose:
 
-### Related Projects
+- **Metadata** — Token name, symbol, decimals, icon URL, etc.
+- **Callable methods** — Transfer, mint, pause, etc.
 
-- [`ssri-server`](https://github.com/ckb-devrel/ssri-server): Server for calling SSRI methods.
-- [`ckb_ssri_sdk`](https://github.com/ckb-devrel/ckb_ssri_sdk): A toolkit to help developers build SSRI-Compliant scripts on CKB with production level example script `pausable-udt` for reference.
+This is analogous to how Ethereum smart contracts expose ABI methods, but for CKB's Cell model.
 
-<h3 align="center">
-  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
-</h3>
+Read more: [[EN/CN] Script-Sourced Rich Information](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256)
+
+## Key Classes
+
+| Class | Description |
+|-------|-------------|
+| `Executor` | Communicates with an SSRI server to call script methods |
+| `Trait` | Base class for SSRI-compliant scripts (extended by `Udt`, `UdtPausable`, etc.) |
+
+## Usage
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+// SSRI is available via ccc.ssri.*
+// In practice, you typically use @ckb-ccc/udt which wraps SSRI:
+const udt = new ccc.udt.Udt(codeOutPoint, typeScript);
+const name = await udt.name();       // SSRI call
+const symbol = await udt.symbol();   // SSRI call
+```
+
+## Related Projects
+
+- [`ssri-server`](https://github.com/ckb-devrel/ssri-server) — Server for calling SSRI methods
+- [`ckb_ssri_sdk`](https://github.com/ckb-devrel/ckb_ssri_sdk) — Toolkit for building SSRI-compliant scripts with production-level `pausable-udt` example
+
+## Links
+
+- [SSRI Discussion](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256)
+- [CCC Documentation](https://docs.ckbccc.com)
+- [CCC GitHub](https://github.com/ckb-devrel/ccc)
