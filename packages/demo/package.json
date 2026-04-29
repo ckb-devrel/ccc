@@ -26,7 +26,6 @@
   },
   "devDependencies": {
     "@ckb-ccc/connector-react": "workspace:*",
-    "@nervosnetwork/fiber-js": "0.8.0",
     "@ckb-ccc/lumos-patches": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
@@ -37,6 +36,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@headlessui/react": "^2.2.7",
     "@heroicons/react": "^2.2.0",
+    "@nervosnetwork/fiber-js": "0.8.1",
     "@scure/bip32": "^2.0.0",
     "@scure/bip39": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.12",

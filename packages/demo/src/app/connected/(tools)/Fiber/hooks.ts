@@ -26,14 +26,13 @@ async function resolveLockCellDeps(
   client: ccc.Client,
   lock: ccc.Script,
 ): Promise<CkbRpcTransaction["cell_deps"]> {
-  const infos = await Promise.allSettled(
+  const infos = await Promise.all(
     Object.values(ccc.KnownScript).map((ks) => client.getKnownScript(ks)),
   );
-  for (const res of infos) {
-    if (res.status !== "fulfilled") continue;
-    const info = res.value;
-    if (info.codeHash !== lock.codeHash || info.hashType !== lock.hashType)
+  for (const info of infos) {
+    if (info.codeHash !== lock.codeHash || info.hashType !== lock.hashType) {
       continue;
+    }
     const deps = await client.getCellDeps(...info.cellDeps);
     return deps.map((dep) => ({
       dep_type: dep.depType === "depGroup" ? "dep_group" : ("code" as const),
@@ -338,8 +337,8 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
 
       addLog("info", `Opening channel with ${peerId.slice(0, 20)}…`);
 
-      const addrs = await signer.getAddressObjs();
-      const lock = addrs[0].script;
+      const addr = await signer.getRecommendedAddressObj();
+      const lock = addr.script;
       const lockRpc: CkbRpcScript = {
         code_hash: ccc.hexFrom(lock.codeHash),
         hash_type: lock.hashType,
