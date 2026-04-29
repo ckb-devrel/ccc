@@ -26,4 +26,8 @@ export enum KnownScript {
   TypeBurnLock = "TypeBurnLock",
   EasyToDiscoverType = "EasyToDiscoverType",
   TimeLock = "TimeLock",
+
+  // RGB++ related scripts
+  RgbppLock = "RgbppLock",
+  BtcTimeLock = "BtcTimeLock",
 }
