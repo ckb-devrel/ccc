@@ -41,16 +41,6 @@ export function deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
   return Array.from(seen.values());
 }
 
-import { BtcUtxoParams } from "../../data-source/index.js";
-
-export interface UtxoSealOptions {
-  targetValue?: number;
-  feeRate?: number;
-  btcUtxoParams?: BtcUtxoParams;
-  /** Polling interval in milliseconds for waiting transaction confirmation (default: 30000) */
-  confirmationPollInterval?: number;
-}
-
 export interface Output extends OutPoint {
   value: number;
   scriptPk: string;

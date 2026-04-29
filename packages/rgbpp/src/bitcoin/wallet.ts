@@ -22,16 +22,17 @@ import {
   BtcTransactionBuilder,
   BtcTransactionBuilderOptions,
   InitOutput,
+  TxInputData,
   TxOutput,
-  UtxoSeal,
-  UtxoSealOptions,
   convertToOutput,
   transactionToHex,
 } from "./transaction/index.js";
 
-import { BtcDataProvider } from "../data-source/index.js";
-
-import { BtcUtxoParams } from "../data-source/index.js";
+import {
+  BtcDataProvider,
+  BtcTransaction,
+  BtcUtxoParams,
+} from "../data-source/index.js";
 import {
   btcTxIdInReverseByteOrder,
   isUsingOneOfScripts,
@@ -52,6 +53,36 @@ import {
 } from "./public-key.js";
 /** Default polling interval in milliseconds for waiting transaction confirmation */
 export const BTC_DEFAULT_CONFIRMATION_POLL_INTERVAL = 30_000;
+
+/** Options for waiting for a BTC transaction to be confirmed */
+export interface WaitForConfirmationOptions {
+  /** Polling interval in milliseconds (default: 30000, minimum: 5000) */
+  pollInterval?: number;
+  /** Maximum time to wait in milliseconds (default: unlimited) */
+  timeout?: number;
+  /** AbortSignal to cancel the wait */
+  signal?: AbortSignal;
+  /** Retry options for initial transaction indexing (default: maxRetries=10, initialDelay=5) */
+  retryOptions?: RetryOptions;
+}
+
+/** Parameters for building a seal UTXO PSBT */
+export interface UtxoSealParams {
+  /** Target UTXO value in satoshis (default: btcDustLimit) */
+  targetValue?: number;
+  /** Fee rate for the transaction */
+  feeRate?: number;
+  /** UTXO selection parameters */
+  btcUtxoParams?: BtcUtxoParams;
+}
+
+/** Result of building a seal UTXO PSBT */
+export interface UtxoSealPsbt {
+  /** The constructed PSBT, ready to be signed */
+  psbt: bitcoin.Psbt;
+  /** The output index of the seal UTXO in the transaction */
+  sealOutputIndex: number;
+}
 
 export interface RgbppBtcTxParams {
   ckbPartialTx: ccc.Transaction;
@@ -210,6 +241,39 @@ export abstract class RgbppBtcWallet {
     return outputs.map((output) => convertToOutput(output));
   }
 
+  /**
+   * Assemble a PSBT from balanced inputs and outputs.
+   * Shared helper used by buildPsbt and buildSealPsbt.
+   */
+  private assemblePsbt(
+    balancedInputs: TxInputData[],
+    balancedOutputs: TxOutput[],
+  ): bitcoin.Psbt {
+    const psbt = new bitcoin.Psbt({
+      network: toBtcNetwork(this.networkConfig.name),
+    });
+    balancedInputs.forEach((input) => {
+      psbt.data.addInput({
+        ...input,
+        witnessUtxo: {
+          ...input.witnessUtxo,
+          value: BigInt(input.witnessUtxo.value),
+        },
+      });
+    });
+    balancedOutputs.forEach((output) => {
+      if ("address" in output) {
+        psbt.addOutput({
+          address: output.address,
+          value: BigInt(output.value),
+        });
+      } else {
+        psbt.addOutput({ script: output.script, value: BigInt(output.value) });
+      }
+    });
+    return psbt;
+  }
+
   async buildPsbt(
     params: RgbppBtcTxParams,
   ): Promise<{ psbt: bitcoin.Psbt; indexedCkbPartialTx: ccc.Transaction }> {
@@ -311,28 +375,7 @@ export abstract class RgbppBtcWallet {
         feeRate,
       );
 
-    const psbt = new bitcoin.Psbt({
-      network: toBtcNetwork(this.networkConfig.name),
-    });
-    balancedInputs.forEach((input) => {
-      psbt.data.addInput({
-        ...input,
-        witnessUtxo: {
-          ...input.witnessUtxo,
-          value: BigInt(input.witnessUtxo.value),
-        },
-      });
-    });
-    balancedOutputs.forEach((output) => {
-      if ("address" in output) {
-        psbt.addOutput({
-          address: output.address,
-          value: BigInt(output.value),
-        });
-      } else {
-        psbt.addOutput({ script: output.script, value: BigInt(output.value) });
-      }
-    });
+    const psbt = this.assemblePsbt(balancedInputs, balancedOutputs);
 
     return { psbt, indexedCkbPartialTx: indexedTx };
   }
@@ -363,21 +406,23 @@ export abstract class RgbppBtcWallet {
     );
   }
 
-  async prepareUtxoSeal(
-    options?: UtxoSealOptions,
-    retryOptions?: RetryOptions,
-  ): Promise<UtxoSeal> {
+  /**
+   * Build a PSBT that creates a dust UTXO for use as an RGB++ seal.
+   *
+   * This only constructs the PSBT without signing or broadcasting.
+   * Use this when you need custom signing flows.
+   *
+   * @returns The PSBT and the output index of the seal UTXO.
+   */
+  async buildSealPsbt(options?: UtxoSealParams): Promise<UtxoSealPsbt> {
     const targetValue = options?.targetValue ?? this.networkConfig.btcDustLimit;
     const feeRate = options?.feeRate ?? this.networkConfig.btcFeeRate;
     const btcUtxoParams = options?.btcUtxoParams ?? {
       only_non_rgbpp_utxos: true,
     };
-    const confirmationPollInterval = Math.max(
-      options?.confirmationPollInterval ??
-        BTC_DEFAULT_CONFIRMATION_POLL_INTERVAL,
-      5_000,
-    );
 
+    // The seal output is always the first output
+    const sealOutputIndex = 0;
     const outputs = [
       {
         address: await this.getAddress(),
@@ -397,64 +442,73 @@ export abstract class RgbppBtcWallet {
         btcUtxoParams,
         feeRate,
       );
-    const psbt = new bitcoin.Psbt({
-      network: toBtcNetwork(this.networkConfig.name),
-    });
-    balancedInputs.forEach((input) => {
-      psbt.data.addInput({
-        ...input,
-        witnessUtxo: {
-          ...input.witnessUtxo,
-          value: BigInt(input.witnessUtxo.value),
-        },
-      });
-    });
-    balancedOutputs.forEach((output) => {
-      if ("address" in output) {
-        psbt.addOutput({
-          address: output.address,
-          value: BigInt(output.value),
-        });
-      } else {
-        psbt.addOutput({ script: output.script, value: BigInt(output.value) });
-      }
-    });
 
-    const txId = removeHexPrefix(await this.signAndBroadcast(psbt));
+    const psbt = this.assemblePsbt(balancedInputs, balancedOutputs);
 
-    // Wait for transaction to be indexed by API with retry mechanism
+    return { psbt, sealOutputIndex };
+  }
+
+  /**
+   * Wait for a BTC transaction to be confirmed.
+   *
+   * Supports bounded polling with optional timeout and AbortSignal cancellation.
+   *
+   * @param txId - The transaction ID to wait for.
+   * @param options - Polling, timeout, and cancellation options.
+   * @returns The confirmed BTC transaction.
+   *
+   * @throws Error if timeout is reached or signal is aborted.
+   */
+  async waitForConfirmation(
+    txId: string,
+    options?: WaitForConfirmationOptions,
+  ): Promise<BtcTransaction> {
+    const pollInterval = Math.max(
+      options?.pollInterval ?? BTC_DEFAULT_CONFIRMATION_POLL_INTERVAL,
+      5_000,
+    );
+    const deadline = options?.timeout
+      ? Date.now() + options.timeout
+      : undefined;
+    const logger = this.options?.logger;
+
+    // Initial fetch with retry (transaction may not be indexed yet)
     let btcTx = await retryWithBackoff(
       () => this.dataSource.getTransaction(txId),
       {
-        maxRetries: retryOptions?.maxRetries,
-        initialDelay: retryOptions?.initialDelay,
+        maxRetries: options?.retryOptions?.maxRetries ?? 10,
+        initialDelay: options?.retryOptions?.initialDelay ?? 5,
       },
     );
 
-    // Wait for confirmation
-    const intervalSeconds = confirmationPollInterval / 1000;
     while (!btcTx.status.confirmed) {
-      const logger = this.options?.logger;
-      const msg = `[prepareUtxoSeal] Transaction ${txId} not confirmed, waiting ${intervalSeconds} seconds...`;
-      if (logger?.info) {
-        logger.info(msg);
-      } else if (logger?.log) {
-        logger.log(msg);
+      if (options?.signal?.aborted) {
+        throw new Error(
+          `[waitForConfirmation] Aborted while waiting for ${txId}`,
+        );
       }
-      await ccc.sleep(confirmationPollInterval);
+      if (deadline && Date.now() >= deadline) {
+        throw new Error(
+          `[waitForConfirmation] Timeout waiting for ${txId} confirmation after ${options!.timeout}ms`,
+        );
+      }
+
+      logger?.info?.(
+        `[waitForConfirmation] Transaction ${txId} not confirmed, waiting ${pollInterval / 1000}s...`,
+      );
+
+      await ccc.sleep(pollInterval);
+
       try {
         btcTx = await this.dataSource.getTransaction(txId);
       } catch (error) {
         logger?.warn?.(
-          `[prepareUtxoSeal] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
+          `[waitForConfirmation] Failed to get transaction ${txId}: ${String(error)}. Retrying...`,
         );
       }
     }
 
-    return {
-      txid: txId,
-      vout: 0,
-    };
+    return btcTx;
   }
 }
 

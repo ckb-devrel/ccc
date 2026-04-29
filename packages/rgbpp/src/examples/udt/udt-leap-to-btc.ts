@@ -22,7 +22,10 @@ async function ckbUdtToBtc({
   amount: bigint;
 }) {
   if (!utxoSeal) {
-    utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
+    const { psbt, sealOutputIndex } = await rgbppBtcWallet.buildSealPsbt();
+    const txId = await rgbppBtcWallet.signAndBroadcast(psbt);
+    await rgbppBtcWallet.waitForConfirmation(txId);
+    utxoSeal = { txid: txId, vout: sealOutputIndex };
   }
 
   const scriptInfo =
