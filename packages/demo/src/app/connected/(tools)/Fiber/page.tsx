@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import {
   Card,
   ChannelsTab,
+  GraphTab,
   InvoicesTab,
   LogPanel,
   NodeInfoGrid,
@@ -322,6 +323,12 @@ export default function FiberPage() {
             {activeTab === "payments" && (
               <PaymentsTab
                 onSend={(inv) => node.sendPayment(inv).then(() => undefined)}
+              />
+            )}
+            {activeTab === "graph" && (
+              <GraphTab
+                nodes={node.graphNodes}
+                onFetch={node.fetchGraphNodes}
               />
             )}
           </div>

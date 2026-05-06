@@ -1,12 +1,13 @@
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Copy, GitBranch, Send, Terminal, Users } from "lucide-react";
+import { Copy, GitBranch, Network, Send, Terminal, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hexToCkb } from "./config";
 import type {
   FjChannel,
   FjGetInvoice,
+  FjGraphNode,
   FjInvoice,
   FjPeer,
   LogEntry,
@@ -201,6 +202,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "channels", label: "Channels" },
   { key: "invoices", label: "Invoices" },
   { key: "payments", label: "Payments" },
+  { key: "graph", label: "Graph" },
 ];
 
 export function TabBar({
@@ -534,6 +536,111 @@ export function PaymentsTab({
           <p className="text-xs text-blue-700">{result}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Graph tab ─────────────────────────────────────────────────────────────────
+
+function formatTimestamp(hex: string): string {
+  try {
+    let ms = Number(BigInt(hex));
+    if (ms < 1e10) ms *= 1000;
+    return new Date(ms).toLocaleDateString("en", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+export function GraphTab({
+  nodes,
+  onFetch,
+}: {
+  nodes: FjGraphNode[];
+  onFetch: () => Promise<void>;
+}) {
+  const [search, setSearch] = useState("");
+
+  const filtered =
+    search.trim() === ""
+      ? nodes
+      : nodes.filter((n) =>
+          n.pubkey.toLowerCase().includes(search.trim().toLowerCase()),
+        );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <TextInput
+            label="Search by pubkey"
+            state={[search, setSearch]}
+            placeholder="0260..."
+          />
+        </div>
+        <div className="flex items-end pb-4">
+          <Button variant="info" className="text-sm" onClick={onFetch}>
+            Fetch
+          </Button>
+        </div>
+      </div>
+
+      <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
+        <Network size={13} /> Network nodes (
+        {search.trim() !== "" && filtered.length !== nodes.length
+          ? `${filtered.length} / ${nodes.length}`
+          : nodes.length}
+        )
+      </p>
+
+      <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50">
+        {filtered.length === 0 ? (
+          <p className="py-6 text-center text-sm text-gray-300">
+            {nodes.length === 0
+              ? "Press Fetch to load network nodes."
+              : "No nodes match the search."}
+          </p>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {/* Header */}
+            <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-semibold text-gray-400">
+              <span className="w-30 shrink-0">Name</span>
+              <span className="min-w-0 flex-1">Pubkey</span>
+              <span className="w-28 shrink-0 text-right">Min CKB</span>
+              <span className="w-32 shrink-0 text-right">Joined</span>
+            </div>
+            {filtered.map((n) => (
+              <div
+                key={n.pubkey}
+                className="flex items-center gap-3 px-3 py-1.5 text-xs hover:bg-gray-100"
+              >
+                <span
+                  className="w-30 shrink-0 truncate font-medium text-gray-700"
+                  title={n.node_name}
+                >
+                  {n.node_name || "—"}
+                </span>
+                <span
+                  className="min-w-0 flex-1 truncate font-mono text-gray-500"
+                  title={n.pubkey}
+                >
+                  {n.pubkey}
+                </span>
+                <span className="w-28 shrink-0 text-right text-gray-500">
+                  {hexToCkb(n.auto_accept_min_ckb_funding_amount)} CKB
+                </span>
+                <span className="w-32 shrink-0 text-right text-gray-400">
+                  {formatTimestamp(n.timestamp)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

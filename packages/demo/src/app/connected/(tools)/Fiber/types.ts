@@ -95,4 +95,11 @@ export type LogEntry = {
   msg: string;
 };
 
-export type Tab = "peers" | "channels" | "invoices" | "payments";
+export type FjGraphNode = {
+  node_name: string;
+  pubkey: string;
+  auto_accept_min_ckb_funding_amount: string; // shannons, hex
+  timestamp: string; // hex, milliseconds since epoch
+};
+
+export type Tab = "peers" | "channels" | "invoices" | "payments" | "graph";

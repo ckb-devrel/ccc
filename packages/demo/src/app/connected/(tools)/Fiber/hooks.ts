@@ -7,6 +7,7 @@ import type {
   FiberInstance,
   FjChannel,
   FjGetInvoice,
+  FjGraphNode,
   FjInvoice,
   FjNodeInfo,
   FjOpenChannel,
@@ -138,6 +139,7 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
   const [nodeInfo, setNodeInfo] = useState<FjNodeInfo | null>(null);
   const [peers, setPeers] = useState<FjPeer[]>([]);
   const [channels, setChannels] = useState<FjChannel[]>([]);
+  const [graphNodes, setGraphNodes] = useState<FjGraphNode[]>([]);
 
   useEffect(
     () => () => {
@@ -191,6 +193,7 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     setNodeInfo(null);
     setPeers([]);
     setChannels([]);
+    setGraphNodes([]);
   }
 
   const refreshNodeData = useCallback(async () => {
@@ -510,6 +513,34 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     [addLog, logResponse],
   );
 
+  const fetchGraphNodes = useCallback(async () => {
+    addLog("info", "Fetching network graph nodes…");
+    try {
+      const all: FjGraphNode[] = [];
+      let after: string | undefined;
+      const limit = 100;
+      while (true) {
+        const params: Record<string, string> = {
+          limit: ccc.numToHex(limit),
+        };
+        if (after) params.after = after;
+        const res = await invoke<{ nodes: FjGraphNode[]; last_cursor: string }>(
+          "graph_nodes",
+          [params],
+        );
+        const batch = res.nodes ?? [];
+        all.push(...batch);
+        if (batch.length < limit) break;
+        after = res.last_cursor;
+        if (!after || after === "0x") break;
+      }
+      setGraphNodes(all);
+      addLog("success", `Fetched ${all.length} graph node(s).`);
+    } catch (e) {
+      addLog("error", `Failed to fetch graph nodes: ${errMsg(e)}`);
+    }
+  }, [addLog]);
+
   return {
     isRunning,
     isStarting,
@@ -517,6 +548,7 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     nodeInfo,
     peers,
     channels,
+    graphNodes,
     startNode,
     stopNode,
     clearNodeData,
@@ -528,5 +560,6 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     newInvoice,
     getInvoice,
     sendPayment,
+    fetchGraphNodes,
   };
 }
