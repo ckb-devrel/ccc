@@ -102,4 +102,12 @@ export type FjGraphNode = {
   timestamp: string; // hex, milliseconds since epoch
 };
 
+export type FjGraphChannel = {
+  channel_outpoint: string;
+  node1: string; // pubkey
+  node2: string; // pubkey
+  created_timestamp: string; // hex, milliseconds since epoch
+  capacity: string; // shannons, hex
+};
+
 export type Tab = "peers" | "channels" | "invoices" | "payments" | "graph";

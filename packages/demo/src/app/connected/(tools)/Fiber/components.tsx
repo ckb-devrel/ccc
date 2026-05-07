@@ -1,12 +1,23 @@
 import { Button } from "@/src/components/Button";
 import { TextInput } from "@/src/components/Input";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Copy, GitBranch, Network, Send, Terminal, Users } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  GitBranch,
+  Loader2,
+  Network,
+  Send,
+  Terminal,
+  Users,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { hexToCkb } from "./config";
 import type {
   FjChannel,
   FjGetInvoice,
+  FjGraphChannel,
   FjGraphNode,
   FjInvoice,
   FjPeer,
@@ -558,12 +569,17 @@ function formatTimestamp(hex: string): string {
 
 export function GraphTab({
   nodes,
+  graphChannelsByNode,
+  isLoadingChannels,
   onFetch,
 }: {
   nodes: FjGraphNode[];
+  graphChannelsByNode: Map<string, FjGraphChannel[]>;
+  isLoadingChannels: boolean;
   onFetch: () => Promise<void>;
 }) {
   const [search, setSearch] = useState("");
+  const [expandedPubkey, setExpandedPubkey] = useState<string | null>(null);
 
   const filtered =
     search.trim() === ""
@@ -589,15 +605,25 @@ export function GraphTab({
         </div>
       </div>
 
-      <p className="flex items-center gap-1 text-xs font-medium text-gray-500">
-        <Network size={13} /> Network nodes (
+      <p className="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <Network size={13} />
+        Network nodes (
         {search.trim() !== "" && filtered.length !== nodes.length
           ? `${filtered.length} / ${nodes.length}`
           : nodes.length}
         )
+        {isLoadingChannels && (
+          <>
+            <span className="text-gray-300">·</span>
+            <Loader2 size={11} className="animate-spin text-indigo-400" />
+            <span className="font-normal text-indigo-400">
+              loading channels
+            </span>
+          </>
+        )}
       </p>
 
-      <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50">
+      <div className="max-h-96 overflow-y-auto rounded-lg border border-gray-100 bg-gray-50">
         {filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-gray-300">
             {nodes.length === 0
@@ -609,35 +635,112 @@ export function GraphTab({
             {/* Header */}
             <div className="flex items-center gap-3 px-3 py-1.5 text-xs font-semibold text-gray-400">
               <span className="w-30 shrink-0">Name</span>
-              <span className="min-w-0 flex-1">Pubkey</span>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                Pubkey
+              </span>
               <span className="w-28 shrink-0 text-right">Min CKB</span>
               <span className="w-32 shrink-0 text-right">Joined</span>
             </div>
-            {filtered.map((n) => (
-              <div
-                key={n.pubkey}
-                className="flex items-center gap-3 px-3 py-1.5 text-xs hover:bg-gray-100"
-              >
-                <span
-                  className="w-30 shrink-0 truncate font-medium text-gray-700"
-                  title={n.node_name}
-                >
-                  {n.node_name || "—"}
-                </span>
-                <span
-                  className="min-w-0 flex-1 truncate font-mono text-gray-500"
-                  title={n.pubkey}
-                >
-                  {n.pubkey}
-                </span>
-                <span className="w-28 shrink-0 text-right text-gray-500">
-                  {hexToCkb(n.auto_accept_min_ckb_funding_amount)} CKB
-                </span>
-                <span className="w-32 shrink-0 text-right text-gray-400">
-                  {formatTimestamp(n.timestamp)}
-                </span>
-              </div>
-            ))}
+            {filtered.map((n) => {
+              const nodeChannels = graphChannelsByNode.get(n.pubkey) ?? [];
+              const hasChannels = nodeChannels.length > 0;
+              const isExpanded = expandedPubkey === n.pubkey;
+
+              return (
+                <div key={n.pubkey}>
+                  {/* Node row */}
+                  <div
+                    className={`flex items-center gap-3 px-3 py-1.5 text-xs transition-colors ${
+                      hasChannels
+                        ? "cursor-pointer hover:bg-indigo-50"
+                        : "hover:bg-gray-100"
+                    } ${isExpanded ? "bg-indigo-50/70" : ""}`}
+                    onClick={() =>
+                      hasChannels &&
+                      setExpandedPubkey(isExpanded ? null : n.pubkey)
+                    }
+                  >
+                    {hasChannels ? (
+                      <span className="shrink-0 text-indigo-400">
+                        {isExpanded ? (
+                          <ChevronDown size={12} />
+                        ) : (
+                          <ChevronRight size={12} />
+                        )}
+                      </span>
+                    ) : (
+                      <span className="w-3 shrink-0" />
+                    )}
+                    <span
+                      className="w-30 shrink-0 truncate font-medium text-gray-700"
+                      title={n.node_name}
+                    >
+                      {n.node_name || "—"}
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span
+                        className="min-w-0 flex-1 truncate font-mono text-gray-500"
+                        title={n.pubkey}
+                      >
+                        {n.pubkey}
+                      </span>
+                      {hasChannels && (
+                        <span className="shrink-0 rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-600">
+                          {nodeChannels.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="w-28 shrink-0 text-right text-gray-500">
+                      {hexToCkb(n.auto_accept_min_ckb_funding_amount)} CKB
+                    </span>
+                    <span className="w-32 shrink-0 text-right text-gray-400">
+                      {formatTimestamp(n.timestamp)}
+                    </span>
+                  </div>
+
+                  {/* Expanded channel sub-table — visually nested inside the node row */}
+                  {isExpanded && hasChannels && (
+                    <div className="flex gap-3 overflow-x-auto bg-indigo-50/30 px-3 pt-1.5 pb-3">
+                      {/* spacers mirror the parent row's chevron + name columns */}
+                      <span className="w-3 shrink-0" />
+                      <span className="w-30 shrink-0" />
+                      {/* card — wide enough to fit a full 66-char pubkey on one line */}
+                      <div className="w-[44rem] shrink-0 overflow-hidden rounded-md border border-indigo-100 bg-white shadow-sm">
+                        <div className="flex gap-2 border-b border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-semibold tracking-wide text-gray-400 uppercase">
+                          <span className="min-w-0 flex-1">Other Node</span>
+                          <span className="w-20 shrink-0 text-right">
+                            Capacity
+                          </span>
+                          <span className="w-24 shrink-0 text-right">
+                            Created
+                          </span>
+                        </div>
+                        {nodeChannels.map((ch) => {
+                          const otherEnd =
+                            ch.node1 === n.pubkey ? ch.node2 : ch.node1;
+                          return (
+                            <div
+                              key={ch.channel_outpoint}
+                              className="flex items-center gap-2 border-t border-gray-50 px-3 py-1 text-xs"
+                            >
+                              <span className="min-w-0 flex-1 font-mono whitespace-nowrap text-gray-400">
+                                {otherEnd}
+                              </span>
+                              <span className="w-20 shrink-0 text-right text-gray-400">
+                                {hexToCkb(ch.capacity)} CKB
+                              </span>
+                              <span className="w-24 shrink-0 text-right text-gray-400">
+                                {formatTimestamp(ch.created_timestamp)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

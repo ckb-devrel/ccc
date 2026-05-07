@@ -7,6 +7,7 @@ import type {
   FiberInstance,
   FjChannel,
   FjGetInvoice,
+  FjGraphChannel,
   FjGraphNode,
   FjInvoice,
   FjNodeInfo,
@@ -140,6 +141,10 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
   const [peers, setPeers] = useState<FjPeer[]>([]);
   const [channels, setChannels] = useState<FjChannel[]>([]);
   const [graphNodes, setGraphNodes] = useState<FjGraphNode[]>([]);
+  const [graphChannelsByNode, setGraphChannelsByNode] = useState<
+    Map<string, FjGraphChannel[]>
+  >(new Map());
+  const [isLoadingChannels, setIsLoadingChannels] = useState(false);
 
   useEffect(
     () => () => {
@@ -194,6 +199,8 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     setPeers([]);
     setChannels([]);
     setGraphNodes([]);
+    setGraphChannelsByNode(new Map());
+    setIsLoadingChannels(false);
   }
 
   const refreshNodeData = useCallback(async () => {
@@ -513,6 +520,46 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     [addLog, logResponse],
   );
 
+  const fetchGraphChannels = useCallback(async () => {
+    if (!fiberRef.current) return;
+    setIsLoadingChannels(true);
+    setGraphChannelsByNode(new Map());
+    addLog("info", "Fetching graph channels…");
+    try {
+      let after: string | undefined;
+      const limit = 100;
+      let total = 0;
+      while (true) {
+        const params: Record<string, string> = { limit: ccc.numToHex(limit) };
+        if (after) params.after = after;
+        const res = await invoke<{
+          channels: FjGraphChannel[];
+          last_cursor: string;
+        }>("graph_channels", [params]);
+        const batch = res.channels ?? [];
+        total += batch.length;
+        if (batch.length > 0) {
+          setGraphChannelsByNode((prev) => {
+            const next = new Map(prev);
+            for (const ch of batch) {
+              next.set(ch.node1, [...(next.get(ch.node1) ?? []), ch]);
+              next.set(ch.node2, [...(next.get(ch.node2) ?? []), ch]);
+            }
+            return next;
+          });
+        }
+        if (batch.length < limit) break;
+        after = res.last_cursor;
+        if (!after || after === "0x") break;
+      }
+      addLog("success", `Fetched ${total} graph channel(s).`);
+    } catch (e) {
+      addLog("error", `Failed to fetch graph channels: ${errMsg(e)}`);
+    } finally {
+      setIsLoadingChannels(false);
+    }
+  }, [addLog]);
+
   const fetchGraphNodes = useCallback(async () => {
     addLog("info", "Fetching network graph nodes…");
     try {
@@ -536,10 +583,12 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
       }
       setGraphNodes(all);
       addLog("success", `Fetched ${all.length} graph node(s).`);
+      // Start channel loading asynchronously — does not block node graph display
+      void fetchGraphChannels();
     } catch (e) {
       addLog("error", `Failed to fetch graph nodes: ${errMsg(e)}`);
     }
-  }, [addLog]);
+  }, [addLog, fetchGraphChannels]);
 
   return {
     isRunning,
@@ -549,6 +598,8 @@ export function useFiberNode(signer: ccc.Signer | undefined, addLog: AddLog) {
     peers,
     channels,
     graphNodes,
+    graphChannelsByNode,
+    isLoadingChannels,
     startNode,
     stopNode,
     clearNodeData,

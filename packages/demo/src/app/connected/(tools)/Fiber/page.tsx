@@ -328,6 +328,8 @@ export default function FiberPage() {
             {activeTab === "graph" && (
               <GraphTab
                 nodes={node.graphNodes}
+                graphChannelsByNode={node.graphChannelsByNode}
+                isLoadingChannels={node.isLoadingChannels}
                 onFetch={node.fetchGraphNodes}
               />
             )}
