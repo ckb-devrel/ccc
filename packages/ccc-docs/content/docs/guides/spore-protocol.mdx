@@ -1,0 +1,200 @@
+---
+title: Spore Protocol
+description: Create and manage digital objects (DOBs) using the Spore Protocol SDK.
+---
+
+**Spore Protocol** is an on-chain standard for creating permanent, ownable **Digital Objects (DOBs)** on CKB. A Spore encodes arbitrary content (images, text, JSON, etc.) directly on-chain and ties ownership to a CKB lock script. Because the data lives in a cell, ownership transfer is an atomic on-chain operation — no marketplace or indexer is required to verify it.
+
+**Clusters** are optional collections that group related Spores. A Cluster has a name and description; any Spore can reference a Cluster ID to declare membership.
+
+## Installation
+
+```bash theme={null}
+npm install @ckb-ccc/spore
+```
+
+The package name is `@ckb-ccc/spore` (version `1.5.17`).
+
+```typescript theme={null}
+import { createSpore, transferSpore, meltSpore } from "@ckb-ccc/spore";
+import { createSporeCluster, transferSporeCluster } from "@ckb-ccc/spore";
+```
+
+## Create a Spore
+
+`createSpore` encodes your content and produces a transaction with a new Spore cell. The `data` field follows the Spore data format: a content type string and raw content bytes.
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+import { createSpore } from "@ckb-ccc/spore";
+
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
+  // Optional: send the Spore to a different address
+  // to: recipientLockScript,
+});
+
+// Balance capacity and pay fee
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log("Spore created:", id);        // the sporeId (type args)
+console.log("Transaction hash:", txHash);
+```
+
+<Callout type="info">
+  The returned `id` is the sporeId — the `args` field of the Spore's type script. Store it; you will need it for transfers and melts.
+</Callout>
+
+### Spore inside a Cluster
+
+If you want the Spore to belong to a Cluster, include `clusterId` in the data and set `clusterMode`:
+
+```typescript theme={null}
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "image/png",
+    content: pngBytes,
+    clusterId: "0xabc123...", // id returned by createSporeCluster
+  },
+  clusterMode: "lockProxy", // or "clusterCell"
+});
+```
+
+| `clusterMode`   | Behaviour                                                                      |
+| --------------- | ------------------------------------------------------------------------------ |
+| `"lockProxy"`   | Puts a cell with the Cluster's lock in both inputs and outputs — lower cost    |
+| `"clusterCell"` | Puts the Cluster cell itself in inputs and outputs — proves ownership directly |
+| `"skip"`        | Skips cluster logic entirely — use only if you handle it yourself              |
+
+## Transfer a Spore
+
+```typescript theme={null}
+import { transferSpore } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSpore({
+  signer,
+  id: sporeId,   // "0x..."
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## Melt a Spore
+
+Melting destroys the Spore and reclaims its locked CKB capacity back to the signer:
+
+```typescript theme={null}
+import { meltSpore } from "@ckb-ccc/spore";
+
+const { tx } = await meltSpore({
+  signer,
+  id: sporeId,
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+<Callout type="error">
+  Melting is irreversible. The Spore's content is removed from the chain and its CKB is released. There is no undo.
+</Callout>
+
+## Clusters
+
+### Create a Cluster
+
+```typescript theme={null}
+import { createSporeCluster } from "@ckb-ccc/spore";
+
+const { tx, id: clusterId } = await createSporeCluster({
+  signer,
+  data: {
+    name: "My Collection",
+    description: "A collection of on-chain art.",
+  },
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+console.log("Cluster ID:", clusterId);
+```
+
+### Transfer a Cluster
+
+```typescript theme={null}
+import { transferSporeCluster } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSporeCluster({
+  signer,
+  id: clusterId,
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+await signer.sendTransaction(tx);
+```
+
+## Query Spores and Clusters
+
+```typescript theme={null}
+import { findSporesBySigner, findSporeClusters } from "@ckb-ccc/spore";
+
+// Iterate all Spores owned by the signer
+for await (const { spore, sporeData } of findSporesBySigner({ signer })) {
+  console.log(spore.outPoint, sporeData.contentType);
+}
+
+// Find Spores in a specific Cluster
+for await (const { sporeData } of findSporesBySigner({
+  signer,
+  clusterId: "0xabc123...",
+})) {
+  console.log(sporeData);
+}
+
+// Query all public Spores (no cluster) by lock
+for await (const { spore } of findSporesBySigner({
+  signer,
+  clusterId: "", // empty string = public spores only
+})) {
+  console.log(spore.outPoint);
+}
+```
+
+## API reference
+
+| Function                            | Description                         |
+| ----------------------------------- | ----------------------------------- |
+| `createSpore(params)`               | Create a new Spore cell             |
+| `transferSpore(params)`             | Transfer a Spore to a new owner     |
+| `meltSpore(params)`                 | Destroy a Spore and reclaim CKB     |
+| `findSpore(client, id)`             | Look up a single Spore by ID        |
+| `findSpores(params)`                | Query Spores by lock and/or cluster |
+| `findSporesBySigner(params)`        | Query Spores owned by a signer      |
+| `createSporeCluster(params)`        | Create a new Cluster cell           |
+| `transferSporeCluster(params)`      | Transfer a Cluster to a new owner   |
+| `findCluster(client, id)`           | Look up a single Cluster by ID      |
+| `findSporeClusters(params)`         | Query Clusters by lock              |
+| `findSporeClustersBySigner(params)` | Query Clusters owned by a signer    |

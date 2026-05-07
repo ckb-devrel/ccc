@@ -1,0 +1,59 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+/* --------------------------------------------------------------------------
+ * Brand palette — derived from the CCC logo (#5BCEFA).
+ * We override Fumadocs' neutral preset so the whole docs UI — search highlight,
+ * active nav item, TOC dot, link color — picks up the CCC brand color.
+ * -------------------------------------------------------------------------- */
+:root {
+  --color-fd-primary: oklch(0.58 0.14 226);
+}
+
+.dark {
+  --color-fd-primary: oklch(0.82 0.11 226);
+}
+
+/* Expose the brand color as a plain CSS variable too so we can use it in
+ * gradients / masks without re-declaring it. */
+:root,
+.dark {
+  --ccc-brand: var(--color-fd-primary);
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+html > body[data-scroll-locked] {
+  margin-right: 0px !important;
+  --removed-body-scroll-bar-size: 0px !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Reusable utilities for the marketing pages (home / blog list).
+ * -------------------------------------------------------------------------- */
+@utility bg-grid {
+  /* Thin dotted grid — a quiet technical texture for hero backgrounds.
+   * Uses currentColor (set via `text-...`) so it tints to fit light / dark. */
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@utility bg-grid-sm {
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Soft radial fade so the grid texture recedes at page edges. */
+@utility mask-radial-fade {
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+/* Hairline border helper — semi-transparent so it reads as a divider rather
+ * than a hard edge, which feels more editorial than the default border. */
+@utility border-hairline {
+  border-color: color-mix(in oklch, var(--color-fd-border) 70%, transparent);
+}

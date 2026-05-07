@@ -1,0 +1,147 @@
+---
+title: UDT Tokens
+description: Issue and transfer User Defined Tokens (UDT) and xUDT on CKB.
+---
+
+CKB supports **User Defined Tokens (UDT)** — fungible tokens that live in the `data` field of cells. The `@ckb-ccc/ccc` package includes first-class UDT support via the `ccc.udt` namespace.
+
+## xUDT vs sUDT
+
+|                     | sUDT           | xUDT                        |
+| ------------------- | -------------- | --------------------------- |
+| Standard            | [CKB RFC 25](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0025-simple-udt/0025-simple-udt.md) | [CKB RFC 52](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0052-extensible-udt/0052-extensible-udt.md) |
+| Extension support   | No             | Yes (owner-mode, RCE rules) |
+| `KnownScript` value | — (not in CCC) | `ccc.KnownScript.XUdt`      |
+| Production use      | Legacy         | Recommended                 |
+
+The `Udt` class in CCC supports both. By default it uses the **SSRI** execution model (on-chain script execution), and falls back gracefully to off-chain construction for legacy xUDT tokens.
+
+## Installation
+
+```bash theme={null}
+npm install @ckb-ccc/ccc
+```
+
+UDT support is bundled in the main package — no extra install is required.
+
+## Import
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+```
+
+The `Udt` class is available as `ccc.udt.Udt`.
+
+## Construct a `Udt` instance
+
+A `Udt` instance is defined by two pieces of information:
+
+* **`code`** — the `OutPoint` of the cell that holds the UDT script code
+* **`script`** — the type script that identifies this specific token
+
+```typescript theme={null}
+const type = await ccc.Script.fromKnownScript(
+  signer.client,
+  ccc.KnownScript.XUdt,
+  // The args uniquely identify this token (issuer lock hash)
+  "0xf8f94a13dfe1b87c10312fb9678ab5276eefbe1e0b2c62b4841b1f393494eff2",
+);
+
+const code = (
+  await signer.client.getCellDeps(
+    (await signer.client.getKnownScript(ccc.KnownScript.XUdt)).cellDeps,
+  )
+)[0].outPoint;
+
+const udt = new ccc.udt.Udt(code, type);
+```
+
+## Transfer tokens
+
+This example is from `packages/examples/src/transferUdt.ts`. It sends 1 token unit to the signer's own address:
+
+<Steps>
+  <Step title="Build the initial transfer output">
+    `udt.transfer` creates a transaction with the output cells you want. It does not yet balance inputs.
+
+    ```typescript theme={null}
+    const receiver = await signer.getRecommendedAddress();
+    const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+    let { res: tx } = await udt.transfer(signer, [
+      { to: lock, amount: ccc.fixedPointFrom(1) },
+    ]);
+    ```
+  </Step>
+
+  <Step title="Fill UDT inputs">
+    `udt.completeBy` collects the signer's UDT cells until there is enough token balance to cover the outputs. Any surplus is sent back as a change cell.
+
+    ```typescript theme={null}
+    tx = await udt.completeBy(tx, signer);
+    ```
+  </Step>
+
+  <Step title="Fill capacity inputs">
+    After UDT inputs are set, fill capacity inputs for the CKB needed to hold the cells.
+
+    ```typescript theme={null}
+    await tx.completeInputsByCapacity(signer);
+    ```
+  </Step>
+
+  <Step title="Pay fee and broadcast">
+    ```typescript theme={null}
+    await tx.completeFeeBy(signer);
+    const txHash = await signer.sendTransaction(tx);
+    console.log("UDT transfer hash:", txHash);
+    ```
+  </Step>
+</Steps>
+
+## Mint tokens
+
+Minting works identically to `transfer` — it just creates new token outputs without requiring existing UDT inputs. The UDT script must grant the signer mint authority (typically through `owner-mode` in xUDT):
+
+```typescript theme={null}
+const { script: to } = await ccc.Address.fromString(receiver, signer.client);
+
+let { res: tx } = await udt.mint(signer, [
+  { to, amount: ccc.fixedPointFrom(1000) },
+]);
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## Read token metadata (SSRI tokens)
+
+For SSRI-compliant UDTs, the `Udt` class can fetch on-chain metadata:
+
+```typescript theme={null}
+const { res: name }     = await udt.name();
+const { res: symbol }   = await udt.symbol();
+const { res: decimals } = await udt.decimals();
+const { res: icon }     = await udt.icon();
+
+console.log(`${name} (${symbol}), ${decimals} decimals`);
+```
+
+<Callout type="warning">
+  These methods return `undefined` for legacy sUDT/xUDT tokens that do not implement the SSRI `UDT` interface. Check the return value before using it.
+</Callout>
+
+## API reference
+
+| Method                                       | Description                                 |
+| -------------------------------------------- | ------------------------------------------- |
+| `new ccc.udt.Udt(code, script)`              | Construct a UDT instance                    |
+| `udt.transfer(signer, transfers, tx?)`       | Build transfer outputs                      |
+| `udt.mint(signer, mints, tx?)`               | Build mint outputs                          |
+| `udt.completeBy(tx, signer)`                 | Fill UDT inputs and add change              |
+| `udt.completeChangeToLock(tx, signer, lock)` | Fill UDT inputs with a specific change lock |
+| `udt.name()`                                 | Token name (SSRI only)                      |
+| `udt.symbol()`                               | Token symbol (SSRI only)                    |
+| `udt.decimals()`                             | Token decimals (SSRI only)                  |
+| `udt.icon()`                                 | Token icon URI (SSRI only)                  |

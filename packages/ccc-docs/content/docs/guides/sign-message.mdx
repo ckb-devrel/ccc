@@ -1,0 +1,113 @@
+---
+title: Sign Messages
+description: Sign and verify messages across multiple wallet types with CCC's unified signing interface.
+---
+
+CCC provides a unified signing interface that works identically across all supported wallet types — CKB native wallets, EVM wallets (MetaMask, etc.), Bitcoin wallets, JoyID, Nostr, and Dogecoin wallets. You call the same methods regardless of which wallet the user connected.
+
+## The `Signature` type
+
+`signer.signMessage` returns a `Signature` object defined in `packages/core/src/signer/signer/index.ts`:
+
+```typescript theme={null}
+class Signature {
+  signature: string;  // the raw signature hex
+  identity: string;   // signer identity (usually their address)
+  signType: SignerSignType;
+}
+```
+
+The `signType` field tells verifiers which cryptographic scheme was used, enabling scheme-specific verification without the caller needing to know the wallet type ahead of time.
+
+## `SignerSignType` enum
+
+| Value                         | Wallet / scheme                         |
+| ----------------------------- | --------------------------------------- |
+| `SignerSignType.CkbSecp256k1` | CKB native secp256k1 wallets            |
+| `SignerSignType.EvmPersonal`  | EVM wallets (MetaMask, OKX EVM, etc.)   |
+| `SignerSignType.BtcEcdsa`     | Bitcoin wallets (UniSat, OKX BTC, etc.) |
+| `SignerSignType.JoyId`        | JoyID passkey wallet                    |
+| `SignerSignType.NostrEvent`   | Nostr clients                           |
+| `SignerSignType.DogeEcdsa`    | Dogecoin wallets                        |
+| `SignerSignType.Unknown`      | Unknown / unsupported type              |
+
+## Signing a message
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+const message = "Hello world";
+const signature = await signer.signMessage(message);
+
+console.log(signature.signature);  // "0x..."
+console.log(signature.identity);   // signer's address / public key
+console.log(signature.signType);   // e.g. "CkbSecp256k1"
+```
+
+`signMessage` accepts either a plain string or a `BytesLike` value, so you can sign raw bytes when needed.
+
+## Verifying a signature
+
+Verification is a static method on `Signer` — you do not need a connected wallet to verify. CCC dispatches to the correct scheme automatically based on `signature.signType`:
+
+```typescript theme={null}
+const isValid = await ccc.Signer.verifyMessage(message, signature);
+// true
+
+const isFail = await ccc.Signer.verifyMessage("Wrong message", signature);
+// false
+```
+
+## Full example
+
+This example is drawn from `packages/examples/src/sign.ts`. It handles the playground's default `SignerCkbPublicKey` (which cannot sign messages) by substituting a private-key signer for demonstration:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+import { client, signer as playgroundSigner } from "@ckb-ccc/playground";
+
+// The default playground signer cannot sign messages.
+// In a real app the connected wallet signer is always usable.
+const signer: ccc.Signer =
+  playgroundSigner instanceof ccc.SignerCkbPublicKey
+    ? new ccc.SignerCkbPrivateKey(client, "01".repeat(32))
+    : playgroundSigner;
+
+const message = "Hello world";
+
+// Sign
+const signature = await signer.signMessage(message);
+console.log(signature);
+
+// Verify — passes
+console.log(
+  `Verification should pass: ${await ccc.Signer.verifyMessage(message, signature)}`,
+);
+
+// Verify — fails with wrong message
+console.log(
+  `Verification should fail: ${await ccc.Signer.verifyMessage("Wrong message", signature)}`,
+);
+```
+
+## Instance-level verification
+
+If you have a connected signer, you can also call `verifyMessage` on the instance. This additionally checks that the signature was produced by the same identity:
+
+```typescript theme={null}
+// Returns false if the signature was produced by a different signer
+const ok = await signer.verifyMessage(message, signature);
+```
+
+<Callout type="info">
+  `Signer.verifyMessage` (static) verifies any `Signature` regardless of wallet type. The instance method `signer.verifyMessage` additionally enforces that `signature.identity` matches the current signer's identity.
+</Callout>
+
+## Signing raw bytes
+
+Pass a `Uint8Array` or hex string to sign arbitrary binary data:
+
+```typescript theme={null}
+const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
+const signature = await signer.signMessage(bytes);
+```

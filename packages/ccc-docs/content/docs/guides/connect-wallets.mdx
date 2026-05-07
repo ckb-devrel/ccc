@@ -1,0 +1,242 @@
+---
+title: Connect Wallets
+description: Integrate multi-chain wallet connectivity into your CKB application.
+---
+
+CCC supports wallets from multiple chain ecosystems — EVM, BTC, CKB, Nostr, and Doge — through a unified connector interface. You can drop in the pre-built connector UI or build your own using `SignersController` directly.
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash npm theme={null}
+    npm install @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash yarn theme={null}
+    yarn add @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash pnpm theme={null}
+    pnpm add @ckb-ccc/connector-react
+    ```
+  </Tab>
+</Tabs>
+
+## React Integration
+
+Wrap your application with `ccc.Provider` to make wallet state available throughout your component tree.
+
+<Callout type="warning">
+  If you are using React Server Components, add `"use client"` at the top of any file that uses `ccc.Provider`. CCC's UI components only run on the client side.
+</Callout>
+
+```tsx theme={null}
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export default function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ccc.Provider name="My App" icon="https://example.com/icon.png">
+      {children}
+    </ccc.Provider>
+  );
+}
+```
+
+### Provider Props
+
+| Prop                | Type                                                                   | Description                                      |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| `children`          | `ReactNode`                                                            | Child components                                 |
+| `hideMark`          | `boolean`                                                              | Hide the CCC watermark                           |
+| `name`              | `string`                                                               | Your app name displayed in the connector         |
+| `icon`              | `string`                                                               | Your app icon URL displayed in the connector     |
+| `signerFilter`      | `(signerInfo: ccc.SignerInfo, wallet: ccc.Wallet) => Promise<boolean>` | Filter which wallets/signers are shown           |
+| `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
+| `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |
+| `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | Network switching options shown in the connector |
+| `preferredNetworks` | `ccc.NetworkPreference[]`                                              | Preferred networks per signer type               |
+
+## `useCcc()` Hook
+
+The `useCcc` hook returns all wallet state and control functions. It must be called from a component inside `ccc.Provider`.
+
+```tsx theme={null}
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function ConnectButton() {
+  const { isOpen, open, close, disconnect, setClient, client, wallet, signerInfo } =
+    ccc.useCcc();
+
+  return (
+    <div>
+      {signerInfo ? (
+        <button onClick={disconnect}>Disconnect {wallet?.name}</button>
+      ) : (
+        <button onClick={open}>Connect Wallet</button>
+      )}
+    </div>
+  );
+}
+```
+
+| Return value | Type                           | Description                                            |
+| ------------ | ------------------------------ | ------------------------------------------------------ |
+| `isOpen`     | `boolean`                      | Whether the connector modal is currently open          |
+| `open`       | `() => void`                   | Open the connector modal                               |
+| `close`      | `() => void`                   | Close the connector modal                              |
+| `disconnect` | `() => void`                   | Disconnect the current wallet                          |
+| `setClient`  | `(client: ccc.Client) => void` | Switch to a different CKB client                       |
+| `client`     | `ccc.Client`                   | Current CKB client (defaults to `ClientPublicTestnet`) |
+| `wallet`     | `ccc.Wallet \| undefined`      | Currently connected wallet (`name`, `icon`)            |
+| `signerInfo` | `ccc.SignerInfo \| undefined`  | Current signer info (`name`, `signer`)                 |
+
+## `useSigner()` Hook
+
+For quick access to the active signer instance, use `useSigner`:
+
+```tsx theme={null}
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function AddressDisplay() {
+  const signer = ccc.useSigner();
+
+  async function handleClick() {
+    if (!signer) return;
+    const address = await signer.getRecommendedAddress();
+    console.log("Connected address:", address);
+  }
+
+  return (
+    <button onClick={handleClick} disabled={!signer}>
+      Get Address
+    </button>
+  );
+}
+```
+
+`useSigner()` returns `ccc.Signer | undefined`. It is `undefined` when no wallet is connected.
+
+## Filtering Wallets
+
+Use `signerFilter` on `ccc.Provider` to restrict which wallets appear. Return `true` to include a wallet or `false` to hide it.
+
+```tsx theme={null}
+<ccc.Provider
+  signerFilter={async (signerInfo, wallet) => {
+    // Only show CKB-native wallets
+    return signerInfo.signer.type === ccc.SignerType.CKB;
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+## Preferred Networks
+
+Use `preferredNetworks` to specify which network each wallet type should connect to. Wallets will attempt to switch automatically when a mismatch is detected.
+
+```tsx theme={null}
+<ccc.Provider
+  preferredNetworks={[
+    {
+      addressPrefix: "ckb",
+      signerType: ccc.SignerType.BTC,
+      network: "btc",
+    },
+  ]}
+>
+  {children}
+</ccc.Provider>
+```
+
+The `NetworkPreference` type:
+
+```typescript theme={null}
+type NetworkPreference = {
+  addressPrefix: string; // "ckb" for mainnet, "ckt" for testnet
+  signerType: SignerType;
+  network: string;
+  // BTC network values: "btc" | "btcTestnet" | "btcTestnet4" | "btcSignet" | "fractalBtc"
+};
+```
+
+## Custom UI with `SignersController`
+
+To build your own wallet selection UI without the built-in modal, use `SignersController` directly. It discovers all available wallet extensions and returns them as a list of `WalletWithSigners`.
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+const controller = new ccc.SignersController();
+let wallets: ccc.WalletWithSigners[] | undefined;
+
+// Fetch all available signers
+await controller.refresh(client, (w) => (wallets = w));
+if (!wallets) {
+  throw new Error("Unexpected not wallets");
+}
+wallets.forEach((wallet) => {
+  console.log(
+    wallet.name,
+    wallet.signers.map(({ name }) => name),
+  );
+});
+
+const signer = wallets[0].signers[0].signer;
+
+// Connect signer
+await signer.connect();
+console.log("Connected");
+
+// Sign message as test
+const signature = await signer.signMessage("Hello world");
+console.log(signature);
+```
+
+## Direct Signer Instantiation
+
+For applications that target a specific wallet without any selection UI:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+// Provide your app name and icon to JoyID
+const signer = new ccc.JoyId.CkbSigner(client, "CCC", "https://fav.farm/🇨");
+
+// Connect signer
+await signer.connect();
+console.log("Connected");
+
+// Sign an empty transaction as test
+const signature = await signer.signTransaction({});
+console.log(signature);
+```
+
+## Supported Wallet Integrations
+
+| Wallet              | Signer Type |
+| ------------------- | ----------- |
+| JoyID               | CKB         |
+| OKX                 | BTC / EVM   |
+| UniSat              | BTC         |
+| UTXO Global         | BTC         |
+| Xverse              | BTC         |
+| MetaMask / EIP-6963 | EVM         |
+| Nostr (NIP-07)      | Nostr       |
+| REI                 | EVM         |
+
+All imports use the `ccc` namespace:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/connector-react"; // React apps
+import { ccc } from "@ckb-ccc/ccc";             // Custom UI / Node.js
+```

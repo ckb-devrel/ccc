@@ -1,0 +1,178 @@
+---
+title: Quick start
+description: Get a CKB transaction on-chain in under 5 minutes.
+---
+
+# Quick start 
+
+<Callout type="note">
+  Want to skip the setup? Try CCC directly in the [playground](https://live.ckbccc.com/) — no installation required.
+</Callout>
+
+<Steps>
+  <Step title="Create a new app">
+    The fastest way to start is with `create-ccc-app`, which scaffolds a new CCC-based application with your preferred framework:
+
+    <Tabs items={['npx', 'yarn', 'pnpm']}>
+      <Tab value="npx">
+      ```bash npx theme={null}
+      npx create-ccc-app@latest my-ccc-app
+      ```
+      </Tab>
+
+      <Tab value="yarn">
+      ```bash yarn theme={null}
+      yarn create ccc-app my-ccc-app
+      ```
+      </Tab>
+
+      <Tab value="pnpm">
+      ```bash pnpm theme={null}
+      pnpm create ccc-app my-ccc-app
+      ```
+      </Tab>
+    </Tabs>
+
+    Follow the prompts to select your framework template.
+  </Step>
+
+  <Step title="Or install manually">
+    If you're adding CCC to an existing React project, install the connector package directly:
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+      ```bash npm theme={null}
+      npm install @ckb-ccc/connector-react
+      ```
+      </Tab>
+
+      <Tab value="yarn">
+      ```bash yarn theme={null}
+      yarn add @ckb-ccc/connector-react
+      ```
+      </Tab>
+
+      <Tab value="pnpm">
+      ```bash pnpm theme={null}
+      pnpm add @ckb-ccc/connector-react
+      ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Add the Provider to your app">
+    Wrap your application with `ccc.Provider`. This mounts the wallet connector UI and makes the CCC context available to all child components.
+
+    <Callout type="note">
+      If you're using React Server Components, add `"use client"` at the top of any file that uses `ccc.Provider`.
+    </Callout>
+
+    ```tsx app.tsx theme={null}
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ccc.Provider
+          name="My CKB App"
+          icon="/icon.png"
+        >
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+
+    The `Provider` accepts these props:
+
+    | Prop                | Type                      | Description                                           |
+    | ------------------- | ------------------------- | ----------------------------------------------------- |
+    | `name`              | `string`                  | Your app's name, shown in the connector UI.           |
+    | `icon`              | `string`                  | URL to your app's icon.                               |
+    | `signerFilter`      | `function`                | Filter which wallets are shown.                       |
+    | `defaultClient`     | `ccc.Client`              | Override the default CKB client (testnet by default). |
+    | `preferredNetworks` | `ccc.NetworkPreference[]` | Preferred networks for wallet connections.            |
+  </Step>
+
+  <Step title="Connect a wallet with useCcc">
+    Use the `useCcc` hook inside any component wrapped by `ccc.Provider` to open the connector and get the active signer:
+
+    ```tsx component.tsx theme={null}
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, wallet, signerInfo, disconnect } = ccc.useCcc();
+
+      if (signerInfo) {
+        return (
+          <div>
+            <p>Connected: {wallet?.name}</p>
+            <button onClick={disconnect}>Disconnect</button>
+          </div>
+        );
+      }
+
+      return <button onClick={open}>Connect wallet</button>;
+    }
+    ```
+
+    `useCcc` returns:
+
+    | Value        | Type                          | Description                           |
+    | ------------ | ----------------------------- | ------------------------------------- |
+    | `open`       | `() => void`                  | Opens the wallet connector modal.     |
+    | `close`      | `() => void`                  | Closes the connector modal.           |
+    | `disconnect` | `() => void`                  | Disconnects the active wallet.        |
+    | `wallet`     | `ccc.Wallet \| undefined`     | The connected wallet, if any.         |
+    | `signerInfo` | `ccc.SignerInfo \| undefined` | The active signer info, if connected. |
+    | `client`     | `ccc.Client`                  | The active CKB client.                |
+  </Step>
+
+  <Step title="Compose and send a transaction">
+    Once connected, you can compose and send a transaction. CCC fills in the inputs and calculates the fee automatically:
+
+    ```typescript transfer.ts theme={null}
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    async function transfer(signer: ccc.Signer, toAddress: string, amount: string) {
+      // Parse the receiver's lock script from their address
+      const { script: toLock } = await ccc.Address.fromString(
+        toAddress,
+        signer.client,
+      );
+
+      // Describe what the transaction should output
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+      });
+
+      // CCC fills in inputs to cover the outputs
+      await tx.completeInputsByCapacity(signer);
+
+      // CCC calculates and adds the transaction fee
+      await tx.completeFeeBy(signer);
+
+      // Send the transaction
+      const txHash = await signer.sendTransaction(tx);
+      console.log("Transaction sent:", txHash);
+
+      return txHash;
+    }
+    ```
+
+    The three key steps are:
+
+    1. `completeInputsByCapacity(signer)` — finds and adds input cells to cover your outputs.
+    2. `completeFeeBy(signer)` — calculates the fee and adjusts inputs accordingly.
+    3. `signer.sendTransaction(tx)` — signs and broadcasts the transaction, returning its hash.
+  </Step>
+</Steps>
+
+## What's next
+
+* Read the [Installation](/installation) page for all package options and TypeScript configuration.
+* Explore the [CCC Playground](https://live.ckbccc.com/) to run examples interactively in your browser.
+* See the full [API reference](https://api.ckbccc.com) for all available types and methods.

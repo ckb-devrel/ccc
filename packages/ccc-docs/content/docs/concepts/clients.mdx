@@ -1,0 +1,298 @@
+---
+title: Clients
+description: Clients connect CCC to CKB nodes and provide chain data access.
+---
+
+## What is a Client?
+
+A `Client` is an abstract class that connects CCC to a CKB node via JSON-RPC. It provides methods for querying chain state, searching cells and transactions, and broadcasting signed transactions.
+
+```typescript theme={null}
+// From packages/core/src/client/client.ts
+export abstract class Client {
+  public cache: ClientCache;
+
+  constructor(config?: { cache?: ClientCache }) {
+    this.cache = config?.cache ?? new ClientCacheMemory();
+  }
+
+  abstract get url(): string;
+  abstract get addressPrefix(): string;
+
+  abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
+}
+```
+
+## Built-in clients
+
+CCC ships with two ready-to-use client implementations:
+
+<Tabs items={["Mainnet", "Testnet"]}>
+  <Tab value="Mainnet">
+    ```typescript
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const client = new ccc.ClientPublicMainnet();
+    ```
+  </Tab>
+  <Tab value="Testnet">
+    ```typescript
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const client = new ccc.ClientPublicTestnet();
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  The default client in the React Provider is `ClientPublicTestnet`. Switch to
+  `ClientPublicMainnet` for production deployments.
+</Callout>
+
+## Key methods
+
+### Chain state
+
+```typescript
+// Get the current tip block number
+abstract getTip(): Promise<Num>;
+
+// Get the current tip block header
+abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
+
+// Get a block by number (uses cache if available)
+async getBlockByNumber(
+  blockNumber: NumLike,
+  verbosity?: number | null,
+  withCycles?: boolean | null,
+): Promise<ClientBlock | undefined>;
+
+// Get a block by hash (uses cache if available)
+async getBlockByHash(
+  blockHash: HexLike,
+  verbosity?: number | null,
+  withCycles?: boolean | null,
+): Promise<ClientBlock | undefined>;
+```
+
+### Transactions
+
+```typescript theme={null}
+// Fetch a transaction by hash
+async getTransaction(
+  txHashLike: HexLike,
+): Promise<ClientTransactionResponse | undefined>;
+
+// Broadcast a signed transaction; returns the tx hash
+async sendTransaction(
+  transaction: TransactionLike,
+  validator?: OutputsValidator,
+  options?: { maxFeeRate?: NumLike },
+): Promise<Hex>;
+
+// Wait until a transaction is confirmed
+async waitTransaction(
+  txHash: HexLike,
+  confirmations: number,    // default 0
+  timeout: number,          // default 60000 ms
+  interval: number,         // default 2000 ms
+): Promise<ClientTransactionResponse | undefined>;
+```
+
+### Cells
+
+```typescript theme={null}
+// Get a cell by its OutPoint
+async getCell(outPointLike: OutPointLike): Promise<Cell | undefined>;
+
+// Get a live (unspent) cell
+async getCellLive(
+  outPointLike: OutPointLike,
+  withData?: boolean | null,
+  includeTxPool?: boolean | null,
+): Promise<Cell | undefined>;
+
+// Async generator yielding cells matching a search key
+async *findCells(
+  keyLike: ClientCollectableSearchKeyLike,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+
+// Convenience: find cells by lock script
+findCellsByLock(
+  lock: ScriptLike,
+  type?: ScriptLike | null,
+  withData?: boolean,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+
+// Convenience: find cells by type script
+findCellsByType(
+  type: ScriptLike,
+  withData?: boolean,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+```
+
+### Transactions search
+
+```typescript theme={null}
+// Async generator yielding transactions matching a search key
+async *findTransactions(
+  key: ClientIndexerSearchKeyTransactionLike,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<...>;
+
+// Convenience: find transactions by lock script
+findTransactionsByLock(
+  lock: ScriptLike,
+  type?: ScriptLike | null,
+  groupByTransaction?: boolean | null,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<...>;
+```
+
+### Balance and fees
+
+```typescript theme={null}
+// Get the total capacity (in Shannon) of cells matching all given lock scripts
+async getBalance(locks: ScriptLike[]): Promise<Num>;
+
+// Get the current network fee rate (shannons per 1000 bytes)
+async getFeeRate(
+  blockRange?: NumLike,
+  options?: { maxFeeRate?: NumLike },
+): Promise<Num>;
+
+// Get fee rate statistics (mean and median)
+abstract getFeeRateStatistics(
+  blockRange?: NumLike,
+): Promise<{ mean?: Num; median?: Num }>;
+```
+
+### Known scripts
+
+```typescript theme={null}
+// Resolve a well-known script to its on-chain ScriptInfo
+abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
+```
+
+## KnownScript
+
+The `KnownScript` enum lists pre-deployed scripts CCC knows how to resolve on both mainnet and testnet:
+
+```typescript theme={null}
+// From packages/core/src/client/knownScript.ts
+export enum KnownScript {
+  NervosDao            = "NervosDao",
+  Secp256k1Blake160    = "Secp256k1Blake160",
+  Secp256k1Multisig    = "Secp256k1Multisig",
+  Secp256k1MultisigV2  = "Secp256k1MultisigV2",
+  AnyoneCanPay         = "AnyoneCanPay",
+  TypeId               = "TypeId",
+  XUdt                 = "XUdt",
+  JoyId                = "JoyId",
+  COTA                 = "COTA",
+  PWLock               = "PWLock",
+  OmniLock             = "OmniLock",
+  NostrLock            = "NostrLock",
+  UniqueType           = "UniqueType",
+
+  // ckb-proxy-locks
+  AlwaysSuccess        = "AlwaysSuccess",
+  InputTypeProxyLock   = "InputTypeProxyLock",
+  OutputTypeProxyLock  = "OutputTypeProxyLock",
+  LockProxyLock        = "LockProxyLock",
+  SingleUseLock        = "SingleUseLock",
+  TypeBurnLock         = "TypeBurnLock",
+  EasyToDiscoverType   = "EasyToDiscoverType",
+  TimeLock             = "TimeLock",
+}
+```
+
+Use `getKnownScript()` to fetch the `codeHash`, `hashType`, and `cellDeps` for a known script, or use `Script.fromKnownScript()` as a shortcut:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicTestnet();
+
+// Resolve to a Script instance directly
+const xudtScript = await ccc.Script.fromKnownScript(
+  client,
+  ccc.KnownScript.XUdt,
+  "0xabcdef...", // args
+);
+```
+
+## ClientCache
+
+Every client includes a `ClientCache` instance that stores previously fetched cells, transactions, and block headers in memory. This reduces redundant RPC calls and tracks spent cells locally after a transaction is sent.
+
+```typescript theme={null}
+// Access the cache on any client
+const cache: ccc.ClientCache = client.cache;
+```
+
+The default cache is `ClientCacheMemory`, which holds data in process memory. You can supply a custom cache implementation via the constructor:
+
+```typescript theme={null}
+const client = new ccc.ClientPublicTestnet({ cache: myCustomCache });
+```
+
+## Example: querying the chain
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+async function queryChain() {
+  const client = new ccc.ClientPublicTestnet();
+
+  // Get the current tip block number
+  const tip = await client.getTip();
+  console.log("Current tip:", tip.toString());
+
+  // Get fee rate
+  const feeRate = await client.getFeeRate();
+  console.log("Fee rate (shannons/KB):", feeRate.toString());
+
+  // Look up a transaction
+  const txResponse = await client.getTransaction("0xabc123...");
+  if (txResponse) {
+    console.log("Tx status:", txResponse.status);
+  }
+
+  // Stream all cells locked by a script
+  const lockScript = await ccc.Script.fromKnownScript(
+    client,
+    ccc.KnownScript.Secp256k1Blake160,
+    "0x36c329ed630d6ce750712a477543672adab57f4c",
+  );
+
+  for await (const cell of client.findCellsByLock(lockScript)) {
+    console.log("Cell capacity:", cell.cellOutput.capacity.toString());
+  }
+}
+```
+
+## Example: waiting for confirmation
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+async function sendAndWait(signer: ccc.Signer, tx: ccc.Transaction) {
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Sent:", txHash);
+
+  // Wait up to 60 seconds for at least 1 confirmation
+  const confirmed = await signer.client.waitTransaction(txHash, 1);
+  if (confirmed) {
+    console.log("Confirmed in block:", confirmed.blockNumber?.toString());
+  }
+}
+```

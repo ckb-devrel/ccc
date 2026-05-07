@@ -1,0 +1,272 @@
+---
+title: Signers
+description: Signers represent connected wallets and provide signing, address, and transaction capabilities.
+---
+
+## What is a Signer?
+
+A `Signer` is an abstract class that represents a connected wallet. It provides a unified interface for interacting with wallets from different blockchain ecosystems — EVM wallets, Bitcoin wallets, CKB native wallets, Nostr keys, and more — all through the same API.
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export abstract class Signer {
+  constructor(protected client_: Client) {}
+
+  abstract get type(): SignerType;
+  abstract get signType(): SignerSignType;
+
+  get client(): Client {
+    return this.client_;
+  }
+}
+```
+
+Signers are not created directly. They are obtained from wallet connectors (e.g., `useCcc()` in the React connector, or `SignersController`).
+
+## Signer types
+
+### SignerType
+
+Identifies the originating blockchain ecosystem of the signer:
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export enum SignerType {
+  EVM   = "EVM",
+  BTC   = "BTC",
+  CKB   = "CKB",
+  Nostr = "Nostr",
+  Doge  = "Doge",
+}
+```
+
+### SignerSignType
+
+Identifies the specific signing scheme used by the signer:
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export enum SignerSignType {
+  Unknown      = "Unknown",
+  BtcEcdsa     = "BtcEcdsa",
+  EvmPersonal  = "EvmPersonal",
+  JoyId        = "JoyId",
+  NostrEvent   = "NostrEvent",
+  CkbSecp256k1 = "CkbSecp256k1",
+  DogeEcdsa    = "DogeEcdsa",
+}
+```
+
+## Key methods
+
+### Connection
+
+```typescript theme={null}
+// Connect to the wallet
+abstract connect(): Promise<void>;
+
+// Disconnect from the wallet
+async disconnect(): Promise<void>;
+
+// Check whether the signer is currently connected
+abstract isConnected(): Promise<boolean>;
+```
+
+### Addresses
+
+```typescript theme={null}
+// Get the wallet's internal (native) address string
+abstract getInternalAddress(): Promise<string>;
+
+// Get the recommended CKB address as a string
+async getRecommendedAddress(preference?: unknown): Promise<string>;
+
+// Get all CKB addresses as strings
+async getAddresses(): Promise<string[]>;
+
+// Get all Address objects (includes the associated Script)
+abstract getAddressObjs(): Promise<Address[]>;
+
+// Get the recommended Address object
+async getRecommendedAddressObj(_preference?: unknown): Promise<Address>;
+```
+
+### Balance
+
+```typescript theme={null}
+// Returns total balance (in Shannon) across all addresses
+async getBalance(): Promise<Num>;
+```
+
+### Signing messages
+
+```typescript theme={null}
+// Sign a message and return a full Signature object
+async signMessage(message: string | BytesLike): Promise<Signature>;
+
+// Verify a message signature
+async verifyMessage(
+  message: string | BytesLike,
+  signature: string | Signature,
+): Promise<boolean>;
+```
+
+### Transactions
+
+```typescript theme={null}
+// Prepare a transaction (adds cell deps, dummy witnesses, etc.)
+async prepareTransaction(tx: TransactionLike): Promise<Transaction>;
+
+// Sign a prepared transaction
+async signOnlyTransaction(_: TransactionLike): Promise<Transaction>;
+
+// Prepare + sign in one step
+async signTransaction(tx: TransactionLike): Promise<Transaction>;
+
+// Sign and broadcast — returns the transaction hash
+async sendTransaction(tx: TransactionLike): Promise<Hex>;
+```
+
+### Searching chain data
+
+```typescript theme={null}
+// Async generator yielding cells owned by this signer
+async *findCells(
+  filter: ClientCollectableSearchKeyFilterLike,
+  withData?: boolean | null,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+
+// Async generator yielding transactions related to this signer
+async *findTransactions(
+  filter: ClientCollectableSearchKeyFilterLike,
+  groupByTransaction?: boolean | null,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<...>;
+```
+
+## Supporting types
+
+### Signature
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export class Signature {
+  constructor(
+    public signature: string,  // The raw signature bytes as a hex string
+    public identity: string,   // The signer's identity (usually their address)
+    public signType: SignerSignType,
+  ) {}
+}
+```
+
+### SignerInfo
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export class SignerInfo {
+  constructor(
+    public name: string,
+    public signer: Signer,
+  ) {}
+}
+```
+
+### Wallet
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export type Wallet = {
+  name: string;
+  icon: string;
+};
+```
+
+### NetworkPreference
+
+```typescript theme={null}
+// From packages/core/src/signer/signer/index.ts
+export type NetworkPreference = {
+  addressPrefix: string;   // "ckb" for mainnet, "ckt" for testnet
+  signerType: SignerType;
+  network: string;         // e.g. "btc", "btcTestnet", "btcSignet"
+};
+```
+
+## Example: getting address and balance
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+async function printWalletInfo(signer: ccc.Signer) {
+  // Check connection
+  if (!(await signer.isConnected())) {
+    await signer.connect();
+  }
+
+  // Get the recommended CKB address string
+  const address = await signer.getRecommendedAddress();
+  console.log("CKB address:", address);
+
+  // Get all addresses
+  const allAddresses = await signer.getAddresses();
+  console.log("All addresses:", allAddresses);
+
+  // Get balance in Shannon
+  const balance = await signer.getBalance();
+  // Convert Shannon back to CKB for display
+  console.log("Balance (Shannon):", balance.toString());
+}
+```
+
+## Example: signing a message
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+async function signAndVerify(signer: ccc.Signer, message: string) {
+  // Sign
+  const sig = await signer.signMessage(message);
+  console.log("Signature:", sig.signature);
+  console.log("Sign type:", sig.signType);
+
+  // Verify
+  const valid = await signer.verifyMessage(message, sig);
+  console.log("Valid:", valid);
+}
+```
+
+## Obtaining a signer
+
+In practice, signers are provided by wallet connectors rather than instantiated directly.
+
+<Tabs items={["React connector", "Node.js / shell"]}>
+  <Tab value="React connector">
+    ```typescript React connector theme={null}
+    import { useCcc } from "@ckb-ccc/connector-react";
+
+    function MyComponent() {
+      const { signer } = useCcc();
+
+      if (!signer) {
+        return <p>No wallet connected</p>;
+      }
+
+      // signer is a ccc.Signer
+    }
+    ```
+  </Tab>
+
+  <Tab value="Node.js / shell">
+    ```typescript Node.js / shell theme={null}
+    import { ccc } from "@ckb-ccc/shell";
+
+    // For server-side usage, construct a signer directly
+    // (e.g. CkbSignerSecp256k1 from @ckb-ccc/shell)
+    const signer = new ccc.SignerCkbPrivateKey(client, privateKey);
+    await signer.connect();
+    ```
+  </Tab>
+</Tabs>

@@ -1,0 +1,267 @@
+---
+title: New RGB++ SDK Preview, @ckb-ccc/rgbpp - Looking for Early Adopters
+description: A comprehensive guide to using the RGB++ SDK for building applications on Bitcoin and CKB.
+author: Fung
+date: 2026-02-14
+tags: [tutorials]
+---
+
+Hey devs! 👋
+
+I’m Fung from the CKB DevRel team, and I’m actively working on RGB++ infrastructures.
+
+If you’re looking to build RGB++ applications on Bitcoin and CKB, you’re in the right place. The `@ckb-ccc/rgbpp` SDK is currently in preview, and we strongly encourage early adopters to try it out and share your feedback and suggestions.
+
+New to RGB++? No worries! The `@ckb-ccc/rgbpp` package builds on top of CCC’s powerful capabilities and maintains the same intuitive, flexible design philosophy you might already know from CCC. This guide takes you through the entire process from package installation to issuing your first RGB++ xUDT token.
+
+## What’s RGB++ Anyway?
+
+Before we dive into code, let’s make sure we’re on the same page about what RGB++ is.
+
+**RGB++ is a protocol that extends Bitcoin’s capabilities by mapping Bitcoin UTXOs to CKB Cells.** Think of it as a bridge where:
+
+* Your Bitcoin UTXO acts as proof of ownership
+
+* The actual asset data lives on CKB (which has way more flexibility)
+
+* Everything stays cryptographically bound together
+
+The magic happens through **isomorphic binding** - a fancy term for “one Bitcoin UTXO maps to exactly one CKB Cell”. When you spend the UTXO, you’re also updating the CKB Cell. No wrapped tokens, no custodians, just pure cryptographic binding.
+
+Why is this cool? You get Bitcoin’s security and liquidity combined with CKB’s programmability.
+
+Learn more at [rgbpp.com](https://rgbpp.com/) if you’re curious about the protocol details.
+
+## Installation
+
+Let’s get the SDK installed. You’ll need `@ckb-ccc/rgbpp` package:
+
+```bash
+npm i @ckb-ccc/rgbpp@0.0.0-canary-20260204233059
+# or
+pnpm add @ckb-ccc/rgbpp@0.0.0-canary-20260204233059
+
+```
+
+## Quick Start: Two Ways to Sign Transactions
+
+Depending on your use case, you’ll use one of two approaches:
+
+1. For backend services, automated scripts, or testing, you can use the `PrivateKeyRgbppBtcWallet`.
+
+2. For web apps where users connect their wallets, you can use the `BrowserRgbppBtcWallet`.
+
+   * Supports UniSat, Xverse, and JoyID wallets. Want to see it in action? Check out our [interactive playground](https://deploy-preview-332--liveccc.netlify.app/?src=https://raw.githubusercontent.com/fghdotio/ccc/0113acc708fd1b583d24200f5865252bf74c24aa/packages/examples/src/issueRgbppUdt.ts) - it’s the easiest way to experiment without any setup.
+
+**Note:** Both approaches require test funds on both networks:
+
+* Bitcoin Testnet3 tokens from [Bitcoin Faucet](https://bitcoinfaucet.uo1.net/)
+
+* CKB Testnet tokens from [Nervos Faucet](https://faucet.nervos.org/)
+
+## Core Components You Need to Know
+
+Here’s the essential setup you’ll use in almost every RGB++ application:
+
+```typescript
+import { ccc } from "@ckb-ccc/core";
+import {
+  buildNetworkConfig,
+  PredefinedNetwork,
+  RgbppUdtClient,
+  CkbRgbppUnlockSigner,
+  createScriptProvider
+} from "@ckb-ccc/rgbpp";
+
+// 1. Network Configuration
+const networkConfig = buildNetworkConfig(
+  PredefinedNetwork.BitcoinTestnet3
+);
+
+// 2. CKB Client & Signer (using SignerCkbPrivateKey as an example)
+const ckbClient = new ccc.ClientPublicTestnet();
+const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
+
+// 3. Script Provider: supplies necessary RGB++ script information
+const scriptProvider = createScriptProvider(ckbClient);
+
+// 4. RGB++ UDT Client: the main interface for RGB++ interactions
+const rgbppUdtClient = new RgbppUdtClient(
+  networkConfig,
+  ckbClient,
+  scriptProvider
+);
+
+// 5. RGB++ Unlock Signer: handles script unlocking logic
+const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
+  ckbClient,
+  rgbppBtcAddress: await rgbppBtcWallet.getAddress(),
+  btcDataSource: rgbppBtcWallet,
+  scriptInfos: await rgbppUdtClient.scriptManager.getRgbppScriptInfos(),
+});
+
+```
+
+**Quick breakdown:**
+
+* `networkConfig`: Sets up network-specific parameters
+
+* `RgbppUdtClient`: Your main API for UDT operations
+
+* `CkbRgbppUnlockSigner`: Handles the RGB++ lock unlock process (waits for BTC confirmation, gets SPV proof, etc.)
+
+## **Hands-on: Issue Your First RGB++ xUDT Token**
+
+Let’s issue a real token. I’ll explain what’s happening at each step.
+
+**Quick note:** If you want to see how this works with extension wallets (UniSat, Xverse, etc.), check out our [interactive playground](https://deploy-preview-332--liveccc.netlify.app/?src=https://raw.githubusercontent.com/fghdotio/ccc/0113acc708fd1b583d24200f5865252bf74c24aa/packages/examples/src/issueRgbppUdt.ts) - it has complete working examples you can run in your browser. For this guide, we’ll use the private key approach since it’s easier to show in a reproducible way.
+
+### Step 1: Create the UTXO Seal
+
+```typescript
+// Create a UTXO that will be "sealed" to your CKB Cell
+const utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
+
+// Create a CKB cell with RGB++ lock using this UTXO
+const tx = ccc.Transaction.default();
+const rgbppLockScript = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+tx.addOutput({ lock: rgbppLockScript });
+
+await tx.completeInputsByCapacity(ckbSigner);
+await tx.completeFeeBy(ckbSigner);
+const ckbTxHash = await ckbSigner.sendTransaction(tx);
+await ckbClient.waitTransaction(ckbTxHash);
+
+```
+
+**What just happened?** You created a CKB cell whose lock script references a specific Bitcoin UTXO. This cell can only be unlocked when that UTXO is spent. This is the isomorphic binding in action.
+
+**Pro tip:** If you want to use a specific UTXO as the seal instead of letting the wallet create one, you can specify it directly:
+
+```typescript
+const utxoSeal = {
+  txId: "0x1234...",
+  index: 0,
+};
+
+```
+
+### Step 2: Build the Partial Issuance Transaction on CKB
+
+```typescript
+// This is the CKB cell with RGB++ lock created in Step 1
+const rgbppIssuanceCells = await ckbClient.findCellsByLock(rgbppLockScript);
+
+const ckbPartialTx = await rgbppUdtClient.issuanceCkbPartialTx({
+  token: {
+    name: "My RGB++ Token",
+    symbol: "RGBT",
+    decimal: 8,
+  },
+  amount: 21_000_000n,
+  rgbppLiveCells: rgbppIssuanceCells,
+  udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
+});
+
+```
+
+This creates a partial CKB transaction with a placeholder for the BTC transaction ID. We can’t complete it yet because we need to spend the Bitcoin UTXO first.
+
+### Step 3: Create and Broadcast BTC Transaction
+
+```typescript
+const btcAddress = await rgbppBtcWallet.getAddress();
+
+const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({
+  ckbPartialTx,
+  ckbClient,
+  rgbppUdtClient,
+  btcChangeAddress: btcAddress,
+  receiverBtcAddresses: [btcAddress],
+});
+
+const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
+console.log("BTC transaction:", btcTxId);
+
+```
+
+Now we’ve spent the UTXO on Bitcoin. The transaction includes a commitment to the CKB transaction we want to execute.
+
+### Step 4: Complete the CKB Transaction
+
+```typescript
+// Inject the real BTC transaction ID
+const ckbTxWithBtcId = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
+  indexedCkbPartialTx,
+  btcTxId
+);
+
+// Sign with RGB++ unlock logic (waits for BTC confirmation, gets SPV proof)
+const rgbppSignedTx = await ckbRgbppUnlockSigner.signTransaction(ckbTxWithBtcId);
+
+// Complete fees and send
+await rgbppSignedTx.completeFeeBy(ckbSigner);
+const finalTx = await ckbSigner.signTransaction(rgbppSignedTx);
+const ckbTxHash = await ckbSigner.client.sendTransaction(finalTx);
+
+console.log("Token issued! CKB transaction:", ckbTxHash);
+
+```
+
+**Behind the scenes:** The `CkbRgbppUnlockSigner` is doing some heavy lifting here. It:
+
+1. Waits for your BTC transaction to confirm
+
+2. Fetches an SPV proof from RGB++ SPV service
+
+3. Uses that proof to unlock the cell with the specific RGB++ lock script on CKB
+
+And that’s it! You’ve just issued an RGB++ token.
+
+## The btc-assets-api Service
+
+You probably noticed the API URL (`https://api-testnet.rgbpp.com`) in the config. This is the **btc-assets-api** service, and it’s important to understand what it does.
+
+**What it provides:**
+
+* Bitcoin UTXO information and RGB++ asset queries
+
+* SPV proof generation for cross-chain verification
+
+* RGB++ transaction building and broadcasting
+
+* Asset indexing
+
+**For production apps**, you have two options:
+
+1. Use the public API
+
+2. Run your own btc-assets-api instance
+
+Please refer to [RGBPlusPlus/btc-assets-api](https://github.com/RGBPlusPlus/btc-assets-api) for more details.
+
+## What’s Next?
+
+Once you’ve got issuance working, you can explore:
+
+* **Transfers**: Move RGB++ assets between Bitcoin addresses
+
+* **Leap to CKB**: Move assets from Bitcoin to CKB
+
+* **Leap back to Bitcoin**: Return assets to Bitcoin
+
+* **Spore Integration**: Create RGB++ NFTs
+
+Check out the full examples in the [CCC repository](https://github.com/ckb-devrel/ccc/tree/rgbpp-sdk/packages/rgbpp/src/examples).
+
+## Need Help?
+
+* **RGB++ Docs**: [https://rgbpp.com/](https://rgbpp.com/)
+
+* **CKB Docs**: [https://docs.nervos.org/](https://docs.nervos.org/)
+
+* **Discord**: Join the [Nervos Discord](https://discord.com/invite/FKh8Zzvwqa) for real-time heloin the Nervos Discord for real-time help
+
+* **GitHub Issues**: Found a bug? Open an issue at [ckb-ecofund/ccc](https://github.com/ckb-devrel/ccc/issues)
+
+Happy building! Feel free to share what you’re working on - we love seeing what the community creates with RGB++.
