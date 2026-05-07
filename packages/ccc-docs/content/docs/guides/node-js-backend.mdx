@@ -1,0 +1,176 @@
+---
+title: Node.js Backend
+description: Use CCC for server-side CKB development, data analysis, and scripting.
+---
+
+`@ckb-ccc/shell` is CCC's server-side package. It re-exports everything from `@ckb-ccc/core` plus the `spore`, `ssri`, and `udt` namespaces — giving you the complete CCC surface area without any browser-wallet dependencies.
+
+## Installation
+
+```bash theme={null}
+npm install @ckb-ccc/shell
+```
+
+## What it exports
+
+`@ckb-ccc/shell` re-exports the following (from `packages/shell/src/barrel.ts`):
+
+```typescript theme={null}
+export * from "@ckb-ccc/core/barrel"; // full CCC core (Transaction, Script, Address, ...)
+export { spore } from "@ckb-ccc/spore";
+export { ssri } from "@ckb-ccc/ssri";
+export { udt } from "@ckb-ccc/udt";
+```
+
+Import everything through the `ccc` namespace:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/shell";
+```
+
+## Connect to a node
+
+Use `ClientPublicMainnet` or `ClientPublicTestnet` for instant connectivity with automatic fallbacks. Both classes default to a public RPC endpoint — no configuration required:
+
+<Tabs items={["Mainnet", "Testnet", "Custom RPC"]}>
+  <Tab value="Mainnet">
+    ```typescript theme={null}
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet();
+    // Defaults to wss://mainnet.ckb.dev/ws (Node.js with WebSocket)
+    // Falls back to https://mainnet.ckb.dev/ and https://mainnet.ckbapp.dev/
+    ```
+  </Tab>
+
+  <Tab value="Testnet">
+    ```typescript theme={null}
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicTestnet();
+    ```
+  </Tab>
+
+  <Tab value="Custom RPC">
+    ```typescript theme={null}
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet({
+      url: "https://your-ckb-node.example.com/rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Sign with a private key
+
+`SignerCkbPrivateKey` provides a fully featured `Signer` backed by a raw secp256k1 private key. It is ideal for scripts, CI jobs, and backend services.
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(
+  client,
+  process.env.CKB_PRIVATE_KEY!, // 32-byte hex, loaded from environment
+);
+
+await signer.connect();
+const address = await signer.getRecommendedAddress();
+console.log("Address:", address);
+```
+
+<Callout type="warning">
+  Never hardcode private keys in source code. Load them from environment variables, a secrets manager, or an encrypted key file. A leaked private key means permanent, irrecoverable loss of funds.
+</Callout>
+
+## Query balance
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicMainnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+await signer.connect();
+
+const balance = await signer.getBalance();
+// balance is a bigint in shannon (1 CKB = 100_000_000 shannon)
+console.log(`Balance: ${balance / 100_000_000n} CKB`);
+```
+
+## Complete example: query balance and send a transaction
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/shell";
+
+async function main() {
+  // 1. Connect to testnet
+  const client = new ccc.ClientPublicTestnet();
+  const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+  await signer.connect();
+
+  const fromAddress = await signer.getRecommendedAddress();
+  console.log("From:", fromAddress);
+
+  // 2. Query balance
+  const balance = await signer.getBalance();
+  console.log(`Balance: ${balance / 100_000_000n} CKB`);
+
+  // 3. Resolve recipient address
+  const recipientAddress = "ckt1qzda0cr08m85hc8jlnfp3sog3vczr9h9rqt4ykkqfzf3gcj…";
+  const { script: lock } = await ccc.Address.fromString(
+    recipientAddress,
+    signer.client,
+  );
+
+  // 4. Build transaction
+  const tx = ccc.Transaction.from({
+    outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
+  });
+
+  // 5. Fill inputs and pay fee automatically
+  await tx.completeInputsByCapacity(signer);
+  await tx.completeFeeBy(signer);
+
+  // 6. Sign and broadcast
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Sent:", txHash);
+}
+
+main().catch(console.error);
+```
+
+## Iterate cells
+
+Use `signer.findCellsOnChain` or `client.findCells` to stream cells matching a search key:
+
+```typescript theme={null}
+for await (const cell of signer.findCellsOnChain(
+  {}, // no type/data filter — return all cells
+  true, // include cell data
+)) {
+  console.log(cell.outPoint, cell.cellOutput.capacity);
+}
+```
+
+## Advanced barrel
+
+The package also exports an `advanced` entry point with lower-level utilities under the `cccA` namespace:
+
+```typescript theme={null}
+import { cccA } from "@ckb-ccc/shell/advanced";
+// Includes sporeA (advanced Spore helpers) and core advanced utilities
+```
+
+## TypeScript configuration
+
+`@ckb-ccc/shell` ships ES modules. Add the following to your `tsconfig.json` if you encounter module resolution issues:
+
+```json theme={null}
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  }
+}
+```

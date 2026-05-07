@@ -1,0 +1,217 @@
+---
+title: Installation
+description: Install CCC for your environment — React frontend, Node.js backend, or custom UI.
+---
+
+CCC ships as several packages. Choose the one that matches your environment:
+
+| Package                    | Use case                            |
+| -------------------------- | ----------------------------------- |
+| `@ckb-ccc/connector-react` | React applications                  |
+| `@ckb-ccc/shell`           | Node.js scripts and backends        |
+| `@ckb-ccc/connector`       | Web Component (framework-agnostic)  |
+| `@ckb-ccc/ccc`             | Custom UI, manual signer management |
+
+<Tabs items={['React', 'Node.js / Backend', 'Web Component', 'Custom UI']}>
+  <Tab value="React">
+    Install the React connector package:
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+        ```bash npm theme={null}
+        npm install @ckb-ccc/connector-react
+        ```
+      </Tab>
+
+      <Tab value="yarn">
+        ```bash yarn theme={null}
+        yarn add @ckb-ccc/connector-react
+        ```
+      </Tab>
+
+      <Tab value="pnpm">
+        ```bash pnpm theme={null}
+        pnpm add @ckb-ccc/connector-react
+        ```
+      </Tab>
+    </Tabs>
+
+    Then wrap your app with `ccc.Provider`:
+
+    <Callout type="warning">
+      If you're using React Server Components (Next.js App Router, etc.), add `"use client"` at the top of any file that uses `ccc.Provider` or `ccc.useCcc`.
+    </Callout>
+
+    ```tsx title="app.tsx" theme={null}
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ccc.Provider
+          name="My CKB App"
+          icon="/icon.png"
+        >
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+
+    Access the signer and connector controls from any child component using `ccc.useCcc()`:
+
+    ```tsx title="component.tsx" theme={null}
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, wallet, signerInfo } = ccc.useCcc();
+
+      return signerInfo ? (
+        <p>Connected: {wallet?.name}</p>
+      ) : (
+        <button onClick={open}>Connect wallet</button>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Node.js / Backend">
+    Install the shell package for use in Node.js scripts, backends, or CLI tools:
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+        ```bash npm theme={null}
+        npm install @ckb-ccc/shell
+        ```
+      </Tab>
+
+      <Tab value="yarn">
+        ```bash yarn theme={null}
+        yarn add @ckb-ccc/shell
+        ```
+      </Tab>
+
+      <Tab value="pnpm">
+        ```bash pnpm theme={null}
+        pnpm add @ckb-ccc/shell
+        ```
+      </Tab>
+    </Tabs>
+
+    `@ckb-ccc/shell` re-exports everything from `@ckb-ccc/core` (addresses, bytes, client, transactions, signers, and more) along with higher-level modules including `spore`, `ssri`, and `udt`.
+
+    ```typescript title="script.ts" theme={null}
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicTestnet();
+    const signer = new ccc.SignerCkbPrivateKey(client, process.env.PRIVATE_KEY!);
+
+    const address = await signer.getRecommendedAddress();
+    console.log("Address:", address);
+    ```
+  </Tab>
+
+  <Tab value="Web Component">
+    Install the connector package for use in any framework or plain HTML via the `<ccc-connector>` Web Component:
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+        ```bash npm theme={null}
+        npm install @ckb-ccc/connector
+        ```
+      </Tab>
+
+      <Tab value="yarn">
+        ```bash yarn theme={null}
+        yarn add @ckb-ccc/connector
+        ```
+      </Tab>
+
+      <Tab value="pnpm">
+        ```bash pnpm theme={null}
+        pnpm add @ckb-ccc/connector
+        ```
+      </Tab>
+    </Tabs>
+
+    ```typescript title="main.ts" theme={null}
+    import { ccc } from "@ckb-ccc/connector";
+
+    // The web component is registered automatically on import.
+    // Use <ccc-connector> in your HTML.
+    ```
+
+    ```html index.html theme={null}
+    <ccc-connector></ccc-connector>
+    ```
+  </Tab>
+
+  <Tab value="Custom UI">
+    Install `@ckb-ccc/ccc` if you want to manage signers manually and build your own wallet connection UI. This package includes all wallet integrations (EVM via EIP-6963, JoyID, Nostr via NIP-07, OKX, UniSat, UTXO Global, Xverse, and more):
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+        ```bash npm theme={null}
+        npm install @ckb-ccc/ccc
+        ```
+      </Tab>
+
+      <Tab value="yarn">
+        ```bash yarn theme={null}
+        yarn add @ckb-ccc/ccc
+        ```
+      </Tab>
+
+      <Tab value="pnpm">
+        ```bash pnpm theme={null}
+        pnpm add @ckb-ccc/ccc
+        ```
+      </Tab>
+    </Tabs>
+
+    ```typescript title="custom-ui.ts" theme={null}
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const controller = new ccc.SignersController();
+    // Discover and manage signers manually
+    ```
+  </Tab>
+</Tabs>
+
+## Import patterns
+
+All CCC exports are available on the `ccc` object, which makes IDE autocompletion predictable regardless of which package you use:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/<package-name>";
+
+const tx = ccc.Transaction.from({ ... });
+const amount = ccc.fixedPointFrom("100");
+```
+
+For advanced customization, the `/advanced` entry point exports `cccA`, which contains lower-level internals:
+
+```typescript theme={null}
+import { cccA } from "@ckb-ccc/<package-name>/advanced";
+```
+
+<Callout type="warning">
+  APIs exported via `cccA` (the `/advanced` entry point) are not stable and may change between versions without notice. Use them only when you need capabilities not available through the `ccc` object.
+</Callout>
+
+## TypeScript configuration
+
+CCC uses the Node.js [Package Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points) feature for tree-shaking. Your `tsconfig.json` must set `moduleResolution` to `node16`, `nodenext`, or `bundler`, and must not disable `resolvePackageJsonExports`:
+
+```json title="tsconfig.json" theme={null}
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+If you see an error like `Property '*' does not exist on type 'typeof import(".../@ckb-ccc/...")'`, check that your `moduleResolution` is set correctly. See the [TypeScript module resolution guide](https://www.typescriptlang.org/docs/handbook/modules/reference.html#packagejson-exports) for details.

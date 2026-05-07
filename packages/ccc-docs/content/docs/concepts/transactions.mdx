@@ -1,0 +1,257 @@
+---
+title: Transactions
+description: Compose CKB transactions using CCC's intuitive transaction builder.
+---
+
+## Transaction structure
+
+A CKB transaction consumes existing cells (inputs) and creates new cells (outputs). The `Transaction` class in CCC represents a fully-formed transaction:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+export class Transaction {
+  constructor(
+    public version: Num,
+    public cellDeps: CellDep[],      // Script code dependencies
+    public headerDeps: Hex[],        // Block header dependencies
+    public inputs: CellInput[],      // Cells being consumed
+    public outputs: CellOutput[],    // New cells being created
+    public outputsData: Hex[],       // Data for each output cell
+    public witnesses: Hex[],         // Signatures and proofs
+  ) {}
+}
+```
+
+### CellInput
+
+Each input references an existing on-chain cell:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+export class CellInput {
+  constructor(
+    public previousOutput: OutPoint,  // Which cell to consume
+    public since: Num,                // Time-lock (0 = no constraint)
+    public cellOutput?: CellOutput,   // Populated by completeExtraInfos()
+    public outputData?: Hex,          // Populated by completeExtraInfos()
+  ) {}
+}
+```
+
+### CellOutput
+
+Each output defines a new cell to create:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+export class CellOutput {
+  constructor(
+    public capacity: Num,     // Storage space in Shannon
+    public lock: Script,      // Ownership script
+    public type?: Script,     // Asset type script (optional)
+  ) {}
+}
+```
+
+### CellDep and DepType
+
+Cell dependencies tell the CKB VM where to find the script code that needs to run:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+export type DepType = "depGroup" | "code";
+
+export class CellDep {
+  constructor(
+    public outPoint: OutPoint,  // Where the script code lives
+    public depType: DepType,    // "code" = raw code; "depGroup" = group of deps
+  ) {}
+}
+```
+
+## Creating transactions
+
+Use `Transaction.from()` to build a transaction from a plain object. Capacity values can be omitted and will be calculated automatically from the cell's occupied size:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+const tx = ccc.Transaction.from({
+  outputs: [
+    {
+      lock: recipientLockScript,
+      capacity: ccc.fixedPointFrom("100"), // 100 CKB in Shannon
+    },
+  ],
+});
+```
+
+You can also use `Transaction.default()` for an empty transaction:
+
+```typescript theme={null}
+const tx = ccc.Transaction.default();
+tx.addOutput({ lock: recipientLock }, "0x"); // capacity auto-calculated
+```
+
+## Working with CKB amounts
+
+Capacity is always stored in **Shannon** (bigint). Use `fixedPointFrom()` to convert:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+// 61 CKB — the minimum capacity for a plain cell
+const minCapacity = ccc.fixedPointFrom("61");     // 6_100_000_000n
+
+// From a number
+const amount = ccc.fixedPointFrom(100);            // 10_000_000_000n
+
+// Zero constant
+const zero = ccc.Zero;                             // 0n
+```
+
+## Completing a transaction
+
+After defining outputs, call these two methods to automatically collect inputs and calculate fees:
+
+### completeInputsByCapacity(signer)
+
+Searches the signer's cells and adds enough inputs to cover the total output capacity:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+async completeInputsByCapacity(
+  from: Signer,
+  capacityTweak?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+): Promise<number>
+```
+
+### completeFeeBy(signer, feeRate?)
+
+Calculates the transaction fee based on the serialized transaction size, adds inputs if needed, and creates a change output back to the signer's address:
+
+```typescript theme={null}
+// From packages/core/src/ckb/transaction.ts
+async completeFeeBy(
+  from: Signer,
+  feeRate?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+  options?: {
+    feeRateBlockRange?: NumLike;
+    maxFeeRate?: NumLike;
+    shouldAddInputs?: boolean;
+  },
+): Promise<[number, boolean]>
+```
+
+If `feeRate` is omitted, the current network fee rate is fetched from the client automatically.
+
+<Callout title="Tip" type="info">
+  The `completeInputsByCapacity` and `completeFeeBy` methods handle all the
+  complexity of finding UTXOs and calculating fees. For most transfer
+  transactions, you only need these two calls before sending.
+</Callout>
+
+## Full transfer example
+
+This is the canonical pattern from the CCC README for transferring CKB:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+async function transferCkb(
+  signer: ccc.Signer,
+  toLock: ccc.Script,
+  amount: string, // e.g. "100" for 100 CKB
+) {
+  // 1. Define what you want to create
+  const tx = ccc.Transaction.from({
+    outputs: [
+      {
+        lock: toLock,
+        capacity: ccc.fixedPointFrom(amount),
+      },
+    ],
+  });
+
+  // 2. Find and add input cells to cover the output capacity
+  await tx.completeInputsByCapacity(signer);
+
+  // 3. Calculate fee and add a change output automatically
+  await tx.completeFeeBy(signer);
+
+  // 4. Sign and broadcast
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Transaction sent:", txHash);
+  return txHash;
+}
+```
+
+## Transaction lifecycle
+
+The full lifecycle of a transaction goes through three stages:
+
+```typescript theme={null}
+// Stage 1: Prepare — adds cell deps and dummy witnesses
+const prepared = await signer.prepareTransaction(tx);
+
+// Stage 2: Sign — fills in real witnesses/signatures
+const signed = await signer.signTransaction(tx);
+
+// Stage 3: Send — broadcasts and returns the tx hash
+const txHash = await signer.sendTransaction(tx);
+// sendTransaction() calls signTransaction() internally,
+// so you only need to call sendTransaction() directly.
+```
+
+## Computing hashes
+
+Use `hashCkb()` to compute CKB-style Blake2b hashes, and `transaction.hash()` to get the transaction hash:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+// Compute the transaction hash (excludes witnesses)
+const txHash: ccc.Hex = tx.hash();
+
+// Compute the full transaction hash (includes witnesses)
+const fullHash: ccc.Hex = tx.hashFull();
+
+// Compute a raw CKB hash of arbitrary bytes
+const hash = ccc.hashCkb(someBytes);
+```
+
+## Advanced: custom change logic
+
+For more control over how change capacity is handled, use `completeFee()` directly with a custom change function:
+
+```typescript theme={null}
+const [addedInputs, hasChange] = await tx.completeFee(
+  signer,
+  (tx, capacity) => {
+    // capacity = excess Shannon available for change
+    const minCellCapacity = ccc.fixedPointFrom("61"); // 61 CKB minimum
+    if (capacity >= minCellCapacity) {
+      tx.addOutput({ capacity, lock: changeScript });
+      return 0; // 0 = done
+    }
+    return minCellCapacity; // Return how much more is needed
+  },
+);
+```
+
+## Adding cell dependencies manually
+
+When using custom scripts, add their cell dependencies with `addCellDepsOfKnownScripts()`:
+
+```typescript theme={null}
+// Add deps for a known script
+await tx.addCellDepsOfKnownScripts(client, ccc.KnownScript.XUdt);
+
+// Add a raw cell dep
+tx.addCellDeps({
+  outPoint: { txHash: "0x...", index: 0 },
+  depType: "depGroup",
+});
+```

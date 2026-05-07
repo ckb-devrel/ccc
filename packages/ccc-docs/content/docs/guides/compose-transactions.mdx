@@ -1,0 +1,114 @@
+---
+title: Compose Transactions
+description: Build and send CKB transactions with automatic input selection and fee calculation.
+---
+
+CCC uses a declarative transaction model: you describe what you *want* the transaction to do, then call helpers to fill in the rest automatically — collecting inputs, calculating fees, and broadcasting.
+
+## Core concepts
+
+On CKB, every output must declare its **capacity** in shannon (1 CKB = 10⁸ shannon). Use `ccc.fixedPointFrom(amount)` to convert a human-readable CKB amount to the internal representation:
+
+```typescript theme={null}
+ccc.fixedPointFrom(100)    // 100 CKB → 10_000_000_000n shannon
+ccc.fixedPointFrom("0.01") // 0.01 CKB → 1_000_000n shannon
+```
+
+## Transfer CKB
+
+The following example (from `packages/examples/src/transfer.ts`) sends exactly 100 CKB to a receiver address:
+
+<Steps>
+  <Step title="Describe the outputs">
+    Create a transaction skeleton with just the outputs you want. CCC will figure out which inputs are needed.
+
+    ```typescript theme={null}
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const receiver = await signer.getRecommendedAddress();
+    const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+    const tx = ccc.Transaction.from({
+      outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
+    });
+    ```
+  </Step>
+
+  <Step title="Fill inputs by capacity">
+    `completeInputsByCapacity` queries live cells owned by the signer and adds them as inputs until the total capacity covers all outputs.
+
+    ```typescript theme={null}
+    await tx.completeInputsByCapacity(signer);
+    ```
+  </Step>
+
+  <Step title="Pay the fee">
+    `completeFeeBy` adds a change output back to the signer and adjusts its capacity to cover the network fee. The fee rate is calculated automatically based on current network conditions.
+
+    ```typescript theme={null}
+    await tx.completeFeeBy(signer);
+    ```
+  </Step>
+
+  <Step title="Sign and broadcast">
+    ```typescript theme={null}
+    const txHash = await signer.sendTransaction(tx);
+    console.log("Transaction hash:", txHash);
+    ```
+  </Step>
+</Steps>
+
+## Transfer all CKB
+
+To sweep all CKB from an account — for example when emptying a wallet — use `completeInputsAll` combined with `completeFeeChangeToOutput`. This example is from `packages/examples/src/transferAll.ts`:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/ccc";
+
+const receiver = await signer.getRecommendedAddress();
+const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+// No capacity set — we'll fill it after collecting all inputs
+const tx = ccc.Transaction.from({
+  outputs: [{ lock }],
+});
+
+// Collect every cell owned by the signer as inputs
+await tx.completeInputsAll(signer);
+
+// Deduct fee from output 0 and send all remaining CKB there
+await tx.completeFeeChangeToOutput(signer, 0);
+
+const txHash = await signer.sendTransaction(tx);
+```
+
+<Callout type="info">
+  `completeFeeChangeToOutput(signer, 0)` adjusts the capacity of the output at index `0` downward to pay the fee. Make sure that output exists before calling this method.
+</Callout>
+
+## Fee calculation
+
+You never need to set fee rates manually. CCC fetches the current median fee rate from the node and uses it automatically when you call `completeFeeBy` or `completeFeeChangeToOutput`.
+
+If you need fine-grained control you can pass an explicit fee rate (in shannon per kilobyte) as the second argument:
+
+```typescript theme={null}
+// Pay fee at a fixed rate of 1000 shannon/kB
+await tx.completeFeeBy(signer, 1000);
+```
+
+## API reference
+
+| Method                                                  | Description                                     |
+| ------------------------------------------------------- | ----------------------------------------------- |
+| `ccc.Transaction.from(skeleton)`                        | Create a transaction from a partial description |
+| `ccc.fixedPointFrom(amount)`                            | Convert CKB amount to shannon (bigint)          |
+| `tx.completeInputsByCapacity(signer)`                   | Add inputs until capacity is sufficient         |
+| `tx.completeInputsAll(signer)`                          | Collect all cells owned by the signer           |
+| `tx.completeFeeBy(signer, feeRate?)`                    | Add change output and pay fee                   |
+| `tx.completeFeeChangeToOutput(signer, index, feeRate?)` | Deduct fee from a specific output               |
+| `signer.sendTransaction(tx)`                            | Sign and broadcast; returns tx hash             |
+
+<Callout type="info">
+  Try these examples interactively in the CCC playground at [live.ckbccc.com](https://live.ckbccc.com/).
+</Callout>

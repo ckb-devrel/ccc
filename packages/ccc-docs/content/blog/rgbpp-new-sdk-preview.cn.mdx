@@ -1,0 +1,261 @@
+---
+title: 新的 RGB++ SDK @ckb-ccc/rgbpp 预览版发布 —— 诚邀开发者参与内测
+description: 本文介绍了使用 @ckb-ccc/rgbpp 在 Bitcoin 和 CKB 上构建 RGB++ 应用的完整流程。
+author: Fung
+date: 2026-02-14
+tags: [tutorials]
+---
+
+各位开发者好！👋 我是 CKB DevRel 团队的 Fung，目前正专注于 RGB++ 基础设施的构建。
+
+如果你正打算在 Bitcoin 和 CKB 上构建 RGB++ 应用，那你来对地方啦。`@ckb-ccc/rgbpp` SDK 目前处于预览阶段，我们非常欢迎早期采用者进行试用，并期待你们的反馈和建议。
+
+不熟悉 RGB++ 吗？别担心！`@ckb-ccc/rgbpp` 建立在 CCC 强大的功能之上，并延续了你可能已经熟悉的 CCC 那种直观、灵活的设计哲学。本指南将带你完成从包安装到发行第一个 RGB++ xUDT 代币的核心步骤。
+
+## 什么是 RGB++？
+
+在深入代码细节之前，我们需要先熟悉几个 RGB++ 的关键概念。
+
+RGB++ 通过把 BTC 的 UTXO 与 CKB 上的 Cell 进行关联，实现了对比特币功能的扩充。不妨把它想象成一座桥梁：
+
+* **BTC UTXO**：作为资产的所有权凭证
+
+* **CKB Cell**：承载复杂的资产数据与逻辑
+
+* 同构绑定：利用密码学技术将二者状态实时同步
+
+该协议的基石在于同构绑定（Isomorphic Binding）。简而言之，它在比特币 UTXO 与 CKB Cell 之间建立了一一对应的映射关系：当链上的 UTXO 被花费时，关联的 CKB Cell 状态也会同步更新，这一过程摒弃了传统的资产封装（Wrapped Tokens）和中心化托管，完全依赖密码学保证。由此，开发者既能保留比特币的安全性和流动性，又能无缝获得 CKB 的可编程能力。
+
+如果你对协议细节感兴趣，可以在 [rgbpp.com](http://rgbpp.com/) 了解更多。
+
+## 安装
+
+开始之前，你需要先安装 SDK，运行以下命令获取 `@ckb-ccc/rgbpp`：
+
+```bash
+npm i @ckb-ccc/rgbpp@0.0.0-canary-20260204233059
+# 或者
+pnpm add @ckb-ccc/rgbpp@0.0.0-canary-20260204233059
+
+```
+
+## 快速上手：选择适合的签名方式
+
+根据使用场景的不同，SDK 提供了两种主要的集成方式：
+
+1. 后端服务/自动化脚本：推荐使用 `PrivateKeyRgbppBtcWallet`，通过私钥直接签名，适合服务器端任务或测试流程。
+
+2. Web 应用/DApp：推荐使用 `BrowserRgbppBtcWallet`，支持连接用户浏览器钱包（如 UniSat、Xverse 和 JoyID）。
+
+   * 想看实际运行效果？欢迎体验 CCC Playgrouond 中的[示例代码](https://deploy-preview-332--liveccc.netlify.app/?src=https://raw.githubusercontent.com/fghdotio/ccc/0113acc708fd1b583d24200f5865252bf74c24aa/packages/examples/src/issueRgbppUdt.ts)，无需任何配置即可快速上手。
+
+**别忘了先“领水”！**
+
+* **[BTC Testnet3](https://bitcoinfaucet.uo1.net/)**
+
+* **[CKB Testnet](https://faucet.nervos.org/)**
+
+## **核心组件解析**
+
+以下是你几乎在每个 RGB++ 应用中都会用到的基础配置：
+
+```typescript
+import { ccc } from "@ckb-ccc/core";
+import {
+  buildNetworkConfig,
+  PredefinedNetwork,
+  RgbppUdtClient,
+  CkbRgbppUnlockSigner,
+  createScriptProvider
+} from "@ckb-ccc/rgbpp";
+
+// 1. 配置网络环境
+const networkConfig = buildNetworkConfig(
+  PredefinedNetwork.BitcoinTestnet3
+);
+
+// 2. 初始化 CKB 客户端与签名器（此处以私钥签名器为例）
+const ckbClient = new ccc.ClientPublicTestnet();
+const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
+
+// 3. 创建脚本提供者（用于获取 RGB++ 脚本信息）
+const scriptProvider = createScriptProvider(ckbClient);
+
+// 4. 实例化 RGB++ UDT 客户端（与 RGB++ 交互的主入口）
+const rgbppUdtClient = new RgbppUdtClient(
+  networkConfig,
+  ckbClient,
+  scriptProvider
+);
+
+// 5. 初始化 RGB++ 解锁签名器（处理 lock 的解锁逻辑）
+const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
+  ckbClient,
+  rgbppBtcAddress: await rgbppBtcWallet.getAddress(),
+  btcDataSource: rgbppBtcWallet,
+  scriptInfos: await rgbppUdtClient.scriptManager.getRgbppScriptInfos(),
+});
+
+```
+
+各模块功能一览：
+
+* `networkConfig`：配置网络相关参数
+
+* `RgbppUdtClient`：进行 UDT 操作的主要 API 入口
+
+* `CkbRgbppUnlockSigner`：处理 RGB++ 锁的解锁流程,，包括等待 BTC 确认、获取 SPV 证明等
+
+## **实战：发行你的第一个 RGB++ xUDT 代币**
+
+接下来，我们将实战发行一个代币，我会逐一解析其中的操作细节。
+
+**小贴士：** 如果你想了解如何配合插件钱包使用，请查看 CCC Playgrouond 中的[示例代码](https://deploy-preview-332--liveccc.netlify.app/?src=https://raw.githubusercontent.com/fghdotio/ccc/0113acc708fd1b583d24200f5865252bf74c24aa/packages/examples/src/issueRgbppUdt.ts)，那里有可以在浏览器中直接运行的完整示例。为了方便演示和复现，本指南将采用私钥签名的方式。
+
+## **第 1 步：创建用作“一次性密封条”的 UTXO**
+
+```typescript
+// 创建一个 UTXO 作为“一次性封条”与你的 CKB Cell 绑定
+const utxoSeal = await rgbppBtcWallet.prepareUtxoSeal();
+
+// 使用该 UTXO 创建一个带有 RGB++ 锁的 CKB Cell
+const tx = ccc.Transaction.default();
+const rgbppLockScript = await rgbppUdtClient.buildRgbppLockScript(utxoSeal);
+tx.addOutput({ lock: rgbppLockScript });
+
+await tx.completeInputsByCapacity(ckbSigner);
+await tx.completeFeeBy(ckbSigner);
+const ckbTxHash = await ckbSigner.sendTransaction(tx);
+await ckbClient.waitTransaction(ckbTxHash);
+
+```
+
+**原理解析：** 你刚刚在 CKB 链上创建了一个 Cell，并在其 Lock Script 中写入了特定比特币 UTXO 的信息，从而建立了两者之间的关联。只有当那个 UTXO 被花费时，这个 Cell 才能被解锁。这就是同构绑定（Isomorphic Binding）的实际运作。
+
+**进阶技巧：** 不想让钱包创建一个新 UTXO？你可以手动指定一个 UTXO 作为“一次性封条”：
+
+```typescript
+const utxoSeal = {
+  txId: "0x1234...",
+  index: 0,
+};
+
+```
+
+## 第 2 步：构建 CKB 上待补全的 RGB++ xUDT 发行交易
+
+```typescript
+// 这里是第一步中创建的带有 RGB++ 锁的 CKB Cell
+const rgbppIssuanceCells = await ckbClient.findCellsByLock(rgbppLockScript);
+
+const ckbPartialTx = await rgbppUdtClient.issuanceCkbPartialTx({
+  token: {
+    name: "My RGB++ xUDT",
+    symbol: "RGBT",
+    decimal: 8,
+  },
+  amount: 21_000_000n,
+  rgbppLiveCells: rgbppIssuanceCells,
+  udtScriptInfo: await ckbClient.getKnownScript(ccc.KnownScript.XUdt),
+});
+
+```
+
+这一步创建了一个不完整的 CKB 交易（Partial Transaction），其中包含了一个用于 BTC 交易 ID 的占位符，这一占位符在作为一次性密封条的 UTXO 被花费后会替换成对应的真实的 BTC TX ID。
+
+## 第 3 步：构建并广播 BTC 交易
+
+```typescript
+const btcAddress = await rgbppBtcWallet.getAddress();
+
+const { psbt, indexedCkbPartialTx } = await rgbppBtcWallet.buildPsbt({
+  ckbPartialTx,
+  ckbClient,
+  rgbppUdtClient,
+  btcChangeAddress: btcAddress,
+  receiverBtcAddresses: [btcAddress],
+});
+
+const btcTxId = await rgbppBtcWallet.signAndBroadcast(psbt);
+console.log("BTC transaction:", btcTxId);
+
+```
+
+这样一来，我们就花费掉了作为“一次性密封条”的 UTXO。这笔交易包含了一个承诺（Commitment），绑定了我们将要执行的 CKB 交易。
+
+## **第 4 步：补全并发送 CKB 交易**
+
+```typescript
+// 将真正的 BTC 交易 ID 注入到 CKB 交易中
+const ckbTxWithBtcId = await rgbppUdtClient.injectTxIdToRgbppCkbTx(
+  indexedCkbPartialTx,
+  btcTxId
+);
+
+// 使用 RGB++ 解锁逻辑进行签名（等待 BTC 确认，获取 SPV 证明）
+const rgbppSignedTx = await ckbRgbppUnlockSigner.signTransaction(ckbTxWithBtcId);
+
+// 补全手续费并发送
+await rgbppSignedTx.completeFeeBy(ckbSigner);
+const finalTx = await ckbSigner.signTransaction(rgbppSignedTx);
+const ckbTxHash = await ckbSigner.client.sendTransaction(finalTx);
+
+console.log("Token issued! CKB transaction:", ckbTxHash);
+
+```
+
+**实际流程：** `CkbRgbppUnlockSigner` 在这里承担了主要工作。它会自动执行以下步骤：
+
+1. 等待 BTC 交易获得确认
+
+2. 从 RGB++ SPV 服务获取 SPV
+
+3. **使用该证明解锁 CKB 上带有特定 RGB++ Lock Script 的 Cell**
+
+**就是这么简单！你已经成功发行了一个 RGB++ xUDT。**
+
+## **关于 btc-assets-api 服务**
+
+你可能注意到配置中的 API URL ([https://api-testnet.rgbpp.com](https://api-testnet.rgbpp.com))。这就是 **btc-assets-api** 服务，理解它的作用很重要。**它提供了以下功能：**
+
+* 比特币 UTXO 信息和 RGB++ 资产查询
+
+* 用于跨链验证的 SPV 证明生成
+
+* RGB++ 交易构建和广播
+
+* 资产索引
+
+对于生产环境应用，你有两个选择：
+
+1. 使用公共 API
+
+2. 自部署 btc-assets-api 实例
+
+详情请参见 [RGBPlusPlus/btc-assets-api](https://github.com/RGBPlusPlus/btc-assets-api)。
+
+## **下一步**
+
+掌握了发行流程后，就可以探索更多玩法啦：
+
+* 在比特币地址之间转移 RGB++ 资产
+
+* **Leap 到 CKB**
+
+* **Leap 回 Bitcoin**
+
+* **利用 Spore 协议**创建 RGB++ NFT
+
+你可以在 CCC 的[代码仓库](https://github.com/ckb-devrel/ccc/tree/rgbpp-sdk/packages/rgbpp/src/examples)中找到以上场景的完整示例代码。
+
+## **遇到问题？**
+
+* **RGB++ 文档**: [https://rgbpp.com/](https://rgbpp.com/)
+
+* **CKB 文档**: [https://docs.nervos.org/](https://docs.nervos.org/)
+
+* **Discord**: 加入 [Nervos Discord](https://discord.com/invite/FKh8Zzvwqa) 获取实时帮助
+
+* **GitHub Issues**: 发现 Bug？在 [ckb-ecofund/ccc](https://github.com/ckb-devrel/ccc/issues) 提交 Issue
+
+祝开发愉快！欢迎分享你的作品，我们非常期待看到社区基于 RGB++ 创造出的精彩应用！

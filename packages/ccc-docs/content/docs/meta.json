@@ -1,0 +1,21 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Get Started---",
+    "getting-started/introduction",
+    "getting-started/quick-start",
+    "getting-started/installation",
+    "---Core Concepts---",
+    "concepts/cell-model",
+    "concepts/signers",
+    "concepts/transactions",
+    "concepts/clients",
+    "---Guides---",
+    "guides/connect-wallets",
+    "guides/compose-transactions",
+    "guides/sign-message",
+    "guides/udt-tokens",
+    "guides/spore-protocol",
+    "guides/node-js-backend"
+  ]
+}
