@@ -2,7 +2,8 @@ import { i18n } from '@/lib/i18n';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import Image from 'next/image';
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared';
-import { appName, externalLinks } from './shared';
+import { appName, appTagline, externalLinks } from './shared';
+import { getDictionary } from './dictionary';
 import cccLogo from '@/public/ccc-logo.svg';
 
 export const i18nUI = defineI18nUI(i18n, {
@@ -12,24 +13,17 @@ export const i18nUI = defineI18nUI(i18n, {
   cn: {
     displayName: '简体中文',
     search: '搜索文档',
+    searchNoResult: '没有找到结果',
+    toc: '目录',
+    tocNoHeadings: '没有标题',
+    lastUpdate: '最后更新于',
+    chooseLanguage: '切换语言',
+    nextPage: '下一页',
+    previousPage: '上一页',
+    chooseTheme: '切换主题',
+    editOnGithub: '在 GitHub 上编辑'
   },
 });
-
-// UI text translations for navigation
-const navTranslations = {
-  en: {
-    docs: 'Docs',
-    blog: 'Blog',
-    playground: 'Playground',
-    api: 'API Reference',
-  },
-  cn: {
-    docs: '文档',
-    blog: '博客',
-    playground: '在线演练场',
-    api: 'API 参考',
-  },
-} as const;
 
 export const logo = (
   <Image
@@ -43,7 +37,7 @@ export const logo = (
 );
 
 export function baseOptions(locale: string): BaseLayoutProps {
-  const t = navTranslations[locale as keyof typeof navTranslations] ?? navTranslations.en;
+  const t = getDictionary(locale).nav;
 
   const links: LinkItemType[] = [
     {
@@ -68,6 +62,12 @@ export function baseOptions(locale: string): BaseLayoutProps {
       text: t.api,
       external: true,
     },
+    {
+      type: 'main',
+      url: externalLinks.demo,
+      text: t.demo,
+      external: true,
+    },
   ];
 
   return {
@@ -76,7 +76,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
       title: (
         <>
           {logo}
-          <span className="font-medium">{appName}</span>
+          <span className="font-medium">{appName} - {appTagline}</span>
         </>
       ),
       url: `/${locale}`,

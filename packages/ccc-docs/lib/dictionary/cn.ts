@@ -1,0 +1,76 @@
+import type { Dictionary } from './types';
+
+export const cn: Dictionary = {
+  dateLocale: 'zh-CN',
+
+  nav: {
+    docs: '文档',
+    blog: '博客',
+    playground: '在线调试',
+    api: 'API 参考',
+    demo: 'Demo',
+  },
+
+  home: {
+    eyebrow: 'CKBer 的代码库',
+    title: ['一个 SDK，', '覆盖 CKB 全栈。'],
+    subtitle:
+      '声明式地组装交易、连接来自任意生态的钱包、与链上资产交互——全部通过同一个 TypeScript 库完成。',
+    ctaDocs: '阅读文档',
+    ctaPlayground: '打开 Playground',
+    installHint: '$ npm i @ckb-ccc/ccc',
+    sectionFeatures: '核心能力',
+    featuresTitle: '在 CKB 上构建应用所需的一切。',
+    features: [
+      {
+        title: '声明式交易',
+        desc: '只描述交易想要产生的输出，CCC 自动填充 Inputs、手续费与找零。',
+      },
+      {
+        title: '跨链签名',
+        desc: '统一的签名接口，覆盖 EVM、Bitcoin、CKB、Nostr、Dogecoin 等生态。',
+      },
+      {
+        title: '即插即用的钱包 UI',
+        desc: '几分钟内接入 React Connector，或自行定制钱包连接界面。',
+      },
+      {
+        title: '协议深度集成',
+        desc: '原生支持 xUDT、Spore 协议（DOB）、SSRI、RGB++ 与 Nervos DAO。',
+      },
+      {
+        title: 'Node.js 可用',
+        desc: '通过 @ckb-ccc/shell 在浏览器、边缘环境、服务器运行时保持同一套 API。',
+      },
+      {
+        title: '类型安全',
+        desc: '完整的 TypeScript 类型、支持摇树优化的导出、以及在线 API 参考。',
+      },
+    ],
+    sectionUsers: '生态项目',
+    usersTitle: 'CKB 生态项目的信赖之选',
+    codeCaption: 'transfer.ts —— 发送 100 CKB',
+  },
+
+  blog: {
+    eyebrow: '// Blog',
+    title: '博客',
+    subtitle: '更新日志、协议解读与教程。',
+    by: '作者',
+    empty: '暂无文章。',
+    backToBlog: '返回博客',
+    tableOfContents: '目录',
+  },
+
+  docs: {
+    copyMarkdown: '复制 Markdown',
+    openAs: '打开',
+    sections: {
+      'getting-started': '快速上手',
+      concepts: '核心概念',
+      guides: '指南',
+      wallets: '钱包',
+      packages: '包',
+    },
+  },
+};

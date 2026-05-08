@@ -1,89 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { externalLinks } from '@/lib/shared';
-
-const copy = {
-  en: {
-    eyebrow: "CKBers' Codebase",
-    title: ['One SDK for the', 'entire CKB stack'],
-    subtitle:
-      'Compose transactions, connect wallets from any chain ecosystem, and interact with on-chain assets — all through a single, declarative TypeScript library.',
-    ctaDocs: 'Read the docs',
-    ctaPlayground: 'Try the playground',
-    installHint: '$ npm i @ckb-ccc/ccc',
-    sectionFeatures: 'Capabilities',
-    featuresTitle: 'Everything you need to build on CKB.',
-    features: [
-      {
-        title: 'Declarative transactions',
-        desc: 'Describe what you want the transaction to produce; CCC auto-fills inputs, fees, and change.',
-      },
-      {
-        title: 'Multi-chain signing',
-        desc: 'A single signer interface across EVM, Bitcoin, CKB, Nostr, and Dogecoin ecosystems.',
-      },
-      {
-        title: 'Drop-in wallet UI',
-        desc: 'Ship wallet connection in minutes with the React connector, or bring your own UI.',
-      },
-      {
-        title: 'Protocol integrations',
-        desc: 'First-class support for xUDT, Spore Protocol (DOBs), SSRI, RGB++, and Nervos DAO.',
-      },
-      {
-        title: 'Node.js ready',
-        desc: 'Use the same API in browser, edge, and server runtimes via @ckb-ccc/shell.',
-      },
-      {
-        title: 'Type-safe by default',
-        desc: 'Full TypeScript types, tree-shakeable exports, and an online API reference.',
-      },
-    ],
-    sectionUsers: 'Ecosystem',
-    usersTitle: 'Trusted by teams shipping on CKB.',
-    codeCaption: 'transfer.ts — send 100 CKB',
-  },
-  cn: {
-    eyebrow: 'CKBer 的代码库',
-    title: ['一个 SDK，', '覆盖 CKB 全栈。'],
-    subtitle:
-      '声明式地组装交易、连接来自任意生态的钱包、与链上资产交互——全部通过同一个 TypeScript 库完成。',
-    ctaDocs: '阅读文档',
-    ctaPlayground: '打开 Playground',
-    installHint: '$ npm i @ckb-ccc/ccc',
-    sectionFeatures: '核心能力',
-    featuresTitle: '在 CKB 上构建应用所需的一切。',
-    features: [
-      {
-        title: '声明式交易',
-        desc: '只描述交易想要产生的输出，CCC 自动填充 Inputs、手续费与找零。',
-      },
-      {
-        title: '跨链签名',
-        desc: '统一的签名接口，覆盖 EVM、Bitcoin、CKB、Nostr、Dogecoin 等生态。',
-      },
-      {
-        title: '即插即用的钱包 UI',
-        desc: '几分钟内接入 React Connector，或自行定制钱包连接界面。',
-      },
-      {
-        title: '协议深度集成',
-        desc: '原生支持 xUDT、Spore 协议（DOB）、SSRI、RGB++ 与 Nervos DAO。',
-      },
-      {
-        title: 'Node.js 可用',
-        desc: '通过 @ckb-ccc/shell 在浏览器、边缘、服务器运行时保持同一套 API。',
-      },
-      {
-        title: '类型安全',
-        desc: '完整 TypeScript 类型、可 tree-shake 的导出，配套在线 API 参考。',
-      },
-    ],
-    sectionUsers: '生态项目',
-    usersTitle: '众多 CKB 生态项目的信赖之选。',
-    codeCaption: 'transfer.ts —— 发送 100 CKB',
-  },
-} as const;
+import { getDictionary } from '@/lib/dictionary';
 
 const users = [
   { name: 'NervDAO', url: 'https://nervdao.com/' },
@@ -138,7 +56,7 @@ function HeroCode() {
 
 export default async function HomePage({ params }: PageProps<'/[lang]'>) {
   const { lang } = await params;
-  const t = copy[lang as keyof typeof copy] ?? copy.en;
+  const t = getDictionary(lang).home;
 
   return (
     <main className="flex flex-1 flex-col">
