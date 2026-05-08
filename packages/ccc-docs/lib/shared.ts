@@ -16,5 +16,5 @@ export const externalLinks = {
   app: 'https://app.ckbccc.com',
   api: 'https://api.ckbccc.com',
   github: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
-  demo: 'https://demo.ckbccc.com',
+  demo: 'https://app.ckbccc.com',
 };
