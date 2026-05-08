@@ -1,11 +1,14 @@
 ---
 title: Introduction
 description: Learn about CCC and what it can do for you.
+icon: BookOpen
 ---
+
+import { Rocket, Package, BookOpen, Map } from 'lucide-react';
 
 CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
 
-CCC is a TypeScript/JavaScript SDK for building on the [CKB (Common Knowledge Base)](https://docs.nervos.org/) blockchain. It gives you everything you need to interact with CKB nodes, compose transactions, sign messages, and connect wallets — across multiple chain ecosystems.
+CCC is a TypeScript/JavaScript SDK for building on the [CKB (Common Knowledge Base)](https://nervos.org/) blockchain. It gives you everything you need to interact with CKB nodes, compose transactions, sign messages, and connect wallets — across multiple chain ecosystems.
 
 ## What you can do with CCC
 
@@ -36,26 +39,29 @@ CCC powers production applications across the CKB ecosystem:
 * [CCC App](https://app.ckbccc.com/) — A mini-toolset for CKB showcasing basic scenarios.
 * [API reference](https://api.ckbccc.com) — Full TypeScript API documentation.
 * [Nervos CKB Docs](https://docs.nervos.org/) — Background knowledge on the CKB blockchain.
-* [Lumos](https://github.com/ckb-js/lumos) — Utility library for composing CKB transactions.
+* ~~[Lumos](https://github.com/ckb-js/lumos) — Utility library for composing CKB transactions.~~
+<Callout type="warning">
+**Note: Lumos is no longer actively maintained. We recommend using CCC for new projects.**
+</Callout>
 * [RGB++ SDK](https://github.com/ckb-cell/rgbpp-sdk) — Protocol for issuing assets on BTC L1 with CKB's VM.
 * [Spore SDK](https://github.com/sporeprotocol/spore-sdk) — On-chain digital objects (DOBs) protocol.
 
 ## Next steps
 
 <Cards cols={2}>
-  <Card title="Quick start" icon="rocket" href="/quickstart">
+  <Card title="Quick start" icon={<Rocket />} href="./quick-start">
     Get a CKB transaction on-chain in under 5 minutes.
   </Card>
 
-  <Card title="Installation" icon="package" href="/installation">
+  <Card title="Installation" icon={<Package />} href="./installation">
     Install CCC for React, Node.js, Web Component, or custom UI.
   </Card>
 
-  <Card title="Core concepts" icon="book-open" href="/concepts/ckb-model">
+  <Card title="Core concepts" icon={<BookOpen />} href="../concepts/cell-model">
     Understand transactions, signers, clients, and addresses.
   </Card>
 
-  <Card title="Guides" icon="map" href="/guides/connect-wallets">
+  <Card title="Guides" icon={<Map />} href="../guides/connect-wallets">
     Step-by-step guides for common CKB development tasks.
   </Card>
 </Cards>

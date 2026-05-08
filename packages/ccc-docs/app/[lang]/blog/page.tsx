@@ -1,27 +1,12 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import { blogSource } from '@/lib/source';
-
-const copy = {
-  en: {
-    eyebrow: '// Blog',
-    title: 'Blog',
-    subtitle: 'Changelogs, protocol deep-dives, and tutorials.',
-    by: 'by',
-    empty: 'No posts yet.',
-  },
-  cn: {
-    eyebrow: '// Blog',
-    title: '博客',
-    subtitle: '更新日志、协议解读与教程。',
-    by: '作者',
-    empty: '暂无文章。',
-  },
-} as const;
+import { getDictionary } from '@/lib/dictionary';
 
 export default async function BlogIndex({ params }: PageProps<'/[lang]/blog'>) {
   const { lang } = await params;
-  const t = copy[lang as keyof typeof copy] ?? copy.en;
+  const dict = getDictionary(lang);
+  const t = dict.blog;
 
   const posts = blogSource
     .getPages(lang)
@@ -62,14 +47,14 @@ export default async function BlogIndex({ params }: PageProps<'/[lang]/blog'>) {
                 <li key={post.url} className="border-b border-hairline last:border-b-0">
                   <Link
                     href={post.url}
-                    className="group block py-7 md:py-8 grid md:grid-cols-[8rem_1fr] gap-2 md:gap-8"
+                    className="group py-7 md:py-8 grid md:grid-cols-[8rem_1fr] gap-2 md:gap-8"
                   >
                     {/* Date column — fixed-width so titles align across rows. */}
                     <time
                       className="font-mono text-xs text-fd-muted-foreground pt-1.5"
                       dateTime={date.toISOString()}
                     >
-                      {date.toLocaleDateString(lang === 'cn' ? 'zh-CN' : 'en-US', {
+                      {date.toLocaleDateString(dict.dateLocale, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',

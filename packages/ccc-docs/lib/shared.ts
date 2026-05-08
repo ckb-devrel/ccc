@@ -6,9 +6,9 @@ export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
 export const gitConfig = {
-  user: 'ckb-devrel',
+  user: 'ckbfansdao', // todo: ckb-devrel
   repo: 'ccc',
-  branch: 'master',
+  branch: 'docs/ai-optimization', // todo: master
 };
 
 export const externalLinks = {
@@ -16,4 +16,5 @@ export const externalLinks = {
   app: 'https://app.ckbccc.com',
   api: 'https://api.ckbccc.com',
   github: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+  demo: 'https://demo.ckbccc.com',
 };
