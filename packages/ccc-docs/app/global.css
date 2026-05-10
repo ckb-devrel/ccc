@@ -59,6 +59,27 @@ html > body[data-scroll-locked] {
 }
 
 /* --------------------------------------------------------------------------
+ * Ecosystem grid — gentle breathing animation for monochrome user logos so
+ * the section feels alive without distracting from the rest of the page.
+ * Each tile uses a per-instance animation-delay (set inline) so phases stagger.
+ * Animation is paused on hover so the focused logo settles at full opacity.
+ * Honors prefers-reduced-motion.
+ * -------------------------------------------------------------------------- */
+@keyframes user-tile-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.85; }
+}
+.user-tile img {
+  animation: user-tile-breathe 6s ease-in-out infinite;
+}
+.user-tile:hover img {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-tile img { animation: none; }
+}
+
+/* --------------------------------------------------------------------------
  * Docs editorial polish — scoped to .docs-prose on the docs page wrapper so
  * it doesn't affect home / blog typography. Adds tighter heading rhythm,
  * hairline rules above h2, brand-tinted inline code, code block frame,

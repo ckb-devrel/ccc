@@ -3,18 +3,41 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { externalLinks } from '@/lib/shared';
 import { getDictionary } from '@/lib/dictionary';
 
-const users = [
-  { name: 'NervDAO', url: 'https://nervdao.com/' },
-  { name: 'UTXO Global', url: 'https://utxo.global/' },
-  { name: 'Mobit', url: 'https://mobit.app/' },
-  { name: 'Omiga', url: 'https://omiga.io/' },
-  { name: 'Nervape', url: 'https://www.nervape.com/' },
-  { name: 'UTXOSwap', url: 'https://utxoswap.xyz/' },
-  { name: 'D.ID', url: 'https://d.id/' },
-  { name: 'Bool Network', url: 'https://bool.network/' },
-  { name: 'World3', url: 'https://world3.ai/' },
-  { name: 'RGBCat', url: 'https://catnip.rgbcat.io/' },
+// Logos live in /public/users/<slug>.svg — drop SVGs there and they'll be
+// picked up automatically. PNGs work too if the path is updated below.
+//
+// `tone` describes the logo's intrinsic brightness so we can guarantee
+// contrast across light/dark themes by inverting on the "wrong" background:
+//   'dark'  — logo is mostly dark ink (good on light bg, invert in dark)
+//   'light' — logo is mostly white/light (good on dark bg, invert in light)
+//   'mixed' — logo carries its own colors that read on both (no invert)
+const users: {
+  name: string;
+  url: string;
+  logo: string;
+  tone: 'dark' | 'light' | 'mixed';
+}[] = [
+  { name: 'NervDAO', url: 'https://nervdao.com/', logo: '/users/nervdao.svg', tone: 'mixed' },
+  { name: 'UTXO Global', url: 'https://utxo.global/', logo: '/users/utxo-global.png', tone: 'dark' },
+  { name: 'Mobit', url: 'https://mobit.app/', logo: '/users/mobit.png', tone: 'dark' },
+  { name: 'Omiga', url: 'https://omiga.io/', logo: '/users/omiga.svg', tone: 'dark' },
+  { name: 'Nervape', url: 'https://www.nervape.com/', logo: '/users/nervape.svg', tone: 'light' },
+  { name: 'UTXOSwap', url: 'https://utxoswap.xyz/', logo: '/users/utxoswap.svg', tone: 'dark' },
+  { name: 'D.ID', url: 'https://d.id/', logo: '/users/d-id.svg', tone: 'dark' },
+  { name: 'Bool Network', url: 'https://bool.network/', logo: '/users/bool-network.svg', tone: 'light' },
+  { name: 'World3', url: 'https://world3.ai/', logo: '/users/world3.svg', tone: 'dark' },
 ];
+
+/** Tailwind classes that ensure each logo always has contrast against the
+ *  current theme background by selectively inverting on the wrong tone. */
+const TONE_INVERT: Record<'dark' | 'light' | 'mixed', string> = {
+  // dark logo → invert only in dark mode → becomes light
+  dark: 'dark:invert-50',
+  // light logo → invert only in light mode → becomes dark
+  light: 'invert dark:invert-0',
+  // colored logo that already works on both — leave alone
+  mixed: '',
+};
 
 /**
  * Syntax-highlighted code sample shown in the hero. We render tokens as spans
@@ -74,7 +97,7 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
           {/* Left column — copy */}
           <div className="md:col-span-3">
             <div className="inline-flex items-center gap-2 font-mono text-[11px] tracking-widest text-fd-primary uppercase mb-5">
-              <span className="size-1.5 rounded-full bg-fd-primary" />
+              <span className="size-1.5 rounded-full bg-fd-primary animate-pulse" />
               {t.eyebrow}
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] mb-6">
@@ -169,11 +192,19 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
       </section>
 
       {/* ----------------------------------------------------------------
-       * Ecosystem — horizontally scrolling strip of project names. No
-       * boxed grid here; the slight motion makes it feel alive.
+       * Ecosystem — grid of project logos. Default monochrome reads as an
+       * editorial sponsor wall; on hover each tile blooms into color with a
+       * radial brand glow, lifts a hair, and reveals an external-link mark.
+       * A faint per-tile breathing animation (staggered phase) keeps the
+       * section alive without screaming.
        * ---------------------------------------------------------------- */}
-      <section className="border-b border-hairline overflow-hidden">
-        <div className="mx-auto w-full max-w-6xl px-6 py-20">
+      <section className="relative border-b border-hairline overflow-hidden">
+        {/* Quiet grid texture, masked to fade at edges — same visual vocabulary as the hero. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-grid text-fd-border/30 mask-radial-fade"
+        />
+        <div className="relative mx-auto w-full max-w-6xl px-6 py-20">
           <div className="flex items-baseline justify-between mb-10 gap-4 flex-wrap">
             <p className="font-mono text-[11px] tracking-widest uppercase text-fd-muted-foreground">
               // {t.sectionUsers}
@@ -182,18 +213,58 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
               {t.usersTitle}
             </h2>
           </div>
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-5">
-            {users.map((u) => (
-              <a
-                key={u.name}
-                href={u.url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-base md:text-lg font-medium text-fd-muted-foreground/80 hover:text-fd-foreground transition-colors tracking-tight"
-              >
-                {u.name}
-              </a>
+          <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-px bg-fd-border/40 border border-hairline rounded-lg overflow-hidden">
+            {users.map((u, i) => (
+              <li key={u.name} className="contents">
+                <a
+                  href={u.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={u.name}
+                  style={{ animationDelay: `${(i % 5) * 0.8}s` }}
+                  className="user-tile group relative flex h-28 md:h-32 items-center justify-center bg-fd-background overflow-hidden transition-colors duration-300 hover:bg-fd-card"
+                >
+                  {/* Radial brand glow — masked behind the logo, reveals on hover. */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background:
+                        'radial-gradient(circle at center, color-mix(in oklch, var(--ccc-brand) 22%, transparent) 0%, transparent 65%)',
+                    }}
+                  />
+                  {/* Logo — grayscale + dim by default, full color on hover. */}
+                  <img
+                    src={u.logo}
+                    alt={u.name}
+                    loading="lazy"
+                    className={`relative max-h-10 md:max-h-12 max-w-[60%] w-auto object-contain grayscale opacity-55 transition-all duration-500 ease-out group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105 ${TONE_INVERT[u.tone]}`}
+                  />
+                  {/* Name label — sits below logo, fades in on hover. */}
+                  <span className="absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-widest uppercase text-fd-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    {u.name}
+                  </span>
+                  {/* External link mark — top-right, fades in on hover. */}
+                  <ArrowUpRight className="absolute top-2.5 right-2.5 size-3.5 text-fd-primary opacity-0 -translate-x-1 translate-y-1 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300" />
+                  {/* Brand-tinted border highlight on hover. */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-transparent group-hover:ring-fd-primary/40 transition-[box-shadow,--tw-ring-color] duration-300"
+                  />
+                </a>
+              </li>
             ))}
+          </ul>
+          {/* Subtle footer mark — invites readers to add their project. */}
+          <div className="mt-6 flex justify-end">
+            <a
+              href={externalLinks.github}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[11px] tracking-widest uppercase text-fd-muted-foreground hover:text-fd-foreground transition-colors inline-flex items-center gap-1.5"
+            >
+              {t.usersMore} <ArrowUpRight className="size-3" />
+            </a>
           </div>
         </div>
       </section>
