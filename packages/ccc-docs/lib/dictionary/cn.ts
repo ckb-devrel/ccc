@@ -8,7 +8,7 @@ export const cn: Dictionary = {
     blog: '博客',
     playground: '在线调试',
     api: 'API 参考',
-    demo: 'Demo',
+    demo: '示例应用',
   },
 
   home: {
@@ -49,6 +49,7 @@ export const cn: Dictionary = {
     ],
     sectionUsers: '生态项目',
     usersTitle: 'CKB 生态项目的信赖之选',
+    usersMore: '& 你的项目 — 提个 PR',
     codeCaption: 'transfer.ts —— 发送 100 CKB',
   },
 
@@ -60,6 +61,25 @@ export const cn: Dictionary = {
     empty: '暂无文章。',
     backToBlog: '返回博客',
     tableOfContents: '目录',
+  },
+
+  footer: {
+    product: '产品',
+    community: '社区',
+    resources: '资源',
+    links: {
+      docs: '使用文档',
+      blog: '博客',
+      playground: '在线试验场',
+      api: 'API 参考',
+      demo: '示例应用',
+      github: 'GitHub 仓库',
+      twitter: 'X / Twitter',
+      githubOrg: 'CKB DevRel',
+      talk: '论坛',
+    },
+    copyright: 'CKB DevRel. 保留所有权利。',
+    builtBy: '由 CKB DevRel 倾力打造',
   },
 
   docs: {

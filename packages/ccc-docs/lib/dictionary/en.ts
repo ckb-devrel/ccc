@@ -49,6 +49,7 @@ export const en: Dictionary = {
     ],
     sectionUsers: 'Ecosystem',
     usersTitle: 'Trusted by teams shipping on CKB',
+    usersMore: '& Your project — open a PR',
     codeCaption: 'transfer.ts — send 100 CKB',
   },
 
@@ -60,6 +61,25 @@ export const en: Dictionary = {
     empty: 'No posts yet.',
     backToBlog: 'Back to Blog',
     tableOfContents: 'Table of Contents',
+  },
+
+  footer: {
+    product: 'Product',
+    community: 'Community',
+    resources: 'Resources',
+    links: {
+      docs: 'Documentation',
+      blog: 'Blog',
+      playground: 'Playground',
+      api: 'API Reference',
+      demo: 'Demo',
+      github: 'GitHub Repo',
+      twitter: 'X / Twitter',
+      githubOrg: 'CKB DevRel',
+      talk: 'Talk',
+    },
+    copyright: 'CKB DevRel. All rights reserved.',
+    builtBy: 'Crafted by CKB DevRel',
   },
 
   docs: {

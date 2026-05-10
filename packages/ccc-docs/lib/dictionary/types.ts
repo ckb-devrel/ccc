@@ -41,6 +41,7 @@ export interface Dictionary {
     features: { title: string; desc: string }[];
     sectionUsers: string;
     usersTitle: string;
+    usersMore: string;
     codeCaption: string;
   };
 
@@ -54,6 +55,32 @@ export interface Dictionary {
     empty: string;
     backToBlog: string;
     tableOfContents: string;
+  };
+
+  /** Site-wide footer rendered below home / blog pages. */
+  footer: {
+    /** Column heading for product/internal links. */
+    product: string;
+    /** Column heading for community/social links. */
+    community: string;
+    /** Column heading for resource/external links. */
+    resources: string;
+    /** Short link labels reused across the footer. */
+    links: {
+      docs: string;
+      blog: string;
+      playground: string;
+      api: string;
+      demo: string;
+      github: string;
+      twitter: string;
+      githubOrg: string;
+      talk: string;
+    };
+    /** Copyright line, usually rendered with the current year prepended. */
+    copyright: string;
+    /** Small caption above the brand block. */
+    builtBy: string;
   };
 
   /** Docs pages — section eyebrows shown above each page title. */

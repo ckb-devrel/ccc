@@ -13,8 +13,13 @@ export const gitConfig = {
 
 export const externalLinks = {
   playground: 'https://live.ckbccc.com',
-  app: 'https://app.ckbccc.com',
   api: 'https://api.ckbccc.com',
   github: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
+  githubOrg: 'https://github.com/ckb-devrel',
+  twitter: 'https://x.com/CKBDevrel',
   demo: 'https://app.ckbccc.com',
+  talk: 'https://talk.nervos.org',
 };
+
+/** One-liner shown in the footer / brand spots. */
+export const appSlogan = 'Build trust for developer';
