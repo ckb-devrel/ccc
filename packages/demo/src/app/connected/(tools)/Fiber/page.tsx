@@ -30,6 +30,7 @@ import {
   TabBar,
 } from "./components";
 import {
+  DEFAULT_FIBER_MANUAL_CONFIG,
   LS_MANUAL_CONFIG,
   maskKey,
   readLs,
@@ -45,7 +46,7 @@ export default function FiberPage() {
 
   // ── Config (persisted) ───────────────────────────────────────────────────────
   const [manualConfig, setManualConfig] = useState(() =>
-    readLs(LS_MANUAL_CONFIG, ""),
+    readLs(LS_MANUAL_CONFIG, DEFAULT_FIBER_MANUAL_CONFIG),
   );
   const [configOpen, setConfigOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("peers");
@@ -121,8 +122,8 @@ export default function FiberPage() {
               spellCheck={false}
             />
             <p className="mt-1 text-xs text-gray-400">
-              Full YAML passed directly to the fiber node. Leave empty to use
-              the auto-generated default config.
+              Full YAML passed directly to the fiber node. Any alteration will
+              be persisted in the browser&apos;s localStorage.
             </p>
           </div>
         )}

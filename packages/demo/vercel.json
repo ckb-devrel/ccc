@@ -1,10 +1,12 @@
 {
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
   "headers": [
     {
-      "source": "/connected/Fiber",
+      "source": "/",
       "headers": [
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
-        { "key": "Cross-Origin-Embedder-Policy", "value": "credentialless" }
+        { "key": "Document-Isolation-Policy", "value": "isolate-and-credentialless" },
+        { "key": "Cross-Origin-Resource-Policy", "value": "cross-origin" }
       ]
     }
   ]
