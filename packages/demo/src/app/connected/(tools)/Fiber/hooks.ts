@@ -101,8 +101,9 @@ export function useNodeKey(signer: ccc.Signer | undefined, addLog: AddLog) {
       addLog("info", `Signing "${message}"…`);
       try {
         const sig = await signer.signMessage(message);
-        const sigBytes = ccc.bytesFrom(sig.signature);
-        const fiberKeyHex = ccc.hashCkb(sigBytes);
+        // Opaque string from the wallet (hex, base64, etc.): hash UTF-8 bytes so
+        // we never interpret the encoding—only the exact string matters.
+        const fiberKeyHex = ccc.hashCkb(ccc.bytesFrom(sig.signature, "utf8"));
         setStoredKey(fiberKeyHex);
         writeLs(lsNodeKeyFor(walletAddr), fiberKeyHex);
         addLog("success", "Node identity key derived and persisted.");

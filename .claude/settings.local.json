@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm run:*)",
+      "Bash(mv:*)",
+      "Bash(pnpm:*)",
+      "Bash(npx copyfiles:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx eslint:*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(mkdir -p /Users/vimchain/Cryptape/ccc/.claude/skills)",
+      "Bash(mv /Users/vimchain/.claude/skills/ccc-code-style.md /Users/vimchain/Cryptape/ccc/.claude/skills/)",
+      "Bash(mv /Users/vimchain/.claude/skills/skip-format-build.md /Users/vimchain/Cryptape/ccc/.claude/skills/)",
+      "Bash(npm show:*)",
+      "Bash(npm pack:*)",
+      "Read(//private/tmp/**)",
+      "Bash(tar -tzf nervosnetwork-fiber-js-0.8.0.tgz)",
+      "Bash(grep:*)",
+      "Bash(npm view *)",
+      "Skill(update-config)",
+      "Bash(npm info *)",
+      "Bash(tar -tzf nervosnetwork-fiber-js-0.8.1.tgz)",
+      "Bash(npm pack *)",
+      "Bash(mkdir fiber-old *)",
+      "Bash(tar -xzf nervosnetwork-fiber-js-0.7.1.tgz -C fiber-old)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/ckb-devrel/ccc/50d657beea36de3ebbd80ee88209842644daef34/packages/core/src/molecule/entity.ts\")"
+    ]
+  }
+}

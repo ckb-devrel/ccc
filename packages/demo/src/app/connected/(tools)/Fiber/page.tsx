@@ -155,12 +155,15 @@ export default function FiberPage() {
                     className="cursor-help text-gray-400 hover:text-gray-600"
                   />
                   <span className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-72 -translate-x-1/2 rounded-lg bg-gray-800 px-3 py-2 text-xs leading-relaxed font-normal text-gray-100 opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                    Your wallet signs this text once to deterministically derive
-                    a secp256k1 private key:
+                    Your wallet signs this text once; the returned signature
+                    string is hashed to derive your node identity:
                     <br />
                     <br />
                     <span className="font-mono text-sky-300">fiberKey</span>
-                    {" = hashCkb(signature)"} — Fiber P2P identity
+                    {" = hashCkb(utf8(wallet signature string))"} — the wallet’s
+                    opaque signature text is never parsed as hex/base64; only
+                    the exact characters matter, then CKB-blake2b hash yields 32
+                    bytes for Fiber identity.
                     <br />
                     <br />
                     CKB channel funding transactions are signed by your
