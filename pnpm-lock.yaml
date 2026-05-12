@@ -1020,6 +1020,9 @@ importers:
       '@ckb-ccc/core':
         specifier: workspace:*
         version: link:../core
+      '@ckb-ccc/spore':
+        specifier: workspace:*
+        version: link:../spore
       '@noble/hashes':
         specifier: ^1.4.0
         version: 1.8.0
@@ -1036,9 +1039,6 @@ importers:
         specifier: ^4.17.21
         version: 4.17.21
     devDependencies:
-      '@ckb-ccc/spore':
-        specifier: workspace:*
-        version: link:../spore
       '@ckb-ccc/udt':
         specifier: workspace:*
         version: link:../udt
