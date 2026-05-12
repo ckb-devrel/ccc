@@ -24,7 +24,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/udt": "workspace:*",
     "@eslint/js": "^9.34.0",
     "@exact-realty/multipart-parser": "^1.0.13",
@@ -49,6 +48,7 @@
     "@bitcoinerlab/secp256k1": "1.1.1",
     "@noble/hashes": "^1.4.0",
     "@ckb-ccc/core": "workspace:*",
+    "@ckb-ccc/spore": "workspace:*",
     "bip32": "4.0.0",
     "bitcoinjs-lib": "7.0.1",
     "ecpair": "3.0.1",
