@@ -196,7 +196,8 @@ export type NetworkPreference = {
 };
 ```
 
-## Example: getting address and balance
+## Usage examples
+### Getting address and balance
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -222,7 +223,7 @@ async function printWalletInfo(signer: ccc.Signer) {
 }
 ```
 
-## Example: signing a message
+### Signing a message
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -239,7 +240,7 @@ async function signAndVerify(signer: ccc.Signer, message: string) {
 }
 ```
 
-## Obtaining a signer
+### Obtaining a signer
 
 In practice, signers are provided by wallet connectors rather than instantiated directly.
 

@@ -1,13 +1,36 @@
 ---
 title: Guides
-description: Step-by-step guides for common CKB development tasks.
+description: Task-focused, step-by-step recipes for the most common CKB development scenarios.
 ---
 
-Practical, task-focused guides covering the most common scenarios:
+import { Wallet, Code, PenLine, Bitcoin, Sprout, Server } from 'lucide-react';
 
-- **Transfer CKB** — Send CKB between addresses.
-- **UDT / xUDT** — Transfer and query User-Defined Tokens.
-- **Spore / DOB** — Create and transfer on-chain NFTs.
-- **Nervos DAO** — Deposit, withdraw, and claim staking rewards.
+These guides assume you already understand the [core concepts](./concepts) and have CCC installed. Each guide walks through a single, real-world task end to end, with copy-pasteable code drawn from the CCC examples and packages.
 
-> TODO: Fill in full content for each guide.
+## Pages in this section
+
+<Cards cols={2}>
+  <Card title="Connect wallets" icon={<Wallet />} href="./guides/connect-wallets">
+    Drop in the React connector, or wire up `SignersController` directly to support EVM, BTC, CKB, Nostr, and Doge wallets.
+  </Card>
+
+  <Card title="Compose transactions" icon={<Code />} href="./guides/compose-transactions">
+    Transfer CKB the canonical CCC way — declare outputs, auto-fill inputs by capacity, let `completeFeeBy` handle the fee.
+  </Card>
+
+  <Card title="Sign messages" icon={<PenLine />} href="./guides/sign-message">
+    Sign and verify arbitrary messages through the unified `signer.signMessage` / `verifyMessage` API across all wallet types.
+  </Card>
+
+  <Card title="UDT tokens" icon={<Bitcoin />} href="./guides/udt-tokens">
+    Issue and transfer xUDT (and legacy sUDT) tokens with the `ccc.udt.Udt` class and SSRI execution.
+  </Card>
+
+  <Card title="Spore protocol" icon={<Sprout />} href="./guides/spore-protocol">
+    Create, transfer, and melt on-chain digital objects (DOBs), and group them with Spore Clusters using `@ckb-ccc/spore`.
+  </Card>
+
+  <Card title="Node.js backend" icon={<Server />} href="./guides/node-js-backend">
+    Use `@ckb-ccc/shell` for server-side scripts: connect to a node, build private-key signers, and run CCC without a browser.
+  </Card>
+</Cards>

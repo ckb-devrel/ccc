@@ -10,6 +10,7 @@
     "concepts/signers",
     "concepts/transactions",
     "concepts/clients",
+    "concepts/address",
     "---Guides---",
     "guides/connect-wallets",
     "guides/compose-transactions",
