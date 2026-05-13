@@ -261,7 +261,7 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
               href={externalLinks.github}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-[11px] tracking-widest uppercase text-fd-muted-foreground hover:text-fd-foreground transition-colors inline-flex items-center gap-1.5"
+              className="font-mono text-[11px] tracking-widest uppercase text-fd-muted-foreground hover:text-fd-primary transition-colors inline-flex items-center gap-1.5"
             >
               {t.usersMore} <ArrowUpRight className="size-3" />
             </a>

@@ -1,0 +1,468 @@
+---
+title: Address
+description: Parse and construct CKB addresses, which encode a lock script and network prefix.
+icon: Link
+---
+
+## 概述
+
+`ccc.Address` 是 CCC 库中用于表示 CKB 地址的核心类，它将地址字符串与底层的 `Script` 对象关联起来，并支持多种地址格式的解析和生成。 [1](#0-0) 
+
+## 类定义
+
+### 构造函数
+
+```typescript
+constructor(
+  public script: Script,
+  public prefix: string,
+)
+```
+
+`Address` 类包含两个主要属性：
+- `script`: 关联的 CKB 脚本对象
+- `prefix`: 地址前缀（如 "ckb" 表示主网，"ckt" 表示测试网） [2](#0-1) 
+
+### AddressLike 类型
+
+```typescript
+export type AddressLike = {
+  script: ScriptLike;
+  prefix: string;
+};
+```
+
+这是地址的通用类型表示，可以用于接受 `Address` 实例或类似结构的对象。 [3](#0-2) 
+
+## 静态工厂方法
+
+### from()
+
+从 `AddressLike` 对象创建 `Address` 实例：
+
+```typescript
+static from(address: AddressLike): Address
+```
+
+如果传入的已经是 `Address` 实例，则直接返回；否则创建新的实例。 [4](#0-3) 
+
+### fromString()
+
+从地址字符串解析创建 `Address` 实例：
+
+```typescript
+static async fromString(
+  address: string,
+  clients: Client | Record<string, Client>,
+): Promise<Address>
+```
+
+此方法会：
+1. 解析地址字符串获取前缀、格式和载荷
+2. 验证地址前缀与客户端配置匹配
+3. 根据格式和载荷构建脚本对象
+4. 返回完整的 `Address` 实例 [5](#0-4) 
+
+### fromScript()
+
+从脚本对象和客户端创建地址：
+
+```typescript
+static fromScript(script: ScriptLike, client: Client): Address
+```
+
+使用客户端的地址前缀和提供的脚本创建地址。 [6](#0-5) 
+
+### fromKnownScript()
+
+从已知脚本类型创建地址：
+
+```typescript
+static async fromKnownScript(
+  client: Client,
+  script: KnownScript,
+  args: HexLike,
+): Promise<Address>
+```
+
+使用预定义的脚本类型（如 Secp256k1Blake160、AnyoneCanPay 等）创建地址。 [7](#0-6) 
+
+## 地址格式
+
+CCC 支持多种地址格式，通过 `AddressFormat` 枚举区分：
+
+| 格式 | 描述 | 载荷结构 |
+|------|------|----------|
+| `Full` | 完整格式 | `[formatType, codeHash(32 bytes), hashType(1 byte), args]` |
+| `FullData` | 完整数据格式 | `[formatType, codeHash(32 bytes), args]`，hashType 固定为 "data" |
+| `FullType` | 完整类型格式 | `[formatType, codeHash(32 bytes), args]`，hashType 固定为 "type" |
+| `Short` | 短格式 | `[formatType, scriptIndex, args(20 bytes)]`，用于已知脚本 |
+
+短格式支持的脚本类型包括：
+- `KnownScript.Secp256k1Blake160`
+- `KnownScript.Secp256k1Multisig`
+- `KnownScript.AnyoneCanPay` [8](#0-7) 
+
+## 实例方法
+
+### toString()
+
+将地址实例转换为字符串：
+
+```typescript
+toString(): string
+```
+
+此方法：
+1. 将地址格式、codeHash、hashType 和 args 拼接成字节数组
+2. 使用 bech32m 编码生成最终的地址字符串
+3. 地址前缀由实例的 `prefix` 属性决定 [9](#0-8) 
+
+## 使用示例
+
+### 解析地址字符串
+
+```typescript
+const address = await ccc.Address.fromString(
+  "ckt1qyq...address...",
+  signer.client,
+);
+const { script } = address;
+```
+
+在转账工具中用于验证目标地址： [10](#0-9) 
+
+### 从脚本创建地址
+
+```typescript
+const address = ccc.Address.fromScript(cellOutput.lock, client);
+```
+
+在单元格可视化中用于显示锁脚本地址： [11](#0-10) 
+
+### 只读签名器中的使用
+
+```typescript
+async getAddressObjs(): Promise<Address[]> {
+  return this.scripts.map((script) =>
+    Address.fromScript(script, this.client),
+  );
+}
+```
+
+在只读签名器中将脚本转换为地址对象： [12](#0-11) 
+
+## 地址前缀
+
+不同的网络使用不同的地址前缀：
+
+| 网络 | 前缀 | 客户端类 |
+|------|------|----------|
+| 主网 | `ckb` | `ClientPublicMainnet` |
+| 测试网 | `ckt` | `ClientPublicTestnet` |
+
+客户端通过 `addressPrefix` 属性提供当前网络的前缀： [13](#0-12) [14](#0-13) 
+
+## 高级功能
+
+### 地址解析
+
+`addressPayloadFromString()` 函数可以将地址字符串解析为结构化信息：
+
+```typescript
+function addressPayloadFromString(address: string): {
+  prefix: string;
+  format: AddressFormat;
+  payload: number[];
+}
+```
+
+该函数会尝试解析完整格式（bech32m）和遗留格式（bech32）的地址。 [15](#0-14) 
+
+### 载荷转换
+
+`addressFromPayload()` 函数将解析后的载荷转换为 `AddressLike` 对象：
+
+```typescript
+async function addressFromPayload(
+  prefix: string,
+  format: AddressFormat,
+  payload: number[],
+  client: Client,
+): Promise<AddressLike>
+```
+
+根据不同的格式类型，构建相应的脚本对象。 [16](#0-15) 
+
+## Notes
+
+1. `Address` 类的所有方法都是异步的，因为某些操作需要从客户端获取已知脚本信息
+2. 地址字符串使用 bech32m 编码，这是 bech32 的改进版本，具有更好的错误检测能力
+3. 短格式地址仅适用于预定义的脚本类型，可以减少地址长度
+4. 在实际应用中，建议使用 `fromString()` 方法解析用户输入的地址，以确保格式正确性
+
+Wiki pages you might want to explore:
+- [Multi-Chain Signer Implementations (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#2.4)
+- [Wallet Integrations (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#4)
+- [Playground Environment (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#6.1)
+
+### Citations
+
+**File:** packages/core/src/address/index.ts (L16-19)
+```typescript
+export type AddressLike = {
+  script: ScriptLike;
+  prefix: string;
+};
+```
+
+**File:** packages/core/src/address/index.ts (L25-35)
+```typescript
+export class Address {
+  /**
+   * Creates an instance of Address.
+   *
+   * @param script - The script associated with the address.
+   * @param prefix - The address prefix.
+   */
+  constructor(
+    public script: Script,
+    public prefix: string,
+  ) {}
+```
+
+**File:** packages/core/src/address/index.ts (L44-50)
+```typescript
+  static from(address: AddressLike): Address {
+    if (address instanceof Address) {
+      return address;
+    }
+
+    return new Address(Script.from(address.script), address.prefix);
+  }
+```
+
+**File:** packages/core/src/address/index.ts (L62-82)
+```typescript
+  static async fromString(
+    address: string,
+    clients: Client | Record<string, Client>,
+  ): Promise<Address> {
+    const { prefix, format, payload } = addressPayloadFromString(address);
+
+    const client = (clients as Record<string, Client>)[prefix] ?? clients;
+    if (!client) {
+      throw new Error(`Unknown address prefix ${prefix}`);
+    }
+    const expectedPrefix = client.addressPrefix;
+    if (expectedPrefix !== prefix) {
+      throw new Error(
+        `Unknown address prefix ${prefix}, expected ${expectedPrefix}`,
+      );
+    }
+
+    return Address.from(
+      await addressFromPayload(prefix, format, payload, client),
+    );
+  }
+```
+
+**File:** packages/core/src/address/index.ts (L92-94)
+```typescript
+  static fromScript(script: ScriptLike, client: Client): Address {
+    return Address.from({ script, prefix: client.addressPrefix });
+  }
+```
+
+**File:** packages/core/src/address/index.ts (L96-105)
+```typescript
+  static async fromKnownScript(
+    client: Client,
+    script: KnownScript,
+    args: HexLike,
+  ): Promise<Address> {
+    return Address.from({
+      script: await Script.fromKnownScript(client, script, args),
+      prefix: client.addressPrefix,
+    });
+  }
+```
+
+**File:** packages/core/src/address/index.ts (L113-126)
+```typescript
+  toString(): string {
+    const data = bytesConcat(
+      [AddressFormat.Full],
+      bytesFrom(this.script.codeHash),
+      hashTypeToBytes(this.script.hashType),
+      bytesFrom(this.script.args),
+    );
+
+    return bech32m.encode(
+      this.prefix,
+      bech32m.toWords(data),
+      ADDRESS_BECH32_LIMIT,
+    );
+  }
+```
+
+**File:** packages/core/src/address/address.advanced.ts (L24-59)
+```typescript
+export function addressPayloadFromString(address: string): {
+  prefix: string;
+  format: AddressFormat;
+  payload: number[];
+} {
+  // Try parse full format address
+  try {
+    const { words, prefix } = bech32m.decode(address, ADDRESS_BECH32_LIMIT);
+    const decoded = bech32m.fromWords(words);
+    const formatType = decoded[0];
+    const payload = decoded.slice(1);
+
+    if (formatType === (AddressFormat.Full as number)) {
+      return { prefix, format: AddressFormat.Full, payload };
+    }
+  } catch (_) {}
+
+  // Try parse legacy 2019 format address
+  try {
+    const { prefix, words } = bech32.decode(address, ADDRESS_BECH32_LIMIT);
+    const decoded = bech32.fromWords(words);
+    const formatType = decoded[0];
+    const payload = decoded.slice(1);
+    if (
+      [
+        AddressFormat.FullData,
+        AddressFormat.FullType,
+        AddressFormat.Short,
+      ].includes(formatType)
+    ) {
+      return { prefix, format: formatType, payload };
+    }
+  } catch (_) {}
+
+  throw Error(`Unknown address format ${address}`);
+}
+```
+
+**File:** packages/core/src/address/address.advanced.ts (L80-158)
+```typescript
+export async function addressFromPayload(
+  prefix: string,
+  format: AddressFormat,
+  payload: number[],
+  client: Client,
+): Promise<AddressLike> {
+  if (format === AddressFormat.Full) {
+    if (payload.length < 32 + 1) {
+      throw new Error(
+        `Invalid full address without enough payload ${hexFrom(payload)}`,
+      );
+    }
+
+    return {
+      script: {
+        codeHash: payload.slice(0, 32),
+        hashType: hashTypeFromBytes(payload.slice(32, 33)),
+        args: payload.slice(33),
+      },
+      prefix,
+    };
+  }
+
+  if (format === AddressFormat.FullData) {
+    if (payload.length < 32) {
+      throw new Error(
+        `Invalid full data address without enough payload ${hexFrom(payload)}`,
+      );
+    }
+
+    return {
+      script: {
+        codeHash: payload.slice(0, 32),
+        hashType: "data",
+        args: payload.slice(32),
+      },
+      prefix,
+    };
+  }
+
+  if (format === AddressFormat.FullType) {
+    if (payload.length < 32) {
+      throw new Error(
+        `Invalid full type address without enough payload ${hexFrom(payload)}`,
+      );
+    }
+
+    return {
+      script: {
+        codeHash: payload.slice(0, 32),
+        hashType: "type",
+        args: payload.slice(32),
+      },
+      prefix,
+    };
+  }
+
+  // format === AddressFormat.Short
+  if (payload.length !== 21) {
+    throw new Error(
+      `Invalid short address without enough payload ${hexFrom(payload)}`,
+    );
+  }
+  const script = [
+    KnownScript.Secp256k1Blake160,
+    KnownScript.Secp256k1Multisig,
+    KnownScript.AnyoneCanPay,
+  ][payload[0]];
+  if (script === undefined) {
+    throw new Error(
+      `Invalid short address with unknown script ${hexFrom(payload)}`,
+    );
+  }
+
+  return {
+    script: await Script.fromKnownScript(client, script, payload.slice(1)),
+    prefix,
+  };
+}
+```
+
+**File:** packages/demo/src/app/connected/(tools)/Transfer/page.tsx (L54-57)
+```typescript
+            const { script: toLock } = await ccc.Address.fromString(
+              transferTo,
+              signer.client,
+            );
+```
+
+**File:** packages/playground/src/app/components/Cell.tsx (L115-117)
+```typescript
+      {cellOutput?.lock ? (
+        <Address address={ccc.Address.fromScript(cellOutput.lock, client)} />
+      ) : undefined}
+```
+
+**File:** packages/core/src/signer/ckb/signerCkbScriptReadonly.ts (L89-93)
+```typescript
+  async getAddressObjs(): Promise<Address[]> {
+    return this.scripts.map((script) =>
+      Address.fromScript(script, this.client),
+    );
+  }
+```
+
+**File:** packages/core/src/client/clientPublicMainnet.ts (L42-44)
+```typescript
+  get addressPrefix(): string {
+    return "ckb";
+  }
+```
+
+**File:** packages/core/src/client/clientPublicTestnet.ts (L42-44)
+```typescript
+  get addressPrefix(): string {
+    return "ckt";
+  }
+```

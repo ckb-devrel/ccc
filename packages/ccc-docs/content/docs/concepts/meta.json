@@ -4,6 +4,7 @@
     "cell-model",
     "signers",
     "transactions",
-    "clients"
+    "clients",
+    "address"
   ]
 }

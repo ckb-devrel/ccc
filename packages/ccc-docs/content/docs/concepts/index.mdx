@@ -1,0 +1,49 @@
+---
+title: Core Concepts
+description: Understand the building blocks every CCC application is made of — cells, transactions, signers, clients, and addresses.
+---
+
+import { LayoutGrid, Repeat, Key, Plug, IdCard } from 'lucide-react';
+
+Before writing serious CCC code, it helps to understand the primitives the SDK is organized around. They map directly to how CKB itself works.
+
+## The core primitives
+
+- **Cells** are the units of state on CKB. A cell holds capacity, a lock script, an optional type script, and arbitrary data. Transactions consume old cells and create new cells — there are no accounts or balances.
+- **Transactions** describe a state transition: a list of input cells to consume and output cells to create. CCC composes them declaratively — you describe the outputs you want, and helpers fill in inputs and fees.
+- **Signers** represent a connected wallet. The same `Signer` interface works across CKB, EVM, BTC, Nostr, and Doge wallets, exposing a unified API for addresses, balance, signing, and broadcasting.
+- **Clients** are the link to a CKB node. They expose JSON-RPC methods for querying the chain, searching cells, and sending transactions.
+- **Addresses** are the user-facing encoding of a lock script plus a network prefix. Every address round-trips losslessly to the exact `Script` that controls its cells.
+
+## How they fit together
+
+A typical CCC flow uses all of them:
+
+1. A **Client** connects to a CKB node.
+2. A **Signer** (backed by a wallet) is created against that client and exposes the user's **Address**.
+3. You build a **Transaction** by declaring its outputs — each output's `lock` is a script you typically obtained by parsing a recipient **Address**.
+4. The transaction collects input **Cells** from the signer, gets signed, and is broadcast through the client.
+
+## Pages in this section
+
+<Cards cols={2}>
+  <Card title="Cell model" icon={<LayoutGrid />} href="./concepts/cell-model">
+    The UTXO-style data model behind every CKB transaction: cells, scripts, capacity, and addresses.
+  </Card>
+
+  <Card title="Transactions" icon={<Repeat />} href="./concepts/transactions">
+    Compose transactions with `Transaction.from()`, auto-fill inputs by capacity, and let CCC handle fees and change.
+  </Card>
+
+  <Card title="Signers" icon={<Key />} href="./concepts/signers">
+    The unified signing interface that abstracts CKB, EVM, BTC, Nostr, and Doge wallets behind one API.
+  </Card>
+
+  <Card title="Clients" icon={<Plug />} href="./concepts/clients">
+    Connect to mainnet or testnet, query chain state, and broadcast transactions through `ClientPublicMainnet` / `ClientPublicTestnet`.
+  </Card>
+
+  <Card title="Address" icon={<IdCard />} href="./concepts/address">
+    Parse and construct CKB addresses, understand the bech32m formats, and convert between addresses, scripts, and signers.
+  </Card>
+</Cards>
