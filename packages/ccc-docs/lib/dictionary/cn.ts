@@ -81,6 +81,33 @@ export const cn: Dictionary = {
     copyright: 'CKB DevRel. 保留所有权利。',
     builtBy: '由 CKB DevRel 倾力打造',
   },
+  
+  notFound: {
+    global: {
+      eyebrow: '// 404 — 页面未找到',
+      title: ['这个页面', '不存在。'],
+      subtitle:
+        '你访问的链接可能被移除、重命名，或者从未存在。从下面挑一个目的地继续探索。',
+      ctaHome: '回到首页',
+      ctaDocs: '阅读文档',
+    },
+    blog: {
+      eyebrow: '// 404 — 博客文章',
+      title: ['文章', '不见了。'],
+      subtitle:
+        '这篇博客可能已经下架或被移动。可以浏览全部文章，或者返回首页。',
+      ctaBlog: '浏览博客',
+      ctaHome: '回到首页',
+    },
+    docs: {
+      eyebrow: '// 404 — 文档页面',
+      title: ['文档页面', '不见了。'],
+      subtitle:
+        '这个文档页面可能已重命名或移动。可以打开文档首页，或在左侧目录搜索相关主题。',
+      ctaDocs: '文档首页',
+      ctaHome: '回到首页',
+    },
+  },
 
   docs: {
     copyMarkdown: '复制 Markdown',
