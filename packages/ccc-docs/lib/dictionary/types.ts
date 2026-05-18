@@ -83,6 +83,34 @@ export interface Dictionary {
     builtBy: string;
   };
 
+  /** 404 / not-found pages — global, blog-specific, and docs-specific copy. */
+  notFound: {
+    /** Generic (global) 404 used outside `/[lang]`. */
+    global: {
+      eyebrow: string;
+      title: [string, string];
+      subtitle: string;
+      ctaHome: string;
+      ctaDocs: string;
+    };
+    /** 404 inside `/[lang]/blog/*`. */
+    blog: {
+      eyebrow: string;
+      title: [string, string];
+      subtitle: string;
+      ctaBlog: string;
+      ctaHome: string;
+    };
+    /** 404 inside `/[lang]/docs/*`. */
+    docs: {
+      eyebrow: string;
+      title: [string, string];
+      subtitle: string;
+      ctaDocs: string;
+      ctaHome: string;
+    };
+  };
+
   /** Docs pages — section eyebrows shown above each page title. */
   docs: {
     copyMarkdown: string,

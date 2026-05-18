@@ -38,6 +38,19 @@ const LOCALIZED_PREFIXES = ['/docs', '/blog'];
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // 0) Collapse stacked locale prefixes produced by the language switcher
+  //    on 404 pages (e.g. /cn/cn/cn/ddd → /cn/ddd)
+  const rawSegments = pathname.split('/').filter(Boolean);
+  const langs = i18n.languages as readonly string[];
+  if (rawSegments.length >= 2 && langs.includes(rawSegments[0])) {
+    let i = 1;
+    while (i < rawSegments.length && langs.includes(rawSegments[i])) i++;
+    if (i > 1) {
+      const cleaned = '/' + [rawSegments[0], ...rawSegments.slice(i)].join('/');
+      return NextResponse.redirect(new URL(cleaned, request.nextUrl));
+    }
+  }
+
   // 1) Markdown content negotiation for AI agents
   const suffixResult = rewriteSuffix(pathname);
   if (suffixResult) {
@@ -66,7 +79,10 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(`/${lang}${pathname}`, request.nextUrl));
   }
 
-  return NextResponse.next();
+  // Pass the pathname to server components so they can detect the locale
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

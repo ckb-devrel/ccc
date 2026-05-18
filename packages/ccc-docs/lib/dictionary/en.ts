@@ -82,6 +82,33 @@ export const en: Dictionary = {
     builtBy: 'Crafted by CKB DevRel',
   },
 
+  notFound: {
+    global: {
+      eyebrow: '// 404 — page not found',
+      title: ['This route', "doesn't exist."],
+      subtitle:
+        'The URL you followed may have moved, been renamed, or never existed at all. Pick a destination and keep going.',
+      ctaHome: 'Back to home',
+      ctaDocs: 'Open the docs',
+    },
+    blog: {
+      eyebrow: '// 404 — blog post',
+      title: ['Post', 'not found.'],
+      subtitle:
+        'The blog post may have been unpublished or moved. Browse all posts or jump back to the landing page.',
+      ctaBlog: 'Browse the blog',
+      ctaHome: 'Back to home',
+    },
+    docs: {
+      eyebrow: '// 404 — docs page',
+      title: ['Docs page', 'not found.'],
+      subtitle:
+        'This documentation page may have been renamed or moved. Try the docs index or search for the topic from the sidebar.',
+      ctaDocs: 'Docs home',
+      ctaHome: 'Back to home',
+    },
+  },
+
   docs: {
     copyMarkdown: 'Copy Markdown',
     openAs: 'Open',
