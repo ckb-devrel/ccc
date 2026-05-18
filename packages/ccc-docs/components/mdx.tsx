@@ -2,6 +2,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { CodeBlock, Pre } from 'fumadocs-ui/components/codeblock';
+import { Mermaid } from '@/components/mermaid';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -11,6 +12,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Steps,
     Tab,
     Tabs,
+    Mermaid,
     pre: ({ ref: _ref, ...props }) => (
       <CodeBlock {...props}>
         <Pre>{props.children}</Pre>

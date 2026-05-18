@@ -1,5 +1,6 @@
 import { defineConfig, defineDocs } from 'fumadocs-mdx/config';
 import { metaSchema, pageSchema } from 'fumadocs-core/source/schema';
+import { remarkMdxMermaid } from 'fumadocs-core/mdx-plugins';
 import { z } from 'zod';
 
 // Main docs collection — modules like Getting Started, Concepts, Guides, Wallets
@@ -34,5 +35,6 @@ export const blog = defineDocs({
 export default defineConfig({
   mdxOptions: {
     // MDX options
+    remarkPlugins: [remarkMdxMermaid],
   },
 });
