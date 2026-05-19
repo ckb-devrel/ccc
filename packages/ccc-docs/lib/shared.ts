@@ -23,3 +23,13 @@ export const externalLinks = {
 
 /** One-liner shown in the footer / brand spots. */
 export const appSlogan = 'Build trust for developer';
+
+/**
+ * Default `repo` for <Cite /> source-code references in MDX. Lets authors
+ * write `<Cite path="..." start="..." />` without repeating the repo on
+ * every citation. Override per-call by passing an explicit `repo` prop.
+ */
+export const defaultCiteRepo = 'ckb-devrel/ccc';
+
+/** Default branch used by <Cite /> when none is specified. */
+export const defaultCiteBranch = 'master';
