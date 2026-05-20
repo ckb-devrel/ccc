@@ -6,31 +6,25 @@ icon: IdCard
 
 A CKB address is a bech32m-encoded string that packages two things:
 
-1. **A lock script** — the on-chain predicate that controls who can spend the cells at this address (code hash, hash type, and args).
-2. **An address prefix** — `ckb` for mainnet, `ckt` for testnet.
+1. **A lock script** — the on-chain predicate that controls who can spend cells at this address (`codeHash`, `hashType`, and `args`).
+2. **A network prefix** — `ckb` for mainnet, `ckt` for testnet.
 
-Because the lock script is embedded in the address, you can always recover the exact script needed to send funds to an address, even without any additional metadata.
+Because the lock script is embedded in the address, you can always recover the exact script needed to send funds — no additional metadata required.
 
 ## The `Address` class
 
-`ccc.Address` is the runtime representation of a parsed address. It pairs a `Script` with a network prefix:
+`ccc.Address` pairs a `Script` with a network prefix:
 
 ```ts theme={null}
-// From packages/core/src/address/index.ts
 export class Address {
   constructor(
     public script: Script,
-    public prefix: string, // "ckb" or "ckt"
+    public prefix: string, // "ckb" | "ckt"
   ) {}
 }
-
-export type AddressLike = {
-  script: ScriptLike;
-  prefix: string;
-};
 ```
 
-Wherever an API accepts an `AddressLike`, you can pass either an existing `Address` or a plain object — `Address.from(addressLike)` normalizes it:
+Wherever an API accepts an `AddressLike`, you can pass an existing `Address` or a plain object — `Address.from()` normalizes both:
 
 ```ts theme={null}
 const address = ccc.Address.from({
@@ -39,11 +33,11 @@ const address = ccc.Address.from({
 });
 ```
 
-## Usage examples
+## Usage
 
 ### Parse an address string
 
-Use `Address.fromString` to decode an address into a structured object:
+`Address.fromString` decodes an address string into a structured object:
 
 ```ts theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -55,14 +49,14 @@ const address = await ccc.Address.fromString(
 );
 
 console.log(address.script.codeHash); // lock script code hash
-console.log(address.script.hashType); // "type" or "data"
+console.log(address.script.hashType); // "type" | "data"
 console.log(address.script.args);     // lock script args
 console.log(address.prefix);          // "ckb"
 ```
 
-`fromString` validates that the address prefix matches the client's network. It throws if there is a mismatch (e.g. passing a `ckt` address to a mainnet client).
+It validates that the address prefix matches the client's network and throws on a mismatch (e.g. passing a `ckt` address to a mainnet client).
 
-You can also pass a record of clients when you need to handle both networks in the same code path:
+When you need to handle both networks in the same code path, pass a record of clients:
 
 ```ts theme={null}
 const address = await ccc.Address.fromString(someAddress, {
@@ -73,14 +67,14 @@ const address = await ccc.Address.fromString(someAddress, {
 
 ### Construct an address from a script
 
-Build an `Address` directly from a known lock script and a client:
+Build an `Address` directly from a lock script and a client:
 
 ```ts theme={null}
 const address = ccc.Address.fromScript(lockScript, client);
 console.log(address.toString()); // "ckb1q..."
 ```
 
-Use `fromKnownScript` to derive an address from one of the built-in `KnownScript` entries:
+Or derive one from a built-in `KnownScript`:
 
 ```ts theme={null}
 const address = await ccc.Address.fromKnownScript(
@@ -92,7 +86,7 @@ const address = await ccc.Address.fromKnownScript(
 
 ### Get an address from a signer
 
-The most common way to obtain an address in a dApp is to ask the connected signer:
+In a dApp, the easiest way to get an address is directly from the connected signer:
 
 ```ts theme={null}
 // Primary address as a string
@@ -106,64 +100,62 @@ const { script: lock } = addressObj;
 const allAddresses = await signer.getAddresses(); // string[]
 ```
 
-<Callout type="Tip">
-  Use `getRecommendedAddressObj` when you need the lock script — for example, to set it as the recipient of a transaction output — instead of parsing the address string again with `Address.fromString`.
+<Callout type="info">
+  Prefer `getRecommendedAddressObj` when you need the lock script — for example, to set it as a transaction output recipient — rather than calling `Address.fromString` on the string result.
 </Callout>
 
-### Convert an address back to a string
+### Convert an address to a string
 
 Call `toString()` on any `Address` instance to produce the bech32m string:
 
 ```ts theme={null}
-const str = address.toString(); // "ckb1q..." or "ckt1q..."
+const str = address.toString(); // "ckb1q..." | "ckt1q..."
 ```
 
-`toString()` always emits the modern **Full** format (bech32m). CCC can still *parse* the legacy 2019 formats described below, but it never emits them.
+`toString()` always emits the modern **Full** format. CCC can parse legacy formats for backwards compatibility, but never emits them.
 
 ## Address formats
 
-CCC recognizes four on-the-wire address formats, distinguished by their leading format byte. Only `Full` is emitted by `toString()`; the other three exist for backwards compatibility with addresses created before 2021.
+CCC recognizes four on-the-wire formats, distinguished by their leading format byte. Only `Full` is produced by `toString()`; the rest exist for compatibility with pre-2021 addresses.
 
-| Format     | Encoding | Payload layout                                       | Notes                                       |
-| ---------- | -------- | ---------------------------------------------------- | ------------------------------------------- |
-| `Full`     | bech32m  | `[0x00, codeHash(32), hashType(1), args]`            | The current standard. Emitted by `toString()`. |
-| `FullData` | bech32   | `[0x02, codeHash(32), args]` — `hashType` is `"data"` | Legacy 2019 format.                         |
-| `FullType` | bech32   | `[0x04, codeHash(32), args]` — `hashType` is `"type"` | Legacy 2019 format.                         |
-| `Short`    | bech32   | `[0x01, scriptIndex(1), args(20)]`                    | Legacy short form for a few well-known scripts. |
+| Format     | Encoding | Payload layout                                        | Notes                              |
+| ---------- | -------- | ----------------------------------------------------- | ---------------------------------- |
+| `Full`     | bech32m  | `[0x00, codeHash(32), hashType(1), args]`             | Current standard. Emitted by `toString()`. |
+| `FullData` | bech32   | `[0x02, codeHash(32), args]` — `hashType` is `"data"` | Legacy 2019 format.                |
+| `FullType` | bech32   | `[0x04, codeHash(32), args]` — `hashType` is `"type"` | Legacy 2019 format.                |
+| `Short`    | bech32   | `[0x01, scriptIndex(1), args(20)]`                    | Legacy short form for well-known scripts. |
 
-The `Short` format encodes a known script by index instead of a full code hash. The supported scripts are:
+The `Short` format encodes a script by index rather than a full code hash. Supported scripts:
 
-| `scriptIndex` | Script                            |
-| ------------- | --------------------------------- |
-| `0`           | `KnownScript.Secp256k1Blake160`   |
-| `1`           | `KnownScript.Secp256k1Multisig`   |
-| `2`           | `KnownScript.AnyoneCanPay`        |
+| `scriptIndex` | Script                          |
+| ------------- | ------------------------------- |
+| `0`           | `KnownScript.Secp256k1Blake160` |
+| `1`           | `KnownScript.Secp256k1Multisig` |
+| `2`           | `KnownScript.AnyoneCanPay`      |
 
-Decoding a short address requires a `Client`, because CCC needs to look up the current on-chain `codeHash` and `cellDeps` for the indexed `KnownScript`.
+Decoding a short address requires a `Client` to look up the current `codeHash` and `cellDeps` for the indexed script.
 
-## Address prefix and network
-
-The prefix tells you which network an address belongs to:
+## Network prefix
 
 | Prefix | Network |
 | ------ | ------- |
 | `ckb`  | Mainnet |
 | `ckt`  | Testnet |
 
-The `Client` exposes `addressPrefix` so you can read it at runtime:
+Read the prefix at runtime from the client:
 
-```typescript theme={null}
+```ts theme={null}
 const client = new ccc.ClientPublicTestnet();
 console.log(client.addressPrefix); // "ckt"
 ```
 
 <Callout type="warning">
-  Never mix mainnet and testnet addresses. A `ckt` address decoded against a mainnet client will throw an error. Always pair your `Address.fromString` call with the correct client instance.
+  Never mix mainnet and testnet addresses. Passing a `ckt` address to a mainnet client will throw. Always pair `Address.fromString` with the correct client.
 </Callout>
 
-## Advanced: low-level parsing helpers
+## Advanced: low-level parsing
 
-For most apps `Address.fromString` and `Address.fromScript` are all you need. CCC also exposes the underlying steps when you need to inspect or transform an address without a `Client` round-trip. These helpers live on the **advanced** namespace (`cccA`), since they expose lower-level machinery:
+For most apps, `Address.fromString` and `Address.fromScript` are all you need. When you need to inspect or transform an address without a `Client` round-trip, CCC exposes the underlying steps via the `cccA` advanced namespace:
 
 ```ts theme={null}
 import { cccA } from "@ckb-ccc/ccc/advanced";
@@ -171,40 +163,26 @@ import { cccA } from "@ckb-ccc/ccc/advanced";
 
 ### `addressPayloadFromString`
 
-Decodes the bech32 / bech32m envelope and returns the raw format byte and payload bytes — without resolving any `KnownScript`:
+Decodes the bech32/bech32m envelope and returns the raw format byte and payload — without resolving any `KnownScript`:
 
 ```ts theme={null}
 const { prefix, format, payload } = cccA.addressPayloadFromString(
   "ckb1qzda0cr08m85hc8jlnfp3sdrlalyatuqvqdveld...",
 );
-// prefix: "ckb"
-// format: cccA.AddressFormat.Full
+// prefix:  "ckb"
+// format:  cccA.AddressFormat.Full
 // payload: number[]  (codeHash + hashType + args bytes)
 ```
 
-It tries the modern bech32m envelope first, then falls back to legacy bech32. Throws `Unknown address format` if neither parses.
+Tries bech32m first, falls back to legacy bech32. Throws `Unknown address format` if neither matches.
 
 ### `addressFromPayload`
 
-Turns a decoded payload back into an `AddressLike` — this is where short-format script-index lookups happen against the client:
+Turns a decoded payload back into an `AddressLike`, resolving short-format script-index lookups against the client:
 
 ```ts theme={null}
-import { ccc } from "@ckb-ccc/ccc";
-
-const addressLike = await cccA.addressFromPayload(
-  prefix,
-  format,
-  payload,
-  client,
-);
+const addressLike = await cccA.addressFromPayload(prefix, format, payload, client);
 const address = ccc.Address.from(addressLike);
 ```
 
-`Address.fromString` is just `addressPayloadFromString` + prefix validation + `addressFromPayload`.
-
-## Notes
-
-- **All methods of the Address class are asynchronous**, as some operations require fetching known script information from the client
-- **Address strings are encoded using bech32m**, an improved version of bech32 with better error detection capabilities
-- **Short-format addresses only apply to predefined script types** and can reduce address length
-- **In practice, it is recommended to use the `fromString()` method** to parse user-provided addresses to ensure format correctness
+`Address.fromString` is exactly `addressPayloadFromString` + prefix validation + `addressFromPayload`.

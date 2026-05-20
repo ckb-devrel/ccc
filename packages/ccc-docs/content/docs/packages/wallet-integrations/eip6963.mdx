@@ -1,0 +1,151 @@
+---
+title: "@ckb-ccc/eip6963"
+description: Connect any EVM wallet to CKB — automatic multi-wallet discovery via the EIP-6963 standard.
+---
+
+`@ckb-ccc/eip6963` exposes any [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963) compatible browser wallet (MetaMask, Rabby, OKX EVM, etc.) as a CCC `Signer`. It signs CKB transactions via `personal_sign` EVM signatures and derives CKB addresses from the user's Ethereum account.
+
+<Callout type="info">
+  If you're using `@ckb-ccc/connector-react` or `@ckb-ccc/ccc`, EIP-6963 wallets are already included — no separate installation needed.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+    npm install @ckb-ccc/eip6963
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+    yarn add @ckb-ccc/eip6963
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+    pnpm add @ckb-ccc/eip6963
+```
+  </Tab>
+</Tabs>
+
+**Dependencies:**
+
+| Package | Description |
+| ------- | ----------- |
+| `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
+
+## Architecture
+
+Unlike other wallet packages that detect a single global provider, `@ckb-ccc/eip6963` uses the EIP-6963 **multi-injected provider discovery** standard. This means it can discover and create signers for *all* EVM wallets installed in the browser simultaneously.
+
+```mermaid
+graph TB
+    subgraph "EIP-6963 Package"
+        SF["SignerFactory"]
+        S["Signer (extends SignerEvm)"]
+    end
+
+    subgraph "Discovery"
+        E6963["eip6963:announceProvider events"]
+        Legacy["window.ethereum (fallback)"]
+    end
+
+    subgraph "Wallets"
+        MM["MetaMask"]
+        RB["Rabby"]
+        OKX["OKX EVM"]
+        Other["Any EIP-6963 wallet"]
+    end
+
+    SF -->|"listens"| E6963
+    SF -->|"fallback"| Legacy
+    E6963 --- MM
+    E6963 --- RB
+    E6963 --- OKX
+    E6963 --- Other
+    SF -->|"creates"| S
+    S --> Core["@ckb-ccc/core (SignerEvm)"]
+```
+
+### Entry point: `SignerFactory`
+
+`SignerFactory` is the main entry point. It listens for `eip6963:announceProvider` events and creates a `Signer` for each unique wallet discovered:
+
+```mermaid
+graph TD
+    Start["new SignerFactory(client)"] --> Sub["subscribeSigners(callback)"]
+    Sub --> Listen["Listen eip6963:announceProvider"]
+    Sub --> Request["Dispatch eip6963:requestProvider"]
+    Sub --> Fallback["Check window.ethereum"]
+
+    Listen -->|"New provider"| Dedup["UUID already seen?"]
+    Dedup -->|"No"| Create["new Signer(client, provider)"]
+    Dedup -->|"Yes"| Skip["Skip"]
+    Create --> CB["callback(signer, detail)"]
+    Fallback -->|"exists"| Create2["new Signer(client, ethereum)"]
+    Create2 --> CB
+```
+
+## The `Signer` class
+
+`Signer` extends `ccc.SignerEvm` and adapts any EIP-1193 compatible provider to CKB signing.
+
+### Key methods
+
+| Method | Description |
+| ------ | ----------- |
+| `connect()` | Calls `eth_requestAccounts` to prompt wallet connection |
+| `isConnected()` | Checks if `eth_accounts` returns any account |
+| `getEvmAccount()` | Returns the first EVM address from the provider |
+| `signMessageRaw(message)` | Signs via `personal_sign` — used for CKB witness generation |
+| `onReplaced(listener)` | Fires on `accountsChanged` or `disconnect` events |
+
+### Signing flow
+
+CKB transactions are signed by deriving a CKB address from the EVM account and using `personal_sign` to produce a witness signature:
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Signer as EVM Signer
+    participant Wallet as EVM Wallet (e.g. MetaMask)
+
+    App->>Signer: sendTransaction(tx)
+    Signer->>Signer: prepareTransaction(tx)
+    Note over Signer: Add CellDeps, prepare witnesses
+    Signer->>Wallet: personal_sign(message, account)
+    Wallet->>Signer: signature (65 bytes)
+    Signer->>Signer: Pack signature into witness
+    Signer->>App: txHash
+```
+
+## Account change detection
+
+`Signer` implements `onReplaced()` to handle account or wallet disconnection:
+
+- Listens for `"accountsChanged"` — user switched account in wallet
+- Listens for `"disconnect"` — wallet disconnected
+
+When either fires, the application callback is invoked and the listener is automatically cleaned up.
+
+## Provider interface (EIP-1193)
+
+The package uses a minimal subset of the EIP-1193 provider interface:
+
+| Method | Purpose |
+| ------ | ------- |
+| `eth_requestAccounts` | Prompt user to connect |
+| `eth_accounts` | Get connected accounts (no prompt) |
+| `personal_sign` | Sign a message with the selected account |
+
+## Integration pattern
+
+`@ckb-ccc/eip6963` follows the same integration contract as other wallet packages in CCC:
+
+- **Factory class** — `SignerFactory` discovers wallets and creates signers dynamically.
+- **Provider detection** — uses EIP-6963 events with `window.ethereum` fallback.
+- **Deduplication** — tracks provider UUIDs to avoid duplicate signers.
+- **Graceful degradation** — if no EVM wallets are installed, no signers are created.
+
+This means `SignersController` can dynamically discover all EVM wallets without any configuration.

@@ -1,0 +1,32 @@
+---
+title: Wallet Integrations
+description: Connect any wallet — JoyID, MetaMask, OKX, and more — with a single unified Signer interface.
+---
+
+CCC supports multiple wallet ecosystems through dedicated signer packages. Each package implements the unified `Signer` interface so application code stays the same regardless of which wallet the user picks.
+
+<Callout type="info">
+  All wallet packages below are already bundled in `@ckb-ccc/ccc` and `@ckb-ccc/connector-react`. You only need to install them individually if you're building a custom integration.
+</Callout>
+
+| Package | Chain | Wallets | Provider Detection |
+| --- | --- | --- | --- |
+| [`@ckb-ccc/joy-id`](./joy-id) | CKB / BTC / EVM / Nostr | JoyID | WebAuthn / iframe |
+| [`@ckb-ccc/eip6963`](./eip6963) | EVM | MetaMask, Rabby, OKX EVM, any EIP-6963 wallet | `eip6963:announceProvider` events |
+| [`@ckb-ccc/nip07`](./nip07) | Nostr | nos2x, Alby, any NIP-07 extension | `window.nostr` |
+| [`@ckb-ccc/utxo-global`](./utxo-global) | CKB / BTC / DOGE | UTXO Global | `window.utxoGlobal` |
+| [`@ckb-ccc/rei`](./rei) | CKB | REI Wallet | `window.rei.ckb` |
+| [`@ckb-ccc/okx`](./okx) | BTC / Nostr | OKX Wallet | `window.okxwallet` |
+| [`@ckb-ccc/uni-sat`](./uni-sat) | BTC | UniSat | `window.unisat` |
+| [`@ckb-ccc/xverse`](./xverse) | BTC | Xverse, any SATS Connect wallet | `window.btc_providers` |
+
+## Integration contract
+
+Every wallet package follows the same pattern:
+
+1. **Factory function** — e.g. `getOKXSigners(client)` — returns `SignerInfo[]` or a single `Signer`.
+2. **Provider detection** — checks for a browser-injected object before creating signers.
+3. **Graceful degradation** — returns an empty array (or `undefined`) when the wallet isn't installed.
+4. **`onReplaced()` listener** — notifies the app when the user switches accounts in the wallet UI.
+
+This means `SignersController` can treat all wallets uniformly with zero special-casing in your application code.

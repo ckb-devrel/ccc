@@ -1,0 +1,214 @@
+---
+title: "@ckb-ccc/connector-react"
+description: React connector with Provider component and hooks for CKB wallet integration.
+---
+
+`@ckb-ccc/connector-react` is the recommended integration layer for React and Next.js applications. It provides a context `Provider`, a `useCcc` hook that exposes the full connector state, and a `useSigner` hook that returns the active signer whenever a wallet is connected.
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem', height: '20px' }}>
+  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>Latest version: </span>
+  <a href="https://www.npmjs.com/package/@ckb-ccc/connector-react" target="_blank" rel="noopener noreferrer" className="h-5">
+    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fconnector-react" alt="NPM Version" className="not-prose h-5" />
+  </a>
+</div>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash theme={null}
+    npm install @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash theme={null}
+    yarn add @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash theme={null}
+    pnpm add @ckb-ccc/connector-react
+    ```
+  </Tab>
+</Tabs>
+
+## Quick start
+
+<Steps>
+  <Step title="Wrap your app with Provider">
+    Place `Provider` at the root of your application (above any component that
+    needs wallet access).
+
+    ```tsx theme={null}
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }) {
+      return (
+        <ccc.Provider>
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Use the useCcc hook">
+    Call `useCcc()` inside any descendant component to open the wallet picker
+    and read the connected wallet state.
+
+    ```tsx theme={null}
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, wallet, signerInfo } = ccc.useCcc();
+
+      return (
+        <div>
+          <button onClick={open}>
+            {wallet ? `Connected: ${wallet.name}` : "Connect Wallet"}
+          </button>
+          {signerInfo && <Address />}
+        </div>
+      );
+    }
+
+    function Address() {
+      const { signerInfo } = ccc.useCcc();
+      const [address, setAddress] = React.useState("");
+
+      React.useEffect(() => {
+        signerInfo?.signer.getRecommendedAddress().then(setAddress);
+      }, [signerInfo]);
+
+      return <p>{address}</p>;
+    }
+    ```
+  </Step>
+</Steps>
+
+## Provider props
+
+```tsx theme={null}
+<ccc.Provider
+  hideMark={false}
+  name="My App"
+  icon="https://example.com/icon.png"
+  signerFilter={async (signerInfo, wallet) => true}
+  defaultClient={new ccc.ClientPublicTestnet()}
+  clientOptions={[
+    { name: "Testnet", client: new ccc.ClientPublicTestnet() },
+    { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
+  ]}
+  preferredNetworks={[{ addressPrefix: "ckb", signerType: ccc.SignerType.BTC, network: "btc" }]}
+>
+  {children}
+</ccc.Provider>
+```
+
+| Prop                | Type                                       | Description                                        |
+| ------------------- | ------------------------------------------ | -------------------------------------------------- |
+| `children`          | `ReactNode`                                | Your application tree                              |
+| `hideMark`          | `boolean?`                                 | Hide the "Powered by CCC" mark in the connector UI |
+| `name`              | `string?`                                  | App name shown in the wallet picker                |
+| `icon`              | `string?`                                  | App icon URL shown in the wallet picker            |
+| `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | Filter which wallet/signer combinations appear     |
+| `signersController` | `ccc.SignersController?`                   | Custom signers controller (advanced)               |
+| `defaultClient`     | `ccc.Client?`                              | The initial network client                         |
+| `clientOptions`     | `{ icon?, client, name }[]?`               | Network options to display in the connector        |
+| `preferredNetworks` | `ccc.NetworkPreference[]?`                 | Networks to prefer when a wallet supports multiple |
+
+## `useCcc()` hook
+
+```typescript theme={null}
+const {
+  isOpen,      // boolean — whether the wallet picker modal is open
+  open,        // () => void — open the wallet picker
+  close,       // () => void — close the wallet picker
+  disconnect,  // () => void — disconnect the current wallet
+  setClient,   // (client: ccc.Client) => void — switch network
+  client,      // ccc.Client — current network client
+  wallet,      // ccc.Wallet | undefined — connected wallet
+  signerInfo,  // ccc.SignerInfo | undefined — connected signer
+} = ccc.useCcc();
+```
+
+The hook throws if called outside a `<ccc.Provider>` tree.
+
+## Full example
+
+```tsx theme={null}
+"use client"; // Required for Next.js App Router
+
+import { ccc } from "@ckb-ccc/connector-react";
+import { useState, useEffect } from "react";
+
+function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <ccc.Provider
+      name="My CKB App"
+      defaultClient={new ccc.ClientPublicTestnet()}
+    >
+      <Header />
+      {children}
+    </ccc.Provider>
+  );
+}
+
+function Header() {
+  const { open, disconnect, wallet, signerInfo, client } = ccc.useCcc();
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+    if (!signerInfo) {
+      setAddress("");
+      return;
+    }
+    signerInfo.signer.getRecommendedAddress().then(setAddress);
+  }, [signerInfo]);
+
+  return (
+    <header>
+      {wallet ? (
+        <>
+          <span>{address}</span>
+          <button onClick={disconnect}>Disconnect</button>
+        </>
+      ) : (
+        <button onClick={open}>Connect</button>
+      )}
+    </header>
+  );
+}
+```
+
+## Filtering wallets
+
+Use `signerFilter` to show only specific wallet types:
+
+```tsx theme={null}
+import { ccc } from "@ckb-ccc/connector-react";
+
+// Show only CKB-native wallets
+<ccc.Provider
+  signerFilter={async (signerInfo, wallet) => {
+    return signerInfo.signer.type === ccc.SignerType.CKB;
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+## Next.js (App Router)
+
+CCC's connector uses React context and browser APIs, so it only works on the client side. Add `"use client"` to any file that imports from `@ckb-ccc/connector-react` or renders `<ccc.Provider>`.
+
+```tsx theme={null}
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+```
+
+<Callout type="warning">
+  Forgetting `"use client"` in Next.js App Router will cause a runtime error:
+  `TypeError: (0, react....createContext) is not a function`.
+</Callout>

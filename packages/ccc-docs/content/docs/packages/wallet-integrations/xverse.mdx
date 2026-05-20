@@ -1,0 +1,168 @@
+---
+title: "@ckb-ccc/xverse"
+description: Connect Xverse and SATS Connect compatible wallets to CKB — Bitcoin signing through a unified Signer interface.
+---
+
+`@ckb-ccc/xverse` integrates [Xverse Wallet](https://www.xverse.app/) and any [SATS Connect](https://docs.xverse.app/sats-connect) compatible Bitcoin wallet into CCC. It provides a `SignerBtc` implementation using the SATS Connect RPC protocol, supporting multi-wallet discovery via `window.btc_providers`.
+
+<Callout type="info">
+  If you're using `@ckb-ccc/connector-react` or `@ckb-ccc/ccc`, Xverse is already included — no separate installation needed.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+    npm install @ckb-ccc/xverse
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+    yarn add @ckb-ccc/xverse
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+    pnpm add @ckb-ccc/xverse
+```
+  </Tab>
+</Tabs>
+
+**Dependencies:**
+
+| Package | Description |
+| ------- | ----------- |
+| `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
+
+## Architecture
+
+Unlike other wallet packages that detect a single global provider, `@ckb-ccc/xverse` uses the `window.btc_providers` array to discover multiple SATS Connect wallets simultaneously.
+
+```mermaid
+graph TB
+    subgraph "Xverse Package"
+        GXS["getXverseSigners(client)"]
+        S["Signer (extends SignerBtc)"]
+    end
+
+    subgraph "Discovery"
+        BTP["window.btc_providers[]"]
+    end
+
+    subgraph "Wallets"
+        XV["Xverse"]
+        Other["Any SATS Connect wallet"]
+    end
+
+    GXS -->|"reads"| BTP
+    BTP --- XV
+    BTP --- Other
+    GXS -->|"creates per provider"| S
+    S --> Core["@ckb-ccc/core (SignerBtc)"]
+```
+
+### Entry point: `getXverseSigners`
+
+`getXverseSigners(client, preferredNetworks?)` reads from `window.btc_providers` and returns a `{ wallet, signerInfo }[]` array — one entry per discovered wallet:
+
+```mermaid
+graph TD
+    Start["getXverseSigners(client)"] --> Check["window.btc_providers exists?"]
+    Check -->|No| Empty["return []"]
+    Check -->|Yes| Iter["For each provider in btc_providers"]
+    Iter --> Create["new Signer(client, getProviderById(provider.id))"]
+    Create --> Result["{ wallet: {name, icon}, signerInfo: {name: 'BTC', signer} }"]
+```
+
+Each provider entry includes wallet metadata (`name`, `icon`) allowing `SignersController` to display distinct wallet entries.
+
+## The `Signer` class
+
+`Signer` extends `ccc.SignerBtc` and uses the SATS Connect RPC protocol for all wallet interactions.
+
+### Key methods
+
+| Method | Description |
+| ------ | ----------- |
+| `connect()` | Calls `wallet_requestPermissions` if not already connected |
+| `disconnect()` | Clears the cached address |
+| `isConnected()` | Attempts `getBalance` — returns `true` on success |
+| `getBtcAccount()` | Returns the payment address via `getAddresses` |
+| `getBtcPublicKey()` | Returns the public key from the payment address |
+| `signMessageRaw(message)` | Signs via `signMessage` with ECDSA protocol |
+| `onReplaced(listener)` | Fires on `accountChange` or `networkChange` events |
+
+### Connection and address caching
+
+The signer caches the resolved address to avoid redundant RPC calls. The cache is invalidated on `disconnect()`:
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Signer as Xverse Signer
+    participant Wallet as Xverse Extension
+
+    App->>Signer: connect()
+    Signer->>Signer: isConnected()?
+    alt Not connected
+        Signer->>Wallet: wallet_requestPermissions
+        Wallet->>Signer: granted
+    end
+    App->>Signer: getBtcAccount()
+    Signer->>Wallet: getAddresses({purposes: [Payment]})
+    Wallet->>Signer: addresses[0]
+    Signer->>Signer: Cache address
+    Signer->>App: address.address
+```
+
+### Network preferences
+
+| CKB Network | Default BTC Network |
+| ----------- | ------------------- |
+| Mainnet (`ckb`) | `btc` |
+| Testnet (`ckt`) | `btcTestnet` |
+
+### Signing flow
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Signer as Xverse Signer
+    participant Wallet as Xverse Extension
+
+    App->>Signer: sendTransaction(tx)
+    Signer->>Signer: prepareTransaction(tx)
+    Note over Signer: Add CellDeps, prepare witnesses
+    Signer->>Wallet: signMessage({message, address, protocol: ECDSA})
+    Wallet->>Signer: {signature}
+    Signer->>Signer: Pack signature into witness
+    Signer->>App: txHash
+```
+
+## Account change detection
+
+`Signer` implements `onReplaced()` via the SATS Connect event API:
+
+- Listens for `"accountChange"` — user switched BTC account
+- Listens for `"networkChange"` — user switched BTC network
+
+Returns cleanup functions from `provider.addListener()` for proper teardown.
+
+## SATS Connect RPC methods
+
+| Method | Description |
+| ------ | ----------- |
+| `wallet_requestPermissions` | Request wallet connection permissions |
+| `getAddresses` | Get addresses filtered by purpose (Payment, Ordinals, etc.) |
+| `getBalance` | Get wallet balance (used for connection check) |
+| `signMessage` | Sign a message with ECDSA or BIP-322 |
+
+## Integration pattern
+
+`@ckb-ccc/xverse` follows the same integration contract as other wallet packages in CCC:
+
+- **Factory function** — `getXverseSigners` returns `{ wallet, signerInfo }[]` for multi-wallet support.
+- **Provider detection** — reads `window.btc_providers` array.
+- **Multi-wallet discovery** — creates separate signer entries per provider with distinct wallet names and icons.
+- **Graceful degradation** — returns an empty array when no SATS Connect wallets are available.

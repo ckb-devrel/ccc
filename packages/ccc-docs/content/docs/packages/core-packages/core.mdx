@@ -1,0 +1,167 @@
+---
+title: "@ckb-ccc/core"
+description: The foundational CKB primitives — Transaction, Script, Address, Client, Signer, and more.
+---
+
+`@ckb-ccc/core` is the base layer of CCC. It contains all CKB data types, encoders, hashers, and the abstract `Signer` / `Client` interfaces used by every higher-level package.
+
+<Callout type="info">
+  Most projects do not need to install `@ckb-ccc/core` directly. Use
+  `@ckb-ccc/shell` for Node.js or `@ckb-ccc/connector-react` for React — both
+  re-export everything from core.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+npm install @ckb-ccc/core
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+yarn add @ckb-ccc/core
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+pnpm add @ckb-ccc/core
+```
+  </Tab>
+</Tabs>
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
+  <a href="https://www.npmjs.com/package/@ckb-ccc/core" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fcore" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
+  </a>
+</div>
+
+## Imports
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/core";
+```
+
+## Exported modules
+
+`@ckb-ccc/core` re-exports the following sub-modules under the `ccc` namespace:
+
+| Module       | Contents                                                                              |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `address`    | `Address`, `AddressLike`, address parsing and formatting                              |
+| `bytes`      | `bytesFrom`, `bytesTo`, byte array utilities                                          |
+| `ckb`        | `Transaction`, `Script`, `Cell`, `CellInput`, `CellOutput`, `OutPoint`, `WitnessArgs` |
+| `client`     | `Client` (abstract), `ClientPublicMainnet`, `ClientPublicTestnet`                     |
+| `fixedPoint` | `fixedPointFrom`, `fixedPointToString` — CKB capacity in shannons                     |
+| `hasher`     | `hashCkb`, `Hasher` — CKB Blake2b hashing                                             |
+| `hex`        | `hexFrom`, `HexLike`, hex encoding helpers                                            |
+| `jsonRpc`    | `RequestorJsonRpc` — low-level JSON-RPC client                                        |
+| `keystore`   | `KeyStore` — encrypted key storage                                                    |
+| `molecule`   | Molecule codec primitives                                                             |
+| `num`        | `numFrom`, `numFromBytes`, `numToBytes`, `numLeToBytes` — numeric conversions         |
+| `signer`     | `Signer` (abstract), `SignerInfo`, `SignerType`, `SignerSignType`                     |
+| `utils`      | Miscellaneous helpers                                                                 |
+
+## Key classes
+
+### Transaction
+
+The primary type for building CKB transactions:
+
+```typescript theme={null}
+// Build a CKB transfer transaction
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+Important methods:
+
+| Method                                | Description                          |
+| ------------------------------------- | ------------------------------------ |
+| `Transaction.from(like)`              | Create from a plain object           |
+| `tx.addInput(cell)`                   | Add a cell input                     |
+| `tx.addOutput(output, data?)`         | Add a cell output                    |
+| `tx.completeInputsByCapacity(signer)` | Auto-select inputs to cover capacity |
+| `tx.completeFeeBy(signer, feeRate?)`  | Add a change output and compute fee  |
+| `tx.addCellDepInfos(client, deps)`    | Resolve and add cell dependencies    |
+| `signer.sendTransaction(tx)`          | Sign and broadcast                   |
+
+### Script
+
+```typescript theme={null}
+const script = ccc.Script.from({
+  codeHash: "0x...",
+  hashType: "type",
+  args: "0x...",
+});
+
+script.eq(otherScript); // structural equality
+```
+
+### Address
+
+```typescript theme={null}
+const addr = await ccc.Address.fromString(
+  "ckb1qzda0cr08m85hc8jlnfp3gog...",
+  client,
+);
+const { script, prefix } = addr;
+```
+
+### Signer (abstract)
+
+The `Signer` abstract class is implemented by every wallet integration. Key members:
+
+```typescript theme={null}
+abstract class Signer {
+  readonly client: Client;
+
+  abstract getInternalAddress(): Promise<string>;
+  abstract getRecommendedAddressObj(preference?: unknown): Promise<Address>;
+  abstract signTransaction(tx: Transaction): Promise<Transaction>;
+
+  async sendTransaction(tx: Transaction): Promise<Hex>;
+  async findCells(filter, withData?, order?, limit?): AsyncGenerator<Cell>;
+}
+```
+
+### Client (abstract)
+
+```typescript theme={null}
+// Connect to public testnet
+const client = new ccc.ClientPublicTestnet();
+
+// Connect to public mainnet
+const client = new ccc.ClientPublicMainnet();
+
+// Connect to a custom node
+const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
+```
+
+## Key functions
+
+```typescript theme={null}
+// Convert any value to a fixed-point CKB capacity (shannons)
+const capacity = ccc.fixedPointFrom("100"); // 100 CKB = 10_000_000_000n shannons
+
+// Hash data with CKB's Blake2b
+const hash = ccc.hashCkb(data);
+
+// Encode to hex
+const hex = ccc.hexFrom(bytes);
+
+// Numeric conversion
+const n = ccc.numFrom("0xff"); // BigInt
+const bytes = ccc.numToBytes(n, 8); // little-endian Uint8Array
+
+// Byte conversions
+const arr = ccc.bytesFrom("0xdeadbeef");
+const str = ccc.bytesTo(arr, "utf8");
+```

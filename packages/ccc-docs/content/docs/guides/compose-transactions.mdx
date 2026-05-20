@@ -4,7 +4,19 @@ description: Build and send CKB transactions with automatic input selection and 
 icon: Code
 ---
 
-CCC uses a declarative transaction model: you describe what you *want* the transaction to do, then call helpers to fill in the rest automatically — collecting inputs, calculating fees, and broadcasting.
+Build and send CKB transactions without manually selecting inputs or computing fees. You declare the desired **outputs**, and CCC automatically finds matching inputs, calculates the fee, and creates change — all in a few method calls.
+
+## What you'll get
+
+After this guide you'll be able to:
+
+- **Transfer CKB** to any address with automatic input selection and fee calculation
+- **Sweep an entire wallet** into a single output
+- Understand the **declare → fill → fee → send** pattern that every CCC transaction follows
+
+<Callout type="info">
+  All examples assume you already have a connected `signer`. If you don't, see [Connect Wallets](/docs/guides/connect-wallets) first.
+</Callout>
 
 ## Core concepts
 
@@ -17,7 +29,9 @@ ccc.fixedPointFrom("0.01") // 0.01 CKB → 1_000_000n shannon
 
 ## Transfer CKB
 
-The following example (from `packages/examples/src/transfer.ts`) sends exactly 100 CKB to a receiver address:
+**Use this when:** you want to send a specific amount of CKB to another address — the most common transaction type.
+
+The four steps below embody the **declare → fill → fee → send** pattern you'll reuse for every CKB transaction:
 
 <Steps>
   <Step title="Describe the outputs">
@@ -54,14 +68,14 @@ The following example (from `packages/examples/src/transfer.ts`) sends exactly 1
   <Step title="Sign and broadcast">
     ```typescript theme={null}
     const txHash = await signer.sendTransaction(tx);
-    console.log("Transaction hash:", txHash);
+    console.log("Transaction hash:", txHash); // "0x..." — 32-byte hex hash
     ```
   </Step>
 </Steps>
 
 ## Transfer all CKB
 
-To sweep all CKB from an account — for example when emptying a wallet — use `completeInputsAll` combined with `completeFeeChangeToOutput`. This example is from `packages/examples/src/transferAll.ts`:
+**Use this when:** you want to empty a wallet completely — migrate to a new address, consolidate cells, etc. Instead of specifying a fixed capacity, you collect *all* inputs first and deduct the fee from the output:
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -89,13 +103,12 @@ const txHash = await signer.sendTransaction(tx);
 
 ## Fee calculation
 
-You never need to set fee rates manually. CCC fetches the current median fee rate from the node and uses it automatically when you call `completeFeeBy` or `completeFeeChangeToOutput`.
+CCC auto-fetches the current median fee rate from the node — you never need to set it manually. Both `completeFeeBy` and `completeFeeChangeToOutput` handle this for you.
 
-If you need fine-grained control you can pass an explicit fee rate (in shannon per kilobyte) as the second argument:
+If you need fine-grained control (e.g. priority transactions), pass an explicit fee rate in **shannon per kilobyte**:
 
 ```typescript theme={null}
-// Pay fee at a fixed rate of 1000 shannon/kB
-await tx.completeFeeBy(signer, 1000);
+await tx.completeFeeBy(signer, 1000); // fixed rate of 1000 shannon/kB
 ```
 
 ## API reference
@@ -103,12 +116,29 @@ await tx.completeFeeBy(signer, 1000);
 | Method                                                  | Description                                     |
 | ------------------------------------------------------- | ----------------------------------------------- |
 | `ccc.Transaction.from(skeleton)`                        | Create a transaction from a partial description |
-| `ccc.fixedPointFrom(amount)`                            | Convert CKB amount to shannon (bigint)          |
+| `ccc.fixedPointFrom(amount)`                            | Convert CKB amount to shannon (`bigint`)        |
 | `tx.completeInputsByCapacity(signer)`                   | Add inputs until capacity is sufficient         |
 | `tx.completeInputsAll(signer)`                          | Collect all cells owned by the signer           |
 | `tx.completeFeeBy(signer, feeRate?)`                    | Add change output and pay fee                   |
 | `tx.completeFeeChangeToOutput(signer, index, feeRate?)` | Deduct fee from a specific output               |
 | `signer.sendTransaction(tx)`                            | Sign and broadcast; returns tx hash             |
+
+## Troubleshooting
+
+**`completeInputsByCapacity` throws "not enough capacity"**
+The signer's cells don't have enough total CKB to cover the outputs plus minimum change cell (61 CKB). Fund the address or reduce the output amount.
+
+**Transaction is rejected with "InsufficientCellCapacity"**
+Every cell must hold at least enough CKB to pay for its own on-chain storage (the minimum is 61 CKB for a basic cell). Make sure each output's `capacity` meets this minimum.
+
+**I want to add custom cell deps or witnesses**
+`ccc.Transaction.from()` accepts a full `TransactionLike` — you can pass `cellDeps`, `headerDeps`, `witnesses`, and `inputs` alongside `outputs`. CCC's auto-fill methods append to, not replace, what you provide.
+
+## Next steps
+
+- [Sign messages](/docs/guides/sign-message) — prove address ownership without sending a transaction.
+- [UDT tokens](/docs/guides/udt-tokens) — issue and transfer fungible tokens on CKB.
+- [Spore Protocol](/docs/guides/spore-protocol) — create on-chain digital objects (DOBs).
 
 <Callout type="info">
   Try these examples interactively in the CCC playground at [live.ckbccc.com](https://live.ckbccc.com/).

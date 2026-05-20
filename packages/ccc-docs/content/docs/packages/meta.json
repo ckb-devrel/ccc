@@ -4,6 +4,9 @@
   "root": false,
   "icon": "Code",
   "pages": [
-    "index"
+    "index",
+    "core-packages",
+    "protocol-sdks",
+    "wallet-integrations"
   ]
 }

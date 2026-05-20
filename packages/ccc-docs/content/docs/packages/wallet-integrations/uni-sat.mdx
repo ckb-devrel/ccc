@@ -1,0 +1,163 @@
+---
+title: "@ckb-ccc/uni-sat"
+description: Connect UniSat Wallet to CKB — Bitcoin signing through a unified Signer interface.
+---
+
+`@ckb-ccc/uni-sat` integrates [UniSat Wallet](https://unisat.io/) into CCC, providing a `SignerBtc` implementation for Bitcoin signing. It communicates with the wallet via the browser-injected `window.unisat` object and supports automatic network switching between Bitcoin mainnet and testnet.
+
+<Callout type="info">
+  If you're using `@ckb-ccc/connector-react` or `@ckb-ccc/ccc`, UniSat is already included — no separate installation needed.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+    npm install @ckb-ccc/uni-sat
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+    yarn add @ckb-ccc/uni-sat
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+    pnpm add @ckb-ccc/uni-sat
+```
+  </Tab>
+</Tabs>
+
+**Dependencies:**
+
+| Package | Description |
+| ------- | ----------- |
+| `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "UniSat Package"
+        GUS["getUniSatSigners(client)"]
+        S["Signer (extends SignerBtc)"]
+    end
+
+    subgraph "Provider"
+        WU["window.unisat"]
+    end
+
+    subgraph "Core"
+        CorePkg["@ckb-ccc/core (SignerBtc)"]
+    end
+
+    GUS -->|"detects"| WU
+    GUS -->|"creates"| S
+    S --> CorePkg
+    S -->|"calls"| WU
+```
+
+### Entry point: `getUniSatSigners`
+
+`getUniSatSigners(client, preferredNetworks?)` checks for `window.unisat` and returns a `SignerInfo[]` array — empty if the wallet isn't available:
+
+```mermaid
+graph TD
+    Start["getUniSatSigners(client)"] --> Check["window.unisat exists?"]
+    Check -->|No| Empty["return []"]
+    Check -->|Yes| Create["new Signer(client, window.unisat)"]
+    Create --> Array["SignerInfo[] with name 'BTC'"]
+```
+
+## The `Signer` class
+
+`Signer` extends `ccc.SignerBtc` and adapts the UniSat provider interface to CKB signing.
+
+### Key methods
+
+| Method | Description |
+| ------ | ----------- |
+| `connect()` | Calls `requestAccounts()` then ensures the correct BTC network |
+| `isConnected()` | Returns `true` if accounts exist and network matches |
+| `getBtcAccount()` | Returns the first BTC address from the provider |
+| `getBtcPublicKey()` | Returns the BTC public key (hex-encoded) |
+| `signMessageRaw(message)` | Signs via `signMessage(msg, "ecdsa")` |
+| `onReplaced(listener)` | Fires on `accountsChanged` or `networkChanged` events |
+
+### Network management
+
+UniSat supports multiple Bitcoin networks. On `connect()`, the signer automatically switches the wallet to the correct network based on `preferredNetworks` configuration:
+
+| CKB Network | Default BTC Network |
+| ----------- | ------------------- |
+| Mainnet (`ckb`) | `btc` (livenet) |
+| Testnet (`ckt`) | `btcTestnet` (testnet) |
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Signer as UniSat Signer
+    participant Wallet as UniSat Extension
+
+    App->>Signer: connect()
+    Signer->>Wallet: requestAccounts()
+    Wallet->>Signer: accounts[]
+    Signer->>Wallet: getNetwork() / getChain()
+    Wallet->>Signer: current network
+    Signer->>Signer: Match preferred network
+    alt Network mismatch
+        Signer->>Wallet: switchNetwork("livenet" | "testnet") or switchChain(chain)
+    end
+```
+
+The signer also supports Fractal Bitcoin via the `switchChain` API (when available).
+
+### Signing flow
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Signer as UniSat Signer
+    participant Wallet as UniSat Extension
+
+    App->>Signer: sendTransaction(tx)
+    Signer->>Signer: prepareTransaction(tx)
+    Note over Signer: Add CellDeps, prepare witnesses
+    Signer->>Wallet: signMessage(challenge, "ecdsa")
+    Wallet->>Signer: signature
+    Signer->>Signer: Pack signature into witness
+    Signer->>App: txHash
+```
+
+## Account change detection
+
+`Signer` implements `onReplaced()` to handle account or network changes:
+
+- Listens for `"accountsChanged"` — user switched BTC account
+- Listens for `"networkChanged"` — user switched BTC network
+
+When either fires, the application callback is invoked and the listener is cleaned up.
+
+## Provider interface
+
+| Method | Description |
+| ------ | ----------- |
+| `requestAccounts()` | Prompt user to connect and return accounts |
+| `getAccounts()` | Get connected accounts (no prompt) |
+| `getPublicKey()` | Get the BTC public key |
+| `getNetwork()` | Get current network (`"livenet"` or `"testnet"`) |
+| `switchNetwork(network)` | Switch between livenet/testnet |
+| `getChain()` | Get current chain (extended API) |
+| `switchChain(chain)` | Switch chain (extended API, supports Fractal) |
+| `signMessage(msg, type)` | Sign a message with `"ecdsa"` or `"bip322-simple"` |
+
+## Integration pattern
+
+`@ckb-ccc/uni-sat` follows the same integration contract as every other wallet package in CCC:
+
+- **Factory function** — `getUniSatSigners` returns a `SignerInfo[]` array.
+- **Provider detection** — checks for `window.unisat` before creating signers.
+- **Graceful degradation** — returns an empty array when the wallet is unavailable.
+
+This package is also used as a dependency by `@ckb-ccc/okx` for its Bitcoin signing support.

@@ -17,6 +17,11 @@
     "guides/sign-message",
     "guides/udt-tokens",
     "guides/spore-protocol",
-    "guides/node-js-backend"
+    "guides/node-js-backend",
+    "---Packages---",
+    "packages/index",
+    "packages/core-packages",
+    "packages/protocol-sdks",
+    "packages/wallet-integrations"
   ]
 }

@@ -1,0 +1,173 @@
+---
+title: "@ckb-ccc/ssri"
+description: SSRI (Script-Sourced Rich Information) protocol support for CKB smart contracts.
+---
+
+`@ckb-ccc/ssri` implements the **Script-Sourced Rich Information** (SSRI) protocol. SSRI defines a standard way to call named methods on CKB scripts and receive structured responses — enabling smart contracts to expose rich metadata and operations via an off-chain RPC server.
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+npm install @ckb-ccc/ssri
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+yarn add @ckb-ccc/ssri
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+pnpm add @ckb-ccc/ssri
+```
+  </Tab>
+</Tabs>
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
+  <a href="https://www.npmjs.com/package/@ckb-ccc/ssri" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fssri" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
+  </a>
+</div>
+
+If you use `@ckb-ccc/shell`, the `ssri` namespace is already available as `ccc.ssri`.
+
+## What SSRI is
+
+CKB scripts (lock/type scripts) are pure validation functions — by default they have no way to expose metadata or provide callable interfaces. SSRI solves this by defining a protocol where:
+
+1. A smart contract implements named methods following a naming convention (e.g. `UDT.name`, `SSRI.version`).
+2. An off-chain **SSRI server** executes those methods by running the script in a sandboxed environment.
+3. Client code calls the SSRI server via JSON-RPC, passing the script's code `OutPoint`, method name, and arguments.
+
+`@ckb-ccc/ssri` provides the TypeScript abstractions for this pattern.
+
+## Exports
+
+| Export                         | Description                                                              |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `Trait`                        | Base class for all SSRI traits (extend this to implement a custom trait) |
+| `Executor`                     | Abstract base class for SSRI execution backends                          |
+| `ExecutorJsonRpc`              | Concrete executor that calls an SSRI server via JSON-RPC                 |
+| `ExecutorResponse<T>`          | Response wrapper carrying a result and resolved cell dependencies        |
+| `ExecutorErrorUnknown`         | Error: unknown server error                                              |
+| `ExecutorErrorExecutionFailed` | Error: script execution failed                                           |
+| `ExecutorErrorDecode`          | Error: failed to decode the response                                     |
+| `ContextCode`                  | Execution context: no context (code-level)                               |
+| `ContextScript`                | Execution context: script-level                                          |
+| `ContextCell`                  | Execution context: cell-level                                            |
+| `ContextTransaction`           | Execution context: transaction-level                                     |
+| `getMethodPath`                | Compute the 8-byte method path hash for a method name                    |
+
+## Key classes
+
+### `Trait`
+
+The base class for any SSRI-compatible contract interface. Extend it to build typed wrappers around on-chain scripts:
+
+```typescript theme={null}
+import { ssri } from "@ckb-ccc/ssri";
+import { ccc } from "@ckb-ccc/core";
+
+class MyContract extends ssri.Trait {
+  async myMethod(): Promise<ssri.ExecutorResponse<string>> {
+    const res = await this.assertExecutor().runScript(
+      this.code,
+      "MyContract.my_method",
+      [],
+    );
+    return res.map((bytes) => ccc.bytesTo(bytes, "utf8"));
+  }
+}
+```
+
+Built-in `Trait` methods:
+
+```typescript theme={null}
+// List methods exposed by the script
+trait.getMethods(offset?, limit?): Promise<ExecutorResponse<ccc.Hex[]>>
+
+// Check which method names exist
+trait.hasMethods(methodNames: string[]): Promise<ExecutorResponse<boolean[]>>
+
+// Query the SSRI version of the script
+trait.version(): Promise<ExecutorResponse<ccc.Num>>
+
+// Safely run a call, returning undefined instead of throwing on execution failure
+trait.tryRun(call): Promise<ExecutorResponse<T | undefined>>
+```
+
+### `ExecutorJsonRpc`
+
+Connects to an SSRI server over HTTP JSON-RPC:
+
+```typescript theme={null}
+const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com");
+```
+
+### `ExecutorResponse<T>`
+
+All SSRI calls return an `ExecutorResponse<T>`. It carries the decoded result and any cell dependencies that must be included in the transaction:
+
+```typescript theme={null}
+const response: ssri.ExecutorResponse<string> = await trait.myMethod();
+
+response.res;      // the decoded value
+response.cellDeps; // ccc.OutPoint[] — cell deps to add to your transaction
+response.map(fn);  // transform the result
+```
+
+## Usage example
+
+```typescript theme={null}
+import { ssri } from "@ckb-ccc/ssri";
+import { ccc } from "@ckb-ccc/core";
+
+const executor = new ssri.ExecutorJsonRpc("https://ssri.example.com");
+
+const trait = new ssri.Trait(
+  { txHash: "0x...", index: 0 }, // code OutPoint
+  executor,
+);
+
+// Check the SSRI version
+const { res: version, cellDeps } = await trait.version();
+console.log("Version:", version);
+
+// List available methods
+const { res: methods } = await trait.getMethods();
+console.log("Methods:", methods);
+```
+
+## Execution contexts
+
+SSRI methods can be called at four levels of context, controlling what chain data is available to the script:
+
+| Context type            | When to use                                                       |
+| ----------------------- | ----------------------------------------------------------------- |
+| `ContextCode` (default) | Pure code-level queries — no cell or transaction data             |
+| `ContextScript`         | Pass a script to the executor (e.g. to query per-script metadata) |
+| `ContextCell`           | Pass a full cell (output + data) for cell-level script execution  |
+| `ContextTransaction`    | Pass a full transaction for transaction-level script execution    |
+
+```typescript theme={null}
+const res = await executor.runScript(
+  codeOutPoint,
+  "UDT.balance",
+  [encodedArgs],
+  {
+    script: { codeHash: "0x...", hashType: "type", args: "0x..." },
+  },
+);
+```
+
+<Callout type="tip">
+  `@ckb-ccc/udt` is built on top of `@ckb-ccc/ssri` and demonstrates a
+  full working implementation of the SSRI pattern.
+</Callout>
+
+## References
+- [Script-Sourced Rich Information (SSRI)](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256/2)
+- [SSRI Executor on WASM: Implementing SSRI Protocol in Browsers](https://talk.nervos.org/t/en-cn-ssri-executor-on-wasm-implementing-ssri-protocol-in-browsers-ssri/8732)
