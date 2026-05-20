@@ -3,41 +3,68 @@ import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { externalLinks } from '@/lib/shared';
 import { getDictionary } from '@/lib/dictionary';
 
-// Logos live in /public/users/<slug>.svg — drop SVGs there and they'll be
-// picked up automatically. PNGs work too if the path is updated below.
+// Logos live in /public/users/. Each entry can supply either:
+//   - a single path (string)        — when the logo reads well on both light
+//                                     and dark backgrounds (e.g. multi-color
+//                                     marks with their own palette).
+//   - { light, dark } (object)      — when the logo needs distinct artwork
+//                                     per theme. Convention: drop the files
+//                                     as `<slug>-light.svg` / `<slug>-dark.svg`.
 //
-// `tone` describes the logo's intrinsic brightness so we can guarantee
-// contrast across light/dark themes by inverting on the "wrong" background:
-//   'dark'  — logo is mostly dark ink (good on light bg, invert in dark)
-//   'light' — logo is mostly white/light (good on dark bg, invert in light)
-//   'mixed' — logo carries its own colors that read on both (no invert)
+// The render layer picks the right variant via Tailwind's `dark:` variant,
+// so theme switching is pure CSS — no client-side JS, no hydration mismatch.
+type LogoSrc = string | { light: string; dark: string };
+
 const users: {
   name: string;
   url: string;
-  logo: string;
-  tone: 'dark' | 'light' | 'mixed';
+  logo: LogoSrc;
 }[] = [
-  { name: 'NervDAO', url: 'https://nervdao.com/', logo: '/users/nervdao.svg', tone: 'mixed' },
-  { name: 'UTXO Global', url: 'https://utxo.global/', logo: '/users/utxo-global.png', tone: 'dark' },
-  { name: 'Mobit', url: 'https://mobit.app/', logo: '/users/mobit.png', tone: 'dark' },
-  { name: 'Omiga', url: 'https://omiga.io/', logo: '/users/omiga.svg', tone: 'dark' },
-  { name: 'Nervape', url: 'https://www.nervape.com/', logo: '/users/nervape.svg', tone: 'light' },
-  { name: 'UTXOSwap', url: 'https://utxoswap.xyz/', logo: '/users/utxoswap.svg', tone: 'dark' },
-  { name: 'D.ID', url: 'https://d.id/', logo: '/users/d-id.svg', tone: 'dark' },
-  { name: 'Bool Network', url: 'https://bool.network/', logo: '/users/bool-network.svg', tone: 'light' },
-  { name: 'World3', url: 'https://world3.ai/', logo: '/users/world3.svg', tone: 'dark' },
+  { name: 'NervDAO',      url: 'https://nervdao.com/',     logo: { light: '/users/nervdao.svg',  dark: '/users/nervdao-dark.svg' } },
+  { name: 'UTXO Global',  url: 'https://utxo.global/',     logo: { light: '/users/utxo-global.png',  dark: '/users/utxo-global-dark.png' } },
+  { name: 'Mobit',        url: 'https://mobit.app/',       logo: { light: '/users/mobit.png',        dark: '/users/mobit.png' } },
+  { name: 'Omiga',        url: 'https://omiga.io/',        logo: { light: '/users/omiga.svg',        dark: '/users/omiga-dark.svg' } },
+  { name: 'Nervape',      url: 'https://www.nervape.com/', logo: { light: '/users/nervape.svg',      dark: '/users/nervape-dark.svg' } },
+  { name: 'UTXOSwap',     url: 'https://utxoswap.xyz/',    logo: { light: '/users/utxoswap.svg',     dark: '/users/utxoswap.svg' } },
+  { name: 'D.ID',         url: 'https://d.id/',            logo: { light: '/users/d-id.svg',         dark: '/users/d-id-dark.svg' } },
+  { name: 'Bool Network', url: 'https://bool.network/',    logo: { light: '/users/bool-network.svg', dark: '/users/bool-network-dark.svg' } },
+  { name: 'World3',       url: 'https://world3.ai/',       logo: { light: '/users/world3.svg',       dark: '/users/world3-dark.svg' } },
 ];
 
-/** Tailwind classes that ensure each logo always has contrast against the
- *  current theme background by selectively inverting on the wrong tone. */
-const TONE_INVERT: Record<'dark' | 'light' | 'mixed', string> = {
-  // dark logo → invert only in dark mode → becomes light
-  dark: 'dark:invert-50',
-  // light logo → invert only in light mode → becomes dark
-  light: 'invert dark:invert-0',
-  // colored logo that already works on both — leave alone
-  mixed: '',
-};
+/**
+ * Renders a logo image, automatically swapping between light and dark
+ * variants when both are provided. When `logo` is a plain string, the same
+ * artwork is rendered in both themes.
+ */
+function UserLogo({
+  logo,
+  name,
+  className,
+}: {
+  logo: LogoSrc;
+  name: string;
+  className: string;
+}) {
+  if (typeof logo === 'string') {
+    return <img src={logo} alt={name} loading="lazy" className={className} />;
+  }
+  return (
+    <>
+      <img
+        src={logo.light}
+        alt={name}
+        loading="lazy"
+        className={`${className} block dark:hidden`}
+      />
+      <img
+        src={logo.dark}
+        alt={name}
+        loading="lazy"
+        className={`${className} hidden dark:block`}
+      />
+    </>
+  );
+}
 
 /**
  * Syntax-highlighted code sample shown in the hero. We render tokens as spans
@@ -233,12 +260,12 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
                         'radial-gradient(circle at center, color-mix(in oklch, var(--ccc-brand) 22%, transparent) 0%, transparent 65%)',
                     }}
                   />
-                  {/* Logo — grayscale + dim by default, full color on hover. */}
-                  <img
-                    src={u.logo}
-                    alt={u.name}
-                    loading="lazy"
-                    className={`relative max-h-10 md:max-h-12 max-w-[60%] w-auto object-contain grayscale opacity-55 transition-all duration-500 ease-out group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105 ${TONE_INVERT[u.tone]}`}
+                  {/* Logo — grayscale + dim by default, full color on hover.
+                      Light/dark variants are swapped purely via CSS. */}
+                  <UserLogo
+                    logo={u.logo}
+                    name={u.name}
+                    className="relative max-h-10 md:max-h-12 max-w-[80%] w-auto object-contain transition-all duration-500 ease-out group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
                   />
                   {/* Name label — sits below logo, fades in on hover. */}
                   <span className="absolute bottom-2 left-1/2 -translate-x-1/2 font-mono text-[10px] tracking-widest uppercase text-fd-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
