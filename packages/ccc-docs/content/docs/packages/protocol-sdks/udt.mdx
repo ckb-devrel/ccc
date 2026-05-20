@@ -1,0 +1,244 @@
+---
+title: "@ckb-ccc/udt"
+description: UDT and xUDT token SDK for issuing and transferring User Defined Tokens.
+---
+
+`@ckb-ccc/udt` provides a TypeScript SDK for interacting with User Defined Tokens (UDT) and the xUDT standard on CKB. It is built on top of the SSRI protocol, supporting both SSRI-compliant contracts and legacy sUDT/xUDT tokens.
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+npm install @ckb-ccc/udt
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+yarn add @ckb-ccc/udt
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+pnpm add @ckb-ccc/udt
+```
+  </Tab>
+</Tabs>
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
+  <a href="https://www.npmjs.com/package/@ckb-ccc/udt" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fudt" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
+  </a>
+</div>
+
+If you are using `@ckb-ccc/shell`, the `udt` namespace is already available as `ccc.udt`.
+
+## Exports
+
+| Export        | Description                            |
+| ------------- | -------------------------------------- |
+| `Udt`         | Main class for interacting with a UDT  |
+| `UdtPausable` | Extended class for pausable UDT tokens |
+
+## The `Udt` class
+
+`Udt` extends `ssri.Trait` and provides high-level methods for all token operations.
+
+### Constructor
+
+```typescript theme={null}
+const udt = new Udt(
+  code,    // ccc.OutPointLike — the script code cell OutPoint
+  script,  // ccc.ScriptLike  — the type script identifying this token
+  config?, // { executor?: ssri.Executor | null }
+);
+```
+
+### Read methods
+
+```typescript theme={null}
+// Token metadata
+const { res: name }     = await udt.name();     // string | undefined
+const { res: symbol }   = await udt.symbol();   // string | undefined
+const { res: decimals } = await udt.decimals(); // ccc.Num | undefined
+const { res: icon }     = await udt.icon();     // string (data URI) | undefined
+```
+
+### `transfer`
+
+Transfer tokens to one or more recipients:
+
+```typescript theme={null}
+async transfer(
+  signer: ccc.Signer,
+  transfers: { to: ccc.ScriptLike; amount: ccc.NumLike }[],
+  tx?: ccc.TransactionLike | null,
+): Promise<ssri.ExecutorResponse<ccc.Transaction>>
+```
+
+### `mint`
+
+Mint new tokens (issuer only):
+
+```typescript theme={null}
+async mint(
+  signer: ccc.Signer,
+  mints: { to: ccc.ScriptLike; amount: ccc.NumLike }[],
+  tx?: ccc.TransactionLike | null,
+): Promise<ssri.ExecutorResponse<ccc.Transaction>>
+```
+
+### `completeBy`
+
+Balance UDT inputs/outputs automatically using the signer's address as change:
+
+```typescript theme={null}
+async completeBy(
+  tx: ccc.TransactionLike,
+  from: ccc.Signer,
+): Promise<ccc.Transaction>
+```
+
+### `completeChangeToLock`
+
+Balance UDT inputs/outputs with a custom change lock script:
+
+```typescript theme={null}
+async completeChangeToLock(
+  txLike: ccc.TransactionLike,
+  signer: ccc.Signer,
+  change: ccc.ScriptLike,
+): Promise<ccc.Transaction>
+```
+
+## Usage examples
+
+### Issue xUDT 
+The following example shows how to issue xUDT tokens using CCC (from CCC demo application):
+
+```typescript theme={null}
+// 1. Prepare token information  
+const { script } = await signer.getRecommendedAddressObj();  
+const decimals = "8";  
+const symbol = "SUS";  
+const name = "Sample Token";  
+  
+// 2. Create SUS (Single-Use Seal) transaction  
+const susTx = ccc.Transaction.from({  
+  outputs: [{ lock: script }],  
+});  
+await susTx.completeInputsByCapacity(signer);  
+await susTx.completeFeeBy(signer);  
+const susTxHash = await signer.sendTransaction(susTx);
+```
+
+### Use Type ID to issue xUDT
+```typescript theme={null}
+// 1. Create or use existing Type ID  
+const typeId = await ccc.Script.fromKnownScript(  
+  signer.client,  
+  ccc.KnownScript.TypeId,  
+  typeIdArgs,  
+);  
+  
+// 2. Create output type proxy lock  
+const outputTypeLock = await ccc.Script.fromKnownScript(  
+  signer.client,  
+  ccc.KnownScript.OutputTypeProxyLock,  
+  typeId.hash(),  
+);  
+  
+// 3. Create owner cell  
+const lockTx = ccc.Transaction.from({  
+  outputs: [{ lock: outputTypeLock }],  
+});  
+await lockTx.completeInputsByCapacity(signer);  
+await lockTx.completeFeeBy(signer);  
+const lockTxHash = await signer.sendTransaction(lockTx);  
+  
+// 4. Mint tokens  
+const mintTx = ccc.Transaction.from({  
+  inputs: [  
+    { previousOutput: typeIdCell.outPoint },  
+    { previousOutput: { txHash: lockTxHash, index: 0 } },  
+  ],  
+  outputs: [  
+    typeIdCell.cellOutput,  
+    {  
+      lock: script,  
+      type: await ccc.Script.fromKnownScript(  
+        signer.client,  
+        ccc.KnownScript.XUdt,  
+        outputTypeLock.hash(),  
+      ),  
+    },  
+  ],  
+});
+```
+
+### Transfer tokens
+
+```typescript theme={null}
+import { udt } from "@ckb-ccc/udt";
+import { ccc } from "@ckb-ccc/shell";
+
+const myToken = new udt.Udt(
+  {
+    txHash: "0x4e2e832e0b1e7b5994681b621b00c1e65f577ee4b440ef95fa07db9bb3d50269",
+    index: 0,
+  },
+  {
+    codeHash: "0xcc9dc33ef234e14bc788c43a4848556a5fb16401a04662fc55db9bb201987037",
+    hashType: "type",
+    args: "0x71fd1985b2971a9903e4d8ed0d59e6710166985217ca0681437883837b86162f",
+  },
+);
+
+const { script: toScript } = await ccc.Address.fromString(
+  "ckb1qzda0cr08m85hc8jlnfp3gog...",
+  signer.client,
+);
+
+// Build the transfer transaction
+const { res: tx } = await myToken.transfer(signer, [
+  { to: toScript, amount: 100n },
+]);
+
+// Balance UDT change and capacity
+const completedTx = await myToken.completeBy(tx, signer);
+await completedTx.completeInputsByCapacity(signer);
+await completedTx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(completedTx);
+```
+
+### Read token metadata
+
+```typescript theme={null}
+const { res: name }     = await myToken.name();
+const { res: symbol }   = await myToken.symbol();
+const { res: decimals } = await myToken.decimals();
+
+console.log(`${name} (${symbol}), ${decimals} decimal places`);
+```
+
+### Mint tokens
+
+```typescript theme={null}
+const { res: tx } = await myToken.mint(signer, [
+  { to: recipientScript, amount: 1_000_000n },
+]);
+
+const completedTx = await myToken.completeBy(tx, signer);
+await completedTx.completeInputsByCapacity(signer);
+await completedTx.completeFeeBy(signer);
+
+await signer.sendTransaction(completedTx);
+```
+
+<Callout type="tip">
+  `@ckb-ccc/udt` depends on `@ckb-ccc/ssri`. An `ssri.Executor` is optional —
+  without one, the `Udt` class falls back to constructing transactions directly
+  without querying SSRI metadata from the chain.
+</Callout>

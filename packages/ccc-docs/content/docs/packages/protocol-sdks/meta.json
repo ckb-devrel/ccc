@@ -1,0 +1,12 @@
+{
+  "title": "Protocol Support Layer",
+  "description": "Protocol-level SDKs built on top of core: Spore, UDT, SSRI, Lumos patches.",
+  "icon": "Sprout",
+  "defaultOpen": false,
+  "pages": [
+    "spore",
+    "udt",
+    "ssri",
+    "lumos-patches"
+  ]
+}

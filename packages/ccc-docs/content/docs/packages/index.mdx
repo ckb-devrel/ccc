@@ -1,13 +1,136 @@
 ---
-title: CCC Packages
+title: CCC Packages Overview
 description: Overview of the CCC packages.
 ---
 
-Core building blocks of every CCC application:
+import { Box, Terminal, AppWindow, Plug, Sprout, Code, Coins, Shield, Wrench, Smile, Wallet } from "lucide-react";
 
-- **Cell Model** — CKB's generalized UTXO model.
-- **Transaction** — Declarative composition and auto-completion.
-- **Signer** — A unified signing interface across chains.
-- **Client** — RPC connection to a CKB node.
+> CCC is a monorepo of focused packages — pick what you need.
 
-> TODO: Fill in full content for each concept.
+CCC ships as a collection of focused npm packages. Install only what your project requires.
+
+<Callout type="info">
+  Most projects need just one entry-point package. Use `@ckb-ccc/shell` for
+  Node.js, `@ckb-ccc/connector-react` for React apps, or `@ckb-ccc/ccc` when
+  you want to build a fully custom wallet UI.
+</Callout>
+
+## Packages
+
+<Cards cols={2}>
+  <Card title="@ckb-ccc/core" icon={<Box/>} href="./packages/core-packages/core">
+    Low-level CKB primitives: Transaction, Signer, Client, Address, Script, and
+    all encoding utilities.
+  </Card>
+
+  <Card title="@ckb-ccc/shell" icon={<Terminal/>} href="./packages/core-packages/shell">
+    Node.js / backend usage. Includes core, spore, udt, and ssri — everything
+    you need for server-side scripts.
+  </Card>
+
+  <Card title="@ckb-ccc/ccc" icon={<AppWindow/>} href="./packages/core-packages/ccc">
+    All-in-one bundle with all wallet integrations. Use for custom UI or when
+    you need every wallet available in a single import.
+  </Card>
+
+  <Card title="@ckb-ccc/connector" icon={<Plug/>} href="./packages/core-packages/connector">
+    Framework-agnostic Web Component connector. Drop a `<ccc-connector>` element
+    into any HTML page.
+  </Card>
+
+  <Card title="@ckb-ccc/connector-react" icon="React" href="./packages/core-packages/connector-react">
+    React `Provider` component and `useCcc()` hook for wallet integration with
+    minimal boilerplate.
+  </Card>
+
+  <Card title="@ckb-ccc/spore" icon={<Sprout/>} href="./packages/protocol-sdks/spore">
+    Spore Protocol SDK — create, transfer, and melt on-chain digital objects
+    (DOBs) and clusters.
+  </Card>
+
+  <Card title="@ckb-ccc/udt" icon={<Coins/>} href="./packages/protocol-sdks/udt">
+    UDT and xUDT token SDK — issue, transfer, and mint User Defined Tokens on
+    CKB.
+  </Card>
+
+  <Card title="@ckb-ccc/ssri" icon={<Shield/>} href="./packages/protocol-sdks/ssri">
+    SSRI (Script-Sourced Rich Information) protocol support for interacting with
+    CKB smart contracts.
+  </Card>
+
+  <Card title="@ckb-ccc/lumos-patches" icon={<Wrench/>} href="./packages/protocol-sdks/lumos-patches">
+    Compatibility patches that enable the Lumos SDK to work with JoyID, Nostr,
+    and Portal wallets.
+  </Card>
+
+  <Card title="@ckb-ccc/joy-id" icon={<Smile/>} href="./packages/wallet-integrations/joy-id">
+    JoyID passkey-based wallet integration — no seed phrase required.
+  </Card>
+
+  <Card title="@ckb-ccc/eip6963" icon={<Code/>} href="./packages/wallet-integrations/eip6963">
+    EIP-6963 multi-wallet discovery for EVM wallets such as MetaMask and Rabby.
+  </Card>
+
+  <Card title="@ckb-ccc/nip07" icon={<Code/>} href="./packages/wallet-integrations/nip07">
+    Nostr NIP-07 wallet integration for signing with Nostr browser extensions.
+  </Card>
+
+  <Card title="@ckb-ccc/utxo-global" icon={<Wallet/>} href="./packages/wallet-integrations/utxo-global">
+    UTXO Global wallet integration for signing with UTXO Global browser extensions.
+  </Card>
+
+  <Card title="@ckb-ccc/rei" icon={<Wallet/>} href="./packages/wallet-integrations/rei">
+    REI wallet integration for signing with REI browser extensions.
+  </Card>
+
+  <Card title="@ckb-ccc/okx" icon={<Wallet/>} href="./packages/wallet-integrations/okx">
+    OKX wallet integration for signing with OKX browser extensions.
+  </Card>
+
+  <Card title="@ckb-ccc/uni-sat" icon={<Wallet/>} href="./packages/wallet-integrations/uni-sat">
+    Uni-Sat wallet integration for signing with Uni-Sat browser extensions.
+  </Card>
+</Cards>
+
+## Package reference
+
+| Package                    | Purpose                     | Package Latest Version                                |
+| -------------------------- | --------------------------- | -------------------------------------- |
+| `@ckb-ccc/core`            | CKB primitives and encoding | <a href="https://www.npmjs.com/package/@ckb-ccc/core" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fcore" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                        |
+| `@ckb-ccc/shell`           | Node.js / backend scripting | <a href="https://www.npmjs.com/package/@ckb-ccc/shell" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fshell" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                      |
+| `@ckb-ccc/ccc`             | All-in-one for custom UI    | <a href="https://www.npmjs.com/package/@ckb-ccc/ccc" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fccc" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                          |
+| `@ckb-ccc/connector`       | Web Component connector     | <a href="https://www.npmjs.com/package/@ckb-ccc/connector" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fconnector" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>              |
+| `@ckb-ccc/connector-react` | React connector             | <a href="https://www.npmjs.com/package/@ckb-ccc/connector-react" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fconnector-react" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>  |
+| `@ckb-ccc/spore`           | Spore Protocol SDK          | <a href="https://www.npmjs.com/package/@ckb-ccc/spore" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fspore" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                      |
+| `@ckb-ccc/udt`             | UDT / xUDT token SDK        | <a href="https://www.npmjs.com/package/@ckb-ccc/udt" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fudt" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                          |
+| `@ckb-ccc/ssri`            | SSRI protocol               | <a href="https://www.npmjs.com/package/@ckb-ccc/ssri" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fssri" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                        |
+| `@ckb-ccc/lumos-patches`   | Lumos compatibility         | <a href="https://www.npmjs.com/package/@ckb-ccc/lumos-patches" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Flumos-patches" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>      |
+| `@ckb-ccc/joy-id`          | JoyID wallet                | <a href="https://www.npmjs.com/package/@ckb-ccc/joy-id" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fjoy-id" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                    |
+| `@ckb-ccc/eip6963`         | EVM wallets (EIP-6963)      | <a href="https://www.npmjs.com/package/@ckb-ccc/eip6963" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Feip6963" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                  |
+| `@ckb-ccc/nip07`           | Nostr NIP-07 wallet         | <a href="https://www.npmjs.com/package/@ckb-ccc/nip07" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fnip07" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                      |
+| `@ckb-ccc/utxo-global`     | UTXO Global wallet          | <a href="https://www.npmjs.com/package/@ckb-ccc/utxo-global" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Futxo-global" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>          |
+| `@ckb-ccc/rei`             | REI wallet                  | <a href="https://www.npmjs.com/package/@ckb-ccc/rei" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Frei" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                          |
+| `@ckb-ccc/xverse`          | Xverse wallet               | <a href="https://www.npmjs.com/package/@ckb-ccc/xverse" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fxverse" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                    |
+| `@ckb-ccc/okx`             | OKX wallet                  | <a href="https://www.npmjs.com/package/@ckb-ccc/okx" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fokx" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                          |
+| `@ckb-ccc/uni-sat`         | Uni-Sat wallet              | <a href="https://www.npmjs.com/package/@ckb-ccc/uni-sat" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/npm/v/%40ckb-ccc%2Funi-sat" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} /></a>                  |
+
+## Import pattern
+
+All packages expose their public API on a single `ccc` namespace object:
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/<package-name>";
+```
+
+Advanced (unstable) APIs are available on `cccA`:
+
+```typescript theme={null}
+import { cccA } from "@ckb-ccc/<package-name>/advanced";
+```
+
+<Callout type="info">
+  Your `tsconfig.json` must set `moduleResolution` to `node16`, `nodenext`, or
+  `bundler` and must not disable `resolvePackageJsonExports`. CCC uses [Package
+  Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points)
+  for tree shaking.
+</Callout>

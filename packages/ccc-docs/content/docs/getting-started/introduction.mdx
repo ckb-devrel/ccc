@@ -1,67 +1,68 @@
 ---
 title: Introduction
-description: Learn about CCC and what it can do for you.
+description: Everything you need to build on CKB — wallets, transactions, signers, and multi-chain support — in one TypeScript SDK.
 icon: BookOpen
 ---
 
 import { Rocket, Package, BookOpen, Map } from 'lucide-react';
 
-CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
-
 CCC is a TypeScript/JavaScript SDK for building on the [CKB (Common Knowledge Base)](https://nervos.org/) blockchain. It gives you everything you need to interact with CKB nodes, compose transactions, sign messages, and connect wallets — across multiple chain ecosystems.
 
 ## What you can do with CCC
 
-* **Learn CKB**: Code examples and live web demos help you quickly understand how CKB works.
-* **Analyze data**: Interact with CKB nodes and process blockchain data programmatically.
-* **Compose transactions**: Highly intuitive and customizable transaction composition, with helpers to simplify the process.
-* **Sign messages**: A unified signing interface with pre-built methods for interoperating across multiple chains.
-* **Connect wallets**: Integrate the connector component in minutes, or build a custom wallet connection UI.
+- **Learn CKB**: Explore code examples and live web demos to understand how CKB works hands-on.
+- **Analyze data**: Query CKB nodes and process blockchain data programmatically.
+- **Compose transactions**: Build transactions with an intuitive API — CCC handles input selection and fee calculation for you.
+- **Sign messages**: Use a single signing interface that works across EVM, Bitcoin, Nostr, and more.
+- **Connect wallets**: Drop in the connector component and go, or build a fully custom wallet UI.
 
 ## Key capabilities
 
-CCC is designed to make CKB development approachable without sacrificing flexibility:
-
-* **Multi-chain wallet support**: Connect wallets from EVM, Bitcoin, CKB, Nostr, and Dogecoin ecosystems — all through one interface.
-* **Intuitive transaction composition**: Describe what you want in your transaction; CCC fills in the inputs and fee automatically.
-* **Unified signing**: One signing interface for all supported wallet types.
-* **React and Web Component connectors**: Drop-in UI components for connecting wallets in React apps or any framework.
+- **Multi-chain wallet support**: One interface for wallets across EVM, Bitcoin, CKB, Nostr, and Dogecoin ecosystems.
+- **Automatic transaction completion**: Describe your intent; CCC fills in the inputs and fee.
+- **Unified signing**: The same `Signer` interface regardless of wallet type or chain.
+- **React and Web Component connectors**: Pre-built UI components that work in React or any framework.
 
 ## Who uses CCC
 
-CCC powers production applications across the CKB ecosystem:
-
-[NervDAO](https://nervdao.com/), [UTXO Global](https://utxo.global/), [Mobit](https://mobit.app/), [Omiga](https://omiga.io/), [Nervape](https://www.nervape.com/), [UTXOSwap](https://utxoswap.xyz/), [D.ID](https://d.id/), [Bool Network](https://bool.network/), [World3](https://world3.ai/), [RGBCat](https://catnip.rgbcat.io/)
+CCC powers production applications across the CKB ecosystem — including
+[NervDAO](https://nervdao.com/),
+[UTXO Global](https://utxo.global/),
+[Mobit](https://mobit.app/),
+[Omiga](https://omiga.io/),
+[Nervape](https://www.nervape.com/),
+[UTXOSwap](https://utxoswap.xyz/),
+[D.ID](https://d.id/),
+[Bool Network](https://bool.network/),
+[World3](https://world3.ai/),
+and more.
 
 ## Ecosystem links
 
-* [CCC Playground](https://live.ckbccc.com/) — Run CCC code instantly in your browser, with data visualization and code sharing.
-* [CCC App](https://app.ckbccc.com/) — A mini-toolset for CKB showcasing basic scenarios.
-* [API reference](https://api.ckbccc.com) — Full TypeScript API documentation.
-* [Nervos CKB Docs](https://docs.nervos.org/) — Background knowledge on the CKB blockchain.
-* ~~[Lumos](https://github.com/ckb-js/lumos) — Utility library for composing CKB transactions.~~
+- [CCC Playground](https://live.ckbccc.com/) — Run CCC code instantly in your browser, with live data and shareable snippets.
+- [CCC App](https://app.ckbccc.com/) — A mini-toolset showcasing common CKB scenarios.
+- [API Reference](https://api.ckbccc.com) — Full TypeScript API documentation.
+- [Nervos CKB Docs](https://docs.nervos.org/) — Background knowledge on the CKB blockchain.
+- [RGB++ SDK](https://github.com/rgbplusplus/rgbpp-sdk) — Issue assets on BTC L1 backed by CKB's VM.
+- [Spore SDK](https://github.com/sporeprotocol/spore-sdk) — On-chain digital objects (DOBs) protocol.
+
 <Callout type="warning">
-**Note: Lumos is no longer actively maintained. We recommend using CCC for new projects.**
+  [Lumos](https://github.com/ckb-js/lumos) is no longer actively maintained. We recommend CCC for all new projects.
 </Callout>
-* [RGB++ SDK](https://github.com/rgbplusplus/rgbpp-sdk) — Protocol for issuing assets on BTC L1 with CKB's VM.
-* [Spore SDK](https://github.com/sporeprotocol/spore-sdk) — On-chain digital objects (DOBs) protocol.
 
 ## Next steps
 
 <Cards cols={2}>
   <Card title="Quick start" icon={<Rocket />} href="./quick-start">
-    Get a CKB transaction on-chain in under 5 minutes.
+    Send your first CKB transaction on-chain with CCC — in under 5 minutes.
   </Card>
-
   <Card title="Installation" icon={<Package />} href="./installation">
     Install CCC for React, Node.js, Web Component, or custom UI.
   </Card>
-
   <Card title="Core concepts" icon={<BookOpen />} href="../concepts/cell-model">
-    Understand transactions, signers, clients, and addresses.
+    Learn the five primitives behind every CCC app and how they fit together.
   </Card>
-
   <Card title="Guides" icon={<Map />} href="../guides/connect-wallets">
-    Step-by-step guides for common CKB development tasks.
+    Find the recipe for what you're trying to build — step-by-step.
   </Card>
 </Cards>

@@ -6,7 +6,7 @@ icon: Key
 
 ## What is a Signer?
 
-A `Signer` is an abstract class that represents a connected wallet. It provides a unified interface for interacting with wallets from different blockchain ecosystems — EVM wallets, Bitcoin wallets, CKB native wallets, Nostr keys, and more — all through the same API.
+`ccc.Signer` is the core abstraction that unifies signing across multiple blockchain ecosystems. It lets a single piece of CCC application code work with wallets from CKB, EVM, Bitcoin, Nostr, Doge, and more — all through the same API — while ultimately controlling CKB assets.
 
 ```typescript theme={null}
 // From packages/core/src/signer/signer/index.ts
@@ -22,13 +22,34 @@ export abstract class Signer {
 }
 ```
 
-Signers are not created directly. They are obtained from wallet connectors (e.g., `useCcc()` in the React connector, or `SignersController`).
+- `type` — the originating blockchain ecosystem (CKB / EVM / BTC / Nostr / Doge).
+- `signType` — the concrete signing scheme (CkbSecp256k1, EvmPersonal, BtcEcdsa, NostrEvent, JoyId, DogeEcdsa).
+- `client` — the `ccc.Client` used to talk to a CKB node.
 
-## Signer types
+Signers are normally **not constructed by hand**. They are produced by wallet connectors (e.g. `useCcc()` in the React connector, or `SignersController`). For server-side code you may instantiate one directly (see [Obtaining a signer](#obtaining-a-signer)).
+
+## Signer hierarchy
+
+```mermaid
+graph TB
+    Signer["Signer (abstract base)"]
+
+    SignerCkb["SignerCkbPublicKey<br/>SignerType.CKB<br/>SignerSignType.CkbSecp256k1"]
+    SignerEvm["SignerEvm<br/>SignerType.EVM<br/>SignerSignType.EvmPersonal"]
+    SignerBtc["SignerBtc<br/>SignerType.BTC<br/>SignerSignType.BtcEcdsa"]
+    SignerNostr["SignerNostr<br/>SignerType.Nostr<br/>SignerSignType.NostrEvent"]
+
+    Signer --> SignerCkb
+    Signer --> SignerEvm
+    Signer --> SignerBtc
+    Signer --> SignerNostr
+```
+
+## Signer enums
 
 ### SignerType
 
-Identifies the originating blockchain ecosystem of the signer:
+Identifies the originating blockchain ecosystem of the signer.
 
 ```typescript theme={null}
 // From packages/core/src/signer/signer/index.ts
@@ -43,7 +64,7 @@ export enum SignerType {
 
 ### SignerSignType
 
-Identifies the specific signing scheme used by the signer:
+Identifies the specific signing scheme used by the signer.
 
 ```typescript theme={null}
 // From packages/core/src/signer/signer/index.ts
@@ -79,6 +100,9 @@ abstract isConnected(): Promise<boolean>;
 // Get the wallet's internal (native) address string
 abstract getInternalAddress(): Promise<string>;
 
+// Get an identity used to verify signatures (typically address or pubkey)
+abstract getIdentity(): Promise<string>;
+
 // Get the recommended CKB address as a string
 async getRecommendedAddress(preference?: unknown): Promise<string>;
 
@@ -105,10 +129,19 @@ async getBalance(): Promise<Num>;
 // Sign a message and return a full Signature object
 async signMessage(message: string | BytesLike): Promise<Signature>;
 
+// Sign a message and return only the signature string (implemented by subclasses)
+abstract signMessageRaw(message: string | BytesLike): Promise<string>;
+
 // Verify a message signature
 async verifyMessage(
   message: string | BytesLike,
   signature: string | Signature,
+): Promise<boolean>;
+
+// Static verifier — dispatches to the algorithm implied by signature.signType
+static async verifyMessage(
+  message: string | BytesLike,
+  signature: Signature,
 ): Promise<boolean>;
 ```
 
@@ -148,77 +181,151 @@ async *findTransactions(
 ): AsyncGenerator<...>;
 ```
 
-## Supporting types
+## Concrete implementations
 
-### Signature
+### CKB signers
 
-```typescript theme={null}
-// From packages/core/src/signer/signer/index.ts
-export class Signature {
-  constructor(
-    public signature: string,  // The raw signature bytes as a hex string
-    public identity: string,   // The signer's identity (usually their address)
-    public signType: SignerSignType,
-  ) {}
+#### `SignerCkbPublicKey`
+
+A read-only signer built from a 33-byte compressed public key. Supports discovery of AnyoneCanPay addresses.
+
+- `getAddressObjSecp256k1()` — returns the `Secp256k1Blake160` address.
+- `getAddressObjs()` — returns the primary address plus up to 10 discovered AnyoneCanPay addresses.
+
+#### `SignerCkbPrivateKey`
+
+Extends `SignerCkbPublicKey` and adds signing using a 32-byte private key.
+
+Signing flow:
+
+1. Compute the message hash: `hashCkb("Nervos Message:" + message)`.
+2. Produce a 65-byte ECDSA signature with a recovery id.
+3. Place the signature in the witness `lock` field.
+
+### EVM signers
+
+Allow Ethereum-style wallets to control CKB assets through OmniLock or PWLock scripts.
+
+Lock script `args` formats:
+
+- OmniLock (modern Ethereum auth flag `0x12`): `[0x12, ...evmAddress(20 bytes), 0x00]`
+- OmniLock (legacy Ethereum flag `0x01`): `[0x01, ...evmAddress(20 bytes), 0x00]`
+- PWLock: `evmAddress(20 bytes)` — direct address mapping.
+
+Signing flow:
+
+- OmniLock: uses `personal_sign` with message prefix `"CKB transaction: " + txHash`.
+- PWLock: uses Keccak256 instead of Blake2b for the transaction hash.
+
+### BTC signers
+
+Bitcoin signers use the OmniLock Bitcoin auth flag (`0x04`).
+
+- Args: `[0x04, ...btcEcdsaPublicKeyHash(publicKey), 0x00]`
+- `btcEcdsaPublicKeyHash` = `RIPEMD160(SHA256(publicKey))`.
+
+Signing flow:
+
+- Message format: `"CKB (Bitcoin Layer) transaction: " + txHash`.
+- Use the wallet's `signMessage` (returns base64), then adjust the recovery flag.
+
+### Nostr signers
+
+Control CKB assets through Nostr event signatures (NIP-01).
+
+NostrLock script args: `[0x00, ...hashCkb(pubkey)[0:21]]`.
+
+Event structure:
+
+```json
+{
+  "pubkey": "nostr_public_key_hex",
+  "created_at": 1234567890,
+  "kind": 23334,
+  "tags": [["ckb_sighash_all", "transaction_hash_hex"]],
+  "content": "Signing a CKB transaction...",
+  "id": "event_id",
+  "sig": "event_signature"
 }
 ```
 
-### SignerInfo
+Constants:
+
+- `CKB_UNLOCK_EVENT_KIND` = `23334`
+- `CKB_SIG_HASH_ALL_TAG` = `"ckb_sighash_all"`
+
+### JoyID signer
+
+CKB signer backed by WebAuthn / passkeys.
+
+Sub-key wallet support:
+
+- Queries the JoyID Aggregator service for an unlock SMT proof.
+- Adds the COTA cell dependency.
+- Witness placeholder size is 1000 bytes (due to the WebAuthn signature format).
+
+### Lock script generation summary
+
+| Signer | Input | Lock script | Args format | Witness size |
+| --- | --- | --- | --- | --- |
+| CKB | 33-byte pubkey | Secp256k1Blake160 | `hashCkb(pubkey)[0:20]` | 65 bytes |
+| CKB | (same) | AnyoneCanPay | `hashCkb(pubkey)[0:20] + ...` | 65 bytes |
+| EVM | 20-byte address | OmniLock (modern) | `0x12 + address + 0x00` | 85 bytes |
+| EVM | (same) | OmniLock (legacy) | `0x01 + address + 0x00` | 85 bytes |
+| EVM | (same) | PWLock | `address` | 65 bytes |
+| BTC | 33/65-byte pubkey | OmniLock | `0x04 + hash160(pubkey) + 0x00` | 85 bytes |
+| Nostr | 32-byte pubkey | NostrLock | `0x00 + hashCkb(pubkey)[0:21]` | 572 bytes |
+| JoyID | WebAuthn pubkey | JoyID | `hashCkb(pubkey)[0:20]` | 1000 bytes |
+
+
+## Wallet integrations
+
+### EIP-6963 (MetaMask, OKX, ...)
 
 ```typescript theme={null}
-// From packages/core/src/signer/signer/index.ts
-export class SignerInfo {
-  constructor(
-    public name: string,
-    public signer: Signer,
-  ) {}
-}
+import { Signer } from "@ckb-ccc/eip6963";
+
+const signer = new Signer(client, provider);
+await signer.connect();
+const address = await signer.getRecommendedAddress();
 ```
 
-### Wallet
+### NIP-07 (Nostr extensions)
 
 ```typescript theme={null}
-// From packages/core/src/signer/signer/index.ts
-export type Wallet = {
-  name: string;
-  icon: string;
-};
+import { Signer } from "@ckb-ccc/nip07";
+
+const signer = new Signer(client, window.nostr);
+await signer.connect();
 ```
 
-### NetworkPreference
+### JoyID
 
 ```typescript theme={null}
-// From packages/core/src/signer/signer/index.ts
-export type NetworkPreference = {
-  addressPrefix: string;   // "ckb" for mainnet, "ckt" for testnet
-  signerType: SignerType;
-  network: string;         // e.g. "btc", "btcTestnet", "btcSignet"
-};
+import { getJoyIdSigners } from "@ckb-ccc/joy-id";
+
+const signers = getJoyIdSigners(client, "My App", "icon.png");
 ```
 
 ## Usage examples
+
 ### Getting address and balance
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
 
 async function printWalletInfo(signer: ccc.Signer) {
-  // Check connection
   if (!(await signer.isConnected())) {
     await signer.connect();
   }
 
-  // Get the recommended CKB address string
   const address = await signer.getRecommendedAddress();
   console.log("CKB address:", address);
 
-  // Get all addresses
   const allAddresses = await signer.getAddresses();
   console.log("All addresses:", allAddresses);
 
-  // Get balance in Shannon
   const balance = await signer.getBalance();
-  // Convert Shannon back to CKB for display
   console.log("Balance (Shannon):", balance.toString());
 }
 ```
@@ -229,14 +336,17 @@ async function printWalletInfo(signer: ccc.Signer) {
 import { ccc } from "@ckb-ccc/ccc";
 
 async function signAndVerify(signer: ccc.Signer, message: string) {
-  // Sign
   const sig = await signer.signMessage(message);
   console.log("Signature:", sig.signature);
   console.log("Sign type:", sig.signType);
 
-  // Verify
+  // Instance verify (uses this signer's algorithm)
   const valid = await signer.verifyMessage(message, sig);
-  console.log("Valid:", valid);
+
+  // Or static verify — dispatches by sig.signType, no signer instance needed
+  const valid2 = await ccc.Signer.verifyMessage(message, sig);
+
+  console.log("Valid:", valid, valid2);
 }
 ```
 
@@ -246,7 +356,7 @@ In practice, signers are provided by wallet connectors rather than instantiated 
 
 <Tabs items={["React connector", "Node.js / shell"]}>
   <Tab value="React connector">
-    ```typescript React connector theme={null}
+    ```typescript theme={null}
     import { useCcc } from "@ckb-ccc/connector-react";
 
     function MyComponent() {
@@ -262,11 +372,10 @@ In practice, signers are provided by wallet connectors rather than instantiated 
   </Tab>
 
   <Tab value="Node.js / shell">
-    ```typescript Node.js / shell theme={null}
+    ```typescript theme={null}
     import { ccc } from "@ckb-ccc/shell";
 
     // For server-side usage, construct a signer directly
-    // (e.g. CkbSignerSecp256k1 from @ckb-ccc/shell)
     const signer = new ccc.SignerCkbPrivateKey(client, privateKey);
     await signer.connect();
     ```

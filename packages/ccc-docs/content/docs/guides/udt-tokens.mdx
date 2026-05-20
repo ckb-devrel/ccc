@@ -4,7 +4,20 @@ description: Issue and transfer User Defined Tokens (UDT) and xUDT on CKB.
 icon: Bitcoin
 ---
 
-CKB supports **User Defined Tokens (UDT)** — fungible tokens that live in the `data` field of cells. The `@ckb-ccc/ccc` package includes first-class UDT support via the `ccc.udt` namespace.
+Issue, transfer, and query **fungible tokens** on CKB. UDT (User Defined Token) amounts are stored in the `data` field of cells; CCC's `ccc.udt.Udt` class handles encoding, SSRI execution, and legacy xUDT fallback automatically.
+
+## What you'll get
+
+After this guide you'll be able to:
+
+- **Transfer UDT tokens** with automatic input selection and change handling
+- **Mint new tokens** (requires owner-mode authority)
+- **Read on-chain metadata** (name, symbol, decimals, icon) for SSRI-compliant tokens
+- Understand how xUDT and sUDT relate
+
+<Callout type="info">
+  All examples assume you already have a connected `signer`. See [Connect Wallets](/docs/guides/connect-wallets) (browser) or [Node.js Backend](/docs/guides/node-js-backend) (server) first.
+</Callout>
 
 ## xUDT vs sUDT
 
@@ -35,10 +48,10 @@ The `Udt` class is available as `ccc.udt.Udt`.
 
 ## Construct a `Udt` instance
 
-A `Udt` instance is defined by two pieces of information:
+Before you can transfer or mint, you need a `Udt` object. It takes two pieces of information:
 
-* **`code`** — the `OutPoint` of the cell that holds the UDT script code
-* **`script`** — the type script that identifies this specific token
+- **`code`** — the `OutPoint` of the cell that holds the UDT script code (cell dep)
+- **`script`** — the type script that uniquely identifies this token (its `args` is typically the issuer's lock hash)
 
 ```typescript theme={null}
 const type = await ccc.Script.fromKnownScript(
@@ -55,36 +68,37 @@ const code = (
 )[0].outPoint;
 
 const udt = new ccc.udt.Udt(code, type);
+// Optional 3rd arg: { executor } for SSRI execution. Omit for legacy xUDT.
 ```
 
 ## Transfer tokens
 
-This example is from `packages/examples/src/transferUdt.ts`. It sends 1 token unit to the signer's own address:
+**Use this when:** you want to send UDT tokens from the signer to another address. The four-step pattern mirrors CKB transfers, with an extra UDT-specific input-filling step:
 
 <Steps>
-  <Step title="Build the initial transfer output">
-    `udt.transfer` creates a transaction with the output cells you want. It does not yet balance inputs.
+  <Step title="Build the transfer outputs">
+    `udt.transfer` creates a transaction with the desired output cells. It does **not** yet balance inputs — that's the next two steps.
 
     ```typescript theme={null}
     const receiver = await signer.getRecommendedAddress();
     const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
 
     let { res: tx } = await udt.transfer(signer, [
-      { to: lock, amount: ccc.fixedPointFrom(1) },
+      { to: lock, amount: ccc.fixedPointFrom(1) }, // 1 token unit
     ]);
     ```
   </Step>
 
   <Step title="Fill UDT inputs">
-    `udt.completeBy` collects the signer's UDT cells until there is enough token balance to cover the outputs. Any surplus is sent back as a change cell.
+    `udt.completeBy` collects the signer's UDT cells until there is enough token balance to cover the outputs. Any surplus UDT is returned as a change cell automatically.
 
     ```typescript theme={null}
     tx = await udt.completeBy(tx, signer);
     ```
   </Step>
 
-  <Step title="Fill capacity inputs">
-    After UDT inputs are set, fill capacity inputs for the CKB needed to hold the cells.
+  <Step title="Fill CKB capacity inputs">
+    UDT cells also need CKB capacity to exist on-chain. This step adds CKB inputs to cover all output cells:
 
     ```typescript theme={null}
     await tx.completeInputsByCapacity(signer);
@@ -95,14 +109,16 @@ This example is from `packages/examples/src/transferUdt.ts`. It sends 1 token un
     ```typescript theme={null}
     await tx.completeFeeBy(signer);
     const txHash = await signer.sendTransaction(tx);
-    console.log("UDT transfer hash:", txHash);
+    console.log("UDT transfer hash:", txHash); // "0x..." — 32-byte tx hash
     ```
   </Step>
 </Steps>
 
 ## Mint tokens
 
-Minting works identically to `transfer` — it just creates new token outputs without requiring existing UDT inputs. The UDT script must grant the signer mint authority (typically through `owner-mode` in xUDT):
+**Use this when:** you are the token issuer and want to create new token supply. The signer must have **mint authority** (typically `owner-mode` in xUDT — the signer's lock hash matches the type script args).
+
+Minting creates new token outputs without requiring existing UDT inputs:
 
 ```typescript theme={null}
 const { script: to } = await ccc.Address.fromString(receiver, signer.client);
@@ -118,7 +134,7 @@ const txHash = await signer.sendTransaction(tx);
 
 ## Read token metadata (SSRI tokens)
 
-For SSRI-compliant UDTs, the `Udt` class can fetch on-chain metadata:
+**Use this when:** you want to display token name, symbol, decimals, or icon in your UI. Only works for tokens that implement the SSRI `UDT` interface on-chain:
 
 ```typescript theme={null}
 const { res: name }     = await udt.name();
@@ -146,3 +162,23 @@ console.log(`${name} (${symbol}), ${decimals} decimals`);
 | `udt.symbol()`                               | Token symbol (SSRI only)                    |
 | `udt.decimals()`                             | Token decimals (SSRI only)                  |
 | `udt.icon()`                                 | Token icon URI (SSRI only)                  |
+
+## Troubleshooting
+
+**`udt.completeBy` throws "not enough UDT balance"**
+The signer doesn't own enough UDT cells to cover the transfer amount. Check the signer's UDT balance or fund the address with more tokens.
+
+**`udt.transfer` returns `{ res: tx }` — what is `res`?**
+All UDT methods return an `ssri.ExecutorResponse<T>` wrapper. The actual `Transaction` is in the `.res` property. This enables CCC to attach SSRI execution metadata alongside the result.
+
+**`udt.name()` / `udt.symbol()` returns `undefined`**
+The token does not implement the SSRI `UDT` metadata interface. This is expected for legacy sUDT/xUDT tokens. You'll need to source metadata from an off-chain registry.
+
+**I want to transfer UDT to an address that has never held this token**
+That works out of the box. `udt.transfer` creates a new output cell with the token type script at the recipient's lock. The recipient just needs enough CKB capacity (occupied by the new cell) — which the signer pays for via `completeInputsByCapacity`.
+
+## Next steps
+
+- [Compose transactions](/docs/guides/compose-transactions) — the declare → fill → fee → send pattern that UDT builds on.
+- [Spore Protocol](/docs/guides/spore-protocol) — create non-fungible digital objects on CKB.
+- [Node.js backend](/docs/guides/node-js-backend) — issue and transfer tokens from a server-side script.

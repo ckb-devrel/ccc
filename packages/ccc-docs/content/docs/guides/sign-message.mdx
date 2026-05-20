@@ -4,7 +4,19 @@ description: Sign and verify messages across multiple wallet types with CCC's un
 icon: PenLine
 ---
 
-CCC provides a unified signing interface that works identically across all supported wallet types — CKB native wallets, EVM wallets (MetaMask, etc.), Bitcoin wallets, JoyID, Nostr, and Dogecoin wallets. You call the same methods regardless of which wallet the user connected.
+Sign an arbitrary message with the user's wallet and verify the signature later — useful for **off-chain authentication** ("Sign-In with Wallet"), **proving address ownership**, or **creating verifiable attestations**. The API is identical regardless of whether the user connected a CKB, EVM, BTC, JoyID, Nostr, or Doge wallet.
+
+## What you'll get
+
+After this guide you'll be able to:
+
+- **Sign a message** with any connected wallet (one unified call)
+- **Verify a signature** statically — no connected wallet required
+- Understand the `Signature` object and how `signType` enables **cross-chain verification**
+
+<Callout type="info">
+  All examples assume you already have a connected `signer`. If you don't, see [Connect Wallets](/docs/guides/connect-wallets) first.
+</Callout>
 
 ## The `Signature` type
 
@@ -32,7 +44,9 @@ The `signType` field tells verifiers which cryptographic scheme was used, enabli
 | `SignerSignType.DogeEcdsa`    | Dogecoin wallets                        |
 | `SignerSignType.Unknown`      | Unknown / unsupported type              |
 
-## Signing a message
+## Sign a message
+
+One call — works with every wallet type CCC supports:
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -40,28 +54,30 @@ import { ccc } from "@ckb-ccc/ccc";
 const message = "Hello world";
 const signature = await signer.signMessage(message);
 
-console.log(signature.signature);  // "0x..."
-console.log(signature.identity);   // signer's address / public key
-console.log(signature.signType);   // e.g. "CkbSecp256k1"
+console.log(signature.signature);  // "0x..." — raw signature bytes as hex
+console.log(signature.identity);   // signer's address or public key
+console.log(signature.signType);   // e.g. "CkbSecp256k1", "EvmPersonal", "BtcEcdsa"
 ```
 
-`signMessage` accepts either a plain string or a `BytesLike` value, so you can sign raw bytes when needed.
+`signMessage` accepts either a plain `string` or a `BytesLike` (`Uint8Array` / hex string), so you can sign raw bytes when needed.
 
-## Verifying a signature
+## Verify a signature
 
-Verification is a static method on `Signer` — you do not need a connected wallet to verify. CCC dispatches to the correct scheme automatically based on `signature.signType`:
+Verification is a **static method** — you do not need a connected wallet. CCC dispatches to the correct cryptographic scheme automatically based on `signature.signType`:
 
 ```typescript theme={null}
 const isValid = await ccc.Signer.verifyMessage(message, signature);
-// true
+// true — message + signature match
 
 const isFail = await ccc.Signer.verifyMessage("Wrong message", signature);
-// false
+// false — message doesn't match
 ```
 
-## Full example
+This means your backend can verify signatures from *any* CCC-supported wallet without knowing which wallet the user used.
 
-This example is drawn from `packages/examples/src/sign.ts`. It handles the playground's default `SignerCkbPublicKey` (which cannot sign messages) by substituting a private-key signer for demonstration:
+## Full sign + verify example
+
+End-to-end example from `packages/examples/src/sign.ts`. It handles the playground's default `SignerCkbPublicKey` (which cannot sign messages) by substituting a private-key signer for demonstration:
 
 ```typescript theme={null}
 import { ccc } from "@ckb-ccc/ccc";
@@ -91,9 +107,9 @@ console.log(
 );
 ```
 
-## Instance-level verification
+## Instance-level verification (identity check)
 
-If you have a connected signer, you can also call `verifyMessage` on the instance. This additionally checks that the signature was produced by the same identity:
+**Use this when:** you not only want to verify the signature is valid, but also confirm it was produced by the *currently connected* wallet. The instance method additionally checks that `signature.identity` matches the signer:
 
 ```typescript theme={null}
 // Returns false if the signature was produced by a different signer
@@ -101,14 +117,33 @@ const ok = await signer.verifyMessage(message, signature);
 ```
 
 <Callout type="info">
-  `Signer.verifyMessage` (static) verifies any `Signature` regardless of wallet type. The instance method `signer.verifyMessage` additionally enforces that `signature.identity` matches the current signer's identity.
+  **Static vs. instance verification:** `ccc.Signer.verifyMessage()` (static) verifies any `Signature` regardless of who produced it. `signer.verifyMessage()` (instance) additionally enforces that `signature.identity` matches the current signer's identity.
 </Callout>
 
-## Signing raw bytes
+## Sign raw bytes
 
-Pass a `Uint8Array` or hex string to sign arbitrary binary data:
+**Use this when:** you need to sign arbitrary binary data (e.g. a hash, a serialized protobuf, or a binary payload):
 
 ```typescript theme={null}
 const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
 const signature = await signer.signMessage(bytes);
+
+// Hex strings also work:
+const sigFromHex = await signer.signMessage("0xdeadbeef");
 ```
+
+## Troubleshooting
+
+**`signer.signMessage` throws "not implemented" or "unsupported"**
+Some signer types (e.g. `SignerCkbPublicKey`) represent a read-only public key with no signing capability. This happens in the CCC playground default signer. In production apps with real wallet connections, `signMessage` always works.
+
+**Verification returns `false` even though I signed the same message**
+Make sure you're passing the *exact* same `message` value (including encoding). If you signed a `string`, verify with the same `string` — not a `Uint8Array` version of it, and vice versa.
+
+**I need to verify on a backend that doesn't have CCC**
+The `Signature` object is JSON-serializable. Send it to your backend, install `@ckb-ccc/shell`, and call `ccc.Signer.verifyMessage(message, signature)` there.
+
+## Next steps
+
+- [Compose transactions](/docs/guides/compose-transactions) — send CKB or tokens on-chain.
+- [Node.js backend](/docs/guides/node-js-backend) — verify signatures and send transactions from the server.

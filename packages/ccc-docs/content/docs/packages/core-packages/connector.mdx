@@ -1,0 +1,135 @@
+---
+title: "@ckb-ccc/connector"
+description: Web Component connector for wallet connectivity — framework-agnostic.
+---
+
+`@ckb-ccc/connector` provides a native [Web Component](https://developer.mozilla.org/en-US/docs/Web/API/Web_components) that renders CCC's wallet-selection UI without requiring any JavaScript framework. It is the foundation that `@ckb-ccc/connector-react` is built on top of.
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash theme={null}
+npm install @ckb-ccc/connector
+```
+  </Tab>
+  <Tab value="yarn">
+```bash theme={null}
+yarn add @ckb-ccc/connector
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash theme={null}
+pnpm add @ckb-ccc/connector
+```
+  </Tab>
+</Tabs>
+
+<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
+  <a href="https://www.npmjs.com/package/@ckb-ccc/connector" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fconnector" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
+  </a>
+</div>
+
+## When to use this package
+
+Use `@ckb-ccc/connector` when you need wallet connectivity in a plain HTML page, vanilla JS project, or a framework that is not React. If you are building a React application, prefer [`@ckb-ccc/connector-react`](./connector-react.mdx) which wraps this package with React bindings.
+
+## The `WebComponentConnector` class
+
+The central export is `ccc.WebComponentConnector` — the underlying custom element class. When you register the element and add it to the DOM, it renders the wallet picker UI.
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/connector";
+
+// The connector element
+const connector: ccc.WebComponentConnector;
+
+connector.client;       // current ccc.Client
+connector.wallet;       // connected ccc.Wallet | undefined
+connector.signer;       // ccc.SignerInfo | undefined
+
+connector.disconnect(); // disconnect the current wallet
+connector.setClient(newClient); // switch networks
+```
+
+## Usage in plain HTML
+
+```html theme={null}
+<!doctype html>
+<html>
+  <head>
+    <script type="module">
+      import { ccc } from "https://esm.sh/@ckb-ccc/connector";
+
+      const connector = document.getElementById("ccc-connector");
+
+      document.getElementById("open-btn").addEventListener("click", () => {
+        connector.style.display = "";
+      });
+
+      connector.addEventListener("close", () => {
+        connector.style.display = "none";
+      });
+
+      connector.addEventListener("willUpdate", () => {
+        if (connector.signer) {
+          connector.signer.signer.getRecommendedAddress().then((addr) => {
+            document.getElementById("address").textContent = addr;
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <button id="open-btn">Connect Wallet</button>
+    <p id="address"></p>
+
+    <ccc-connector
+      id="ccc-connector"
+      style="display: none; z-index: 999;"
+    ></ccc-connector>
+  </body>
+</html>
+```
+
+## Usage with a bundler (vanilla JS/TS)
+
+```typescript theme={null}
+import { ccc } from "@ckb-ccc/connector";
+
+// The custom element is auto-registered when you import the package.
+const connector = document.querySelector("ccc-connector") as ccc.WebComponentConnector;
+
+// Show the wallet picker
+connector.style.display = "";
+
+// Listen for events
+connector.addEventListener("close", () => {
+  connector.style.display = "none";
+});
+
+connector.addEventListener("willUpdate", () => {
+  console.log("Connected wallet:", connector.wallet?.name);
+  console.log("Signer:", connector.signer);
+});
+
+// Switch to mainnet
+connector.setClient(new ccc.ClientPublicMainnet());
+```
+
+## Comparison with `@ckb-ccc/connector-react`
+
+| Feature           | `@ckb-ccc/connector` | `@ckb-ccc/connector-react`   |
+| ----------------- | -------------------- | ---------------------------- |
+| Framework         | None (Web Component) | React                        |
+| Integration style | DOM events           | `Provider` + `useCcc()` hook |
+| State management  | Manual DOM listeners | React context, reactive      |
+| Peer dependency   | —                    | `react >= 16`                |
+
+<Callout type="info">
+  `@ckb-ccc/connector-react` uses `@lit/react` to wrap this Web Component. All
+  wallet integrations (JoyID, MetaMask, Nostr, BTC wallets, etc.) are wired
+  through the same underlying connector element.
+</Callout>
