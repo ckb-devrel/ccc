@@ -3,6 +3,8 @@ title: "@ckb-ccc/nip07"
 description: Connect any Nostr extension to CKB — NIP-07 signing through a unified Signer interface.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/nip07` lets any [NIP-07](https://github.com/nostr-protocol/nips/blob/master/07.md) compatible Nostr browser extension act as a CCC `Signer`. It derives a CKB address from the user's Nostr public key and signs CKB transactions via Nostr event signing.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect any Nostr extension to CKB — NIP-07 signing through a uni
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/nip07" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/nip07
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/nip07
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/nip07
-```
+    ```
   </Tab>
 </Tabs>
 

@@ -3,9 +3,13 @@ title: "@ckb-ccc/joy-id"
 description: JoyID wallet integration — passkey-based, no seed phrase required.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/joy-id` is the Protocol Support Layer package in the CCC responsible for integrating the JoyID wallet. JoyID is a wallet based on WebAuthn/Passkey — no seed phrases required, keys are managed via device biometrics (fingerprint, Face ID, etc.). This package communicates with the JoyID application via browser popups and provides unified `Signer` interface implementations for four chain types: CKB, Bitcoin, EVM, and Nostr. 
 
 ## Installation
+
+<PackageBadges pkg="@ckb-ccc/joy-id" />
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">

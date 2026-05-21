@@ -3,6 +3,8 @@ title: "@ckb-ccc/eip6963"
 description: Connect any EVM wallet to CKB — automatic multi-wallet discovery via the EIP-6963 standard.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/eip6963` exposes any [EIP-6963](https://eips.ethereum.org/EIPS/eip-6963) compatible browser wallet (MetaMask, Rabby, OKX EVM, etc.) as a CCC `Signer`. It signs CKB transactions via `personal_sign` EVM signatures and derives CKB addresses from the user's Ethereum account.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect any EVM wallet to CKB — automatic multi-wallet discovery 
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/eip6963" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/eip6963
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/eip6963
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/eip6963
-```
+    ```
   </Tab>
 </Tabs>
 

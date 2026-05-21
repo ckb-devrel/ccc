@@ -3,6 +3,8 @@ title: "@ckb-ccc/core"
 description: The foundational CKB primitives — Transaction, Script, Address, Client, Signer, and more.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/core` is the base layer of CCC. It contains all CKB data types, encoders, hashers, and the abstract `Signer` / `Client` interfaces used by every higher-level package.
 
 <Callout type="info">
@@ -12,6 +14,8 @@ description: The foundational CKB primitives — Transaction, Script, Address, C
 </Callout>
 
 ## Installation
+
+<PackageBadges pkg="@ckb-ccc/core"/>
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
@@ -30,13 +34,6 @@ pnpm add @ckb-ccc/core
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/core" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fcore" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
 
 ## Imports
 

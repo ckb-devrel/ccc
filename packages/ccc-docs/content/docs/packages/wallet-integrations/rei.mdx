@@ -3,6 +3,8 @@ title: "@ckb-ccc/rei"
 description: Connect REI Wallet to CKB — native CKB signing with Secp256k1 through a unified Signer interface.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/rei` integrates [REI Wallet](https://reiwallet.io/) into CCC, providing a native CKB `Signer` implementation. REI is a CKB-native browser extension wallet that supports direct Secp256k1-Blake160 signing — no cross-chain address derivation needed.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect REI Wallet to CKB — native CKB signing with Secp256k1 thr
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/rei" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/rei
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/rei
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/rei
-```
+    ```
   </Tab>
 </Tabs>
 

@@ -3,12 +3,16 @@ title: "@ckb-ccc/spore"
 description: Spore Protocol SDK for creating and managing on-chain digital objects(DOB).
 ---
 
+import { PackageBadges } from "@/components/package-badges";
+
 ## What is Spore?
 
 `@ckb-ccc/spore` implements the [Spore Protocol](https://docs.spore.pro/) — CKB's on-chain digital object (DOB) standard. Each Spore is a Cell that holds its content (image, text, etc.) **fully on-chain**. Spores can optionally belong to a Cluster (similar to an NFT collection).
 
 
 ## Installation
+
+<PackageBadges packageName="@ckb-ccc/spore" />
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
@@ -27,13 +31,6 @@ pnpm add @ckb-ccc/spore
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/spore" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fspore" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
 
 If you are using `@ckb-ccc/shell`, spore is already included as `ccc.spore`.
 
