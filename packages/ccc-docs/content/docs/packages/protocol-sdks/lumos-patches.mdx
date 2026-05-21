@@ -3,6 +3,8 @@ title: "@ckb-ccc/lumos-patches"
 description: Compatibility patches enabling Lumos SDK to work with JoyID, Nostr, and Portal wallets.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/lumos-patches` adds lock script support for JoyID, Nostr (NostrLock), and Portal (PWLock) wallets to the [Lumos](https://github.com/ckb-js/lumos) SDK. If you have an existing Lumos-based application and want to support these wallets without migrating to CCC, apply these patches.
 
 ## Who needs it
@@ -20,6 +22,9 @@ Install `@ckb-ccc/lumos-patches` if you have an existing Lumos-based codebase an
 </Callout>
 
 ## Installation
+
+<PackageBadges packageName="@ckb-ccc/lumos-patches" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
 ```bash theme={null}
@@ -37,13 +42,6 @@ pnpm add @ckb-ccc/lumos-patches
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/lumos-patches" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Flumos-patches" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
 
 ## Exports
 

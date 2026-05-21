@@ -3,6 +3,8 @@ title: "@ckb-ccc/okx"
 description: Connect OKX Wallet to CKB — Bitcoin and Nostr signing through a unified Signer interface.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/okx` integrates OKX Wallet into CCC, providing `Signer` implementations for Bitcoin and Nostr protocols. It communicates with the wallet via the browser-injected `window.okxwallet` object and reuses protocol implementations from `@ckb-ccc/uni-sat` and `@ckb-ccc/nip07` rather than reimplementing them from scratch.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect OKX Wallet to CKB — Bitcoin and Nostr signing through a u
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/okx" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/okx
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/okx
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/okx
-```
+    ```
   </Tab>
 </Tabs>
 

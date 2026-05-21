@@ -3,6 +3,8 @@ title: "@ckb-ccc/utxo-global"
 description: Connect UTXO Global Wallet to CKB — multi-chain signing (CKB, Bitcoin, Dogecoin) through a unified Signer interface.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/utxo-global` integrates [UTXO Global](https://utxo.global/) into CCC, providing `Signer` implementations for CKB, Bitcoin, and Dogecoin. UTXO Global is a multi-chain browser extension wallet that supports native CKB transaction signing as well as cross-chain signing from BTC and DOGE.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect UTXO Global Wallet to CKB — multi-chain signing (CKB, Bit
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/utxo-global" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/utxo-global
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/utxo-global
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/utxo-global
-```
+    ```
   </Tab>
 </Tabs>
 

@@ -3,6 +3,8 @@ title: "@ckb-ccc/uni-sat"
 description: Connect UniSat Wallet to CKB — Bitcoin signing through a unified Signer interface.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/uni-sat` integrates [UniSat Wallet](https://unisat.io/) into CCC, providing a `SignerBtc` implementation for Bitcoin signing. It communicates with the wallet via the browser-injected `window.unisat` object and supports automatic network switching between Bitcoin mainnet and testnet.
 
 <Callout type="info">
@@ -11,21 +13,23 @@ description: Connect UniSat Wallet to CKB — Bitcoin signing through a unified 
 
 ## Installation
 
+<PackageBadges pkg="@ckb-ccc/uni-sat" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+    ```bash theme={null}
     npm install @ckb-ccc/uni-sat
-```
+    ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+    ```bash theme={null}
     yarn add @ckb-ccc/uni-sat
-```
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+    ```bash theme={null}
     pnpm add @ckb-ccc/uni-sat
-```
+    ```
   </Tab>
 </Tabs>
 

@@ -3,11 +3,15 @@ title: "@ckb-ccc/shell"
 description: CCC for Node.js — backend scripting, data analysis, and server-side transactions.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/shell` is the recommended entry point for **Node.js / server-side** code. It bundles `@ckb-ccc/core`, `@ckb-ccc/spore`, `@ckb-ccc/udt`, and `@ckb-ccc/ssri` into a single package with Node.js-compatible builds (CommonJS and ESM).
 
 `@ckb-ccc/shell` re-exports everything from `@ckb-ccc/core` so you get a single `ccc` namespace without pulling in browser-only wallet signer code.
 
 ## Installation
+
+<PackageBadges packageName="@ckb-ccc/shell" />
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
@@ -26,13 +30,6 @@ pnpm add @ckb-ccc/shell
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/shell" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fshell" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
 
 ## Imports
 

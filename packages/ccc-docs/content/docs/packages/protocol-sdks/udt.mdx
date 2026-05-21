@@ -3,9 +3,17 @@ title: "@ckb-ccc/udt"
 description: UDT and xUDT token SDK for issuing and transferring User Defined Tokens.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/udt` provides a TypeScript SDK for interacting with User Defined Tokens (UDT) and the xUDT standard on CKB. It is built on top of the SSRI protocol, supporting both SSRI-compliant contracts and legacy sUDT/xUDT tokens.
 
 ## Installation
+
+<PackageBadges packageName="@ckb-ccc/udt" />
+
+<Callout type="info">
+  If you are using `@ckb-ccc/shell`, the `udt` namespace is already available as `ccc.udt`.
+</Callout>
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
@@ -24,15 +32,6 @@ pnpm add @ckb-ccc/udt
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/udt" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fudt" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
-
-If you are using `@ckb-ccc/shell`, the `udt` namespace is already available as `ccc.udt`.
 
 ## Exports
 

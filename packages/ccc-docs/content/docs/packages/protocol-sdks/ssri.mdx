@@ -3,9 +3,17 @@ title: "@ckb-ccc/ssri"
 description: SSRI (Script-Sourced Rich Information) protocol support for CKB smart contracts.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/ssri` implements the **Script-Sourced Rich Information** (SSRI) protocol. SSRI defines a standard way to call named methods on CKB scripts and receive structured responses — enabling smart contracts to expose rich metadata and operations via an off-chain RPC server.
 
 ## Installation
+
+<PackageBadges packageName="@ckb-ccc/ssri" />
+
+<Callout type="info">
+  If you use `@ckb-ccc/shell`, the `ssri` namespace is already available as `ccc.ssri`.
+</Callout>
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
@@ -24,15 +32,6 @@ pnpm add @ckb-ccc/ssri
 ```
   </Tab>
 </Tabs>
-
-<div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-  <span style={{ color: 'var(--color-fd-primary)', fontWeight: 'bold' }}>View on NPM 👉 : </span>
-  <a href="https://www.npmjs.com/package/@ckb-ccc/ssri" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/npm/v/%40ckb-ccc%2Fssri" alt="NPM Version" style={{ marginTop: '-0.5rem', marginBottom: '-0.5rem' }} />
-  </a>
-</div>
-
-If you use `@ckb-ccc/shell`, the `ssri` namespace is already available as `ccc.ssri`.
 
 ## What SSRI is
 
