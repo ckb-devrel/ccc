@@ -2,13 +2,13 @@
  * Shape contract for every locale dictionary.
  *
  * This interface is the single source of truth: adding a new field here will
- * cause every locale file (`en.ts`, `cn.ts`, …) to fail type-check until it
+ * cause every locale file (`en.ts`, `zh.ts`, …) to fail type-check until it
  * is updated, which makes translation drift a compile error rather than a
  * runtime miss.
  *
  * To add a new language (e.g. Japanese):
  *   1. Create `lib/dictionary/ja.ts` with `const ja: Dictionary = { ... }`
- *   2. Register it in `lib/dictionary/index.ts` (`dictionaries = { en, cn, ja }`)
+ *   2. Register it in `lib/dictionary/index.ts` (`dictionaries = { en, zh, ja }`)
  *   3. Add `'ja'` to `lib/i18n.ts` `languages`
  */
 export interface Dictionary {

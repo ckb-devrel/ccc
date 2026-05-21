@@ -10,7 +10,7 @@ export const i18nUI = defineI18nUI(i18n, {
   en: {
     displayName: 'English',
   },
-  cn: {
+  zh: {
     displayName: '简体中文',
     search: '搜索文档',
     searchNoResult: '没有找到结果',

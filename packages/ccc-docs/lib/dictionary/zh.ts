@@ -1,6 +1,6 @@
 import type { Dictionary } from './types';
 
-export const cn: Dictionary = {
+export const zh: Dictionary = {
   dateLocale: 'zh-CN',
 
   nav: {
