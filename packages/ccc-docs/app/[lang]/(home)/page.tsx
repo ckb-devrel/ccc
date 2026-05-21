@@ -21,12 +21,12 @@ const users: {
   logo: LogoSrc;
 }[] = [
   { name: 'NervDAO',      url: 'https://nervdao.com/',     logo: { light: '/users/nervdao.svg',  dark: '/users/nervdao-dark.svg' } },
-  { name: 'UTXO Global',  url: 'https://utxo.global/',     logo: { light: '/users/utxo-global.png',  dark: '/users/utxo-global-dark.png' } },
-  { name: 'Mobit',        url: 'https://mobit.app/',       logo: { light: '/users/mobit.png',        dark: '/users/mobit.png' } },
-  { name: 'Omiga',        url: 'https://omiga.io/',        logo: { light: '/users/omiga.svg',        dark: '/users/omiga-dark.svg' } },
   { name: 'Nervape',      url: 'https://www.nervape.com/', logo: { light: '/users/nervape.svg',      dark: '/users/nervape-dark.svg' } },
-  { name: 'UTXOSwap',     url: 'https://utxoswap.xyz/',    logo: { light: '/users/utxoswap.svg',     dark: '/users/utxoswap.svg' } },
-  { name: 'D.ID',         url: 'https://d.id/',            logo: { light: '/users/d-id.svg',         dark: '/users/d-id-dark.svg' } },
+  { name: 'Omiga',        url: 'https://omiga.io/',        logo: { light: '/users/omiga.svg',        dark: '/users/omiga-dark.svg' } },
+  { name: 'D.ID',         url: 'https://d.id/',            logo: { light: '/users/d-id.svg',         dark: '/users/d-id-dark.svg' } }, 
+  { name: 'UTXO Global',  url: 'https://utxo.global/',     logo: { light: '/users/utxo-global.png',  dark: '/users/utxo-global-dark.png' } },
+  { name: 'Mobit',        url: 'https://mobit.app/',       logo: { light: '/users/mobit.png',        dark: '/users/mobit-dark.png' } },
+  { name: 'UTXOSwap',     url: 'https://utxoswap.xyz/',    logo: { light: '/users/utxoswap.svg',     dark: '/users/utxoswap-dark.svg' } },
   { name: 'Bool Network', url: 'https://bool.network/',    logo: { light: '/users/bool-network.svg', dark: '/users/bool-network-dark.svg' } },
   { name: 'World3',       url: 'https://world3.ai/',       logo: { light: '/users/world3.svg',       dark: '/users/world3-dark.svg' } },
 ];
