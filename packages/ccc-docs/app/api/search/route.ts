@@ -8,7 +8,7 @@ import { createTokenizer } from '@orama/tokenizers/mandarin';
 export const { GET } = createFromSource(source, {
   localeMap: {
     en: { language: 'english' },
-    cn: { 
+    zh: { 
       // Don't specify language when using custom tokenizer
       components: {
         tokenizer: createTokenizer(),

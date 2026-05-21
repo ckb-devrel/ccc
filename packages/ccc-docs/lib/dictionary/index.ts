@@ -1,5 +1,5 @@
 import { en } from './en';
-import { cn } from './cn';
+import { zh } from './zh';
 import type { Dictionary } from './types';
 
 export type { Dictionary } from './types';
@@ -11,7 +11,7 @@ export type { Dictionary } from './types';
  * `satisfies` ensures every entry conforms to `Dictionary` while preserving
  * the literal `keyof` for `getDictionary` to use as a type guard.
  */
-const dictionaries = { en, cn } satisfies Record<string, Dictionary>;
+const dictionaries = { en, zh } satisfies Record<string, Dictionary>;
 
 export type SupportedLocale = keyof typeof dictionaries;
 

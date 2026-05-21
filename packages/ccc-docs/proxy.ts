@@ -22,9 +22,9 @@ function detectLanguage(request: NextRequest): string {
     .filter(Boolean);
 
   for (const tag of tags) {
-    // Map zh, zh-*, cn, cn-* to our 'cn' locale
+    // Map zh, zh-*, cn, cn-* to our 'zh' locale
     if (tag === 'cn' || tag === 'zh' || tag.startsWith('zh-') || tag.startsWith('cn-')) {
-      if ((i18n.languages as readonly string[]).includes('cn')) return 'cn';
+      if ((i18n.languages as readonly string[]).includes('zh')) return 'zh';
     }
     const short = tag.split('-')[0];
     if ((i18n.languages as readonly string[]).includes(short)) return short;
@@ -39,7 +39,7 @@ export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 0) Collapse stacked locale prefixes produced by the language switcher
-  //    on 404 pages (e.g. /cn/cn/cn/ddd → /cn/ddd)
+  //    on 404 pages (e.g. /zh/zh/zh/ddd → /zh/ddd)
   const rawSegments = pathname.split('/').filter(Boolean);
   const langs = i18n.languages as readonly string[];
   if (rawSegments.length >= 2 && langs.includes(rawSegments[0])) {

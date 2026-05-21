@@ -16,7 +16,7 @@ import { getDictionary } from '@/lib/dictionary';
  * We detect the locale from the URL (via the `x-pathname` header set by
  * the middleware) so the `RootProvider` gets the correct language context.
  * This ensures the language switcher replaces the locale prefix instead of
- * prepending a duplicate (e.g. /cn/cn/ddd).
+ * prepending a duplicate (e.g. /zh/zh/ddd).
  */
 export default async function GlobalNotFound() {
   const headersList = await headers();
