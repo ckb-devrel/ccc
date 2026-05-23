@@ -19,9 +19,11 @@ export class UdtPausable extends Udt {
   }
 
   /**
-   * Pauses the UDT for the specified lock hashes. Pausing/Unpause without lock hashes should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
-   * @param {ccc.HexLike[]} lockHashes - The array of lock hashes to be paused.
-   * @param {ccc.TransactionLike} tx - The transaction to be used.
+   * Pauses the UDT for the specified lock scripts. Pausing/Unpause without lock scripts should take effect on the global level. Note that this method is only available if the pausable UDT uses external pause list.
+   * @param signer - The signer to use for the transaction.
+   * @param locks - The array of lock scripts to be paused.
+   * @param tx - The transaction to be used.
+   * @param extraLockHashes - Additional lock hashes to be paused.
    * @returns The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
@@ -56,9 +58,11 @@ export class UdtPausable extends Udt {
   }
 
   /**
-   * Unpauses the UDT for the specified lock hashes. Note that this method is only available if the pausable UDT uses external pause list.
+   * Unpauses the UDT for the specified lock scripts. Note that this method is only available if the pausable UDT uses external pause list.
+   * @param signer - The signer to use for the transaction.
+   * @param locks - The array of lock scripts to be unpaused.
    * @param tx - The transaction to be used.
-   * @param lockHashes - The array of lock hashes to be unpaused.
+   * @param extraLockHashes - Additional lock hashes to be unpaused.
    * @returns The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction to be sent.
    */
@@ -93,9 +97,10 @@ export class UdtPausable extends Udt {
   }
 
   /**
-   * Checks if the UDT is paused for the specified lock hashes within a transaction. If not using external pause list, it can also be run on Code environment level.
-   * @param lockHashes - The lock hashes to check.
-   * @returns True if any of the lock hashes are paused, false otherwise.
+   * Checks if the UDT is paused for the specified lock scripts within a transaction. If not using external pause list, it can also be run on Code environment level.
+   * @param locks - The lock scripts to check.
+   * @param extraLockHashes - Additional lock hashes to check.
+   * @returns True if any of the lock scripts are paused, false otherwise.
    */
   async isPaused(
     locks: ccc.ScriptLike[],

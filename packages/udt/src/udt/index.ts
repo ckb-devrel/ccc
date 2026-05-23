@@ -17,14 +17,15 @@ export class Udt extends ssri.Trait {
 
   /**
    * Constructs a new UDT (User Defined Token) script instance.
-   * By default it is a SSRI-compliant UDT. By providing `xudtType`, it is compatible with the legacy xUDT.
+   * By default it is a SSRI-compliant UDT.
    *
-   * @param executor - The SSRI executor instance.
    * @param code - The script code cell of the UDT.
    * @param script - The type script of the UDT.
+   * @param config - Optional configuration for the UDT instance.
+   * @param config.executor - The SSRI executor instance. If provided, enables SSRI-based operations.
    * @example
    * ```typescript
-   * const udt = new Udt(executor, code, script);
+   * const udt = new Udt(code, script, { executor });
    * ```
    */
   constructor(
@@ -41,6 +42,7 @@ export class Udt extends ssri.Trait {
   /**
    * Retrieves the human-readable name of the User Defined Token.
    *
+   * @param context - Optional SSRI context for script execution.
    * @returns A promise resolving to the token's name.
    */
   async name(
@@ -61,6 +63,7 @@ export class Udt extends ssri.Trait {
 
   /**
    * Retrieves the symbol of the UDT.
+   * @param context - Optional SSRI context for script execution.
    * @returns The symbol of the UDT.
    */
   async symbol(
@@ -86,6 +89,7 @@ export class Udt extends ssri.Trait {
 
   /**
    * Retrieves the decimals of the UDT.
+   * @param context - Optional SSRI context for script execution.
    * @returns The decimals of the UDT.
    */
   async decimals(
@@ -110,7 +114,8 @@ export class Udt extends ssri.Trait {
   }
 
   /**
-   * Retrieves the icon of the UDT
+   * Retrieves the icon of the UDT.
+   * @param context - Optional SSRI context for script execution.
    * @returns The icon of the UDT.
    */
   async icon(
@@ -131,10 +136,11 @@ export class Udt extends ssri.Trait {
 
   /**
    * Transfers UDT to specified addresses.
-   * @param tx - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
+   * @param signer - The signer to use for the transaction.
    * @param transfers - The array of transfers.
    * @param transfers.to - The receiver of token.
    * @param transfers.amount - The amount of token to the receiver.
+   * @param tx - Transfer on the basis of an existing transaction to achieve combined actions. If not provided, a new transaction will be created.
    * @returns The transaction result.
    * @tag Mutation - This method represents a mutation of the onchain state and will return a transaction object.
    * @example
@@ -217,10 +223,11 @@ export class Udt extends ssri.Trait {
 
   /**
    * Mints new tokens to specified addresses. See the example in `transfer` as they are similar.
-   * @param tx - Optional existing transaction to build upon
+   * @param signer - The signer to use for the transaction.
    * @param mints - Array of mints
    * @param mints.to - receiver of token
    * @param mints.amount - amount to the receiver
+   * @param tx - Optional existing transaction to build upon
    * @returns The transaction containing the mint operation
    * @tag Mutation - This method represents a mutation of the onchain state
    */
@@ -274,6 +281,13 @@ export class Udt extends ssri.Trait {
     return resTx;
   }
 
+  /**
+   * Completes a UDT transaction by adding change output to a specific lock script.
+   * @param txLike - The transaction to complete.
+   * @param signer - The signer to use for input selection.
+   * @param change - The lock script for the change output.
+   * @returns The completed transaction.
+   */
   async completeChangeToLock(
     txLike: ccc.TransactionLike,
     signer: ccc.Signer,
@@ -298,6 +312,12 @@ export class Udt extends ssri.Trait {
     return tx;
   }
 
+  /**
+   * Completes a UDT transaction by adding change output to the signer's address.
+   * @param tx - The transaction to complete.
+   * @param from - The signer to use for input selection and change address.
+   * @returns The completed transaction.
+   */
   async completeBy(tx: ccc.TransactionLike, from: ccc.Signer) {
     const { script } = await from.getRecommendedAddressObj();
 
