@@ -17,7 +17,7 @@ After this guide you'll be able to:
 
 ## Installation
 
-```bash theme={null}
+```bash
 npm install @ckb-ccc/shell
 ```
 
@@ -25,7 +25,7 @@ npm install @ckb-ccc/shell
 
 `@ckb-ccc/shell` re-exports the following (from `packages/shell/src/barrel.ts`):
 
-```typescript theme={null}
+```typescript
 export * from "@ckb-ccc/core/barrel"; // full CCC core (Transaction, Script, Address, ...)
 export { spore } from "@ckb-ccc/spore";
 export { ssri } from "@ckb-ccc/ssri";
@@ -34,7 +34,7 @@ export { udt } from "@ckb-ccc/udt";
 
 Import everything through the `ccc` namespace:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 ```
 
@@ -44,7 +44,7 @@ Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity.
 
 <Tabs items={["Mainnet", "Testnet", "Custom RPC"]}>
   <Tab value="Mainnet">
-    ```typescript theme={null}
+    ```typescript
     import { ccc } from "@ckb-ccc/shell";
 
     const client = new ccc.ClientPublicMainnet();
@@ -54,7 +54,7 @@ Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity.
   </Tab>
 
   <Tab value="Testnet">
-    ```typescript theme={null}
+    ```typescript
     import { ccc } from "@ckb-ccc/shell";
 
     const client = new ccc.ClientPublicTestnet();
@@ -62,7 +62,7 @@ Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity.
   </Tab>
 
   <Tab value="Custom RPC">
-    ```typescript theme={null}
+    ```typescript
     import { ccc } from "@ckb-ccc/shell";
 
     const client = new ccc.ClientPublicMainnet({
@@ -76,7 +76,7 @@ Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity.
 
 **Use this when:** your backend needs to send transactions autonomously (e.g. airdrops, payouts, automated operations). `SignerCkbPrivateKey` provides a fully featured `Signer` backed by a raw secp256k1 private key.
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 const client = new ccc.ClientPublicTestnet();
@@ -98,7 +98,7 @@ console.log("Address:", address); // "ckt1qz..." (testnet) or "ckb1qz..." (mainn
 
 **Use this when:** you need to check an account's CKB balance from a script or API handler.
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 const client = new ccc.ClientPublicMainnet();
@@ -112,7 +112,7 @@ console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`); // e.g. "1234.56
 
 ## Complete example: query balance and send CKB
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 async function main() {
@@ -156,7 +156,7 @@ main().catch(console.error);
 
 **Use this when:** you need to scan an address's live cells — for analytics, indexing, or building custom transaction logic.
 
-```typescript theme={null}
+```typescript
 for await (const cell of signer.findCellsOnChain(
   {}, // no type/data filter — return all cells
   true, // include cell data
@@ -169,7 +169,7 @@ for await (const cell of signer.findCellsOnChain(
 
 The package also exports an `advanced` entry point with lower-level utilities under the `cccA` namespace:
 
-```typescript theme={null}
+```typescript
 import { cccA } from "@ckb-ccc/shell/advanced";
 // Includes sporeA (advanced Spore helpers) and core advanced utilities
 ```
@@ -178,7 +178,7 @@ import { cccA } from "@ckb-ccc/shell/advanced";
 
 `@ckb-ccc/shell` ships ES modules. If you encounter `ERR_REQUIRE_ESM` or module resolution errors, add this to your `tsconfig.json`:
 
-```json theme={null}
+```json
 {
   "compilerOptions": {
     "module": "NodeNext",

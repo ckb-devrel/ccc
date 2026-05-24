@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/utxo-global
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/utxo-global
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/utxo-global
     ```
   </Tab>
@@ -35,8 +35,8 @@ import { PackageBadges } from '@/components/package-badges';
 
 **Dependencies:**
 
-| Package | Description |
-| ------- | ----------- |
+| Package         | Description |
+| --------------- | ----------- |
 | `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
 
 ## Architecture
@@ -102,13 +102,13 @@ graph TD
 | ------------ | --------- | ----- | --------- |
 | `SignerCkb` | `ccc.Signer` | CKB | `CKB` |
 | `SignerBtc` | `ccc.SignerBtc` | Bitcoin | `BTC` |
-| `SignerDoge` | `ccc.SignerDoge` | Dogecoin | `BTC` |
+| `SignerDoge` | `ccc.SignerDoge` | Dogecoin | `Doge` |
 
 ### CKB signer
 
 `SignerCkb` provides native CKB signing — no cross-chain address derivation needed. It calls `signTransaction()` on the provider directly.
 
-### BTC and DOGE signers
+### BTC and Doge signers
 
 `SignerBtc` and `SignerDoge` extend their respective cross-chain base classes. They derive CKB addresses from Bitcoin/Dogecoin public keys and sign CKB transaction witnesses using the respective chain's signing scheme.
 

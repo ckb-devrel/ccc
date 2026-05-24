@@ -19,17 +19,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/core
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/core
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/core
 ```
   </Tab>
@@ -37,7 +37,7 @@ pnpm add @ckb-ccc/core
 
 ## Imports
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/core";
 ```
 
@@ -67,7 +67,7 @@ import { ccc } from "@ckb-ccc/core";
 
 The primary type for building CKB transactions:
 
-```typescript theme={null}
+```typescript
 // Build a CKB transfer transaction
 const tx = ccc.Transaction.from({
   outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
@@ -92,7 +92,7 @@ Important methods:
 
 ### Script
 
-```typescript theme={null}
+```typescript
 const script = ccc.Script.from({
   codeHash: "0x...",
   hashType: "type",
@@ -104,7 +104,7 @@ script.eq(otherScript); // structural equality
 
 ### Address
 
-```typescript theme={null}
+```typescript
 const addr = await ccc.Address.fromString(
   "ckb1qzda0cr08m85hc8jlnfp3gog...",
   client,
@@ -116,7 +116,7 @@ const { script, prefix } = addr;
 
 The `Signer` abstract class is implemented by every wallet integration. Key members:
 
-```typescript theme={null}
+```typescript
 abstract class Signer {
   readonly client: Client;
 
@@ -131,7 +131,7 @@ abstract class Signer {
 
 ### Client (abstract)
 
-```typescript theme={null}
+```typescript
 // Connect to public testnet
 const client = new ccc.ClientPublicTestnet();
 
@@ -144,7 +144,7 @@ const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
 
 ## Key functions
 
-```typescript theme={null}
+```typescript
 // Convert any value to a fixed-point CKB capacity (shannons)
 const capacity = ccc.fixedPointFrom("100"); // 100 CKB = 10_000_000_000n shannons
 

@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/xverse
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/xverse
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/xverse
     ```
   </Tab>
@@ -35,8 +35,8 @@ import { PackageBadges } from '@/components/package-badges';
 
 **Dependencies:**
 
-| Package | Description |
-| ------- | ----------- |
+| Package         | Description |
+| --------------- | ----------- |
 | `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
 
 ## Architecture
@@ -87,15 +87,15 @@ Each provider entry includes wallet metadata (`name`, `icon`) allowing `SignersC
 
 ### Key methods
 
-| Method | Description |
-| ------ | ----------- |
-| `connect()` | Calls `wallet_requestPermissions` if not already connected |
-| `disconnect()` | Clears the cached address |
-| `isConnected()` | Attempts `getBalance` — returns `true` on success |
-| `getBtcAccount()` | Returns the payment address via `getAddresses` |
-| `getBtcPublicKey()` | Returns the public key from the payment address |
+| Method                    | Description |
+| ------------------------- | ----------- |
+| `connect()`               | Calls `wallet_requestPermissions` if not already connected |
+| `disconnect()`            | Clears the cached address |
+| `isConnected()`           | Attempts `getBalance` — returns `true` on success |
+| `getBtcAccount()`         | Returns the payment address via `getAddresses` |
+| `getBtcPublicKey()`       | Returns the public key from the payment address |
 | `signMessageRaw(message)` | Signs via `signMessage` with ECDSA protocol |
-| `onReplaced(listener)` | Fires on `accountChange` or `networkChange` events |
+| `onReplaced(listener)`    | Fires on `accountChange` or `networkChange` events |
 
 ### Connection and address caching
 
@@ -122,8 +122,8 @@ sequenceDiagram
 
 ### Network preferences
 
-| CKB Network | Default BTC Network |
-| ----------- | ------------------- |
+| CKB Network     | Default BTC Network |
+| --------------- | ------------------- |
 | Mainnet (`ckb`) | `btc` |
 | Testnet (`ckt`) | `btcTestnet` |
 
@@ -155,12 +155,12 @@ Returns cleanup functions from `provider.addListener()` for proper teardown.
 
 ## SATS Connect RPC methods
 
-| Method | Description |
-| ------ | ----------- |
+| Method                      | Description |
+| --------------------------- | ----------- |
 | `wallet_requestPermissions` | Request wallet connection permissions |
-| `getAddresses` | Get addresses filtered by purpose (Payment, Ordinals, etc.) |
-| `getBalance` | Get wallet balance (used for connection check) |
-| `signMessage` | Sign a message with ECDSA or BIP-322 |
+| `getAddresses`              | Get addresses filtered by purpose (Payment, Ordinals, etc.) |
+| `getBalance`                | Get wallet balance (used for connection check) |
+| `signMessage`               | Sign a message with ECDSA or BIP-322 |
 
 ## Integration pattern
 

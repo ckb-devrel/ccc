@@ -8,7 +8,7 @@ icon: Key
 
 `ccc.Signer` is the core abstraction that unifies signing across multiple blockchain ecosystems. It lets a single piece of CCC application code work with wallets from CKB, EVM, Bitcoin, Nostr, Doge, and more — all through the same API — while ultimately controlling CKB assets.
 
-```typescript theme={null}
+```typescript
 // From packages/core/src/signer/signer/index.ts
 export abstract class Signer {
   constructor(protected client_: Client) {}
@@ -51,7 +51,7 @@ graph TB
 
 Identifies the originating blockchain ecosystem of the signer.
 
-```typescript theme={null}
+```typescript
 // From packages/core/src/signer/signer/index.ts
 export enum SignerType {
   EVM   = "EVM",
@@ -66,7 +66,7 @@ export enum SignerType {
 
 Identifies the specific signing scheme used by the signer.
 
-```typescript theme={null}
+```typescript
 // From packages/core/src/signer/signer/index.ts
 export enum SignerSignType {
   Unknown      = "Unknown",
@@ -83,7 +83,7 @@ export enum SignerSignType {
 
 ### Connection
 
-```typescript theme={null}
+```typescript
 // Connect to the wallet
 abstract connect(): Promise<void>;
 
@@ -96,7 +96,7 @@ abstract isConnected(): Promise<boolean>;
 
 ### Addresses
 
-```typescript theme={null}
+```typescript
 // Get the wallet's internal (native) address string
 abstract getInternalAddress(): Promise<string>;
 
@@ -118,14 +118,14 @@ async getRecommendedAddressObj(_preference?: unknown): Promise<Address>;
 
 ### Balance
 
-```typescript theme={null}
+```typescript
 // Returns total balance (in Shannon) across all addresses
 async getBalance(): Promise<Num>;
 ```
 
 ### Signing messages
 
-```typescript theme={null}
+```typescript
 // Sign a message and return a full Signature object
 async signMessage(message: string | BytesLike): Promise<Signature>;
 
@@ -147,7 +147,7 @@ static async verifyMessage(
 
 ### Transactions
 
-```typescript theme={null}
+```typescript
 // Prepare a transaction (adds cell deps, dummy witnesses, etc.)
 async prepareTransaction(tx: TransactionLike): Promise<Transaction>;
 
@@ -163,7 +163,7 @@ async sendTransaction(tx: TransactionLike): Promise<Hex>;
 
 ### Searching chain data
 
-```typescript theme={null}
+```typescript
 // Async generator yielding cells owned by this signer
 async *findCells(
   filter: ClientCollectableSearchKeyFilterLike,
@@ -282,7 +282,7 @@ Sub-key wallet support:
 
 ### EIP-6963 (MetaMask, OKX, ...)
 
-```typescript theme={null}
+```typescript
 import { Signer } from "@ckb-ccc/eip6963";
 
 const signer = new Signer(client, provider);
@@ -292,7 +292,7 @@ const address = await signer.getRecommendedAddress();
 
 ### NIP-07 (Nostr extensions)
 
-```typescript theme={null}
+```typescript
 import { Signer } from "@ckb-ccc/nip07";
 
 const signer = new Signer(client, window.nostr);
@@ -301,7 +301,7 @@ await signer.connect();
 
 ### JoyID
 
-```typescript theme={null}
+```typescript
 import { getJoyIdSigners } from "@ckb-ccc/joy-id";
 
 const signers = getJoyIdSigners(client, "My App", "icon.png");
@@ -311,7 +311,7 @@ const signers = getJoyIdSigners(client, "My App", "icon.png");
 
 ### Getting address and balance
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 async function printWalletInfo(signer: ccc.Signer) {
@@ -332,7 +332,7 @@ async function printWalletInfo(signer: ccc.Signer) {
 
 ### Signing a message
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 async function signAndVerify(signer: ccc.Signer, message: string) {
@@ -356,7 +356,7 @@ In practice, signers are provided by wallet connectors rather than instantiated 
 
 <Tabs items={["React connector", "Node.js / shell"]}>
   <Tab value="React connector">
-    ```typescript theme={null}
+    ```typescript
     import { useCcc } from "@ckb-ccc/connector-react";
 
     function MyComponent() {
@@ -372,7 +372,7 @@ In practice, signers are provided by wallet connectors rather than instantiated 
   </Tab>
 
   <Tab value="Node.js / shell">
-    ```typescript theme={null}
+    ```typescript
     import { ccc } from "@ckb-ccc/shell";
 
     // For server-side usage, construct a signer directly

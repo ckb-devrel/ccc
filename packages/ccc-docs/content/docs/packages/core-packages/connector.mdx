@@ -17,17 +17,17 @@ Use `@ckb-ccc/connector` when you need wallet connectivity in a plain HTML page,
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/connector
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/connector
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/connector
 ```
   </Tab>
@@ -37,7 +37,7 @@ pnpm add @ckb-ccc/connector
 
 The central export is `ccc.WebComponentConnector` — the underlying custom element class. When you register the element and add it to the DOM, it renders the wallet picker UI.
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/connector";
 
 // The connector element
@@ -53,7 +53,7 @@ connector.setClient(newClient); // switch networks
 
 ## Usage in plain HTML
 
-```html theme={null}
+```html
 <!doctype html>
 <html>
   <head>
@@ -93,7 +93,7 @@ connector.setClient(newClient); // switch networks
 
 ## Usage with a bundler (vanilla JS/TS)
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/connector";
 
 // The custom element is auto-registered when you import the package.

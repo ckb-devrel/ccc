@@ -22,7 +22,7 @@ After this guide you'll be able to:
 
 `signer.signMessage` returns a `Signature` object defined in `packages/core/src/signer/signer/index.ts`:
 
-```typescript theme={null}
+```typescript
 class Signature {
   signature: string;  // the raw signature hex
   identity: string;   // signer identity (usually their address)
@@ -48,7 +48,7 @@ The `signType` field tells verifiers which cryptographic scheme was used, enabli
 
 One call — works with every wallet type CCC supports:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const message = "Hello world";
@@ -65,7 +65,7 @@ console.log(signature.signType);   // e.g. "CkbSecp256k1", "EvmPersonal", "BtcEc
 
 Verification is a **static method** — you do not need a connected wallet. CCC dispatches to the correct cryptographic scheme automatically based on `signature.signType`:
 
-```typescript theme={null}
+```typescript
 const isValid = await ccc.Signer.verifyMessage(message, signature);
 // true — message + signature match
 
@@ -79,7 +79,7 @@ This means your backend can verify signatures from *any* CCC-supported wallet wi
 
 End-to-end example from `packages/examples/src/sign.ts`. It handles the playground's default `SignerCkbPublicKey` (which cannot sign messages) by substituting a private-key signer for demonstration:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 import { client, signer as playgroundSigner } from "@ckb-ccc/playground";
 
@@ -111,7 +111,7 @@ console.log(
 
 **Use this when:** you not only want to verify the signature is valid, but also confirm it was produced by the *currently connected* wallet. The instance method additionally checks that `signature.identity` matches the signer:
 
-```typescript theme={null}
+```typescript
 // Returns false if the signature was produced by a different signer
 const ok = await signer.verifyMessage(message, signature);
 ```
@@ -124,7 +124,7 @@ const ok = await signer.verifyMessage(message, signature);
 
 **Use this when:** you need to sign arbitrary binary data (e.g. a hash, a serialized protobuf, or a binary payload):
 
-```typescript theme={null}
+```typescript
 const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
 const signature = await signer.signMessage(bytes);
 

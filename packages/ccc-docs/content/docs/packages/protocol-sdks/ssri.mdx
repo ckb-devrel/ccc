@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/ssri
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/ssri
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/ssri
 ```
   </Tab>
@@ -66,7 +66,7 @@ CKB scripts (lock/type scripts) are pure validation functions — by default the
 
 The base class for any SSRI-compatible contract interface. Extend it to build typed wrappers around on-chain scripts:
 
-```typescript theme={null}
+```typescript
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/core";
 
@@ -84,7 +84,7 @@ class MyContract extends ssri.Trait {
 
 Built-in `Trait` methods:
 
-```typescript theme={null}
+```typescript
 // List methods exposed by the script
 trait.getMethods(offset?, limit?): Promise<ExecutorResponse<ccc.Hex[]>>
 
@@ -102,7 +102,7 @@ trait.tryRun(call): Promise<ExecutorResponse<T | undefined>>
 
 Connects to an SSRI server over HTTP JSON-RPC:
 
-```typescript theme={null}
+```typescript
 const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com");
 ```
 
@@ -110,7 +110,7 @@ const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com"
 
 All SSRI calls return an `ExecutorResponse<T>`. It carries the decoded result and any cell dependencies that must be included in the transaction:
 
-```typescript theme={null}
+```typescript
 const response: ssri.ExecutorResponse<string> = await trait.myMethod();
 
 response.res;      // the decoded value
@@ -120,7 +120,7 @@ response.map(fn);  // transform the result
 
 ## Usage example
 
-```typescript theme={null}
+```typescript
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/core";
 
@@ -151,7 +151,7 @@ SSRI methods can be called at four levels of context, controlling what chain dat
 | `ContextCell`           | Pass a full cell (output + data) for cell-level script execution  |
 | `ContextTransaction`    | Pass a full transaction for transaction-level script execution    |
 
-```typescript theme={null}
+```typescript
 const res = await executor.runScript(
   codeOutPoint,
   "UDT.balance",

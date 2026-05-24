@@ -32,7 +32,7 @@ The `Udt` class in CCC supports both. By default it uses the **SSRI** execution 
 
 ## Installation
 
-```bash theme={null}
+```bash
 npm install @ckb-ccc/ccc
 ```
 
@@ -40,7 +40,7 @@ UDT support is bundled in the main package — no extra install is required.
 
 ## Import
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 ```
 
@@ -53,7 +53,7 @@ Before you can transfer or mint, you need a `Udt` object. It takes two pieces of
 - **`code`** — the `OutPoint` of the cell that holds the UDT script code (cell dep)
 - **`script`** — the type script that uniquely identifies this token (its `args` is typically the issuer's lock hash)
 
-```typescript theme={null}
+```typescript
 const type = await ccc.Script.fromKnownScript(
   signer.client,
   ccc.KnownScript.XUdt,
@@ -79,7 +79,7 @@ const udt = new ccc.udt.Udt(code, type);
   <Step title="Build the transfer outputs">
     `udt.transfer` creates a transaction with the desired output cells. It does **not** yet balance inputs — that's the next two steps.
 
-    ```typescript theme={null}
+    ```typescript
     const receiver = await signer.getRecommendedAddress();
     const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
 
@@ -92,7 +92,7 @@ const udt = new ccc.udt.Udt(code, type);
   <Step title="Fill UDT inputs">
     `udt.completeBy` collects the signer's UDT cells until there is enough token balance to cover the outputs. Any surplus UDT is returned as a change cell automatically.
 
-    ```typescript theme={null}
+    ```typescript
     tx = await udt.completeBy(tx, signer);
     ```
   </Step>
@@ -100,13 +100,13 @@ const udt = new ccc.udt.Udt(code, type);
   <Step title="Fill CKB capacity inputs">
     UDT cells also need CKB capacity to exist on-chain. This step adds CKB inputs to cover all output cells:
 
-    ```typescript theme={null}
+    ```typescript
     await tx.completeInputsByCapacity(signer);
     ```
   </Step>
 
   <Step title="Pay fee and broadcast">
-    ```typescript theme={null}
+    ```typescript
     await tx.completeFeeBy(signer);
     const txHash = await signer.sendTransaction(tx);
     console.log("UDT transfer hash:", txHash); // "0x..." — 32-byte tx hash
@@ -120,7 +120,7 @@ const udt = new ccc.udt.Udt(code, type);
 
 Minting creates new token outputs without requiring existing UDT inputs:
 
-```typescript theme={null}
+```typescript
 const { script: to } = await ccc.Address.fromString(receiver, signer.client);
 
 let { res: tx } = await udt.mint(signer, [
@@ -136,7 +136,7 @@ const txHash = await signer.sendTransaction(tx);
 
 **Use this when:** you want to display token name, symbol, decimals, or icon in your UI. Only works for tokens that implement the SSRI `UDT` interface on-chain:
 
-```typescript theme={null}
+```typescript
 const { res: name }     = await udt.name();
 const { res: symbol }   = await udt.symbol();
 const { res: decimals } = await udt.decimals();

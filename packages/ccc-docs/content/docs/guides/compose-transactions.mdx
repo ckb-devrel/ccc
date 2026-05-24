@@ -22,7 +22,7 @@ After this guide you'll be able to:
 
 On CKB, every output must declare its **capacity** in shannon (1 CKB = 10⁸ shannon). Use `ccc.fixedPointFrom(amount)` to convert a human-readable CKB amount to the internal representation:
 
-```typescript theme={null}
+```typescript
 ccc.fixedPointFrom(100)    // 100 CKB → 10_000_000_000n shannon
 ccc.fixedPointFrom("0.01") // 0.01 CKB → 1_000_000n shannon
 ```
@@ -37,7 +37,7 @@ The four steps below embody the **declare → fill → fee → send** pattern yo
   <Step title="Describe the outputs">
     Create a transaction skeleton with just the outputs you want. CCC will figure out which inputs are needed.
 
-    ```typescript theme={null}
+    ```typescript
     import { ccc } from "@ckb-ccc/ccc";
 
     const receiver = await signer.getRecommendedAddress();
@@ -52,7 +52,7 @@ The four steps below embody the **declare → fill → fee → send** pattern yo
   <Step title="Fill inputs by capacity">
     `completeInputsByCapacity` queries live cells owned by the signer and adds them as inputs until the total capacity covers all outputs.
 
-    ```typescript theme={null}
+    ```typescript
     await tx.completeInputsByCapacity(signer);
     ```
   </Step>
@@ -60,13 +60,13 @@ The four steps below embody the **declare → fill → fee → send** pattern yo
   <Step title="Pay the fee">
     `completeFeeBy` adds a change output back to the signer and adjusts its capacity to cover the network fee. The fee rate is calculated automatically based on current network conditions.
 
-    ```typescript theme={null}
+    ```typescript
     await tx.completeFeeBy(signer);
     ```
   </Step>
 
   <Step title="Sign and broadcast">
-    ```typescript theme={null}
+    ```typescript
     const txHash = await signer.sendTransaction(tx);
     console.log("Transaction hash:", txHash); // "0x..." — 32-byte hex hash
     ```
@@ -77,7 +77,7 @@ The four steps below embody the **declare → fill → fee → send** pattern yo
 
 **Use this when:** you want to empty a wallet completely — migrate to a new address, consolidate cells, etc. Instead of specifying a fixed capacity, you collect *all* inputs first and deduct the fee from the output:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const receiver = await signer.getRecommendedAddress();
@@ -107,7 +107,7 @@ CCC auto-fetches the current median fee rate from the node — you never need to
 
 If you need fine-grained control (e.g. priority transactions), pass an explicit fee rate in **shannon per kilobyte**:
 
-```typescript theme={null}
+```typescript
 await tx.completeFeeBy(signer, 1000); // fixed rate of 1000 shannon/kB
 ```
 

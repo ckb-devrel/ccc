@@ -15,7 +15,7 @@ Because the lock script is embedded in the address, you can always recover the e
 
 `ccc.Address` pairs a `Script` with a network prefix:
 
-```ts theme={null}
+```ts
 export class Address {
   constructor(
     public script: Script,
@@ -26,7 +26,7 @@ export class Address {
 
 Wherever an API accepts an `AddressLike`, you can pass an existing `Address` or a plain object — `Address.from()` normalizes both:
 
-```ts theme={null}
+```ts
 const address = ccc.Address.from({
   script: { codeHash: "0x...", hashType: "type", args: "0x..." },
   prefix: "ckb",
@@ -39,7 +39,7 @@ const address = ccc.Address.from({
 
 `Address.fromString` decodes an address string into a structured object:
 
-```ts theme={null}
+```ts
 import { ccc } from "@ckb-ccc/ccc";
 
 const client = new ccc.ClientPublicMainnet();
@@ -58,7 +58,7 @@ It validates that the address prefix matches the client's network and throws on 
 
 When you need to handle both networks in the same code path, pass a record of clients:
 
-```ts theme={null}
+```ts
 const address = await ccc.Address.fromString(someAddress, {
   ckb: new ccc.ClientPublicMainnet(),
   ckt: new ccc.ClientPublicTestnet(),
@@ -69,14 +69,14 @@ const address = await ccc.Address.fromString(someAddress, {
 
 Build an `Address` directly from a lock script and a client:
 
-```ts theme={null}
+```ts
 const address = ccc.Address.fromScript(lockScript, client);
 console.log(address.toString()); // "ckb1q..."
 ```
 
 Or derive one from a built-in `KnownScript`:
 
-```ts theme={null}
+```ts
 const address = await ccc.Address.fromKnownScript(
   client,
   ccc.KnownScript.Secp256k1Blake160,
@@ -88,7 +88,7 @@ const address = await ccc.Address.fromKnownScript(
 
 In a dApp, the easiest way to get an address is directly from the connected signer:
 
-```ts theme={null}
+```ts
 // Primary address as a string
 const addressStr = await signer.getRecommendedAddress();
 
@@ -108,7 +108,7 @@ const allAddresses = await signer.getAddresses(); // string[]
 
 Call `toString()` on any `Address` instance to produce the bech32m string:
 
-```ts theme={null}
+```ts
 const str = address.toString(); // "ckb1q..." | "ckt1q..."
 ```
 
@@ -144,7 +144,7 @@ Decoding a short address requires a `Client` to look up the current `codeHash` a
 
 Read the prefix at runtime from the client:
 
-```ts theme={null}
+```ts
 const client = new ccc.ClientPublicTestnet();
 console.log(client.addressPrefix); // "ckt"
 ```
@@ -157,7 +157,7 @@ console.log(client.addressPrefix); // "ckt"
 
 For most apps, `Address.fromString` and `Address.fromScript` are all you need. When you need to inspect or transform an address without a `Client` round-trip, CCC exposes the underlying steps via the `cccA` advanced namespace:
 
-```ts theme={null}
+```ts
 import { cccA } from "@ckb-ccc/ccc/advanced";
 ```
 
@@ -165,7 +165,7 @@ import { cccA } from "@ckb-ccc/ccc/advanced";
 
 Decodes the bech32/bech32m envelope and returns the raw format byte and payload — without resolving any `KnownScript`:
 
-```ts theme={null}
+```ts
 const { prefix, format, payload } = cccA.addressPayloadFromString(
   "ckb1qzda0cr08m85hc8jlnfp3sdrlalyatuqvqdveld...",
 );
@@ -180,7 +180,7 @@ Tries bech32m first, falls back to legacy bech32. Throws `Unknown address format
 
 Turns a decoded payload back into an `AddressLike`, resolving short-format script-index lookups against the client:
 
-```ts theme={null}
+```ts
 const addressLike = await cccA.addressFromPayload(prefix, format, payload, client);
 const address = ccc.Address.from(addressLike);
 ```

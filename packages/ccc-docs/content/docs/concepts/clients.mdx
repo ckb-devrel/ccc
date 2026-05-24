@@ -8,7 +8,7 @@ icon: Plug
 
 A `Client` is an abstract class that connects CCC to a CKB node via JSON-RPC. It provides methods for querying chain state, searching cells and transactions, and broadcasting signed transactions.
 
-```typescript theme={null}
+```typescript
 // From packages/core/src/client/client.ts
 export abstract class Client {
   public cache: ClientCache;
@@ -78,7 +78,7 @@ async getBlockByHash(
 
 ### Transactions
 
-```typescript theme={null}
+```typescript
 // Fetch a transaction by hash
 async getTransaction(
   txHashLike: HexLike,
@@ -102,7 +102,7 @@ async waitTransaction(
 
 ### Cells
 
-```typescript theme={null}
+```typescript
 // Get a cell by its OutPoint
 async getCell(outPointLike: OutPointLike): Promise<Cell | undefined>;
 
@@ -140,7 +140,7 @@ findCellsByType(
 
 ### Transactions search
 
-```typescript theme={null}
+```typescript
 // Async generator yielding transactions matching a search key
 async *findTransactions(
   key: ClientIndexerSearchKeyTransactionLike,
@@ -160,7 +160,7 @@ findTransactionsByLock(
 
 ### Balance and fees
 
-```typescript theme={null}
+```typescript
 // Get the total capacity (in Shannon) of cells matching all given lock scripts
 async getBalance(locks: ScriptLike[]): Promise<Num>;
 
@@ -178,7 +178,7 @@ abstract getFeeRateStatistics(
 
 ### Known scripts
 
-```typescript theme={null}
+```typescript
 // Resolve a well-known script to its on-chain ScriptInfo
 abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
 ```
@@ -187,7 +187,7 @@ abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
 
 The `KnownScript` enum lists pre-deployed scripts CCC knows how to resolve on both mainnet and testnet:
 
-```typescript theme={null}
+```typescript
 // From packages/core/src/client/knownScript.ts
 export enum KnownScript {
   NervosDao            = "NervosDao",
@@ -218,7 +218,7 @@ export enum KnownScript {
 
 Use `getKnownScript()` to fetch the `codeHash`, `hashType`, and `cellDeps` for a known script, or use `Script.fromKnownScript()` as a shortcut:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const client = new ccc.ClientPublicTestnet();
@@ -235,14 +235,14 @@ const xudtScript = await ccc.Script.fromKnownScript(
 
 Every client includes a `ClientCache` instance that stores previously fetched cells, transactions, and block headers in memory. This reduces redundant RPC calls and tracks spent cells locally after a transaction is sent.
 
-```typescript theme={null}
+```typescript
 // Access the cache on any client
 const cache: ccc.ClientCache = client.cache;
 ```
 
 The default cache is `ClientCacheMemory`, which holds data in process memory. You can supply a custom cache implementation via the constructor:
 
-```typescript theme={null}
+```typescript
 const client = new ccc.ClientPublicTestnet({ cache: myCustomCache });
 ```
 
@@ -250,7 +250,7 @@ const client = new ccc.ClientPublicTestnet({ cache: myCustomCache });
 
 ### Querying the chain
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 async function queryChain() {
@@ -285,7 +285,7 @@ async function queryChain() {
 
 ### Waiting for confirmation
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 async function sendAndWait(signer: ccc.Signer, tx: ccc.Transaction) {

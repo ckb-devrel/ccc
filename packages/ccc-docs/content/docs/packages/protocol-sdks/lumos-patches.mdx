@@ -27,17 +27,17 @@ Install `@ckb-ccc/lumos-patches` if you have an existing Lumos-based codebase an
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/lumos-patches
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/lumos-patches
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/lumos-patches
 ```
   </Tab>
@@ -54,7 +54,7 @@ pnpm add @ckb-ccc/lumos-patches
 
 Call `generateDefaultScriptInfos()` and register the result with Lumos before composing any transactions:
 
-```typescript theme={null}
+```typescript
 import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
 import { registerCustomLockScriptInfos } from "@ckb-lumos/common-scripts/lib/common";
 
@@ -75,7 +75,7 @@ After registration, Lumos will be able to collect cells and set up witnesses for
 
 If you need to add a different custom lock, use `generateScriptInfo` directly:
 
-```typescript theme={null}
+```typescript
 import { generateScriptInfo } from "@ckb-ccc/lumos-patches";
 import { ccc } from "@ckb-ccc/core";
 

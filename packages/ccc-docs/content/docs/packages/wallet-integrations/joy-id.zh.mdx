@@ -9,17 +9,17 @@ description: JoyID 钱包集成，支持 CKB、Bitcoin、EVM 和 Nostr。
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/joy-id
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/joy-id
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/joy-id
 ```
   </Tab>
@@ -145,6 +145,9 @@ new CkbSigner(
 - `isConnected()` — 检查内存连接，若无则尝试从 localStorage 恢复。
 - `getInternalAddress()` — 返回 JoyID CKB 地址字符串。
 - `getIdentity()` — 返回 JSON 字符串 `{ address, keyType, publicKey }`，用于签名验证。
+<Callout>
+注意：`publicKey` 去除了第一个字节（前缀/格式标识），以适配签名验证要求。
+</Callout>
 - `prepareTransaction(txLike)` — 添加 JoyId 脚本的 cell deps，为 sub_key 类型账户额外添加 COTA cell deps 和 SMT 解锁数据。
 - `signOnlyTransaction(txLike)` — 打开 JoyID 弹窗（`/sign-ckb-raw-tx`）完成交易签名。
 - `signMessageRaw(message)` — 打开 JoyID 弹窗（`/sign-message`）签名消息，返回 JSON 字符串 `{ signature, alg, message }`。 [7](#0-6) [8](#0-7) [9](#0-8) 
@@ -336,7 +339,7 @@ sequenceDiagram
 
 JoyID 会自动出现在钱包选择列表中。
 
-```tsx theme={null}
+```tsx
 import { ccc } from "@ckb-ccc/connector-react";
 
 export default function App({ children }) {
@@ -455,7 +458,7 @@ const signer = new CkbSigner(
 
 JoyID 通过 Lumos 补丁支持，如果您正在使用 Lumos SDK：
 
-```typescript theme={null}
+```typescript
 import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
 
 // Call before using Lumos — no @ckb-lumos/joyid needed
