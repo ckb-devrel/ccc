@@ -14,17 +14,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/connector-react
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/connector-react
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/connector-react
     ```
   </Tab>
@@ -37,7 +37,7 @@ import { PackageBadges } from '@/components/package-badges';
     Place `Provider` at the root of your application (above any component that
     needs wallet access).
 
-    ```tsx theme={null}
+    ```tsx
     import { ccc } from "@ckb-ccc/connector-react";
 
     export default function App({ children }) {
@@ -54,7 +54,7 @@ import { PackageBadges } from '@/components/package-badges';
     Call `useCcc()` inside any descendant component to open the wallet picker
     and read the connected wallet state.
 
-    ```tsx theme={null}
+    ```tsx
     import { ccc } from "@ckb-ccc/connector-react";
 
     export function ConnectButton() {
@@ -86,7 +86,7 @@ import { PackageBadges } from '@/components/package-badges';
 
 ## Provider props
 
-```tsx theme={null}
+```tsx
 <ccc.Provider
   hideMark={false}
   name="My App"
@@ -106,6 +106,7 @@ import { PackageBadges } from '@/components/package-badges';
 | Prop                | Type                                       | Description                                        |
 | ------------------- | ------------------------------------------ | -------------------------------------------------- |
 | `children`          | `ReactNode`                                | Your application tree                              |
+| `connectorProps`    | `HTMLAttributes<{}>?`                      | Additional props to pass to the connector element  |
 | `hideMark`          | `boolean?`                                 | Hide the "Powered by CCC" mark in the connector UI |
 | `name`              | `string?`                                  | App name shown in the wallet picker                |
 | `icon`              | `string?`                                  | App icon URL shown in the wallet picker            |
@@ -117,7 +118,7 @@ import { PackageBadges } from '@/components/package-badges';
 
 ## `useCcc()` hook
 
-```typescript theme={null}
+```typescript
 const {
   isOpen,      // boolean — whether the wallet picker modal is open
   open,        // () => void — open the wallet picker
@@ -134,7 +135,7 @@ The hook throws if called outside a `<ccc.Provider>` tree.
 
 ## Full example
 
-```tsx theme={null}
+```tsx
 "use client"; // Required for Next.js App Router
 
 import { ccc } from "@ckb-ccc/connector-react";
@@ -183,7 +184,7 @@ function Header() {
 
 Use `signerFilter` to show only specific wallet types:
 
-```tsx theme={null}
+```tsx
 import { ccc } from "@ckb-ccc/connector-react";
 
 // Show only CKB-native wallets
@@ -200,7 +201,7 @@ import { ccc } from "@ckb-ccc/connector-react";
 
 CCC's connector uses React context and browser APIs, so it only works on the client side. Add `"use client"` to any file that imports from `@ckb-ccc/connector-react` or renders `<ccc.Provider>`.
 
-```tsx theme={null}
+```tsx
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";

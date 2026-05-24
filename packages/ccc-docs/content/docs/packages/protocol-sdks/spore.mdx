@@ -16,17 +16,17 @@ import { PackageBadges } from "@/components/package-badges";
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/spore
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/spore
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/spore
 ```
   </Tab>
@@ -38,7 +38,7 @@ If you are using `@ckb-ccc/shell`, spore is already included as `ccc.spore`.
 
 The package exports the `spore` namespace from the barrel:
 
-```typescript theme={null}
+```typescript
 import { spore } from "@ckb-ccc/spore";
 // or, when using @ckb-ccc/shell:
 import { ccc } from "@ckb-ccc/shell";
@@ -66,7 +66,7 @@ Top-level exports:
 
 ### `createSpore`
 
-```typescript theme={null}
+```typescript
 async function createSpore(params: {
   signer: ccc.Signer;
   data: SporeDataView;
@@ -80,7 +80,7 @@ async function createSpore(params: {
 
 ### `transferSpore`
 
-```typescript theme={null}
+```typescript
 async function transferSpore(params: {
   signer: ccc.Signer;
   id: ccc.HexLike;
@@ -93,7 +93,7 @@ async function transferSpore(params: {
 
 ### `meltSpore`
 
-```typescript theme={null}
+```typescript
 async function meltSpore(params: {
   signer: ccc.Signer;
   id: ccc.HexLike;
@@ -105,7 +105,7 @@ async function meltSpore(params: {
 
 ### `createSporeCluster`
 
-```typescript theme={null}
+```typescript
 async function createSporeCluster(params: {
   signer: ccc.Signer;
   data: ClusterDataView;
@@ -118,7 +118,7 @@ async function createSporeCluster(params: {
 
 ### `transferSporeCluster`
 
-```typescript theme={null}
+```typescript
 async function transferSporeCluster(params: {
   signer: ccc.Signer;
   id: ccc.HexLike;
@@ -133,7 +133,7 @@ async function transferSporeCluster(params: {
 
 ### Create a Spore
 
-```typescript theme={null}
+```typescript
 import { spore } from "@ckb-ccc/spore";
 import { ccc } from "@ckb-ccc/shell";
 
@@ -152,7 +152,7 @@ console.log("Spore ID:", id);
 
 ### Create a Spore in a Cluster
 
-```typescript theme={null}
+```typescript
 const { tx: clusterTx, id: clusterId } = await spore.createSporeCluster({
   signer,
   data: {
@@ -240,7 +240,7 @@ const txHash = await signer.sendTransaction(tx);
 
 The `dob` sub-namespace provides utilities for encoding Spore data following the DOB0/DOB1 specifications:
 
-```typescript theme={null}
+```typescript
 import { spore } from "@ckb-ccc/spore";
 
 const encoded = spore.dob.encodeNativeRendererDob0({ /* DOB0 content */ });
@@ -249,27 +249,3 @@ const encoded = spore.dob.encodeNativeRendererDob0({ /* DOB0 content */ });
 ## Predefined script configurations
 
 The package ships with predefined script info for both mainnet and testnet. These are selected automatically based on your `client`. You can also pass a custom `scriptInfo` to every function to target a different deployment.
-
-
-## API Overview
-
-| Function | Description |
-|----------|-------------|
-| `createSpore({ signer, data, to?, clusterMode? })` | Create a new Spore cell |
-| `transferSpore({ signer, id, to })` | Transfer a Spore to a new owner |
-| `meltSpore({ signer, id })` | Destroy a Spore and reclaim its capacity |
-| `findSpore(client, id)` | Find a Spore by its ID |
-| `findSporesBySigner({ signer })` | Iterate Spores owned by a signer |
-| `createCluster({ signer, data })` | Create a new Cluster |
-| `transferCluster({ signer, id, to })` | Transfer a Cluster |
-| `findCluster(client, id)` | Find a Cluster by its ID |
-
-### `SporeDataView`
-
-```typescript
-{
-  contentType: string;     // MIME type, e.g. "text/plain", "image/png"
-  content: ccc.BytesLike;  // The actual content data
-  clusterId?: ccc.HexLike; // Optional: cluster this Spore belongs to
-}
-```

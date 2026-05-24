@@ -31,17 +31,17 @@ After this guide you'll have:
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash npm theme={null}
+    ```bash npm
     npm install @ckb-ccc/connector-react
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash yarn theme={null}
+    ```bash yarn
     yarn add @ckb-ccc/connector-react
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash pnpm theme={null}
+    ```bash pnpm
     pnpm add @ckb-ccc/connector-react
     ```
   </Tab>
@@ -62,7 +62,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
       For React Server Components (Next.js App Router), add `"use client"` at the top of the file. The connector UI is client-only.
     </Callout>
 
-    ```tsx theme={null}
+    ```tsx
     "use client";
 
     import { ccc } from "@ckb-ccc/connector-react";
@@ -80,7 +80,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
   <Step title="Add a Connect button">
     Anywhere inside the `Provider` tree, call `ccc.useCcc()` to open the modal and read the connection state.
 
-    ```tsx theme={null}
+    ```tsx
     "use client";
 
     import { ccc } from "@ckb-ccc/connector-react";
@@ -100,7 +100,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
   <Step title="Use the signer">
     Once connected, `ccc.useSigner()` returns a ready-to-use `Signer` that you can pass to any CCC API.
 
-    ```tsx theme={null}
+    ```tsx
     "use client";
 
     import { useEffect, useState } from "react";
@@ -161,7 +161,7 @@ Returns the full wallet state and control functions. Use it when you need to con
 
 Shortcut for `useCcc().signerInfo?.signer`. Use it when all you need is the active `Signer`. Returns `ccc.Signer | undefined` (undefined when no wallet is connected).
 
-```tsx theme={null}
+```tsx
 const signer = ccc.useSigner();
 const address = await signer?.getRecommendedAddress();
 ```
@@ -172,7 +172,7 @@ const address = await signer?.getRecommendedAddress();
 
 `signerFilter` runs for every discovered `(wallet, signer)` pair. Return `true` to keep it, `false` to hide it.
 
-```tsx theme={null}
+```tsx
 <ccc.Provider
   signerFilter={async (signerInfo, wallet) => {
     // Only show CKB-native wallets — hide BTC/EVM/Nostr/Doge
@@ -210,7 +210,7 @@ const address = await signer?.getRecommendedAddress();
 
 `NetworkPreference` type:
 
-```typescript theme={null}
+```typescript
 type NetworkPreference = {
   addressPrefix: string; // "ckb" for mainnet, "ckt" for testnet
   signerType: SignerType;
@@ -225,7 +225,7 @@ type NetworkPreference = {
 
 `SignersController` discovers every installed wallet extension and exposes them as a list of `WalletWithSigners`. You render the UI; CCC handles detection.
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const controller = new ccc.SignersController();
@@ -254,7 +254,7 @@ console.log(signature);
 
 **Use this when:** your dApp only ever uses one specific wallet (e.g. JoyID-only) and you want to skip wallet discovery entirely.
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 // Pass your app's name and icon — JoyID shows them in its sign-in popup
@@ -283,7 +283,7 @@ CCC bridges multiple distinct chain cryptography types into CKB. Here is the sup
 
 ## Which package should I import from?
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/connector-react"; // React apps (re-exports everything below + hooks/Provider)
 import { ccc } from "@ckb-ccc/ccc";             // Browser, custom UI, no React
 import { ccc } from "@ckb-ccc/shell";           // Node.js backend (no UI / no DOM-only signers)

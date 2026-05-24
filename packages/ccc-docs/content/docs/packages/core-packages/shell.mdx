@@ -15,17 +15,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/shell
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/shell
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/shell
 ```
   </Tab>
@@ -55,7 +55,7 @@ The `barrel` entry point (`@ckb-ccc/shell/barrel`) re-exports:
 * `ssri` — the SSRI protocol namespace
 * `udt` — the UDT token namespace
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 // ccc.Transaction, ccc.Script, ccc.Address, ccc.Client...
@@ -67,7 +67,7 @@ import { ccc } from "@ckb-ccc/shell";
 
 ### Connect to a CKB node
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 // Public testnet RPC
@@ -82,7 +82,7 @@ const client = new ccc.ClientPublicTestnet("http://localhost:8114");
 
 ### Sign transactions with a private key
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 const client = new ccc.ClientPublicTestnet();
@@ -97,7 +97,7 @@ console.log("Address:", myAddress);
 
 ### Build and send a transaction
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 const client = new ccc.ClientPublicTestnet();
@@ -121,7 +121,7 @@ console.log("Sent:", txHash);
 
 ### Query cells
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 const client = new ccc.ClientPublicTestnet();

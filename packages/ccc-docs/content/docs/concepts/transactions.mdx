@@ -8,7 +8,7 @@ icon: Repeat
 
 A CKB transaction consumes existing cells (inputs) and creates new cells (outputs):
 
-```typescript theme={null}
+```typescript
 export class Transaction {
   constructor(
     public version: Num,
@@ -26,7 +26,7 @@ export class Transaction {
 
 References an existing on-chain cell to consume:
 
-```typescript theme={null}
+```typescript
 export class CellInput {
   constructor(
     public previousOutput: OutPoint, // Which cell to consume
@@ -41,7 +41,7 @@ export class CellInput {
 
 Defines a new cell to create:
 
-```typescript theme={null}
+```typescript
 export class CellOutput {
   constructor(
     public capacity: Num,  // Storage space in Shannon
@@ -55,7 +55,7 @@ export class CellOutput {
 
 Tells the CKB VM where to find the script code that needs to run:
 
-```typescript theme={null}
+```typescript
 export type DepType = "depGroup" | "code";
 
 export class CellDep {
@@ -70,7 +70,7 @@ export class CellDep {
 
 Use `Transaction.from()` to build a transaction from a plain object. Omit `capacity` and CCC calculates it from the cell's occupied size:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const tx = ccc.Transaction.from({
@@ -85,7 +85,7 @@ const tx = ccc.Transaction.from({
 
 For an empty transaction, use `Transaction.default()` and add outputs incrementally:
 
-```typescript theme={null}
+```typescript
 const tx = ccc.Transaction.default();
 tx.addOutput({ lock: recipientLock }, "0x"); // capacity auto-calculated
 ```
@@ -94,7 +94,7 @@ tx.addOutput({ lock: recipientLock }, "0x"); // capacity auto-calculated
 
 Capacity is always stored in **Shannon** (bigint). Use `fixedPointFrom()` to convert from human-readable CKB:
 
-```typescript theme={null}
+```typescript
 ccc.fixedPointFrom("61")  // → 6_100_000_000n  (61 CKB — minimum for a plain cell)
 ccc.fixedPointFrom(100)   // → 10_000_000_000n
 ccc.Zero                  // → 0n
@@ -108,7 +108,7 @@ After declaring outputs, two method calls handle everything else:
 
 Searches the signer's cells and adds enough inputs to cover total output capacity:
 
-```typescript theme={null}
+```typescript
 async completeInputsByCapacity(
   from: Signer,
   capacityTweak?: NumLike,
@@ -120,7 +120,7 @@ async completeInputsByCapacity(
 
 Calculates the fee from the serialized transaction size, adds more inputs if needed, and sends change back to the signer's address:
 
-```typescript theme={null}
+```typescript
 async completeFeeBy(
   from: Signer,
   feeRate?: NumLike,
@@ -141,7 +141,7 @@ Omit `feeRate` and CCC fetches the current network rate from the client automati
 
 ## Full transfer example
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 async function transferCkb(
@@ -171,7 +171,7 @@ async function transferCkb(
 
 A transaction moves through three stages before it hits the chain:
 
-```typescript theme={null}
+```typescript
 // 1. Prepare — adds cell deps and dummy witnesses
 const prepared = await signer.prepareTransaction(tx);
 
@@ -186,7 +186,7 @@ In practice, `sendTransaction` calls `signTransaction` internally — you rarely
 
 ## Computing hashes
 
-```typescript theme={null}
+```typescript
 // Transaction hash (excludes witnesses)
 const txHash: ccc.Hex = tx.hash();
 
@@ -201,7 +201,7 @@ const hash = ccc.hashCkb(someBytes);
 
 When you need full control over how change capacity is handled, use `completeFee()` directly:
 
-```typescript theme={null}
+```typescript
 const [addedInputs, hasChange] = await tx.completeFee(
   signer,
   (tx, capacity) => {
@@ -220,7 +220,7 @@ const [addedInputs, hasChange] = await tx.completeFee(
 
 For built-in scripts, use `addCellDepsOfKnownScripts()`. For custom scripts, add deps directly:
 
-```typescript theme={null}
+```typescript
 // Built-in script
 await tx.addCellDepsOfKnownScripts(client, ccc.KnownScript.XUdt);
 

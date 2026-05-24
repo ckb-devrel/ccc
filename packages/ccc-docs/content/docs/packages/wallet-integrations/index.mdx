@@ -9,16 +9,16 @@ CCC supports multiple wallet ecosystems through dedicated signer packages. Each 
   All wallet packages below are already bundled in `@ckb-ccc/ccc` and `@ckb-ccc/connector-react`. You only need to install them individually if you're building a custom integration.
 </Callout>
 
-| Package | Chain | Wallets | Provider Detection |
-| --- | --- | --- | --- |
-| [`@ckb-ccc/joy-id`](./joy-id) | CKB / BTC / EVM / Nostr | JoyID | WebAuthn / iframe |
-| [`@ckb-ccc/eip6963`](./eip6963) | EVM | MetaMask, Rabby, OKX EVM, any EIP-6963 wallet | `eip6963:announceProvider` events |
-| [`@ckb-ccc/nip07`](./nip07) | Nostr | nos2x, Alby, any NIP-07 extension | `window.nostr` |
-| [`@ckb-ccc/utxo-global`](./utxo-global) | CKB / BTC / DOGE | UTXO Global | `window.utxoGlobal` |
-| [`@ckb-ccc/rei`](./rei) | CKB | REI Wallet | `window.rei.ckb` |
-| [`@ckb-ccc/okx`](./okx) | BTC / Nostr | OKX Wallet | `window.okxwallet` |
-| [`@ckb-ccc/uni-sat`](./uni-sat) | BTC | UniSat | `window.unisat` |
-| [`@ckb-ccc/xverse`](./xverse) | BTC | Xverse, any SATS Connect wallet | `window.btc_providers` |
+| Package                                                     | Chain                   | Wallets                                                     | Provider Detection                    |
+| ----------------------------------------------------------- | ----------------------- | ----------------------------------------------------------- | ------------------------------------- |
+| [`@ckb-ccc/joy-id`](./wallet-integrations/joy-id)           | CKB / BTC / EVM / Nostr | JoyID                                                       | WebAuthn / iframe                     |
+| [`@ckb-ccc/eip6963`](./wallet-integrations/eip6963)         | EVM                     | MetaMask, Rabby, OKX EVM, any EIP-6963 wallet               | `eip6963:announceProvider` events     |
+| [`@ckb-ccc/nip07`](./wallet-integrations/nip07)             | Nostr                   | nos2x, Alby, any NIP-07 extension                           | `window.nostr`                        |
+| [`@ckb-ccc/utxo-global`](./wallet-integrations/utxo-global) | CKB / BTC / DOGE        | UTXO Global                                                 | `window.utxoGlobal`                   |
+| [`@ckb-ccc/rei`](./wallet-integrations/rei)                 | CKB                     | REI Wallet                                                  | `window.rei.ckb`                      |
+| [`@ckb-ccc/okx`](./wallet-integrations/okx)                 | BTC / Nostr             | OKX Wallet                                                  | `window.okxwallet`                    |
+| [`@ckb-ccc/uni-sat`](./wallet-integrations/uni-sat)         | BTC                     | UniSat                                                      | `window.unisat`                       |
+| [`@ckb-ccc/xverse`](./wallet-integrations/xverse)           | BTC                     | Xverse, any SATS Connect wallet                             | `window.btc_providers`                |
 
 ## Integration contract
 

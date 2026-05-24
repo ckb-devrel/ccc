@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/okx
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/okx
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/okx
     ```
   </Tab>
@@ -35,10 +35,10 @@ import { PackageBadges } from '@/components/package-badges';
 
 **Dependencies:**
 
-| Package | Description |
-| ------- | ----------- |
-| `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
-| `@ckb-ccc/nip07` | NIP-07 protocol support — Nostr signer implementation |
+| Package            | Description |
+| ------------------ | ----------- |
+| `@ckb-ccc/core`    | Base types — `Signer`, `Client`, `Transaction`, and more |
+| `@ckb-ccc/nip07`   | NIP-07 protocol support — Nostr signer implementation |
 | `@ckb-ccc/uni-sat` | UniSat protocol support — Bitcoin provider interface |
 
 ## Architecture
@@ -99,7 +99,7 @@ graph TD
 | `btc` | `bitcoin` | Mainnet | `this.providers.bitcoin` |
 
 <Callout type="warning">
-  OKX only supports Bitcoin mainnet. Testnet and signet are not available. See [the announcement](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet) for details.
+  OKX only supports Bitcoin mainnet. While the code includes mappings for `btcTestnet` and `btcSignet`, OKX no longer provides providers for these networks, so they are not actually available. See [the announcement](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet) for details.
 </Callout>
 
 ### Account and public key retrieval

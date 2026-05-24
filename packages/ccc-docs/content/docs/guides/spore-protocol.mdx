@@ -27,11 +27,11 @@ After this guide you'll be able to:
 
 ## Installation
 
-```bash theme={null}
+```bash
 npm install @ckb-ccc/spore
 ```
 
-```typescript theme={null}
+```typescript
 import { createSpore, transferSpore, meltSpore } from "@ckb-ccc/spore";
 import { createSporeCluster, transferSporeCluster } from "@ckb-ccc/spore";
 ```
@@ -40,7 +40,7 @@ import { createSporeCluster, transferSporeCluster } from "@ckb-ccc/spore";
 
 `createSpore` encodes your content into a new Spore cell. You provide a MIME content type and raw content bytes; CCC handles the on-chain data packing:
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 import { createSpore } from "@ckb-ccc/spore";
 
@@ -71,7 +71,7 @@ console.log("Transaction hash:", txHash);  // "0x..." — 32-byte tx hash
 
 If you want the Spore to belong to a Cluster, include `clusterId` in the data and set `clusterMode`:
 
-```typescript theme={null}
+```typescript
 const { tx, id } = await createSpore({
   signer,
   data: {
@@ -93,7 +93,7 @@ const { tx, id } = await createSpore({
 
 **Use this when:** you want to change ownership of an existing Spore (e.g. sell, gift, or move to a different address).
 
-```typescript theme={null}
+```typescript
 import { transferSpore } from "@ckb-ccc/spore";
 
 const { script: newOwner } = await ccc.Address.fromString(
@@ -116,7 +116,7 @@ const txHash = await signer.sendTransaction(tx);
 
 **Use this when:** you want to permanently destroy a Spore and reclaim its locked CKB capacity:
 
-```typescript theme={null}
+```typescript
 import { meltSpore } from "@ckb-ccc/spore";
 
 const { tx } = await meltSpore({
@@ -138,7 +138,7 @@ Clusters are optional named collections. Create a Cluster first, then reference 
 
 ### Create a Cluster
 
-```typescript theme={null}
+```typescript
 import { createSporeCluster } from "@ckb-ccc/spore";
 
 const { tx, id: clusterId } = await createSporeCluster({
@@ -157,7 +157,7 @@ console.log("Cluster ID:", clusterId); // "0x..." — pass this as clusterId whe
 
 ### Transfer a Cluster
 
-```typescript theme={null}
+```typescript
 import { transferSporeCluster } from "@ckb-ccc/spore";
 
 const { script: newOwner } = await ccc.Address.fromString(
@@ -180,7 +180,7 @@ await signer.sendTransaction(tx);
 
 All query functions return **async generators** — they stream results lazily so you can process large collections without loading everything into memory.
 
-```typescript theme={null}
+```typescript
 import { findSporesBySigner, findSporeClusters } from "@ckb-ccc/spore";
 
 // Iterate all Spores owned by the signer

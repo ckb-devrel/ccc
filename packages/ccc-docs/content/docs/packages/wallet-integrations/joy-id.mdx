@@ -13,17 +13,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/joy-id
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/joy-id
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/joy-id
 ```
   </Tab>
@@ -148,7 +148,10 @@ new CkbSigner(
 - `disconnect()` — Clears in-memory connection state and removes from localStorage.
 - `isConnected()` — Checks in-memory connection; if absent, attempts to restore from localStorage.
 - `getInternalAddress()` — Returns the JoyID CKB address string.
-- `getIdentity()` — Returns a JSON string `{ address, keyType, publicKey }` used for signature verification.
+- `getIdentity()` — Returns a JSON string `{ address, keyType, publicKey }` used for signature verification. 
+<Callout>
+Note: `publicKey` has the first byte (prefix/format identifier) removed to adapt to signature verification requirements.
+</Callout>
 - `prepareTransaction(txLike)` — Adds JoyId script cell deps; for `sub_key` accounts, additionally adds COTA cell deps and SMT unlock data.
 - `signOnlyTransaction(txLike)` — Opens a JoyID popup (`/sign-ckb-raw-tx`) to complete transaction signing.
 - `signMessageRaw(message)` — Opens a JoyID popup (`/sign-message`) to sign a message; returns a JSON string `{ signature, alg, message }`. 
@@ -340,7 +343,7 @@ When using `@ckb-ccc/connector-react`, JoyID automatically appears in the wallet
 
 JoyID is automatically registered when using the CCC connector:
 
-```tsx theme={null}
+```tsx
 import { ccc } from "@ckb-ccc/connector-react";
 
 export default function App({ children }) {
@@ -459,7 +462,7 @@ const signer = new CkbSigner(
 
 JoyID is supported via Lumos patches if you are using the Lumos SDK:
 
-```typescript theme={null}
+```typescript
 import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
 
 // Call before using Lumos — no @ckb-lumos/joyid needed

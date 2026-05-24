@@ -22,17 +22,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/ccc
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/ccc
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/ccc
     ```
   </Tab>
@@ -42,20 +42,16 @@ import { PackageBadges } from '@/components/package-badges';
 
 `@ckb-ccc/ccc` re-exports everything from:
 
-| Sub-package | Namespace | Contents |
-| ----------- | --------- | -------- |
-| `@ckb-ccc/core` | `ccc.*` | `Transaction`, `Cell`, `Script`, `Client`, `Signer`, `Address`, `fixedPointFrom`, and more |
-| `@ckb-ccc/udt` | `ccc.udt.*` | UDT / xUDT token operations |
-| `@ckb-ccc/spore` | `ccc.spore.*` | Spore / DOB NFT operations |
-| `@ckb-ccc/ssri` | `ccc.ssri.*` | SSRI protocol |
-| `@ckb-ccc/joy-id` | — | JoyID wallet signer |
-| `@ckb-ccc/eip6963` | — | MetaMask, Rabby, and any EIP-6963 wallet |
-| `@ckb-ccc/uni-sat` | — | UniSat Bitcoin wallet signer |
-| `@ckb-ccc/okx` | — | OKX wallet signer (BTC + Nostr) |
-| `@ckb-ccc/xverse` | — | Xverse / SATS Connect wallet signer |
-| `@ckb-ccc/nip07` | — | NIP-07 Nostr extension signer |
-| `@ckb-ccc/rei` | — | REI CKB-native wallet signer |
-| `@ckb-ccc/utxo-global` | — | UTXO Global wallet signer (CKB + BTC + DOGE) |
+| Sub-package            | Namespace | Contents |
+| ---------------------- | --------- | -------- |
+| `@ckb-ccc/joy-id`      | ccc.*     | JoyID wallet signer |
+| `@ckb-ccc/eip6963`     | ccc.*     | MetaMask, Rabby, and any EIP-6963 wallet |
+| `@ckb-ccc/uni-sat`     | ccc.*     | UniSat Bitcoin wallet signer |
+| `@ckb-ccc/okx`         | ccc.*     | OKX wallet signer (BTC + Nostr) |
+| `@ckb-ccc/xverse`      | ccc.*     | Xverse / SATS Connect wallet signer |
+| `@ckb-ccc/nip07`       | ccc.*     | NIP-07 Nostr extension signer |
+| `@ckb-ccc/rei`         | ccc.*     | REI CKB-native wallet signer |
+| `@ckb-ccc/utxo-global` | ccc.*     | UTXO Global wallet signer (CKB + BTC + DOGE) |
 
 It also adds one package-level export:
 
@@ -63,7 +59,7 @@ It also adds one package-level export:
 
 ## Usage
 
-```typescript theme={null}
+```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
 const client = new ccc.ClientPublicTestnet();
@@ -82,7 +78,7 @@ const balance = await signer.getBalance();
 
 ## Advanced exports
 
-```typescript theme={null}
+```typescript
 import { cccA } from "@ckb-ccc/ccc/advanced";
 ```
 

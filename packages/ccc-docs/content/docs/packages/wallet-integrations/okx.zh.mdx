@@ -3,38 +3,43 @@ title: "@ckb-ccc/okx"
 description: OKX wallet integration — multi-protocol support for Bitcoin and Nostr.
 ---
 
+import { PackageBadges } from '@/components/package-badges';
+
 `@ckb-ccc/okx` 是 CCC 中的协议支持层包，负责集成 OKX 钱包。OKX 是一个多协议钱包，支持比特币和 Nostr 协议。该包通过浏览器注入的 `window.okxwallet` 对象与 OKX 钱包通信，并为比特币和 Nostr 提供统一的 `Signer` 接口实现。OKX 包采用复合依赖架构，复用 `@ckb-ccc/uni-sat` 和 `@ckb-ccc/nip07` 的实现来提供协议支持。 
+
+<Callout type="info">
+  如果您正在使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，OKX 已经包含在内 — 无需单独安装。
+</Callout>
 
 ## 安装
 
+<PackageBadges pkg="@ckb-ccc/okx" />
+
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/okx
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/okx
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/okx
 ```
   </Tab>
 </Tabs>
 
 **依赖项：**
-| 包 | 描述 |
-|---------|-------------|
-| `@ckb-ccc/core` | CCC 核心层 — 提供 `Signer`、`Client`、`Transaction` 等基础类型 |
-| `@ckb-ccc/nip07` | NIP-07 协议支持 — 提供 Nostr 签名器实现 |
-| `@ckb-ccc/uni-sat` | UniSat 协议支持 — 提供比特币提供者接口 |
 
-<Callout type="info">
-  如果您正在使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，OKX 已经包含在内 — 无需单独安装。
-</Callout>
+| 包                 | 描述                         |
+|--------------------|------------------------------|
+| `@ckb-ccc/core`    | CCC 核心层 — 提供 `Signer`、`Client`、`Transaction` 等基础类型 |
+| `@ckb-ccc/nip07`   | NIP-07 协议支持 — 提供 Nostr 签名器实现 |
+| `@ckb-ccc/uni-sat` | UniSat 协议支持 — 提供比特币提供者接口 |
 
 ## 架构概览
 
@@ -96,7 +101,7 @@ OKX 的比特币支持通过 `BitcoinSigner` 类实现，该类继承自 `ccc.Si
 | `btc` | `bitcoin` | 主网 | `this.providers.bitcoin` |
 
 <Callout type="info">
-  OKX 目前只支持比特币主网，不支持测试网和 Signet。详见 [OKX 官方公告](https://www.okx.com/zh-hans/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
+  OKX 目前只支持比特币主网。虽然代码中包含了 `btcTestnet` 和 `btcSignet` 的映射，但 OKX 已不再提供这些网络的 provider，因此实际上不可用。详见 [OKX 官方公告](https://www.okx.com/zh-hans/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
 </Callout>
 
 ### 账户和公钥获取
@@ -152,6 +157,3 @@ OKX 钱包通过一致的模式集成到 CCC 系统中：<Cite path="packages/cc
 4. **错误处理**：当钱包不可用或不兼容时优雅降级（返回空数组）
 
 在主 CCC 包中，`SignersController` 导入并导出这些工厂函数，以提供统一的多链钱包访问。
-
-你可能还想探索以下 Wiki 页面：
-- [CCC: Overview and Architecture (ckb-devrel/ccc)](https://deepwiki.com/ckb-devrel/ccc)

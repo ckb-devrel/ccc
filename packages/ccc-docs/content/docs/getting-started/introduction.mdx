@@ -6,36 +6,26 @@ icon: BookOpen
 
 import { Rocket, Package, BookOpen, Map } from 'lucide-react';
 
-CCC is a TypeScript/JavaScript SDK for building on the [CKB (Common Knowledge Base)](https://nervos.org/) blockchain. It gives you everything you need to interact with CKB nodes, compose transactions, sign messages, and connect wallets — across multiple chain ecosystems.
+CKB is a UTXO-based blockchain that natively supports Bitcoin and EVM wallets — making it uniquely suited for cross-chain applications. 
+
+CCC is the TypeScript SDK that makes building on CKB approachable: it handles wallet connections, transaction composition, and cross-chain signing, so you can focus on your product instead of the plumbing.
 
 ## What you can do with CCC
 
-- **Learn CKB**: Explore code examples and live web demos to understand how CKB works hands-on.
-- **Analyze data**: Query CKB nodes and process blockchain data programmatically.
+- **Explore CKB hands-on**: Run live code examples in the browser — no setup needed.
+- **Query the chain**: Fetch cells, track assets, and process blockchain data with a typed API.
 - **Compose transactions**: Build transactions with an intuitive API — CCC handles input selection and fee calculation for you.
-- **Sign messages**: Use a single signing interface that works across EVM, Bitcoin, Nostr, and more.
-- **Connect wallets**: Drop in the connector component and go, or build a fully custom wallet UI.
-
-## Key capabilities
-
-- **Multi-chain wallet support**: One interface for wallets across EVM, Bitcoin, CKB, Nostr, and Dogecoin ecosystems.
-- **Automatic transaction completion**: Describe your intent; CCC fills in the inputs and fee.
-- **Unified signing**: The same `Signer` interface regardless of wallet type or chain.
-- **React and Web Component connectors**: Pre-built UI components that work in React or any framework.
+- **Sign messages**: Use a single `Signer` interface that works across EVM, Bitcoin, Nostr, and more — regardless of wallet type or chain.
+- **Connect wallets**: Drop in the connector component and go, or build a fully custom wallet UI for React or any framework.
 
 ## Who uses CCC
 
 CCC powers production applications across the CKB ecosystem — including
-[NervDAO](https://nervdao.com/),
-[UTXO Global](https://utxo.global/),
-[Mobit](https://mobit.app/),
-[Omiga](https://omiga.io/),
-[Nervape](https://www.nervape.com/),
-[UTXOSwap](https://utxoswap.xyz/),
-[D.ID](https://d.id/),
-[Bool Network](https://bool.network/),
-[World3](https://world3.ai/),
-and more.
+[NervDAO](https://nervdao.com/), [UTXO Global](https://utxo.global/),
+[Mobit](https://mobit.app/), [Omiga](https://omiga.io/),
+[Nervape](https://www.nervape.com/), [UTXOSwap](https://utxoswap.xyz/),
+[D.ID](https://d.id/), [Bool Network](https://bool.network/),
+[World3](https://world3.ai/), and more. If you're building something new on CKB, you're in good company.
 
 ## Ecosystem links
 
@@ -60,7 +50,7 @@ and more.
     Install CCC for React, Node.js, Web Component, or custom UI.
   </Card>
   <Card title="Core concepts" icon={<BookOpen />} href="../concepts/cell-model">
-    Learn the five primitives behind every CCC app and how they fit together.
+    Understand the building blocks behind every CKB app — and how they fit together.
   </Card>
   <Card title="Guides" icon={<Map />} href="../guides/connect-wallets">
     Find the recipe for what you're trying to build — step-by-step.

@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash theme={null}
+```bash
 npm install @ckb-ccc/udt
 ```
   </Tab>
   <Tab value="yarn">
-```bash theme={null}
+```bash
 yarn add @ckb-ccc/udt
 ```
   </Tab>
   <Tab value="pnpm">
-```bash theme={null}
+```bash
 pnpm add @ckb-ccc/udt
 ```
   </Tab>
@@ -46,7 +46,7 @@ pnpm add @ckb-ccc/udt
 
 ### Constructor
 
-```typescript theme={null}
+```typescript
 const udt = new Udt(
   code,    // ccc.OutPointLike — the script code cell OutPoint
   script,  // ccc.ScriptLike  — the type script identifying this token
@@ -56,7 +56,7 @@ const udt = new Udt(
 
 ### Read methods
 
-```typescript theme={null}
+```typescript
 // Token metadata
 const { res: name }     = await udt.name();     // string | undefined
 const { res: symbol }   = await udt.symbol();   // string | undefined
@@ -68,7 +68,7 @@ const { res: icon }     = await udt.icon();     // string (data URI) | undefined
 
 Transfer tokens to one or more recipients:
 
-```typescript theme={null}
+```typescript
 async transfer(
   signer: ccc.Signer,
   transfers: { to: ccc.ScriptLike; amount: ccc.NumLike }[],
@@ -80,7 +80,7 @@ async transfer(
 
 Mint new tokens (issuer only):
 
-```typescript theme={null}
+```typescript
 async mint(
   signer: ccc.Signer,
   mints: { to: ccc.ScriptLike; amount: ccc.NumLike }[],
@@ -92,7 +92,7 @@ async mint(
 
 Balance UDT inputs/outputs automatically using the signer's address as change:
 
-```typescript theme={null}
+```typescript
 async completeBy(
   tx: ccc.TransactionLike,
   from: ccc.Signer,
@@ -103,7 +103,7 @@ async completeBy(
 
 Balance UDT inputs/outputs with a custom change lock script:
 
-```typescript theme={null}
+```typescript
 async completeChangeToLock(
   txLike: ccc.TransactionLike,
   signer: ccc.Signer,
@@ -116,7 +116,7 @@ async completeChangeToLock(
 ### Issue xUDT 
 The following example shows how to issue xUDT tokens using CCC (from CCC demo application):
 
-```typescript theme={null}
+```typescript
 // 1. Prepare token information  
 const { script } = await signer.getRecommendedAddressObj();  
 const decimals = "8";  
@@ -133,7 +133,7 @@ const susTxHash = await signer.sendTransaction(susTx);
 ```
 
 ### Use Type ID to issue xUDT
-```typescript theme={null}
+```typescript
 // 1. Create or use existing Type ID  
 const typeId = await ccc.Script.fromKnownScript(  
   signer.client,  
@@ -178,7 +178,7 @@ const mintTx = ccc.Transaction.from({
 
 ### Transfer tokens
 
-```typescript theme={null}
+```typescript
 import { udt } from "@ckb-ccc/udt";
 import { ccc } from "@ckb-ccc/shell";
 
@@ -214,7 +214,7 @@ const txHash = await signer.sendTransaction(completedTx);
 
 ### Read token metadata
 
-```typescript theme={null}
+```typescript
 const { res: name }     = await myToken.name();
 const { res: symbol }   = await myToken.symbol();
 const { res: decimals } = await myToken.decimals();
@@ -224,7 +224,7 @@ console.log(`${name} (${symbol}), ${decimals} decimal places`);
 
 ### Mint tokens
 
-```typescript theme={null}
+```typescript
 const { res: tx } = await myToken.mint(signer, [
   { to: recipientScript, amount: 1_000_000n },
 ]);

@@ -17,17 +17,17 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-    ```bash theme={null}
+    ```bash
     npm install @ckb-ccc/nip07
     ```
   </Tab>
   <Tab value="yarn">
-    ```bash theme={null}
+    ```bash
     yarn add @ckb-ccc/nip07
     ```
   </Tab>
   <Tab value="pnpm">
-    ```bash theme={null}
+    ```bash
     pnpm add @ckb-ccc/nip07
     ```
   </Tab>
@@ -93,7 +93,7 @@ graph TD
 
 The Nostr public key is fetched once via `provider.getPublicKey()` and cached as a `Promise`. If the call fails, the cache is cleared so the next attempt retries:
 
-```typescript theme={null}
+```typescript
 async getNostrPublicKey(): Promise<ccc.Hex> {
   if (!this.publicKeyCache) {
     this.publicKeyCache = this.provider.getPublicKey().catch((e) => {
