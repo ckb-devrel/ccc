@@ -9,7 +9,7 @@ import { PackageBadges } from '@/components/package-badges';
 
 ## Installation
 
-<PackageBadges packageName="@ckb-ccc/udt" />
+<PackageBadges pkg="@ckb-ccc/udt" />
 
 <Callout type="info">
   If you are using `@ckb-ccc/shell`, the `udt` namespace is already available as `ccc.udt`.
@@ -117,18 +117,24 @@ async completeChangeToLock(
 The following example shows how to issue xUDT tokens using CCC (from CCC demo application):
 
 ```typescript
-// 1. Prepare token information  
+// Get the lock script from signer's recommended address, Set token metadata 
 const { script } = await signer.getRecommendedAddressObj();  
 const decimals = "8";  
 const symbol = "SUS";  
 const name = "Sample Token";  
   
-// 2. Create SUS (Single-Use Seal) transaction  
+// Create transaction with one output  
 const susTx = ccc.Transaction.from({  
   outputs: [{ lock: script }],  
-});  
+});
+
+// Add inputs to satisfy capacity requirement automatically 
 await susTx.completeInputsByCapacity(signer);  
+
+// Calculate and add transaction fee automatically 
 await susTx.completeFeeBy(signer);  
+
+// Sign and broadcast transaction, return transaction hash 
 const susTxHash = await signer.sendTransaction(susTx);
 ```
 

@@ -1,0 +1,163 @@
+---
+title: "@ckb-ccc/core"
+description: CCC 核心组件——Transaction、Script、Address、Client、Signer 等。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/core` 是 CCC 的基础层，包含所有 CKB 数据类型、编解码器、哈希工具，以及供上层所有包使用的抽象 `Signer`、`Client` 接口。
+
+<Callout type="info">
+  大多数项目无需直接安装 `@ckb-ccc/core`。Node.js 环境使用
+  `@ckb-ccc/shell`，React 环境使用 `@ckb-ccc/connector-react`——两者均重新导出了 core 里的全部内容。
+</Callout>
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/core"/>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/core
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/core
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/core
+```
+  </Tab>
+</Tabs>
+
+## 导入
+
+```typescript
+import { ccc } from "@ckb-ccc/core";
+```
+
+## 导出模块
+
+`@ckb-ccc/core` 在 `ccc` 命名空间下重新导出以下子模块：
+
+| 模块         | 内容                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `address`    | `Address`、`AddressLike`，地址解析与格式化                                            |
+| `bytes`      | `bytesFrom`、`bytesTo`，字节数组工具                                                  |
+| `ckb`        | `Transaction`、`Script`、`Cell`、`CellInput`、`CellOutput`、`OutPoint`、`WitnessArgs` |
+| `client`     | `Client`（抽象类）、`ClientPublicMainnet`、`ClientPublicTestnet`                      |
+| `fixedPoint` | `fixedPointFrom`、`fixedPointToString`——以 Shannon 为单位的 CKB 容量                  |
+| `hasher`     | `hashCkb`、`Hasher`——CKB Blake2b 哈希                                                 |
+| `hex`        | `hexFrom`、`HexLike`，十六进制编码工具                                                |
+| `jsonRpc`    | `RequestorJsonRpc`——底层 JSON-RPC 客户端                                              |
+| `keystore`   | `KeyStore`——加密密钥存储                                                              |
+| `molecule`   | Molecule 编解码基础组件                                                                   |
+| `num`        | `numFrom`、`numFromBytes`、`numToBytes`、`numLeToBytes`——数值转换                     |
+| `signer`     | `Signer`（抽象类）、`SignerInfo`、`SignerType`、`SignerSignType`                       |
+| `utils`      | 其他辅助工具                                                                          |
+
+## 核心类
+
+### `Transaction`
+
+构建 CKB 交易的核心类型：
+
+```typescript
+// 构建一笔 CKB 转账交易
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+常用方法：
+
+| 方法                                  | 说明                           |
+| ------------------------------------- | ------------------------------ |
+| `Transaction.from(like)`              | 从普通对象构造交易             |
+| `tx.addInput(cell)`                   | 添加 Cell 输入                 |
+| `tx.addOutput(output, data?)`         | 添加 Cell 输出                 |
+| `tx.completeInputsByCapacity(signer)` | 自动选取输入以凑足所需容量     |
+| `tx.completeFeeBy(signer, feeRate?)`  | 添加找零输出并计算手续费       |
+| `tx.addCellDepInfos(client, deps)`    | 解析并添加 Cell 依赖           |
+| `signer.sendTransaction(tx)`          | 签名并广播交易                 |
+
+### `Script`
+
+```typescript
+const script = ccc.Script.from({
+  codeHash: "0x...",
+  hashType: "type",
+  args: "0x...",
+});
+
+script.eq(otherScript); // 结构相等性比较
+```
+
+### `Address`
+
+```typescript
+const addr = await ccc.Address.fromString(
+  "ckb1qzda0cr08m85hc8jlnfp3gog...",
+  client,
+);
+const { script, prefix } = addr;
+```
+
+### `Signer`（抽象类）
+
+每个钱包集成都实现了 `Signer` 抽象类。核心成员：
+
+```typescript
+abstract class Signer {
+  readonly client: Client;
+
+  abstract getInternalAddress(): Promise<string>;
+  abstract getRecommendedAddressObj(preference?: unknown): Promise<Address>;
+  abstract signTransaction(tx: Transaction): Promise<Transaction>;
+
+  async sendTransaction(tx: Transaction): Promise<Hex>;
+  async findCells(filter, withData?, order?, limit?): AsyncGenerator<Cell>;
+}
+```
+
+### `Client`（抽象类）
+
+```typescript
+// 连接公共测试网
+const client = new ccc.ClientPublicTestnet();
+
+// 连接公共主网
+const client = new ccc.ClientPublicMainnet();
+
+// 连接自定义节点
+const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
+```
+
+## 核心函数
+
+```typescript
+// 将任意值转换为 以 Shannon 为单位的 CKB 容量
+const capacity = ccc.fixedPointFrom("100"); // 100 CKB = 10_000_000_000n Shannon
+
+// 使用 CKB 的 Blake2b 算法对数据进行哈希
+const hash = ccc.hashCkb(data);
+
+// 编码为十六进制
+const hex = ccc.hexFrom(bytes);
+
+// 数值转换
+const n = ccc.numFrom("0xff"); // BigInt
+const bytes = ccc.numToBytes(n, 8); // 小端序 Uint8Array
+
+// 字节转换
+const arr = ccc.bytesFrom("0xdeadbeef");
+const str = ccc.bytesTo(arr, "utf8");
+```

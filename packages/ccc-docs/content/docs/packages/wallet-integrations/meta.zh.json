@@ -1,0 +1,16 @@
+{
+  "title": "钱包集成",
+  "description": "将 CCC 与具体钱包生态系统连接的 Signer 包。",
+  "icon": "Wallet",
+  "defaultOpen": false,
+  "pages": [
+    "joy-id",
+    "eip6963",
+    "nip07",
+    "utxo-global",
+    "okx",
+    "uni-sat",
+    "rei",
+    "xverse"
+  ]
+}

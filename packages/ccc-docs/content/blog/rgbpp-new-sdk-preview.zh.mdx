@@ -74,7 +74,7 @@ const networkConfig = buildNetworkConfig(
   PredefinedNetwork.BitcoinTestnet3
 );
 
-// 2. 初始化 CKB 客户端与签名器（此处以私钥签名器为例）
+// 2. 初始化 CKB 客户端与 Signer （此处以私钥 Signer 为例）
 const ckbClient = new ccc.ClientPublicTestnet();
 const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
 
@@ -88,7 +88,7 @@ const rgbppUdtClient = new RgbppUdtClient(
   scriptProvider
 );
 
-// 5. 初始化 RGB++ 解锁签名器（处理 lock 的解锁逻辑）
+// 5. 初始化 RGB++ 解锁 Signer （处理 lock 的解锁逻辑）
 const ckbRgbppUnlockSigner = new CkbRgbppUnlockSigner({
   ckbClient,
   rgbppBtcAddress: await rgbppBtcWallet.getAddress(),

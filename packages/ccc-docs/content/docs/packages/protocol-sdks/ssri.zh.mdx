@@ -1,0 +1,171 @@
+---
+title: "@ckb-ccc/ssri"
+description: CKB 智能合约的 SSRI（脚本源生富信息）协议支持。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/ssri` 实现了 **脚本源生富信息**（Script-Sourced Rich Information，简称 SSRI）协议。SSRI 定义了一套标准，用于调用 CKB 脚本上的具名方法并接收结构化响应——使智能合约能够通过链下 RPC 服务器暴露丰富的元数据和操作接口。
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/ssri" />
+
+<Callout type="info">
+  如果你使用的是 `@ckb-ccc/shell`，`ssri` 命名空间已作为 `ccc.ssri` 内置其中。
+</Callout>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/ssri
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/ssri
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/ssri
+```
+  </Tab>
+</Tabs>
+
+## SSRI 简介
+
+CKB 脚本（Lock / Type Script）本质上是纯粹的验证函数——默认无法暴露元数据或提供可调用接口。SSRI 通过以下机制解决了这一问题：
+
+1. 智能合约按照命名约定实现具名方法（例如 `UDT.name`、`SSRI.version`）。
+2. 链下 **SSRI 服务器**在沙箱环境中运行脚本，执行这些方法。
+3. 客户端代码通过 JSON-RPC 调用 SSRI 服务器，传入脚本代码的 `OutPoint`、方法名和参数。
+
+`@ckb-ccc/ssri` 为上述模式提供 TypeScript 抽象层。
+
+## 导出
+
+| 导出                           | 说明                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
+| `Trait`                        | 所有 SSRI Trait 的基类（继承此类以实现自定义 Trait）         |
+| `Executor`                     | SSRI 执行后端的抽象基类                                      |
+| `ExecutorJsonRpc`              | 通过 JSON-RPC 调用 SSRI 服务器的具体执行器                   |
+| `ExecutorResponse<T>`          | 响应包装类，携带执行结果和已解析的 Cell 依赖                 |
+| `ExecutorErrorUnknown`         | 错误：服务器未知错误                                         |
+| `ExecutorErrorExecutionFailed` | 错误：脚本执行失败                                           |
+| `ExecutorErrorDecode`          | 错误：响应解码失败                                           |
+| `ContextCode`                  | 执行上下文：无上下文（代码层级）                             |
+| `ContextScript`                | 执行上下文：脚本层级                                         |
+| `ContextCell`                  | 执行上下文：Cell 层级                                        |
+| `ContextTransaction`           | 执行上下文：交易层级                                         |
+| `getMethodPath`                | 计算方法名对应的 8 字节方法路径哈希                          |
+
+## 核心类
+
+### `Trait`
+
+所有兼容 SSRI 的合约接口的基类。继承它即可为链上脚本构建带类型的封装：
+
+```typescript
+import { ssri } from "@ckb-ccc/ssri";
+import { ccc } from "@ckb-ccc/core";
+
+class MyContract extends ssri.Trait {
+  async myMethod(): Promise<ssri.ExecutorResponse<string>> {
+    const res = await this.assertExecutor().runScript(
+      this.code,
+      "MyContract.my_method",
+      [],
+    );
+    return res.map((bytes) => ccc.bytesTo(bytes, "utf8"));
+  }
+}
+```
+
+`Trait` 内置方法：
+
+```typescript
+// 列出脚本暴露的方法
+trait.getMethods(offset?, limit?): Promise<ExecutorResponse<ccc.Hex[]>>
+
+// 检查指定方法名是否存在
+trait.hasMethods(methodNames: string[]): Promise<ExecutorResponse<boolean[]>>
+
+// 查询脚本的 SSRI 版本
+trait.version(): Promise<ExecutorResponse<ccc.Num>>
+
+// 安全执行调用，执行失败时返回 undefined 而非抛出异常
+trait.tryRun(call): Promise<ExecutorResponse<T | undefined>>
+```
+
+### `ExecutorJsonRpc`
+
+通过 HTTP JSON-RPC 连接 SSRI 服务器：
+
+```typescript
+const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com");
+```
+
+### `ExecutorResponse<T>`
+
+所有 SSRI 调用均返回 `ExecutorResponse<T>`，携带解码后的结果以及需要加入交易的 Cell 依赖：
+
+```typescript
+const response: ssri.ExecutorResponse<string> = await trait.myMethod();
+
+response.res;      // 解码后的值
+response.cellDeps; // ccc.OutPoint[]——需添加至交易的 Cell 依赖
+response.map(fn);  // 转换结果
+```
+
+## 使用示例
+
+```typescript
+import { ssri } from "@ckb-ccc/ssri";
+import { ccc } from "@ckb-ccc/core";
+
+const executor = new ssri.ExecutorJsonRpc("https://ssri.example.com");
+
+const trait = new ssri.Trait(
+  { txHash: "0x...", index: 0 }, // 代码 OutPoint
+  executor,
+);
+
+// 查询 SSRI 版本
+const { res: version, cellDeps } = await trait.version();
+console.log("Version:", version);
+
+// 列出可用方法
+const { res: methods } = await trait.getMethods();
+console.log("Methods:", methods);
+```
+
+## 执行上下文
+
+SSRI 方法支持四个层级的执行上下文，控制脚本可访问的链上数据范围：
+
+| 上下文类型               | 适用场景                                           |
+| ------------------------ | -------------------------------------------------- |
+| `ContextCode`（默认）    | 纯代码层级查询——不传入 Cell 或交易数据             |
+| `ContextScript`          | 向执行器传入脚本（例如查询脚本级别的元数据）       |
+| `ContextCell`            | 传入完整 Cell（输出 + 数据），执行 Cell 级别的脚本 |
+| `ContextTransaction`     | 传入完整交易，执行交易级别的脚本                   |
+
+```typescript
+const res = await executor.runScript(
+  codeOutPoint,
+  "UDT.balance",
+  [encodedArgs],
+  {
+    script: { codeHash: "0x...", hashType: "type", args: "0x..." },
+  },
+);
+```
+
+<Callout type="tip">
+  `@ckb-ccc/udt` 构建于 `@ckb-ccc/ssri` 之上，是 SSRI 模式的完整实现示例。
+</Callout>
+
+## 参考资料
+- [Script-Sourced Rich Information(SSRI) - 来源于 Script 的富信息](https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256)
+- [SSRI Executor on WASM：在浏览器中实现 SSRI 协议](https://talk.nervos.org/t/en-cn-ssri-executor-on-wasm-implementing-ssri-protocol-in-browsers-ssri/8732)

@@ -23,7 +23,7 @@ npm install @ckb-ccc/shell
 
 ## What it exports
 
-`@ckb-ccc/shell` re-exports the following (from `packages/shell/src/barrel.ts`):
+`@ckb-ccc/shell` re-exports the following:
 
 ```typescript
 export * from "@ckb-ccc/core/barrel"; // full CCC core (Transaction, Script, Address, ...)
@@ -126,7 +126,7 @@ async function main() {
 
   // 2. Query balance
   const balance = await signer.getBalance();
-  console.log(`Balance: ${balance / 100_000_000n} CKB`);
+  console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`);
 
   // 3. Resolve recipient address
   const recipientAddress = "ckt1qzda0cr08m85hc8jlnfp3sog3vczr9h9rqt4ykkqfzf3gcj…";

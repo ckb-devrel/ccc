@@ -1,0 +1,13 @@
+{
+  "title": "核心包",
+  "description": "基础包：核心原语和聚合入口。",
+  "icon": "Box",
+  "defaultOpen": true,
+  "pages": [
+    "ccc",
+    "core",
+    "shell",
+    "connector",
+    "connector-react"
+  ]
+}

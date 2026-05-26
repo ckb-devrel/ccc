@@ -1,15 +1,15 @@
 ---
 title: "@ckb-ccc/shell"
-description: CCC for Node.js — backend scripting, data analysis, and server-side transactions.
+description: 面向 Node.js 的 CCC——后端脚本、数据分析和服务端交易。
 ---
 
 import { PackageBadges } from '@/components/package-badges';
 
-`@ckb-ccc/shell` is the recommended entry point for **Node.js / server-side** code. It bundles `@ckb-ccc/core`, `@ckb-ccc/spore`, `@ckb-ccc/udt`, and `@ckb-ccc/ssri` into a single package with Node.js-compatible builds (CommonJS and ESM).
+`@ckb-ccc/shell` 是 **Node.js / 服务端**环境的推荐入口。它将 `@ckb-ccc/core`、`@ckb-ccc/spore`、`@ckb-ccc/udt` 和 `@ckb-ccc/ssri` 打包在一起，同时提供 CommonJS 和 ESM 两种构建产物。
 
-`@ckb-ccc/shell` re-exports everything from `@ckb-ccc/core` so you get a single `ccc` namespace without pulling in browser-only wallet signer code.
+`@ckb-ccc/shell` 重新导出了 `@ckb-ccc/core` 的全部内容，通过统一的 `ccc` 命名空间即可使用，且不包含任何浏览器专属的钱包 Signer 代码。
 
-## Installation
+## 安装
 
 <PackageBadges pkg="@ckb-ccc/shell" />
 
@@ -31,56 +31,56 @@ pnpm add @ckb-ccc/shell
   </Tab>
 </Tabs>
 
-## Imports
+## 导入
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 ```
 
-## When to use this package
+## 使用场景
 
-* Server-side scripts or automation
-* Data analysis and blockchain indexing
-* Backend transaction signing with a private key
-* Any Node.js environment where there is no browser wallet
+* 服务端脚本或自动化任务
+* 数据分析与链上索引
+* 使用私钥在后端签署交易
+* 没有浏览器钱包的 Node.js 环境
 
-For React apps, use [`@ckb-ccc/connector-react`](./connector-react) instead.
+React 应用请使用 [`@ckb-ccc/connector-react`](./connector-react)。
 
-## What it exports
+## 导出内容
 
-The `barrel` entry point (`@ckb-ccc/shell/barrel`) re-exports:
+`barrel` 入口（`@ckb-ccc/shell/barrel`）重新导出：
 
-* Everything from `@ckb-ccc/core/barrel` — all CKB primitives
-* `spore` — the Spore Protocol namespace
-* `ssri` — the SSRI protocol namespace
-* `udt` — the UDT token namespace
+* `@ckb-ccc/core/barrel` 的全部内容——所有 CKB 基础类型
+* `spore`——Spore 协议命名空间
+* `ssri`——SSRI 协议命名空间
+* `udt`——UDT 代币命名空间
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 // ccc.Transaction, ccc.Script, ccc.Address, ccc.Client...
 // ccc.ClientPublicMainnet, ccc.ClientPublicTestnet
-// ccc.SignerCkbPrivateKey — for signing with a raw private key
+// ccc.SignerCkbPrivateKey——使用原始私钥签名
 ```
 
-## Usage examples
+## 使用示例
 
-### Connect to a CKB node
+### 连接 CKB 节点
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
-// Public testnet RPC
+// 公共测试网
 const client = new ccc.ClientPublicTestnet();
 
-// Public mainnet RPC
+// 公共主网
 const client = new ccc.ClientPublicMainnet();
 
-// Custom node URL
+// 自定义节点
 const client = new ccc.ClientPublicTestnet("http://localhost:8114");
 ```
 
-### Sign transactions with a private key
+### 使用私钥签署交易
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
@@ -95,7 +95,7 @@ const myAddress = await signer.getRecommendedAddress();
 console.log("Address:", myAddress);
 ```
 
-### Build and send a transaction
+### 构建并发送交易
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
@@ -119,7 +119,7 @@ const txHash = await signer.sendTransaction(tx);
 console.log("Sent:", txHash);
 ```
 
-### Query cells
+### 查询 Cell
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
@@ -137,7 +137,5 @@ for await (const cell of client.findCells({
 ```
 
 <Callout type="warning">
-  `@ckb-ccc/shell` does not include wallet connectors (JoyID, MetaMask, etc.).
-  For browser wallet connectivity, use `@ckb-ccc/connector-react` or
-  `@ckb-ccc/ccc`.
+  `@ckb-ccc/shell` 不包含浏览器钱包连接器（JoyID、MetaMask 等）。如需在浏览器中连接钱包，请使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`。
 </Callout>

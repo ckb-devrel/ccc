@@ -1,6 +1,6 @@
 ---
-title: CCC Packages Overview
-description: Overview of the CCC packages.
+title: CCC Package Guide
+description: A complete overview of every NPM package in CCC. Choose the right package based on your runtime environment, framework, and feature requirements — covering the core SDK, wallet integrations, protocol extensions, and more.
 ---
 
 import { Box, Terminal, AppWindow, Plug, Sprout, Code, Coins, Shield, Wrench, Smile, Wallet } from "lucide-react";
@@ -11,109 +11,129 @@ import { PackageBadges } from '@/components/package-badges';
 CCC ships as a collection of focused npm packages. Install only what your project requires.
 
 <Callout type="info">
-  Most projects need just one entry-point package. Use `@ckb-ccc/shell` for
-  Node.js, `@ckb-ccc/connector-react` for React apps, or `@ckb-ccc/ccc` when
-  you want to build a fully custom wallet UI.
+  Most projects only need one entry-point package. Use `@ckb-ccc/shell` for Node.js, `@ckb-ccc/connector-react` for React apps, or `@ckb-ccc/ccc` when you need a fully custom wallet UI.
 </Callout>
 
-## Packages
+## At a glance
+
+CCC offers multiple packages to serve different development scenarios. Choosing the right package based on your runtime (frontend/backend), framework (React/other), and feature needs (wallet integration/protocol support) can dramatically speed up development.
+
+- **Core packages** — `@ckb-ccc/core` and `@ckb-ccc/shell` provide foundational functionality, ideal for deep customization or backend development.
+- **Wallet integration** — `@ckb-ccc/ccc` aggregates all wallets for custom UIs; `@ckb-ccc/connector-react` provides pre-built components for rapid React integration.
+- **Protocol SDKs** — `@ckb-ccc/spore`, `@ckb-ccc/udt`, and `@ckb-ccc/ssri` support specific CKB protocol standards.
+- **Individual wallet packages** — Standalone packages for specific wallets (JoyID, OKX, UniSat, etc.), installed as needed.
 
 <Cards cols={2}>
   <Card title="@ckb-ccc/core" icon={<Box/>} href="./packages/core-packages/core">
-    Low-level CKB primitives: Transaction, Signer, Client, Address, Script, and
-    all encoding utilities.
+    Core SDK — provides Transaction, Client, Signer abstractions and cryptographic utilities. Best for advanced scenarios requiring deep customization.
   </Card>
 
   <Card title="@ckb-ccc/shell" icon={<Terminal/>} href="./packages/core-packages/shell">
-    Node.js / backend usage. Includes core, spore, udt, and ssri — everything
-    you need for server-side scripts.
+    Backend / Node.js aggregate — bundles the core SDK with protocol extensions (Spore, UDT, etc.), purpose-built for server environments. Ideal for Node.js backends, CLI tools, or scripts.
   </Card>
 
   <Card title="@ckb-ccc/ccc" icon={<AppWindow/>} href="./packages/core-packages/ccc">
-    All-in-one bundle with all wallet integrations. Use for custom UI or when
-    you need every wallet available in a single import.
+    Wallet integration aggregate — includes every wallet integration (EVM, BTC, Nostr, JoyID, etc.) in a single import. The best choice when you need a custom wallet-connection UI without pre-built components.
   </Card>
 
   <Card title="@ckb-ccc/connector" icon={<Plug/>} href="./packages/core-packages/connector">
-    Framework-agnostic Web Component connector. Drop a `<ccc-connector>` element
-    into any HTML page.
+    Web Components wallet connector — a framework-agnostic Lit-based component usable in any frontend framework. Ideal for non-React projects or cross-framework reuse.
   </Card>
 
   <Card title="@ckb-ccc/connector-react" icon="React" href="./packages/core-packages/connector-react">
-    React `Provider` component and `useCcc()` hook for wallet integration with
-    minimal boilerplate.
+    React wallet connector — pre-built React Hooks and components for quickly adding wallet-connection features. Ideal for React apps with no manual connection logic required.
   </Card>
 
   <Card title="@ckb-ccc/spore" icon={<Sprout/>} href="./packages/protocol-sdks/spore">
-    Spore Protocol SDK — create, transfer, and melt on-chain digital objects
-    (DOBs) and clusters.
+    Spore NFT Protocol SDK — create, transfer, and melt on-chain Digital Objects (DOBs) and Clusters. Ideal for CKB apps that need NFT capabilities.
   </Card>
 
   <Card title="@ckb-ccc/udt" icon={<Coins/>} href="./packages/protocol-sdks/udt">
-    UDT and xUDT token SDK — issue, transfer, and mint User Defined Tokens on
-    CKB.
+    UDT/xUDT token SDK — issue, transfer, and mint User Defined Tokens on CKB. Ideal for CKB apps that need fungible token functionality.
   </Card>
 
   <Card title="@ckb-ccc/ssri" icon={<Shield/>} href="./packages/protocol-sdks/ssri">
-    SSRI (Script-Sourced Rich Information) protocol support for interacting with
-    CKB smart contracts.
+    SSRI (Script-Sourced Rich Information) protocol support for interacting with CKB smart contracts. Ideal for CKB apps that call on-chain contract methods.
   </Card>
 
   <Card title="@ckb-ccc/lumos-patches" icon={<Wrench/>} href="./packages/protocol-sdks/lumos-patches">
-    Compatibility patches that enable the Lumos SDK to work with JoyID, Nostr,
-    and Portal wallets.
+    Lumos compatibility patches — enable existing Lumos apps to work with JoyID, Nostr, and Portal Wallet. Ideal for legacy Lumos projects migrating to new wallets.
   </Card>
 
   <Card title="@ckb-ccc/joy-id" icon={<Smile/>} href="./packages/wallet-integrations/joy-id">
-    JoyID passkey-based wallet integration — no seed phrase required.
+    JoyID Passkey wallet — WebAuthn-based passwordless signing with multi-chain support (CKB, EVM, BTC, Nostr). Ideal for apps that need biometric or passwordless experiences.
   </Card>
 
   <Card title="@ckb-ccc/eip6963" icon={<Code/>} href="./packages/wallet-integrations/eip6963">
-    EIP-6963 multi-wallet discovery for EVM wallets such as MetaMask and Rabby.
+    EVM wallet discovery — auto-detects MetaMask, Rabby, and other EVM wallets via the EIP-6963 standard. Ideal for frontend apps supporting multiple EVM wallets.
   </Card>
 
   <Card title="@ckb-ccc/nip07" icon={<Code/>} href="./packages/wallet-integrations/nip07">
-    Nostr NIP-07 wallet integration for signing with Nostr browser extensions.
+    Nostr wallet integration — signs via NIP-07 browser extensions, supporting the Nostr protocol. Ideal for Nostr ecosystem apps or those requiring Nostr signatures.
   </Card>
 
   <Card title="@ckb-ccc/utxo-global" icon={<Wallet/>} href="./packages/wallet-integrations/utxo-global">
-    UTXO Global wallet integration for signing with UTXO Global browser extensions.
+    UTXO Global wallet integration — signs via the UTXO Global browser extension, supporting the BTC, CKB, and DOGE ecosystems.
   </Card>
 
   <Card title="@ckb-ccc/rei" icon={<Wallet/>} href="./packages/wallet-integrations/rei">
-    REI wallet integration for signing with REI browser extensions.
+    REI wallet integration — signs via the REI browser extension.
+  </Card>
+
+  <Card title="@ckb-ccc/xverse" icon={<Wallet/>} href="./packages/wallet-integrations/xverse">
+    Xverse wallet integration — BTC ecosystem browser extension signing.
   </Card>
 
   <Card title="@ckb-ccc/okx" icon={<Wallet/>} href="./packages/wallet-integrations/okx">
-    OKX wallet integration for signing with OKX browser extensions.
+    OKX multi-protocol wallet — supports EVM, Nostr, and BTC signing via the OKX browser extension.
   </Card>
 
   <Card title="@ckb-ccc/uni-sat" icon={<Wallet/>} href="./packages/wallet-integrations/uni-sat">
-    Uni-Sat wallet integration for signing with Uni-Sat browser extensions.
+    UniSat wallet integration — BTC ecosystem browser extension signing.
   </Card>
 </Cards>
 
-## Package reference
+## NPM package reference
 
-| Package                    | Purpose                     | Package Latest Version                             |
-| -------------------------- | --------------------------- | -------------------------------------------------- |
-| `@ckb-ccc/core`            | CKB primitives and encoding | <PackageBadges pkg="@ckb-ccc/core" />              |
-| `@ckb-ccc/shell`           | Node.js / backend scripting | <PackageBadges pkg="@ckb-ccc/shell" />             |
-| `@ckb-ccc/ccc`             | All-in-one for custom UI    | <PackageBadges pkg="@ckb-ccc/ccc" />               |
-| `@ckb-ccc/connector`       | Web Component connector     | <PackageBadges pkg="@ckb-ccc/connector" />         |
-| `@ckb-ccc/connector-react` | React connector             | <PackageBadges pkg="@ckb-ccc/connector-react" />   |
-| `@ckb-ccc/spore`           | Spore Protocol SDK          | <PackageBadges pkg="@ckb-ccc/spore" />             |
-| `@ckb-ccc/udt`             | UDT / xUDT token SDK        | <PackageBadges pkg="@ckb-ccc/udt" />               |
-| `@ckb-ccc/ssri`            | SSRI protocol               | <PackageBadges pkg="@ckb-ccc/ssri" />              |
-| `@ckb-ccc/lumos-patches`   | Lumos compatibility         | <PackageBadges pkg="@ckb-ccc/lumos-patches" />     |
-| `@ckb-ccc/joy-id`          | JoyID wallet                | <PackageBadges pkg="@ckb-ccc/joy-id" />            |
-| `@ckb-ccc/eip6963`         | EVM wallets (EIP-6963)      | <PackageBadges pkg="@ckb-ccc/eip6963" />           |
-| `@ckb-ccc/nip07`           | Nostr NIP-07 wallet         | <PackageBadges pkg="@ckb-ccc/nip07" />             |
-| `@ckb-ccc/utxo-global`     | UTXO Global wallet          | <PackageBadges pkg="@ckb-ccc/utxo-global" />       |
-| `@ckb-ccc/rei`             | REI wallet                  | <PackageBadges pkg="@ckb-ccc/rei" />               |
-| `@ckb-ccc/xverse`          | Xverse wallet               | <PackageBadges pkg="@ckb-ccc/xverse" />            |
-| `@ckb-ccc/okx`             | OKX wallet                  | <PackageBadges pkg="@ckb-ccc/okx" />               |
-| `@ckb-ccc/uni-sat`         | Uni-Sat wallet              | <PackageBadges pkg="@ckb-ccc/uni-sat" />           |
+The tables below list all CCC packages with their latest version and weekly download count. Use version numbers to gauge update freshness and download counts to assess community adoption and maintenance activity. When choosing a package, prefer recently updated ones for better community support and bug fixes.
+
+### Core packages
+
+| Package (click for docs) | Purpose | Latest version & weekly downloads |
+| ---------------- | -------- | ---------------- |
+| [`@ckb-ccc/core`](./packages/core-packages/core) | Core SDK — Transaction, Client, Signer abstractions and cryptographic utilities | <PackageBadges pkg="@ckb-ccc/core" /> |
+| [`@ckb-ccc/shell`](./packages/core-packages/shell) | Backend / Node.js aggregate — core SDK + protocol extensions | <PackageBadges pkg="@ckb-ccc/shell" /> |
+
+### Aggregates & UI components
+
+| Package (click for docs) | Purpose | Latest version & weekly downloads |
+| ---------------- | -------- | ---------------- |
+| [`@ckb-ccc/ccc`](./packages/core-packages/ccc) | Wallet integration aggregate — all wallets in a single import | <PackageBadges pkg="@ckb-ccc/ccc" /> |
+| [`@ckb-ccc/connector`](./packages/core-packages/connector) | Web Components wallet connector — framework-agnostic | <PackageBadges pkg="@ckb-ccc/connector" /> |
+| [`@ckb-ccc/connector-react`](./packages/core-packages/connector-react) | React wallet connector — pre-built Hooks and components | <PackageBadges pkg="@ckb-ccc/connector-react" /> |
+
+### Protocol SDKs
+
+| Package (click for docs) | Purpose | Latest version & weekly downloads |
+| ---------------- | -------- | ---------------- |
+| [`@ckb-ccc/spore`](./packages/protocol-sdks/spore) | Spore NFT Protocol SDK — DOB/Cluster management | <PackageBadges pkg="@ckb-ccc/spore" /> |
+| [`@ckb-ccc/udt`](./packages/protocol-sdks/udt) | UDT/xUDT token SDK — issuance, transfer, minting | <PackageBadges pkg="@ckb-ccc/udt" /> |
+| [`@ckb-ccc/ssri`](./packages/protocol-sdks/ssri) | SSRI protocol support — smart contract interaction and metadata queries | <PackageBadges pkg="@ckb-ccc/ssri" /> |
+| [`@ckb-ccc/lumos-patches`](./packages/protocol-sdks/lumos-patches) | Lumos compatibility patches — JoyID, Nostr, Portal Wallet support | <PackageBadges pkg="@ckb-ccc/lumos-patches" /> |
+
+### Wallet integrations
+
+| Package (click for docs) | Purpose | Latest version & weekly downloads |
+| ---------------- | -------- | ---------------- |
+| [`@ckb-ccc/joy-id`](./packages/wallet-integrations/joy-id) | JoyID Passkey wallet — WebAuthn passwordless signing, multi-chain | <PackageBadges pkg="@ckb-ccc/joy-id" /> |
+| [`@ckb-ccc/eip6963`](./packages/wallet-integrations/eip6963) | EVM wallet discovery — EIP-6963 standard, MetaMask, Rabby, etc. | <PackageBadges pkg="@ckb-ccc/eip6963" /> |
+| [`@ckb-ccc/nip07`](./packages/wallet-integrations/nip07) | Nostr wallet integration — NIP-07 browser extension signing | <PackageBadges pkg="@ckb-ccc/nip07" /> |
+| [`@ckb-ccc/utxo-global`](./packages/wallet-integrations/utxo-global) | UTXO Global wallet — BTC/CKB/DOGE ecosystem support | <PackageBadges pkg="@ckb-ccc/utxo-global" /> |
+| [`@ckb-ccc/rei`](./packages/wallet-integrations/rei) | REI wallet — REI browser extension signing | <PackageBadges pkg="@ckb-ccc/rei" /> |
+| [`@ckb-ccc/xverse`](./packages/wallet-integrations/xverse) | Xverse wallet — BTC ecosystem browser extension signing | <PackageBadges pkg="@ckb-ccc/xverse" /> |
+| [`@ckb-ccc/okx`](./packages/wallet-integrations/okx) | OKX multi-protocol wallet — EVM/Nostr/BTC signing | <PackageBadges pkg="@ckb-ccc/okx" /> |
+| [`@ckb-ccc/uni-sat`](./packages/wallet-integrations/uni-sat) | UniSat wallet — BTC ecosystem browser extension signing | <PackageBadges pkg="@ckb-ccc/uni-sat" /> |
+
 
 ## Import pattern
 
@@ -123,15 +143,12 @@ All packages expose their public API on a single `ccc` namespace object:
 import { ccc } from "@ckb-ccc/<package-name>";
 ```
 
-Advanced (unstable) APIs are available on `cccA`:
+Advanced (unstable) APIs are available via `cccA`:
 
 ```typescript
 import { cccA } from "@ckb-ccc/<package-name>/advanced";
 ```
 
 <Callout type="info">
-  Your `tsconfig.json` must set `moduleResolution` to `node16`, `nodenext`, or
-  `bundler` and must not disable `resolvePackageJsonExports`. CCC uses [Package
-  Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points)
-  for tree shaking.
+  Your `tsconfig.json` must set `moduleResolution` to `node16`, `nodenext`, or `bundler` and must not disable `resolvePackageJsonExports`. CCC uses [Package Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points) for tree shaking.
 </Callout>
