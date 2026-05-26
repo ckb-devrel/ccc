@@ -1,11 +1,11 @@
 ---
 title: "@ckb-ccc/uni-sat"
-description: 将 UniSat 钱包接入 CKB，并通过统一的 Signer 接口实现 Bitcoin 签名。
+description: 将 UniSat Wallet 接入 CKB，并通过统一的 Signer 接口实现 Bitcoin 签名。
 ---
 
 import { PackageBadges } from '@/components/package-badges';
 
-`@ckb-ccc/uni-sat` 将 [UniSat Wallet](https://unisat.io/) 集成至 CCC，提供用于 Bitcoin 签名的 `SignerBtc` 实现。它通过浏览器注入的 `window.unisat` 对象与钱包通信，并支持在 Bitcoin 主网和测试网之间进行网络切换。
+`@ckb-ccc/uni-sat` 将 [UniSat Wallet](https://unisat.io/) 集成至 CCC，提供用于 Bitcoin 签名的 `SignerBtc` 实现。它通过浏览器注入的 `window.unisat` 对象与钱包通信，并支持在 Bitcoin 主网和测试网之间自动切换网络。
 
 <Callout type="info">
   如果你使用的是 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，UniSat 已内置其中，无需单独安装。

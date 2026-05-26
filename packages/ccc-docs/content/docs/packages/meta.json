@@ -1,6 +1,6 @@
 {
-  "title": "Packages",
-  "description": "Technical architecture, contract APIs, and development guides",
+  "title": "CCC Package Guide",
+  "description": "A complete overview of every NPM package in CCC — choose the right one based on your runtime, framework, and feature requirements.",
   "root": false,
   "icon": "Code",
   "pages": [

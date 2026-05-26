@@ -1,0 +1,12 @@
+{
+  "title": "CCC 包选择指南",
+  "description": "CCC 中所有 NPM 包的完整概览，帮助你根据开发环境、框架选择和功能需求选择合适的包。",
+  "root": false,
+  "icon": "Code",
+  "pages": [
+    "index",
+    "core-packages",
+    "protocol-sdks",
+    "wallet-integrations"
+  ]
+}

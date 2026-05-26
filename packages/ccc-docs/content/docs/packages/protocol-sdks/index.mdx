@@ -59,7 +59,3 @@ const txHash = await signer.sendTransaction(tx);
 ```
 
 The same pattern applies to Spore creation, SSRI method calls, and any custom transaction you compose alongside them.
-
-## Notes
-
-The Protocol Support Layer packages are designed to work seamlessly with the core declarative transaction pattern. The `@ckb-ccc/udt` package depends on both `@ckb-ccc/core` and `@ckb-ccc/ssri`, while `@ckb-ccc/ssri` and `@ckb-ccc/spore` depend only on `@ckb-ccc/core`. The `@ckb-ccc/shell` package aggregates all protocol implementations for Node.js environments.

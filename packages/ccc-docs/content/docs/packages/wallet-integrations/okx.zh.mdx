@@ -1,14 +1,14 @@
 ---
 title: "@ckb-ccc/okx"
-description: OKX wallet integration — multi-protocol support for Bitcoin and Nostr.
+description: 将 OKX Wallet 接入 CKB，并通过统一的 Signer 接口实现 Bitcoin 和 Nostr 签名。
 ---
 
 import { PackageBadges } from '@/components/package-badges';
 
-`@ckb-ccc/okx` 是 CCC 中的协议支持层包，负责集成 OKX 钱包。OKX 是一个多协议钱包，支持比特币和 Nostr 协议。该包通过浏览器注入的 `window.okxwallet` 对象与 OKX 钱包通信，并为比特币和 Nostr 提供统一的 `Signer` 接口实现。OKX 包采用复合依赖架构，复用 `@ckb-ccc/uni-sat` 和 `@ckb-ccc/nip07` 的实现来提供协议支持。 
+`@ckb-ccc/okx` 将 OKX Wallet 集成至 CCC，为 Bitcoin 和 Nostr 协议提供 `Signer` 实现。它通过浏览器注入的 `window.okxwallet` 对象与钱包通信，并复用 `@ckb-ccc/uni-sat` 和 `@ckb-ccc/nip07` 的协议实现，而非从头重写。
 
 <Callout type="info">
-  如果您正在使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，OKX 已经包含在内 — 无需单独安装。
+  如果你使用的是 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，OKX 已内置其中，无需单独安装。
 </Callout>
 
 ## 安装
@@ -17,143 +17,133 @@ import { PackageBadges } from '@/components/package-badges';
 
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab value="npm">
-```bash
-npm install @ckb-ccc/okx
-```
+    ```bash
+    npm install @ckb-ccc/okx
+    ```
   </Tab>
   <Tab value="yarn">
-```bash
-yarn add @ckb-ccc/okx
-```
+    ```bash
+    yarn add @ckb-ccc/okx
+    ```
   </Tab>
   <Tab value="pnpm">
-```bash
-pnpm add @ckb-ccc/okx
-```
+    ```bash
+    pnpm add @ckb-ccc/okx
+    ```
   </Tab>
 </Tabs>
 
-**依赖项：**
+**依赖：**
 
-| 包                 | 描述                         |
-|--------------------|------------------------------|
-| `@ckb-ccc/core`    | CCC 核心层 — 提供 `Signer`、`Client`、`Transaction` 等基础类型 |
-| `@ckb-ccc/nip07`   | NIP-07 协议支持 — 提供 Nostr 签名器实现 |
-| `@ckb-ccc/uni-sat` | UniSat 协议支持 — 提供比特币提供者接口 |
+| 包 | 说明 |
+| ------------------ | ----------- |
+| `@ckb-ccc/core`    | 基础类型——`Signer`、`Client`、`Transaction` 等 |
+| `@ckb-ccc/nip07`   | NIP-07 协议支持——Nostr Signer 实现 |
+| `@ckb-ccc/uni-sat` | UniSat 协议支持——Bitcoin Provider 接口 |
 
-## 架构概览
+## 架构
 
-OKX 包采用复合依赖架构，通过组合现有的单协议实现来提供多协议支持，而不是从头重新实现。
+`@ckb-ccc/okx` 复用现有的单协议包，而非重新实现：
 
 ```mermaid
 graph TB
     subgraph "OKX 包"
         OKX["@ckb-ccc/okx"]
     end
-    
+
     subgraph "协议依赖"
         UniSat["@ckb-ccc/uni-sat"]
         NIP07["@ckb-ccc/nip07"]
         Core["@ckb-ccc/core"]
     end
-    
-    subgraph "签名器类"
+
+    subgraph "Signer 类"
         BitcoinSigner["BitcoinSigner"]
         NostrSigner["NostrSigner"]
     end
-    
+
     OKX -.->|"使用"| UniSat
     OKX -.->|"使用"| NIP07
-    
+
     BitcoinSigner --> UniSat
     NostrSigner --> NIP07
     UniSat --> Core
     NIP07 --> Core
 ```
 
-### 签名器工厂模式
+### 入口：`getOKXSigners`
 
-`getOKXSigners` 函数是 OKX 包的核心入口，它检测浏览器环境中是否存在 `window.okxwallet` 对象，并返回相应的签名器信息数组。
-
-**OKX 签名器创建流程**
+`getOKXSigners(client)` 是主入口，检查 `window.okxwallet` 是否存在，并返回 `SignerInfo[]` 数组——钱包不可用时返回空数组：
 
 ```mermaid
 graph TD
-    Start["getOKXSigners(client)"] --> Check["window.okxwallet 存在?"]
-    Check -->|否| Empty["返回 []"]
+    Start["getOKXSigners(client)"] --> Check["window.okxwallet 是否存在？"]
+    Check -->|否| Empty["return []"]
     Check -->|是| Create["创建 SignerInfo 数组"]
-    
+
     Create --> BTC["new BitcoinSigner(client, window.okxwallet)"]
     Create --> Nostr["new NostrSigner(client, window.okxwallet.nostr)"]
-    
+
     BTC --> Array["SignerInfo[]"]
     Nostr --> Array
 ```
 
-## 比特币协议实现
+## Bitcoin 协议
 
-OKX 的比特币支持通过 `BitcoinSigner` 类实现，该类继承自 `ccc.SignerBtc` 并扩展了 UniSat 提供者接口。
+`BitcoinSigner` 继承自 `ccc.SignerBtc`，将 UniSat Provider 接口适配为 OKX 的实现。
 
 ### 网络支持
 
-| 网络键 | 链名称 | 网络类型 | 提供者访问 |
-| :--- | :--- | :--- | :--- |
-| `btc` | `bitcoin` | 主网 | `this.providers.bitcoin` |
+| 网络键值       | 链      | 网络类型 | Provider 访问路径         |
+| -------------- | ------- | -------- | ------------------------- |
+| `btc`          | bitcoin | 主网     | `this.providers.bitcoin`  |
 
-<Callout type="info">
-  OKX 目前只支持比特币主网。虽然代码中包含了 `btcTestnet` 和 `btcSignet` 的映射，但 OKX 已不再提供这些网络的 provider，因此实际上不可用。详见 [OKX 官方公告](https://www.okx.com/zh-hans/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
+<Callout type="warning">
+  OKX 仅支持 Bitcoin 主网。虽然代码中保留了 `btcTestnet` 和 `btcSignet` 的映射，但 OKX 已不再为这些网络提供 Provider，实际上无法使用。详见[官方公告](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
 </Callout>
 
-### 账户和公钥获取
+### 账户与公钥获取
 
-`BitcoinSigner` 提供两种方式获取比特币账户地址和公钥，以兼容不同版本的 OKX 提供者：
+`BitcoinSigner` 提供两种方式获取账户，以兼容不同版本的 OKX Provider：
 
-1. **通过 `getAccounts`**：使用提供者的 `getAccounts()` 方法获取地址数组
-2. **通过 `getSelectedAccount`**：使用提供者的 `getSelectedAccount()` 方法获取当前选中账户
+- **`getAccounts()`**——返回地址数组。
+- **`getSelectedAccount()`**——返回当前选中的账户。
 
-## Nostr 协议实现
+## Nostr 协议
 
-OKX 的 Nostr 支持通过 `NostrSigner` 类实现，该类利用 `@ckb-ccc/nip07` 包的提供者接口。
+`NostrSigner` 在 `@ckb-ccc/nip07` Provider 接口基础上新增了两项功能：
 
-### Nostr 签名器逻辑
-
-- **公钥缓存**：使用 `publicKeyCache` 避免冗余的 RPC 调用
-- **事件签名**：在确保公钥已附加后，委托给 `this.provider.signEvent` 进行签名
+- **公钥缓存**——`publicKeyCache` 避免重复发起 RPC 调用。
+- **事件签名**——确认公钥已附加后，委托给 `this.provider.signEvent` 执行签名。
 
 ## 账户变更检测
 
-OKX 包实现了基于事件的账户变更检测机制，以维护钱包提供者和应用程序之间的连接状态同步。
-
-### 账户变更流程
+`BitcoinSigner` 和 `NostrSigner` 均实现了 `onReplaced()`，在用户于钱包界面切换账户时保持连接状态同步：
 
 ```mermaid
 sequenceDiagram
-    participant App as 应用程序
-    participant Signer as 协议签名器
-    participant Provider as OKX 提供者
-    
+    participant App as 应用
+    participant Signer as 协议 Signer
+    participant Provider as OKX Provider
+
     App->>Signer: onReplaced(listener)
     Signer->>Provider: on("accountChanged", replacer)
-    
-    Note over Provider: 用户在钱包 UI 中更改账户
-    
+
+    Note over Provider: 用户切换账户
+
     Provider->>Signer: emit("accountChanged")
     Signer->>App: listener()
     Signer->>Provider: removeListener("accountChanged")
 ```
 
-比特币和 Nostr 签名器都实现了 `onReplaced()` 方法模式：
-1. 为 `"accountChanged"` 事件注册监听器
-2. 返回一个清理函数，用于移除监听器
-3. 当账户变更发生时调用应用程序回调
+`onReplaced()` 注册 `"accountChanged"` 监听器，触发时调用应用回调，并返回用于移除该监听器的清理函数。
 
 ## 集成模式
 
-OKX 钱包通过一致的模式集成到 CCC 系统中：<Cite path="packages/ccc/src/signersController.ts" start="155" end="160" />
+`@ckb-ccc/okx` 遵循 CCC 中所有钱包包相同的集成约定：
 
-1. **工厂函数**：提供 `getOKXSigners` 工厂函数，返回 `SignerInfo[]` 数组
-2. **提供者检测**：检查浏览器注入的提供者对象（`window.okxwallet`）
-3. **条件创建**：仅在钱包提供者可用时创建签名器
-4. **错误处理**：当钱包不可用或不兼容时优雅降级（返回空数组）
+- **Factory 函数**——`getOKXSigners` 返回 `SignerInfo[]` 数组。
+- **Provider 检测**——创建任何 Signer 前先检查 `window.okxwallet` 是否存在。
+- **优雅降级**——钱包不可用或不兼容时返回空数组。
 
-在主 CCC 包中，`SignersController` 导入并导出这些工厂函数，以提供统一的多链钱包访问。
+因此，`SignersController` 可以像对待其他任意 Signer 来源一样处理 OKX，应用代码无需针对它做特殊处理。

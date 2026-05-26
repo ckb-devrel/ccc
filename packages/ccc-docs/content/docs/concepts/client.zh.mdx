@@ -1,0 +1,301 @@
+---
+title: Client
+description: Client 将 CCC 连接到 CKB 节点，提供链上数据的访问能力。
+icon: Plug
+---
+
+## 什么是 Client？
+
+`Client` 是一个抽象类，通过 JSON-RPC 将 CCC 连接到 CKB 节点。它提供查询链状态、搜索 Cell 和交易、广播已签名交易等方法。
+
+```typescript
+// 来自 packages/core/src/client/client.ts
+export abstract class Client {
+  public cache: ClientCache;
+
+  constructor(config?: { cache?: ClientCache }) {
+    this.cache = config?.cache ?? new ClientCacheMemory();
+  }
+
+  abstract get url(): string;
+  abstract get addressPrefix(): string;
+
+  abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
+}
+```
+
+## 内置 Client
+
+CCC 提供两个开箱即用的 `Client` 实现：
+
+<Tabs items={["主网", "测试网"]}>
+  <Tab value="主网">
+    ```typescript
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const client = new ccc.ClientPublicMainnet();
+    ```
+  </Tab>
+  <Tab value="测试网">
+    ```typescript
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const client = new ccc.ClientPublicTestnet();
+    ```
+  </Tab>
+</Tabs>
+
+<Callout type="info">
+  React Provider 默认使用 `ClientPublicTestnet`。生产环境部署时，切换为
+  `ClientPublicMainnet`。
+</Callout>
+
+## 核心方法
+
+### 链状态
+
+```typescript
+// 获取当前最新区块高度
+abstract getTip(): Promise<Num>;
+
+// 获取当前最新区块头
+abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
+
+// 按区块高度查询区块（优先读取缓存）
+async getBlockByNumber(
+  blockNumber: NumLike,
+  verbosity?: number | null,
+  withCycles?: boolean | null,
+): Promise<ClientBlock | undefined>;
+
+// 按区块哈希查询区块（优先读取缓存）
+async getBlockByHash(
+  blockHash: HexLike,
+  verbosity?: number | null,
+  withCycles?: boolean | null,
+): Promise<ClientBlock | undefined>;
+```
+
+### 交易
+
+```typescript
+// 按哈希查询交易
+async getTransaction(
+  txHashLike: HexLike,
+): Promise<ClientTransactionResponse | undefined>;
+
+// 广播已签名的交易，返回交易哈希
+async sendTransaction(
+  transaction: TransactionLike,
+  validator?: OutputsValidator,
+  options?: { maxFeeRate?: NumLike },
+): Promise<Hex>;
+
+// 等待交易达到指定确认数
+async waitTransaction(
+  txHash: HexLike,
+  confirmations: number,    // 默认 0
+  timeout: number,          // 默认 60000 毫秒
+  interval: number,         // 默认 2000 毫秒
+): Promise<ClientTransactionResponse | undefined>;
+```
+
+### Cell 查询
+
+```typescript
+// 按 OutPoint 查询 Cell
+async getCell(outPointLike: OutPointLike): Promise<Cell | undefined>;
+
+// 查询活跃（未消费）的 Cell
+async getCellLive(
+  outPointLike: OutPointLike,
+  withData?: boolean | null,
+  includeTxPool?: boolean | null,
+): Promise<Cell | undefined>;
+
+// 异步生成器，按搜索条件逐个返回匹配的 Cell
+async *findCells(
+  keyLike: ClientCollectableSearchKeyLike,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+
+// 快捷方法：按 Lock 脚本查询 Cell
+findCellsByLock(
+  lock: ScriptLike,
+  type?: ScriptLike | null,
+  withData?: boolean,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+
+// 快捷方法：按 Type 脚本查询 Cell
+findCellsByType(
+  type: ScriptLike,
+  withData?: boolean,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<Cell>;
+```
+
+### 交易查询
+
+```typescript
+// 异步生成器，按搜索条件逐个返回匹配的交易
+async *findTransactions(
+  key: ClientIndexerSearchKeyTransactionLike,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<...>;
+
+// 快捷方法：按 Lock 脚本查询交易
+findTransactionsByLock(
+  lock: ScriptLike,
+  type?: ScriptLike | null,
+  groupByTransaction?: boolean | null,
+  order?: "asc" | "desc",
+  limit?: number,
+): AsyncGenerator<...>;
+```
+
+### 余额与费率
+
+```typescript
+// 查询所有指定 Lock 脚本持有的 Cell 总容量（单位：Shannon）
+async getBalance(locks: ScriptLike[]): Promise<Num>;
+
+// 获取当前网络费率（每 1000 字节的 Shannon 数）
+async getFeeRate(
+  blockRange?: NumLike,
+  options?: { maxFeeRate?: NumLike },
+): Promise<Num>;
+
+// 获取费率统计数据（均值和中位数）
+abstract getFeeRateStatistics(
+  blockRange?: NumLike,
+): Promise<{ mean?: Num; median?: Num }>;
+```
+
+### 已知脚本
+
+```typescript
+// 将已知脚本解析为链上的 ScriptInfo
+abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
+```
+
+## `KnownScript`
+
+`KnownScript` 枚举列出了 CCC 在主网和测试网上均可解析的预部署脚本：
+
+```typescript
+// 来自 packages/core/src/client/knownScript.ts
+export enum KnownScript {
+  NervosDao            = "NervosDao",
+  Secp256k1Blake160    = "Secp256k1Blake160",
+  Secp256k1Multisig    = "Secp256k1Multisig",
+  Secp256k1MultisigV2  = "Secp256k1MultisigV2",
+  AnyoneCanPay         = "AnyoneCanPay",
+  TypeId               = "TypeId",
+  XUdt                 = "XUdt",
+  JoyId                = "JoyId",
+  COTA                 = "COTA",
+  PWLock               = "PWLock",
+  OmniLock             = "OmniLock",
+  NostrLock            = "NostrLock",
+  UniqueType           = "UniqueType",
+
+  // ckb-proxy-locks
+  AlwaysSuccess        = "AlwaysSuccess",
+  InputTypeProxyLock   = "InputTypeProxyLock",
+  OutputTypeProxyLock  = "OutputTypeProxyLock",
+  LockProxyLock        = "LockProxyLock",
+  SingleUseLock        = "SingleUseLock",
+  TypeBurnLock         = "TypeBurnLock",
+  EasyToDiscoverType   = "EasyToDiscoverType",
+  TimeLock             = "TimeLock",
+}
+```
+
+使用 `getKnownScript()` 可获取已知脚本的 `codeHash`、`hashType` 和 `cellDeps`。也可以用 `Script.fromKnownScript()` 作为快捷方式，直接构造 `Script` 实例：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicTestnet();
+
+// 直接构造 Script 实例
+const xudtScript = await ccc.Script.fromKnownScript(
+  client,
+  ccc.KnownScript.XUdt,
+  "0xabcdef...", // args
+);
+```
+
+## `ClientCache`
+
+每个 `Client` 内置一个 `ClientCache` 实例，将已获取的 Cell、交易和区块头缓存在内存中。这样可以减少重复的 RPC 调用，并在交易发送后在本地标记已消费的 Cell。
+
+```typescript
+// 访问任意 Client 的缓存
+const cache: ccc.ClientCache = client.cache;
+```
+
+默认缓存实现为 `ClientCacheMemory`，数据存储在进程内存中。可通过构造函数传入自定义缓存实现：
+
+```typescript
+const client = new ccc.ClientPublicTestnet({ cache: myCustomCache });
+```
+
+## 使用示例
+
+### 查询链上数据
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+async function queryChain() {
+  const client = new ccc.ClientPublicTestnet();
+
+  // 获取当前最新区块高度
+  const tip = await client.getTip();
+  console.log("当前高度：", tip.toString());
+
+  // 获取费率
+  const feeRate = await client.getFeeRate();
+  console.log("费率（Shannon/KB）：", feeRate.toString());
+
+  // 查询交易
+  const txResponse = await client.getTransaction("0xabc123...");
+  if (txResponse) {
+    console.log("交易状态：", txResponse.status);
+  }
+
+  // 流式获取某个脚本锁定的所有 Cell
+  const lockScript = await ccc.Script.fromKnownScript(
+    client,
+    ccc.KnownScript.Secp256k1Blake160,
+    "0x36c329ed630d6ce750712a477543672adab57f4c",
+  );
+
+  for await (const cell of client.findCellsByLock(lockScript)) {
+    console.log("Cell 容量：", cell.cellOutput.capacity.toString());
+  }
+}
+```
+
+### 等待交易确认
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+async function sendAndWait(signer: ccc.Signer, tx: ccc.Transaction) {
+  const txHash = await signer.sendTransaction(tx);
+  console.log("已发送：", txHash);
+
+  // 最多等待 60 秒，直到达到至少 1 个确认
+  const confirmed = await signer.client.waitTransaction(txHash, 1);
+  if (confirmed) {
+    console.log("已确认，区块高度：", confirmed.blockNumber?.toString());
+  }
+}
+```

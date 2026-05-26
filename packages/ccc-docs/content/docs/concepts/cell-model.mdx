@@ -77,7 +77,7 @@ const script = ccc.Script.from({
 
 ### Lock scripts
 
-A lock script defines who owns a cell. A transaction can only consume a cell if its lock conditions are satisfied — typically by providing a valid cryptographic signature. The most common lock on CKB is `Secp256k1Blake160`, which works similarly to Bitcoin's P2PKH.
+A lock script defines the ownership of a cell — who owns it. A transaction can only consume a cell if its lock conditions are satisfied — typically by providing a valid cryptographic signature. The most common lock on CKB is `Secp256k1Blake160`, which works similarly to Bitcoin's P2PKH.
 
 ### Type scripts
 
@@ -145,7 +145,7 @@ export class Address {
     public prefix: string,
   ) {}
 
-  // Decode an address string back to its Script
+  // Decode an address string back to its Address object
   static async fromString(
     address: string,
     clients: Client | Record<string, Client>,

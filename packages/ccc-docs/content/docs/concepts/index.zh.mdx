@@ -1,6 +1,49 @@
 ---
 title: 核心概念
-description: hello
+description: 了解每个 CCC 应用背后的五个核心概念——Cell、交易、Signer、Client 和地址，以及它们如何协同工作。
 ---
 
-文档编写中
+import { LayoutGrid, Repeat, Key, Plug, IdCard } from 'lucide-react';
+
+在正式使用 CCC 编写代码之前，理解 SDK 所围绕的基本概念很有帮助。这些概念与 CKB 本身的工作方式直接对应。
+
+## 核心概念
+
+- **Cell** 是 CKB 上的状态单元。每个 Cell 包含容量（capacity）、Lock 脚本、可选的 Type 脚本以及任意数据。交易消费旧 Cell 并创建新 Cell——CKB 没有账户或余额的概念。
+- **交易**描述一次状态转换：指定一组待消费的输入 Cell 和待创建的输出 Cell。CCC 以声明式方式组装交易——你只需描述想要的输出，辅助函数会自动填充输入和手续费。
+- **Signer** 代表一个已连接的钱包。同一套 `Signer` 接口适用于 CKB、EVM、BTC、Nostr 和 Doge 钱包，提供统一的地址查询、余额查询、签名和广播 API。
+- **Client** 是连接 CKB 节点的通道，暴露 JSON-RPC 方法，用于查询链状态、搜索 Cell 和发送交易等操作。
+- **地址**是 Lock 脚本加网络前缀的用户侧编码。每个地址都能无损地还原为控制其 Cell 的 `Script`。
+
+## 它们如何协同工作
+
+一个典型的 CCC 流程会用到以上所有概念：
+
+1. **Client** 连接到 CKB 节点。
+2. 基于该 Client 创建 **Signer**（由钱包驱动），通过 `Signer` 获取用户的**地址**。
+3. 构建**交易**时声明输出——每个输出的 `lock` 通常来自解析收款方**地址**得到的 `Script`。
+4. 交易从 Signer 收集 **Cell** 作为输入，完成签名后通过 `Client` 广播上链。
+
+## 本节页面
+
+<Cards cols={2}>
+  <Card title="Cell 模型" icon={<LayoutGrid />} href="./concepts/cell-model">
+    CKB 交易背后 UTXO 风格的数据模型：Cell、Script、容量与地址。
+  </Card>
+
+  <Card title="交易" icon={<Repeat />} href="./concepts/transactions">
+    使用 `Transaction.from()` 组装交易，按容量自动填充输入，让 CCC 处理手续费和找零。
+  </Card>
+
+  <Card title="Signer" icon={<Key />} href="./concepts/signers">
+    统一的签名接口，将 CKB、EVM、BTC、Nostr 和 Doge 钱包抽象为同一套 API。
+  </Card>
+
+  <Card title="Client" icon={<Plug />} href="./concepts/clients">
+    通过 `ClientPublicMainnet` / `ClientPublicTestnet` 连接主网或测试网，查询链状态并广播交易。
+  </Card>
+
+  <Card title="地址" icon={<IdCard />} href="./concepts/address">
+    解析和构造 CKB 地址，了解 bech32m 格式，在地址、Script 和 Signer 之间互相转换。
+  </Card>
+</Cards>

@@ -1,5 +1,5 @@
 ---
-title: Signers
+title: Signer
 description: Signers represent connected wallets and provide signing, address, and transaction capabilities.
 icon: Key
 ---
@@ -47,9 +47,9 @@ graph TB
 
 ## Signer enums
 
-### SignerType
+### `SignerType`
 
-Identifies the originating blockchain ecosystem of the signer.
+Identifies the originating blockchain ecosystem of the `signer`.
 
 ```typescript
 // From packages/core/src/signer/signer/index.ts
@@ -62,9 +62,9 @@ export enum SignerType {
 }
 ```
 
-### SignerSignType
+### `SignerSignType`
 
-Identifies the specific signing scheme used by the signer.
+Identifies the specific signing scheme used by the `signer`.
 
 ```typescript
 // From packages/core/src/signer/signer/index.ts
@@ -228,6 +228,9 @@ Signing flow:
 
 - Message format: `"CKB (Bitcoin Layer) transaction: " + txHash`.
 - Use the wallet's `signMessage` (returns base64), then adjust the recovery flag.
+<Callout type="info">
+"Adjusting the recovery flag" means converting the recovery flag from the Bitcoin standard format returned by the Bitcoin wallet to the format required by CKB OmniLock.
+</Callout>
 
 ### Nostr signers
 
@@ -276,7 +279,6 @@ Sub-key wallet support:
 | BTC | 33/65-byte pubkey | OmniLock | `0x04 + hash160(pubkey) + 0x00` | 85 bytes |
 | Nostr | 32-byte pubkey | NostrLock | `0x00 + hashCkb(pubkey)[0:21]` | 572 bytes |
 | JoyID | WebAuthn pubkey | JoyID | `hashCkb(pubkey)[0:20]` | 1000 bytes |
-
 
 ## Wallet integrations
 

@@ -3,7 +3,9 @@ title: "@ckb-ccc/joy-id"
 description: JoyID 钱包集成，支持 CKB、Bitcoin、EVM 和 Nostr。
 ---
 
-`@ckb-ccc/joy-id` 是 CCC 中负责集成 [JoyID](https://joy.id/) 钱包的协议支持层包。[JoyID](https://joy.id/) 是一款基于 WebAuthn/Passkey 的钱包，无需助记词，通过设备生物识别（指纹、Face ID 等）管理密钥。该包通过弹窗（popup）与 JoyID 应用通信，为 CKB、Bitcoin、EVM 和 Nostr 四种链类型提供统一的 `Signer` 接口实现。
+[JoyID](https://joy.id/) 是一款基于 WebAuthn/Passkey 的钱包，无需助记词，通过设备生物识别（指纹、Face ID 等）管理密钥。
+
+`@ckb-ccc/joy-id` 是 CCC 中负责集成 JoyID 钱包的协议支持层包。该包通过弹窗（popup）的方式与 JoyID 应用通信，为 CKB、Bitcoin、EVM 和 Nostr 四种链类型提供统一的 `Signer` 接口实现。
 
 ## 安装
 
@@ -28,12 +30,12 @@ pnpm add @ckb-ccc/joy-id
 **依赖项：**
 | 包名 | 说明 |
 |------|------|
-| `@ckb-ccc/core` | CCC 核心层，提供 `Signer`、`Client`、`Transaction` 等基础类型 |
+| `@ckb-ccc/core` | CCC 核心层，提供 `Signer`、`Client`、`Transaction` 等基础组件 |
 | `@joyid/ckb` | JoyID CKB SDK，提供 `Aggregator`（COTA 聚合器） |
 | `@joyid/common` | JoyID 通用工具，提供 `buildJoyIDURL`、`createBlockDialog`、`DappRequestType` 等 |  
 
 <Callout type="info">
-  如果您使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，JoyID 已经包含在内——无需单独安装。
+  如果你使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，JoyID 已经包含在内——无需单独安装。
 </Callout>
 
 ## 架构概览
@@ -109,7 +111,7 @@ graph TB
 
 ### 1. `CkbSigner`
 
-原生 CKB 链签名器，基于 JoyID Passkey 技术，支持主密钥（`main_key`）和子密钥（`sub_key`，依赖 COTA 协议）。
+原生 CKB 链 Signer ，基于 JoyID Passkey 技术，支持主密钥（`main_key`）和子密钥（`sub_key`，依赖 COTA 协议）。
 
 **构造函数参数：**
 
@@ -161,7 +163,7 @@ new CkbSigner(
 
 ### 2. `BitcoinSigner`
 
-Bitcoin 链签名器，支持 P2WPKH（Native SegWit）和 P2TR（Taproot）两种地址类型。
+Bitcoin 链 Signer ，支持 P2WPKH（Native SegWit）和 P2TR（Taproot）两种地址类型。
 
 **构造函数参数：**
 
@@ -194,7 +196,7 @@ new BitcoinSigner(
 
 ### 3. `EvmSigner`
 
-EVM 链签名器，通过 JoyID 获取以太坊地址并签名。
+EVM 链 Signer ，通过 JoyID 获取以太坊地址并签名。
 
 **构造函数参数：**
 
@@ -216,7 +218,7 @@ new EvmSigner(
 
 ### 4. `NostrSigner`
 
-Nostr 协议签名器，通过 JoyID 获取 Nostr 公钥并签名事件。
+Nostr 协议 Signer ，通过 JoyID 的弹窗流程来获取 Nostr 公钥并对 Nostr 事件进行签名。
 
 **构造函数参数：**
 
@@ -238,7 +240,7 @@ new NostrSigner(
 
 ### 5. `getJoyIdSigners()` 工厂函数
 
-这是推荐的集成入口，一次性返回所有 JoyID 支持的签名器列表。
+这是推荐的集成入口，一次性返回所有 JoyID 支持的 Signer 列表。
 
 **签名：**
 
@@ -251,7 +253,7 @@ function getJoyIdSigners(
 ): ccc.SignerInfo[]
 ```
 
-**返回的签名器列表（标准浏览器环境）：**
+**返回的 Signer 列表（标准浏览器环境）：**
 
 | name | signer 类型 |
 |------|------------|
@@ -297,7 +299,7 @@ type AccountSelector = {
 
 ## 弹窗通信机制
 
-`createPopup()` 是所有签名器与 JoyID App 通信的底层函数。 
+`createPopup()` 是所有 Signer 与 JoyID App 通信的底层函数。 
 
 **工作流程：**
 
@@ -367,7 +369,7 @@ const signers = getJoyIdSigners(
   "https://my-dapp.com/icon.png",
 );
 
-// 找到 CKB 签名器
+// 找到 CKB  Signer 
 const ckbSignerInfo = signers.find((s) => s.name === "CKB");
 const signer = ckbSignerInfo!.signer;
 
@@ -456,12 +458,12 @@ const signer = new CkbSigner(
 
 ## Lumos 兼容性
 
-JoyID 通过 Lumos 补丁支持，如果您正在使用 Lumos SDK：
+如果你的项目使用 Lumos SDK，可以通过 Lumos 补丁来支持 JoyID：
 
 ```typescript
 import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
 
-// Call before using Lumos — no @ckb-lumos/joyid needed
+// 在使用 Lumos 之前调用一次，注册后不再需要 @ckb-lumos/joyid
 registerCustomLockScriptInfos(generateDefaultScriptInfos());
 ```
 
@@ -469,7 +471,7 @@ registerCustomLockScriptInfos(generateDefaultScriptInfos());
 
 ## 注意事项与限制
 
-1. **仅限浏览器环境**：所有签名器依赖 `window.open`、`window.localStorage`、`window.postMessage`，不支持 Node.js 服务端环境。
+1. **仅限浏览器环境**：所有 Signer 依赖 `window.open`、`window.localStorage`、`window.postMessage`，不支持 Node.js 服务端环境。
 2. **WebView 不支持**：在 WebView（如微信内置浏览器）或 PWA standalone 模式下，`getJoyIdSigners` 会返回 `SignerAlwaysError`，无法使用 JoyID。
 3. **弹窗拦截**：浏览器可能拦截非用户手势触发的弹窗，`connect()` 等方法应在用户点击事件处理器中调用。
 4. **Sub Key 依赖 COTA**：使用子密钥账户时，账户必须持有 COTA cell，否则 `prepareTransaction` 会抛出 `"No COTA cells for sub key wallet"` 错误。

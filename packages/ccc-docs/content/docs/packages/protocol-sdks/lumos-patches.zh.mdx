@@ -1,0 +1,119 @@
+---
+title: "@ckb-ccc/lumos-patches"
+description: 兼容性补丁，使 Lumos SDK 支持 JoyID、Nostr 和 Portal 钱包。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/lumos-patches` 为 [Lumos](https://github.com/ckb-js/lumos) SDK 补充了 JoyID、Nostr（NostrLock）和 Portal（PWLock）钱包的 Lock Script 支持。如果你有基于 Lumos 的现有应用，又希望支持这些钱包而无需迁移至 CCC，应用这些补丁即可。
+
+## 适用场景
+
+满足以下条件时安装 `@ckb-ccc/lumos-patches`——你有基于 Lumos 的现有代码库，并希望：
+
+* 使用 **JoyID** 签署交易（无需 `@ckb-lumos/joyid`）。
+* 使用 **Nostr** 钱包签署交易。
+* 使用 **Portal** 钱包签署交易。
+
+<Callout type="warning">
+  新项目请直接使用 CCC，原生支持上述所有钱包。`@ckb-ccc/lumos-patches`
+  仅适用于已依赖 Lumos 且无法迁移的项目。
+</Callout>
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/lumos-patches" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/lumos-patches
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/lumos-patches
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/lumos-patches
+```
+  </Tab>
+</Tabs>
+
+## 导出
+
+| 导出                         | 说明                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `generateDefaultScriptInfos` | 返回主网和测试网上 JoyID、Nostr、Portal 对应的 `LockScriptInfo[]`       |
+| `generateScriptInfo`         | 为任意 code hash 构建自定义 `LockScriptInfo`                            |
+
+## 应用补丁
+
+在使用 Lumos 构建任何交易之前，在应用启动时调用 `generateDefaultScriptInfos()` 并将结果注册到 Lumos：
+
+```typescript
+import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
+import { registerCustomLockScriptInfos } from "@ckb-lumos/common-scripts/lib/common";
+
+// 在应用启动时执行一次——须在使用 Lumos 之前调用。
+// 完成后无需再依赖 @ckb-lumos/joyid。
+registerCustomLockScriptInfos(generateDefaultScriptInfos());
+```
+
+注册完成后，Lumos 即可在主网和测试网上为以下 Lock Script 收集 Cell 并构造 Witness：
+
+| Script      | 钱包                   | 占位锁长度   |
+| ----------- | ---------------------- | ------------ |
+| `JoyId`     | JoyID（Passkey）       | 1000 字节    |
+| `NostrLock` | Nostr NIP-07 钱包      | 572 字节     |
+| `PWLock`    | Portal Wallet          | 65 字节      |
+
+## 自定义脚本信息
+
+如需添加其他自定义 Lock，直接使用 `generateScriptInfo`：
+
+```typescript
+import { generateScriptInfo } from "@ckb-ccc/lumos-patches";
+import { ccc } from "@ckb-ccc/core";
+
+const myLockInfo = generateScriptInfo(
+  "0xYOUR_CODE_HASH",
+  [
+    // ccc.CellDepInfoLike 数组
+    {
+      cellDep: {
+        outPoint: { txHash: "0x...", index: 0 },
+        depType: "depGroup",
+      },
+    },
+  ],
+  65, // 用于手续费估算的占位锁长度（字节）
+);
+```
+
+## 工作原理
+
+`generateDefaultScriptInfos` 为主网和测试网上每个受支持的脚本各返回一个 `LockScriptInfo`。每个信息对象：
+
+1. 提供一个 `CellCollector`，用于筛选匹配该 Lock 的 code hash 的 Cell。
+2. 实现 `setupInputCell`，添加正确的 Cell 依赖，并插入适当大小的占位 Witness（供 Lumos 估算手续费）。
+
+Lock Script 从 `@ckb-ccc/core` 内置的 `MAINNET_SCRIPTS` 和 `TESTNET_SCRIPTS` 常量中查找，无需手工硬编码任何哈希值。
+
+## Lumos 版本兼容性
+
+本包针对以下版本进行了测试：
+
+```
+@ckb-lumos/base              0.24.0-next.2
+@ckb-lumos/codec             0.24.0-next.2
+@ckb-lumos/common-scripts    0.24.0-next.2
+@ckb-lumos/config-manager    0.24.0-next.2
+@ckb-lumos/helpers           0.24.0-next.2
+```
+
+<Callout type="error">
+**Lumos 已停止积极维护，新项目建议使用 CCC。**
+</Callout>

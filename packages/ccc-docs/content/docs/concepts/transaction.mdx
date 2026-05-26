@@ -1,5 +1,5 @@
 ---
-title: Transactions
+title: Transaction
 description: Build, complete, and send CKB transactions — CCC handles input selection and fee calculation for you.
 icon: Repeat
 ---
@@ -216,7 +216,20 @@ const [addedInputs, hasChange] = await tx.completeFee(
 );
 ```
 
-## Adding cell dependencies
+## Advanced: Adding cell dependencies
+
+### Use cases
+   
+Adding cell dependencies is primarily needed for the following scenarios:  
+- **Type scripts**: When a transaction uses a Type script (such as xUDT, NervosDao, Spore, etc.), you must add the corresponding cell deps to enable on-chain verification  
+- **Special Lock scripts**: Certain special Lock scripts (such as TimeLock, SingleUseLock, etc.) require manual addition  
+- **Custom scripts**: When using custom scripts not in the KnownScript list, you need to specify cell deps directly  
+
+<Callout type="info">
+Note: The Signer's `prepareTransaction()` automatically adds KnownScript dependencies (such as OmniLock, NostrLock, etc.) related to that Signer, so manual addition is not required.
+</Callout>
+
+### Example
 
 For built-in scripts, use `addCellDepsOfKnownScripts()`. For custom scripts, add deps directly:
 

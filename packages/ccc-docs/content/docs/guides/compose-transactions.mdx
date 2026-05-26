@@ -7,9 +7,7 @@ icon: Code
 Build and send CKB transactions without manually selecting inputs or computing fees. You declare the desired **outputs**, and CCC automatically finds matching inputs, calculates the fee, and creates change — all in a few method calls.
 
 ## What you'll get
-
 After this guide you'll be able to:
-
 - **Transfer CKB** to any address with automatic input selection and fee calculation
 - **Sweep an entire wallet** into a single output
 - Understand the **declare → fill → fee → send** pattern that every CCC transaction follows
@@ -108,7 +106,7 @@ CCC auto-fetches the current median fee rate from the node — you never need to
 If you need fine-grained control (e.g. priority transactions), pass an explicit fee rate in **shannon per kilobyte**:
 
 ```typescript
-await tx.completeFeeBy(signer, 1000); // fixed rate of 1000 shannon/kB
+await tx.completeFeeBy(signer, 2000); // fixed rate of 2000 shannon/kB
 ```
 
 ## API reference

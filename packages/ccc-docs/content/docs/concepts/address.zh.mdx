@@ -1,468 +1,188 @@
 ---
 title: Address
-description: Parse and construct CKB addresses, which encode a lock script and network prefix.
-icon: Link
+description: 解析和构造 CKB 地址——地址中编码了 Lock 脚本和网络前缀。
+icon: IdCard
 ---
 
-## 概述
+CKB 地址是一个 bech32m 编码的字符串，其中打包了两部分信息：
 
-`ccc.Address` 是 CCC 库中用于表示 CKB 地址的核心类，它将地址字符串与底层的 `Script` 对象关联起来，并支持多种地址格式的解析和生成。 [1](#0-0) 
+1. **Lock 脚本**——决定谁可以花费该地址下 Cell 的链上判定逻辑（`codeHash`、`hashType` 和 `args`）。
+2. **网络前缀**——主网用 `ckb`，测试网用 `ckt`。
 
-## 类定义
+由于 Lock 脚本已内嵌于地址中，向某个地址发送资产时，可以直接从地址还原出所需的脚本，无需额外元数据。
 
-### 构造函数
+## `Address` 类
 
-```typescript
-constructor(
-  public script: Script,
-  public prefix: string,
-)
+`ccc.Address` 将 `Script` 与网络前缀绑定在一起：
+
+```ts
+export class Address {
+  constructor(
+    public script: Script,
+    public prefix: string, // "ckb" | "ckt"
+  ) {}
+}
 ```
 
-`Address` 类包含两个主要属性：
-- `script`: 关联的 CKB 脚本对象
-- `prefix`: 地址前缀（如 "ckb" 表示主网，"ckt" 表示测试网） [2](#0-1) 
+凡接受 `AddressLike` 的 API，都可以传入已有的 `Address` 实例或普通对象——`Address.from()` 会做归一化处理：
 
-### AddressLike 类型
-
-```typescript
-export type AddressLike = {
-  script: ScriptLike;
-  prefix: string;
-};
+```ts
+const address = ccc.Address.from({
+  script: { codeHash: "0x...", hashType: "type", args: "0x..." },
+  prefix: "ckb",
+});
 ```
 
-这是地址的通用类型表示，可以用于接受 `Address` 实例或类似结构的对象。 [3](#0-2) 
-
-## 静态工厂方法
-
-### from()
-
-从 `AddressLike` 对象创建 `Address` 实例：
-
-```typescript
-static from(address: AddressLike): Address
-```
-
-如果传入的已经是 `Address` 实例，则直接返回；否则创建新的实例。 [4](#0-3) 
-
-### fromString()
-
-从地址字符串解析创建 `Address` 实例：
-
-```typescript
-static async fromString(
-  address: string,
-  clients: Client | Record<string, Client>,
-): Promise<Address>
-```
-
-此方法会：
-1. 解析地址字符串获取前缀、格式和载荷
-2. 验证地址前缀与客户端配置匹配
-3. 根据格式和载荷构建脚本对象
-4. 返回完整的 `Address` 实例 [5](#0-4) 
-
-### fromScript()
-
-从脚本对象和客户端创建地址：
-
-```typescript
-static fromScript(script: ScriptLike, client: Client): Address
-```
-
-使用客户端的地址前缀和提供的脚本创建地址。 [6](#0-5) 
-
-### fromKnownScript()
-
-从已知脚本类型创建地址：
-
-```typescript
-static async fromKnownScript(
-  client: Client,
-  script: KnownScript,
-  args: HexLike,
-): Promise<Address>
-```
-
-使用预定义的脚本类型（如 Secp256k1Blake160、AnyoneCanPay 等）创建地址。 [7](#0-6) 
-
-## 地址格式
-
-CCC 支持多种地址格式，通过 `AddressFormat` 枚举区分：
-
-| 格式 | 描述 | 载荷结构 |
-|------|------|----------|
-| `Full` | 完整格式 | `[formatType, codeHash(32 bytes), hashType(1 byte), args]` |
-| `FullData` | 完整数据格式 | `[formatType, codeHash(32 bytes), args]`，hashType 固定为 "data" |
-| `FullType` | 完整类型格式 | `[formatType, codeHash(32 bytes), args]`，hashType 固定为 "type" |
-| `Short` | 短格式 | `[formatType, scriptIndex, args(20 bytes)]`，用于已知脚本 |
-
-短格式支持的脚本类型包括：
-- `KnownScript.Secp256k1Blake160`
-- `KnownScript.Secp256k1Multisig`
-- `KnownScript.AnyoneCanPay` [8](#0-7) 
-
-## 实例方法
-
-### toString()
-
-将地址实例转换为字符串：
-
-```typescript
-toString(): string
-```
-
-此方法：
-1. 将地址格式、codeHash、hashType 和 args 拼接成字节数组
-2. 使用 bech32m 编码生成最终的地址字符串
-3. 地址前缀由实例的 `prefix` 属性决定 [9](#0-8) 
-
-## 使用示例
+## 使用方法
 
 ### 解析地址字符串
 
-```typescript
+`Address.fromString` 将地址字符串解码为结构化对象：
+
+```ts
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicMainnet();
 const address = await ccc.Address.fromString(
-  "ckt1qyq...address...",
-  signer.client,
+  "ckb1qzda0cr08m85hc8jlnfp3sdrlalyatuqvqdveld...",
+  client,
 );
-const { script } = address;
+
+console.log(address.script.codeHash); // Lock 脚本 code hash
+console.log(address.script.hashType); // "type" | "data"
+console.log(address.script.args);     // Lock 脚本 args
+console.log(address.prefix);          // "ckb"
 ```
 
-在转账工具中用于验证目标地址： [10](#0-9) 
+该方法会校验地址前缀与 `client` 所在网络是否匹配，不匹配时抛出异常（例如将 `ckt` 地址传给主网 `client`）。
 
-### 从脚本创建地址
+如果同一段代码需要同时处理两个网络，可以传入一个 `client` 对象字典：
 
-```typescript
-const address = ccc.Address.fromScript(cellOutput.lock, client);
+```ts
+const address = await ccc.Address.fromString(someAddress, {
+  ckb: new ccc.ClientPublicMainnet(),
+  ckt: new ccc.ClientPublicTestnet(),
+});
 ```
 
-在单元格可视化中用于显示锁脚本地址： [11](#0-10) 
+### 从脚本构造地址
 
-### 只读签名器中的使用
+直接由 Lock 脚本和 `client` 构造 `Address`：
 
-```typescript
-async getAddressObjs(): Promise<Address[]> {
-  return this.scripts.map((script) =>
-    Address.fromScript(script, this.client),
-  );
-}
+```ts
+const address = ccc.Address.fromScript(lockScript, client);
+console.log(address.toString()); // "ckb1q..."
 ```
 
-在只读签名器中将脚本转换为地址对象： [12](#0-11) 
+也可以从内置的 `KnownScript` 派生：
 
-## 地址前缀
-
-不同的网络使用不同的地址前缀：
-
-| 网络 | 前缀 | 客户端类 |
-|------|------|----------|
-| 主网 | `ckb` | `ClientPublicMainnet` |
-| 测试网 | `ckt` | `ClientPublicTestnet` |
-
-客户端通过 `addressPrefix` 属性提供当前网络的前缀： [13](#0-12) [14](#0-13) 
-
-## 高级功能
-
-### 地址解析
-
-`addressPayloadFromString()` 函数可以将地址字符串解析为结构化信息：
-
-```typescript
-function addressPayloadFromString(address: string): {
-  prefix: string;
-  format: AddressFormat;
-  payload: number[];
-}
+```ts
+const address = await ccc.Address.fromKnownScript(
+  client,
+  ccc.KnownScript.Secp256k1Blake160,
+  "0xPublicKeyHash...",
+);
 ```
 
-该函数会尝试解析完整格式（bech32m）和遗留格式（bech32）的地址。 [15](#0-14) 
+### 从 Signer 获取地址
 
-### 载荷转换
+在 dApp 中，最便捷的方式是直接从已连接的 Signer 获取地址：
 
-`addressFromPayload()` 函数将解析后的载荷转换为 `AddressLike` 对象：
+```ts
+// 推荐地址的字符串形式
+const addressStr = await signer.getRecommendedAddress();
 
-```typescript
-async function addressFromPayload(
-  prefix: string,
-  format: AddressFormat,
-  payload: number[],
-  client: Client,
-): Promise<AddressLike>
+// 推荐地址的 Address 对象（包含 Lock 脚本）
+const addressObj = await signer.getRecommendedAddressObj();
+const { script: lock } = addressObj;
+
+// 该 Signer 控制的所有地址
+const allAddresses = await signer.getAddresses(); // string[]
 ```
 
-根据不同的格式类型，构建相应的脚本对象。 [16](#0-15) 
+<Callout type="info">
+  需要 Lock 脚本时（例如将其设为交易输出的接收方），优先使用 `getRecommendedAddressObj`，而不是先调用 `getRecommendedAddress` 再对结果执行 `Address.fromString`。
+</Callout>
 
-## Notes
+### 将地址转换为字符串
 
-1. `Address` 类的所有方法都是异步的，因为某些操作需要从客户端获取已知脚本信息
-2. 地址字符串使用 bech32m 编码，这是 bech32 的改进版本，具有更好的错误检测能力
-3. 短格式地址仅适用于预定义的脚本类型，可以减少地址长度
-4. 在实际应用中，建议使用 `fromString()` 方法解析用户输入的地址，以确保格式正确性
+对任意 `Address` 实例调用 `toString()`，得到 bech32m 编码的地址字符串：
 
-Wiki pages you might want to explore:
-- [Multi-Chain Signer Implementations (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#2.4)
-- [Wallet Integrations (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#4)
-- [Playground Environment (ckb-devrel/ccc)](/wiki/ckb-devrel/ccc#6.1)
-
-### Citations
-
-**File:** packages/core/src/address/index.ts (L16-19)
-```typescript
-export type AddressLike = {
-  script: ScriptLike;
-  prefix: string;
-};
+```ts
+const str = address.toString(); // "ckb1q..." | "ckt1q..."
 ```
 
-**File:** packages/core/src/address/index.ts (L25-35)
-```typescript
-export class Address {
-  /**
-   * Creates an instance of Address.
-   *
-   * @param script - The script associated with the address.
-   * @param prefix - The address prefix.
-   */
-  constructor(
-    public script: Script,
-    public prefix: string,
-  ) {}
+`toString()` 始终生成当前推荐的长（Full）地址格式。CCC 为了向后兼容可以解析旧版（legacy）格式，但不会生成它们。
+
+## 地址格式
+
+CCC 支持四种地址格式，由首字节（format byte）区分。`toString()` 只输出 `Full` 格式，其余格式仅用于兼容 2021 年前的旧版地址。
+
+| 格式         | 编码    | Payload 结构                                            | 备注                                                  |
+| ------------ | ------- | ----------------------------------------------------- | ---------------------------------------------------- |
+| `Full`       | bech32m | `[0x00, codeHash(32), hashType(1), args]`             | 当前标准格式，由 `toString()` 输出。                     |
+| `FullData`   | bech32  | `[0x02, codeHash(32), args]`，`hashType` 为 `"data"`   | 2019 年旧版格式。                                      |
+| `FullType`   | bech32  | `[0x04, codeHash(32), args]`，`hashType` 为 `"type"`   | 2019 年旧版格式。                                      |
+| `Short`      | bech32  | `[0x01, scriptIndex(1), args(20)]`                    | 通过脚本索引（scriptIndex）而非完整 code hash 编码脚本。   |
+
+`Short` 格式通过脚本索引而非完整 `codeHash` 来标识脚本，支持以下脚本：
+
+| `scriptIndex` | 脚本                              |
+| ------------- | --------------------------------- |
+| `0`           | `KnownScript.Secp256k1Blake160`   |
+| `1`           | `KnownScript.Secp256k1Multisig`   |
+| `2`           | `KnownScript.AnyoneCanPay`        |
+
+解析 `Short` 格式地址需要 `Client`，用于查找索引对应脚本当前的 `codeHash` 和 `cellDeps`。
+
+## 网络前缀
+
+| 前缀   | 网络   |
+| ------ | ------ |
+| `ckb`  | 主网   |
+| `ckt`  | 测试网 |
+
+运行时可从 `client` 读取前缀：
+
+```ts
+const client = new ccc.ClientPublicTestnet();
+console.log(client.addressPrefix); // "ckt"
 ```
 
-**File:** packages/core/src/address/index.ts (L44-50)
-```typescript
-  static from(address: AddressLike): Address {
-    if (address instanceof Address) {
-      return address;
-    }
+<Callout type="warning">
+  不要混用主网和测试网地址。将 `ckt` 地址传给主网 `client` 会抛出异常。使用 `Address.fromString` 时，务必配合正确网络的 `client`。
+</Callout>
 
-    return new Address(Script.from(address.script), address.prefix);
-  }
+## 进阶：底层解析
+
+绝大多数应用场景，`Address.fromString` 和 `Address.fromScript` 已经足够。如果需要在不发起 `Client` 请求的情况下检查或转换地址，可以使用 `cccA` 进阶命名空间中暴露的底层步骤：
+
+```ts
+import { cccA } from "@ckb-ccc/ccc/advanced";
 ```
 
-**File:** packages/core/src/address/index.ts (L62-82)
-```typescript
-  static async fromString(
-    address: string,
-    clients: Client | Record<string, Client>,
-  ): Promise<Address> {
-    const { prefix, format, payload } = addressPayloadFromString(address);
+### `addressPayloadFromString`
 
-    const client = (clients as Record<string, Client>)[prefix] ?? clients;
-    if (!client) {
-      throw new Error(`Unknown address prefix ${prefix}`);
-    }
-    const expectedPrefix = client.addressPrefix;
-    if (expectedPrefix !== prefix) {
-      throw new Error(
-        `Unknown address prefix ${prefix}, expected ${expectedPrefix}`,
-      );
-    }
+解码 bech32/bech32m 封装，返回原始的 format byte 和 payload——不解析任何 `KnownScript`：
 
-    return Address.from(
-      await addressFromPayload(prefix, format, payload, client),
-    );
-  }
+```ts
+const { prefix, format, payload } = cccA.addressPayloadFromString(
+  "ckb1qzda0cr08m85hc8jlnfp3sdrlalyatuqvqdveld...",
+);
+// prefix:  "ckb"
+// format:  cccA.AddressFormat.Full
+// payload: number[]（codeHash + hashType + args 字节）
 ```
 
-**File:** packages/core/src/address/index.ts (L92-94)
-```typescript
-  static fromScript(script: ScriptLike, client: Client): Address {
-    return Address.from({ script, prefix: client.addressPrefix });
-  }
+优先尝试 bech32m 解码，失败后回退到旧版 bech32。两者均不匹配时，抛出 `Unknown address format`。
+
+### `addressFromPayload`
+
+将解码后的 payload 还原为 `AddressLike`，并通过 `client` 解析 Short 格式的脚本索引：
+
+```ts
+const addressLike = await cccA.addressFromPayload(prefix, format, payload, client);
+const address = ccc.Address.from(addressLike);
 ```
 
-**File:** packages/core/src/address/index.ts (L96-105)
-```typescript
-  static async fromKnownScript(
-    client: Client,
-    script: KnownScript,
-    args: HexLike,
-  ): Promise<Address> {
-    return Address.from({
-      script: await Script.fromKnownScript(client, script, args),
-      prefix: client.addressPrefix,
-    });
-  }
-```
-
-**File:** packages/core/src/address/index.ts (L113-126)
-```typescript
-  toString(): string {
-    const data = bytesConcat(
-      [AddressFormat.Full],
-      bytesFrom(this.script.codeHash),
-      hashTypeToBytes(this.script.hashType),
-      bytesFrom(this.script.args),
-    );
-
-    return bech32m.encode(
-      this.prefix,
-      bech32m.toWords(data),
-      ADDRESS_BECH32_LIMIT,
-    );
-  }
-```
-
-**File:** packages/core/src/address/address.advanced.ts (L24-59)
-```typescript
-export function addressPayloadFromString(address: string): {
-  prefix: string;
-  format: AddressFormat;
-  payload: number[];
-} {
-  // Try parse full format address
-  try {
-    const { words, prefix } = bech32m.decode(address, ADDRESS_BECH32_LIMIT);
-    const decoded = bech32m.fromWords(words);
-    const formatType = decoded[0];
-    const payload = decoded.slice(1);
-
-    if (formatType === (AddressFormat.Full as number)) {
-      return { prefix, format: AddressFormat.Full, payload };
-    }
-  } catch (_) {}
-
-  // Try parse legacy 2019 format address
-  try {
-    const { prefix, words } = bech32.decode(address, ADDRESS_BECH32_LIMIT);
-    const decoded = bech32.fromWords(words);
-    const formatType = decoded[0];
-    const payload = decoded.slice(1);
-    if (
-      [
-        AddressFormat.FullData,
-        AddressFormat.FullType,
-        AddressFormat.Short,
-      ].includes(formatType)
-    ) {
-      return { prefix, format: formatType, payload };
-    }
-  } catch (_) {}
-
-  throw Error(`Unknown address format ${address}`);
-}
-```
-
-**File:** packages/core/src/address/address.advanced.ts (L80-158)
-```typescript
-export async function addressFromPayload(
-  prefix: string,
-  format: AddressFormat,
-  payload: number[],
-  client: Client,
-): Promise<AddressLike> {
-  if (format === AddressFormat.Full) {
-    if (payload.length < 32 + 1) {
-      throw new Error(
-        `Invalid full address without enough payload ${hexFrom(payload)}`,
-      );
-    }
-
-    return {
-      script: {
-        codeHash: payload.slice(0, 32),
-        hashType: hashTypeFromBytes(payload.slice(32, 33)),
-        args: payload.slice(33),
-      },
-      prefix,
-    };
-  }
-
-  if (format === AddressFormat.FullData) {
-    if (payload.length < 32) {
-      throw new Error(
-        `Invalid full data address without enough payload ${hexFrom(payload)}`,
-      );
-    }
-
-    return {
-      script: {
-        codeHash: payload.slice(0, 32),
-        hashType: "data",
-        args: payload.slice(32),
-      },
-      prefix,
-    };
-  }
-
-  if (format === AddressFormat.FullType) {
-    if (payload.length < 32) {
-      throw new Error(
-        `Invalid full type address without enough payload ${hexFrom(payload)}`,
-      );
-    }
-
-    return {
-      script: {
-        codeHash: payload.slice(0, 32),
-        hashType: "type",
-        args: payload.slice(32),
-      },
-      prefix,
-    };
-  }
-
-  // format === AddressFormat.Short
-  if (payload.length !== 21) {
-    throw new Error(
-      `Invalid short address without enough payload ${hexFrom(payload)}`,
-    );
-  }
-  const script = [
-    KnownScript.Secp256k1Blake160,
-    KnownScript.Secp256k1Multisig,
-    KnownScript.AnyoneCanPay,
-  ][payload[0]];
-  if (script === undefined) {
-    throw new Error(
-      `Invalid short address with unknown script ${hexFrom(payload)}`,
-    );
-  }
-
-  return {
-    script: await Script.fromKnownScript(client, script, payload.slice(1)),
-    prefix,
-  };
-}
-```
-
-**File:** packages/demo/src/app/connected/(tools)/Transfer/page.tsx (L54-57)
-```typescript
-            const { script: toLock } = await ccc.Address.fromString(
-              transferTo,
-              signer.client,
-            );
-```
-
-**File:** packages/playground/src/app/components/Cell.tsx (L115-117)
-```typescript
-      {cellOutput?.lock ? (
-        <Address address={ccc.Address.fromScript(cellOutput.lock, client)} />
-      ) : undefined}
-```
-
-**File:** packages/core/src/signer/ckb/signerCkbScriptReadonly.ts (L89-93)
-```typescript
-  async getAddressObjs(): Promise<Address[]> {
-    return this.scripts.map((script) =>
-      Address.fromScript(script, this.client),
-    );
-  }
-```
-
-**File:** packages/core/src/client/clientPublicMainnet.ts (L42-44)
-```typescript
-  get addressPrefix(): string {
-    return "ckb";
-  }
-```
-
-**File:** packages/core/src/client/clientPublicTestnet.ts (L42-44)
-```typescript
-  get addressPrefix(): string {
-    return "ckt";
-  }
-```
+`Address.fromString` 的实现正是 `addressPayloadFromString` + 前缀校验 + `addressFromPayload` 三步的组合。

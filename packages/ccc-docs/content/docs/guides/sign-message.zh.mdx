@@ -1,0 +1,147 @@
+---
+title: 消息签名
+description: 通过 CCC 的统一签名接口，跨多种钱包类型签名和验证消息。
+icon: PenLine
+---
+
+使用用户钱包对任意消息签名，并在之后验证签名——适用于**链下身份验证**（"钱包登录"）、**证明地址所有权**或**创建可验证证明**等场景。无论用户连接的是 CKB、EVM、BTC、JoyID、Nostr 还是 Doge 钱包，API 调用方式完全一致。
+
+## 完成本指南后你将能够
+
+- **对消息签名**：使用任意已连接钱包，调用统一接口完成
+- **验证签名**：静态验证，无需已连接的钱包
+- 理解 `Signature` 对象，以及 `signType` 如何支持**跨链验证**
+
+<Callout type="info">
+  以下示例均假设你已有一个已连接的 `signer`。如尚未连接，请先阅读[连接钱包](/docs/guides/connect-wallets)。
+</Callout>
+
+## `Signature` 类型
+
+`signer.signMessage` 返回一个 `Signature` 对象，定义于 `packages/core/src/signer/signer/index.ts`：
+
+```typescript
+class Signature {
+  signature: string;  // 原始签名的十六进制字符串
+  identity: string;   // Signer 身份标识（通常为地址）
+  signType: SignerSignType;
+}
+```
+
+`signType` 字段告知验证方使用了哪种密码学方案，从而无需调用方预先知道钱包类型，即可按方案进行对应验证。
+
+## `SignerSignType` 枚举
+
+| 枚举值                        | 对应钱包 / 方案                          |
+| ----------------------------- | ---------------------------------------- |
+| `SignerSignType.CkbSecp256k1` | CKB 原生 secp256k1 钱包                  |
+| `SignerSignType.EvmPersonal`  | EVM 钱包（MetaMask、OKX EVM 等）         |
+| `SignerSignType.BtcEcdsa`     | Bitcoin 钱包（UniSat、OKX BTC 等）       |
+| `SignerSignType.JoyId`        | JoyID passkey 钱包                       |
+| `SignerSignType.NostrEvent`   | Nostr 客户端                             |
+| `SignerSignType.DogeEcdsa`    | Dogecoin 钱包                            |
+| `SignerSignType.Unknown`      | 未知 / 不支持的类型                      |
+
+## 对消息签名
+
+一次调用，适用于 CCC 支持的所有钱包类型：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const message = "Hello world";
+const signature = await signer.signMessage(message);
+
+console.log(signature.signature);  // "0x..." — 原始签名字节的十六进制表示
+console.log(signature.identity);   // Signer 的地址或公钥
+console.log(signature.signType);   // 如 "CkbSecp256k1"、"EvmPersonal"、"BtcEcdsa"
+```
+
+`signMessage` 接受普通 `string` 或 `BytesLike`（`Uint8Array` / 十六进制字符串），同样适用于对原始字节进行签名的场景。
+
+## 验证签名
+
+验证是一个**静态方法**，无需已连接的钱包。CCC 根据 `signature.signType` 自动调度到对应的密码学方案：
+
+```typescript
+const isValid = await ccc.Signer.verifyMessage(message, signature);
+// true — 消息与签名匹配
+
+const isFail = await ccc.Signer.verifyMessage("Wrong message", signature);
+// false — 消息不匹配
+```
+
+后端无需知道用户使用的是哪种钱包，即可验证来自任意 CCC 支持钱包的签名。
+
+## 完整签名与验证示例
+
+端到端示例来自 `packages/examples/src/sign.ts`。由于 Playground 默认的 `SignerCkbPublicKey` 不支持消息签名，示例中替换为私钥 Signer 进行演示：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { client, signer as playgroundSigner } from "@ckb-ccc/playground";
+
+// Playground 默认 Signer 不支持消息签名。
+// 在真实应用中，已连接钱包的 signer 始终可用。
+const signer: ccc.Signer =
+  playgroundSigner instanceof ccc.SignerCkbPublicKey
+    ? new ccc.SignerCkbPrivateKey(client, "01".repeat(32))
+    : playgroundSigner;
+
+const message = "Hello world";
+
+// 签名
+const signature = await signer.signMessage(message);
+console.log(signature);
+
+// 验证——应通过
+console.log(
+  `Verification should pass: ${await ccc.Signer.verifyMessage(message, signature)}`,
+);
+
+// 验证——应失败
+console.log(
+  `Verification should fail: ${await ccc.Signer.verifyMessage("Wrong message", signature)}`,
+);
+```
+
+## 实例级验证（身份校验）
+
+**适用场景**：不仅需要验证签名有效，还需确认签名由**当前已连接钱包**生成。实例方法会额外校验 `signature.identity` 是否与 `signer` 一致：
+
+```typescript
+// 若签名由其他 signer 生成，则返回 false
+const ok = await signer.verifyMessage(message, signature);
+```
+
+<Callout type="info">
+  **静态验证与实例验证的区别：** `ccc.Signer.verifyMessage()`（静态）验证任意 `Signature` 的有效性，不关心签名方是谁。`signer.verifyMessage()`（实例）在此基础上额外校验 `signature.identity` 是否与当前 `signer` 的身份一致。
+</Callout>
+
+## 对原始字节签名
+
+**适用场景**：需要对任意二进制数据签名（如哈希、序列化后的 protobuf 或二进制载荷）：
+
+```typescript
+const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
+const signature = await signer.signMessage(bytes);
+
+// 也可传入十六进制字符串：
+const sigFromHex = await signer.signMessage("0xdeadbeef");
+```
+
+## 常见问题
+
+**`signer.signMessage` 抛出"not implemented"或"unsupported"错误**
+部分 Signer 类型（如 `SignerCkbPublicKey`）是只读公钥，不具备签名能力——CCC Playground 的默认 `signer` 即属此类。在生产应用中使用真实钱包连接时，`signMessage` 始终可用。
+
+**传入相同消息，验证结果仍返回 `false`**
+请确认传入的 `message` 值完全一致（包括编码格式）。签名时传入的是 `string`，验证时也应传入同一 `string`，而非其 `Uint8Array` 形式，反之亦然。
+
+**需要在不依赖 CCC 的后端验证签名**
+`Signature` 对象可直接序列化为 JSON。将其发送至后端，安装 `@ckb-ccc/shell`，调用 `ccc.Signer.verifyMessage(message, signature)` 即可完成验证。
+
+## 下一步
+
+- [组装交易](/docs/guides/compose-transactions)——在链上发送 CKB 或代币。
+- [Node.js 后端](/docs/guides/node-js-backend)——在服务端验证签名并发送交易。
