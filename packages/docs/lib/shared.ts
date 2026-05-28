@@ -6,9 +6,9 @@ export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';
 
 export const gitConfig = {
-  user: 'ckbfansdao', // todo: ckb-devrel
+  user: 'ckb-devrel',
   repo: 'ccc',
-  branch: 'docs/ai-optimization', // todo: master
+  branch: 'master',
 };
 
 export const externalLinks = {

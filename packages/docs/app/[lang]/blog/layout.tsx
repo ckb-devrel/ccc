@@ -1,3 +1,4 @@
+import { notFound } from 'next/navigation';
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import { baseOptions } from '@/lib/layout.shared';
 import { Footer } from '@/components/footer';
@@ -7,6 +8,9 @@ export default async function Layout({
   params,
   children,
 }: LayoutProps<'/[lang]/blog'>) {
+
+  notFound(); // 所有 /blog/* 路由直接 404
+
   const { lang } = await params;
   return (
     <HomeLayout {...baseOptions(lang)}>
