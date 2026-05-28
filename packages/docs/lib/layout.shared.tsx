@@ -45,11 +45,11 @@ export function baseOptions(locale: string): BaseLayoutProps {
       url: `/${locale}/docs`,
       text: t.docs,
     },
-    {
+    /*{
       type: 'main',
       url: `/${locale}/blog`,
       text: t.blog,
-    },
+    },*/
     {
       type: 'main',
       url: externalLinks.playground,

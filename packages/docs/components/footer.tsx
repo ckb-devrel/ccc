@@ -53,7 +53,7 @@ export function Footer({ lang }: { lang: string }) {
   // Internal product links — keep locale-prefixed so navigation stays in-language.
   const product: { label: string; href: string; external?: boolean }[] = [
     { label: t.links.docs, href: `/${lang}/docs` },
-    { label: t.links.blog, href: `/${lang}/blog` },
+    /*{ label: t.links.blog, href: `/${lang}/blog` },*/
     { label: t.links.playground, href: externalLinks.playground, external: true },
     { label: t.links.demo, href: externalLinks.demo, external: true },
   ];

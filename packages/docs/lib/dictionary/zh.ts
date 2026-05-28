@@ -70,7 +70,7 @@ export const zh: Dictionary = {
     links: {
       docs: '使用文档',
       blog: '博客',
-      playground: '在线试验场',
+      playground: '在线调试',
       api: 'API 参考',
       demo: '示例应用',
       github: 'GitHub 仓库',
