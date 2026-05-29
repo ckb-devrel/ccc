@@ -122,7 +122,7 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
         />
         <div className="mx-auto w-full max-w-6xl px-6 py-20 md:py-28 grid gap-14 md:grid-cols-5 md:items-center">
           {/* Left column — copy */}
-          <div className="md:col-span-3">
+          <div className="md:col-span-3 min-w-0">
             <div className="inline-flex items-center gap-2 font-mono text-[11px] tracking-widest text-fd-primary uppercase mb-5">
               <span className="size-1.5 rounded-full bg-fd-primary animate-pulse" />
               {t.eyebrow}
@@ -161,7 +161,7 @@ export default async function HomePage({ params }: PageProps<'/[lang]'>) {
 
           {/* Right column — code preview. Raised slightly with a tinted halo
              instead of a real drop shadow, which reads cleaner. */}
-          <div className="md:col-span-2 relative">
+          <div className="md:col-span-2 relative min-w-0 overflow-hidden">
             <div
               aria-hidden
               className="absolute -inset-4 -z-10 rounded-xl bg-fd-primary/10 blur-2xl opacity-60"
