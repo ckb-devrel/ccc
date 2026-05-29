@@ -1,0 +1,58 @@
+---
+title: 简介
+description: 构建 CKB 应用所需的一切——钱包连接、交易组装、Signer 和多链支持——尽在这一个 TypeScript SDK。
+icon: BookOpen
+---
+
+import { Rocket, Package, BookOpen, Map } from 'lucide-react';
+
+CKB 是一条基于 UTXO 模型的区块链，原生支持 Bitcoin 和 EVM 钱包，天然适合跨链应用的构建。
+
+CCC 是面向 CKB 的 TypeScript SDK，让开发变得简单直接：它负责处理钱包连接、交易组装和跨链签名，你只需专注于产品本身，而不是底层的繁琐细节。
+
+## CCC 能做什么
+
+- **上手体验 CKB**：直接在浏览器中运行示例代码，无需任何配置。
+- **查询链上数据**：通过类型化 API 获取 Cell、追踪资产、处理区块链数据。
+- **组装交易**：使用简洁的 API 构建交易，输入选择和手续费计算均由 CCC 自动处理。
+- **签名消息**：通过统一的 `Signer` 接口，跨 EVM、Bitcoin、Nostr 等多种钱包类型和链进行签名。
+- **连接钱包**：直接接入连接器组件即可使用，也可为 React 或其他框架定制完整的钱包 UI。
+
+## 谁在使用 CCC
+
+CCC 已在 CKB 生态的多个生产应用中落地，包括
+[NervDAO](https://nervdao.com/)、[UTXO Global](https://utxo.global/)、
+[Mobit](https://mobit.app/)、[Omiga](https://omiga.io/)、
+[Nervape](https://www.nervape.com/)、[UTXOSwap](https://utxoswap.xyz/)、
+[D.ID](https://d.id/)、[Bool Network](https://bool.network/)、
+[World3](https://world3.ai/) 等。如果你正在 CKB 上构建新项目，你并不孤单。
+
+## 生态资源
+
+- [CCC Playground](https://live.ckbccc.com/)——在浏览器中即时运行 CCC 代码，支持实时数据和代码片段分享。
+- [CCC App](https://app.ckbccc.com/)——展示常见 CKB 场景的迷你工具集。
+- [API 参考文档](https://api.ckbccc.com)——完整的 TypeScript API 文档。
+- [Nervos CKB 文档](https://docs.nervos.org/)——CKB 区块链的背景知识。
+- [RGB++ SDK](https://github.com/rgbplusplus/rgbpp-sdk)——在 BTC L1 上发行由 CKB VM 背书的资产。
+- [Spore SDK](https://github.com/sporeprotocol/spore-sdk)——链上数字对象（DOB）协议。
+
+<Callout type="warning">
+  [Lumos](https://github.com/ckb-js/lumos) 已不再积极维护，新项目推荐使用 CCC。
+</Callout>
+
+## 下一步
+
+<Cards cols={2}>
+  <Card title="快速上手" icon={<Rocket />} href="./quick-start">
+    用 CCC 在 5 分钟内完成第一笔 CKB 链上交易。
+  </Card>
+  <Card title="安装" icon={<Package />} href="./installation">
+    为 React、Node.js、Web Component 或自定义 UI 安装 CCC。
+  </Card>
+  <Card title="核心概念" icon={<BookOpen />} href="../concepts/cell-model">
+    了解每个 CKB 应用背后的构建模块及其协同方式。
+  </Card>
+  <Card title="指南" icon={<Map />} href="../guides/connect-wallets">
+    找到你正在构建的功能对应的实现指南——按步骤指导。
+  </Card>
+</Cards>

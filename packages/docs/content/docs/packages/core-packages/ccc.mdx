@@ -1,0 +1,87 @@
+---
+title: "@ckb-ccc/ccc"
+description: All-in-one browser bundle — core primitives, all wallet signers, and protocol SDKs in a single ccc namespace.
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/ccc` is the all-in-one package for browser environments. It bundles `@ckb-ccc/core` with every wallet signer and protocol package into a single `ccc` namespace. Use it when you want full wallet discovery but prefer to build your own connection UI instead of using the built-in connector modal.
+
+## When to use this package
+
+| Scenario | Package |
+| -------- | ------- |
+| React app with built-in wallet modal | `@ckb-ccc/connector-react` |
+| Non-React frontend with built-in modal | `@ckb-ccc/connector` |
+| **Custom wallet UI (no built-in modal)** | **`@ckb-ccc/ccc` ← you are here** |
+| Node.js backend or script | `@ckb-ccc/shell` |
+
+## Installation
+
+<PackageBadges pkg="@ckb-ccc/ccc"/>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash
+    npm install @ckb-ccc/ccc
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ckb-ccc/ccc
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ckb-ccc/ccc
+    ```
+  </Tab>
+</Tabs>
+
+## What's included
+
+`@ckb-ccc/ccc` re-exports everything from:
+
+| Sub-package            | Namespace | Contents |
+| ---------------------- | --------- | -------- |
+| `@ckb-ccc/joy-id`      | ccc.*     | JoyID wallet signer |
+| `@ckb-ccc/eip6963`     | ccc.*     | MetaMask, Rabby, and any EIP-6963 wallet |
+| `@ckb-ccc/uni-sat`     | ccc.*     | UniSat Bitcoin wallet signer |
+| `@ckb-ccc/okx`         | ccc.*     | OKX wallet signer (BTC + Nostr) |
+| `@ckb-ccc/xverse`      | ccc.*     | Xverse / SATS Connect wallet signer |
+| `@ckb-ccc/nip07`       | ccc.*     | NIP-07 Nostr extension signer |
+| `@ckb-ccc/rei`         | ccc.*     | REI CKB-native wallet signer |
+| `@ckb-ccc/utxo-global` | ccc.*     | UTXO Global wallet signer (CKB + BTC + DOGE) |
+
+It also adds one package-level export:
+
+- **`SignersController`** — discovers and manages the lifecycle of all available wallet signers automatically.
+
+## Usage
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicTestnet();
+
+// Discover all wallets available in the current browser environment
+const controller = new ccc.SignersController(client);
+controller.subscribeSigners((signerInfo) => {
+  console.log(`Found wallet: ${signerInfo.name}`);
+});
+
+// Or instantiate a specific signer directly
+const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+await signer.connect();
+const balance = await signer.getBalance();
+```
+
+## Advanced exports
+
+```typescript
+import { cccA } from "@ckb-ccc/ccc/advanced";
+```
+
+<Callout type="warning">
+  `cccA` exposes internal APIs that may change between minor versions without notice. Only reach for them when the stable `ccc` API doesn't cover your use case.
+</Callout>

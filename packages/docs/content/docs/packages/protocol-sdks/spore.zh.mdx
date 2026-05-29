@@ -1,0 +1,249 @@
+---
+title: "@ckb-ccc/spore"
+description: Spore 协议 SDK，用于创建和管理链上数码物（DOB）。
+---
+
+import { PackageBadges } from "@/components/package-badges";
+
+## 什么是 Spore？
+
+`@ckb-ccc/spore` 实现了 [Spore 协议](https://spore.pro/)，即 CKB 的链上数码物（Digital Object，简称 DOB）标准。每个 Spore 都是一个 Cell，其内容（图片、文本等）**完整存储在链上**。Spore 可以选择归属于某个 Cluster（类似 NFT 集合）。
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/spore" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/spore
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/spore
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/spore
+```
+  </Tab>
+</Tabs>
+
+如果你使用的是 `@ckb-ccc/shell`，spore 已作为 `ccc.spore` 内置其中。
+
+## 导出
+
+本包从入口文件导出 `spore` 命名空间：
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+// 或使用 @ckb-ccc/shell 时：
+import { ccc } from "@ckb-ccc/shell";
+// ccc.spore.createSpore(...)
+```
+
+顶层导出：
+
+| 导出                        | 说明                                  |
+| --------------------------- | ------------------------------------- |
+| `createSpore`               | 创建新的 Spore Cell                   |
+| `transferSpore`             | 将 Spore 转移给新的所有者             |
+| `meltSpore`                 | 销毁 Spore 并回收容量                 |
+| `findSpore`                 | 通过 ID 查询单个 Spore Cell           |
+| `findSpores`                | 通过 Lock 或 Cluster 搜索 Spore Cell  |
+| `findSporesBySigner`        | 查询 `signer` 持有的全部 Spore        |
+| `createSporeCluster`        | 创建新的 Cluster                      |
+| `transferSporeCluster`      | 将 Cluster 转移给新的所有者           |
+| `findCluster`               | 通过 ID 查询 Cluster                  |
+| `findSporeClusters`         | 搜索 Cluster Cell                     |
+| `findSporeClustersBySigner` | 查询 `signer` 持有的全部 Cluster      |
+| `dob`                       | 数码物编码工具                        |
+
+## 核心函数
+
+### `createSpore`
+
+```typescript
+async function createSpore(params: {
+  signer: ccc.Signer;
+  data: SporeDataView;
+  to?: ccc.ScriptLike;
+  clusterMode?: "lockProxy" | "clusterCell" | "skip";
+  tx?: ccc.TransactionLike;
+  scriptInfo?: SporeScriptInfoLike;
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction; id: ccc.Hex }>
+```
+
+### `transferSpore`
+
+```typescript
+async function transferSpore(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  to: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+### `meltSpore`
+
+```typescript
+async function meltSpore(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+### `createSporeCluster`
+
+```typescript
+async function createSporeCluster(params: {
+  signer: ccc.Signer;
+  data: ClusterDataView;
+  to?: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scriptInfo?: SporeScriptInfoLike;
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction; id: ccc.Hex }>
+```
+
+### `transferSporeCluster`
+
+```typescript
+async function transferSporeCluster(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  to: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+## 使用示例
+
+### 创建 Spore
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+import { ccc } from "@ckb-ccc/shell";
+
+const { tx, id } = await spore.createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+console.log("Spore ID:", id);
+```
+
+### 在 Cluster 中创建 Spore
+
+```typescript
+const { tx: clusterTx, id: clusterId } = await spore.createSporeCluster({
+  signer,
+  data: {
+    name: "My Collection",
+    description: "A collection of digital objects",
+  },
+});
+
+await clusterTx.completeFeeBy(signer);
+await signer.sendTransaction(clusterTx);
+
+// 创建归属于该 Cluster 的 Spore
+const { tx, id: sporeId } = await spore.createSpore({
+  signer,
+  data: {
+    contentType: "image/png",
+    content: pngBytes,
+    clusterId,
+  },
+  clusterMode: "lockProxy",
+});
+
+await tx.completeFeeBy(signer);
+await signer.sendTransaction(tx);
+```
+
+### 通过 ID 查询 Spore
+
+```typescript
+import { findSpore } from "@ckb-ccc/spore";
+
+const result = await findSpore(client, "0xSPORE_ID...");
+if (result) {
+  console.log("Content type:", result.sporeData.contentType);
+  console.log("Content:", ccc.bytesTo(result.sporeData.content, "utf8"));
+}
+```
+
+### 转移 Spore
+
+```typescript
+import { ccc } from "@ckb-ccc/core";
+import { transferSpore } from "@ckb-ccc/spore";
+
+// 将 Spore 转移给新的所有者
+const { script: newOwner } = await ccc.Address.fromString(receiverAddress, client);
+
+let { tx } = await transferSpore({
+  signer,
+  id: "0xSPORE_ID...",
+  to: newOwner,
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+### 按所有者搜索 Spore
+
+```typescript
+import { findSporesBySigner } from "@ckb-ccc/spore";
+
+for await (const { sporeData, cell } of findSporesBySigner({ signer })) {
+  console.log("Spore:", cell.outPoint.txHash);
+  console.log("Content type:", sporeData.contentType);
+}
+```
+
+### 销毁（Melt）Spore
+
+```typescript
+import { meltSpore } from "@ckb-ccc/spore";
+
+let { tx } = await meltSpore({
+  signer,
+  id: "0xSPORE_ID...",
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## DOB 编码
+
+`dob` 子命名空间提供按照 DOB0 / DOB1 规范编码 Spore 数据的工具：
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+
+const encoded = spore.dob.encodeNativeRendererDob0({ /* DOB0 content */ });
+```
+
+## 预置脚本配置
+
+本包内置了主网和测试网的脚本信息，根据 `client` 自动选择。如需指向其他部署，也可在调用每个函数时传入自定义 `scriptInfo`。

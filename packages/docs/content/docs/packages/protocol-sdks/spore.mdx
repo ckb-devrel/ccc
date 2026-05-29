@@ -1,0 +1,251 @@
+---
+title: "@ckb-ccc/spore"
+description: Spore Protocol SDK for creating and managing on-chain digital objects(DOB).
+---
+
+import { PackageBadges } from "@/components/package-badges";
+
+## What is Spore?
+
+`@ckb-ccc/spore` implements the [Spore Protocol](https://spore.pro/) — CKB's on-chain digital object (DOB) standard. Each Spore is a Cell that holds its content (image, text, etc.) **fully on-chain**. Spores can optionally belong to a Cluster (similar to an NFT collection).
+
+
+## Installation
+
+<PackageBadges pkg="@ckb-ccc/spore" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/spore
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/spore
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/spore
+```
+  </Tab>
+</Tabs>
+
+If you are using `@ckb-ccc/shell`, spore is already included as `ccc.spore`.
+
+## Exports
+
+The package exports the `spore` namespace from the barrel:
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+// or, when using @ckb-ccc/shell:
+import { ccc } from "@ckb-ccc/shell";
+// ccc.spore.createSpore(...)
+```
+
+Top-level exports:
+
+| Export                      | Description                           |
+| --------------------------- | ------------------------------------- |
+| `createSpore`               | Create a new Spore cell               |
+| `transferSpore`             | Transfer a Spore to a new owner       |
+| `meltSpore`                 | Destroy a Spore and recover capacity  |
+| `findSpore`                 | Look up a single Spore cell by ID     |
+| `findSpores`                | Search Spore cells by lock or cluster |
+| `findSporesBySigner`        | Find all Spores owned by a signer     |
+| `createSporeCluster`        | Create a new Cluster                  |
+| `transferSporeCluster`      | Transfer a Cluster to a new owner     |
+| `findCluster`               | Look up a Cluster by ID               |
+| `findSporeClusters`         | Search Cluster cells                  |
+| `findSporeClustersBySigner` | Find all Clusters owned by a signer   |
+| `dob`                       | Digital object encoding utilities     |
+
+## Key functions
+
+### `createSpore`
+
+```typescript
+async function createSpore(params: {
+  signer: ccc.Signer;
+  data: SporeDataView;
+  to?: ccc.ScriptLike;
+  clusterMode?: "lockProxy" | "clusterCell" | "skip";
+  tx?: ccc.TransactionLike;
+  scriptInfo?: SporeScriptInfoLike;
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction; id: ccc.Hex }>
+```
+
+### `transferSpore`
+
+```typescript
+async function transferSpore(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  to: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+### `meltSpore`
+
+```typescript
+async function meltSpore(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+### `createSporeCluster`
+
+```typescript
+async function createSporeCluster(params: {
+  signer: ccc.Signer;
+  data: ClusterDataView;
+  to?: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scriptInfo?: SporeScriptInfoLike;
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction; id: ccc.Hex }>
+```
+
+### `transferSporeCluster`
+
+```typescript
+async function transferSporeCluster(params: {
+  signer: ccc.Signer;
+  id: ccc.HexLike;
+  to: ccc.ScriptLike;
+  tx?: ccc.TransactionLike;
+  scripts?: SporeScriptInfoLike[];
+  scriptInfoHash?: ccc.HexLike;
+}): Promise<{ tx: ccc.Transaction }>
+```
+
+## Usage examples
+
+### Create a Spore
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+import { ccc } from "@ckb-ccc/shell";
+
+const { tx, id } = await spore.createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+console.log("Spore ID:", id);
+```
+
+### Create a Spore in a Cluster
+
+```typescript
+const { tx: clusterTx, id: clusterId } = await spore.createSporeCluster({
+  signer,
+  data: {
+    name: "My Collection",
+    description: "A collection of digital objects",
+  },
+});
+
+await clusterTx.completeFeeBy(signer);
+await signer.sendTransaction(clusterTx);
+
+// Create a Spore that belongs to the cluster
+const { tx, id: sporeId } = await spore.createSpore({
+  signer,
+  data: {
+    contentType: "image/png",
+    content: pngBytes,
+    clusterId,
+  },
+  clusterMode: "lockProxy",
+});
+
+await tx.completeFeeBy(signer);
+await signer.sendTransaction(tx);
+```
+
+### Find a Spore by ID
+
+```typescript
+import { findSpore } from "@ckb-ccc/spore";
+
+const result = await findSpore(client, "0xSPORE_ID...");
+if (result) {
+  console.log("Content type:", result.sporeData.contentType);
+  console.log("Content:", ccc.bytesTo(result.sporeData.content, "utf8"));
+}
+```
+
+### Transfer a Spore
+
+```typescript
+import { ccc } from "@ckb-ccc/core";
+import { transferSpore } from "@ckb-ccc/spore";
+
+// Transfer a Spore to a new owner
+const { script: newOwner } = await ccc.Address.fromString(receiverAddress, client);
+
+let { tx } = await transferSpore({
+  signer,
+  id: "0xSPORE_ID...",
+  to: newOwner,
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+### Search Spores by Owner
+
+```typescript
+import { findSporesBySigner } from "@ckb-ccc/spore";
+
+for await (const { sporeData, cell } of findSporesBySigner({ signer })) {
+  console.log("Spore:", cell.outPoint.txHash);
+  console.log("Content type:", sporeData.contentType);
+}
+```
+
+### Melt (Destroy) a Spore
+
+```typescript
+import { meltSpore } from "@ckb-ccc/spore";
+
+let { tx } = await meltSpore({
+  signer,
+  id: "0xSPORE_ID...",
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+
+## DOB (digital object) encoding
+
+The `dob` sub-namespace provides utilities for encoding Spore data following the DOB0/DOB1 specifications:
+
+```typescript
+import { spore } from "@ckb-ccc/spore";
+
+const encoded = spore.dob.encodeNativeRendererDob0({ /* DOB0 content */ });
+```
+
+## Predefined script configurations
+
+The package ships with predefined script info for both mainnet and testnet. These are selected automatically based on your `client`. You can also pass a custom `scriptInfo` to every function to target a different deployment.

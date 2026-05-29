@@ -1,0 +1,32 @@
+---
+title: 钱包集成
+description: 通过统一的 Signer 接口连接任意钱包，如 JoyID、MetaMask、OKX 等。
+---
+
+CCC 通过专用的 Signer 包支持多种钱包生态。每个包都实现了统一的 `Signer` 接口，因此无论用户选择哪个钱包，应用代码都保持不变。
+
+<Callout type="info">
+  以下所有钱包包已包含在 `@ckb-ccc/ccc` 和 `@ckb-ccc/connector-react` 中。仅当你需要自定义集成时，才需要单独安装。
+</Callout>
+
+| 包                                                           | 链                       | 钱包                                                         | Provider 检测方式                      |
+| ----------------------------------------------------------- | ----------------------- | ----------------------------------------------------------- | ------------------------------------- |
+| [`@ckb-ccc/joy-id`](./wallet-integrations/joy-id)           | CKB / BTC / EVM / Nostr | JoyID                                                       | WebAuthn / iframe                     |
+| [`@ckb-ccc/eip6963`](./wallet-integrations/eip6963)         | EVM                     | MetaMask、Rabby、OKX EVM 及所有 EIP-6963 钱包                | `eip6963:announceProvider` 事件        |
+| [`@ckb-ccc/nip07`](./wallet-integrations/nip07)             | Nostr                   | nos2x、Alby 及所有 NIP-07 扩展                                | `window.nostr`                        |
+| [`@ckb-ccc/utxo-global`](./wallet-integrations/utxo-global) | CKB / BTC / DOGE        | UTXO Global                                                 | `window.utxoGlobal`                   |
+| [`@ckb-ccc/rei`](./wallet-integrations/rei)                 | CKB                     | REI Wallet                                                  | `window.rei.ckb`                      |
+| [`@ckb-ccc/okx`](./wallet-integrations/okx)                 | BTC / Nostr             | OKX Wallet                                                  | `window.okxwallet`                    |
+| [`@ckb-ccc/uni-sat`](./wallet-integrations/uni-sat)         | BTC                     | UniSat                                                      | `window.unisat`                       |
+| [`@ckb-ccc/xverse`](./wallet-integrations/xverse)           | BTC                     | Xverse 及所有 SATS Connect 钱包                               | `window.btc_providers`                |
+
+## 集成约定
+
+每个钱包包都遵循相同的模式：
+
+1. **Factory 函数**——如 `getOKXSigners(client)`——返回 `SignerInfo[]` 或单个 `Signer`。
+2. **Provider 检测**——创建 Signer 前检查浏览器注入的对象是否存在。
+3. **优雅降级**——如果钱包未安装时返回空数组（或 `undefined`）。
+4. **`onReplaced()` 监听**——用户在钱包 UI 中切换账户时通知应用。
+
+因此，`SignersController` 可以统一处理所有钱包，应用代码无需做任何特殊适配。

@@ -1,0 +1,143 @@
+---
+title: "@ckb-ccc/shell"
+description: CCC for Node.js — backend scripting, data analysis, and server-side transactions.
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/shell` is the recommended entry point for **Node.js / server-side** code. It bundles `@ckb-ccc/core`, `@ckb-ccc/spore`, `@ckb-ccc/udt`, and `@ckb-ccc/ssri` into a single package with Node.js-compatible builds (CommonJS and ESM).
+
+`@ckb-ccc/shell` re-exports everything from `@ckb-ccc/core` so you get a single `ccc` namespace without pulling in browser-only wallet signer code.
+
+## Installation
+
+<PackageBadges pkg="@ckb-ccc/shell" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/shell
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/shell
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/shell
+```
+  </Tab>
+</Tabs>
+
+## Imports
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+```
+
+## When to use this package
+
+* Server-side scripts or automation
+* Data analysis and blockchain indexing
+* Backend transaction signing with a private key
+* Any Node.js environment where there is no browser wallet
+
+For React apps, use [`@ckb-ccc/connector-react`](./connector-react) instead.
+
+## What it exports
+
+The `barrel` entry point (`@ckb-ccc/shell/barrel`) re-exports:
+
+* Everything from `@ckb-ccc/core/barrel` — all CKB primitives
+* `spore` — the Spore Protocol namespace
+* `ssri` — the SSRI protocol namespace
+* `udt` — the UDT token namespace
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+// ccc.Transaction, ccc.Script, ccc.Address, ccc.Client...
+// ccc.ClientPublicMainnet, ccc.ClientPublicTestnet
+// ccc.SignerCkbPrivateKey — for signing with a raw private key
+```
+
+## Usage examples
+
+### Connect to a CKB node
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+// Public testnet RPC
+const client = new ccc.ClientPublicTestnet();
+
+// Public mainnet RPC
+const client = new ccc.ClientPublicMainnet();
+
+// Custom node URL
+const client = new ccc.ClientPublicTestnet("http://localhost:8114");
+```
+
+### Sign transactions with a private key
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(
+  client,
+  "0xYOUR_PRIVATE_KEY_HEX",
+);
+
+const myAddress = await signer.getRecommendedAddress();
+console.log("Address:", myAddress);
+```
+
+### Build and send a transaction
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+
+const { script: toLock } = await ccc.Address.fromString(
+  "ckt1qzda0cr08m85hc8jlnfp3gog...",
+  client,
+);
+
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom("100") }],
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log("Sent:", txHash);
+```
+
+### Query cells
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+
+for await (const cell of client.findCells({
+  script: { codeHash: "0x...", hashType: "type", args: "0x" },
+  scriptType: "type",
+  scriptSearchMode: "prefix",
+  withData: true,
+})) {
+  console.log(cell.outPoint.txHash, cell.cellOutput.capacity);
+}
+```
+
+<Callout type="warning">
+  `@ckb-ccc/shell` does not include wallet connectors (JoyID, MetaMask, etc.).
+  For browser wallet connectivity, use `@ckb-ccc/connector-react` or
+  `@ckb-ccc/ccc`.
+</Callout>

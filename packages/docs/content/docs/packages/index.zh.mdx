@@ -1,0 +1,154 @@
+---
+title: CCC 包选择指南
+description: CCC 中所有 NPM 包的完整概览，帮助你根据开发环境、框架选择和功能需求选择合适的包。包含核心 SDK、钱包集成、协议扩展等包的定位、使用场景和版本信息。
+---
+
+import { Box, Terminal, AppWindow, Plug, Sprout, Code, Coins, Shield, Wrench, Smile, Wallet } from "lucide-react";
+import { PackageBadges } from '@/components/package-badges';
+
+> CCC 是一个多包仓库，按需取用。
+
+CCC 以一组独立的 npm 包发布，只需安装项目实际用到的包即可。
+
+<Callout type="info">
+  大多数项目只需一个入口包。Node.js 环境使用 `@ckb-ccc/shell`，React 应用使用 `@ckb-ccc/connector-react`，需要自定义钱包界面时使用 `@ckb-ccc/ccc`。
+</Callout>
+
+## 功能速览
+
+CCC 提供了多个包来满足不同开发场景的需求。根据你的开发环境（前端/后端）、框架选择（React/其他）和功能需求（钱包集成/协议支持），选择合适的包可以大幅提升开发效率。
+
+- **核心包**：`@ckb-ccc/core` 和 `@ckb-ccc/shell` 提供基础功能，适合深度定制或后端开发。
+- **钱包集成**：`@ckb-ccc/ccc` 聚合所有钱包，适合自定义 UI；`@ckb-ccc/connector-react` 提供预构建组件，适合 React 快速集成。
+- **协议 SDK**：`@ckb-ccc/spore`、`@ckb-ccc/udt`、`@ckb-ccc/ssri` 支持特定的 CKB 协议标准。
+- **单钱包集成**：针对特定钱包（JoyID、OKX、UniSat 等）的独立包，按需选择。
+
+<Cards cols={2}>
+  <Card title="@ckb-ccc/core" icon={<Box/>} href="./packages/core-packages/core">
+    核心 SDK——提供 Transaction、Client、Signer 等核心抽象和加密工具。适合需要深度定制的高级场景。
+  </Card>
+
+  <Card title="@ckb-ccc/shell" icon={<Terminal/>} href="./packages/core-packages/shell">
+    后端/Node.js 聚合包——包含核心 SDK 和协议扩展（Spore、UDT 等），专为服务端环境设计。适合 Node.js 后端、CLI 工具或脚本。
+  </Card>
+
+  <Card title="@ckb-ccc/ccc" icon={<AppWindow/>} href="./packages/core-packages/ccc">
+    钱包集成聚合包——包含所有钱包集成（EVM、BTC、Nostr、JoyID 等），一次导入即可使用。如果你需要自定义钱包连接 UI 而不想使用预构建的组件，这个包是最佳选择。
+  </Card>
+
+  <Card title="@ckb-ccc/connector" icon={<Plug/>} href="./packages/core-packages/connector">
+    Web Components 钱包连接组件——基于 Lit 的框架无关组件，可在任何前端框架中使用。适合非 React 项目或需要跨框架复用的场景。
+  </Card>
+
+  <Card title="@ckb-ccc/connector-react" icon="React" href="./packages/core-packages/connector-react">
+    React 钱包连接组件——提供预构建的 React Hook 和组件，快速集成钱包连接功能。适合 React 应用，无需手动处理钱包连接逻辑。
+  </Card>
+
+  <Card title="@ckb-ccc/spore" icon={<Sprout/>} href="./packages/protocol-sdks/spore">
+    Spore NFT 协议 SDK——用于创建、转移和销毁链上数码物（DOB）及 Cluster。适合需要 NFT 功能的 CKB 应用。
+  </Card>
+
+  <Card title="@ckb-ccc/udt" icon={<Coins/>} href="./packages/protocol-sdks/udt">
+    UDT/xUDT 代币 SDK——用于在 CKB 上发行、转移和铸造用户自定义代币。适合需要代币功能的 CKB 应用。
+  </Card>
+
+  <Card title="@ckb-ccc/ssri" icon={<Shield/>} href="./packages/protocol-sdks/ssri">
+    SSRI（脚本源生富信息）协议支持，用于与 CKB 智能合约交互。适合需要与智能合约交互的 CKB 应用。
+  </Card>
+
+  <Card title="@ckb-ccc/lumos-patches" icon={<Wrench/>} href="./packages/protocol-sdks/lumos-patches">
+    Lumos 兼容补丁——让现有 Lumos 应用支持 JoyID、Nostr 和 Portal Wallet。适合已有 Lumos 项目需要迁移到新钱包的场景。
+  </Card>
+
+  <Card title="@ckb-ccc/joy-id" icon={<Smile/>} href="./packages/wallet-integrations/joy-id">
+    JoyID Passkey 钱包集成——基于 WebAuthn 的无密码签名，支持 CKB、EVM、BTC、Nostr 多链。适合需要生物识别或无密码体验的应用。
+  </Card>
+
+  <Card title="@ckb-ccc/eip6963" icon={<Code/>} href="./packages/wallet-integrations/eip6963">
+    EVM 钱包发现集成——通过 EIP-6963 标准自动发现 MetaMask、Rabby 等 EVM 钱包。适合需要支持多种 EVM 钱包的前端应用。
+  </Card>
+
+  <Card title="@ckb-ccc/nip07" icon={<Code/>} href="./packages/wallet-integrations/nip07">
+    Nostr 钱包集成——通过 NIP-07 浏览器扩展签名，支持 Nostr 协议。适合 Nostr 生态应用或需要 Nostr 签名的场景。
+  </Card>
+
+  <Card title="@ckb-ccc/utxo-global" icon={<Wallet/>} href="./packages/wallet-integrations/utxo-global">
+    UTXO Global 钱包集成——通过 UTXO Global 浏览器扩展签名，支持 BTC、CKB、DOGE 生态。
+  </Card>
+
+  <Card title="@ckb-ccc/rei" icon={<Wallet/>} href="./packages/wallet-integrations/rei">
+    REI 钱包集成——通过 REI 浏览器扩展签名。
+  </Card>
+
+  <Card title="@ckb-ccc/xverse" icon={<Wallet/>} href="./packages/wallet-integrations/xverse">
+    Xverse 钱包集成——BTC 生态浏览器扩展签名。
+  </Card>
+
+  <Card title="@ckb-ccc/okx" icon={<Wallet/>} href="./packages/wallet-integrations/okx">
+    OKX 多协议钱包集成——支持 EVM、Nostr、BTC 三种签名方式，通过 OKX 浏览器扩展签名。
+  </Card>
+
+  <Card title="@ckb-ccc/uni-sat" icon={<Wallet/>} href="./packages/wallet-integrations/uni-sat">
+    通过 UniSat 浏览器扩展签名，支持 BTC 生态。
+  </Card>
+</Cards>
+
+## NPM 包概览
+
+下表列出了 CCC 下各细分领域所有 NPM 包的最新版本和最近一周的下载量。你可以通过版本号了解包的更新状态，通过下载量评估包的受欢迎程度和维护活跃度。选择包时，根据你的使用场景，建议优先考虑版本较新的包，以确保获得更好的社区支持和 bug 修复。
+
+### 核心包  
+  
+| 包（点击查阅文档）  |   用途    |  最新版本及周下载量 |  
+| ---------------- | -------- | ---------------- |  
+| [`@ckb-ccc/core`](./packages/core-packages/core) | 核心 SDK——Transaction、Client、Signer 抽象和加密工具 | <PackageBadges pkg="@ckb-ccc/core" /> |  
+| [`@ckb-ccc/shell`](./packages/core-packages/shell) | 后端/Node.js 聚合包——核心 SDK + 协议扩展 | <PackageBadges pkg="@ckb-ccc/shell" /> |  
+  
+### 聚合包与 UI 组件相关  
+  
+| 包（点击查阅文档）  |   用途    |  最新版本及周下载量 |  
+| ---------------- | -------- | ---------------- |  
+| [`@ckb-ccc/ccc`](./packages/core-packages/ccc) | 钱包集成聚合包——所有钱包集成，一次导入 | <PackageBadges pkg="@ckb-ccc/ccc" /> |  
+| [`@ckb-ccc/connector`](./packages/core-packages/connector) | Web Components 钱包连接组件——框架无关 | <PackageBadges pkg="@ckb-ccc/connector" /> |  
+| [`@ckb-ccc/connector-react`](./packages/core-packages/connector-react) | React 钱包连接组件——预构建 Hook 和组件 | <PackageBadges pkg="@ckb-ccc/connector-react" /> |  
+  
+### 协议 SDK 相关 
+  
+| 包（点击查阅文档）  |   用途    |  最新版本及周下载量 |  
+| ---------------- | -------- | ---------------- |  
+| [`@ckb-ccc/spore`](./packages/protocol-sdks/spore) | Spore NFT 协议 SDK——DOB/Cluster 管理 | <PackageBadges pkg="@ckb-ccc/spore" /> |  
+| [`@ckb-ccc/udt`](./packages/protocol-sdks/udt) | UDT/xUDT 代币 SDK——代币发行、转账、铸造 | <PackageBadges pkg="@ckb-ccc/udt" /> |  
+| [`@ckb-ccc/ssri`](./packages/protocol-sdks/ssri) | SSRI 协议支持——智能合约交互和元数据查询 | <PackageBadges pkg="@ckb-ccc/ssri" /> |  
+| [`@ckb-ccc/lumos-patches`](./packages/protocol-sdks/lumos-patches) | Lumos 兼容补丁——支持 JoyID、Nostr、Portal Wallet | <PackageBadges pkg="@ckb-ccc/lumos-patches" /> |  
+  
+### 钱包集成相关  
+  
+| 包（点击查阅文档）  |   用途    |  最新版本及周下载量 |  
+| ---------------- | -------- | ---------------- |  
+| [`@ckb-ccc/joy-id`](./packages/wallet-integrations/joy-id) | JoyID Passkey 钱包——WebAuthn 无密码签名，多链支持 | <PackageBadges pkg="@ckb-ccc/joy-id" /> |  
+| [`@ckb-ccc/eip6963`](./packages/wallet-integrations/eip6963) | EVM 钱包发现——EIP-6963 标准，支持 MetaMask、Rabby 等 | <PackageBadges pkg="@ckb-ccc/eip6963" /> |  
+| [`@ckb-ccc/nip07`](./packages/wallet-integrations/nip07) | Nostr 钱包集成——NIP-07 浏览器扩展签名 | <PackageBadges pkg="@ckb-ccc/nip07" /> |  
+| [`@ckb-ccc/utxo-global`](./packages/wallet-integrations/utxo-global) | UTXO Global 钱包集成——BTC/CKB/DOGE 生态支持 | <PackageBadges pkg="@ckb-ccc/utxo-global" /> |  
+| [`@ckb-ccc/rei`](./packages/wallet-integrations/rei) | REI 钱包集成——REI 浏览器扩展签名 | <PackageBadges pkg="@ckb-ccc/rei" /> |  
+| [`@ckb-ccc/xverse`](./packages/wallet-integrations/xverse) | Xverse 钱包集成——BTC 生态浏览器扩展签名 | <PackageBadges pkg="@ckb-ccc/xverse" /> |  
+| [`@ckb-ccc/okx`](./packages/wallet-integrations/okx) | OKX 多协议钱包——EVM/Nostr/BTC 三种签名方式 | <PackageBadges pkg="@ckb-ccc/okx" /> |  
+| [`@ckb-ccc/uni-sat`](./packages/wallet-integrations/uni-sat) | UniSat 钱包集成——BTC 生态浏览器扩展签名 | <PackageBadges pkg="@ckb-ccc/uni-sat" /> |  
+  
+
+## 导入方式
+
+所有包均在同一 `ccc` 命名空间对象上暴露公开 API：
+
+```typescript
+import { ccc } from "@ckb-ccc/<package-name>";
+```
+
+高级（不稳定）API 可通过 `cccA` 访问：
+
+```typescript
+import { cccA } from "@ckb-ccc/<package-name>/advanced";
+```
+
+<Callout type="info">
+  `tsconfig.json` 中 `moduleResolution` 须设为 `node16`、`nodenext` 或 `bundler`，且不能禁用 `resolvePackageJsonExports`。CCC 使用 [Package Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points) 实现 Tree Shaking。
+</Callout>

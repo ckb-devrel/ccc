@@ -1,0 +1,33 @@
+---
+title: 简介
+description: CCC（CKBers' Codebase）是面向 CKB 区块链开发的一站式 JS/TS SDK。
+---
+
+import { BookOpen, Box, Rocket, Wallet } from 'lucide-react';
+
+> CCC 是面向 CKB（Common Knowledge Base）区块链的一站式 TypeScript / JavaScript SDK，提供交易构建、多链钱包连接及协议集成（UDT、Spore、SSRI）能力。
+
+## CCC 能做什么
+
+- **了解 CKB**——通过代码示例和在线演示，理解 CKB 的工作原理。
+- **构建交易**——声明式、直观的交易构建方式，自动补全输入和手续费。
+- **对消息签名**——统一的签名接口，内置多链签名方法。
+- **连接钱包**——开箱即用的钱包连接器，也可基于底层 `Signer` 自行构建自定义钱包连接界面。
+- **分析链上数据**——以编程方式与 CKB 节点交互并处理区块链数据。
+
+## 下一步
+
+<Cards>
+  <Card title="快速上手" icon={<Rocket />} href="./docs/getting-started/quick-start" >
+    用 CCC 在 5 分钟内完成第一笔 CKB 链上交易。
+  </Card>
+  <Card title="核心概念" icon={<Box />} href="./docs/concepts">
+    了解每个 CCC 应用背后的五个核心概念——`Cell`、交易、`Signer`、`Client` 和地址，以及它们之间是如何协同工作的。
+  </Card>
+  <Card title="开发指南" icon={<BookOpen />} href="./docs/guides" >
+    找到你所需场景的实现步骤——涵盖最常见 CKB 开发任务的实操指南。
+  </Card>
+  <Card title="钱包集成" icon={<Wallet />} href="./docs/packages/wallet-integrations" >
+    通过统一的 `Signer` 接口连接任意钱包，如 JoyID、MetaMask、OKX 等。
+  </Card>
+</Cards>

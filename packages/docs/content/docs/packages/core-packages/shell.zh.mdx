@@ -1,0 +1,141 @@
+---
+title: "@ckb-ccc/shell"
+description: 面向 Node.js 的 CCC——后端脚本、数据分析和服务端交易。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/shell` 是 **Node.js / 服务端**环境的推荐入口。它将 `@ckb-ccc/core`、`@ckb-ccc/spore`、`@ckb-ccc/udt` 和 `@ckb-ccc/ssri` 打包在一起，同时提供 CommonJS 和 ESM 两种构建产物。
+
+`@ckb-ccc/shell` 重新导出了 `@ckb-ccc/core` 的全部内容，通过统一的 `ccc` 命名空间即可使用，且不包含任何浏览器专属的钱包 Signer 代码。
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/shell" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/shell
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/shell
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/shell
+```
+  </Tab>
+</Tabs>
+
+## 导入
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+```
+
+## 使用场景
+
+* 服务端脚本或自动化任务
+* 数据分析与链上索引
+* 使用私钥在后端签署交易
+* 没有浏览器钱包的 Node.js 环境
+
+React 应用请使用 [`@ckb-ccc/connector-react`](./connector-react)。
+
+## 导出内容
+
+`barrel` 入口（`@ckb-ccc/shell/barrel`）重新导出：
+
+* `@ckb-ccc/core/barrel` 的全部内容——所有 CKB 基础类型
+* `spore`——Spore 协议命名空间
+* `ssri`——SSRI 协议命名空间
+* `udt`——UDT 代币命名空间
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+// ccc.Transaction, ccc.Script, ccc.Address, ccc.Client...
+// ccc.ClientPublicMainnet, ccc.ClientPublicTestnet
+// ccc.SignerCkbPrivateKey——使用原始私钥签名
+```
+
+## 使用示例
+
+### 连接 CKB 节点
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+// 公共测试网
+const client = new ccc.ClientPublicTestnet();
+
+// 公共主网
+const client = new ccc.ClientPublicMainnet();
+
+// 自定义节点
+const client = new ccc.ClientPublicTestnet("http://localhost:8114");
+```
+
+### 使用私钥签署交易
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(
+  client,
+  "0xYOUR_PRIVATE_KEY_HEX",
+);
+
+const myAddress = await signer.getRecommendedAddress();
+console.log("Address:", myAddress);
+```
+
+### 构建并发送交易
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+
+const { script: toLock } = await ccc.Address.fromString(
+  "ckt1qzda0cr08m85hc8jlnfp3gog...",
+  client,
+);
+
+const tx = ccc.Transaction.from({
+  outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom("100") }],
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log("Sent:", txHash);
+```
+
+### 查询 Cell
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+
+for await (const cell of client.findCells({
+  script: { codeHash: "0x...", hashType: "type", args: "0x" },
+  scriptType: "type",
+  scriptSearchMode: "prefix",
+  withData: true,
+})) {
+  console.log(cell.outPoint.txHash, cell.cellOutput.capacity);
+}
+```
+
+<Callout type="warning">
+  `@ckb-ccc/shell` 不包含浏览器钱包连接器（JoyID、MetaMask 等）。如需在浏览器中连接钱包，请使用 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`。
+</Callout>

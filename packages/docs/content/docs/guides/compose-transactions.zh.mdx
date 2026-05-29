@@ -1,0 +1,143 @@
+---
+title: 组装交易
+description: 构建并发送 CKB 交易，自动完成输入选择和手续费计算。
+icon: Code
+---
+
+构建并发送 CKB 交易，无需手工选择输入或计算手续费。只需声明所需的**输出**，CCC 会自动匹配输入、计算手续费并生成找零——整个过程仅需调用几个 API 即可完成。
+
+## 完成本指南后你将能够
+
+- **转账 CKB**：向任意地址发送指定金额，自动完成输入选择和手续费计算
+- **清空钱包**：将钱包全部余额归集到单个输出
+- 理解每笔 CCC 交易通用的**声明 → 填充 → 手续费 → 发送**模式
+
+<Callout type="info">
+  以下示例均假设你已有一个已连接的 `signer`。如尚未连接，请先阅读[连接钱包](/docs/guides/connect-wallets)。
+</Callout>
+
+## 核心概念
+
+CKB 上的每个输出都必须以 Shannon 声明其**容量**（1 CKB = 10⁸ Shannon）。使用 `ccc.fixedPointFrom(amount)` 将 CKB 面值转换为内部表示：
+
+```typescript
+ccc.fixedPointFrom(100)    // 100 CKB → 10_000_000_000n Shannon
+ccc.fixedPointFrom("0.01") // 0.01 CKB → 1_000_000n Shannon
+```
+
+## CKB 转账
+
+**适用场景**：向另一个地址发送指定数量的 CKB——最常见的交易类型。
+
+以下四个步骤体现了**声明 → 填充 → 手续费 → 发送**模式，每笔 CKB 交易都遵循这一流程：
+
+<Steps>
+  <Step title="声明输出">
+    创建仅包含目标输出的交易骨架，CCC 会自动确定所需的输入。
+
+    ```typescript
+    import { ccc } from "@ckb-ccc/ccc";
+
+    const receiver = await signer.getRecommendedAddress();
+    const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+    const tx = ccc.Transaction.from({
+      outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
+    });
+    ```
+  </Step>
+
+  <Step title="按容量填充输入">
+    `completeInputsByCapacity` 查询 `signer` 持有的链上 Cell，将其逐一添加为输入，直到总容量覆盖所有输出。
+
+    ```typescript
+    await tx.completeInputsByCapacity(signer);
+    ```
+  </Step>
+
+  <Step title="支付手续费">
+    `completeFeeBy` 向 `signer` 添加找零输出，并调整其容量以覆盖网络手续费。手续费率根据当前网络状况自动计算。
+
+    ```typescript
+    await tx.completeFeeBy(signer);
+    ```
+  </Step>
+
+  <Step title="签名并广播">
+    ```typescript
+    const txHash = await signer.sendTransaction(tx);
+    console.log("Transaction hash:", txHash); // "0x..." — 32 字节十六进制哈希
+    ```
+  </Step>
+</Steps>
+
+## 转出全部 CKB
+
+**适用场景**：完全清空钱包——迁移到新地址、归集 Cell 等。无需指定固定容量，而是先收集所有输入，再从输出中扣除手续费：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const receiver = await signer.getRecommendedAddress();
+const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+// 暂不设置容量，待收集所有输入后再填充
+const tx = ccc.Transaction.from({
+  outputs: [{ lock }],
+});
+
+// 收集 signer 持有的所有 Cell 作为输入
+await tx.completeInputsAll(signer);
+
+// 从索引 0 的输出中扣除手续费，将剩余 CKB 全部归入该输出
+await tx.completeFeeChangeToOutput(signer, 0);
+
+const txHash = await signer.sendTransaction(tx);
+```
+
+<Callout type="info">
+  `completeFeeChangeToOutput(signer, 0)` 会向下调整索引 `0` 处输出的容量以支付手续费。调用前请确保该输出已存在。
+</Callout>
+
+## 手续费计算
+
+CCC 自动从节点获取当前中位手续费率，无需手动设置。`completeFeeBy` 和 `completeFeeChangeToOutput` 均已内置处理。
+
+如需精细控制（如优先级交易），可传入以 **Shannon/kB** 为单位的固定手续费率：
+
+```typescript
+await tx.completeFeeBy(signer, 2000); // 固定费率 2000 Shannon/kB
+```
+
+## API 参考
+
+| 方法                                                     | 说明                                   |
+| ------------------------------------------------------- | -------------------------------------- |
+| `ccc.Transaction.from(skeleton)`                        | 从部分描述创建交易                        |
+| `ccc.fixedPointFrom(amount)`                            | 将 CKB 面值转换为 Shannon（`bigint`）     |
+| `tx.completeInputsByCapacity(signer)`                   | 添加输入直至容量充足                      |
+| `tx.completeInputsAll(signer)`                          | 收集 signer 持有的所有 Cell 作为输入       |
+| `tx.completeFeeBy(signer, feeRate?)`                    | 添加找零输出并支付手续费                   |
+| `tx.completeFeeChangeToOutput(signer, index, feeRate?)` | 从指定输出中扣除手续费                     |
+| `signer.sendTransaction(tx)`                            | 签名并广播交易，返回交易哈希                |
+
+## 常见问题
+
+**`completeInputsByCapacity` 抛出"not enough capacity"错误**
+`signer` 持有的 Cell 总容量不足以覆盖输出加最小找零 Cell（61 CKB）。请向该地址充值，或减少输出金额。
+
+**交易被拒，报错"InsufficientCellCapacity"**
+每个 Cell 必须持有至少足够支付其链上存储费用的 CKB（基础 Cell 最低 61 CKB）。请确保每个输出的 `capacity` 满足最低要求。
+
+**需要添加自定义 cell deps 或 witnesses**
+`ccc.Transaction.from()` 接受完整的 `TransactionLike`——可在 `outputs` 之外传入 `cellDeps`、`headerDeps`、`witnesses` 和 `inputs`。CCC 的自动填充方法是追加而非覆盖你已提供的内容。
+
+## 下一步
+
+- [消息签名](/docs/guides/sign-message)——无需发送交易即可证明地址所有权。
+- [UDT 代币](/docs/guides/udt-tokens)——在 CKB 上发行和转移用户自定义代币（User-Defined Token，简称 UDT）。
+- [Spore 协议](/docs/guides/spore-protocol)——创建链上数码物（Digital Object，简称 DOB）。
+
+<Callout type="info">
+  在 [live.ckbccc.com](https://live.ckbccc.com/) 的 CCC Playground 中交互式体验以上示例。
+</Callout>
