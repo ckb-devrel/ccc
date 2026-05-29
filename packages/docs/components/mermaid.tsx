@@ -14,6 +14,7 @@ export function Mermaid({ chart }: MermaidProps): React.ReactElement {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const renderChart = async () => {
       const mermaid = (await import('mermaid')).default;
 
@@ -28,14 +29,21 @@ export function Mermaid({ chart }: MermaidProps): React.ReactElement {
           `mermaid-${id.replace(/:/g, '')}`,
           chart.trim()
         );
-        setSvg(renderedSvg);
+        if (isMounted) {
+          setSvg(renderedSvg);
+        }
       } catch (error) {
         console.error('Mermaid rendering error:', error);
-        setSvg(`<pre style="color: red;">Mermaid Error: ${error}</pre>`);
+        if (isMounted) {
+          setSvg("<pre style=\"color: red;\">Mermaid Error: " + error + "</pre>");
+        }
       }
     };
 
     renderChart();
+    return () => {
+      isMounted = false;
+    };
   }, [chart, id, resolvedTheme]);
 
   const openModal = useCallback(() => {
@@ -65,8 +73,6 @@ export function Mermaid({ chart }: MermaidProps): React.ReactElement {
         onClick={openModal}
       >
         <div className="w-full flex justify-center" dangerouslySetInnerHTML={{ __html: svg }} />
-        <div className="absolute bottom-2 right-2 rounded bg-fd-background/80 px-2 py-1 text-xs text-fd-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-        </div>
       </div>
 
       {isModalOpen && (
@@ -100,7 +106,7 @@ export function Mermaid({ chart }: MermaidProps): React.ReactElement {
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className="min-w-[80vw] [&_svg]:!max-w-none [&_svg]:!min-w-[1200px]"
+              className="min-w-[80vw] [&_svg]:max-w-none! [&_svg]:min-w-[1200px]!"
               dangerouslySetInnerHTML={{ __html: svg }}
             />
           </div>
