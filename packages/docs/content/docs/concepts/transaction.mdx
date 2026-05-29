@@ -1,0 +1,245 @@
+---
+title: Transaction
+description: Build, complete, and send CKB transactions — CCC handles input selection and fee calculation for you.
+icon: Repeat
+---
+
+## Transaction structure
+
+A CKB transaction consumes existing cells (inputs) and creates new cells (outputs):
+
+```typescript
+export class Transaction {
+  constructor(
+    public version: Num,
+    public cellDeps: CellDep[],    // Script code dependencies
+    public headerDeps: Hex[],      // Block header dependencies
+    public inputs: CellInput[],    // Cells being consumed
+    public outputs: CellOutput[],  // New cells being created
+    public outputsData: Hex[],     // Data for each output cell
+    public witnesses: Hex[],       // Signatures and proofs
+  ) {}
+}
+```
+
+### `CellInput`
+
+References an existing on-chain cell to consume:
+
+```typescript
+export class CellInput {
+  constructor(
+    public previousOutput: OutPoint, // Which cell to consume
+    public since: Num,               // Time-lock (0 = none)
+    public cellOutput?: CellOutput,  // Populated by completeExtraInfos()
+    public outputData?: Hex,         // Populated by completeExtraInfos()
+  ) {}
+}
+```
+
+### `CellOutput`
+
+Defines a new cell to create:
+
+```typescript
+export class CellOutput {
+  constructor(
+    public capacity: Num,  // Storage space in Shannon
+    public lock: Script,   // Ownership script
+    public type?: Script,  // Asset type script (optional)
+  ) {}
+}
+```
+
+### `CellDep`
+
+Tells the CKB VM where to find the script code that needs to run:
+
+```typescript
+export type DepType = "depGroup" | "code";
+
+export class CellDep {
+  constructor(
+    public outPoint: OutPoint, // Where the script code lives
+    public depType: DepType,   // "code" = raw bytecode; "depGroup" = group of deps
+  ) {}
+}
+```
+
+## Creating a transaction
+
+Use `Transaction.from()` to build a transaction from a plain object. Omit `capacity` and CCC calculates it from the cell's occupied size:
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const tx = ccc.Transaction.from({
+  outputs: [
+    {
+      lock: recipientLockScript,
+      capacity: ccc.fixedPointFrom("100"), // 100 CKB
+    },
+  ],
+});
+```
+
+For an empty transaction, use `Transaction.default()` and add outputs incrementally:
+
+```typescript
+const tx = ccc.Transaction.default();
+tx.addOutput({ lock: recipientLock }, "0x"); // capacity auto-calculated
+```
+
+## Working with CKB amounts
+
+Capacity is always stored in **Shannon** (bigint). Use `fixedPointFrom()` to convert from human-readable CKB:
+
+```typescript
+ccc.fixedPointFrom("61")  // → 6_100_000_000n  (61 CKB — minimum for a plain cell)
+ccc.fixedPointFrom(100)   // → 10_000_000_000n
+ccc.Zero                  // → 0n
+```
+
+## Completing a transaction
+
+After declaring outputs, two method calls handle everything else:
+
+### `completeInputsByCapacity(signer)`
+
+Searches the signer's cells and adds enough inputs to cover total output capacity:
+
+```typescript
+async completeInputsByCapacity(
+  from: Signer,
+  capacityTweak?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+): Promise<number>
+```
+
+### `completeFeeBy(signer, feeRate?)`
+
+Calculates the fee from the serialized transaction size, adds more inputs if needed, and sends change back to the signer's address:
+
+```typescript
+async completeFeeBy(
+  from: Signer,
+  feeRate?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+  options?: {
+    feeRateBlockRange?: NumLike;
+    maxFeeRate?: NumLike;
+    shouldAddInputs?: boolean;
+  },
+): Promise<[number, boolean]>
+```
+
+Omit `feeRate` and CCC fetches the current network rate from the client automatically.
+
+<Callout type="info">
+  For most transfers, `completeInputsByCapacity` + `completeFeeBy` is all you need. They handle UTXO selection, fee estimation, and change output creation — no manual accounting required.
+</Callout>
+
+## Full transfer example
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+async function transferCkb(
+  signer: ccc.Signer,
+  toLock: ccc.Script,
+  amount: string, // e.g. "100" for 100 CKB
+) {
+  // Declare what you want to create
+  const tx = ccc.Transaction.from({
+    outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+  });
+
+  // CCC selects inputs to cover the outputs
+  await tx.completeInputsByCapacity(signer);
+
+  // CCC calculates the fee and adds a change output
+  await tx.completeFeeBy(signer);
+
+  // Sign and broadcast
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Transaction sent:", txHash);
+  return txHash;
+}
+```
+
+## Transaction lifecycle
+
+A transaction moves through three stages before it hits the chain:
+
+```typescript
+// 1. Prepare — adds cell deps and dummy witnesses
+const prepared = await signer.prepareTransaction(tx);
+
+// 2. Sign — replaces dummy witnesses with real signatures
+const signed = await signer.signTransaction(prepared);
+
+// 3. Broadcast — submits to the network, returns the tx hash
+const txHash = await signer.sendTransaction(tx);
+```
+
+In practice, `sendTransaction` calls `signTransaction` internally — you rarely need to call them separately.
+
+## Computing hashes
+
+```typescript
+// Transaction hash (excludes witnesses)
+const txHash: ccc.Hex = tx.hash();
+
+// Full transaction hash (includes witnesses)
+const fullHash: ccc.Hex = tx.hashFull();
+
+// Raw CKB Blake2b hash of arbitrary bytes
+const hash = ccc.hashCkb(someBytes);
+```
+
+## Advanced: custom change logic
+
+When you need full control over how change capacity is handled, use `completeFee()` directly:
+
+```typescript
+const [addedInputs, hasChange] = await tx.completeFee(
+  signer,
+  (tx, capacity) => {
+    // capacity = excess Shannon available for change
+    const minCellCapacity = ccc.fixedPointFrom("61");
+    if (capacity >= minCellCapacity) {
+      tx.addOutput({ capacity, lock: changeScript });
+      return 0; // 0 signals done
+    }
+    return minCellCapacity; // request more capacity
+  },
+);
+```
+
+## Advanced: Adding cell dependencies
+
+### Use cases
+   
+Adding cell dependencies is primarily needed for the following scenarios:  
+- **Type scripts**: When a transaction uses a Type script (such as xUDT, NervosDao, Spore, etc.), you must add the corresponding cell deps to enable on-chain verification  
+- **Special Lock scripts**: Certain special Lock scripts (such as TimeLock, SingleUseLock, etc.) require manual addition  
+- **Custom scripts**: When using custom scripts not in the KnownScript list, you need to specify cell deps directly  
+
+<Callout type="info">
+Note: The Signer's `prepareTransaction()` automatically adds KnownScript dependencies (such as OmniLock, NostrLock, etc.) related to that Signer, so manual addition is not required.
+</Callout>
+
+### Example
+
+For built-in scripts, use `addCellDepsOfKnownScripts()`. For custom scripts, add deps directly:
+
+```typescript
+// Built-in script
+await tx.addCellDepsOfKnownScripts(client, ccc.KnownScript.XUdt);
+
+// Custom script
+tx.addCellDeps({
+  outPoint: { txHash: "0x...", index: 0 },
+  depType: "depGroup",
+});
+```

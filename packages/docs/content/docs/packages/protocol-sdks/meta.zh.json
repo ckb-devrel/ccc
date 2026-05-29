@@ -1,0 +1,12 @@
+{
+  "title": "协议支持层",
+  "description": "基于核心包构建的协议级 SDK：Spore、UDT、SSRI、Lumos 补丁。",
+  "icon": "Sprout",
+  "defaultOpen": false,
+  "pages": [
+    "spore",
+    "udt",
+    "ssri",
+    "lumos-patches"
+  ]
+}

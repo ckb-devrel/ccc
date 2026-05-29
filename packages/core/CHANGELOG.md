@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.12.5
+### Patch Changes
+
+
+
+- [#354](https://github.com/ckb-devrel/ccc/pull/354) [`a96dec6`](https://github.com/ckb-devrel/ccc/commit/a96dec6d0517113391b0edc510f1af821a45d5a8) Thanks [@RetricSu](https://github.com/RetricSu)! - chore(core): bump nostr-lock mainnet cell deps
+
 ## 1.12.4
 ### Patch Changes
 

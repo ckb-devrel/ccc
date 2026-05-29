@@ -1,5 +1,18 @@
 # @ckb-ccc/connector-react
 
+## 1.0.35
+### Patch Changes
+
+
+
+- [#373](https://github.com/ckb-devrel/ccc/pull/373) [`990b845`](https://github.com/ckb-devrel/ccc/commit/990b8453b04c85c8a239f0d454e017e61a98bc9e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Move `@types/react` from devDependencies to peerDependencies and relax version constraint to `>=16`
+
+## 1.0.34
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@1.0.33
+
 ## 1.0.33
 ### Patch Changes
 

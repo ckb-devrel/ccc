@@ -1,0 +1,87 @@
+---
+title: "@ckb-ccc/ccc"
+description: 浏览器端一站式 Bundle——核心组件、全部钱包 Signer 和协议 SDK，统一在 ccc 命名空间下。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/ccc` 是面向浏览器的一站式包，将 `@ckb-ccc/core` 与所有钱包 Signer、协议包整合到同一个 `ccc` 命名空间中。适合需要完整钱包发现能力、但想自行构建连接界面（不使用内置弹窗）的场景。
+
+## 使用场景
+
+| 场景 | 推荐包 |
+| ---- | ------ |
+| React 应用，需要内置钱包弹窗 | `@ckb-ccc/connector-react` |
+| 非 React 前端，需要内置弹窗 | `@ckb-ccc/connector` |
+| **自定义钱包界面（不用内置弹窗）** | **`@ckb-ccc/ccc` ← 当前页面** |
+| Node.js 后端或脚本 | `@ckb-ccc/shell` |
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/ccc"/>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash
+    npm install @ckb-ccc/ccc
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ckb-ccc/ccc
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ckb-ccc/ccc
+    ```
+  </Tab>
+</Tabs>
+
+## 包含内容
+
+`@ckb-ccc/ccc` 重新导出了以下子包：
+
+| 子包                   | 命名空间  | 内容 |
+| ---------------------- | --------- | ---- |
+| `@ckb-ccc/joy-id`      | ccc.*     | JoyID 钱包 Signer |
+| `@ckb-ccc/eip6963`     | ccc.*     | MetaMask、Rabby 及所有 EIP-6963 钱包 |
+| `@ckb-ccc/uni-sat`     | ccc.*     | UniSat Bitcoin 钱包 Signer |
+| `@ckb-ccc/okx`         | ccc.*     | OKX 钱包 Signer（BTC + Nostr） |
+| `@ckb-ccc/xverse`      | ccc.*     | Xverse / SATS Connect 钱包 Signer |
+| `@ckb-ccc/nip07`       | ccc.*     | NIP-07 Nostr 扩展 Signer |
+| `@ckb-ccc/rei`         | ccc.*     | REI CKB 原生钱包 Signer |
+| `@ckb-ccc/utxo-global` | ccc.*     | UTXO Global 钱包 Signer（CKB + BTC + DOGE） |
+
+此外还额外导出：
+
+- **`SignersController`**——自动发现并管理当前环境中所有可用钱包 Signer 的生命周期。
+
+## 用法
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicTestnet();
+
+// 自动发现当前浏览器环境中的所有钱包
+const controller = new ccc.SignersController(client);
+controller.subscribeSigners((signerInfo) => {
+  console.log(`发现钱包：${signerInfo.name}`);
+});
+
+// 也可以直接实例化特定的 Signer
+const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+await signer.connect();
+const balance = await signer.getBalance();
+```
+
+## Advanced 导出
+
+```typescript
+import { cccA } from "@ckb-ccc/ccc/advanced";
+```
+
+<Callout type="warning">
+  `cccA` 中的 API 不保证稳定性，可能随时变更而不另行通知。仅在 `ccc` 提供的 API 无法满足需求时使用。
+</Callout>

@@ -1,0 +1,227 @@
+---
+title: 安装
+description: 根据你的环境安装 CCC——React 前端、Node.js 后端或自定义 UI。
+icon: Package
+---
+
+不知道从哪里开始？[快速上手](./quick-start)指南提供了从零搭建 React 项目的完整流程。需要了解特定包或 TypeScript 配置细节时，再回到本页查阅。
+
+CCC 拆分为多个职责明确的包，按你的环境选择对应的包：
+
+| 包名                         | 适用场景                         |
+| ---------------------------- | ------------------------------ |
+| `@ckb-ccc/connector-react`   | React 应用                      |
+| `@ckb-ccc/shell`             | Node.js 脚本和后端               |
+| `@ckb-ccc/connector`         | Web Component（框架无关）        |
+| `@ckb-ccc/ccc`               | 自定义 UI、手工管理 Signer        |
+
+<Tabs items={['React', 'Node.js / 后端', 'Web Component', '自定义 UI']}>
+  <Tab value="React">
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash
+npm install @ckb-ccc/connector-react
+```
+      </Tab>
+      <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/connector-react
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/connector-react
+```
+      </Tab>
+    </Tabs>
+
+    在应用根节点包裹 `ccc.Provider`，挂载钱包连接器 UI，并让 CCC context 在整个应用中可用：
+
+    <Callout type="warning">
+      使用 Next.js App Router 或其他 RSC 方案？在任何导入 `ccc.Provider` 或 `ccc.useCcc` 的文件顶部加上 `"use client"`。
+    </Callout>
+
+```tsx title="app.tsx"
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export default function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ccc.Provider name="My CKB App" icon="/icon.png">
+      {children}
+    </ccc.Provider>
+  );
+}
+```
+
+    在任意子组件中调用 `ccc.useCcc()`，即可打开连接器并获取当前活跃的 Signer：
+
+```tsx title="component.tsx"
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function ConnectButton() {
+  const { open, wallet, signerInfo } = ccc.useCcc();
+
+  return signerInfo ? (
+    <p>已连接：{wallet?.name}</p>
+  ) : (
+    <button onClick={open}>连接钱包</button>
+  );
+}
+```
+  </Tab>
+
+  <Tab value="Node.js / 后端">
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash
+npm install @ckb-ccc/shell
+```
+      </Tab>
+      <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/shell
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/shell
+```
+      </Tab>
+    </Tabs>
+
+    `@ckb-ccc/shell` 包含 `@ckb-ccc/core` 的全部能力——地址、字节处理、Client、交易、Signer，并额外集成了 Spore 数字对象、SSRI 合约和用户自定义代币（UDT）等领域专用模块。它是脚本、后端和 CLI 工具的最佳选择。
+
+```typescript title="script.ts"
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.PRIVATE_KEY!);
+
+const address = await signer.getRecommendedAddress();
+console.log("Address:", address);
+```
+  </Tab>
+
+  <Tab value="Web Component">
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash
+npm install @ckb-ccc/connector
+```
+      </Tab>
+      <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/connector
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/connector
+```
+      </Tab>
+    </Tabs>
+
+    导入该包后，`<ccc-connector>` 自定义元素会自动注册，无需额外配置：
+
+```typescript title="main.ts"
+import { ccc } from "@ckb-ccc/connector";
+```
+
+```html title="index.html"
+<ccc-connector></ccc-connector>
+```
+  </Tab>
+
+  <Tab value="自定义 UI">
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash
+npm install @ckb-ccc/ccc
+```
+      </Tab>
+      <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/ccc
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/ccc
+```
+      </Tab>
+    </Tabs>
+
+    需要完全掌控钱包连接 UI 时，使用 `@ckb-ccc/ccc`。它集成了所有钱包——EIP-6963（EVM）、JoyID、NIP-07（Nostr）、OKX、UniSat、UTXO Global、Xverse 等——但不提供任何预置 UI：
+
+```typescript title="custom-ui.ts"
+import { ccc } from "@ckb-ccc/ccc";
+
+const client = new ccc.ClientPublicTestnet();
+const controller = new ccc.SignersController();
+let wallets: ccc.WalletWithSigners[] | undefined;
+
+// 获取所有可用 Signer
+await controller.refresh(client, (w) => (wallets = w));
+if (!wallets) {
+  throw new Error("Unexpected not wallets");
+}
+wallets.forEach((wallet) => {
+  console.log(
+    wallet.name,
+    wallet.signers.map(({ name }) => name),
+  );
+});
+
+const signer = wallets[0].signers[0].signer;
+
+// 连接 Signer
+await signer.connect();
+console.log("Connected");
+
+// 签名消息测试
+const signature = await signer.signMessage("Hello world");
+console.log(signature);
+```
+
+    详细操作步骤参见[连接钱包](../guides/connect-wallets)指南。
+  </Tab>
+</Tabs>
+
+## 导入方式
+
+所有 CCC 包均暴露相同的 `ccc` 命名空间，无论使用哪个包，导入写法完全一致：
+
+```typescript
+import { ccc } from "@ckb-ccc/<package-name>";
+
+const tx = ccc.Transaction.from({ ... });
+const amount = ccc.fixedPointFrom("100");
+```
+
+底层内部 API 通过 `/advanced` 入口导出 `cccA`：
+
+```typescript
+import { cccA } from "@ckb-ccc/<package-name>/advanced";
+```
+
+<Callout type="warning">
+  `cccA` 中的 API 不保证稳定性，可能随时变更而不另行通知。仅在 `ccc` 无法满足需求时使用。
+</Callout>
+
+## TypeScript 配置
+
+CCC 使用 [Package Entry Points](https://nodejs.org/api/packages.html#packages_package_entry_points) 实现 tree-shaking。在 `tsconfig.json` 中将 `moduleResolution` 设为 `node16`、`nodenext` 或 `bundler`，且不要禁用 `resolvePackageJsonExports`：
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "moduleResolution": "bundler"
+  }
+}
+```
+
+如果遇到报错 `Property '*' does not exist on type 'typeof import(".../@ckb-ccc/...")'`，通常是 `moduleResolution` 配置有误。详情参见 [TypeScript 模块解析文档](https://www.typescriptlang.org/docs/handbook/modules/reference.html#packagejson-exports)。

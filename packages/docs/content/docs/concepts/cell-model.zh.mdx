@@ -1,0 +1,171 @@
+---
+title: CKB Cell 模型
+description: 理解支撑每一笔 CKB 交易的、基于 UTXO 的 Cell 模型。
+icon: LayoutGrid
+---
+
+## 什么是 Cell 模型？
+
+CKB 采用一种泛化的 UTXO 模型，称为 **Cell 模型**。与比特币的 UTXO 类似，Cell 是离散的状态单元——被交易消耗后由新的 Cell 取代。但与比特币 UTXO 不同的是，每个 Cell 可以存储任意数据，并由可编程脚本来管理。
+
+每个 Cell 都有四个字段：
+
+| 字段          | 类型                   | 说明                                                     |
+| ------------- | --------------------- | ------------------------------------------------------- |
+| `capacity`    | `Num`                 | 以 Shannon 为单位的存储容量（1 CKB = 100,000,000 Shannon）  |
+| `lock`        | `Script`              | 定义所有权——谁可以消费这个 Cell                             |
+| `type`        | `Script \| undefined` | 定义资产行为——可选，约束 Cell 如何发生状态转换                 |
+| `outputData`  | `Hex`                 | Cell 中存储的任意字节                                      |
+
+在 CCC 中，`CellOutput` 表示 Cell 的结构化输出部分：
+
+```typescript
+export class CellOutput {
+  constructor(
+    public capacity: Num,
+    public lock: Script,
+    public type?: Script,
+  ) {}
+}
+```
+
+完整的链上 Cell，包含其在链上的位置，由 `Cell` 表示：
+
+```typescript
+export class Cell extends CellAny {
+  constructor(
+    public outPoint: OutPoint,
+    cellOutput: CellOutput,
+    outputData: Hex,
+  ) {}
+}
+```
+
+## 脚本（Scripts）
+
+脚本是绑定在 Cell 上的可编程逻辑。CKB 在 RISC-V 虚拟机中执行它们，用于验证每笔交易。
+
+```typescript
+export class Script {
+  constructor(
+    public codeHash: Hex,      // 标识脚本代码
+    public hashType: HashType, // "type" | "data" | "data1" | "data2"
+    public args: Hex,          // 运行时传给脚本的参数
+  ) {}
+}
+```
+
+最常见的做法是从已知脚本（KnownScript）构造 `Script`：
+
+```typescript
+const xudtScript = await ccc.Script.fromKnownScript(
+  client,
+  ccc.KnownScript.XUdt,
+  "0xabcdef...", // args
+);
+```
+
+也可以从普通对象构造：
+
+```typescript
+const script = ccc.Script.from({
+  codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+  hashType: "type",
+  args: "0xabcdef...",
+});
+```
+
+### Lock 脚本
+
+Lock 脚本定义 Cell 的所有权——这个 Cell 归谁拥有。只有 Lock 脚本验证通过（通常需要提供有效的密码学签名），交易才能消费该 Cell。CKB 上最常见的 Lock 是 `Secp256k1Blake160`，其工作方式类似比特币的 P2PKH。
+
+### Type 脚本
+
+Type 脚本约束 Cell 的转移、销毁等状态转换规则。它同时作用于被消费的输入和新创建的输出，因此非常适合强制执行资产规则——例如，防止在转账过程中增发 UDT（用户自定义代币）。
+
+Type 脚本是可选的。没有 Type 脚本的 Cell 除了 Lock 脚本规定的所有权之外没有任何资产层面的约束。
+
+## Capacity 与 Shannon
+
+Capacity 以 **Shannon** 为单位——Shannon 是 CKB 的最小计量单位：
+
+```
+1 CKB = 100,000,000 Shannon
+```
+
+使用 `ccc.fixedPointFrom()` 将 CKB 面值转换为 Shannon：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+ccc.fixedPointFrom("10");   // → 1_000_000_000n
+ccc.fixedPointFrom(10);     // → 1_000_000_000n
+ccc.fixedPointFrom("61.5"); // → 6_150_000_000n
+```
+
+`fixedPointFrom` 默认使用 8 位小数，对应 CKB 到 Shannon 的换算精度。返回类型为 `bigint`。
+
+## OutPoint
+
+`OutPoint` 通过交易哈希和输出索引唯一标识链上的一个 Cell。交易哈希是创建该 Cell 的交易，索引是该 Cell 在交易输出列表中的位置：
+
+```typescript
+export class OutPoint {
+  constructor(
+    public txHash: Hex, // 创建该 Cell 的交易哈希
+    public index: Num,  // 该 Cell 在输出列表中的下标
+  ) {}
+}
+
+// 用法：
+OutPoint.from({ txHash: "0x...", index: 0 });
+```
+
+当一个 Cell 作为交易输入被消费时，会通过 `CellInput` 用其 `OutPoint` 来引用它：
+
+```typescript
+export class CellInput {
+  constructor(
+    public previousOutput: OutPoint, // 被消费的 Cell
+    public since: Num,               // 时间锁约束（0 = 无）
+    public cellOutput?: CellOutput,
+    public outputData?: Hex,
+  ) {}
+}
+```
+
+## 地址（Addresses）
+
+CKB 地址是 Lock 脚本的 bech32m 编码，将脚本的 `codeHash`、`hashType` 和 `args` 与网络前缀组合——主网用 `ckb`，测试网用 `ckt`。
+
+```typescript
+export class Address {
+  constructor(
+    public script: Script,
+    public prefix: string,
+  ) {}
+
+  // 将地址字符串解码为对应的 Address 对象
+  static async fromString(
+    address: string,
+    clients: Client | Record<string, Client>,
+  ): Promise<Address> {}
+
+  // 由 Script 与 Client 构造 Address
+  static fromScript(script: ScriptLike, client: Client): Address {}
+
+  // 编码为 bech32m 字符串
+  toString(): string {}
+}
+```
+
+两个共享相同 Lock 脚本的地址是等价的。调用 `signer.getRecommendedAddress()` 时，CCC 会根据当前网络将 `signer` 的 Lock 脚本编码为正确的地址格式。
+
+## CCC 如何抽象 Cell 模型
+
+你几乎不需要手工构造原始的 `OutPoint` 或 `Script` 对象。CCC 的辅助函数会处理编码、哈希以及链上查询：
+
+- **`Transaction.from()`**——从普通对象构造交易，省略的容量字段会自动计算。
+- **`completeInputsByCapacity(signer)`**——从 `signer` 的地址中挑选输入 Cell，凑足所需容量。
+- **`completeFeeBy(signer)`**——计算手续费并添加找零输出。
+- **`Script.fromKnownScript(client, KnownScript.Secp256k1Blake160, args)`**——按名称解析常用脚本的 code hash，无需硬编码。

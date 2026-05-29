@@ -1,0 +1,12 @@
+{
+  "title": "CCC Package Guide",
+  "description": "A complete overview of every NPM package in CCC — choose the right one based on your runtime, framework, and feature requirements.",
+  "root": false,
+  "icon": "Code",
+  "pages": [
+    "index",
+    "core-packages",
+    "protocol-sdks",
+    "wallet-integrations"
+  ]
+}

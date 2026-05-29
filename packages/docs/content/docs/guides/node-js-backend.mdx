@@ -1,0 +1,208 @@
+---
+title: Node.js Backend
+description: Use CCC for server-side CKB development, data analysis, and scripting.
+icon: Server
+---
+
+Use CCC from a Node.js server, script, or CI job — with a **private key signer** instead of a browser wallet. The server-side package `@ckb-ccc/shell` gives you the full CCC API (transactions, UDT, Spore, SSRI) without any browser or DOM dependencies.
+
+## What you'll get
+
+After this guide you'll be able to:
+
+- **Connect to mainnet / testnet** from a Node.js process
+- **Sign transactions with a private key** for backend automation, airdrops, or indexing jobs
+- **Query balances and iterate cells** programmatically
+- Reuse the same [transaction composition](/docs/guides/compose-transactions) and [message signing](/docs/guides/sign-message) patterns from the frontend guides — the API is identical
+
+## Installation
+
+```bash
+npm install @ckb-ccc/shell
+```
+
+## What it exports
+
+`@ckb-ccc/shell` re-exports the following:
+
+```typescript
+export * from "@ckb-ccc/core/barrel"; // full CCC core (Transaction, Script, Address, ...)
+export { spore } from "@ckb-ccc/spore";
+export { ssri } from "@ckb-ccc/ssri";
+export { udt } from "@ckb-ccc/udt";
+```
+
+Import everything through the `ccc` namespace:
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+```
+
+## Connect to a node
+
+Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity. Both default to a public RPC endpoint with automatic WebSocket / HTTP fallbacks — no setup required:
+
+<Tabs items={["Mainnet", "Testnet", "Custom RPC"]}>
+  <Tab value="Mainnet">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet();
+    // Defaults to wss://mainnet.ckb.dev/ws (Node.js with WebSocket)
+    // Falls back to https://mainnet.ckb.dev/ and https://mainnet.ckbapp.dev/
+    ```
+  </Tab>
+
+  <Tab value="Testnet">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicTestnet();
+    ```
+  </Tab>
+
+  <Tab value="Custom RPC">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet({
+      url: "https://your-ckb-node.example.com/rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Sign with a private key
+
+**Use this when:** your backend needs to send transactions autonomously (e.g. airdrops, payouts, automated operations). `SignerCkbPrivateKey` provides a fully featured `Signer` backed by a raw secp256k1 private key.
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(
+  client,
+  process.env.CKB_PRIVATE_KEY!, // 32-byte hex, loaded from environment
+);
+
+await signer.connect();
+const address = await signer.getRecommendedAddress();
+console.log("Address:", address); // "ckt1qz..." (testnet) or "ckb1qz..." (mainnet)
+```
+
+<Callout type="warning">
+  Never hardcode private keys in source code. Load them from environment variables, a secrets manager, or an encrypted key file. A leaked private key means permanent, irrecoverable loss of funds.
+</Callout>
+
+## Query balance
+
+**Use this when:** you need to check an account's CKB balance from a script or API handler.
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicMainnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+await signer.connect();
+
+const balance = await signer.getBalance();
+// balance is a bigint in shannon (1 CKB = 100_000_000 shannon)
+console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`); // e.g. "1234.56 CKB"
+```
+
+## Complete example: query balance and send CKB
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+async function main() {
+  // 1. Connect to testnet
+  const client = new ccc.ClientPublicTestnet();
+  const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+  await signer.connect();
+
+  const fromAddress = await signer.getRecommendedAddress();
+  console.log("From:", fromAddress);
+
+  // 2. Query balance
+  const balance = await signer.getBalance();
+  console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`);
+
+  // 3. Resolve recipient address
+  const recipientAddress = "ckt1qzda0cr08m85hc8jlnfp3sog3vczr9h9rqt4ykkqfzf3gcj…";
+  const { script: lock } = await ccc.Address.fromString(
+    recipientAddress,
+    signer.client,
+  );
+
+  // 4. Build transaction
+  const tx = ccc.Transaction.from({
+    outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
+  });
+
+  // 5. Fill inputs and pay fee automatically
+  await tx.completeInputsByCapacity(signer);
+  await tx.completeFeeBy(signer);
+
+  // 6. Sign and broadcast
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Sent:", txHash);
+}
+
+main().catch(console.error);
+```
+
+## Iterate cells
+
+**Use this when:** you need to scan an address's live cells — for analytics, indexing, or building custom transaction logic.
+
+```typescript
+for await (const cell of signer.findCellsOnChain(
+  {}, // no type/data filter — return all cells
+  true, // include cell data
+)) {
+  console.log(cell.outPoint, cell.cellOutput.capacity);
+}
+```
+
+## Advanced barrel
+
+The package also exports an `advanced` entry point with lower-level utilities under the `cccA` namespace:
+
+```typescript
+import { cccA } from "@ckb-ccc/shell/advanced";
+// Includes sporeA (advanced Spore helpers) and core advanced utilities
+```
+
+## TypeScript configuration
+
+`@ckb-ccc/shell` ships ES modules. If you encounter `ERR_REQUIRE_ESM` or module resolution errors, add this to your `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  }
+}
+```
+
+## Troubleshooting
+
+**`ERR_REQUIRE_ESM` when importing `@ckb-ccc/shell`**
+Your project is using CommonJS (`require`). Either switch to ESM (`"type": "module"` in `package.json`) or use dynamic `import()`. CCC does not ship a CJS build.
+
+**`SignerCkbPrivateKey` throws "invalid private key"**
+The key must be exactly 32 bytes (64 hex characters), without `0x` prefix. Double-check your environment variable.
+
+**`ClientPublicTestnet` connection times out**
+Public nodes may be rate-limited. For production, run your own CKB node and pass its URL to `ClientPublicMainnet({ url: "..." })`.
+
+**I want to use browser-wallet signers (JoyID, MetaMask) on the server**
+Those signers require a browser environment. On the server, use `SignerCkbPrivateKey`. If you need to verify wallet signatures on the server, use `ccc.Signer.verifyMessage()` — see [Sign Messages](/docs/guides/sign-message).
+
+## Next steps
+
+- [Compose transactions](/docs/guides/compose-transactions) — the same `declare → fill → fee → send` pattern works with `SignerCkbPrivateKey`.
+- [UDT tokens](/docs/guides/udt-tokens) — issue and transfer fungible tokens from a backend.
+- [Spore Protocol](/docs/guides/spore-protocol) — mint on-chain digital objects programmatically.

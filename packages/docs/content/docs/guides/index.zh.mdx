@@ -1,0 +1,37 @@
+---
+title: 使用指南
+
+description: 找到你所需场景的实现步骤——涵盖最常见 CKB 开发任务的实操指南。
+---
+
+import { Wallet, Code, PenLine, Bitcoin, Sprout, Server } from 'lucide-react';
+
+本节指南假设你已理解[核心概念](./concepts)并完成了 CCC 的安装。每篇指南完整介绍一个真实的开发任务，所有代码示例均来自 CCC 示例库和各功能包，可直接复制使用。
+
+## 本节页面
+
+<Cards cols={2}>
+  <Card title="连接钱包" icon={<Wallet />} href="./guides/connect-wallets">
+    接入 React 连接器组件，或直接使用 `SignersController`，支持 EVM、BTC、CKB、Nostr 和 Doge 钱包。
+  </Card>
+
+  <Card title="组装交易" icon={<Code />} href="./guides/compose-transactions">
+    用 CCC 的标准方式转账 CKB——声明输出，根据所需容量自动填充输入，由 `completeFeeBy` 处理手续费。
+  </Card>
+
+  <Card title="消息签名" icon={<PenLine />} href="./guides/sign-message">
+    通过统一的 `signer.signMessage` / `verifyMessage` API，跨所有钱包类型对任意消息签名和验证。
+  </Card>
+
+  <Card title="UDT 代币" icon={<Bitcoin />} href="./guides/udt-tokens">
+    使用 `ccc.udt.Udt` 类和 SSRI 执行模型发行和转移 xUDT（及旧版 sUDT）代币。
+  </Card>
+
+  <Card title="Spore 协议" icon={<Sprout />} href="./guides/spore-protocol">
+    使用 `@ckb-ccc/spore` 创建、转移和销毁链上数码物（DOB），并通过 Spore Cluster 对其归组。
+  </Card>
+
+  <Card title="Node.js 后端" icon={<Server />} href="./guides/node-js-backend">
+    使用 `@ckb-ccc/shell` 编写服务端脚本：连接节点、构建私钥 Signer，在无浏览器环境中运行 CCC。
+  </Card>
+</Cards>

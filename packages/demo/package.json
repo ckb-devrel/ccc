@@ -21,8 +21,8 @@
     "@uiw/react-json-view": "2.0.0-alpha.37",
     "lucide-react": "^0.542.0",
     "next": "16.0.10",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@ckb-ccc/connector-react": "workspace:*",
@@ -40,7 +40,7 @@
     "@scure/bip39": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^24.3.0",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.34.0",
     "eslint-config-next": "16.0.10",

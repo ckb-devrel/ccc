@@ -1,0 +1,173 @@
+---
+title: 快速上手
+description: 用 CCC 在 5 分钟内完成第一笔 CKB 链上交易。
+icon: Rocket
+---
+
+<Callout title="跳过本地安装" type="info">
+  直接在 [Playground](https://live.ckbccc.com/) 中试用 CCC——无需安装，在浏览器中即可运行示例。
+</Callout>
+
+<Steps>
+  <Step title="创建新项目">
+    最快的起步方式是使用 `create-ccc-app`，一条命令即可生成包含你所选框架的新项目：
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash npx
+npx create-ccc-app@latest my-ccc-app
+```
+      </Tab>
+      <Tab value="yarn">
+```bash yarn
+yarn create ccc-app my-ccc-app
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash pnpm
+pnpm create ccc-app my-ccc-app
+```
+      </Tab>
+    </Tabs>
+
+    按提示选择框架模板，然后进入项目目录即可。
+  </Step>
+
+  <Step title="或将 CCC 添加到已有项目">
+    已有 React 应用？直接安装连接器包：
+
+    <Tabs items={['npm', 'yarn', 'pnpm']}>
+      <Tab value="npm">
+```bash
+npm install @ckb-ccc/connector-react
+```
+      </Tab>
+      <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/connector-react
+```
+      </Tab>
+      <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/connector-react
+```
+      </Tab>
+    </Tabs>
+
+    使用 Node.js 或其他框架？参见[安装](./installation)指南了解所有可用包。
+  </Step>
+
+  <Step title="用 Provider 包裹应用">
+    在应用根节点添加 `ccc.Provider`，挂载钱包连接器 UI，并让 CCC context 在所有子组件中可用。
+
+    <Callout title="React Server Components" type="info">
+      在任何使用 `ccc.Provider` 的文件顶部添加 `"use client"`。
+    </Callout>
+
+    <Callout title="默认网络" type="warning">
+      `ccc.Provider` 默认连接**测试网**。上线前通过 `defaultClient` 属性切换到主网。
+    </Callout>
+
+```tsx title="app.tsx"
+"use client";
+import { ccc } from "@ckb-ccc/connector-react";
+
+export default function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ccc.Provider
+      name="My CKB App"
+      icon="/icon.png"
+    >
+      {children}
+    </ccc.Provider>
+  );
+}
+```
+
+    | 属性                | 类型                      | 说明                                           |
+    | ------------------- | ------------------------- | --------------------------------------------- |
+    | `name`              | `string`                  | 应用名称，显示在连接器 UI 中。                   |
+    | `icon`              | `string`                  | 应用图标的 URL。                                |
+    | `signerFilter`      | `function`                | 过滤用户可见的钱包列表。                         |
+    | `defaultClient`     | `ccc.Client`              | 覆盖默认的 CKB client（默认为测试网）。           |
+    | `preferredNetworks` | `ccc.NetworkPreference[]` | 钱包连接的首选网络。                             |
+  </Step>
+
+  <Step title="打开连接器并获取活跃 Signer">
+    在任意组件中调用 `useCcc` hook，打开钱包弹窗并访问已连接的 Signer：
+
+```tsx title="component.tsx"
+"use client";
+import { ccc } from "@ckb-ccc/connector-react";
+
+export function ConnectButton() {
+  const { open, wallet, signerInfo, disconnect } = ccc.useCcc();
+
+  if (signerInfo) {
+    return (
+      <div>
+        <p>已连接：{wallet?.name}</p>
+        <button onClick={disconnect}>断开连接</button>
+      </div>
+    );
+  }
+
+  return <button onClick={open}>连接钱包</button>;
+}
+```
+
+    | 返回值       | 类型                          | 说明                            |
+    | ------------ | ----------------------------- | ------------------------------ |
+    | `open`       | `() => void`                  | 打开钱包连接器弹窗。             |
+    | `close`      | `() => void`                  | 关闭连接器弹窗。                 |
+    | `disconnect` | `() => void`                  | 断开当前钱包连接。               |
+    | `wallet`     | `ccc.Wallet \| undefined`     | 已连接的钱包对象（如有）。        |
+    | `signerInfo` | `ccc.SignerInfo \| undefined` | 当前活跃的 Signer 信息（如已连接）。 |
+    | `client`     | `ccc.Client`                  | 当前活跃的 CKB client。          |
+  </Step>
+
+  <Step title="组装并发送第一笔交易">
+    拿到 Signer 后就可以发送 CKB 了。只需描述输出内容，CCC 自动处理输入选择和手续费计算：
+
+```typescript title="transfer.ts"
+import { ccc } from "@ckb-ccc/connector-react";
+
+async function transfer(signer: ccc.Signer, toAddress: string, amount: string) {
+  // 从地址字符串解析出收款方的 Lock Script
+  const { script: toLock } = await ccc.Address.fromString(
+    toAddress,
+    signer.client,
+  );
+
+  // 声明交易要产生的输出
+  const tx = ccc.Transaction.from({
+    outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+  });
+
+  // CCC 自动选择输入 Cell 以覆盖输出所需容量
+  await tx.completeInputsByCapacity(signer);
+
+  // CCC 计算手续费并调整找零输出
+  await tx.completeFeeBy(signer);
+
+  // 签名并广播，返回交易哈希
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Transaction sent:", txHash);
+  return txHash;
+}
+```
+
+    通过以下三个方法的调用，完成所有核心工作：
+
+    1. **`completeInputsByCapacity(signer)`**——查找足够的输入 Cell 以覆盖输出容量。
+    2. **`completeFeeBy(signer)`**——计算手续费并相应调整输入。
+    3. **`signer.sendTransaction(tx)`**——签名并广播交易，返回交易哈希。
+  </Step>
+</Steps>
+
+## 下一步
+
+- 阅读[核心概念](../concepts)，了解每个 CKB 应用背后的构建模块。
+- 查看[安装](./installation)指南，了解所有包选项和 TypeScript 配置。
+- 打开 [CCC Playground](https://live.ckbccc.com/)，在浏览器中实验在线示例。
+- 浏览 [API 参考文档](https://api.ckbccc.com)，查看完整的类型和方法列表。

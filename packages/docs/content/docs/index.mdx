@@ -1,0 +1,33 @@
+---
+title: Introduction
+description: CCC (CKBers' Codebase) is a one-stop JS/TS SDK for building on the CKB blockchain.
+---
+
+import { BookOpen, Box, Rocket, Wallet } from 'lucide-react';
+
+> CCC is a one-stop TypeScript / JavaScript SDK for the CKB (Common Knowledge Base) blockchain. It provides transaction composition, multi-chain wallet connection, and protocol integrations (UDT, Spore, SSRI).
+
+## What you can do with CCC
+
+- **Learn CKB** — Code examples and live demos help you understand how CKB works.
+- **Compose transactions** — Declarative, intuitive transaction composition with auto input / fee filling.
+- **Sign messages** — A unified signing interface with pre-built methods across multiple chains.
+- **Connect wallets** — Drop-in wallet connector, or build your own UI with the underlying signers.
+- **Analyze on-chain data** — Interact with CKB nodes and process blockchain data programmatically.
+
+## Where to go next
+
+<Cards>
+  <Card title="Quick Start" icon={<Rocket />} href="./docs/getting-started/quick-start" >
+    Send your first CKB transaction on-chain with CCC — in under 5 minutes.
+  </Card>
+  <Card title="Core Concepts" icon={<Box />} href="./docs/concepts">
+    Learn the five primitives behind every CCC application — cells, transactions, signers, clients, and addresses — and how they fit together.
+  </Card>
+  <Card title="Guides" icon={<BookOpen />} href="./docs/guides" >
+    Find the recipe for what you're trying to build — step-by-step guides for the most common CKB development tasks.
+  </Card>
+  <Card title="Wallet Integration" icon={<Wallet />} href="./docs/packages/wallet-integrations" >
+    Connect any wallet — JoyID, MetaMask, OKX, and more — with a single unified Signer interface.
+  </Card>
+</Cards>

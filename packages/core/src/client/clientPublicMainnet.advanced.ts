@@ -290,7 +290,7 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
           cellDep: {
             outPoint: {
               txHash:
-                "0x1911208b136957d5f7c1708a8835edfe8ae1d02700d5cb2c3a6aacf4d5906306",
+                "0x99b116dd1e4f1fa903b70112ae672c18bb34241d3d03a9ad555cd2a611be7327",
               index: 0,
             },
             depType: "code",

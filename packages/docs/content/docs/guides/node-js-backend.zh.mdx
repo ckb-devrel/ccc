@@ -1,0 +1,206 @@
+---
+title: Node.js 后端
+description: 在服务端使用 CCC 进行 CKB 开发、数据分析和脚本编写。
+icon: Server
+---
+
+在 Node.js 服务端、脚本或 CI 任务中使用 CCC——以**私钥 Signer** 替代浏览器钱包。服务端包 `@ckb-ccc/shell` 提供完整的 CCC API（交易、UDT、Spore、SSRI），无任何浏览器或 DOM 依赖。
+
+## 完成本指南后你将能够
+
+- 在 Node.js 进程中**连接主网 / 测试网**
+- 使用**私钥签署交易**，用于后端自动化、空投或索引任务
+- 以编程方式**查询余额和遍历 Cell**
+- 复用前端指南中相同的[交易组装](/docs/guides/compose-transactions)和[消息签名](/docs/guides/sign-message)模式——API 完全一致
+
+## 安装
+
+```bash
+npm install @ckb-ccc/shell
+```
+
+## 导出内容
+
+`@ckb-ccc/shell` 导出以下内容：
+
+```typescript
+export * from "@ckb-ccc/core/barrel"; // 完整 CCC core（Transaction、Script、Address……）
+export { spore } from "@ckb-ccc/spore";
+export { ssri } from "@ckb-ccc/ssri";
+export { udt } from "@ckb-ccc/udt";
+```
+
+通过 `ccc` 命名空间统一导入：
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+```
+
+## 连接节点
+
+使用 `ClientPublicMainnet` 或 `ClientPublicTestnet` 即可开箱即用地连接 CKB 的 RPC 节点。两者均默认接入公共 RPC 端点，支持 WebSocket / HTTP 自动降级，无需任何配置：
+
+<Tabs items={["主网", "测试网", "自定义 RPC"]}>
+  <Tab value="主网">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet();
+    // 默认连接 wss://mainnet.ckb.dev/ws（Node.js WebSocket）
+    // 降级备用：https://mainnet.ckb.dev/ 和 https://mainnet.ckbapp.dev/
+    ```
+  </Tab>
+
+  <Tab value="测试网">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicTestnet();
+    ```
+  </Tab>
+
+  <Tab value="自定义 RPC">
+    ```typescript
+    import { ccc } from "@ckb-ccc/shell";
+
+    const client = new ccc.ClientPublicMainnet({
+      url: "https://your-ckb-node.example.com/rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## 使用私钥签名
+
+**适用场景**：后端需要自主发送交易（如空投、打款、自动化操作等）。`SignerCkbPrivateKey` 提供功能完整的 `Signer`，以原始 secp256k1 私钥为底层实现。
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicTestnet();
+const signer = new ccc.SignerCkbPrivateKey(
+  client,
+  process.env.CKB_PRIVATE_KEY!, // 32 字节十六进制，从环境变量读取
+);
+
+await signer.connect();
+const address = await signer.getRecommendedAddress();
+console.log("Address:", address); // "ckt1qz..."（测试网）或 "ckb1qz..."（主网）
+```
+
+<Callout type="warning">
+  切勿将私钥硬编码在源代码中。应从环境变量、密钥管理服务或加密密钥文件中读取。私钥一旦泄露，资金将永久无法追回。
+</Callout>
+
+## 查询余额
+
+**适用场景**：在脚本或 API 处理器中查询账户的 CKB 余额。
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+const client = new ccc.ClientPublicMainnet();
+const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+await signer.connect();
+
+const balance = await signer.getBalance();
+// 余额为以 Shannon 计的 bigint（1 CKB = 100_000_000 Shannon）
+console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`); // 如 "1234.56 CKB"
+```
+
+## 完整示例：查询余额并发送 CKB
+
+```typescript
+import { ccc } from "@ckb-ccc/shell";
+
+async function main() {
+  // 1. 连接测试网
+  const client = new ccc.ClientPublicTestnet();
+  const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+  await signer.connect();
+
+  const fromAddress = await signer.getRecommendedAddress();
+  console.log("From:", fromAddress);
+
+  // 2. 查询余额
+  const balance = await signer.getBalance();
+  console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`);
+
+  // 3. 解析收款方地址
+  const recipientAddress = "ckt1qzda0cr08m85hc8jlnfp3sog3vczr9h9rqt4ykkqfzf3gcj…";
+  const { script: lock } = await ccc.Address.fromString(
+    recipientAddress,
+    signer.client,
+  );
+
+  // 4. 构建交易
+  const tx = ccc.Transaction.from({
+    outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
+  });
+
+  // 5. 自动填充输入并支付手续费
+  await tx.completeInputsByCapacity(signer);
+  await tx.completeFeeBy(signer);
+
+  // 6. 签名并广播
+  const txHash = await signer.sendTransaction(tx);
+  console.log("Sent:", txHash);
+}
+
+main().catch(console.error);
+```
+
+## 遍历 Cell
+
+**适用场景**：扫描某地址的链上活跃 Cell，用于数据分析、索引或构建自定义交易逻辑。
+
+```typescript
+for await (const cell of signer.findCellsOnChain(
+  {}, // 不过滤 type / data，返回所有 Cell
+  true, // 包含 Cell data
+)) {
+  console.log(cell.outPoint, cell.cellOutput.capacity);
+}
+```
+
+## Advanced 入口
+
+该包还通过 `advanced` 入口在 `cccA` 命名空间下导出底层工具：
+
+```typescript
+import { cccA } from "@ckb-ccc/shell/advanced";
+// 包含 sporeA（Spore 底层辅助函数）及 core 底层工具
+```
+
+## TypeScript 配置
+
+`@ckb-ccc/shell` 以 ES 模块形式发布。如遇 `ERR_REQUIRE_ESM` 或模块解析错误，在 `tsconfig.json` 中添加：
+
+```json
+{
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  }
+}
+```
+
+## 常见问题
+
+**导入 `@ckb-ccc/shell` 时报 `ERR_REQUIRE_ESM`**
+项目使用了 CommonJS（`require`）。请切换至 ESM（在 `package.json` 中添加 `"type": "module"`），或改用动态 `import()`。CCC 不提供 CJS 构建产物。
+
+**`SignerCkbPrivateKey` 抛出"invalid private key"错误**
+私钥须为恰好 32 字节（64 个十六进制字符），不含 `0x` 前缀。请检查环境变量的值。
+
+**`ClientPublicTestnet` 连接超时**
+公共节点可能有频率限制。生产环境建议自建 CKB 节点，并将其 URL 传入 `ClientPublicMainnet({ url: "..." })`。
+
+**需要在服务端使用浏览器钱包 Signer（JoyID、MetaMask）**
+此类 Signer 依赖浏览器环境，服务端请使用 `SignerCkbPrivateKey`。如需在服务端验证钱包签名，使用 `ccc.Signer.verifyMessage()`——参见[消息签名](/docs/guides/sign-message)。
+
+## 下一步
+
+- [组装交易](/docs/guides/compose-transactions)——同样的声明 → 填充 → 手续费 → 发送模式，与 `SignerCkbPrivateKey` 完全兼容。
+- [UDT 代币](/docs/guides/udt-tokens)——从后端发行和转移用户自定义代币（UDT）。
+- [Spore 协议](/docs/guides/spore-protocol)——以编程方式在链上铸造数码物（DOB）。

@@ -1,0 +1,316 @@
+---
+title: Connect Wallets
+description: Integrate multi-chain wallet connectivity into your CKB application.
+icon: Wallet
+---
+
+Connect a user's wallet to your CKB app and obtain a `Signer` that can read addresses, fetch balances, sign messages, and broadcast transactions — across **CKB, EVM, BTC, Nostr, and Doge** ecosystems through a single unified API.
+
+## What you'll get
+
+After this guide you'll have:
+
+- A working **Connect Wallet button** wired to a multi-chain wallet modal
+- A `ccc.Signer` instance ready for use with the [transaction](/docs/guides/compose-transactions) and [signing](/docs/guides/sign-message) guides
+- Full control over which wallets appear, which network they connect to, and whether you use the built-in UI or your own
+
+## Choose your integration path
+
+| Your situation                                                                  | Use this approach                                            |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Building a React app and want a polished modal out of the box                   | [`ccc.Provider` + `useCcc()`](#react-integration)            |
+| Building a React app but want a custom UI for wallet selection                  | [`SignersController`](#custom-ui-with-signerscontroller)     |
+| Hard-coding a single wallet (e.g. JoyID-only dApp, no selection UI)             | [Direct signer instantiation](#direct-signer-instantiation)  |
+| Server-side / Node.js with a private key (no user wallet)                       | See [Node.js Backend](/docs/guides/node-js-backend)          |
+
+<Callout type="info">
+  All examples below assume you've installed `@ckb-ccc/connector-react`. The non-React `SignersController` and direct-signer flows work with `@ckb-ccc/ccc` as well.
+</Callout>
+
+## Installation
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash npm
+    npm install @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash yarn
+    yarn add @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash pnpm
+    pnpm add @ckb-ccc/connector-react
+    ```
+  </Tab>
+</Tabs>
+
+## React Integration
+
+The fastest way to ship a working Connect Wallet flow. Two pieces:
+
+1. **`ccc.Provider`** — wraps your app and owns the connector modal + wallet state
+2. **`ccc.useCcc()` / `ccc.useSigner()`** — read state and trigger connect/disconnect from any child component
+
+<Steps>
+  <Step title="Wrap your app with `ccc.Provider`">
+    Place this at the root of your component tree (e.g. `app/layout.tsx` in Next.js, or your top-level `App.tsx`).
+
+    <Callout type="warning">
+      For React Server Components (Next.js App Router), add `"use client"` at the top of the file. The connector UI is client-only.
+    </Callout>
+
+    ```tsx
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ccc.Provider name="My App" icon="https://example.com/icon.png">
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Add a Connect button">
+    Anywhere inside the `Provider` tree, call `ccc.useCcc()` to open the modal and read the connection state.
+
+    ```tsx
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, disconnect, wallet, signerInfo } = ccc.useCcc();
+
+      return signerInfo ? (
+        <button onClick={disconnect}>Disconnect {wallet?.name}</button>
+      ) : (
+        <button onClick={open}>Connect Wallet</button>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Use the signer">
+    Once connected, `ccc.useSigner()` returns a ready-to-use `Signer` that you can pass to any CCC API.
+
+    ```tsx
+    "use client";
+
+    import { useEffect, useState } from "react";
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function Balance() {
+      const signer = ccc.useSigner();
+      const [balance, setBalance] = useState<bigint>();
+
+      useEffect(() => {
+        if (!signer) return;
+        signer.getBalance().then(setBalance); // total CKB balance in shannon (bigint)
+      }, [signer]);
+
+      if (!signer) return <p>Not connected</p>;
+      return <p>Balance: {ccc.fixedPointToString(balance ?? 0n)} CKB</p>;
+    }
+    ```
+
+    Next: use the same `signer` to [compose transactions](/docs/guides/compose-transactions) or [sign messages](/docs/guides/sign-message).
+  </Step>
+</Steps>
+
+### `ccc.Provider` props
+
+| Prop                | Type                                                                   | Description                                      |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ |
+| `children`          | `ReactNode`                                                            | Child components                                 |
+| `hideMark`          | `boolean`                                                              | Hide the CCC watermark                           |
+| `name`              | `string`                                                               | Your app name displayed in the connector         |
+| `icon`              | `string`                                                               | Your app icon URL displayed in the connector     |
+| `signerFilter`      | `(signerInfo: ccc.SignerInfo, wallet: ccc.Wallet) => Promise<boolean>` | Filter which wallets/signers are shown           |
+| `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
+| `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |
+| `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | Network switching options shown in the connector |
+| `preferredNetworks` | `ccc.NetworkPreference[]`                                              | Preferred networks per signer type               |
+
+## Hooks reference
+
+Both hooks must be called from a component rendered inside `ccc.Provider`.
+
+### `ccc.useCcc()`
+
+Returns the full wallet state and control functions. Use it when you need to control the modal, switch networks, or render UI that depends on connection state.
+
+| Return value | Type                           | Description                                            |
+| ------------ | ------------------------------ | ------------------------------------------------------ |
+| `isOpen`     | `boolean`                      | Whether the connector modal is currently open          |
+| `open`       | `() => void`                   | Open the connector modal                               |
+| `close`      | `() => void`                   | Close the connector modal                              |
+| `disconnect` | `() => void`                   | Disconnect the current wallet                          |
+| `setClient`  | `(client: ccc.Client) => void` | Switch to a different CKB client (mainnet/testnet/RPC) |
+| `client`     | `ccc.Client`                   | Current CKB client (defaults to `ClientPublicTestnet`) |
+| `wallet`     | `ccc.Wallet \| undefined`      | Currently connected wallet (`name`, `icon`)            |
+| `signerInfo` | `ccc.SignerInfo \| undefined`  | Current signer info (`name`, `signer`)                 |
+
+### `ccc.useSigner()`
+
+Shortcut for `useCcc().signerInfo?.signer`. Use it when all you need is the active `Signer`. Returns `ccc.Signer | undefined` (undefined when no wallet is connected).
+
+```tsx
+const signer = ccc.useSigner();
+const address = await signer?.getRecommendedAddress();
+```
+
+## Filter which wallets are shown
+
+**Use this when:** you only want to support certain chains or hide wallets that don't fit your app.
+
+`signerFilter` runs for every discovered `(wallet, signer)` pair. Return `true` to keep it, `false` to hide it.
+
+```tsx
+<ccc.Provider
+  signerFilter={async (signerInfo, wallet) => {
+    // Only show CKB-native wallets — hide BTC/EVM/Nostr/Doge
+    return signerInfo.signer.type === ccc.SignerType.CKB;
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+`ccc.SignerType` values: `CKB`, `EVM`, `BTC`, `Nostr`, `Doge`.
+
+## Force a specific network per wallet type
+
+**Use this when:** your dApp targets, for example, CKB mainnet and you want users' BTC wallet to also be on Bitcoin mainnet (not testnet/signet). When the user's wallet is on the wrong network, CCC will prompt it to switch automatically.
+
+```tsx
+<ccc.Provider
+  preferredNetworks={[
+    {
+      addressPrefix: "ckb",          // when CKB client is on mainnet (mainnet prefix = "ckb")
+      signerType: ccc.SignerType.BTC,
+      network: "btc",                // pair BTC wallets with Bitcoin mainnet
+    },
+    {
+      addressPrefix: "ckt",          // when CKB client is on testnet (testnet prefix = "ckt")
+      signerType: ccc.SignerType.BTC,
+      network: "btcTestnet",
+    },
+  ]}
+>
+  {children}
+</ccc.Provider>
+```
+
+`NetworkPreference` type:
+
+```typescript
+type NetworkPreference = {
+  addressPrefix: string; // "ckb" for mainnet, "ckt" for testnet
+  signerType: SignerType;
+  network: string;
+  // BTC network values: "btc" | "btcTestnet" | "btcTestnet4" | "btcSignet" | "fractalBtc"
+};
+```
+
+## Custom UI with `SignersController`
+
+**Use this when:** you want full control over the wallet picker UI (your own modal, button styles, ordering) without giving up CCC's wallet discovery.
+
+`SignersController` discovers every installed wallet extension and exposes them as a list of `WalletWithSigners`. You render the UI; CCC handles detection.
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const controller = new ccc.SignersController();
+let wallets: ccc.WalletWithSigners[] | undefined;
+
+// Discover all installed wallets and their available signers
+await controller.refresh(client, (w) => (wallets = w));
+if (!wallets) throw new Error("No wallets discovered");
+
+wallets.forEach((wallet) => {
+  console.log(
+    wallet.name,
+    wallet.signers.map(({ name }) => name),
+  );
+});
+
+// Pick the first signer (in real code: let the user choose)
+const signer = wallets[0].signers[0].signer;
+
+await signer.connect();
+const signature = await signer.signMessage("Hello world");
+console.log(signature);
+```
+
+## Direct signer instantiation
+
+**Use this when:** your dApp only ever uses one specific wallet (e.g. JoyID-only) and you want to skip wallet discovery entirely.
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+// Pass your app's name and icon — JoyID shows them in its sign-in popup
+const signer = new ccc.JoyId.CkbSigner(client, "CCC", "https://fav.farm/🇨");
+
+await signer.connect();
+const signature = await signer.signTransaction({}); // signs an empty tx as a smoke test
+console.log(signature);
+```
+
+Other directly-instantiable signers live under `ccc.JoyId`, `ccc.UniSat`, `ccc.Okx`, `ccc.Xverse`, `ccc.UtxoGlobal`, `ccc.Eip6963`, `ccc.Nip07`, `ccc.Rei`.
+
+## Supported Ecosystems Matrix
+
+CCC bridges multiple distinct chain cryptography types into CKB. Here is the support matrix:
+| Wallet              | Signer Ecosystems  |
+| ------------------- | ----------------------- |
+| JoyID               | CKB / BTC / EVM / Nostr |
+| OKX                 | BTC / EVM / Nostr       |
+| UniSat              | BTC                     |
+| UTXO Global         | CKB / BTC / DOGE        |
+| Xverse              | BTC                     |
+| MetaMask / EIP-6963 | EVM                     |
+| Nostr (NIP-07)      | Nostr                   |
+| REI                 | CKB                     |
+
+## Which package should I import from?
+
+```typescript
+import { ccc } from "@ckb-ccc/connector-react"; // React apps (re-exports everything below + hooks/Provider)
+import { ccc } from "@ckb-ccc/ccc";             // Browser, custom UI, no React
+import { ccc } from "@ckb-ccc/shell";           // Node.js backend (no UI / no DOM-only signers)
+```
+
+## Troubleshooting
+
+**`useCcc` / `useSigner` returns `undefined` for the signer**
+The user hasn't connected yet, or the component is rendered outside `ccc.Provider`. Always render hooks inside the `Provider` tree, and gate signer-dependent code on `if (!signer) return`.
+
+**The connector modal renders blank or is missing styles in Next.js**
+You're likely missing `"use client"` on the file that uses `ccc.Provider` or any hook. CCC's UI is client-only.
+
+**A wallet I expect to see is missing from the modal**
+Check that:
+- The browser extension is installed and unlocked.
+- Your `signerFilter` (if any) isn't filtering it out.
+- For EVM wallets, the wallet must implement EIP-6963 (MetaMask and most modern wallets do).
+
+**The user's BTC/EVM wallet is on the wrong network**
+Configure [`preferredNetworks`](#force-a-specific-network-per-wallet-type) so CCC prompts the wallet to switch.
+
+**Connection state is lost on page reload**
+CCC persists the last connection in `localStorage` and restores it on `Provider` mount. If it isn't restoring, make sure the `Provider` is mounted on every page (typically in your root layout).
+
+## Next steps
+
+- [Compose transactions](/docs/guides/compose-transactions) — use the connected `signer` to send CKB and pay fees automatically.
+- [Sign messages](/docs/guides/sign-message) — prove address ownership for off-chain auth.
+- [Node.js backend](/docs/guides/node-js-backend) — sign with a private key on the server side.

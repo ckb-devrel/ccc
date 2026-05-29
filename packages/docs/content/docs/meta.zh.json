@@ -1,0 +1,27 @@
+{
+  "title": "文档",
+  "pages": [
+    "---快速开始---",
+    "getting-started/introduction",
+    "getting-started/quick-start",
+    "getting-started/installation",
+    "---核心概念---",
+    "concepts/cell-model",
+    "concepts/signer",
+    "concepts/transaction",
+    "concepts/client",
+    "concepts/address",
+    "---使用指南---",
+    "guides/connect-wallets",
+    "guides/compose-transactions",
+    "guides/sign-message",
+    "guides/udt-tokens",
+    "guides/spore-protocol",
+    "guides/node-js-backend",
+    "---CCC 包---",
+    "packages/index",
+    "packages/core-packages",
+    "packages/protocol-sdks",
+    "packages/wallet-integrations"
+  ]
+}

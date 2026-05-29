@@ -1,0 +1,130 @@
+---
+title: "@ckb-ccc/connector"
+description: 用于钱包连接的 Web Component——框架无关。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/connector` 提供一个原生 [Web Component](https://developer.mozilla.org/en-US/docs/Web/API/Web_components)，无需任何 JavaScript 框架即可渲染 CCC 的钱包选择界面。`@ckb-ccc/connector-react` 以此包为基础构建。
+
+## 适用场景
+
+在纯 HTML 页面、原生 JS 项目，或 React 以外的框架中需要钱包连接能力时，使用 `@ckb-ccc/connector`。如果你正在开发 React 应用，建议使用 [`@ckb-ccc/connector-react`](./connector-react.mdx)——它在本包基础上封装了 React 绑定。
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/connector"/>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/connector
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/connector
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/connector
+```
+  </Tab>
+</Tabs>
+
+## `WebComponentConnector` 类
+
+核心导出是 `ccc.WebComponentConnector`——自定义元素的底层类。将元素注册并添加到 DOM 后，即可渲染钱包选择界面。
+
+```typescript
+import { ccc } from "@ckb-ccc/connector";
+
+// connector 元素
+const connector: ccc.WebComponentConnector;
+
+connector.client;       // 当前 ccc.Client
+connector.wallet;       // 已连接的 ccc.Wallet | undefined
+connector.signer;       // ccc.SignerInfo | undefined
+
+connector.disconnect(); // 断开当前钱包连接
+connector.setClient(newClient); // 切换网络
+```
+
+## 在纯 HTML 中使用
+
+```html
+<!doctype html>
+<html>
+  <head>
+    <script type="module">
+      import { ccc } from "https://esm.sh/@ckb-ccc/connector";
+
+      const connector = document.getElementById("ccc-connector");
+
+      document.getElementById("open-btn").addEventListener("click", () => {
+        connector.style.display = "";
+      });
+
+      connector.addEventListener("close", () => {
+        connector.style.display = "none";
+      });
+
+      connector.addEventListener("willUpdate", () => {
+        if (connector.signer) {
+          connector.signer.signer.getRecommendedAddress().then((addr) => {
+            document.getElementById("address").textContent = addr;
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <button id="open-btn">连接钱包</button>
+    <p id="address"></p>
+
+    <ccc-connector
+      id="ccc-connector"
+      style="display: none; z-index: 999;"
+    ></ccc-connector>
+  </body>
+</html>
+```
+
+## 配合打包工具使用（原生 JS/TS）
+
+```typescript
+import { ccc } from "@ckb-ccc/connector";
+
+// 导入本包后，自定义元素会自动注册。
+const connector = document.querySelector("ccc-connector") as ccc.WebComponentConnector;
+
+// 显示钱包选择界面
+connector.style.display = "";
+
+// 监听事件
+connector.addEventListener("close", () => {
+  connector.style.display = "none";
+});
+
+connector.addEventListener("willUpdate", () => {
+  console.log("已连接钱包：", connector.wallet?.name);
+  console.log("Signer：", connector.signer);
+});
+
+// 切换至主网
+connector.setClient(new ccc.ClientPublicMainnet());
+```
+
+## 与 `@ckb-ccc/connector-react` 的对比
+
+| 特性         | `@ckb-ccc/connector` | `@ckb-ccc/connector-react`     |
+| ------------ | -------------------- | ------------------------------ |
+| 框架依赖     | 无（Web Component）  | React                          |
+| 集成方式     | DOM 事件             | `Provider` + `useCcc()` Hook   |
+| 状态管理     | 手工监听 DOM 事件    | React Context，响应式          |
+| Peer 依赖    | —                    | `react >= 16`                  |
+
+<Callout type="info">
+  `@ckb-ccc/connector-react` 使用 `@lit/react` 对本 Web Component 进行封装。所有钱包集成（JoyID、MetaMask、Nostr、BTC 系钱包等）均通过同一底层 connector 元素接入。
+</Callout>

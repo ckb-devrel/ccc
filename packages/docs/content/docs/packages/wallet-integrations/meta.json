@@ -1,0 +1,16 @@
+{
+  "title": "Wallet Integrations",
+  "description": "Signer packages that connect CCC with concrete wallet ecosystems.",
+  "icon": "Wallet",
+  "defaultOpen": false,
+  "pages": [
+    "joy-id",
+    "eip6963",
+    "nip07",
+    "utxo-global",
+    "okx",
+    "uni-sat",
+    "rei",
+    "xverse"
+  ]
+}

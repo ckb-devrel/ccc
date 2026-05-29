@@ -1,0 +1,27 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "---Get Started---",
+    "getting-started/introduction",
+    "getting-started/quick-start",
+    "getting-started/installation",
+    "---Core Concepts---",
+    "concepts/cell-model",
+    "concepts/signer",
+    "concepts/transaction",
+    "concepts/client",
+    "concepts/address",
+    "---Guides---",
+    "guides/connect-wallets",
+    "guides/compose-transactions",
+    "guides/sign-message",
+    "guides/udt-tokens",
+    "guides/spore-protocol",
+    "guides/node-js-backend",
+    "---Packages---",
+    "packages/index",
+    "packages/core-packages",
+    "packages/protocol-sdks",
+    "packages/wallet-integrations"
+  ]
+}
