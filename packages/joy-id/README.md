@@ -1,70 +1,41 @@
-# @ckb-ccc/joy-id
+<p align="center">
+  <a href="https://app.ckbccc.com/">
+    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
+  </a>
+</p>
 
-JoyID wallet signer for CCC. [JoyID](https://joy.id/) is a passwordless, cross-chain wallet that uses passkeys (WebAuthn) for authentication. It natively supports CKB, Ethereum, Bitcoin, and Nostr.
+<h1 align="center" style="font-size: 48px;">
+  CCC's support for JoyID
+</h1>
 
-[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Fjoy-id)](https://www.npmjs.com/package/@ckb-ccc/joy-id)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@ckb-ccc/joy-id"><img
+    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fjoy-id"
+  /></a>
+  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
+  <a href="https://live.ckbccc.com/"><img
+    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
+  /></a>
+  <a href="https://app.ckbccc.com/"><img
+    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
+  /></a>
+  <a href="https://docs.ckbccc.com/"><img
+    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
+  /></a>
+</p>
 
-## Installation
+<p align="center">
+  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development.
+  <br />
+  Empower yourself with CCC to discover the unlimited potential of CKB.
+  <br />
+  Interoperate with wallets from different chain ecosystems.
+  <br />
+  Fully enabling CKB's Turing completeness and cryptographic freedom power.
+</p>
 
-```bash
-npm install @ckb-ccc/joy-id
-```
-
-> **Note**: In most cases you don't need to install this package directly. It is included automatically when you use `@ckb-ccc/ccc` (browser) or `@ckb-ccc/connector-react` (React).
-
-## Supported Signer Types
-
-JoyID provides multiple signer types through a single wallet:
-
-| Signer Class | Base Type | Chain | Description |
-|-------------|-----------|-------|-------------|
-| `CkbSigner` | `ccc.Signer` | CKB | Native CKB signing |
-| `EvmSigner` | `ccc.SignerEvm` | Ethereum/EVM | EVM-compatible signing |
-| `BitcoinSigner` | `ccc.SignerBtc` | Bitcoin | Bitcoin signing |
-| `NostrSigner` | `ccc.SignerNostr` | Nostr | Nostr (NIP-07) signing |
-
-## Usage with React (Recommended)
-
-JoyID is automatically available in the wallet selection modal when using `@ckb-ccc/connector-react`:
-
-```tsx
-"use client";
-import { ccc } from "@ckb-ccc/connector-react";
-
-function App() {
-  return (
-    <ccc.Provider>
-      <WalletButton />
-    </ccc.Provider>
-  );
-}
-
-function WalletButton() {
-  const { open } = ccc.useCcc();
-  const signer = ccc.useSigner();
-
-  return (
-    <button onClick={open}>
-      {signer ? "Connected via JoyID" : "Connect Wallet"}
-    </button>
-  );
-}
-```
-
-## Standalone Usage
-
-```typescript
-import { ccc } from "@ckb-ccc/ccc";
-
-const client = new ccc.ClientPublicTestnet();
-
-// JoyID signers are available when JoyID is registered as a signer source.
-// In standalone mode, you typically use the connector or connector-react
-// which handles JoyID signer discovery automatically.
-```
-
-## Links
-
-- [JoyID Website](https://joy.id/)
-- [CCC Documentation](https://docs.ckbccc.com)
-- [CCC GitHub](https://github.com/ckb-devrel/ccc)
+<h3 align="center">
+  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
+</h3>
