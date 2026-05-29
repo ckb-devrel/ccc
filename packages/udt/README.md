@@ -5,7 +5,7 @@
 </p>
 
 <h1 align="center" style="font-size: 48px;">
-  @ckb-ccc/udt
+  CCC's Support for User Defined Token (UDT)
 </h1>
 
 <p align="center">
@@ -36,120 +36,66 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-> CCC's support for **User Defined Tokens (UDT)** on CKB — transfer, query balance, and manage xUDT/SSRI-compliant tokens. Similar to ERC-20 tokens on Ethereum, but built on CKB's Cell model.
+## Quick Start
 
-## What is UDT?
+- At the moment, `UDT` and `UDTPausable` from `@ckb-ccc/udt` are fully supported through SSRI. In the future, there will be built in TypeScript generation directly based on the Rust source code on compilation.
+- To instantiate a `UDT` script compliant with SSRI, you can provide the SSRI server url and also specify the OutPoint of the script code.
+- You can also instantiate a `UDTPausable` script or other scripts that extends from `UDT`.
 
-UDT (User Defined Token) is CKB's fungible token standard. Each UDT balance is stored in a Cell's `data` field, with a `type script` identifying the token. The most common implementation is **xUDT** (extensible UDT).
-
-## Install
-
-```bash
-npm install @ckb-ccc/udt
-```
-
-## Quick Start: Transfer UDT (xUDT)
-
-This is the most common use case — transferring xUDT tokens:
-
-```typescript
-import { ccc } from "@ckb-ccc/ccc";
-
-const client = new ccc.ClientPublicTestnet();
-const signer = new ccc.SignerCkbPrivateKey(client, "0xYOUR_PRIVATE_KEY");
-await signer.connect();
-
-// 1. Set up the UDT type script (identifies this specific token)
-const type = await ccc.Script.fromKnownScript(
-  signer.client,
-  ccc.KnownScript.XUdt,
-  "0xOWNER_LOCK_HASH...",  // The lock hash that uniquely identifies this token
-);
-
-// 2. Get the xUDT code cell info
-const xudtInfo = await signer.client.getKnownScript(ccc.KnownScript.XUdt);
-const code = (await signer.client.getCellDeps(xudtInfo.cellDeps))[0].outPoint;
-
-// 3. Create UDT instance
-const udt = new ccc.udt.Udt(code, type);
-
-// 4. Build transfer transaction
-const { script: receiverLock } = await ccc.Address.fromString(receiverAddress, client);
-let { res: tx } = await udt.transfer(signer, [
-  { to: receiverLock, amount: ccc.fixedPointFrom(1) },
-]);
-
-// 5. Complete UDT inputs, CKB inputs, and fee
-tx = await udt.completeBy(tx, signer);
-await tx.completeInputsByCapacity(signer);
-await tx.completeFeeBy(signer);
-
-// 6. Send
-const txHash = await signer.sendTransaction(tx);
-```
-
-## SSRI-Compliant UDT
-
-For tokens that support the SSRI protocol, you get additional metadata methods:
-
-```typescript
+```ts
+import { Server } from "@ckb-ccc/ssri";
 import { Udt, UdtPausable } from "@ckb-ccc/udt";
 
-const udt = new Udt(code, type);
+const { signer } = useApp();
+const server = new Server("https://localhost:9090");
 
-// Query token metadata (SSRI-compliant tokens only)
-const { res: name } = await udt.name();       // e.g., "My Token"
-const { res: symbol } = await udt.symbol();    // e.g., "MTK"
-const { res: decimals } = await udt.decimals(); // e.g., 8
+const udt = new Udt(
+  server,
+  {
+    txHash: "0x...",
+    index: 0,
+  },
+  {
+    codeHash: "0x...",
+    hashType: "type",
+    args: "0x...",
+  },
+);
+
+const udtPausable = new UdtPausable(
+  server,
+  {
+    txHash: "0x...",
+    index: 0,
+  },
+  {
+    codeHash: "0x...",
+    hashType: "type",
+    args: "0x...",
+  },
+);
 ```
 
-## UDTPausable
+You can directly call the methods in the script:
 
-For tokens with pause functionality:
-
-```typescript
-import { UdtPausable } from "@ckb-ccc/udt";
-
-const udtPausable = new UdtPausable(code, type);
-
-// Check pause list
+```ts
+const { res: udtSymbol } = await udt.symbol();
 const { res: pauseList } = await udtPausable.enumeratePaused();
 ```
 
-## API Overview
+Some of the methods can return a `ccc.Transaction`. For example, you can call `transfer` with the following params:
 
-### `Udt` Methods
+```ts
+const { script: to } = await signer.getRecommendedAddressObj();
 
-| Method | Description |
-|--------|-------------|
-| `transfer(signer, [{to, amount}])` | Build a transfer transaction |
-| `completeBy(tx, signer)` | Complete UDT inputs for a transaction |
-| `name()` | Get token name (SSRI only) |
-| `symbol()` | Get token symbol (SSRI only) |
-| `decimals()` | Get token decimals (SSRI only) |
-| `balance(address)` | Get token balance (SSRI only) |
-| `icon()` | Get token icon URL (SSRI only) |
+const { res: transferTx } = await udt.transfer(signer, [{ to, amount: 100 }]);
+const completedTx = await udt.completeUdtBy(transferTx, signer);
 
-### Transaction Completion Order
-
-When transferring UDT, the correct order is:
-
-```typescript
-// 1. Build the UDT transfer
-let { res: tx } = await udt.transfer(signer, transfers);
-// 2. Complete UDT inputs (gather enough token cells)
-tx = await udt.completeBy(tx, signer);
-// 3. Complete CKB capacity inputs
-await tx.completeInputsByCapacity(signer);
-// 4. Complete fee
-await tx.completeFeeBy(signer);
-// 5. Send
-const txHash = await signer.sendTransaction(tx);
+await completedTx.completeInputsByCapacity(signer);
+await completedTx.completeFeeBy(signer);
+const transferTxHash = await signer.sendTransaction(completedTx);
 ```
 
-## Links
-
-- [API Reference](https://api.ckbccc.com)
-- [Documentation](https://docs.ckbccc.com)
-- [Playground: Transfer UDT](https://live.ckbccc.com)
-- [GitHub](https://github.com/ckb-devrel/ccc)
+<h3 align="center">
+  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
+</h3>

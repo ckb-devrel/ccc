@@ -1,64 +1,41 @@
-# @ckb-ccc/ccc
+<p align="center">
+  <a href="https://app.ckbccc.com/">
+    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
+  </a>
+</p>
 
-The aggregated CCC package for browser environments. This is the **all-in-one** package that bundles `@ckb-ccc/core` with all wallet signers and protocol packages. Use this when you want to build a custom wallet connection UI without the built-in connector modal.
+<h1 align="center" style="font-size: 64px;">
+  CCC
+</h1>
 
-[![NPM Version](https://img.shields.io/npm/v/%40ckb-ccc%2Fccc)](https://www.npmjs.com/package/@ckb-ccc/ccc)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@ckb-ccc/ccc"><img
+    alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fccc"
+  /></a>
+  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
+  <a href="https://live.ckbccc.com/"><img
+    alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
+  /></a>
+  <a href="https://app.ckbccc.com/"><img
+    alt="App" src="https://img.shields.io/website?url=https%3A%2F%2Fapp.ckbccc.com%2F&label=App"
+  /></a>
+  <a href="https://docs.ckbccc.com/"><img
+    alt="Docs" src="https://img.shields.io/website?url=https%3A%2F%2Fdocs.ckbccc.com%2F&label=Docs"
+  /></a>
+</p>
 
-## Installation
+<p align="center">
+  CCC - CKBers' Codebase is a one-stop solution for your CKB JS/TS ecosystem development. 
+  <br />
+  Empower yourself with CCC to discover the unlimited potential of CKB.
+  <br />
+  Interoperate with wallets from different chain ecosystems.
+  <br />
+  Fully enabling CKB's Turing completeness and cryptographic freedom power.
+</p>
 
-```bash
-npm install @ckb-ccc/ccc
-```
-
-## When to Use This Package
-
-| Your Scenario | Package |
-|---------------|---------|
-| React app with built-in wallet modal | `@ckb-ccc/connector-react` |
-| Non-React frontend with built-in modal | `@ckb-ccc/connector` |
-| **Custom wallet UI (no built-in modal)** | **`@ckb-ccc/ccc` ← this package** |
-| Node.js backend / script | `@ckb-ccc/shell` |
-
-## What's Included
-
-`@ckb-ccc/ccc` re-exports everything from:
-
-- **`@ckb-ccc/core`** — Transaction, Cell, Script, Client, Signer, etc.
-- **`@ckb-ccc/udt`** — UDT/xUDT token operations (`ccc.udt.*`)
-- **`@ckb-ccc/spore`** — Spore/DOB NFT operations (`ccc.spore.*`)
-- **`@ckb-ccc/ssri`** — SSRI protocol (`ccc.ssri.*`)
-- **All wallet signers** — JoyID, MetaMask (EIP-6963), UniSat, OKX, Xverse, NIP-07, Rei, UTXO Global
-- **`SignersController`** — Manages automatic discovery and lifecycle of all wallet signers
-
-## Usage
-
-```typescript
-import { ccc } from "@ckb-ccc/ccc";
-
-const client = new ccc.ClientPublicTestnet();
-
-// Use SignersController to discover all available wallets
-const controller = new ccc.SignersController(client);
-controller.subscribeSigners((signerInfo) => {
-  console.log(`Found wallet: ${signerInfo.name}`);
-});
-
-// Or use a specific signer directly
-const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
-await signer.connect();
-const balance = await signer.getBalance();
-```
-
-## Advanced Exports
-
-```typescript
-import { cccA } from "@ckb-ccc/ccc/advanced";
-// cccA contains unstable/internal APIs — use with caution
-```
-
-## Links
-
-- [CCC Documentation](https://docs.ckbccc.com)
-- [API Reference](https://api.ckbccc.com)
-- [CCC Playground](https://live.ckbccc.com/)
-- [CCC GitHub](https://github.com/ckb-devrel/ccc)
+<h3 align="center">
+  Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
+</h3>
