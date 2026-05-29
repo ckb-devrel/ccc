@@ -1,0 +1,241 @@
+---
+title: Spore Protocol
+description: Create and manage digital objects (DOBs) using the Spore Protocol SDK.
+icon: Sprout
+---
+
+Create permanent, ownable **Digital Objects (DOBs)** directly on the CKB blockchain. A Spore encodes arbitrary content (images, text, JSON, etc.) into a cell — ownership is enforced by a lock script, and transfers are atomic on-chain operations without any marketplace or indexer dependency.
+
+## What you'll get
+
+After this guide you'll be able to:
+
+- **Create a Spore** — store content (text, image, JSON, …) permanently on-chain
+- **Transfer and melt** Spores — change ownership or destroy and reclaim CKB
+- **Organize with Clusters** — group related Spores into named collections
+- **Query Spores** — iterate owned Spores and filter by cluster
+
+<Callout type="info">
+  All examples assume you already have a connected `signer`. See [Connect Wallets](/docs/guides/connect-wallets) (browser) or [Node.js Backend](/docs/guides/node-js-backend) (server) first.
+</Callout>
+
+## Key concepts
+
+- **Spore** — a cell containing arbitrary content + a type script that gives it a unique ID. Content is permanent; ownership is transferable.
+- **Cluster** — an optional collection cell with a name and description. Any Spore can reference a Cluster ID to declare membership.
+- **Melt** — destroy a Spore cell and reclaim its locked CKB capacity. Irreversible.
+
+## Installation
+
+```bash
+npm install @ckb-ccc/spore
+```
+
+```typescript
+import { createSpore, transferSpore, meltSpore } from "@ckb-ccc/spore";
+import { createSporeCluster, transferSporeCluster } from "@ckb-ccc/spore";
+```
+
+## Create a Spore
+
+`createSpore` encodes your content into a new Spore cell. You provide a MIME content type and raw content bytes; CCC handles the on-chain data packing:
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { createSpore } from "@ckb-ccc/spore";
+
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
+  // Optional: send the Spore to a different address
+  // to: recipientLockScript,
+});
+
+// Balance capacity and pay fee
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log("Spore ID:", id);              // "0x..." — unique type script args, store this!
+console.log("Transaction hash:", txHash);  // "0x..." — 32-byte tx hash
+```
+
+<Callout type="info">
+  The returned `id` is the sporeId — the `args` field of the Spore's type script. Store it; you will need it for transfers and melts.
+</Callout>
+
+### Spore inside a Cluster
+
+If you want the Spore to belong to a Cluster, include `clusterId` in the data and set `clusterMode`:
+
+```typescript
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "image/png",
+    content: pngBytes,
+    clusterId: "0xabc123...", // id returned by createSporeCluster
+  },
+  clusterMode: "lockProxy", // or "clusterCell"
+});
+```
+
+| `clusterMode`   | Behaviour                                                                      |
+| --------------- | ------------------------------------------------------------------------------ |
+| `"lockProxy"`   | Puts a cell with the Cluster's lock in both inputs and outputs — lower cost    |
+| `"clusterCell"` | Puts the Cluster cell itself in inputs and outputs — proves ownership directly |
+| `"skip"`        | Skips cluster logic entirely — use only if you handle it yourself              |
+
+## Transfer a Spore
+
+**Use this when:** you want to change ownership of an existing Spore (e.g. sell, gift, or move to a different address).
+
+```typescript
+import { transferSpore } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSpore({
+  signer,
+  id: sporeId,   // "0x..."
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## Melt (destroy) a Spore
+
+**Use this when:** you want to permanently destroy a Spore and reclaim its locked CKB capacity:
+
+```typescript
+import { meltSpore } from "@ckb-ccc/spore";
+
+const { tx } = await meltSpore({
+  signer,
+  id: sporeId,
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+<Callout type="error">
+  Melting is irreversible. The Spore's content is removed from the chain and its CKB is released. There is no undo.
+</Callout>
+
+## Clusters
+
+Clusters are optional named collections. Create a Cluster first, then reference its ID when creating Spores.
+
+### Create a Cluster
+
+```typescript
+import { createSporeCluster } from "@ckb-ccc/spore";
+
+const { tx, id: clusterId } = await createSporeCluster({
+  signer,
+  data: {
+    name: "My Collection",
+    description: "A collection of on-chain art.",
+  },
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+console.log("Cluster ID:", clusterId); // "0x..." — pass this as clusterId when creating Spores
+```
+
+### Transfer a Cluster
+
+```typescript
+import { transferSporeCluster } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSporeCluster({
+  signer,
+  id: clusterId,
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+await signer.sendTransaction(tx);
+```
+
+## Query Spores and Clusters
+
+All query functions return **async generators** — they stream results lazily so you can process large collections without loading everything into memory.
+
+```typescript
+import { findSporesBySigner, findSporeClusters } from "@ckb-ccc/spore";
+
+// Iterate all Spores owned by the signer
+for await (const { spore, sporeData } of findSporesBySigner({ signer })) {
+  console.log(spore.outPoint, sporeData.contentType);
+}
+
+// Filter: only Spores in a specific Cluster
+for await (const { sporeData } of findSporesBySigner({
+  signer,
+  clusterId: "0xabc123...",
+})) {
+  console.log(sporeData);
+}
+
+// Filter: only public Spores (not in any cluster)
+for await (const { spore } of findSporesBySigner({
+  signer,
+  clusterId: "", // empty string = public spores only
+})) {
+  console.log(spore.outPoint);
+}
+```
+
+## API reference
+
+| Function                            | Description                         |
+| ----------------------------------- | ----------------------------------- |
+| `createSpore(params)`               | Create a new Spore cell             |
+| `transferSpore(params)`             | Transfer a Spore to a new owner     |
+| `meltSpore(params)`                 | Destroy a Spore and reclaim CKB     |
+| `findSpore(client, id)`             | Look up a single Spore by ID        |
+| `findSpores(params)`                | Query Spores by lock and/or cluster |
+| `findSporesBySigner(params)`        | Query Spores owned by a signer      |
+| `createSporeCluster(params)`        | Create a new Cluster cell           |
+| `transferSporeCluster(params)`      | Transfer a Cluster to a new owner   |
+| `findCluster(client, id)`           | Look up a single Cluster by ID      |
+| `findSporeClusters(params)`         | Query Clusters by lock              |
+| `findSporeClustersBySigner(params)` | Query Clusters owned by a signer    |
+
+## Troubleshooting
+
+**`createSpore` fails with "not enough capacity"**
+Spore cells store content on-chain, so they require more CKB capacity than a basic transfer. A text Spore needs ~200+ CKB; an image Spore can need thousands. Make sure the signer has sufficient balance.
+
+**Spore ID is lost after creation**
+The `id` returned by `createSpore` is the **type script args** of the Spore cell. It is deterministic (derived from the first input + output index), but you should store it immediately. You can also recover it via `findSporesBySigner`.
+
+**`clusterMode` — which one should I use?**
+- `"lockProxy"` (recommended) — lower cost, proves cluster ownership via a proxy cell with the same lock.
+- `"clusterCell"` — higher cost, puts the actual cluster cell in the transaction. Use this when the cluster's lock is different from the signer's.
+- `"skip"` — only if you are manually handling cluster inputs/outputs yourself.
+
+## Next steps
+
+- [Compose transactions](/docs/guides/compose-transactions) — understand the declare → fill → fee → send pattern used in every Spore operation.
+- [UDT tokens](/docs/guides/udt-tokens) — issue fungible tokens on CKB.
+- [Node.js backend](/docs/guides/node-js-backend) — mint Spores from a server-side script.

@@ -1,0 +1,13 @@
+{
+  "title": "Core Packages",
+  "description": "Foundational packages: core primitives and aggregated entry points.",
+  "icon": "Box",
+  "defaultOpen": true,
+  "pages": [
+    "ccc",
+    "core",
+    "shell",
+    "connector",
+    "connector-react"
+  ]
+}

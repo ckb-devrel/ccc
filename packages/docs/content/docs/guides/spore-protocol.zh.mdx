@@ -1,0 +1,239 @@
+---
+title: Spore 协议
+description: 使用 Spore 协议 SDK 创建和管理链上数码物（DOB）。
+icon: Sprout
+---
+
+直接在 CKB 区块链上创建永久可拥有的**链上数码物（Digital Object，简称 DOB）**。Spore 将任意内容（图片、文本、JSON 等）编码存入 Cell——所有权由 Lock 脚本强制执行，转移是原子性的链上操作，不依赖任何市场或索引器。
+
+## 完成本指南后你将能够
+
+- **创建 Spore**——将内容（文本、图片、JSON……）永久存入链上
+- **转移与销毁 Spore**——变更所有权，或销毁并取回 CKB
+- **用 Cluster 组织 Spore**——将相关 Spore 归入命名集合
+- **查询 Spore**——遍历持有的 Spore，并按 Cluster 过滤
+
+<Callout type="info">
+  以下示例均假设你已有一个已连接的 `signer`。请先阅读[连接钱包](/docs/guides/connect-wallets)（浏览器端）或 [Node.js 后端](/docs/guides/node-js-backend)（服务端）。
+</Callout>
+
+## 核心概念
+
+- **Spore**——包含任意内容的 Cell，附带赋予其唯一 ID 的 Type 脚本。内容永久存储，所有权可转移。
+- **Cluster**——可选的集合 Cell，包含名称和描述。任意 Spore 均可通过 Cluster ID 来确定其归属。
+- **销毁（Melt）**——销毁 Spore Cell 并取回其锁定的 CKB 容量，操作不可逆。
+
+## 安装
+
+```bash
+npm install @ckb-ccc/spore
+```
+
+```typescript
+import { createSpore, transferSpore, meltSpore } from "@ckb-ccc/spore";
+import { createSporeCluster, transferSporeCluster } from "@ckb-ccc/spore";
+```
+
+## 创建 Spore
+
+`createSpore` 将内容编码存入新的 Spore Cell。提供 MIME 内容类型和原始内容字节，链上数据打包由 CCC 处理：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { createSpore } from "@ckb-ccc/spore";
+
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
+  // 可选：将 Spore 发送至其他地址
+  // to: recipientLockScript,
+});
+
+// 填充容量并支付手续费
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+
+const txHash = await signer.sendTransaction(tx);
+console.log("Spore ID:", id);              // "0x..." — 唯一的 Type 脚本 args，请妥善保存！
+console.log("Transaction hash:", txHash);  // "0x..." — 32 字节交易哈希
+```
+
+<Callout type="info">
+  返回的 `id` 即为 sporeId——Spore Type 脚本的 `args` 字段。请立即保存，后续转移和销毁操作均需用到。
+</Callout>
+
+### 在 Cluster 中创建 Spore
+
+如需将 Spore 归入某个 Cluster，在 `data` 中传入 `clusterId` 并设置 `clusterMode`：
+
+```typescript
+const { tx, id } = await createSpore({
+  signer,
+  data: {
+    contentType: "image/png",
+    content: pngBytes,
+    clusterId: "0xabc123...", // createSporeCluster 返回的 id
+  },
+  clusterMode: "lockProxy", // 或 "clusterCell"
+});
+```
+
+| `clusterMode`   | 行为                                  |
+| --------------- | ------------------------------------- |
+| `"lockProxy"`   | 在输入和输出中各放入一个与 Cluster 同 Lock 的代理 Cell，成本较低 |
+| `"clusterCell"` | 将 Cluster Cell 本身放入输入和输出，直接证明所有权，成本较高 |
+| `"skip"`        | 完全跳过 Cluster 逻辑，仅在自行处理 Cluster 的输入输出时使用 |
+
+## 转移 Spore
+
+**适用场景**：变更已有 Spore 的所有权（如出售、赠送或迁移至其他地址）。
+
+```typescript
+import { transferSpore } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSpore({
+  signer,
+  id: sporeId,   // "0x..."
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## 销毁 Spore
+
+**适用场景**：永久销毁 Spore 并取回其锁定的 CKB 容量：
+
+```typescript
+import { meltSpore } from "@ckb-ccc/spore";
+
+const { tx } = await meltSpore({
+  signer,
+  id: sporeId,
+});
+
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+<Callout type="error">
+  销毁操作不可逆。Spore 的内容将从链上移除，CKB 随之释放，无法撤销。
+</Callout>
+
+## Cluster
+
+Cluster 是可选的命名集合。先创建 Cluster，再在创建 Spore 时引用其 ID。
+
+### 创建 Cluster
+
+```typescript
+import { createSporeCluster } from "@ckb-ccc/spore";
+
+const { tx, id: clusterId } = await createSporeCluster({
+  signer,
+  data: {
+    name: "My Collection",
+    description: "A collection of on-chain art.",
+  },
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+console.log("Cluster ID:", clusterId); // "0x..." — 创建 Spore 时作为 clusterId 传入
+```
+
+### 转移 Cluster
+
+```typescript
+import { transferSporeCluster } from "@ckb-ccc/spore";
+
+const { script: newOwner } = await ccc.Address.fromString(
+  recipientAddress,
+  signer.client,
+);
+
+const { tx } = await transferSporeCluster({
+  signer,
+  id: clusterId,
+  to: newOwner,
+});
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+await signer.sendTransaction(tx);
+```
+
+## 查询 Spore 和 Cluster
+
+所有查询函数均返回**异步生成器（AsyncGenerator）**——按需流式返回结果，处理大型集合时无需将全部数据加载到内存。
+
+```typescript
+import { findSporesBySigner, findSporeClusters } from "@ckb-ccc/spore";
+
+// 遍历 signer 持有的所有 Spore
+for await (const { spore, sporeData } of findSporesBySigner({ signer })) {
+  console.log(spore.outPoint, sporeData.contentType);
+}
+
+// 过滤：仅返回指定 Cluster 中的 Spore
+for await (const { sporeData } of findSporesBySigner({
+  signer,
+  clusterId: "0xabc123...",
+})) {
+  console.log(sporeData);
+}
+
+// 过滤：仅返回公开 Spore（不属于任何 Cluster）
+for await (const { spore } of findSporesBySigner({
+  signer,
+  clusterId: "", // 空字符串 = 仅公开 Spore
+})) {
+  console.log(spore.outPoint);
+}
+```
+
+## API 参考
+
+| 函数                                | 说明                              |
+| ----------------------------------- | --------------------------------- |
+| `createSpore(params)`               | 创建新的 Spore Cell               |
+| `transferSpore(params)`             | 将 Spore 转移至新所有者           |
+| `meltSpore(params)`                 | 销毁 Spore 并取回 CKB             |
+| `findSpore(client, id)`             | 按 ID 查询单个 Spore              |
+| `findSpores(params)`                | 按 Lock 和/或 Cluster 查询 Spore  |
+| `findSporesBySigner(params)`        | 查询 `signer` 持有的 Spore        |
+| `createSporeCluster(params)`        | 创建新的 Cluster Cell             |
+| `transferSporeCluster(params)`      | 将 Cluster 转移至新所有者         |
+| `findCluster(client, id)`           | 按 ID 查询单个 Cluster            |
+| `findSporeClusters(params)`         | 按 Lock 查询 Cluster              |
+| `findSporeClustersBySigner(params)` | 查询 `signer` 持有的 Cluster      |
+
+## 常见问题
+
+**`createSpore` 报"not enough capacity"错误**
+Spore Cell 将内容存储在链上，所需 CKB 容量远超普通转账。文本 Spore 约需 200 CKB 以上，图片 Spore 可能需要数千 CKB。请确保 `signer` 余额充足。
+
+**创建后 Spore ID 丢失**
+`createSpore` 返回的 `id` 是 Spore Cell 的 **Type 脚本 args**，由首个输入和输出索引通过确定性的方式计算得出，应在创建后立即保存。也可通过 `findSporesBySigner` 找回。
+
+**`clusterMode` 该选哪个？**
+- `"lockProxy"`（推荐）——成本较低，通过与 Cluster 同 Lock 的代理 Cell 证明集合归属。
+- `"clusterCell"`——成本较高，将实际 Cluster Cell 纳入交易，适用于 Cluster 的 Lock 与 `signer` 不同的情况。
+- `"skip"`——仅在自行处理 Cluster 输入输出时使用。
+
+## 下一步
+
+- [组装交易](/docs/guides/compose-transactions)——了解每个 Spore 操作通用的声明 → 填充 → 手续费 → 发送模式。
+- [UDT 代币](/docs/guides/udt-tokens)——在 CKB 上发行同质化代币。
+- [Node.js 后端](/docs/guides/node-js-backend)——从服务端脚本批量铸造 Spore。

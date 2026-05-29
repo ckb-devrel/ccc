@@ -1,0 +1,171 @@
+---
+title: CKB Cell Model
+description: Understand the UTXO-based cell model that underlies every CKB transaction.
+icon: LayoutGrid
+---
+
+## What is the cell model?
+
+CKB uses a generalized UTXO model called the **cell model**. Like Bitcoin UTXOs, cells are discrete units of state — consumed by transactions and replaced with new ones. Unlike Bitcoin UTXOs, each cell can store arbitrary data and be governed by programmable scripts.
+
+Every cell has four fields:
+
+| Field        | Type                  | Description                                             |
+| ------------ | --------------------- | ------------------------------------------------------  |
+| `capacity`   | `Num`                 | Storage space in Shannon (1 CKB = 100,000,000 Shannon)  |
+| `lock`       | `Script`              | Defines ownership — who can consume this cell           |
+| `type`       | `Script \| undefined` | Defines asset behavior — optional, enforced on transfer |
+| `outputData` | `Hex`                 | Arbitrary bytes stored in the cell                      |
+
+In CCC, `CellOutput` represents the structured output portion of a cell:
+
+```typescript
+export class CellOutput {
+  constructor(
+    public capacity: Num,
+    public lock: Script,
+    public type?: Script,
+  ) {}
+}
+```
+
+A full on-chain cell — with its location on the chain — is represented by `Cell`:
+
+```typescript
+export class Cell extends CellAny {
+  constructor(
+    public outPoint: OutPoint,
+    cellOutput: CellOutput,
+    outputData: Hex,
+  ) {}
+}
+```
+
+## Scripts
+
+Scripts are the programmable logic attached to cells. CKB runs them in a RISC-V virtual machine to validate each transaction.
+
+```typescript
+export class Script {
+  constructor(
+    public codeHash: Hex,      // Identifies the script code
+    public hashType: HashType, // "type" | "data" | "data1" | "data2"
+    public args: Hex,          // Arguments passed to the script at runtime
+  ) {}
+}
+```
+
+Most commonly, you'll construct a `Script` from a known script:
+
+```typescript
+const xudtScript = await ccc.Script.fromKnownScript(
+  client,
+  ccc.KnownScript.XUdt,
+  "0xabcdef...", // args
+);
+```
+
+If you need to construct a `Script` from a plain object, you can use:
+
+```typescript
+const script = ccc.Script.from({
+  codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+  hashType: "type",
+  args: "0xabcdef...",
+});
+```
+
+### Lock scripts
+
+A lock script defines the ownership of a cell — who owns it. A transaction can only consume a cell if its lock conditions are satisfied — typically by providing a valid cryptographic signature. The most common lock on CKB is `Secp256k1Blake160`, which works similarly to Bitcoin's P2PKH.
+
+### Type scripts
+
+A type script constrains how a cell can be transformed. It runs against both the consumed inputs and the created outputs, making it the right tool for enforcing asset rules — for example, preventing a UDT (User-Defined Token) supply from being inflated during a transfer.
+
+Type scripts are optional. A cell without one has no asset-level constraints beyond its lock.
+
+## Capacity and Shannon
+
+Capacity is measured in **Shannon** — the smallest unit of CKB:
+
+```
+1 CKB = 100,000,000 Shannon
+```
+
+Use `ccc.fixedPointFrom()` to convert human-readable CKB amounts to Shannon:
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+ccc.fixedPointFrom("10");   // → 1_000_000_000n
+ccc.fixedPointFrom(10);     // → 1_000_000_000n
+ccc.fixedPointFrom("61.5"); // → 6_150_000_000n
+```
+
+`fixedPointFrom` defaults to 8 decimal places, matching CKB's Shannon denominator. The return type is `bigint`.
+
+## OutPoint
+
+An `OutPoint` uniquely identifies a cell on-chain by referencing the transaction that created it and its position in that transaction's output list:
+
+```typescript
+export class OutPoint {
+  constructor(
+    public txHash: Hex, // Hash of the creating transaction
+    public index: Num,  // Output index within that transaction
+  ) {}
+}
+
+// Usage:
+OutPoint.from({ txHash: "0x...", index: 0 });
+```
+
+When a cell is spent as a transaction input, it is referenced via its `OutPoint` through `CellInput`:
+
+```typescript
+export class CellInput {
+  constructor(
+    public previousOutput: OutPoint, // The cell being consumed
+    public since: Num,               // Time-lock constraint (0 = none)
+    public cellOutput?: CellOutput,
+    public outputData?: Hex,
+  ) {}
+}
+```
+
+## Addresses
+
+A CKB address is a bech32m encoding of a lock script. It combines the script's `codeHash`, `hashType`, and `args` with a network prefix — `ckb` for mainnet, `ckt` for testnet.
+
+```typescript
+export class Address {
+  constructor(
+    public script: Script,
+    public prefix: string,
+  ) {}
+
+  // Decode an address string back to its Address object
+  static async fromString(
+    address: string,
+    clients: Client | Record<string, Client>,
+  ): Promise<Address> {}
+
+  // Build an Address from a Script and a Client
+  static fromScript(script: ScriptLike, client: Client): Address {}
+
+  // Encode to a bech32m string
+  toString(): string {}
+}
+```
+
+Two addresses that share the same lock script are identical. When you call `signer.getRecommendedAddress()`, CCC encodes the signer's lock script into the right format for the active network.
+
+## How CCC abstracts the cell model
+
+You rarely need to construct raw `OutPoint` or `Script` objects by hand. CCC's helpers handle encoding, hashing, and on-chain lookups:
+
+- **`Transaction.from()`** — builds a transaction from a plain object, inferring capacities where omitted.
+- **`completeInputsByCapacity(signer)`** — selects input cells from the signer's address to cover the required capacity.
+- **`completeFeeBy(signer)`** — calculates the fee and adds a change output.
+- **`Script.fromKnownScript(client, KnownScript.Secp256k1Blake160, args)`** — resolves well-known script code hashes by name, no hardcoding required.

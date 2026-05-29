@@ -1,0 +1,210 @@
+---
+title: "@ckb-ccc/connector-react"
+description: 面向 React 的连接器，提供 Provider 组件和 Hook，用于 CKB 钱包集成。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/connector-react` 是 React 和 Next.js 应用的推荐集成方案。它提供一个 Context `Provider`、一个暴露完整连接器状态的 `useCcc` Hook，以及一个在钱包已连接时返回当前 `signer` 的 `useSigner` Hook。
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/connector-react"/>
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash
+    npm install @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ckb-ccc/connector-react
+    ```
+  </Tab>
+</Tabs>
+
+## 快速上手
+
+<Steps>
+  <Step title="用 Provider 包裹应用">
+    将 `Provider` 放在应用的根层级，位于所有需要访问钱包的组件之上。
+
+    ```tsx
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }) {
+      return (
+        <ccc.Provider>
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="使用 useCcc Hook">
+    在任意子组件中调用 `useCcc()`，即可调用其 `open` 方法打开钱包选择界面并读取已连接钱包的状态。
+
+    ```tsx
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, wallet, signerInfo } = ccc.useCcc();
+
+      return (
+        <div>
+          <button onClick={open}>
+            {wallet ? `已连接：${wallet.name}` : "连接钱包"}
+          </button>
+          {signerInfo && <Address />}
+        </div>
+      );
+    }
+
+    function Address() {
+      const { signerInfo } = ccc.useCcc();
+      const [address, setAddress] = React.useState("");
+
+      React.useEffect(() => {
+        signerInfo?.signer.getRecommendedAddress().then(setAddress);
+      }, [signerInfo]);
+
+      return <p>{address}</p>;
+    }
+    ```
+  </Step>
+</Steps>
+
+## Provider 属性
+
+```tsx
+<ccc.Provider
+  hideMark={false}
+  name="My App"
+  icon="https://example.com/icon.png"
+  signerFilter={async (signerInfo, wallet) => true}
+  defaultClient={new ccc.ClientPublicTestnet()}
+  clientOptions={[
+    { name: "Testnet", client: new ccc.ClientPublicTestnet() },
+    { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
+  ]}
+  preferredNetworks={[{ addressPrefix: "ckb", signerType: ccc.SignerType.BTC, network: "btc" }]}
+>
+  {children}
+</ccc.Provider>
+```
+
+| 属性名               | 类型                                       | 说明                                               |
+| ------------------- | ------------------------------------------ | -------------------------------------------------- |
+| `children`          | `ReactNode`                                | 应用组件树                                         |
+| `connectorProps`    | `HTMLAttributes<{}>?`                      | 传递给 connector 元素的额外 Props                  |
+| `hideMark`          | `boolean?`                                 | 隐藏连接器界面中的"Powered by CCC"标识             |
+| `name`              | `string?`                                  | 显示在钱包选择界面中的应用名称                     |
+| `icon`              | `string?`                                  | 显示在钱包选择界面中的应用图标 URL                 |
+| `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | 筛选在界面中显示的钱包与 `signer` 组合             |
+| `signersController` | `ccc.SignersController?`                   | 自定义 Signers Controller（高级用法）              |
+| `defaultClient`     | `ccc.Client?`                              | 初始网络客户端                                     |
+| `clientOptions`     | `{ icon?, client, name }[]?`               | 在连接器中展示的可选网络列表                       |
+| `preferredNetworks` | `ccc.NetworkPreference[]?`                 | 当钱包支持多网络时优先使用的网络                   |
+
+## `useCcc()` Hook
+
+```typescript
+const {
+  isOpen,      // boolean——钱包选择弹窗是否处于打开状态
+  open,        // () => void——打开钱包选择界面
+  close,       // () => void——关闭钱包选择界面
+  disconnect,  // () => void——断开当前钱包连接
+  setClient,   // (client: ccc.Client) => void——切换网络
+  client,      // ccc.Client——当前网络客户端
+  wallet,      // ccc.Wallet | undefined——已连接的钱包
+  signerInfo,  // ccc.SignerInfo | undefined——已连接的 signer
+} = ccc.useCcc();
+```
+
+在 `<ccc.Provider>` 树之外调用此 Hook 会抛出错误。
+
+## 完整示例
+
+```tsx
+"use client"; // Next.js App Router 必须添加
+
+import { ccc } from "@ckb-ccc/connector-react";
+import { useState, useEffect } from "react";
+
+function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <ccc.Provider
+      name="My CKB App"
+      defaultClient={new ccc.ClientPublicTestnet()}
+    >
+      <Header />
+      {children}
+    </ccc.Provider>
+  );
+}
+
+function Header() {
+  const { open, disconnect, wallet, signerInfo, client } = ccc.useCcc();
+  const [address, setAddress] = useState("");
+
+  useEffect(() => {
+    if (!signerInfo) {
+      setAddress("");
+      return;
+    }
+    signerInfo.signer.getRecommendedAddress().then(setAddress);
+  }, [signerInfo]);
+
+  return (
+    <header>
+      {wallet ? (
+        <>
+          <span>{address}</span>
+          <button onClick={disconnect}>断开连接</button>
+        </>
+      ) : (
+        <button onClick={open}>连接钱包</button>
+      )}
+    </header>
+  );
+}
+```
+
+## 筛选钱包
+
+通过 `signerFilter` 只显示特定类型的钱包：
+
+```tsx
+import { ccc } from "@ckb-ccc/connector-react";
+
+// 仅显示 CKB 原生钱包
+<ccc.Provider
+  signerFilter={async (signerInfo, wallet) => {
+    return signerInfo.signer.type === ccc.SignerType.CKB;
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+## Next.js（App Router）
+
+CCC 的连接器依赖 React Context 和浏览器 API，只能在客户端运行。所有导入 `@ckb-ccc/connector-react` 或渲染 `<ccc.Provider>` 的文件，均须在文件顶部添加 `"use client"`。
+
+```tsx
+"use client";
+
+import { ccc } from "@ckb-ccc/connector-react";
+```
+
+<Callout type="warning">
+  在 Next.js App Router 中忘记添加 `"use client"` 会导致运行时报错：
+  `TypeError: (0, react....createContext) is not a function`。
+</Callout>

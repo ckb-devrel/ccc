@@ -50,11 +50,53 @@ export abstract class Client {
   abstract get url(): string;
   abstract get addressPrefix(): string;
 
+  /**
+   * Get the deployment info for a well-known CKB script.
+   * Returns the cell deps and type script info needed to use the script.
+   *
+   * @param script - The KnownScript enum value.
+   * @returns Script info including cellDeps and type hash.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   *
+   * // Get xUDT script deployment info
+   * const xudtInfo = await client.getKnownScript(ccc.KnownScript.XUdt);
+   * console.log(`xUDT cellDeps:`, xudtInfo.cellDeps);
+   *
+   * // Build an xUDT type script
+   * const xudtType = await ccc.Script.fromKnownScript(
+   *   client,
+   *   ccc.KnownScript.XUdt,
+   *   "0xOWNER_LOCK_HASH...",
+   * );
+   * ```
+   */
   abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
 
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
   ): Promise<{ mean?: Num; median?: Num }>;
+  /**
+   * Get the recommended transaction fee rate based on recent blocks.
+   * Returns the median fee rate, clamped between min and max fee rates.
+   *
+   * @param blockRange - Number of recent blocks to analyze.
+   * @param options - Optional max fee rate cap.
+   * @returns The recommended fee rate in Shannons per KB.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const feeRate = await client.getFeeRate();
+   * console.log(`Current fee rate: ${feeRate} Shannons/KB`);
+   * ```
+   */
   async getFeeRate(
     blockRange?: NumLike,
     options?: { maxFeeRate?: NumLike },
@@ -72,7 +114,37 @@ export abstract class Client {
     return numMin(feeRate, maxFeeRate);
   }
 
+  /**
+   * Get the latest block number (tip) of the chain.
+   *
+   * @returns The current tip block number.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const tipBlockNumber = await client.getTip();
+   * console.log(`Current block height: ${tipBlockNumber}`);
+   * ```
+   */
   abstract getTip(): Promise<Num>;
+
+  /**
+   * Get the header of the latest block.
+   *
+   * @param verbosity - Verbosity level (0 for hex, 1 for object).
+   * @returns The tip block header.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const header = await client.getTipHeader();
+   * console.log(`Block #${header.number}, hash: ${header.hash}`);
+   * ```
+   */
   abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
   abstract getBlockByNumberNoCache(
     blockNumber: NumLike,
@@ -183,6 +255,22 @@ export abstract class Client {
    *
    * @param outPointLike - The out point of the cell to get.
    * @returns The cell if it exists, otherwise undefined.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const cell = await client.getCell({
+   *   txHash: "0xTX_HASH...",
+   *   index: 0,
+   * });
+   * if (cell) {
+   *   console.log(`Capacity: ${ccc.fixedPointToString(cell.cellOutput.capacity)} CKB`);
+   *   console.log(`Lock: ${cell.cellOutput.lock.codeHash}`);
+   *   console.log(`Data: ${cell.outputData}`);
+   * }
+   * ```
    */
   async getCell(outPointLike: OutPointLike): Promise<Cell | undefined> {
     const outPoint = OutPoint.from(outPointLike);
@@ -238,6 +326,32 @@ export abstract class Client {
     withData?: boolean | null,
     includeTxPool?: boolean | null,
   ): Promise<Cell | undefined>;
+  /**
+   * Get a live (unspent) cell by its out point.
+   * Unlike getCell(), this verifies the cell is still live on-chain.
+   *
+   * @param outPointLike - The out point of the cell.
+   * @param withData - Whether to include cell data.
+   * @param includeTxPool - Whether to include cells in the transaction pool.
+   * @returns The live cell, or undefined if spent or not found.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const cell = await client.getCellLive(
+   *   { txHash: "0xTX_HASH...", index: 0 },
+   *   true,  // include data
+   *   true,  // include tx pool
+   * );
+   * if (cell) {
+   *   console.log("Cell is still live!");
+   * } else {
+   *   console.log("Cell has been spent or does not exist.");
+   * }
+   * ```
+   */
   async getCellLive(
     outPointLike: OutPointLike,
     withData?: boolean | null,
@@ -260,6 +374,39 @@ export abstract class Client {
     limit?: NumLike,
     after?: string,
   ): Promise<ClientFindCellsResponse>;
+  /**
+   * Find cells with pagination support.
+   * Returns one page of results at a time with a cursor for the next page.
+   *
+   * @param key - The indexer search key.
+   * @param order - Sort order ("asc" or "desc").
+   * @param limit - Maximum cells per page.
+   * @param after - Cursor from previous page for pagination.
+   * @returns A page of cells with a cursor for the next page.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
+   *
+   * // Get first page of cells
+   * const page1 = await client.findCellsPaged({
+   *   script: lock,
+   *   scriptType: "lock",
+   * }, "asc", 20);
+   * console.log(`Found ${page1.cells.length} cells`);
+   *
+   * // Get next page
+   * if (page1.cells.length === 20) {
+   *   const page2 = await client.findCellsPaged(
+   *     { script: lock, scriptType: "lock" },
+   *     "asc", 20, page1.lastCursor,
+   *   );
+   * }
+   * ```
+   */
   async findCellsPaged(
     key: ClientIndexerSearchKeyLike,
     order?: "asc" | "desc",
@@ -301,6 +448,25 @@ export abstract class Client {
    *
    * @param keyLike - The search key.
    * @returns A async generator for yielding cells.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
+   *
+   * // Find all cells owned by a lock script
+   * for await (const cell of client.findCells({
+   *   script: lock,
+   *   scriptType: "lock",
+   *   scriptSearchMode: "exact",
+   *   withData: true,
+   * })) {
+   *   console.log(`Cell: ${cell.outPoint.txHash}:${cell.outPoint.index}`);
+   *   console.log(`Capacity: ${ccc.fixedPointToString(cell.cellOutput.capacity)} CKB`);
+   * }
+   * ```
    */
   async *findCells(
     keyLike: ClientCollectableSearchKeyLike,
@@ -327,6 +493,37 @@ export abstract class Client {
     }
   }
 
+  /**
+   * Find cells by lock script, optionally filtered by type script.
+   *
+   * @param lock - The lock script to search by.
+   * @param type - Optional type script filter.
+   * @param withData - Whether to include cell data (default: true).
+   * @param order - Sort order by block number ("asc" or "desc").
+   * @param limit - Page size for each RPC call (default: 10).
+   * @returns An async generator yielding matching cells.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
+   *
+   * // Find all cells belonging to this address
+   * for await (const cell of client.findCellsByLock(lock)) {
+   *   console.log(`${ccc.fixedPointToString(cell.cellOutput.capacity)} CKB`);
+   * }
+   *
+   * // Find only xUDT cells belonging to this address
+   * const xudtType = await ccc.Script.fromKnownScript(
+   *   client, ccc.KnownScript.XUdt, "0xOWNER_LOCK_HASH...",
+   * );
+   * for await (const cell of client.findCellsByLock(lock, xudtType)) {
+   *   console.log(`UDT cell found`);
+   * }
+   * ```
+   */
   findCellsByLock(
     lock: ScriptLike,
     type?: ScriptLike | null,
@@ -349,6 +546,29 @@ export abstract class Client {
     );
   }
 
+  /**
+   * Find cells by type script.
+   *
+   * @param type - The type script to search by.
+   * @param withData - Whether to include cell data (default: true).
+   * @param order - Sort order by block number.
+   * @param limit - Page size for each RPC call (default: 10).
+   * @returns An async generator yielding matching cells.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * // Find all xUDT cells of a specific token
+   * const xudtType = await ccc.Script.fromKnownScript(
+   *   client, ccc.KnownScript.XUdt, "0xOWNER_LOCK_HASH...",
+   * );
+   * for await (const cell of client.findCellsByType(xudtType)) {
+   *   console.log(`Token cell: ${cell.outPoint.txHash}:${cell.outPoint.index}`);
+   * }
+   * ```
+   */
   findCellsByType(
     type: ScriptLike,
     withData = true,
@@ -381,6 +601,24 @@ export abstract class Client {
     }
   }
 
+  /**
+   * Resolve cell dependency info into concrete CellDep objects.
+   * If a CellDepInfo specifies a type script, the actual deployed cell is located on-chain.
+   *
+   * @param cellDepsInfoLike - One or more CellDepInfo or arrays of CellDepInfo.
+   * @returns Resolved CellDep array ready to be added to a transaction.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const xudtInfo = await client.getKnownScript(ccc.KnownScript.XUdt);
+   * const cellDeps = await client.getCellDeps(xudtInfo.cellDeps);
+   * // cellDeps can be added to a transaction:
+   * // tx.cellDeps.push(...cellDeps);
+   * ```
+   */
   async getCellDeps(
     ...cellDepsInfoLike: (CellDepInfoLike | CellDepInfoLike[])[]
   ): Promise<CellDep[]> {
@@ -478,6 +716,29 @@ export abstract class Client {
     }
   }
 
+  /**
+   * Find transactions related to a lock script, optionally filtered by type script.
+   *
+   * @param lock - The lock script to search by.
+   * @param type - Optional type script filter.
+   * @param groupByTransaction - If true, group results by transaction.
+   * @param order - Sort order by block number.
+   * @param limit - Page size per RPC call.
+   * @returns An async generator yielding transaction records.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
+   *
+   * // List all transactions related to an address (grouped)
+   * for await (const txRecord of client.findTransactionsByLock(lock, null, true)) {
+   *   console.log(`TX: ${txRecord.txHash}, Block: ${txRecord.blockNumber}`);
+   * }
+   * ```
+   */
   findTransactionsByLock(
     lock: ScriptLike,
     type: ScriptLike | undefined | null,
@@ -571,6 +832,26 @@ export abstract class Client {
 
   abstract getCellsCapacity(key: ClientIndexerSearchKeyLike): Promise<Num>;
 
+  /**
+   * Get the total CKB balance of a single lock script.
+   * Only counts cells with no type script and no data (pure CKB capacity cells).
+   *
+   * @param lock - The lock script to query balance for.
+   * @returns The total capacity in Shannons as a bigint.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const { script: lock } = await ccc.Address.fromString(
+   *   "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq...",
+   *   client,
+   * );
+   * const balance = await client.getBalanceSingle(lock);
+   * console.log(`Balance: ${ccc.fixedPointToString(balance)} CKB`);
+   * ```
+   */
   async getBalanceSingle(lock: ScriptLike): Promise<Num> {
     return this.getCellsCapacity({
       script: lock,
@@ -583,6 +864,27 @@ export abstract class Client {
     });
   }
 
+  /**
+   * Get the total CKB balance across multiple lock scripts.
+   * Sums the balance from each lock script.
+   *
+   * @param locks - An array of lock scripts to query.
+   * @returns The combined total capacity in Shannons as a bigint.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+   * await signer.connect();
+   *
+   * const locks = await signer.getRecommendedAddressObj()
+   *   .then(({ script }) => [script]);
+   * const totalBalance = await client.getBalance(locks);
+   * console.log(`Total: ${ccc.fixedPointToString(totalBalance)} CKB`);
+   * ```
+   */
   async getBalance(locks: ScriptLike[]): Promise<Num> {
     return reduceAsync(
       locks,
@@ -591,6 +893,34 @@ export abstract class Client {
     );
   }
 
+  /**
+   * Send a signed transaction to the CKB network.
+   * Validates the fee rate against the maximum before sending.
+   *
+   * @param transaction - The transaction to send.
+   * @param validator - Optional outputs validator ("passthrough" or "well_known_scripts_only").
+   * @param options - Optional configuration including maxFeeRate.
+   * @returns The transaction hash.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
+   * await signer.connect();
+   *
+   * const tx = ccc.Transaction.from({
+   *   outputs: [{ capacity: ccc.fixedPointFrom(100), lock: receiverLock }],
+   * });
+   * await tx.completeInputsByCapacity(signer);
+   * await tx.completeFeeBy(signer);
+   *
+   * // Usually you call signer.sendTransaction(tx) which signs then sends.
+   * // client.sendTransaction expects an already-signed transaction.
+   * const txHash = await client.sendTransaction(tx);
+   * ```
+   */
   async sendTransaction(
     transaction: TransactionLike,
     validator?: OutputsValidator,
@@ -610,6 +940,25 @@ export abstract class Client {
     return txHash;
   }
 
+  /**
+   * Get a transaction by its hash, including its status and block info.
+   *
+   * @param txHashLike - The transaction hash to look up.
+   * @returns The transaction response with status, or undefined if not found.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * const txResponse = await client.getTransaction("0xTX_HASH...");
+   * if (txResponse) {
+   *   console.log(`Status: ${txResponse.status}`);
+   *   console.log(`Block: ${txResponse.blockNumber}`);
+   *   console.log(`Outputs: ${txResponse.transaction.outputs.length}`);
+   * }
+   * ```
+   */
   async getTransaction(
     txHashLike: HexLike,
   ): Promise<ClientTransactionResponse | undefined> {
@@ -660,6 +1009,33 @@ export abstract class Client {
     };
   }
 
+  /**
+   * Wait for a transaction to be confirmed on-chain.
+   * Polls the node until the transaction reaches the specified confirmation depth.
+   *
+   * @param txHash - The transaction hash to wait for.
+   * @param confirmations - Number of block confirmations to wait for (default: 0 = committed).
+   * @param timeout - Maximum wait time in milliseconds (default: 60000).
+   * @param interval - Polling interval in milliseconds (default: 2000).
+   * @returns The transaction response once confirmed, or throws on timeout.
+   *
+   * @example
+   * ```typescript
+   * import { ccc } from "@ckb-ccc/core";
+   *
+   * const client = new ccc.ClientPublicTestnet();
+   * // Wait for transaction to be committed (0 confirmations)
+   * const tx = await client.waitTransaction("0xTX_HASH...");
+   * console.log(`Confirmed in block: ${tx?.blockNumber}`);
+   *
+   * // Wait for 4 confirmations with 2 minute timeout
+   * const confirmedTx = await client.waitTransaction(
+   *   "0xTX_HASH...",
+   *   4,       // confirmations
+   *   120000,  // timeout: 2 minutes
+   * );
+   * ```
+   */
   async waitTransaction(
     txHash: HexLike,
     confirmations: number = 0,

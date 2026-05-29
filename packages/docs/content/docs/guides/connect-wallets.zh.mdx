@@ -1,0 +1,315 @@
+---
+title: 连接钱包
+description: 为你的 CKB 应用集成多链钱包连接能力。
+icon: Wallet
+---
+
+将用户钱包连接到 CKB 应用，获取一个 `Signer` 实例——它可以读取地址、查询余额、签名消息和广播交易，通过统一的 API 覆盖 **CKB、EVM、BTC、Nostr 和 Doge** 生态。
+
+## 完成本指南后你将获得
+
+- 一个可用的**连接钱包按钮**，绑定多链钱包弹窗
+- 一个 `ccc.Signer` 实例，可直接用于[交易组装](/docs/guides/compose-transactions)和[签名消息](/docs/guides/sign-message)指南
+- 完全掌握这些能力：决定展示哪些钱包、连接哪个网络，以及使用内置 UI 还是自定义 UI
+
+## 选择集成方式
+
+| 你的场景                                       | 推荐方式                                                 |
+| --------------------------------------------- | ------------------------------------------------------ |
+| React 应用，需要开箱即用的连接钱包弹窗             | [`ccc.Provider` + `useCcc()`](#react-集成)              |
+| React 应用，但需要自定义钱包选择 UI               | [`SignersController`](#用-signerscontroller-自定义-ui)   |
+| 仅支持单一钱包（如纯 JoyID dApp，不需要选择界面）   | [直接实例化 Signer](#直接实例化-signer)                    |
+| 服务端 / Node.js，使用私钥（无用户钱包）           | 参见 [Node.js 后端](/docs/guides/node-js-backend)        |
+
+<Callout type="info">
+  以下示例假设你已安装 `@ckb-ccc/connector-react`。非 React 场景下，`SignersController` 和直接实例化 Signer 的方式同样适用于 `@ckb-ccc/ccc`。
+</Callout>
+
+## 安装
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash npm
+    npm install @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash yarn
+    yarn add @ckb-ccc/connector-react
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash pnpm
+    pnpm add @ckb-ccc/connector-react
+    ```
+  </Tab>
+</Tabs>
+
+## React 集成
+
+最快实现连接钱包流程的方式，只需两个步骤：
+
+1. **`ccc.Provider`**——包裹应用，管理连接器弹窗和钱包状态
+2. **`ccc.useCcc()` / `ccc.useSigner()`**——在任意子组件中读取状态、触发连接或断开
+
+<Steps>
+  <Step title="用 `ccc.Provider` 包裹应用">
+    将其放置在组件树的根节点（如 Next.js 的 `app/layout.tsx` 或顶层 `App.tsx`）。
+
+    <Callout type="warning">
+      使用 React Server Components（Next.js App Router）时，需在文件顶部添加 `"use client"`。连接器 UI 仅在客户端运行。
+    </Callout>
+
+    ```tsx
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export default function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ccc.Provider name="我的应用" icon="https://example.com/icon.png">
+          {children}
+        </ccc.Provider>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="添加连接按钮">
+    在 `Provider` 内部的任意位置调用 `ccc.useCcc()` 打开弹窗并读取连接状态。
+
+    ```tsx
+    "use client";
+
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function ConnectButton() {
+      const { open, disconnect, wallet, signerInfo } = ccc.useCcc();
+
+      return signerInfo ? (
+        <button onClick={disconnect}>断开 {wallet?.name}</button>
+      ) : (
+        <button onClick={open}>连接钱包</button>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="使用 Signer">
+    连接成功后，`ccc.useSigner()` 返回一个可直接使用的 `Signer`，传给任何 CCC API 即可。
+
+    ```tsx
+    "use client";
+
+    import { useEffect, useState } from "react";
+    import { ccc } from "@ckb-ccc/connector-react";
+
+    export function Balance() {
+      const signer = ccc.useSigner();
+      const [balance, setBalance] = useState<bigint>();
+
+      useEffect(() => {
+        if (!signer) return;
+        signer.getBalance().then(setBalance); // 总 CKB 余额，单位 Shannon（bigint）
+      }, [signer]);
+
+      if (!signer) return <p>未连接</p>;
+      return <p>余额：{ccc.fixedPointToString(balance ?? 0n)} CKB</p>;
+    }
+    ```
+
+    接下来可以用同一个 `signer` 来[组装交易](/docs/guides/compose-transactions)或[签名消息](/docs/guides/sign-message)。
+  </Step>
+</Steps>
+
+### `ccc.Provider` 属性
+
+| 属性                 | 类型                                                                   | 说明                                        |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------ |
+| `children`          | `ReactNode`                                                            | 子组件                                      |
+| `hideMark`          | `boolean`                                                              | 隐藏 CCC 水印                               |
+| `name`              | `string`                                                               | 应用名称，显示在连接器中                       |
+| `icon`              | `string`                                                               | 应用图标 URL，显示在连接器中                   |
+| `signerFilter`      | `(signerInfo: ccc.SignerInfo, wallet: ccc.Wallet) => Promise<boolean>` | 过滤展示的钱包和 Signer                      |
+| `signersController` | `ccc.SignersController`                                                | 自定义 `SignersController` 实例             |
+| `defaultClient`     | `ccc.Client`                                                           | 默认 CKB Client（测试网或主网）               |
+| `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | 连接器中展示的网络切换选项                     |
+| `preferredNetworks` | `ccc.NetworkPreference[]`                                              | 各 Signer 类型的首选网络                     |
+
+## Hooks 参考
+
+两个 hook 必须在 `ccc.Provider` 内部的组件中调用。
+
+### `ccc.useCcc()`
+
+返回完整的钱包状态和控制函数。需要控制弹窗、切换网络或根据连接状态渲染 UI 时使用。
+
+| 返回值       | 类型                            | 说明                                                  |
+| ------------ | ------------------------------ | ---------------------------------------------------- |
+| `isOpen`     | `boolean`                      | 连接器弹窗是否打开                                      |
+| `open`       | `() => void`                   | 打开连接器弹窗                                         |
+| `close`      | `() => void`                   | 关闭连接器弹窗                                         |
+| `disconnect` | `() => void`                   | 断开当前钱包                                           |
+| `setClient`  | `(client: ccc.Client) => void` | 切换 CKB Client（主网/测试网/自定义 RPC）                |
+| `client`     | `ccc.Client`                   | 当前 CKB Client（默认为 `ClientPublicTestnet`）        |
+| `wallet`     | `ccc.Wallet \| undefined`      | 当前已连接的钱包（含 `name`、`icon`）                    |
+| `signerInfo` | `ccc.SignerInfo \| undefined`  | 当前 Signer 信息（含 `name`、`signer`）                |
+
+### `ccc.useSigner()`
+
+`useCcc().signerInfo?.signer` 的快捷方式。只需获取活跃 `Signer` 时使用，返回 `ccc.Signer | undefined`（未连接钱包时为 `undefined`）。
+
+```tsx
+const signer = ccc.useSigner();
+const address = await signer?.getRecommendedAddress();
+```
+
+## 过滤展示的钱包
+
+**适用场景：** 只支持特定链，或隐藏不适合你应用的钱包。
+
+`signerFilter` 对每个发现的 `(wallet, signer)` 配对执行。返回 `true` 保留，返回 `false` 隐藏。
+
+```tsx
+<ccc.Provider
+  signerFilter={async (signerInfo, wallet) => {
+    // 仅展示 CKB 原生钱包——隐藏 BTC / EVM / Nostr / Doge
+    return signerInfo.signer.type === ccc.SignerType.CKB;
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+`ccc.SignerType` 可选值：`CKB`、`EVM`、`BTC`、`Nostr`、`Doge`。
+
+## 为特定钱包类型指定网络
+
+**适用场景：** 你的 dApp 面向 CKB 主网，同时希望用户的 BTC 钱包也连接到 Bitcoin 主网（而非测试网或 Signet）。当用户钱包处于错误网络时，CCC 会自动提示切换。
+
+```tsx
+<ccc.Provider
+  preferredNetworks={[
+    {
+      addressPrefix: "ckb",          // CKB Client 处于主网时（主网前缀为 "ckb"）
+      signerType: ccc.SignerType.BTC,
+      network: "btc",                // BTC 钱包配对 Bitcoin 主网
+    },
+    {
+      addressPrefix: "ckt",          // CKB Client 处于测试网时（测试网前缀为 "ckt"）
+      signerType: ccc.SignerType.BTC,
+      network: "btcTestnet",
+    },
+  ]}
+>
+  {children}
+</ccc.Provider>
+```
+
+`NetworkPreference` 类型：
+
+```typescript
+type NetworkPreference = {
+  addressPrefix: string; // "ckb" 为主网，"ckt" 为测试网
+  signerType: SignerType;
+  network: string;
+  // BTC network 可选值："btc" | "btcTestnet" | "btcTestnet4" | "btcSignet" | "fractalBtc"
+};
+```
+
+## 用 `SignersController` 自定义 UI
+
+**适用场景：** 需要完全掌控钱包选择器的 UI（如自定义弹窗、按钮样式、排列顺序等），同时保留 CCC 的钱包发现能力。
+
+`SignersController` 会发现所有已安装的钱包扩展，并以 `WalletWithSigners` 列表的形式暴露出来。你负责渲染 UI，CCC 负责检测。
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const controller = new ccc.SignersController();
+let wallets: ccc.WalletWithSigners[] | undefined;
+
+// 发现所有已安装钱包及其可用 Signer
+await controller.refresh(client, (w) => (wallets = w));
+if (!wallets) throw new Error("未发现任何钱包");
+
+wallets.forEach((wallet) => {
+  console.log(
+    wallet.name,
+    wallet.signers.map(({ name }) => name),
+  );
+});
+
+// 选取第一个 Signer（实际场景中应由用户选择）
+const signer = wallets[0].signers[0].signer;
+
+await signer.connect();
+const signature = await signer.signMessage("Hello world");
+console.log(signature);
+```
+
+## 直接实例化 Signer
+
+**适用场景：** dApp 仅使用一种特定钱包（如纯 JoyID 应用），希望跳过钱包发现流程。
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+// 传入应用名称和图标——JoyID 会在登录弹窗中显示
+const signer = new ccc.JoyId.CkbSigner(client, "我的应用", "https://example.com/icon.png");
+
+await signer.connect();
+const signature = await signer.signTransaction({}); // 签署空交易作为连通性测试
+console.log(signature);
+```
+
+其他可直接实例化的 Signer 位于 `ccc.JoyId`、`ccc.UniSat`、`ccc.Okx`、`ccc.Xverse`、`ccc.UtxoGlobal`、`ccc.Eip6963`、`ccc.Nip07`、`ccc.Rei`。
+
+## 支持的生态矩阵
+
+CCC 将多条链的密码学体系桥接到 CKB，支持情况如下：
+
+| 钱包                | 支持的 Signer 生态           |
+| ------------------- | -------------------------- |
+| JoyID               | CKB / BTC / EVM / Nostr    |
+| OKX                 | BTC / EVM / Nostr          |
+| UniSat              | BTC                        |
+| UTXO Global         | CKB / BTC / DOGE           |
+| Xverse              | BTC                        |
+| MetaMask / EIP-6963 | EVM                        |
+| Nostr（NIP-07）      | Nostr                      |
+| REI                 | CKB                        |
+
+## 应从哪个包导入？
+
+```typescript
+import { ccc } from "@ckb-ccc/connector-react"; // React 应用（包含 hooks / Provider 及以下全部）
+import { ccc } from "@ckb-ccc/ccc";             // 浏览器端、自定义 UI、无 React
+import { ccc } from "@ckb-ccc/shell";           // Node.js 后端（无 UI，不含 DOM 依赖的 Signer）
+```
+
+## 常见问题
+
+**`useCcc` / `useSigner` 返回 `undefined`**
+用户尚未连接，或组件渲染在 `ccc.Provider` 外部。确保 hook 在 `Provider` 内部调用，并在依赖 Signer 的代码前加上 `if (!signer) return` 守卫。
+
+**Next.js 中连接器弹窗空白或缺少样式**
+使用 `ccc.Provider` 或任何 hook 的文件缺少 `"use client"` 声明。CCC 的 UI 仅在客户端运行。
+
+**期望看到的钱包未出现在弹窗中**
+检查以下几点：
+- 浏览器扩展已安装并解锁。
+- `signerFilter`（如有配置）没有将其过滤掉。
+- EVM 钱包必须实现 EIP-6963（MetaMask 和大多数现代钱包均已支持）。
+
+**用户的 BTC / EVM 钱包处于错误网络**
+配置 [`preferredNetworks`](#为特定钱包类型指定网络)，让 CCC 自动提示切换。
+
+**页面刷新后连接状态丢失**
+CCC 会将上次连接信息持久化到 `localStorage`，并在 `Provider` 挂载时自动恢复。如果未恢复，确保 `Provider` 在每个页面都挂载（通常放在根 layout 中）。
+
+## 下一步
+
+- [组装交易](/docs/guides/compose-transactions)——使用已连接的 `signer` 发送 CKB 并自动计算手续费。
+- [签名消息](/docs/guides/sign-message)——证明地址所有权，用于链下认证。
+- [Node.js 后端](/docs/guides/node-js-backend)——在服务端使用私钥签名。

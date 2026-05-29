@@ -1,0 +1,120 @@
+---
+title: "@ckb-ccc/lumos-patches"
+description: Compatibility patches enabling Lumos SDK to work with JoyID, Nostr, and Portal wallets.
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/lumos-patches` adds lock script support for JoyID, Nostr (NostrLock), and Portal (PWLock) wallets to the [Lumos](https://github.com/ckb-js/lumos) SDK. If you have an existing Lumos-based application and want to support these wallets without migrating to CCC, apply these patches.
+
+## Who needs it
+
+Install `@ckb-ccc/lumos-patches` if you have an existing Lumos-based codebase and want to:
+
+* Sign transactions with **JoyID** (no `@ckb-lumos/joyid` required).
+* Sign transactions with **Nostr** wallets.
+* Sign transactions with **Portal** wallet.
+
+<Callout type="warning">
+  For new projects, CCC natively supports all these wallets. Use
+  `@ckb-ccc/lumos-patches` only when you already depend on Lumos and cannot
+  migrate.
+</Callout>
+
+## Installation
+
+<PackageBadges pkg="@ckb-ccc/lumos-patches" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+```bash
+npm install @ckb-ccc/lumos-patches
+```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn add @ckb-ccc/lumos-patches
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add @ckb-ccc/lumos-patches
+```
+  </Tab>
+</Tabs>
+
+## Exports
+
+| Export                       | Description                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `generateDefaultScriptInfos` | Returns `LockScriptInfo[]` for JoyID, Nostr, and Portal on both mainnet and testnet |
+| `generateScriptInfo`         | Build a custom `LockScriptInfo` for any code hash                                   |
+
+## Applying the patches
+
+Call `generateDefaultScriptInfos()` and register the result with Lumos before composing any transactions:
+
+```typescript
+import { generateDefaultScriptInfos } from "@ckb-ccc/lumos-patches";
+import { registerCustomLockScriptInfos } from "@ckb-lumos/common-scripts/lib/common";
+
+// Apply patches once at app startup — before using Lumos.
+// You no longer need @ckb-lumos/joyid after this.
+registerCustomLockScriptInfos(generateDefaultScriptInfos());
+```
+
+After registration, Lumos will be able to collect cells and set up witnesses for the following lock scripts on both mainnet and testnet:
+
+| Script      | Wallet               | Dummy lock length |
+| ----------- | -------------------- | ----------------- |
+| `JoyId`     | JoyID (passkey)      | 1000 bytes        |
+| `NostrLock` | Nostr NIP-07 wallets | 572 bytes         |
+| `PWLock`    | Portal Wallet        | 65 bytes          |
+
+## Custom script info
+
+If you need to add a different custom lock, use `generateScriptInfo` directly:
+
+```typescript
+import { generateScriptInfo } from "@ckb-ccc/lumos-patches";
+import { ccc } from "@ckb-ccc/core";
+
+const myLockInfo = generateScriptInfo(
+  "0xYOUR_CODE_HASH",
+  [
+    // array of ccc.CellDepInfoLike
+    {
+      cellDep: {
+        outPoint: { txHash: "0x...", index: 0 },
+        depType: "depGroup",
+      },
+    },
+  ],
+  65, // dummy lock length in bytes for fee estimation
+);
+```
+
+## How it works
+
+`generateDefaultScriptInfos` returns a `LockScriptInfo` for each supported script on both mainnet and testnet. Each info object:
+
+1. Provides a `CellCollector` that filters cells matching the lock's code hash.
+2. Implements `setupInputCell` to add the correct cell deps and a dummy witness of the right size (used by Lumos for fee estimation).
+
+The lock scripts are looked up from `@ckb-ccc/core`'s built-in `MAINNET_SCRIPTS` and `TESTNET_SCRIPTS` constants, so you don't need to hardcode any hashes.
+
+## Lumos version compatibility
+
+This package is tested against:
+
+```
+@ckb-lumos/base              0.24.0-next.2
+@ckb-lumos/codec             0.24.0-next.2
+@ckb-lumos/common-scripts    0.24.0-next.2
+@ckb-lumos/config-manager    0.24.0-next.2
+@ckb-lumos/helpers           0.24.0-next.2
+```
+
+<Callout type="error">
+**Lumos is no longer actively maintained. We recommend using CCC for new projects.**
+</Callout>

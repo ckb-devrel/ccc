@@ -1,0 +1,172 @@
+---
+title: "@ckb-ccc/xverse"
+description: 将 Xverse 及兼容 SATS Connect 的钱包接入 CKB，并通过统一的 Signer 接口实现 Bitcoin 签名。
+---
+
+import { PackageBadges } from '@/components/package-badges';
+
+`@ckb-ccc/xverse` 将 [Xverse Wallet](https://www.xverse.app/) 及任意兼容 [SATS Connect](https://docs.xverse.app/sats-connect) 的 Bitcoin 钱包集成至 CCC。它基于 SATS Connect RPC 协议提供 `SignerBtc` 实现，并通过 `window.btc_providers` 支持多钱包发现。
+
+<Callout type="info">
+  如果你使用的是 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，Xverse 已内置其中，无需单独安装。
+</Callout>
+
+## 安装
+
+<PackageBadges pkg="@ckb-ccc/xverse" />
+
+<Tabs items={['npm', 'yarn', 'pnpm']}>
+  <Tab value="npm">
+    ```bash
+    npm install @ckb-ccc/xverse
+    ```
+  </Tab>
+  <Tab value="yarn">
+    ```bash
+    yarn add @ckb-ccc/xverse
+    ```
+  </Tab>
+  <Tab value="pnpm">
+    ```bash
+    pnpm add @ckb-ccc/xverse
+    ```
+  </Tab>
+</Tabs>
+
+**依赖：**
+
+| 包 | 说明 |
+| --------------- | ----------- |
+| `@ckb-ccc/core` | 基础类型——`Signer`、`Client`、`Transaction` 等 |
+
+## 架构
+
+与其他只检测单一全局 Provider 的钱包包不同，`@ckb-ccc/xverse` 通过读取 `window.btc_providers` 数组同时发现多个兼容 SATS Connect 的钱包。
+
+```mermaid
+graph TB
+    subgraph "Xverse 包"
+        GXS["getXverseSigners(client)"]
+        S["Signer（继承自 SignerBtc）"]
+    end
+
+    subgraph "发现机制"
+        BTP["window.btc_providers[]"]
+    end
+
+    subgraph "钱包"
+        XV["Xverse"]
+        Other["任意 SATS Connect 钱包"]
+    end
+
+    GXS -->|"读取"| BTP
+    BTP --- XV
+    BTP --- Other
+    GXS -->|"为每个 Provider 创建"| S
+    S --> Core["@ckb-ccc/core（SignerBtc）"]
+```
+
+### 入口：`getXverseSigners`
+
+`getXverseSigners(client, preferredNetworks?)` 从 `window.btc_providers` 读取数据，为每个发现的钱包返回一个 `{ wallet, signerInfo }[]` 数组条目：
+
+```mermaid
+graph TD
+    Start["getXverseSigners(client)"] --> Check["window.btc_providers 是否存在？"]
+    Check -->|否| Empty["return []"]
+    Check -->|是| Iter["遍历 btc_providers 中的每个 Provider"]
+    Iter --> Create["new Signer(client, getProviderById(provider.id))"]
+    Create --> Result["{ wallet: {name, icon}, signerInfo: {name: 'BTC', signer} }"]
+```
+
+每个 Provider 条目包含钱包元数据（`name`、`icon`），`SignersController` 据此为每个钱包显示独立条目。
+
+## `Signer` 类
+
+`Signer` 继承自 `ccc.SignerBtc`，所有钱包交互均通过 SATS Connect RPC 协议完成。
+
+### 核心方法
+
+| 方法 | 说明 |
+| ------------------------- | ----------- |
+| `connect()` | 若尚未连接，调用 `wallet_requestPermissions` |
+| `disconnect()` | 清除缓存的地址 |
+| `isConnected()` | 尝试调用 `getBalance`，成功则返回 `true` |
+| `getBtcAccount()` | 通过 `getAddresses` 返回支付地址 |
+| `getBtcPublicKey()` | 从支付地址中返回公钥 |
+| `signMessageRaw(message)` | 通过 `signMessage` 使用 ECDSA 协议签名 |
+| `onReplaced(listener)` | 在 `accountChange` 或 `networkChange` 事件触发时调用 |
+
+### 连接与地址缓存
+
+Signer 缓存已解析的地址以避免重复 RPC 调用，调用 `disconnect()` 时缓存失效：
+
+```mermaid
+sequenceDiagram
+    participant App as 应用
+    participant Signer as Xverse Signer
+    participant Wallet as Xverse 扩展
+
+    App->>Signer: connect()
+    Signer->>Signer: isConnected()?
+    alt 未连接
+        Signer->>Wallet: wallet_requestPermissions
+        Wallet->>Signer: 已授权
+    end
+    App->>Signer: getBtcAccount()
+    Signer->>Wallet: getAddresses({purposes: [Payment]})
+    Wallet->>Signer: addresses[0]
+    Signer->>Signer: 缓存地址
+    Signer->>App: address.address
+```
+
+### 网络偏好
+
+| CKB 网络 | 默认 BTC 网络 |
+| --------------- | ------------------- |
+| 主网（`ckb`） | `btc` |
+| 测试网（`ckt`） | `btcTestnet` |
+
+### 签名流程
+
+```mermaid
+sequenceDiagram
+    participant App as 应用
+    participant Signer as Xverse Signer
+    participant Wallet as Xverse 扩展
+
+    App->>Signer: sendTransaction(tx)
+    Signer->>Signer: prepareTransaction(tx)
+    Note over Signer: 添加 CellDep，准备 Witness
+    Signer->>Wallet: signMessage({message, address, protocol: ECDSA})
+    Wallet->>Signer: {signature}
+    Signer->>Signer: 将签名打包进 Witness
+    Signer->>App: txHash
+```
+
+## 账户变更检测
+
+`Signer` 通过 SATS Connect 事件 API 实现 `onReplaced()`：
+
+- 监听 `"accountChange"`——用户切换了 BTC 账户
+- 监听 `"networkChange"`——用户切换了 BTC 网络
+
+通过 `provider.addListener()` 返回清理函数，确保监听器正确移除。
+
+## SATS Connect RPC 方法
+
+| 方法 | 说明 |
+| --------------------------- | ----------- |
+| `wallet_requestPermissions` | 请求钱包连接权限 |
+| `getAddresses` | 按用途（Payment、Ordinals 等）获取地址列表 |
+| `getBalance` | 获取钱包余额（用于连接状态检查） |
+| `signMessage` | 使用 ECDSA 或 BIP-322 签名消息 |
+
+## 集成模式
+
+`@ckb-ccc/xverse` 遵循 CCC 中其他钱包包相同的集成约定：
+
+- **Factory 函数**——`getXverseSigners` 返回支持多钱包的 `{ wallet, signerInfo }[]` 数组。
+- **Provider 检测**——读取 `window.btc_providers` 数组。
+- **多钱包发现**——为每个 Provider 创建独立的 Signer 条目，附带各自的钱包名称和图标。
+- **优雅降级**——无可用的 SATS Connect 钱包时返回空数组。

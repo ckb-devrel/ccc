@@ -1,0 +1,245 @@
+---
+title: 交易（Transaction）
+description: 构造、补全并发送 CKB 交易——输入选择和手续费计算均由 CCC 处理。
+icon: Repeat
+---
+
+## 交易结构
+
+CKB 交易消费已有的 Cell（输入），并创建新的 Cell（输出）：
+
+```typescript
+export class Transaction {
+  constructor(
+    public version: Num,
+    public cellDeps: CellDep[],    // 脚本代码依赖
+    public headerDeps: Hex[],      // 区块头依赖
+    public inputs: CellInput[],    // 被消费的 Cell
+    public outputs: CellOutput[],  // 新创建的 Cell
+    public outputsData: Hex[],     // 每个输出 Cell 的数据
+    public witnesses: Hex[],       // 签名与证明
+  ) {}
+}
+```
+
+### `CellInput`
+
+引用链上已有的 Cell 进行消费：
+
+```typescript
+export class CellInput {
+  constructor(
+    public previousOutput: OutPoint, // 待消费的 Cell
+    public since: Num,               // 时间锁（0 = 无）
+    public cellOutput?: CellOutput,  // 由 completeExtraInfos() 填充
+    public outputData?: Hex,         // 由 completeExtraInfos() 填充
+  ) {}
+}
+```
+
+### `CellOutput`
+
+定义新创建的 Cell：
+
+```typescript
+export class CellOutput {
+  constructor(
+    public capacity: Num,  // 存储空间，单位 Shannon
+    public lock: Script,   // 所有权脚本
+    public type?: Script,  // 资产类型脚本（可选）
+  ) {}
+}
+```
+
+### `CellDep`
+
+告知 CKB VM 在哪里找到需要执行的脚本代码：
+
+```typescript
+export type DepType = "depGroup" | "code";
+
+export class CellDep {
+  constructor(
+    public outPoint: OutPoint, // 脚本代码所在位置
+    public depType: DepType,   // "code" = 原始字节码；"depGroup" = 依赖组
+  ) {}
+}
+```
+
+## 构造交易
+
+使用 `Transaction.from()` 从普通对象构造交易。省略 `capacity` 时，CCC 会根据 Cell 占用的存储大小自动计算：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const tx = ccc.Transaction.from({
+  outputs: [
+    {
+      lock: recipientLockScript,
+      capacity: ccc.fixedPointFrom("100"), // 100 CKB
+    },
+  ],
+});
+```
+
+如需从空交易开始逐步添加输出，使用 `Transaction.default()`：
+
+```typescript
+const tx = ccc.Transaction.default();
+tx.addOutput({ lock: recipientLock }, "0x"); // capacity 自动计算
+```
+
+## CKB 金额处理
+
+Capacity 始终以 **Shannon** 为单位存储（`bigint`）。使用 `fixedPointFrom()` 将 CKB 面值转换为 Shannon：
+
+```typescript
+ccc.fixedPointFrom("61")  // → 6_100_000_000n（61 CKB，普通 Cell 的最低容量）
+ccc.fixedPointFrom(100)   // → 10_000_000_000n
+ccc.Zero                  // → 0n
+```
+
+## 补全交易
+
+声明好输出后，两个方法调用即可处理其余所有工作：
+
+### `completeInputsByCapacity(signer)`
+
+在 `signer` 持有的 Cell 中搜索并添加足够的输入，以覆盖输出所需的总容量：
+
+```typescript
+async completeInputsByCapacity(
+  from: Signer,
+  capacityTweak?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+): Promise<number>
+```
+
+### `completeFeeBy(signer, feeRate?)`
+
+根据序列化后的交易大小计算手续费，必要时补充输入，并将找零发回 `signer` 的地址：
+
+```typescript
+async completeFeeBy(
+  from: Signer,
+  feeRate?: NumLike,
+  filter?: ClientCollectableSearchKeyFilterLike,
+  options?: {
+    feeRateBlockRange?: NumLike;
+    maxFeeRate?: NumLike;
+    shouldAddInputs?: boolean;
+  },
+): Promise<[number, boolean]>
+```
+
+省略 `feeRate` 时，CCC 会自动从节点获取当前网络费率。
+
+<Callout type="info">
+  大多数转账场景，`completeInputsByCapacity` + `completeFeeBy` 即可满足需求。它们会处理 UTXO 选择、手续费估算和找零输出创建，无需手工核算。
+</Callout>
+
+## 完整转账示例
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+async function transferCkb(
+  signer: ccc.Signer,
+  toLock: ccc.Script,
+  amount: string, // 例如 "100" 代表 100 CKB
+) {
+  // 声明要创建的输出
+  const tx = ccc.Transaction.from({
+    outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(amount) }],
+  });
+
+  // CCC 自动选择输入以覆盖输出
+  await tx.completeInputsByCapacity(signer);
+
+  // CCC 计算手续费并添加找零输出
+  await tx.completeFeeBy(signer);
+
+  // 签名并广播
+  const txHash = await signer.sendTransaction(tx);
+  console.log("交易已发送：", txHash);
+  return txHash;
+}
+```
+
+## 交易生命周期
+
+交易上链前经历三个阶段：
+
+```typescript
+// 1. 准备——添加 cell deps 和占位 witness
+const prepared = await signer.prepareTransaction(tx);
+
+// 2. 签名——用真实签名替换占位 witness
+const signed = await signer.signTransaction(prepared);
+
+// 3. 广播——提交到网络，返回交易哈希
+const txHash = await signer.sendTransaction(tx);
+```
+
+实际开发中，`sendTransaction` 内部会调用 `signTransaction`，通常不需要单独调用。
+
+## 计算哈希
+
+```typescript
+// 交易哈希（不含 witnesses）
+const txHash: ccc.Hex = tx.hash();
+
+// 完整交易哈希（含 witnesses）
+const fullHash: ccc.Hex = tx.hashFull();
+
+// 对任意字节做 CKB Blake2b 哈希
+const hash = ccc.hashCkb(someBytes);
+```
+
+## 进阶：自定义找零逻辑
+
+需要完全控制找零容量的处理方式时，直接使用 `completeFee()`：
+
+```typescript
+const [addedInputs, hasChange] = await tx.completeFee(
+  signer,
+  (tx, capacity) => {
+    // capacity = 可用于找零的多余 Shannon
+    const minCellCapacity = ccc.fixedPointFrom("61");
+    if (capacity >= minCellCapacity) {
+      tx.addOutput({ capacity, lock: changeScript });
+      return 0; // 返回 0 表示完成
+    }
+    return minCellCapacity; // 请求更多容量
+  },
+);
+```
+
+## 进阶：添加 Cell 依赖
+
+### 使用场景
+   
+添加 Cell 依赖主要用于以下场景：  
+- **Type 脚本**：当交易使用 Type 脚本（如 xUDT、NervosDao、Spore 等）时，必须添加对应的 cell deps 以供链上验证  
+- **特殊 Lock 脚本**：某些特殊的 Lock 脚本（如 TimeLock、SingleUseLock 等）需要手动添加  
+- **自定义脚本**：使用不在 KnownScript 列表中的自定义脚本时，需要直接指定 cell deps  
+
+<Callout type="info">
+注意：Signer 的 `prepareTransaction()` 会自动添加与该 Signer 相关的 KnownScript（如 OmniLock、NostrLock 等），无需手动添加。
+</Callout>
+
+### 示例
+
+内置脚本使用 `addCellDepsOfKnownScripts()`，自定义脚本直接添加：
+
+```typescript
+// 内置脚本
+await tx.addCellDepsOfKnownScripts(client, ccc.KnownScript.XUdt);
+
+// 自定义脚本
+tx.addCellDeps({
+  outPoint: { txHash: "0x...", index: 0 },
+  depType: "depGroup",
+});
+```

@@ -1,0 +1,183 @@
+---
+title: UDT 代币
+description: 在 CKB 上发行和转移用户自定义代币（UDT）与 xUDT。
+icon: Bitcoin
+---
+
+在 CKB 上发行、转移和查询**同质化代币**。用户自定义代币（User-Defined Token，简称 UDT）的数量存储在 Cell 的 `data` 字段中；`ccc.udt.Udt` 类自动处理编码、SSRI 执行以及旧版 xUDT 的降级兼容。
+
+## 完成本指南后你将能够
+
+- **转移 UDT 代币**：自动完成输入选择和找零处理
+- **铸造新代币**：需要持有发行方权限（owner-mode）
+- **读取链上元数据**：查询符合 SSRI 规范的代币名称、符号、精度和图标
+- 理解 xUDT 与 sUDT 的关系
+
+<Callout type="info">
+  以下示例均假设你已有一个已连接的 `signer`。请先阅读[连接钱包](/docs/guides/connect-wallets)（浏览器端）或 [Node.js 后端](/docs/guides/node-js-backend)（服务端）。
+</Callout>
+
+## xUDT 与 sUDT
+
+|                     | sUDT           | xUDT                        |
+| ------------------- | -------------- | --------------------------- |
+| 标准                | [CKB RFC 25](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0025-simple-udt/0025-simple-udt.md) | [CKB RFC 52](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0052-extensible-udt/0052-extensible-udt.md) |
+| 扩展支持            | 无             | 支持（owner-mode、RCE 规则）|
+| `KnownScript` 值    | —（CCC 中未收录）| `ccc.KnownScript.XUdt`   |
+| 生产环境            | 旧版           | 推荐                        |
+
+CCC 的 `Udt` 类同时支持两种标准。默认使用 **SSRI** 执行模型（链上脚本执行），对旧版 xUDT 代币自动降级为链下构造。
+
+## 安装
+
+```bash
+npm install @ckb-ccc/ccc
+```
+
+UDT 支持已内置于主包中，无需额外安装。
+
+## 导入
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+```
+
+`Udt` 类通过 `ccc.udt.Udt` 访问。
+
+## 构造 `Udt` 实例
+
+转移或铸造前，需先创建一个 `Udt` 对象，需要提供两项信息：
+
+- **`code`**——持有 UDT 脚本代码的 Cell 的 `OutPoint`（cell dep）
+- **`script`**——唯一标识该代币的 Type 脚本（其 `args` 通常为发行方的 Lock 哈希）
+
+```typescript
+const type = await ccc.Script.fromKnownScript(
+  signer.client,
+  ccc.KnownScript.XUdt,
+  // args 唯一标识该代币（发行方 Lock 哈希）
+  "0xf8f94a13dfe1b87c10312fb9678ab5276eefbe1e0b2c62b4841b1f393494eff2",
+);
+
+const code = (
+  await signer.client.getCellDeps(
+    (await signer.client.getKnownScript(ccc.KnownScript.XUdt)).cellDeps,
+  )
+)[0].outPoint;
+
+const udt = new ccc.udt.Udt(code, type);
+// 可选第三个参数：{ executor }，用于 SSRI 执行。旧版 xUDT 可省略。
+```
+
+## 转移代币
+
+**适用场景**：将 UDT 代币从 `signer` 发送至另一个地址。整体流程与 CKB 转账的四步模式一致，额外增加了一个 UDT 专属的输入填充步骤：
+
+<Steps>
+  <Step title="构建转账输出">
+    `udt.transfer` 创建包含目标输出 Cell 的交易骨架，此时**尚未**平衡输入——后续两步会处理。
+
+    ```typescript
+    const receiver = await signer.getRecommendedAddress();
+    const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
+
+    let { res: tx } = await udt.transfer(signer, [
+      { to: lock, amount: ccc.fixedPointFrom(1) }, // 1 个代币单位
+    ]);
+    ```
+  </Step>
+
+  <Step title="填充 UDT 输入">
+    `udt.completeBy` 收集 `signer` 持有的 UDT Cell，直至代币余额足以覆盖输出。多余的 UDT 自动生成找零 Cell 返还。
+
+    ```typescript
+    tx = await udt.completeBy(tx, signer);
+    ```
+  </Step>
+
+  <Step title="填充 CKB 容量输入">
+    UDT Cell 在链上存储同样需要 CKB 容量。此步骤添加 CKB 输入以覆盖所有输出 Cell 所需容量：
+
+    ```typescript
+    await tx.completeInputsByCapacity(signer);
+    ```
+  </Step>
+
+  <Step title="支付手续费并广播">
+    ```typescript
+    await tx.completeFeeBy(signer);
+    const txHash = await signer.sendTransaction(tx);
+    console.log("UDT transfer hash:", txHash); // "0x..." — 32 字节交易哈希
+    ```
+  </Step>
+</Steps>
+
+## 铸造代币
+
+**适用场景**：你是代币发行方，需要增发新的代币供应量。`signer` 须持有**铸造权限**（xUDT 中通常为 owner-mode——`signer` 的 Lock 哈希与 Type 脚本 args 匹配）。
+
+铸造时无需提供已有的 UDT 输入，直接创建新的代币输出：
+
+```typescript
+const { script: to } = await ccc.Address.fromString(receiver, signer.client);
+
+// 铸造 1000 个代币
+let { res: tx } = await udt.mint(signer, [
+  { to, amount: ccc.fixedPointFrom(1000) },
+]);
+
+await tx.completeInputsByCapacity(signer);
+await tx.completeFeeBy(signer);
+const txHash = await signer.sendTransaction(tx);
+```
+
+## 读取代币元数据（SSRI 代币）
+
+**适用场景**：在 UI 中展示代币名称、符号、精度或图标。仅适用于在链上实现了 SSRI `UDT` 接口的代币：
+
+```typescript
+const { res: name }     = await udt.name();
+const { res: symbol }   = await udt.symbol();
+const { res: decimals } = await udt.decimals();
+const { res: icon }     = await udt.icon();
+
+console.log(`${name} (${symbol}), ${decimals} decimals`);
+```
+
+<Callout type="warning">
+  对于未实现 SSRI `UDT` 接口的旧版 sUDT / xUDT 代币，上述方法返回 `undefined`。使用前请检查返回值。
+</Callout>
+
+## API 参考
+
+| 方法                                         | 说明                                      |
+| -------------------------------------------- | ----------------------------------------- |
+| `new ccc.udt.Udt(code, script)`              | 构造 UDT 实例                             |
+| `udt.transfer(signer, transfers, tx?)`       | 构建转账输出                              |
+| `udt.mint(signer, mints, tx?)`               | 构建铸造输出                              |
+| `udt.completeBy(tx, signer)`                 | 填充 UDT 输入并生成找零                   |
+| `udt.completeChangeToLock(tx, signer, lock)` | 填充 UDT 输入并使用指定 Lock 作为找零地址 |
+| `udt.name()`                                 | 代币名称（仅 SSRI）                       |
+| `udt.symbol()`                               | 代币符号（仅 SSRI）                       |
+| `udt.decimals()`                             | 代币精度（仅 SSRI）                       |
+| `udt.icon()`                                 | 代币图标 URI（仅 SSRI）                   |
+
+## 常见问题
+
+**`udt.completeBy` 抛出"not enough UDT balance"错误**
+`signer` 持有的 UDT Cell 不足以覆盖转账金额。请检查 `signer` 的 UDT 余额，或向该地址充值更多代币。
+
+**`udt.transfer` 返回 `{ res: tx }`，`res` 是什么？**
+所有 UDT 方法返回 `ssri.ExecutorResponse<T>` 包装对象，实际的 `Transaction` 在其 `.res` 属性中。这一设计使 CCC 能够在结果旁附加 SSRI 执行的元数据。
+
+**`udt.name()` / `udt.symbol()` 返回 `undefined`**
+该代币未实现 SSRI `UDT` 元数据接口，旧版 sUDT / xUDT 代币均属于这种情况。需从链下注册表获取元数据。
+
+**向从未持有该代币的地址转账**
+直接转账即可。`udt.transfer` 会在收款方 Lock 下创建新的代币输出 Cell；收款方无需提前准备——新 Cell 所需的 CKB 容量由 `signer` 通过 `completeInputsByCapacity` 支付。
+
+## 下一步
+
+- [组装交易](/docs/guides/compose-transactions)——了解 UDT 操作所基于的声明 → 填充 → 手续费 → 发送模式。
+- [Spore 协议](/docs/guides/spore-protocol)——在 CKB 上创建非同质化数码物。
+- [Node.js 后端](/docs/guides/node-js-backend)——从服务端脚本发行和转移代币。
