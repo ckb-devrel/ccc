@@ -36,6 +36,8 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
+Check the [package documentation](https://docs.ckbccc.com/en/docs/packages/wallet-integrations/eip6963) and [API reference](https://api.ckbccc.com/modules/_ckb-ccc_eip6963.index) for more details.
+
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
 </h3>

@@ -49,6 +49,8 @@ If you are looking for UDT support, please refer directly to [@ckb-ccc/udt](http
 - [`ssri-server`](https://github.com/ckb-devrel/ssri-server): Server for calling SSRI methods.
 - [`ckb_ssri_sdk`](https://github.com/ckb-devrel/ckb_ssri_sdk): A toolkit to help developers build SSRI-Compliant scripts on CKB with production level example script `pausable-udt` for reference.
 
+Check the [package documentation](https://docs.ckbccc.com/en/docs/packages/protocol-sdks/ssri) and [API reference](https://api.ckbccc.com/modules/_ckb-ccc_ssri.ssri) for more details.
+
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
 </h3>
