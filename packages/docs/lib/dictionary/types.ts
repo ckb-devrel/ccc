@@ -111,6 +111,12 @@ export interface Dictionary {
     };
   };
 
+  /** ExampleGrid component — filter bar and empty-state text. */
+  examples: {
+    all: string;
+    noMatch: string;
+  };
+
   /** Docs pages — section eyebrows shown above each page title. */
   docs: {
     copyMarkdown: string,

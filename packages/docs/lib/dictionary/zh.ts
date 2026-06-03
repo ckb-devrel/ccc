@@ -109,6 +109,11 @@ export const zh: Dictionary = {
     },
   },
 
+  examples: {
+    all: '全部',
+    noMatch: '没有匹配所选标签的示例。',
+  },
+
   docs: {
     copyMarkdown: '复制 Markdown',
     openAs: '打开',

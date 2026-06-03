@@ -109,6 +109,11 @@ export const en: Dictionary = {
     },
   },
 
+  examples: {
+    all: 'All',
+    noMatch: 'No examples match the selected filter.',
+  },
+
   docs: {
     copyMarkdown: 'Copy Markdown',
     openAs: 'Open',

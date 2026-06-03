@@ -1,0 +1,259 @@
+---
+title: 代码示例
+description: CCC 即开即用的代码示例——在 Playground 中运行、克隆到自己的项目中，或作为开发参考。
+icon: Code
+---
+
+import { ExampleGrid } from '@/components/example-grid';
+
+浏览我们为你准备的可运行代码示例和交互式工具，使用下方标签筛选感兴趣的分类。
+- 标记为 **playground** 的卡片可在 [CCC Playground](https://live.ckbccc.com/) 中直接打开运行。
+- 标记为 **app** 的卡片指向 [CCC App](https://app.ckbccc.com/)——一个 CKB 小工具集，即使你不是开发者也可以通过图形界面完成常见操作。
+
+<ExampleGrid lang="zh" items={[
+  {
+    title: "转账 CKB",
+    description: "向指定地址发送一定数量的 CKB。演示声明 → 填充 → 手续费 → 发送交易的标准模式。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/transfer.ts",
+  },
+  {
+    title: "转账全部 CKB",
+    description: "将钱包全部余额归集到单个输出。使用 completeInputsAll 和 completeFeeChangeToOutput。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/transferAll.ts",
+  },
+  {
+    title: "转账 UDT 代币",
+    description: "在地址间转移 xUDT 代币。演示 UDT Cell 的构造和输入补全。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts",
+    tags: ["playground", "transaction", "udt"],
+    source: "packages/examples/src/transferUdt.ts",
+  },
+  {
+    title: "签名与验证消息",
+    description: "使用连接的钱包对任意消息签名，并在链上验证签名。支持所有钱包类型。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/sign.ts",
+  },
+  {
+    title: "自定义 UI——指定钱包",
+    description: "不使用内置连接弹窗，在自定义界面中连接指定类型的钱包。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUi.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/customUi.ts",
+  },
+  {
+    title: "自定义 UI——全部钱包（Controller）",
+    description: "使用 SignersController 枚举并连接所有支持的钱包，实现完全自定义的钱包连接界面。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUiWithController.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/customUiWithController.ts",
+  },
+  {
+    title: "查询余额",
+    description: "查询任意地址在测试网或主网上的 CKB 余额。简单的只读脚本示例。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryBalance.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryBalance.ts",
+  },
+  {
+    title: "查询 Cell",
+    description: "遍历指定地址拥有的活跃 Cell。演示 Cell 收集器模式。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryCells.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryCells.ts",
+  },
+  {
+    title: "查询交易历史",
+    description: "获取指定地址的交易记录。展示如何使用交易迭代器。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryTransactions.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryTransactions.ts",
+  },
+  {
+    title: "NervosDAO 存入与取出",
+    description: "将 CKB 存入 NervosDAO 并提取利息。涵盖完整的 DAO 生命周期。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/dao.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/dao.ts",
+  },
+  {
+    title: "创建 Spore DOB",
+    description: "使用 Spore 协议铸造链上数码物（DOB）。演示 Cluster 创建和内容上传。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/createSpore.ts",
+    tags: ["playground", "transaction", "spore"],
+    source: "packages/examples/src/createSpore.ts",
+  },
+  {
+    title: "转移 Spore DOB",
+    description: "将已有的 Spore DOB 转移到另一个地址。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferSpore.ts",
+    tags: ["playground", "transaction", "spore"],
+    source: "packages/examples/src/transferSpore.ts",
+  },
+  {
+    title: "后端转账（Node.js）",
+    description: "在 Node.js 后端使用 @ckb-ccc/shell 配合私钥签名器发送 CKB，无需浏览器环境。",
+    href: "https://github.com/ckb-devrel/ccc/blob/master/packages/examples/src/backendTransfer.ts",
+    tags: ["backend", "transaction"],
+    source: "packages/examples/src/backendTransfer.ts",
+  },
+  {
+    title: "DOB Cookbook — Colorful Loot",
+    description: "使用 Spore DOB Cookbook 配方创建彩色 Loot DOB。演示高级 DOB 模式。",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob-cookbook/refs/heads/main/examples/dob0/1.colorful-loot.ts",
+    tags: ["playground", "spore"],
+    source: "sporeprotocol/dob-cookbook",
+  },
+  {
+    title: "发行 xUDT——Single-Use Lock",
+    description: "使用 Single-Use Lock 模式发行 xUDT 代币。Lock 在发行后即被消耗，防止重复铸造。",
+    href: "https://app.ckbccc.com/connected/IssueXUdtSus",
+    tags: ["app", "transaction", "udt"],
+    source: "packages/demo/src/app/connected/(tools)/IssueXUdtSus/page.tsx",
+  },
+  {
+    title: "发行 xUDT——Type ID",
+    description: "使用 Type ID Cell 控制的方式发行 xUDT 代币，允许同一控制者后续继续铸造。",
+    href: "https://app.ckbccc.com/connected/IssueXUdtTypeId",
+    tags: ["app", "transaction", "udt"],
+    source: "packages/demo/src/app/connected/(tools)/IssueXUdtTypeId/page.tsx",
+  },
+  {
+    title: "创建 Spore Cluster",
+    description: "创建 Spore Cluster——链上数码物（DOB）的逻辑分组。",
+    href: "https://app.ckbccc.com/connected/CreateSporeCluster",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/CreateSporeCluster/page.tsx",
+  },
+  {
+    title: "铸造 Spore",
+    description: "通过 CCC App 界面在指定 Cluster 下铸造 Spore DOB。",
+    href: "https://app.ckbccc.com/connected/MintSpore",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/MintSpore/page.tsx",
+  },
+  {
+    title: "转移 / 销毁 Spore",
+    description: "将 Spore DOB 转移到其他地址，或销毁（Melt）以回收 CKB 容量。",
+    href: "https://app.ckbccc.com/connected/TransferSpore",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/TransferSpore/page.tsx",
+  },
+  {
+    title: "转移 Spore Cluster",
+    description: "将 Spore Cluster 的所有权转移到其他地址。",
+    href: "https://app.ckbccc.com/connected/TransferSporeCluster",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/TransferSporeCluster/page.tsx",
+  },
+  {
+    title: "时间锁转账",
+    description: "发送带时间锁的 CKB——接收方在指定区块高度或时间戳之前无法花费该输出。",
+    href: "https://app.ckbccc.com/connected/TimeLockedTransfer",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/TimeLockedTransfer/page.tsx",
+  },
+  {
+    title: "SSRI 合约调用",
+    description: "通过 SSRI（Script-Sourced Rich Information）协议与链上智能合约交互。",
+    href: "https://app.ckbccc.com/connected/SSRI",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/SSRI/page.tsx",
+  },
+  {
+    title: "转账 CKB（Lumos）",
+    description: "使用旧版 Lumos SDK 配合 CCC 兼容补丁进行 CKB 转账。",
+    href: "https://app.ckbccc.com/connected/TransferLumos",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/TransferLumos/page.tsx",
+  },
+  {
+    title: "CKB 哈希计算器",
+    description: "计算任意消息的 CKB 哈希值（Blake2b-256）。开发者常用的快捷工具。",
+    href: "https://app.ckbccc.com/utils/Hash",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Hash/page.tsx",
+  },
+  {
+    title: "助记词与密钥对生成器",
+    description: "生成 BIP-39 助记词及派生密钥对，可选加密导出为 Keystore 文件。",
+    href: "https://app.ckbccc.com/utils/Mnemonic",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Mnemonic/page.tsx",
+  },
+  {
+    title: "Keystore 解密器",
+    description: "解密 CKB Keystore 文件，恢复私钥。",
+    href: "https://app.ckbccc.com/utils/Keystore",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Keystore/page.tsx",
+  },
+  {
+    title: "Dep Group 管理器",
+    description: "查看和管理 CKB 交易中 Cell Deps 使用的依赖组（DepGroup）。",
+    href: "https://app.ckbccc.com/utils/DepGroup",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/DepGroup/page.tsx",
+  },
+]} />
+
+## 贡献你的示例
+
+我们欢迎社区开发者贡献自己的脚本！无论是一个实用的工具脚本、一段有趣的链上数据分析，还是一个新协议的集成示例，都可以收录到这里，帮助更多人快速上手 CKB 开发。
+
+### 通过 GitHub 提交
+
+如果你希望将示例收录到官方仓库，请按照以下流程操作：
+
+<Steps>
+  <Step>
+    **Fork 并克隆仓库**
+
+    前往 [ckb-devrel/ccc](https://github.com/ckb-devrel/ccc) 点击 **Fork**，然后克隆到本地：
+
+    ```bash
+    git clone https://github.com/<your-username>/ccc.git
+    cd ccc
+    ```
+  </Step>
+  <Step>
+    **编写脚本**
+
+    在 `packages/examples/src/` 目录下新建 `.ts` 文件，文件命名使用 camelCase，例如 `myNewExample.ts`。脚本需要：
+
+    - 从 `@ckb-ccc/ccc` 导入 SDK
+    - 从 `@ckb-ccc/playground` 导入 `render`、`signer` 等
+    - 在关键步骤调用 `await render(tx)` 以便在 Playground 中可视化
+
+    可参考 [`transfer.ts`](https://github.com/ckb-devrel/ccc/blob/master/packages/examples/src/transfer.ts) 的写法。
+  </Step>
+  <Step>
+    **本地验证**
+
+    将脚本粘贴到 [Playground](https://live.ckbccc.com/) 中运行，确认在 Testnet 上能正常执行。
+  </Step>
+  <Step>
+    **提交 Pull Request**
+
+    推送到你的 Fork 后，向 `ckb-devrel/ccc` 的 `master` 分支发起 PR。在 PR 描述中简要说明示例的用途和使用场景。
+  </Step>
+</Steps>
+
+### 快速分享（无需 PR）
+
+Playground 可以通过 `?src=` 参数加载**任意**公开可访问 URL 的代码——你的 GitHub 仓库、Gist、甚至任意原始文件 URL 都可以：
+
+```
+https://live.ckbccc.com/?src=<your-raw-file-url>
+```
+
+把生成的链接分享给同事或社区伙伴，对方打开即可直接运行你的代码。
+
+<Callout type="info">
+  Playground 内置的 **Share** 按钮会将代码存储到 Nostr 中继节点。Nostr 分享链接适合临时协作，但中继节点不保证数据永久留存，长时间后可能失效。如果你需要**长期稳定的分享链接**，建议将脚本托管到 GitHub 仓库，通过 `?src=https://raw.githubusercontent.com/...` 的方式加载——只要仓库和文件存在，链接就不会失效。
+</Callout>
