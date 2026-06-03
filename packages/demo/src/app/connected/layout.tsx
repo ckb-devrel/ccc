@@ -13,25 +13,18 @@ export default function RootLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { signer } = useApp();
-  const [isRestoring, setIsRestoring] = useState(true);
+  const [restorationPending, setRestorationPending] = useState(true);
 
-  // On mount, check if there's a saved connection to restore
+  // On mount, start a grace period for session restoration.
+  // setTimeout ensures setState is async (satisfies react-hooks/set-state-in-effect).
   useEffect(() => {
-    if (!hasSavedConnection()) {
-      setIsRestoring(false);
-      return;
-    }
-    // Give the connector a grace period to restore the session
-    const timer = setTimeout(() => setIsRestoring(false), 3000);
+    const delay = hasSavedConnection() ? 3000 : 0;
+    const timer = setTimeout(() => setRestorationPending(false), delay);
     return () => clearTimeout(timer);
   }, []);
 
-  // Clear restoring state as soon as signer appears
-  useEffect(() => {
-    if (signer) {
-      setIsRestoring(false);
-    }
-  }, [signer]);
+  // Derived: still restoring if pending and signer hasn't appeared
+  const isRestoring = restorationPending && !signer;
 
   // Redirect when we're sure the user isn't connected
   useEffect(() => {
