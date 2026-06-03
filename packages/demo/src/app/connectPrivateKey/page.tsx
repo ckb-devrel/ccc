@@ -4,6 +4,7 @@ import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
 import { TextInput } from "@/src/components/Input";
 import { useApp } from "@/src/context";
+import { consumeReturnPath } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,7 +16,7 @@ export default function Page() {
   const [privateKey, setPrivateKey] = useState("");
 
   return (
-    <div className="flex w-9/12 flex-col items-center items-stretch gap-2">
+    <div className="flex w-9/12 flex-col items-stretch gap-2">
       <TextInput
         label="Private Key"
         state={[privateKey, setPrivateKey]}
@@ -30,7 +31,7 @@ export default function Page() {
               setPrivateKeySigner(
                 new ccc.SignerCkbPrivateKey(client, privateKey),
               );
-              router.push("/connected");
+              router.push(consumeReturnPath());
             } catch (_) {
               setPrivateKeySigner(undefined);
               Promise.reject("Invalid private key");
