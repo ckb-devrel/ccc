@@ -28,7 +28,7 @@ export default async function Layout({
           },
         },
       }}
-      {...baseOptions(lang)}
+      {...baseOptions(lang, { showNavLinks: false })}
     >
       {children}
     </DocsLayout>
