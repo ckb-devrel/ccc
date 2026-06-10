@@ -58,7 +58,7 @@ Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckb
 
 The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing. [Click the link](https://live.ckbccc.com/) to run your code without the annoying preparation and watch how the code works, exploring CCC's capabilities.
 
-For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/docs/playground).
+For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/docs/guides/playground).
 
 ## Quick Start with `create-ccc-app`
 
@@ -110,7 +110,9 @@ import { cccA } from "@ckb-ccc/<package-name>/advanced";
   </a>
 </p>
 
-The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. To learn more about the app's features, visit [the documentation](https://docs.ckbccc.com/docs/ccc-app).
+The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. 
+
+To learn more examples, visit [the documentation](https://docs.ckbccc.com/docs/code-examples).
 
 ### Transaction Composing
 
@@ -164,8 +166,8 @@ pnpm run dev
 | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/nervape.svg" />](https://www.nervape.com/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/utxoswap.svg" />](https://utxoswap.xyz/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/did.svg" />](https://d.id/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/boolnetwork.svg" />](https://bool.network/) |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 
-| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/world3.svg" />](https://world3.ai/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/rgbcat.svg" />](https://catnip.rgbcat.io/) |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/world3.svg" />](https://world3.ai/) |
+| ------------------------------------------------------------------------------------------------------------------------------------------- |
 
 ## FAQs
 
@@ -208,7 +210,7 @@ registerCustomLockScriptInfos(generateDefaultScriptInfos());
 
 - [CCC Playground](https://live.ckbccc.com/) and its [source code](https://github.com/ckb-devrel/ccc/tree/master/packages/playground) help you experiment with CCC instantly in browsers.
 - [Nervos CKB Docs](https://docs.nervos.org/) is the documentation website of Nervos CKB.
-- [Lumos](https://github.com/ckb-js/lumos) and its [Docs](https://lumos-website.vercel.app/): Lumos provides utils to help compose CKB transactions.
-- [RGB++ SDK](https://github.com/ckb-cell/rgbpp-sdk) and its [Design](https://github.com/ckb-cell/RGBPlusPlus-design): RGB++ is a protocol for issuing assets with Turing-completed VM on BTC L1.
+- [Lumos](https://github.com/ckb-js/lumos) and its [Docs](https://lumos-website.vercel.app/): Legacy SDK for CKB transaction composition. **Note: Lumos is no longer actively maintained.** For new projects, CCC is the recommended alternative.
+- [RGB++ SDK](https://github.com/RGBPlusPlus/rgbpp-sdk) and its [Design](https://github.com/RGBPlusPlus/RGBPlusPlus-design): RGB++ is a protocol for issuing assets with Turing-completed VM on BTC L1.
 - [Spore SDK](https://github.com/sporeprotocol/spore-sdk) and its [Docs](https://docs.spore.pro/): The on-chain digital object (DOBs) protocol designed to empower ownership, distribution, and value capture.
 - [PW SDK](https://talk.nervos.org/t/lay2-pw-sdk-build-dapps-on-ckb-and-run-them-everywhere/4289) is not maintained anymore. It is the early-age wallet connector and a brave pioneer of the CKB ecosystem.

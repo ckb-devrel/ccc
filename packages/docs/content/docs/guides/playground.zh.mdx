@@ -1,0 +1,276 @@
+---
+title: CCC Playground
+description: 了解如何使用 CCC Playground——一个可在浏览器中编写、运行和分享 CKB 交易脚本的 IDE。
+icon: FlaskConical
+---
+
+[CCC Playground](https://live.ckbccc.com/) 是一个浏览器内 IDE，无需本地环境即可编写、执行和可视化 CKB 交易。它是学习 CCC、实验 CKB 最快捷的方式。
+
+## 完成本指南后你将能够
+
+- 理解 Playground 的工作原理和使用方法
+- 使用 Playground 进行 CKB 交易的调试和可视化
+- 在浏览器中编写、运行和分享 CKB 交易脚本
+- 使用 CCC SDK 构建和发送交易
+
+## 界面概览
+
+![Playground overview](/guides/playground-overview.png)
+
+Playground 分为左右两个面板：
+
+- **左侧面板**——Monaco（VS Code）编辑器，内置 CCC 类型的完整 TypeScript IntelliSense
+- **右侧面板**——控制台（Console），显示日志、错误信息和可交互的交易可视化图
+
+### 工具栏按钮
+
+| 按钮 | 说明 |
+| --- | --- |
+| **Testnet / Mainnet** | 切换 CKB 测试网与主网 |
+| **Format** | 使用 Prettier 自动格式化代码 |
+| **Run** | 执行代码，并自动逐步通过 `render()` 断点 |
+| **Step** | 进入调试模式——在每个 `render()` 处暂停，点击 **Continue** 继续执行 |
+| **Share** | 将代码发布到 Nostr 中继节点并生成可分享的 URL |
+| **Connect** | 打开钱包连接器，用于签名和发送真实交易。一旦连接上钱包，此处会显示钱包对应的 CKB 地址 |
+| **Console** | 显示控制台标签页 |
+| **Clear** | 清空所有控制台输出 |
+| **About** | 显示文档、GitHub、水龙头和区块链浏览器的链接 |
+
+## 可用的导入模块
+
+Playground 中的所有脚本运行在沙盒 TypeScript 环境中，以下模块可直接使用：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";               // CCC 核心 SDK
+import { render, signer, client } from "@ckb-ccc/playground"; // Playground 辅助工具
+```
+
+### `@ckb-ccc/playground` 导出项
+
+| 导出项 | 类型 | 说明 |
+| --- | --- | --- |
+| `signer` | `ccc.Signer` | 当前激活的 `signer`——已连接的钱包，或内置的只读密钥 |
+| `client` | `ccc.Client` | 当前激活的 CKB `client`（测试网或主网） |
+| `render(...args)` | `Promise<void>` | 将值输出到控制台并暂停执行（在 Step 模式下充当断点） |
+
+也可以使用 `console.log()` 和 `console.error()`，输出内容会显示在控制台面板中。
+
+<Callout type="info">
+  未连接钱包时，`signer` 默认使用内置的公钥签名器。此时可读取链上数据和构建交易，但发送交易需要连接钱包。
+</Callout>
+
+了解了基本界面和可用工具后，接下来通过几个实际示例来体验 Playground 的核心能力。
+
+## 示例一：CKB 转账
+
+这是 Playground 内置的默认示例，演示了**声明 → 填充 → 手续费 → 发送交易**的交易构建模式。
+
+打开 Playground 并粘贴以下代码（或直接使用默认示例）：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { render, signer } from "@ckb-ccc/playground";
+
+console.log("Welcome to CCC Playground!");
+
+// 主网上接收方为 signer 自身
+const receiver = signer.client.addressPrefix === "ckb" ?
+  await signer.getRecommendedAddress() :
+  "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqflz4emgssc6nqj4yv3nfv2sca7g9dzhscgmg28x";
+console.log(receiver);
+
+// 将地址字符串解析为对应的 Lock Script
+const { script: lock } = await ccc.Address.fromString(
+  receiver,
+  signer.client,
+);
+
+// 描述交易意图
+const tx = ccc.Transaction.from({
+  outputs: [
+    { capacity: ccc.fixedPointFrom(100), lock },
+  ],
+});
+await render(tx);
+
+// 补全缺失部分：填充输入
+await tx.completeInputsByCapacity(signer);
+await render(tx);
+
+// 补全缺失部分：支付手续费
+await tx.completeFeeBy(signer, 1000);
+await render(tx);
+```
+
+### 点击 **Run** 后的执行流程
+
+1. 代码构建一笔包含 100 CKB 输出的交易
+2. `render(tx)` 暂停执行，并在控制台显示当前交易——此时可以看到输出 Cell，但尚无输入
+3. `completeInputsByCapacity` 找到足够覆盖 100 CKB 的活跃 Cell，`render(tx)` 再次展示交易——此时已有输入
+4. `completeFeeBy` 添加找零输出并计算手续费，`render(tx)` 展示最终交易
+
+<Callout type="info">
+  点击 **Step** 而非 **Run**，可在每个 `render()` 调用处暂停。点击 **Continue** 进入下一个断点，非常适合逐步理解 CCC 构建交易的过程。
+</Callout>
+
+掌握了基本的转账流程后，来看一个更复杂的场景——在链上发行代币。
+
+## 示例二：发行自定义 UDT 代币
+
+本示例演示如何在 CKB 上发行用户自定义代币（User-Defined Token，简称 UDT）：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { render, signer } from "@ckb-ccc/playground";
+
+// 获取 signer 的 Lock Script，作为代币所有者
+const lock = (await signer.getRecommendedAddressObj()).script;
+console.log("代币所有者 Lock：", lock);
+
+// 构建包含 UDT 输出的交易
+const tx = ccc.Transaction.from({
+  outputs: [{ lock }],
+  outputsData: [ccc.numLeToBytes(1000000, 16)], // 初始供应量：1,000,000 个代币
+});
+await render(tx);
+
+// xUDT 的 Type Script 以第一个输入的 OutPoint 作为唯一 ID
+// 需要先添加输入，再设置 Type Script
+await tx.completeInputsByCapacity(signer);
+await render(tx);
+
+const firstInput = tx.inputs[0];
+const typeScript = await ccc.Script.fromKnownScript(
+  signer.client,
+  ccc.KnownScript.XUdt,
+  (await firstInput.getCell(signer.client)).cellOutput.lock.hash(),
+);
+await render(tx);
+
+tx.outputs[0].type = typeScript;
+await render(tx);
+
+// 重新计算输入（Type Script 会改变占用容量）
+await tx.completeFeeBy(signer, 1000);
+await render(tx);
+```
+
+<Callout type="warn">
+  **关于发送交易**：以上示例为了演示调试功能，仅构建交易到最终状态而没有实际发送。若要将交易广播上链，需要在最后调用 `signer.sendTransaction(tx)`：
+
+  ```typescript
+  // 签名并广播交易，返回交易哈希
+  const txHash = await signer.sendTransaction(tx);
+  console.log("交易已发送：", txHash);
+  ```
+
+  请确保已连接钱包，且钱包对应地址有足够的 CKB 余额。
+</Callout>
+
+Playground 的能力远不止构建交易。CCC SDK 中提供的所有方法都可以在这里直接运行，这意味着你可以编写任意脚本来完成各种链上操作——例如批量管理资产、追踪链上大额交易流向、分析 Cell 状态分布等。下面是一个简单的数据查询示例。
+
+## 示例三：查询链上数据
+
+无需构建任何交易，也可以用 Playground 直接探索链上数据：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+import { signer, client } from "@ckb-ccc/playground";
+
+// 获取当前最新区块高度
+const tip = await client.getTip();
+console.log("当前最新区块：", tip.toString());
+
+// 获取 signer 的地址
+const address = await signer.getRecommendedAddress();
+console.log("Signer 地址：", address);
+
+// 获取 signer 的余额
+const balance = await signer.getBalance();
+console.log("余额：", ccc.fixedPointToString(balance), "CKB");
+```
+
+## 理解 Cell 可视化图
+
+`render()` 接收 `ccc.Transaction` 时，控制台会显示一个可交互的交易图。每个 Cell 以圆形图标表示，由三个视觉层组成，如下图所示：
+
+<img src="/guides/playground-cell-visualization.png" alt="Cell 可视化图" width="500" style={{display:"block",margin:"0 auto"}} />
+
+### 八卦——外环与中环
+
+每个 Cell 渲染两个同心**八卦**环：
+
+- **外环**——由 Cell 的 Lock Script 派生
+- **中环**——由 Cell 的 Type Script 派生（如有）
+
+卦象具有确定性：`getScriptBagua(script)` 从脚本哈希中提取 24 位（`hash & 0xffffff000 >> 12`），拆分为 8 个 3 位卦爻。每个卦爻绘制三条线——`0` 对应阳爻（实线），`1` 对应阴爻（虚线）——遵循经典卦象编码（☰ 乾、☷ 坤，等）。
+
+每环的**颜色**同样由脚本哈希派生：`hash & 0xfff % 360` 得到 HSL 色相值。因此：
+- Lock Script 相同的 Cell，外环颜色和卦象相同
+- Type Script 相同的 Cell，中环颜色和卦象相同
+- 一眼即可识别同一所有者或同一代币类型的 Cell
+
+### 太极——中心圆
+
+每个 Cell 的中心显示一个缓慢旋转的**太极**符号：
+
+- **阳**（深色）半边使用 Lock Script 的颜色
+- **阴**（浅色）半边为半透明白色
+- 内部有一个彩色小圆点，表示**空闲容量占比**——即该 Cell 中未被数据占用的容量比例。圆点大小按比例缩放，颜色与 Type Script 颜色一致
+
+通过太极图可以直观判断一个 Cell 的"填充程度"。
+
+### 读懂数字
+
+太极符号下方显示：
+- **容量**（CKB 面值，大数字）
+- **DAO 收益**（若该 Cell 存入了 NervosDAO，显示为 `+ X CKB`）
+- 缩短后的 **OutPoint**（`txHash:index`），链接至 CKB 区块链浏览器
+- **数据大小**（若 Cell 包含数据，显示字节数）
+
+点击任意 Cell 可展开完整详情：OutPoint、容量、Lock Script（地址）、Type Script 以及原始输出数据。
+
+## 分享代码
+
+点击 **Share**，代码将发布到一组 Nostr 中继节点。Playground 生成一个 `nevent` 标识符并跳转至如下格式的 URL：
+
+```
+https://live.ckbccc.com/?src=nostr:nevent1...
+```
+
+任何人打开该 URL，都能在编辑器中看到你的代码。代码存储于去中心化的 Nostr 中继节点，无需中心化服务器。
+
+也可以通过 `src` 查询参数加载任意 URL 的代码，如：
+
+```
+https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob-cookbook/refs/heads/main/examples/dob0/1.colorful-loot.ts
+```
+
+## 使用技巧
+
+- **多用 `render()`**——它是主要的调试工具。在每个阶段传入交易对象，观察 CCC 如何逐步修改它。
+- **善用 Step 模式**——点击 **Step** 在每个 `render()` 调用处暂停，检查当前状态，再点击 **Continue** 继续。非常适合理解交易的完整生命周期。
+- **代码自动持久化**——未使用 `?src=` 参数时，代码会自动保存在 localStorage 中，下次访问自动恢复。
+- **获取测试网 CKB**——点击 **About** → **CKB Testnet Faucet** 为测试网地址充值，或直接访问 [faucet.nervos.org](https://faucet.nervos.org/)。
+- **完整 IntelliSense**——编辑器为所有 CCC 类型提供自动补全和类型检查，同时支持 `@noble/curves`、`@noble/hashes` 和 `@nervina-labs/dob-render`。
+- **分享即协作**——编写完一段脚本后点 **Share** 生成链接，可以发给同事或社区伙伴，对方打开即可复现你的代码环境。
+
+## 注意事项
+
+<Callout type="error">
+  在运行任何脚本之前，**务必确认左下角显示的网络环境**（Testnet 或 Mainnet）。操作主网资产是不可逆的。
+</Callout>
+
+- **先 Testnet，后 Mainnet**——任何脚本都应先在测试网上运行通过、确认行为符合预期后，再切换到主网执行。切勿一上来就操作主网资产。
+- **注意连接状态**——发送交易前，确认右下角已连接正确的钱包、网络。
+- **CKB 最低容量**——每个 Cell 至少需要 61 CKB 来支付自身的链上存储费用。如果输出 capacity 设置过低，交易会被节点拒绝。
+- **交易不可撤销**——一旦交易被打包上链就无法撤回。在主网操作资产时，建议先用 `render()` 仔细审查交易的输入输出是否符合预期。
+- **浏览器刷新**——代码自动保存在 localStorage 中，刷新页面不会丢失。但如果使用了 `?src=` URL，代码来自外部源，本地修改不会覆盖 URL 参数。
+- **执行超时**——Playground 中的脚本在浏览器主线程运行。如果你编写了长循环或大量 RPC 调用，可能导致页面卡顿。建议分步执行。
+
+## 下一步
+
+- [构建交易](/docs/guides/compose-transactions)——完整的交易构建与发送指南。
+- [UDT 代币](/docs/guides/udt-tokens)——发行和转移用户自定义代币（UDT）。
+- [Spore 协议](/docs/guides/spore-protocol)——创建链上数码物（Digital Object，简称 DOB）。
+- [连接钱包](/docs/guides/connect-wallets)——在自己的应用中集成钱包连接功能。

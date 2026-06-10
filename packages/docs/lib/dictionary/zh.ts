@@ -109,9 +109,20 @@ export const zh: Dictionary = {
     },
   },
 
+  examples: {
+    all: '全部',
+    noMatch: '没有匹配所选标签的示例。',
+  },
+
   docs: {
     copyMarkdown: '复制 Markdown',
-    openAs: '打开',
+    askAi: '问 AI',
+    askAiItems: {
+      scira: '用 Scira AI 提问',
+      chatgpt: '用 ChatGPT 提问',
+      claude: '用 Claude 提问',
+      cursor: '用 Cursor 提问',
+    },
     sections: {
       'getting-started': '快速上手',
       concepts: '核心概念',

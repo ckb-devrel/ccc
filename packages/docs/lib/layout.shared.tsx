@@ -36,13 +36,13 @@ export const logo = (
   />
 );
 
-export function baseOptions(locale: string): BaseLayoutProps {
+export function baseOptions(locale: string, { showNavLinks = true }: { showNavLinks?: boolean } = {}): BaseLayoutProps {
   const t = getDictionary(locale).nav;
 
   const links: LinkItemType[] = [
     {
       type: 'main',
-      url: `/${locale}/docs`,
+      url: `/${locale}/docs/getting-started/introduction`,
       text: t.docs,
     },
     /*{
@@ -81,7 +81,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
       ),
       url: `/${locale}`,
     },
-    links,
+    links: showNavLinks ? links : [],
     githubUrl: externalLinks.github,
   };
 }

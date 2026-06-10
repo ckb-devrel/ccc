@@ -76,7 +76,15 @@ export default function proxy(request: NextRequest) {
   const isLocalized = LOCALIZED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   if (!hasLang && isLocalized) {
     const lang = detectLanguage(request);
-    return NextResponse.redirect(new URL(`/${lang}${pathname}`, request.nextUrl));
+    const dest = pathname === '/docs' ? `/${lang}/docs/getting-started/introduction` : `/${lang}${pathname}`;
+    return NextResponse.redirect(new URL(dest, request.nextUrl));
+  }
+
+  // 4) Redirect bare /:lang/docs to introduction (index.mdx removed)
+  if (hasLang && segments.length === 2 && segments[1] === 'docs') {
+    return NextResponse.redirect(
+      new URL(`/${segments[0]}/docs/getting-started/introduction`, request.nextUrl),
+    );
   }
 
   // Pass the pathname to server components so they can detect the locale

@@ -2,6 +2,7 @@
 
 import { BigButton } from "@/src/components/BigButton";
 import { useApp } from "@/src/context";
+import { consumeReturnPath } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     if (signer) {
-      router.push("/connected");
+      router.push(consumeReturnPath());
     }
   }, [signer, router]);
 

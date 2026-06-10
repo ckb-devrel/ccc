@@ -1,6 +1,7 @@
 {
   "title": "Guides",
   "pages": [
+    "playground",
     "connect-wallets",
     "compose-transactions"
   ]

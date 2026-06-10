@@ -1,4 +1,4 @@
-import { getPageImage, getPageMarkdownUrl, source } from '@/lib/source';
+import { source } from '@/lib/source';
 import {
   DocsBody,
   DocsDescription,
@@ -7,8 +7,8 @@ import {
   EditOnGitHub,
   MarkdownCopyButton,
   PageLastUpdate,
-  ViewOptionsPopover,
 } from 'fumadocs-ui/layouts/notebook/page';
+import { AskAiPopover } from '@/components/ask-ai-popover';
 import { notFound } from 'next/navigation';
 import { getMDXComponents } from '@/components/mdx';
 import type { Metadata } from 'next';
@@ -37,11 +37,11 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
 
   const dict = getDictionary(params.lang);
   const MDX = page.data.body;
-  const markdownUrl = getPageMarkdownUrl(page).url;
+  const markdownUrl = `${page.url}.md`;
   const eyebrow = getSectionLabel(params.slug, dict);
 
   // Path of the source file in the repo, used for both editOnGithub and lastUpdate.
-  const repoPath = `packages/ccc-docs/content/docs/${page.path}`;
+  const repoPath = `packages/docs/content/docs/${page.path}`;
 
   // Fetch the last edit time from the GitHub API. Returns null if the request
   // fails (offline build, rate-limit, etc.) — DocsPage will simply hide it.
@@ -90,12 +90,9 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
         <MarkdownCopyButton markdownUrl={markdownUrl} >
           {dict.docs.copyMarkdown}
         </MarkdownCopyButton>
-        <ViewOptionsPopover
-          markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${repoPath}`}
-        >
-          {dict.docs.openAs}
-        </ViewOptionsPopover>
+        <AskAiPopover labels={dict.docs.askAiItems}>
+          {dict.docs.askAi}
+        </AskAiPopover>
         <EditOnGitHub
           href={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${repoPath}`}
         />

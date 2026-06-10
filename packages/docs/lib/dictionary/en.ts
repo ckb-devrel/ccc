@@ -109,9 +109,20 @@ export const en: Dictionary = {
     },
   },
 
+  examples: {
+    all: 'All',
+    noMatch: 'No examples match the selected filter.',
+  },
+
   docs: {
     copyMarkdown: 'Copy Markdown',
-    openAs: 'Open',
+    askAi: 'Ask AI',
+    askAiItems: {
+      scira: 'Open in Scira AI',
+      chatgpt: 'Open in ChatGPT',
+      claude: 'Open in Claude',
+      cursor: 'Open in Cursor',
+    },
     sections: {
       'getting-started': 'Get Started',
       concepts: 'Core Concepts',

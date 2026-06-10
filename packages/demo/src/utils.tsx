@@ -1,6 +1,37 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import Link from "next/link";
 
+const RETURN_TO_KEY = "ccc-return-to";
+
+export function saveReturnPath(path: string) {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(RETURN_TO_KEY, path);
+  }
+}
+
+export function consumeReturnPath(): string {
+  if (typeof window === "undefined") {
+    return "/connected";
+  }
+  const path = window.sessionStorage.getItem(RETURN_TO_KEY);
+  window.sessionStorage.removeItem(RETURN_TO_KEY);
+  return path ?? "/connected";
+}
+
+export function hasSavedConnection(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    const info = JSON.parse(
+      window.localStorage.getItem("ccc-connection-info") ?? "{}",
+    );
+    return !!(info.walletName && info.signerName);
+  } catch {
+    return false;
+  }
+}
+
 export function tokenInfoToBytes(
   decimals: ccc.NumLike,
   symbol: string,
