@@ -14,6 +14,7 @@ export default defineConfig(
         entry: {
           index: "src/index.ts",
           barrel: "src/barrel.ts",
+          plc: "src/plc/index.ts",
         },
         format: "esm",
         copy: "./misc/basedirs/dist/*",
@@ -22,6 +23,7 @@ export default defineConfig(
         entry: {
           index: "src/index.ts",
           barrel: "src/barrel.ts",
+          plc: "src/plc/index.ts",
         },
         noExternal: ["@ipld/dag-cbor"] as string[],
         format: "cjs",

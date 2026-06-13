@@ -21,6 +21,10 @@
       "require": "./dist.commonjs/barrel.js",
       "import": "./dist/barrel.mjs"
     },
+    "./plc": {
+      "require": "./dist.commonjs/plc.js",
+      "import": "./dist/plc.mjs"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -49,7 +53,8 @@
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
-    "@ipld/dag-cbor": "^9.2.5"
+    "@ipld/dag-cbor": "^9.2.5",
+    "@noble/curves": "^1.9.7"
   },
   "packageManager": "pnpm@10.8.1",
   "types": "./dist.commonjs/index.d.ts"
