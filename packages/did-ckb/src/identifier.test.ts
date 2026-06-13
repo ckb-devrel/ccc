@@ -31,7 +31,9 @@ describe("base32", () => {
   });
 
   it("accepts hex input via ccc.bytesFrom", () => {
-    expect(base32Encode("0xdeadbeef")).toBe(base32Encode(ccc.bytesFrom("0xdeadbeef")));
+    expect(base32Encode("0xdeadbeef")).toBe(
+      base32Encode(ccc.bytesFrom("0xdeadbeef")),
+    );
   });
 });
 

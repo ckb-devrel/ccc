@@ -415,6 +415,9 @@ importers:
       '@ipld/dag-cbor':
         specifier: ^9.2.5
         version: 9.2.5
+      '@noble/curves':
+        specifier: ^1.9.7
+        version: 1.9.7
     devDependencies:
       '@eslint/js':
         specifier: ^9.34.0

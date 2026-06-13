@@ -93,6 +93,8 @@ describe("signRotationHash + verifyPrivateKeyMatch", () => {
 
   it("throws on wrong tx hash length", () => {
     const priv = secp256k1.utils.randomSecretKey();
-    expect(() => signRotationHash(priv, new Uint8Array(31), "secp256k1")).toThrow();
+    expect(() =>
+      signRotationHash(priv, new Uint8Array(31), "secp256k1"),
+    ).toThrow();
   });
 });

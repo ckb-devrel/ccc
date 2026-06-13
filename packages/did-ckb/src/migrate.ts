@@ -75,9 +75,7 @@ export async function migrateDidCkb(props: {
   index: number;
 }> {
   if (!props.sourceDid.startsWith("did:plc:")) {
-    throw new Error(
-      `sourceDid must be did:plc:..., got "${props.sourceDid}"`,
-    );
+    throw new Error(`sourceDid must be did:plc:..., got "${props.sourceDid}"`);
   }
   const document = props.data?.value?.document ?? {};
   const data: DidCkbDataLike = {
