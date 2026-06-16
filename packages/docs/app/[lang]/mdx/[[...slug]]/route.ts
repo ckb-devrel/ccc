@@ -1,3 +1,4 @@
+import { docsIndexNote } from '@/lib/shared';
 import { source } from '@/lib/source';
 import { notFound } from 'next/navigation';
  
@@ -11,7 +12,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
   // Return raw markdown content
   const rawContent = await page.data.getText('raw');
  
-  return new Response(rawContent, {
+  return new Response(`${rawContent}\n\n---\n\n${docsIndexNote}\n`, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, s-maxage=3600',
