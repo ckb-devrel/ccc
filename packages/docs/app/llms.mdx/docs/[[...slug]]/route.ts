@@ -1,3 +1,4 @@
+import { docsIndexNote } from '@/lib/shared';
 import { getLLMText, getPageMarkdownUrl, source } from '@/lib/source';
 import { notFound } from 'next/navigation';
 
@@ -10,7 +11,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/llms.mdx/doc
   const page = source.getPage(pageSlugs);
   if (!page) notFound();
 
-  return new Response(await getLLMText(page), {
+  return new Response(`${await getLLMText(page)}\n\n---\n\n${docsIndexNote}\n`, {
     headers: {
       'Content-Type': 'text/markdown',
     },

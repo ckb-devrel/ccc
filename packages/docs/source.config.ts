@@ -7,7 +7,11 @@ import { z } from 'zod';
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
-    schema: pageSchema,
+    // Require a non-empty `description` so the auto-generated llms.txt index
+    // always carries a one-line summary for every page (AI consumption).
+    schema: pageSchema.extend({
+      description: z.string().min(1),
+    }),
     postprocess: {
       includeProcessedMarkdown: true,
     },

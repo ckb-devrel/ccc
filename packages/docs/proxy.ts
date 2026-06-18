@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMarkdownPreferred, rewritePath } from 'fumadocs-core/negotiation';
 import { i18n } from '@/lib/i18n';
-import { docsContentRoute, docsRoute } from '@/lib/shared';
+import { docsRoute } from '@/lib/shared';
 
+// Rewrite language-prefixed docs pages to their raw Markdown route.
+// Suffix-based access (.md / .mdx) is handled by rewrites in next.config.mjs.
 const { rewrite: rewriteDocs } = rewritePath(
-  `${docsRoute}{/*path}`,
-  `${docsContentRoute}{/*path}/content.md`,
-);
-const { rewrite: rewriteSuffix } = rewritePath(
-  `${docsRoute}{/*path}.mdx`,
-  `${docsContentRoute}{/*path}/content.md`,
+  `/:lang${docsRoute}{/*path}`,
+  `/:lang/mdx{/*path}`,
 );
 
 // Detect preferred language from the Accept-Language header
@@ -52,11 +50,7 @@ export default function proxy(request: NextRequest) {
   }
 
   // 1) Markdown content negotiation for AI agents
-  const suffixResult = rewriteSuffix(pathname);
-  if (suffixResult) {
-    return NextResponse.rewrite(new URL(suffixResult, request.nextUrl));
-  }
-  if (isMarkdownPreferred(request)) {
+  if (isMarkdownPreferred(request) && langs.includes(rawSegments[0] ?? '')) {
     const result = rewriteDocs(pathname);
     if (result) {
       return NextResponse.rewrite(new URL(result, request.nextUrl));
@@ -96,7 +90,7 @@ export default function proxy(request: NextRequest) {
 export const config = {
   // Skip static assets, API routes, and image/OG routes
   matcher: [
-    '/((?!api|_next/static|_next/image|og|llms\\.txt|llms-full\\.txt|llms\\.mdx|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)',
+    '/((?!api|_next/static|_next/image|og|llms\\.txt|llms-full\\.txt|llms\\.mdx|robots\\.txt|sitemap\\.xml|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)',
   ],
 };
 

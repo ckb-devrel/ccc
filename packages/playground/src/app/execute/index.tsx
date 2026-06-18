@@ -12,6 +12,7 @@ const LIBS = await Promise.all(
       ["@noble/hashes/sha2"],
       ["@ckb-ccc/ccc", "@ckb-ccc/core"],
       ["@ckb-ccc/ccc/advanced", "@ckb-ccc/core/advanced"],
+      ["@ckb-ccc/spore"],
       ["@nervina-labs/dob-render"],
     ] as const
   ).map(async (k) => {
