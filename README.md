@@ -48,6 +48,8 @@ We design CCC to optimize various use cases, including:
 
 Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckbccc.com) to learn more about CCC. If you are new to the CKB, we also recommend [Nervos CKB Docs](https://docs.nervos.org/) for basic knowledge.
 
+> **Using an AI assistant?** CCC's docs are LLM-friendly: start from [docs.ckbccc.com/llms.txt](https://docs.ckbccc.com/llms.txt) for a curated index with task-oriented reading paths, or [docs.ckbccc.com/llms-full.txt](https://docs.ckbccc.com/llms-full.txt) for the full documentation in a single file. Append `.md` to any docs page URL to get its raw Markdown.
+
 ## Try in the Playground
 
 <p align="center">

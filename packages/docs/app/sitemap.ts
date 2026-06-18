@@ -6,6 +6,10 @@ import { blogSource, source } from '@/lib/source';
 export default function sitemap(): MetadataRoute.Sitemap {
   const entries: MetadataRoute.Sitemap = [];
 
+  // AI entry points (language-agnostic) so crawlers and agents can discover them
+  entries.push({ url: `${siteUrl}/llms.txt` });
+  entries.push({ url: `${siteUrl}/llms-full.txt` });
+
   for (const lang of i18n.languages) {
     entries.push({ url: `${siteUrl}/${lang}` });
 

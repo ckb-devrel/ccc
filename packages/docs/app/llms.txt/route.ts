@@ -19,6 +19,18 @@ Notes for AI agents:
 - The entire documentation concatenated into a single file: ${siteUrl}/llms-full.txt
 - Chinese versions of every page are available by replacing \`/en/\` with \`/zh/\` in the URL.
 - API reference: https://api.ckbccc.com | Playground: https://live.ckbccc.com | Source: https://github.com/ckb-devrel/ccc
+
+## Common tasks (recommended reading paths)
+
+Start here, then read the linked pages in order for the task at hand:
+
+- New to CCC: [Introduction](${siteUrl}/en/docs/getting-started/introduction) → [Installation](${siteUrl}/en/docs/getting-started/installation) → [Quick Start](${siteUrl}/en/docs/getting-started/quick-start)
+- Connect a wallet: [Connect Wallets](${siteUrl}/en/docs/guides/connect-wallets) → [Signer](${siteUrl}/en/docs/concepts/signer) → pick a wallet under "Wallet Integrations" below
+- Build & send a transaction: [CKB Cell Model](${siteUrl}/en/docs/concepts/cell-model) → [Transaction](${siteUrl}/en/docs/concepts/transaction) → [Compose Transactions](${siteUrl}/en/docs/guides/compose-transactions)
+- Use CCC in a Node.js backend: [Node.js Backend](${siteUrl}/en/docs/guides/node-js-backend) → [@ckb-ccc/shell](${siteUrl}/en/docs/packages/core-packages/shell) → [Client](${siteUrl}/en/docs/concepts/client)
+- Sign & verify a message: [Sign Message](${siteUrl}/en/docs/guides/sign-message) → [Signer](${siteUrl}/en/docs/concepts/signer)
+
+The "Wallet Integrations" section lists one page per supported wallet — read only the one(s) your app targets; they all share the same unified \`Signer\` interface.
 `;
 
 export function GET() {

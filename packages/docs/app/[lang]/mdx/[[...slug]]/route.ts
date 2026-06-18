@@ -9,10 +9,11 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
   const page = source.getPage(slug, lang);
   if (!page) notFound();
  
-  // Return raw markdown content
-  const rawContent = await page.data.getText('raw');
+  // Serve processed Markdown (MDX imports/JSX stripped) so AI agents fetching
+  // the advertised `.md` / `.mdx` URLs get clean text, not raw component source.
+  const content = await page.data.getText('processed');
  
-  return new Response(`${rawContent}\n\n---\n\n${docsIndexNote}\n`, {
+  return new Response(`${content}\n\n---\n\n${docsIndexNote}\n`, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, s-maxage=3600',
