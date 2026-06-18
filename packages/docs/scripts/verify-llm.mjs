@@ -123,6 +123,8 @@ async function probe(href) {
   for (let attempt = 0; attempt < ATTEMPTS; attempt += 1) {
     try {
       const res = await fetch(toUrl(href.replace(CANONICAL, BASE)), { redirect: 'follow' });
+      // Consume the response body to prevent socket leaks in Node.js
+      await res.text();
       if (res.ok) return true;
       lastErr = `status ${res.status}`;
     } catch (err) {
@@ -137,8 +139,9 @@ async function probe(href) {
 // Only probe links on our own origin; external links (github.com, ...) are
 // skipped so CI stays hermetic — no network or deployment required.
 async function checkInternalLinks(llmsBody) {
+  console.log('  --- Checking internal Markdown links...');
   const links = [...new Set([...llmsBody.matchAll(/\]\((https?:\/\/[^)]+)\)/g)].map((m) => m[1]))];
-  const internal = links.filter((href) => href.startsWith(CANONICAL));
+  const internal = links.filter((href) => href.startsWith(CANONICAL)).map((href) => `${href}.md`);
   const externalCount = links.length - internal.length;
   if (externalCount > 0) {
     console.log(`  ..  skipping ${externalCount} external link(s) (not verified in CI)`);
@@ -146,8 +149,17 @@ async function checkInternalLinks(llmsBody) {
 
   let broken = 0;
   for (let i = 0; i < internal.length; i += CONCURRENCY) {
-    const results = await Promise.all(internal.slice(i, i + CONCURRENCY).map(probe));
-    broken += results.filter((ok) => !ok).length;
+    const batch = internal.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(batch.map(probe));
+    batch.forEach((href, idx) => {
+      const path = href.replace(CANONICAL, '');
+      if (results[idx]) {
+        console.log(`  ok  ${path}`);
+      } else {
+        console.log(`  FAIL ${path}`);
+        broken += 1;
+      }
+    });
   }
   check(`all ${internal.length} internal llms.txt links resolve`, broken === 0, `${broken} broken`);
 }
