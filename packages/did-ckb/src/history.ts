@@ -30,9 +30,9 @@ const DEFAULT_MAX_STEPS = 50;
  * first entry returned is the newest (most recent transfer); the last is the
  * genesis.
  *
- * Cost: roughly one `getTransaction` call per step, plus up to one call per
- * non-DID input on each step to verify it isn't the prior DID cell. For typical
- * DIDs with a handful of updates that's a small handful of RPC calls.
+ * Cost: roughly one `getTransaction` call per step plus one `input.getCell`
+ * lookup per non-DID input on each step. `input.getCell` goes through the
+ * client's cell cache, so repeated walks over the same chain are cheap.
  */
 export async function getDidCkbHistory(props: {
   client: ccc.Client;
@@ -95,33 +95,31 @@ export async function getDidCkbHistory(props: {
 
 async function findPriorDidCell(
   client: ccc.Client,
-  tx: ccc.Transaction,
+  tx: ccc.TransactionLike,
   codeHash: string,
   id: string,
 ): Promise<ccc.Cell | undefined> {
-  for (const input of tx.inputs) {
-    const prevHash = input.previousOutput.txHash;
-    const prevIdx = input.previousOutput.index;
-    const prevTx = await client.getTransaction(prevHash);
-    if (!prevTx) {
+  const { inputs } = ccc.Transaction.from(tx);
+  for (const input of inputs) {
+    let cell: ccc.Cell;
+    try {
+      cell = await input.getCell(client);
+    } catch {
+      // Skip inputs whose previous output we can't fetch; they can't be the
+      // prior DID cell anyway, so the walk should keep looking at siblings.
       continue;
     }
-    const prevOutput = prevTx.transaction.outputs[Number(prevIdx)];
-    if (!prevOutput?.type) {
+    const type = cell.cellOutput.type;
+    if (!type) {
       continue;
     }
-    if (prevOutput.type.codeHash.toLowerCase() !== codeHash) {
+    if (type.codeHash.toLowerCase() !== codeHash) {
       continue;
     }
-    if (ccc.hexFrom(prevOutput.type.args).toLowerCase() !== id) {
+    if (ccc.hexFrom(type.args).toLowerCase() !== id) {
       continue;
     }
-    const data = prevTx.transaction.outputsData[Number(prevIdx)];
-    return ccc.Cell.from({
-      outPoint: { txHash: prevHash, index: prevIdx },
-      cellOutput: prevOutput,
-      outputData: data,
-    });
+    return cell;
   }
   return undefined;
 }

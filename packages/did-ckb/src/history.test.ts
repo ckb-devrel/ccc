@@ -54,6 +54,7 @@ describe("getDidCkbHistory", () => {
       getKnownScript: vi.fn(),
       findSingletonCellByType: vi.fn(),
       getTransaction: vi.fn(),
+      getCell: vi.fn(),
     } as unknown as ccc.Client;
 
     (client.getKnownScript as Mock).mockResolvedValue({
@@ -74,14 +75,31 @@ describe("getDidCkbHistory", () => {
     };
   }
 
-  it("returns CREATE, UPDATE entries newest-first for a normal mint + two transfers", async () => {
-    // Funding tx that produced the input used to create the genesis. Not a
-    // DID cell, so the walk should stop at the genesis tx.
-    const fundingPrevOut = ccc.CellOutput.from({
-      capacity: ccc.fixedPointFrom(1000),
-      lock: fundingLock,
-    });
+  // Set up a getCell mock that resolves outPoints to the cells we expect the
+  // walk to visit. `input.getCell(client)` calls `client.getCell` internally,
+  // which we replace wholesale to bypass the cache.
+  function cellAt(outPoint: ccc.OutPointLike): ccc.Cell | undefined {
+    const op = ccc.OutPoint.from(outPoint);
+    const hash = op.txHash.toLowerCase();
+    const index = Number(op.index);
+    if (hash === txUpdate1.toLowerCase() && index === 0) return update1Cell;
+    if (hash === txGenesis.toLowerCase() && index === 0) return genesisCell;
+    if (hash === txFunding.toLowerCase()) {
+      // Non-DID input that funded the genesis; getCell still works, but the
+      // type script doesn't match, so the walk treats this tx as the genesis.
+      return ccc.Cell.from({
+        outPoint: { txHash: txFunding, index: 0 },
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(1000),
+          lock: fundingLock,
+        },
+        outputData: "0x",
+      });
+    }
+    return undefined;
+  }
 
+  it("returns CREATE, UPDATE entries newest-first for a normal mint + two transfers", async () => {
     (client.getTransaction as Mock).mockImplementation(
       async (hash: ccc.HexLike) => {
         const h = ccc.hexFrom(hash);
@@ -121,15 +139,11 @@ describe("getDidCkbHistory", () => {
             100,
           );
         }
-        if (h === txFunding) {
-          return txResponse({
-            inputs: [],
-            outputs: [fundingPrevOut],
-            outputsData: ["0x"],
-          });
-        }
         return undefined;
       },
+    );
+    (client.getCell as Mock).mockImplementation(async (op: ccc.OutPointLike) =>
+      cellAt(op),
     );
 
     const history = await getDidCkbHistory({
@@ -167,20 +181,11 @@ describe("getDidCkbHistory", () => {
             50,
           );
         }
-        if (h === txFunding) {
-          return txResponse({
-            inputs: [],
-            outputs: [
-              ccc.CellOutput.from({
-                capacity: ccc.fixedPointFrom(1000),
-                lock: fundingLock,
-              }),
-            ],
-            outputsData: ["0x"],
-          });
-        }
         return undefined;
       },
+    );
+    (client.getCell as Mock).mockImplementation(async (op: ccc.OutPointLike) =>
+      cellAt(op),
     );
 
     const history = await getDidCkbHistory({ client, id, liveCell: migrated });
