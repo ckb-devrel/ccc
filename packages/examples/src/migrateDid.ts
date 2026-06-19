@@ -51,7 +51,7 @@ const witness = ccc.didCkb.buildMigrationWitness({
 });
 tx.setWitnessArgsAt(
   0,
-  ccc.WitnessArgs.from({ outputType: ccc.hexFrom(witness.toBytes()) }),
+  ccc.WitnessArgs.from({ outputType: witness.toBytes() }),
 );
 
 const txHash = await signer.sendTransaction(tx);

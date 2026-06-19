@@ -21,7 +21,7 @@ async function didCkbTypeScript(
   return ccc.Script.from({
     codeHash: scriptInfo.codeHash,
     hashType: scriptInfo.hashType,
-    args: ccc.hexFrom(id),
+    args: id,
   });
 }
 
