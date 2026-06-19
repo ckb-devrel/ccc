@@ -8,7 +8,7 @@ const did = "did:ckb:qq2m72a2vas4e5ovcpxoedscguuu4nba";
 
 const history = await ccc.didCkb.getDidCkbHistory({
   client: signer.client,
-  id: ccc.didCkb.didToArgs(did),
+  id: did,
 });
 
 if (history.length === 0) {

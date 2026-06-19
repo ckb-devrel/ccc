@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import { beforeEach, describe, expect, it, Mock, vi } from "vitest";
 import { DidCkbData } from "./codec.js";
 import { getDidCkbHistory } from "./history.js";
+import { argsToDid } from "./identifier.js";
 
 describe("getDidCkbHistory", () => {
   let client: ccc.Client;
@@ -198,5 +199,37 @@ describe("getDidCkbHistory", () => {
     (client.findSingletonCellByType as Mock).mockResolvedValue(undefined);
     const history = await getDidCkbHistory({ client, id });
     expect(history).toEqual([]);
+  });
+
+  it("accepts a did:ckb URI in place of the Type ID args", async () => {
+    const migrated = didCell(txGenesis, { v: 1 }, "did:plc:abc");
+    (client.getTransaction as Mock).mockImplementation(
+      async (hash: ccc.HexLike) => {
+        if (ccc.hexFrom(hash) === txGenesis) {
+          return txResponse(
+            {
+              inputs: [
+                { previousOutput: { txHash: txFunding, index: 0 }, since: 0 },
+              ],
+              outputs: [migrated.cellOutput],
+              outputsData: [migrated.outputData],
+            },
+            50,
+          );
+        }
+        return undefined;
+      },
+    );
+    (client.getCell as Mock).mockImplementation(async (op: ccc.OutPointLike) =>
+      cellAt(op),
+    );
+
+    const history = await getDidCkbHistory({
+      client,
+      id: argsToDid(id),
+      liveCell: migrated,
+    });
+    expect(history.length).toBe(1);
+    expect(history[0].action).toBe("MIGRATE");
   });
 });

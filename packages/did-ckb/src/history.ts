@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { DidCkbData } from "./codec";
+import { didToArgs, isDidCkb } from "./identifier";
 import { findDidCkbCell } from "./resolver";
 
 export type HistoryAction = "CREATE" | "UPDATE" | "MIGRATE";
@@ -36,13 +37,20 @@ const DEFAULT_MAX_STEPS = 50;
  */
 export async function getDidCkbHistory(props: {
   client: ccc.Client;
-  id: ccc.HexLike;
+  /**
+   * Either the 20-byte Type ID args hex returned by `createDidCkb`, or a
+   * `did:ckb:` URI. URIs are converted via `didToArgs`.
+   */
+  id: ccc.HexLike | string;
   /** Pre-resolved live cell; if omitted, we fetch it. */
   liveCell?: ccc.Cell;
   /** Safety bound to prevent runaway walks. Default 50. */
   maxSteps?: number;
 }): Promise<HistoryEntry[]> {
-  const id = ccc.hexFrom(props.id);
+  const id =
+    typeof props.id === "string" && isDidCkb(props.id)
+      ? didToArgs(props.id)
+      : ccc.hexFrom(props.id);
   const scriptInfo = await props.client.getKnownScript(ccc.KnownScript.DidCkb);
   const codeHash = scriptInfo.codeHash.toLowerCase();
   const normalizedId = id.toLowerCase();
