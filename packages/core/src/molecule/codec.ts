@@ -20,18 +20,6 @@ export {
    */
   Codec,
   /**
-   * @deprecated Use ccc.CodecLike instead
-   */
-  CodecLike,
-  /**
-   * @deprecated Use ccc.DecodedType instead
-   */
-  DecodedType,
-  /**
-   * @deprecated Use ccc.EncodableType instead
-   */
-  EncodableType,
-  /**
    * @deprecated Use ccc.codecUint instead
    */
   codecUint as uint,
@@ -39,6 +27,18 @@ export {
    * @deprecated Use ccc.codecUintNumber instead
    */
   codecUintNumber as uintNumber,
+  /**
+   * @deprecated Use ccc.CodecLike instead
+   */
+  type CodecLike,
+  /**
+   * @deprecated Use ccc.DecodedType instead
+   */
+  type DecodedType,
+  /**
+   * @deprecated Use ccc.EncodableType instead
+   */
+  type EncodableType,
 } from "../codec/index.js";
 
 function uint32To(numLike: NumLike) {

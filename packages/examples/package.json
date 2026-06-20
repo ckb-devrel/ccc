@@ -35,5 +35,5 @@
     "@noble/curves": "^1.9.7",
     "@noble/hashes": "^1.8.0"
   },
-  "packageManager": "pnpm@10.8.1"
+  "packageManager": "pnpm@11.8.0"
 }

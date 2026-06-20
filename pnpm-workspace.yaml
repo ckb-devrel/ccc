@@ -1,2 +1,11 @@
 packages:
   - "packages/*"
+allowBuilds:
+  '@nestjs/core': true
+  '@tailwindcss/oxide': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+  secp256k1: true
+  sharp: true
+  unrs-resolver: true
