@@ -1,5 +1,18 @@
 # @ckb-ccc/type-id
 
+## 0.1.0
+### Minor Changes
+
+
+
+- [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
+
+
+### Patch Changes
+
+- Updated dependencies [[`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4)]:
+  - @ckb-ccc/core@1.14.0
+
 ## 0.0.1
 ### Patch Changes
 

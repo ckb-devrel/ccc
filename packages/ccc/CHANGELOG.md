@@ -1,5 +1,26 @@
 # @ckb-ccc/ccc
 
+## 1.2.0
+### Minor Changes
+
+
+
+- [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
+
+
+### Patch Changes
+
+- Updated dependencies [[`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4)]:
+  - @ckb-ccc/utxo-global@1.1.0
+  - @ckb-ccc/eip6963@1.1.0
+  - @ckb-ccc/uni-sat@1.1.0
+  - @ckb-ccc/joy-id@1.1.0
+  - @ckb-ccc/xverse@1.1.0
+  - @ckb-ccc/nip07@1.1.0
+  - @ckb-ccc/shell@1.3.0
+  - @ckb-ccc/okx@1.1.0
+  - @ckb-ccc/rei@1.1.0
+
 ## 1.1.26
 ### Patch Changes
 
