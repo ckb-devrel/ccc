@@ -44,7 +44,7 @@ export function buildMigrationWitness(props: {
   );
   return DidCkbWitness.from({
     localIdAuthorization: {
-      history: [props.genesisOperation as unknown as object],
+      history: [props.genesisOperation],
       sig: ccc.hexFrom(sig),
       rotationKeyIndices: [props.selfSigIndex ?? 0, props.rotationKeyIndex],
     },

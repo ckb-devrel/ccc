@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import assert from "node:assert/strict";
-import { fileURLToPath } from "url";
 import path from "path";
+import { fileURLToPath } from "url";
 
 assert.ok(ccc, "CCC package should be imported successfully in ESM");
 assert.strictEqual(

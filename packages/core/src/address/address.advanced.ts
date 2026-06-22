@@ -30,10 +30,10 @@ export function addressPayloadFromString(address: string): {
   try {
     const { words, prefix } = bech32m.decode(address, ADDRESS_BECH32_LIMIT);
     const decoded = bech32m.fromWords(words);
-    const formatType = decoded[0];
+    const formatType: AddressFormat = decoded[0];
     const payload = decoded.slice(1);
 
-    if (formatType === (AddressFormat.Full as number)) {
+    if (formatType === AddressFormat.Full) {
       return { prefix, format: AddressFormat.Full, payload };
     }
   } catch (_) {}
@@ -42,7 +42,7 @@ export function addressPayloadFromString(address: string): {
   try {
     const { prefix, words } = bech32.decode(address, ADDRESS_BECH32_LIMIT);
     const decoded = bech32.fromWords(words);
-    const formatType = decoded[0];
+    const formatType: AddressFormat = decoded[0];
     const payload = decoded.slice(1);
     if (
       [

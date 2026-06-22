@@ -24,7 +24,7 @@ async function checkResponse<T extends keyof Requests>(
   }
 
   if (v.is(rpcSuccessResponseMessageSchema, res)) {
-    return res.result as Return<T>;
+    return res.result;
   }
 
   // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -203,6 +203,7 @@ export class Signer extends ccc.SignerBtc {
         error instanceof Error ? error.message : String(error);
       throw new Error(
         `Failed to parse PSBT hex. Please provide inputsToSign explicitly in options. Original error: ${errorMessage}`,
+        { cause: error },
       );
     }
 
