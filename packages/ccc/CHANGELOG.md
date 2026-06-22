@@ -1,5 +1,44 @@
 # @ckb-ccc/ccc
 
+## 1.2.0
+### Minor Changes
+
+
+
+- [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
+
+
+### Patch Changes
+
+- Updated dependencies [[`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4)]:
+  - @ckb-ccc/utxo-global@1.1.0
+  - @ckb-ccc/eip6963@1.1.0
+  - @ckb-ccc/uni-sat@1.1.0
+  - @ckb-ccc/joy-id@1.1.0
+  - @ckb-ccc/xverse@1.1.0
+  - @ckb-ccc/nip07@1.1.0
+  - @ckb-ccc/shell@1.3.0
+  - @ckb-ccc/okx@1.1.0
+  - @ckb-ccc/rei@1.1.0
+
+## 1.1.26
+### Patch Changes
+
+
+
+- [#379](https://github.com/ckb-devrel/ccc/pull/379) [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump pnpm to v11.8.0
+
+- Updated dependencies [[`a803d5f`](https://github.com/ckb-devrel/ccc/commit/a803d5fba8d0e082c6aba14db156856025402e72), [`3bd5130`](https://github.com/ckb-devrel/ccc/commit/3bd51300d9602482dd781752f618f6cfd642675c), [`0366786`](https://github.com/ckb-devrel/ccc/commit/03667865d1bc6d091d9144d39f6b434abe4ce18b), [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346)]:
+  - @ckb-ccc/joy-id@1.0.33
+  - @ckb-ccc/okx@1.0.33
+  - @ckb-ccc/uni-sat@1.0.33
+  - @ckb-ccc/utxo-global@1.0.33
+  - @ckb-ccc/xverse@1.0.33
+  - @ckb-ccc/shell@1.2.0
+  - @ckb-ccc/eip6963@1.0.33
+  - @ckb-ccc/nip07@1.0.33
+  - @ckb-ccc/rei@1.0.33
+
 ## 1.1.25
 ### Patch Changes
 

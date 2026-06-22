@@ -1,4 +1,4 @@
-import { ccc, mol } from "@ckb-ccc/core";
+import { ccc } from "@ckb-ccc/core";
 import {
   Action,
   ActionVec,
@@ -11,7 +11,7 @@ export function assembleCreateSporeAction(
   sporeOutput: ccc.CellOutputLike,
   sporeData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): mol.EncodableType<typeof Action> {
+): ccc.EncodableType<typeof Action> {
   if (!sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -39,7 +39,7 @@ export function assembleTransferSporeAction(
   sporeInput: ccc.CellOutputLike,
   sporeOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): mol.EncodableType<typeof Action> {
+): ccc.EncodableType<typeof Action> {
   if (!sporeInput.type || !sporeOutput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -70,7 +70,7 @@ export function assembleTransferSporeAction(
 export function assembleMeltSporeAction(
   sporeInput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): mol.EncodableType<typeof Action> {
+): ccc.EncodableType<typeof Action> {
   if (!sporeInput.type) {
     throw new Error("Spore cell must have a type script");
   }
@@ -97,7 +97,7 @@ export function assembleCreateClusterAction(
   clusterOutput: ccc.CellOutputLike,
   clusterData: ccc.BytesLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): mol.EncodableType<typeof Action> {
+): ccc.EncodableType<typeof Action> {
   if (!clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
@@ -125,7 +125,7 @@ export function assembleTransferClusterAction(
   clusterInput: ccc.CellOutputLike,
   clusterOutput: ccc.CellOutputLike,
   scriptInfoHash: ccc.HexLike = DEFAULT_COBUILD_INFO_HASH,
-): mol.EncodableType<typeof Action> {
+): ccc.EncodableType<typeof Action> {
   if (!clusterInput.type || !clusterOutput.type) {
     throw new Error("Cluster cell must have a type script");
   }
@@ -155,7 +155,7 @@ export function assembleTransferClusterAction(
 export async function prepareSporeTransaction(
   signer: ccc.Signer,
   txLike: ccc.TransactionLike,
-  actions: mol.EncodableType<typeof ActionVec>,
+  actions: ccc.EncodableType<typeof ActionVec>,
 ): Promise<ccc.Transaction> {
   let tx = ccc.Transaction.from(txLike);
 
@@ -171,7 +171,7 @@ export async function prepareSporeTransaction(
 
 export function unpackCommonCobuildProof(
   data: ccc.HexLike,
-): mol.EncodableType<typeof WitnessLayout> | undefined {
+): ccc.EncodableType<typeof WitnessLayout> | undefined {
   try {
     return WitnessLayout.decode(ccc.bytesFrom(data));
   } catch {
@@ -181,7 +181,7 @@ export function unpackCommonCobuildProof(
 
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
-): mol.EncodableType<typeof ActionVec> {
+): ccc.EncodableType<typeof ActionVec> {
   if (tx.witnesses.length === 0) {
     return [];
   }
@@ -202,7 +202,7 @@ export function extractCobuildActionsFromTx(
 
 export function injectCobuild(
   tx: ccc.Transaction,
-  actions: mol.EncodableType<typeof ActionVec>,
+  actions: ccc.EncodableType<typeof ActionVec>,
 ): void {
   tx.setWitnessAt(
     Math.max(tx.witnesses.length, tx.inputs.length),

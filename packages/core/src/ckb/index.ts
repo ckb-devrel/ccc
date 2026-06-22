@@ -1,3 +1,4 @@
+export * from "./epoch.js";
 export * from "./hash.js";
 export * from "./script.js";
 export * from "./transaction.js";

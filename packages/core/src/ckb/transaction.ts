@@ -7,6 +7,7 @@ import {
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
+import { Codec, Entity, codec } from "../codec/index.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
@@ -16,11 +17,13 @@ import {
   NumLike,
   numFrom,
   numFromBytes,
+  numMax,
   numToBytes,
   numToHex,
 } from "../num/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
+import { Epoch } from "./epoch.js";
 import { Script, ScriptLike, ScriptOpt } from "./script.js";
 import { DEP_TYPE_TO_NUM, NUM_TO_DEP_TYPE } from "./transaction.advanced.js";
 import {
@@ -29,7 +32,7 @@ import {
 } from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
-export const DepTypeCodec: mol.Codec<DepTypeLike, DepType> = mol.Codec.from({
+export const DepTypeCodec: Codec<DepTypeLike, DepType> = Codec.from({
   byteLength: 1,
   encode: depTypeToBytes,
   decode: depTypeFromBytes,
@@ -124,13 +127,13 @@ export type OutPointLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.struct({
     txHash: mol.Byte32,
     index: mol.Uint32,
   }),
 )
-export class OutPoint extends mol.Entity.Base<OutPointLike, OutPoint>() {
+export class OutPoint extends Entity.Base<OutPointLike, OutPoint>() {
   /**
    * Creates an instance of OutPoint.
    *
@@ -205,14 +208,14 @@ export type CellOutputLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.table({
     capacity: mol.Uint64,
     lock: Script,
     type: ScriptOpt,
   }),
 )
-export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
+export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
   /**
    * Creates an instance of CellOutput.
    *
@@ -273,9 +276,10 @@ export class CellOutput extends mol.Entity.Base<CellOutputLike, CellOutput>() {
       );
     })();
 
-    if (output.capacity === Zero && outputData != null) {
-      output.capacity = fixedPointFrom(
-        output.occupiedSize + bytesFrom(outputData).length,
+    if (outputData != null) {
+      output.capacity = numMax(
+        output.capacity,
+        fixedPointFrom(output.occupiedSize + bytesFrom(outputData).length),
       );
     }
 
@@ -653,45 +657,6 @@ export class Cell extends CellAny {
 /**
  * @public
  */
-export type EpochLike = [NumLike, NumLike, NumLike];
-/**
- * @public
- */
-export type Epoch = [Num, Num, Num];
-/**
- * @public
- */
-export function epochFrom(epochLike: EpochLike): Epoch {
-  return [numFrom(epochLike[0]), numFrom(epochLike[1]), numFrom(epochLike[2])];
-}
-/**
- * @public
- */
-export function epochFromHex(hex: HexLike): Epoch {
-  const num = numFrom(hexFrom(hex));
-
-  return [
-    num & numFrom("0xffffff"),
-    (num >> numFrom(24)) & numFrom("0xffff"),
-    (num >> numFrom(40)) & numFrom("0xffff"),
-  ];
-}
-/**
- * @public
- */
-export function epochToHex(epochLike: EpochLike): Hex {
-  const epoch = epochFrom(epochLike);
-
-  return numToHex(
-    numFrom(epoch[0]) +
-      (numFrom(epoch[1]) << numFrom(24)) +
-      (numFrom(epoch[2]) << numFrom(40)),
-  );
-}
-
-/**
- * @public
- */
 export type SinceLike =
   | {
       relative: "absolute" | "relative";
@@ -702,10 +667,10 @@ export type SinceLike =
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.Uint64.mapIn((encodable: SinceLike) => Since.from(encodable).toNum()),
 )
-export class Since extends mol.Entity.Base<SinceLike, Since>() {
+export class Since extends Entity.Base<SinceLike, Since>() {
   /**
    * Creates an instance of Since.
    *
@@ -823,7 +788,7 @@ export type CellInputLike = (
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol
     .struct({
       since: Since,
@@ -831,7 +796,7 @@ export type CellInputLike = (
     })
     .mapIn((encodable: CellInputLike) => CellInput.from(encodable)),
 )
-export class CellInput extends mol.Entity.Base<CellInputLike, CellInput>() {
+export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
   /**
    * Creates an instance of CellInput.
    *
@@ -960,13 +925,13 @@ export type CellDepLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.struct({
     outPoint: OutPoint,
     depType: DepTypeCodec,
   }),
 )
-export class CellDep extends mol.Entity.Base<CellDepLike, CellDep>() {
+export class CellDep extends Entity.Base<CellDepLike, CellDep>() {
   /**
    * Creates an instance of CellDep.
    *
@@ -1034,17 +999,14 @@ export type WitnessArgsLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol.table({
     lock: mol.BytesOpt,
     inputType: mol.BytesOpt,
     outputType: mol.BytesOpt,
   }),
 )
-export class WitnessArgs extends mol.Entity.Base<
-  WitnessArgsLike,
-  WitnessArgs
->() {
+export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
   /**
    * Creates an instance of WitnessArgs.
    *
@@ -1127,7 +1089,7 @@ export type TransactionLike = {
 /**
  * @public
  */
-@mol.codec(
+@codec(
   mol
     .table({
       raw: RawTransaction,
@@ -1142,10 +1104,7 @@ export type TransactionLike = {
     })
     .mapOut((tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses })),
 )
-export class Transaction extends mol.Entity.Base<
-  TransactionLike,
-  Transaction
->() {
+export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   /**
    * Creates an instance of Transaction.
    *
@@ -1890,7 +1849,7 @@ export class Transaction extends mol.Entity.Base<
     return reduceAsync(
       this.inputs,
       async (acc, input) => acc + (await input.getExtraCapacity(client)),
-      numFrom(0),
+      Zero,
     );
   }
 
@@ -1906,16 +1865,13 @@ export class Transaction extends mol.Entity.Base<
 
           return acc + capacity;
         },
-        numFrom(0),
+        Zero,
       )) + (await this.getInputsCapacityExtra(client))
     );
   }
 
   getOutputsCapacity(): Num {
-    return this.outputs.reduce(
-      (acc, { capacity }) => acc + capacity,
-      numFrom(0),
-    );
+    return this.outputs.reduce((acc, { capacity }) => acc + capacity, Zero);
   }
 
   async getInputsUdtBalance(client: Client, type: ScriptLike): Promise<Num> {
@@ -1929,7 +1885,7 @@ export class Transaction extends mol.Entity.Base<
 
         return acc + udtBalanceFrom(outputData);
       },
-      numFrom(0),
+      Zero,
     );
   }
 
@@ -1940,7 +1896,7 @@ export class Transaction extends mol.Entity.Base<
       }
 
       return acc + udtBalanceFrom(this.outputsData[i]);
-    }, numFrom(0));
+    }, Zero);
   }
 
   async completeInputs<T>(
@@ -2062,7 +2018,7 @@ export class Transaction extends mol.Entity.Base<
   ): Promise<number> {
     const expectedBalance =
       this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
-    if (expectedBalance === numFrom(0)) {
+    if (expectedBalance === Zero) {
       return 0;
     }
 
@@ -2076,7 +2032,7 @@ export class Transaction extends mol.Entity.Base<
 
         return [balanceAcc + udtBalanceFrom(outputData), countAcc + 1];
       },
-      [numFrom(0), 0],
+      [Zero, 0],
     );
 
     if (
@@ -2471,6 +2427,42 @@ export class Transaction extends mol.Entity.Base<
 }
 
 /**
+ * Checks whether a NervosDAO transaction exceeds the 64-output limit.
+ * Returns true if the transaction is DAO-related and has more than 64 outputs.
+ * Short-circuits to false when outputs <= 64.
+ *
+ * @param tx - The transaction to check
+ * @param client - CKB client for resolving the NervosDAO script and input cell info
+ * @returns true if the DAO output limit is exceeded
+ */
+export async function isDaoOutputLimitExceeded(
+  tx: Transaction,
+  client: Client,
+): Promise<boolean> {
+  if (tx.outputs.length <= 64) {
+    return false;
+  }
+
+  const { codeHash, hashType } = await client.getKnownScript(
+    KnownScript.NervosDao,
+  );
+  const dao = Script.from({ codeHash, hashType, args: "0x" });
+
+  if (tx.outputs.some((o) => o.type?.eq(dao))) {
+    return true;
+  }
+
+  for (const input of tx.inputs) {
+    await input.completeExtraInfos(client);
+    if (input.cellOutput?.type?.eq(dao)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Calculate Nervos DAO profit between two blocks.
  * This function computes the profit earned from a Nervos DAO deposit
  * based on the capacity and the time period between deposit and withdrawal.
@@ -2515,12 +2507,12 @@ export function calcDaoProfit(
  *
  * @param depositHeader - The block header when the DAO deposit was made.
  * @param withdrawHeader - The block header when the DAO withdrawal was initiated.
- * @returns The epoch when the withdrawal can be claimed, represented as [number, index, length].
+ * @returns The epoch when the withdrawal can be claimed, represented as an Epoch instance.
  *
  * @example
  * ```typescript
- * const claimEpoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
- * console.log(`Can claim at epoch: ${claimEpoch[0]}, index: ${claimEpoch[1]}, length: ${claimEpoch[2]}`);
+ * const epoch = calcDaoClaimEpoch(depositHeader, withdrawHeader);
+ * console.log(`Can claim at epoch: ${epoch.integer}, numerator: ${epoch.numerator}, denominator: ${epoch.denominator}`);
  * ```
  *
  * @remarks
@@ -2534,26 +2526,23 @@ export function calcDaoClaimEpoch(
   depositHeader: ClientBlockHeaderLike,
   withdrawHeader: ClientBlockHeaderLike,
 ): Epoch {
-  const depositEpoch = ClientBlockHeader.from(depositHeader).epoch;
-  const withdrawEpoch = ClientBlockHeader.from(withdrawHeader).epoch;
-  const intDiff = withdrawEpoch[0] - depositEpoch[0];
-  // deposit[1]    withdraw[1]
-  // ---------- <= -----------
-  // deposit[2]    withdraw[2]
+  const deposit = ClientBlockHeader.from(depositHeader).epoch.normalizeBase();
+  const withdraw = ClientBlockHeader.from(withdrawHeader).epoch.normalizeBase();
+
+  const fullCycle = numFrom(180);
+  const partialCycle = (withdraw.integer - deposit.integer) % fullCycle;
+  let withdrawInteger = withdraw.integer;
   if (
-    intDiff % numFrom(180) !== numFrom(0) ||
-    depositEpoch[1] * withdrawEpoch[2] <= depositEpoch[2] * withdrawEpoch[1]
+    partialCycle !== Zero ||
+    //  deposit.numerator        withdraw.numerator
+    // --------------------- <= ----------------------
+    //  deposit.denominator      withdraw.denominator
+    deposit.numerator * withdraw.denominator <=
+      withdraw.numerator * deposit.denominator
   ) {
-    return [
-      depositEpoch[0] + (intDiff / numFrom(180) + numFrom(1)) * numFrom(180),
-      depositEpoch[1],
-      depositEpoch[2],
-    ];
+    // Need to wait for the next cycle
+    withdrawInteger += -partialCycle + fullCycle;
   }
 
-  return [
-    depositEpoch[0] + (intDiff / numFrom(180)) * numFrom(180),
-    depositEpoch[1],
-    depositEpoch[2],
-  ];
+  return new Epoch(withdrawInteger, deposit.numerator, deposit.denominator);
 }

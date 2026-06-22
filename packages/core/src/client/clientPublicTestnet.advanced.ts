@@ -333,6 +333,29 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
         },
       ],
     },
+    [KnownScript.DidCkb]: {
+      codeHash:
+        "0x510150477b10d6ab551a509b71265f3164e9fd4137fcb5a4322f49f03092c7c5",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0x0e7a830e2d5ebd05cd45a55f93f94559edea0ef1237b7233f49f7facfb3d6a6c",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            args: "0x3c27695173b888ed44ddf36f901789014384ad6c05a9137f3db9a0779c141c35",
+            hashType: "type",
+          },
+        },
+      ],
+    },
     [KnownScript.AlwaysSuccess]: {
       codeHash:
         "0x3b521cc4b552f109d092d8cc468a8048acb53c5952dbe769d2b2f9cf6e47f7f1",

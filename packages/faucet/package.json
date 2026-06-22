@@ -88,5 +88,5 @@
       "^@app/commons(|/.*)$": "<rootDir>/libs/commons/src/$1"
     }
   },
-  "packageManager": "pnpm@10.8.1"
+  "packageManager": "pnpm@11.8.0"
 }

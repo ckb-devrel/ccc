@@ -1,5 +1,56 @@
 # @ckb-ccc/core
 
+## 1.14.0
+### Minor Changes
+
+
+
+- [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
+
+## 1.13.0
+### Minor Changes
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`1148a5c`](https://github.com/ckb-devrel/ccc/commit/1148a5c403cde985fb4ba713ccfa0c163d287174) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): extract a universal `Codec` from `mol.Codec`
+
+
+
+- [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(Epoch): transform `Epoch` into a class and add utilities
+
+
+
+- [#346](https://github.com/ckb-devrel/ccc/pull/346) [`a803d5f`](https://github.com/ckb-devrel/ccc/commit/a803d5fba8d0e082c6aba14db156856025402e72) Thanks [@fghdotio](https://github.com/fghdotio)! - feat(core): add BTC PSBT signing support
+  
+  - Add `SignerBtc.signPsbt()`, `signAndBroadcastPsbt()`, and `broadcastPsbt()` for signing and broadcasting PSBTs
+  - Add `SignPsbtOptions` and `InputToSign` for configuring PSBT signing
+
+
+- [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(core): `mol.padding` for padding codec
+
+
+
+- [#359](https://github.com/ckb-devrel/ccc/pull/359) [`6727ffe`](https://github.com/ckb-devrel/ccc/commit/6727ffe05f60e6bfb2060a565c19acb0fd0f375e) Thanks [@phroi](https://github.com/phroi)! - feat(core): add isDaoOutputLimitExceeded utility for NervosDAO 64-output guard
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`a526890`](https://github.com/ckb-devrel/ccc/commit/a5268909ea9d61c4e2f5187a43e2318327b27cae) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add known script did ckb
+
+
+
+- [#380](https://github.com/ckb-devrel/ccc/pull/380) [`4bb3d9d`](https://github.com/ckb-devrel/ccc/commit/4bb3d9d2ef36b3ee8820036625abd9befb1980c4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: bump @noble packages
+
+
+
+- [#337](https://github.com/ckb-devrel/ccc/pull/337) [`9f7ecb6`](https://github.com/ckb-devrel/ccc/commit/9f7ecb6ab8db9c6866dad029f2888e1e5cfcbe7d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto complete cell capacity if it's not enough
+
+
+### Patch Changes
+
+
+
+- [#379](https://github.com/ckb-devrel/ccc/pull/379) [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump pnpm to v11.8.0
+
 ## 1.12.5
 ### Patch Changes
 

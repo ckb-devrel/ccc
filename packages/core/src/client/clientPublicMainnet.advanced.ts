@@ -321,6 +321,29 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
         },
       ],
     },
+    [KnownScript.DidCkb]: {
+      codeHash:
+        "0x4a06164dc34dccade5afe3e847a97b6db743e79f5477fa3295acf02849c5984a",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xe2f74c56cdc610d2b9fe898a96a80118845f5278605d7f9ad535dad69ae015bf",
+              index: 0,
+            },
+            depType: "code",
+          },
+          type: {
+            codeHash:
+              "0x00000000000000000000000000000000000000000000000000545950455f4944",
+            args: "0x55573ef6d78e3ca75170ff476176732309a8b31efe94320a954ded3d75c2cb18",
+            hashType: "type",
+          },
+        },
+      ],
+    },
     [KnownScript.AlwaysSuccess]: {
       codeHash:
         "0x3b521cc4b552f109d092d8cc468a8048acb53c5952dbe769d2b2f9cf6e47f7f1",
