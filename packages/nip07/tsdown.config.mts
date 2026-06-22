@@ -12,7 +12,6 @@ const entry = {
   index: "src/index.ts",
   barrel: "src/barrel.ts",
   advanced: "src/advanced.ts",
-  advancedBarrel: "src/advancedBarrel.ts",
 } as const;
 
 const bundleDeps: string[] = [];

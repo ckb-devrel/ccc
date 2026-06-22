@@ -29,7 +29,7 @@
     "typedoc-material-theme": "^1.4.0",
     "typedoc-plugin-extras": "^4.0.1",
     "typedoc-plugin-ga": "^1.0.5",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.3",
     "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@11.8.0"

@@ -13,7 +13,7 @@
   "main": "dist.commonjs/index.js",
   "module": "dist/index.js",
   "scripts": {
-    "build": "rimraf ./dist && rimraf ./dist.commonjs && tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
+    "build": "tsc && tsc --project tsconfig.commonjs.json && copyfiles -u 2 misc/basedirs/**/* .",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
@@ -25,8 +25,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "rimraf": "^6.0.1",
-    "typescript": "^5.9.2",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.41.0"
   },
   "publishConfig": {

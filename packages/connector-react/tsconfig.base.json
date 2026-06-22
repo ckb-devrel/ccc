@@ -17,7 +17,8 @@
     "alwaysStrict": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "rootDir": "./src"
   },
   "include": ["src/**/*"]
 }

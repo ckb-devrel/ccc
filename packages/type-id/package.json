@@ -14,20 +14,20 @@
   "module": "./dist/index.mjs",
   "exports": {
     ".": {
-      "require": "./dist.commonjs/index.js",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.mjs",
+      "require": "./dist.commonjs/index.js"
     },
     "./advanced": {
-      "require": "./dist.commonjs/advanced.js",
-      "import": "./dist/advanced.mjs"
+      "import": "./dist/advanced.mjs",
+      "require": "./dist.commonjs/advanced.js"
     },
     "./advancedBarrel": {
-      "require": "./dist.commonjs/advancedBarrel.js",
-      "import": "./dist/advancedBarrel.mjs"
+      "import": "./dist/advancedBarrel.mjs",
+      "require": "./dist.commonjs/advancedBarrel.js"
     },
     "./barrel": {
-      "require": "./dist.commonjs/barrel.js",
-      "import": "./dist/barrel.mjs"
+      "import": "./dist/barrel.mjs",
+      "require": "./dist.commonjs/barrel.js"
     },
     "./package.json": "./package.json"
   },
@@ -46,8 +46,8 @@
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.6.2",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "tsdown": "0.19.0-beta.3",
-    "typescript": "^5.9.2",
+    "tsdown": "^0.22.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.41.0",
     "vitest": "^3.2.4"
   },
