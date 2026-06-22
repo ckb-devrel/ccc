@@ -1,5 +1,15 @@
 # @ckb-ccc/connector
 
+## 1.0.34
+### Patch Changes
+
+
+
+- [#379](https://github.com/ckb-devrel/ccc/pull/379) [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump pnpm to v11.8.0
+
+- Updated dependencies [[`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346)]:
+  - @ckb-ccc/ccc@1.1.26
+
 ## 1.0.33
 ### Patch Changes
 
