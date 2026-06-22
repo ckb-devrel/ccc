@@ -6,7 +6,7 @@ export interface SporeDataView {
   clusterId?: ccc.HexLike;
 }
 
-export const SporeData: mol.Codec<SporeDataView> = mol.table({
+export const SporeData: ccc.Codec<SporeDataView> = mol.table({
   contentType: mol.String,
   content: mol.Bytes,
   clusterId: mol.BytesOpt,

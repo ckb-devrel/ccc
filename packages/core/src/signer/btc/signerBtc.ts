@@ -2,9 +2,10 @@ import { Address } from "../../address/index.js";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { Transaction, TransactionLike, WitnessArgs } from "../../ckb/index.js";
 import { KnownScript } from "../../client/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { numToBytes } from "../../num/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
+import { SignPsbtOptionsLike } from "./psbt.js";
 import { btcEcdsaPublicKeyHash } from "./verify.js";
 
 /**
@@ -20,6 +21,21 @@ export abstract class SignerBtc extends Signer {
 
   get signType(): SignerSignType {
     return SignerSignType.BtcEcdsa;
+  }
+
+  /**
+   * Sign and broadcast a PSBT.
+   *
+   * @param psbtHex - The hex string of PSBT to sign and broadcast.
+   * @param options - Options for signing the PSBT.
+   * @returns A promise that resolves to the transaction ID as a Hex string.
+   */
+  async signAndBroadcastPsbt(
+    psbtHex: HexLike,
+    options?: SignPsbtOptionsLike,
+  ): Promise<Hex> {
+    const signedPsbt = await this.signPsbt(psbtHex, options);
+    return this.broadcastPsbt(signedPsbt, options);
   }
 
   /**
@@ -123,4 +139,28 @@ export abstract class SignerBtc extends Signer {
     tx.setWitnessArgsAt(info.position, witness);
     return tx;
   }
+
+  /**
+   * Signs a Partially Signed Bitcoin Transaction (PSBT).
+   *
+   * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
+   * @returns A promise that resolves to the signed PSBT as a Hex string.
+   */
+  abstract signPsbt(
+    psbtHex: HexLike,
+    options?: SignPsbtOptionsLike,
+  ): Promise<Hex>;
+
+  /**
+   * Broadcasts a PSBT to the Bitcoin network.
+   *
+   * @param psbtHex - The hex string of the PSBT to broadcast.
+   * @param options - Options for broadcasting the PSBT.
+   * @returns A promise that resolves to the transaction ID as a Hex string.
+   */
+  abstract broadcastPsbt(
+    psbtHex: HexLike,
+    options?: SignPsbtOptionsLike,
+  ): Promise<Hex>;
 }

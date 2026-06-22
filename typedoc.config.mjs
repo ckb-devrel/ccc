@@ -4,9 +4,11 @@ const config = {
   name: "CCC Docs",
   entryPoints: [
     "packages/core",
+    "packages/type-id",
     "packages/ssri",
     "packages/udt",
     "packages/spore",
+    "packages/did-ckb",
     "packages/shell",
     "packages/ccc",
     "packages/connector",

@@ -9,6 +9,7 @@ import {
   CellOutputLike,
   DepType,
   DepTypeLike,
+  Epoch,
   HashType,
   HashTypeLike,
   OutPoint,
@@ -18,7 +19,6 @@ import {
   Transaction,
   TransactionLike,
   depTypeFrom,
-  epochFromHex,
   hashTypeFrom,
 } from "../../ckb/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
@@ -217,7 +217,7 @@ export class JsonRpcTransformers {
         s: numLeFromBytes(dao.slice(16, 24)),
         u: numLeFromBytes(dao.slice(24, 32)),
       },
-      epoch: epochFromHex(header.epoch),
+      epoch: Epoch.fromNum(header.epoch),
       extraHash: header.extra_hash,
       hash: header.hash,
       nonce: numFrom(header.nonce),

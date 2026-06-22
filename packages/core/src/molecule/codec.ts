@@ -1,105 +1,45 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
-  Bytes,
   bytesConcat,
   bytesConcatTo,
   bytesFrom,
   BytesLike,
 } from "../bytes/index.js";
 import {
-  Num,
-  numBeFromBytes,
-  numBeToBytes,
-  numFromBytes,
-  NumLike,
-  numToBytes,
-} from "../num/index.js";
+  Codec,
+  CodecLike,
+  DecodedType,
+  EncodableType,
+} from "../codec/index.js";
+import { numFromBytes, NumLike, numToBytes } from "../num/index.js";
 
-export type CodecLike<Encodable, Decoded = Encodable> = {
-  readonly encode: (encodable: Encodable) => Bytes;
-  readonly decode: (
-    decodable: BytesLike,
-    config?: { isExtraFieldIgnored?: boolean },
-  ) => Decoded;
-  readonly byteLength?: number;
-};
-export class Codec<Encodable, Decoded = Encodable> {
-  constructor(
-    public readonly encode: (encodable: Encodable) => Bytes,
-    public readonly decode: (
-      decodable: BytesLike,
-      config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
-    ) => Decoded,
-    public readonly byteLength?: number, // if provided, treat codec as fixed length
-  ) {}
-
-  static from<Encodable, Decoded = Encodable>({
-    encode,
-    decode,
-    byteLength,
-  }: CodecLike<Encodable, Decoded>): Codec<Encodable, Decoded> {
-    return new Codec(
-      (encodable: Encodable) => {
-        const encoded = encode(encodable);
-        if (byteLength !== undefined && encoded.byteLength !== byteLength) {
-          throw new Error(
-            `Codec.encode: expected byte length ${byteLength}, got ${encoded.byteLength}`,
-          );
-        }
-        return encoded;
-      },
-      (decodable, config) => {
-        const decodableBytes = bytesFrom(decodable);
-        if (
-          byteLength !== undefined &&
-          decodableBytes.byteLength !== byteLength
-        ) {
-          throw new Error(
-            `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
-          );
-        }
-        return decode(decodable, config);
-      },
-      byteLength,
-    );
-  }
-
-  map<NewEncodable = Encodable, NewDecoded = Decoded>({
-    inMap,
-    outMap,
-  }: {
-    inMap?: (encodable: NewEncodable) => Encodable;
-    outMap?: (decoded: Decoded) => NewDecoded;
-  }): Codec<NewEncodable, NewDecoded> {
-    return new Codec(
-      (encodable) =>
-        this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer, config) =>
-        (outMap
-          ? outMap(this.decode(buffer, config))
-          : this.decode(buffer, config)) as NewDecoded,
-      this.byteLength,
-    );
-  }
-
-  mapIn<NewEncodable>(
-    map: (encodable: NewEncodable) => Encodable,
-  ): Codec<NewEncodable, Decoded> {
-    return this.map({ inMap: map });
-  }
-
-  mapOut<NewDecoded>(
-    map: (decoded: Decoded) => NewDecoded,
-  ): Codec<Encodable, NewDecoded> {
-    return this.map({ outMap: map });
-  }
-}
-
-export type EncodableType<T extends CodecLike<any, any>> =
-  T extends CodecLike<infer Encodable, unknown> ? Encodable : never;
-export type DecodedType<T extends CodecLike<any, any>> =
-  T extends CodecLike<any, infer Decoded> ? Decoded : never;
+export {
+  /**
+   * @deprecated Use ccc.Codec instead
+   */
+  Codec,
+  /**
+   * @deprecated Use ccc.codecUint instead
+   */
+  codecUint as uint,
+  /**
+   * @deprecated Use ccc.codecUintNumber instead
+   */
+  codecUintNumber as uintNumber,
+  /**
+   * @deprecated Use ccc.CodecLike instead
+   */
+  type CodecLike,
+  /**
+   * @deprecated Use ccc.DecodedType instead
+   */
+  type DecodedType,
+  /**
+   * @deprecated Use ccc.EncodableType instead
+   */
+  type EncodableType,
+} from "../codec/index.js";
 
 function uint32To(numLike: NumLike) {
   return numToBytes(numLike, 4);
@@ -131,7 +71,7 @@ export function fixedItemVec<Encodable, Decoded>(
         }
         return bytesFrom(concatted);
       } catch (e: unknown) {
-        throw new Error(`fixedItemVec(${e?.toString()})`);
+        throw new Error("fixedItemVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -161,7 +101,7 @@ export function fixedItemVec<Encodable, Decoded>(
         }
         return decodedArray;
       } catch (e) {
-        throw new Error(`fixedItemVec(${e?.toString()})`);
+        throw new Error("fixedItemVec failed", { cause: e });
       }
     },
   });
@@ -191,7 +131,7 @@ export function dynItemVec<Encodable, Decoded>(
         const packedTotalSize = uint32To(header.length + body.length + 4);
         return bytesConcat(packedTotalSize, header, body);
       } catch (e) {
-        throw new Error(`dynItemVec(${e?.toString()})`);
+        throw new Error("dynItemVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -228,7 +168,7 @@ export function dynItemVec<Encodable, Decoded>(
         }
         return decodedArray;
       } catch (e) {
-        throw new Error(`dynItemVec(${e?.toString()})`);
+        throw new Error("dynItemVec failed", { cause: e });
       }
     },
   });
@@ -265,7 +205,7 @@ export function option<Encodable, Decoded>(
       try {
         return innerCodec.encode(userDefinedOrNull);
       } catch (e) {
-        throw new Error(`option(${e?.toString()})`);
+        throw new Error("option failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -276,7 +216,7 @@ export function option<Encodable, Decoded>(
       try {
         return innerCodec.decode(buffer, config);
       } catch (e) {
-        throw new Error(`option(${e?.toString()})`);
+        throw new Error("option failed", { cause: e });
       }
     },
   });
@@ -296,7 +236,7 @@ export function byteVec<Encodable, Decoded>(
         const byteLength = uint32To(payload.byteLength);
         return bytesConcat(byteLength, payload);
       } catch (e) {
-        throw new Error(`byteVec(${e?.toString()})`);
+        throw new Error("byteVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -315,7 +255,7 @@ export function byteVec<Encodable, Decoded>(
       try {
         return codec.decode(value.slice(4), config);
       } catch (e: unknown) {
-        throw new Error(`byteVec(${e?.toString()})`);
+        throw new Error("byteVec failed", { cause: e });
       }
     },
   });
@@ -373,7 +313,7 @@ export function table<
           bytesConcatTo(body, encoded);
           offset += encoded.byteLength;
         } catch (e: unknown) {
-          throw new Error(`table.${key}(${e?.toString()})`);
+          throw new Error(`table.${key} failed`, { cause: e });
         }
       }
 
@@ -431,7 +371,7 @@ export function table<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [field]: codec.decode(payload, config) });
         } catch (e: unknown) {
-          throw new Error(`table.${field}(${e?.toString()})`);
+          throw new Error(`table.${field} failed`, { cause: e });
         }
       }
       return object as Decoded;
@@ -532,7 +472,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         const body = codec.encode(value);
         return bytesConcat(header, body);
       } catch (e: unknown) {
-        throw new Error(`union.(${typeStr})(${e?.toString()})`);
+        throw new Error(`union.${typeStr} failed`, { cause: e });
       }
     },
     decode(buffer, config) {
@@ -598,7 +538,7 @@ export function struct<
           const encoded = codecLayout[key].encode((object as any)[key]);
           bytesConcatTo(bytes, encoded);
         } catch (e: unknown) {
-          throw new Error(`struct.${key}(${e?.toString()})`);
+          throw new Error(`struct.${key} failed`, { cause: e });
         }
       }
 
@@ -614,7 +554,7 @@ export function struct<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [key]: codec.decode(payload, config) });
         } catch (e: unknown) {
-          throw new Error(`struct.${key}(${(e as Error).toString()})`);
+          throw new Error(`struct.${key} failed`, { cause: e });
         }
         offset = offset + codec.byteLength!;
       });
@@ -649,7 +589,7 @@ export function array<Encodable, Decoded>(
 
         return bytesFrom(bytes);
       } catch (e: unknown) {
-        throw new Error(`array(${e?.toString()})`);
+        throw new Error("array failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -668,53 +608,8 @@ export function array<Encodable, Decoded>(
         }
         return result;
       } catch (e: unknown) {
-        throw new Error(`array(${e?.toString()})`);
+        throw new Error("array failed", { cause: e });
       }
     },
-  });
-}
-
-/**
- * Create a codec to deal with fixed LE or BE bytes.
- * @param byteLength
- * @param littleEndian
- */
-export function uint(
-  byteLength: number,
-  littleEndian = false,
-): Codec<NumLike, Num> {
-  return Codec.from({
-    byteLength,
-    encode: (numLike) => {
-      if (littleEndian) {
-        return numToBytes(numLike, byteLength);
-      } else {
-        return numBeToBytes(numLike, byteLength);
-      }
-    },
-    decode: (buffer) => {
-      if (littleEndian) {
-        return numFromBytes(buffer);
-      } else {
-        return numBeFromBytes(buffer);
-      }
-    },
-  });
-}
-
-/**
- * Create a codec to deal with fixed LE or BE bytes.
- * @param byteLength
- * @param littleEndian
- */
-export function uintNumber(
-  byteLength: number,
-  littleEndian = false,
-): Codec<NumLike, number> {
-  if (byteLength > 4) {
-    throw new Error("uintNumber: byteLength must be less than or equal to 4");
-  }
-  return uint(byteLength, littleEndian).map({
-    outMap: (num) => Number(num),
   });
 }

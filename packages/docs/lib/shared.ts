@@ -1,6 +1,17 @@
 export const appName = 'CCC';
 export const appTagline = "CKBers' Codebase";
 
+/** Canonical site origin, used for sitemap, robots.txt and llms.txt absolute URLs. */
+export const siteUrl = 'https://docs.ckbccc.com';
+
+/**
+ * Note embedded in every per-page Markdown output so AI agents landing on a
+ * single page can discover the full documentation index (Mintlify-style).
+ */
+export const docsIndexNote = `> ## Documentation Index
+> Fetch the complete documentation index at: ${siteUrl}/llms.txt
+> Use this file to discover all available pages before exploring further.`;
+
 export const docsRoute = '/docs';
 export const docsImageRoute = '/og/docs';
 export const docsContentRoute = '/llms.mdx/docs';

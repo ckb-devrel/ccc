@@ -14,16 +14,20 @@
     "test": "node ./tests/cjs.test.cjs && tsx ./tests/esm.test.mts"
   },
   "devDependencies": {
-    "@eslint/js": "^9.34.0",
-    "eslint": "^9.34.0",
+    "@ckb-ccc/ccc": "workspace:*",
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "prettier": "^3.6.2",
-    "prettier-plugin-organize-imports": "^4.2.0",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.41.0",
-    "@ckb-ccc/ccc": "workspace:*"
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "^3.8.4",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1"
   },
-  "packageManager": "pnpm@10.8.1"
+  "packageManager": "pnpm@11.8.0",
+  "dependencies": {
+    "@types/node": "^26.0.0",
+    "tsdown": "^0.22.3"
+  }
 }

@@ -96,6 +96,10 @@ await completedTx.completeFeeBy(signer);
 const transferTxHash = await signer.sendTransaction(completedTx);
 ```
 
+## Learn More?
+
+Check the [package documentation](https://docs.ckbccc.com/docs/packages/protocol-sdks/udt) and [API reference](https://api.ckbccc.com/classes/_ckb-ccc_udt.udt) for more details.
+
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
 </h3>

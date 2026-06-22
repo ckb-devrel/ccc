@@ -1,17 +1,17 @@
 ---
 title: "@ckb-ccc/uni-sat"
-description: 将 UniSat 钱包接入 CKB，并通过统一的 Signer 接口实现 Bitcoin 签名。
+description: Connect UniSat Wallet to CKB — Bitcoin signing through a unified Signer interface.
 ---
 
 import { PackageBadges } from '@/components/package-badges';
 
-`@ckb-ccc/uni-sat` 将 [UniSat Wallet](https://unisat.io/) 集成至 CCC，提供用于 Bitcoin 签名的 `SignerBtc` 实现。它通过浏览器注入的 `window.unisat` 对象与钱包通信，并支持在 Bitcoin 主网和测试网之间进行网络切换。
+`@ckb-ccc/uni-sat` integrates [UniSat Wallet](https://unisat.io/) into CCC, providing a `SignerBtc` implementation for Bitcoin signing. It communicates with the wallet via the browser-injected `window.unisat` object and supports automatic network switching between Bitcoin mainnet and testnet.
 
 <Callout type="info">
-  如果你使用的是 `@ckb-ccc/connector-react` 或 `@ckb-ccc/ccc`，UniSat 已内置其中，无需单独安装。
+  If you're using `@ckb-ccc/connector-react` or `@ckb-ccc/ccc`, UniSat is already included — no separate installation needed.
 </Callout>
 
-## 安装
+## Installation
 
 <PackageBadges pkg="@ckb-ccc/uni-sat" />
 
@@ -33,19 +33,19 @@ import { PackageBadges } from '@/components/package-badges';
   </Tab>
 </Tabs>
 
-**依赖：**
+**Dependencies:**
 
-| 包 | 说明 |
+| Package | Description |
 | ------- | ----------- |
-| `@ckb-ccc/core` | 基础类型——`Signer`、`Client`、`Transaction` 等 |
+| `@ckb-ccc/core` | Base types — `Signer`, `Client`, `Transaction`, and more |
 
-## 架构
+## Architecture
 
 ```mermaid
 graph TB
-    subgraph "UniSat 包"
+    subgraph "UniSat Package"
         GUS["getUniSatSigners(client)"]
-        S["Signer（继承自 SignerBtc）"]
+        S["Signer (extends SignerBtc)"]
     end
 
     subgraph "Provider"
@@ -53,115 +53,115 @@ graph TB
     end
 
     subgraph "Core"
-        CorePkg["@ckb-ccc/core（SignerBtc）"]
+        CorePkg["@ckb-ccc/core (SignerBtc)"]
     end
 
-    GUS -->|"检测"| WU
-    GUS -->|"创建"| S
+    GUS -->|"detects"| WU
+    GUS -->|"creates"| S
     S --> CorePkg
-    S -->|"调用"| WU
+    S -->|"calls"| WU
 ```
 
-### 入口：`getUniSatSigners`
+### Entry point: `getUniSatSigners`
 
-`getUniSatSigners(client, preferredNetworks?)` 检查 `window.unisat` 是否存在，并返回 `SignerInfo[]` 数组——钱包不可用时返回空数组：
+`getUniSatSigners(client, preferredNetworks?)` checks for `window.unisat` and returns a `SignerInfo[]` array — empty if the wallet isn't available:
 
 ```mermaid
 graph TD
-    Start["getUniSatSigners(client)"] --> Check["window.unisat 是否存在？"]
-    Check -->|否| Empty["return []"]
-    Check -->|是| Create["new Signer(client, window.unisat)"]
-    Create --> Array["SignerInfo[]，名称为 'BTC'"]
+    Start["getUniSatSigners(client)"] --> Check["window.unisat exists?"]
+    Check -->|No| Empty["return []"]
+    Check -->|Yes| Create["new Signer(client, window.unisat)"]
+    Create --> Array["SignerInfo[] with name 'BTC'"]
 ```
 
-## `Signer` 类
+## The `Signer` class
 
-`Signer` 继承自 `ccc.SignerBtc`，将 UniSat Provider 接口适配为 CKB 签名接口。
+`Signer` extends `ccc.SignerBtc` and adapts the UniSat provider interface to CKB signing.
 
-### 核心方法
+### Key methods
 
-| 方法 | 说明 |
+| Method | Description |
 | ------ | ----------- |
-| `connect()` | 调用 `requestAccounts()`，并确保切换到正确的 BTC 网络 |
-| `isConnected()` | 账户存在且网络匹配时返回 `true` |
-| `getBtcAccount()` | 返回 Provider 中的第一个 BTC 地址 |
-| `getBtcPublicKey()` | 返回 BTC 公钥（十六进制编码） |
-| `signMessageRaw(message)` | 通过 `signMessage(msg, "ecdsa")` 签名 |
-| `onReplaced(listener)` | 在 `accountsChanged` 或 `networkChanged` 事件触发时调用 |
+| `connect()` | Calls `requestAccounts()` then ensures the correct BTC network |
+| `isConnected()` | Returns `true` if accounts exist and network matches |
+| `getBtcAccount()` | Returns the first BTC address from the provider |
+| `getBtcPublicKey()` | Returns the BTC public key (hex-encoded) |
+| `signMessageRaw(message)` | Signs via `signMessage(msg, "ecdsa")` |
+| `onReplaced(listener)` | Fires on `accountsChanged` or `networkChanged` events |
 
-### 网络管理
+### Network management
 
-UniSat 支持多个 Bitcoin 网络。调用 `connect()` 时，Signer 根据 `preferredNetworks` 配置自动将钱包切换到正确的网络：
+UniSat supports multiple Bitcoin networks. On `connect()`, the signer automatically switches the wallet to the correct network based on `preferredNetworks` configuration:
 
-| CKB 网络 | 默认 BTC 网络 |
+| CKB Network | Default BTC Network |
 | ----------- | ------------------- |
-| 主网（`ckb`） | `btc`（livenet） |
-| 测试网（`ckt`） | `btcTestnet`（testnet） |
+| Mainnet (`ckb`) | `btc` (livenet) |
+| Testnet (`ckt`) | `btcTestnet` (testnet) |
 
 ```mermaid
 sequenceDiagram
-    participant App as 应用
+    participant App as Application
     participant Signer as UniSat Signer
-    participant Wallet as UniSat 扩展
+    participant Wallet as UniSat Extension
 
     App->>Signer: connect()
     Signer->>Wallet: requestAccounts()
     Wallet->>Signer: accounts[]
     Signer->>Wallet: getNetwork() / getChain()
-    Wallet->>Signer: 当前网络
-    Signer->>Signer: 匹配目标网络
-    alt 网络不匹配
-        Signer->>Wallet: switchNetwork("livenet" | "testnet") 或 switchChain(chain)
+    Wallet->>Signer: current network
+    Signer->>Signer: Match preferred network
+    alt Network mismatch
+        Signer->>Wallet: switchNetwork("livenet" | "testnet") or switchChain(chain)
     end
 ```
 
-通过 `switchChain` API（若可用），Signer 还支持 Fractal Bitcoin。
+The signer also supports Fractal Bitcoin via the `switchChain` API (when available).
 
-### 签名流程
+### Signing flow
 
 ```mermaid
 sequenceDiagram
-    participant App as 应用
+    participant App as Application
     participant Signer as UniSat Signer
-    participant Wallet as UniSat 扩展
+    participant Wallet as UniSat Extension
 
     App->>Signer: sendTransaction(tx)
     Signer->>Signer: prepareTransaction(tx)
-    Note over Signer: 添加 CellDep，准备 Witness
+    Note over Signer: Add CellDeps, prepare witnesses
     Signer->>Wallet: signMessage(challenge, "ecdsa")
-    Wallet->>Signer: 签名
-    Signer->>Signer: 将签名打包进 Witness
+    Wallet->>Signer: signature
+    Signer->>Signer: Pack signature into witness
     Signer->>App: txHash
 ```
 
-## 账户变更检测
+## Account change detection
 
-`Signer` 通过 `onReplaced()` 处理账户或网络变更：
+`Signer` implements `onReplaced()` to handle account or network changes:
 
-- 监听 `"accountsChanged"`——用户在钱包中切换了 BTC 账户
-- 监听 `"networkChanged"`——用户切换了 BTC 网络
+- Listens for `"accountsChanged"` — user switched BTC account
+- Listens for `"networkChanged"` — user switched BTC network
 
-任一事件触发时，应用回调会被调用，监听器随即自动清理。
+When either fires, the application callback is invoked and the listener is cleaned up.
 
-## Provider 接口
+## Provider interface
 
-| 方法 | 说明 |
+| Method | Description |
 | ------ | ----------- |
-| `requestAccounts()` | 提示用户连接并返回账户列表 |
-| `getAccounts()` | 获取已连接账户（不触发提示） |
-| `getPublicKey()` | 获取 BTC 公钥 |
-| `getNetwork()` | 获取当前网络（`"livenet"` 或 `"testnet"`） |
-| `switchNetwork(network)` | 在 livenet / testnet 之间切换 |
-| `getChain()` | 获取当前链（扩展 API） |
-| `switchChain(chain)` | 切换链（扩展 API，支持 Fractal） |
-| `signMessage(msg, type)` | 使用 `"ecdsa"` 或 `"bip322-simple"` 签名消息 |
+| `requestAccounts()` | Prompt user to connect and return accounts |
+| `getAccounts()` | Get connected accounts (no prompt) |
+| `getPublicKey()` | Get the BTC public key |
+| `getNetwork()` | Get current network (`"livenet"` or `"testnet"`) |
+| `switchNetwork(network)` | Switch between livenet/testnet |
+| `getChain()` | Get current chain (extended API) |
+| `switchChain(chain)` | Switch chain (extended API, supports Fractal) |
+| `signMessage(msg, type)` | Sign a message with `"ecdsa"` or `"bip322-simple"` |
 
-## 集成模式
+## Integration pattern
 
-`@ckb-ccc/uni-sat` 遵循 CCC 中所有钱包包相同的集成约定：
+`@ckb-ccc/uni-sat` follows the same integration contract as every other wallet package in CCC:
 
-- **Factory 函数**——`getUniSatSigners` 返回 `SignerInfo[]` 数组。
-- **Provider 检测**——创建 Signer 前先检查 `window.unisat` 是否存在。
-- **优雅降级**——钱包不可用时返回空数组。
+- **Factory function** — `getUniSatSigners` returns a `SignerInfo[]` array.
+- **Provider detection** — checks for `window.unisat` before creating signers.
+- **Graceful degradation** — returns an empty array when the wallet is unavailable.
 
-`@ckb-ccc/okx` 也将本包作为依赖，用于其 Bitcoin 签名支持。
+This package is also used as a dependency by `@ckb-ccc/okx` for its Bitcoin signing support.

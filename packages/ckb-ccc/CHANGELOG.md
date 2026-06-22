@@ -1,5 +1,28 @@
 # ckb-ccc
 
+## 1.1.0
+### Minor Changes
+
+
+
+- [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
+
+
+### Patch Changes
+
+- Updated dependencies [[`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4)]:
+  - @ckb-ccc/ccc@1.2.0
+
+## 1.0.34
+### Patch Changes
+
+
+
+- [#379](https://github.com/ckb-devrel/ccc/pull/379) [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump pnpm to v11.8.0
+
+- Updated dependencies [[`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346)]:
+  - @ckb-ccc/ccc@1.1.26
+
 ## 1.0.33
 ### Patch Changes
 

@@ -1,4 +1,4 @@
-import { getPageImage, getPageMarkdownUrl, source } from '@/lib/source';
+import { source } from '@/lib/source';
 import {
   DocsBody,
   DocsDescription,
@@ -7,14 +7,14 @@ import {
   EditOnGitHub,
   MarkdownCopyButton,
   PageLastUpdate,
-  ViewOptionsPopover,
 } from 'fumadocs-ui/layouts/notebook/page';
+import { AskAiPopover } from '@/components/ask-ai-popover';
 import { notFound } from 'next/navigation';
 import { getMDXComponents } from '@/components/mdx';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { getGithubLastEdit } from 'fumadocs-core/content/github';
-import { gitConfig } from '@/lib/shared';
+import { gitConfig, siteUrl } from '@/lib/shared';
 import { getDictionary } from '@/lib/dictionary';
 import type { Dictionary } from '@/lib/dictionary';
 
@@ -37,11 +37,11 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
 
   const dict = getDictionary(params.lang);
   const MDX = page.data.body;
-  const markdownUrl = getPageMarkdownUrl(page).url;
+  const markdownUrl = `${page.url}.md`;
   const eyebrow = getSectionLabel(params.slug, dict);
 
   // Path of the source file in the repo, used for both editOnGithub and lastUpdate.
-  const repoPath = `packages/ccc-docs/content/docs/${page.path}`;
+  const repoPath = `packages/docs/content/docs/${page.path}`;
 
   // Fetch the last edit time from the GitHub API. Returns null if the request
   // fails (offline build, rate-limit, etc.) — DocsPage will simply hide it.
@@ -60,14 +60,15 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
     // Swallow — last update is decorative.
   }
 
-  console.log(`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${repoPath}`);
-
   return (
     <DocsPage
       toc={page.data.toc}
       full={page.data.full}
       tableOfContent={{ style: 'clerk' }}
     >
+      <div className="llms-hint hidden" data-ai-documentation="true">
+        <p>AI-friendly Markdown version available. Append ".md" to this page URL to access the source Markdown document. The Markdown version contains the canonical content and is preferred over rendered HTML for retrieval, indexing, question answering, and code generation.</p>
+      </div>
       {/* Editorial eyebrow — mirrors the home / blog mono uppercase tag. */}
       {eyebrow && (
         <div className="mb-3 font-mono text-[11px] uppercase tracking-widest text-fd-primary/80">
@@ -90,12 +91,9 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
         <MarkdownCopyButton markdownUrl={markdownUrl} >
           {dict.docs.copyMarkdown}
         </MarkdownCopyButton>
-        <ViewOptionsPopover
-          markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${repoPath}`}
-        >
-          {dict.docs.openAs}
-        </ViewOptionsPopover>
+        <AskAiPopover labels={dict.docs.askAiItems}>
+          {dict.docs.askAi}
+        </AskAiPopover>
         <EditOnGitHub
           href={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/${repoPath}`}
         />
@@ -135,6 +133,12 @@ export async function generateMetadata(
   return {
     title: page.data.title,
     description: page.data.description,
+    // Point AI agents landing on the HTML page to the clean Markdown version.
+    alternates: {
+      types: {
+        'text/markdown': `${siteUrl}${page.url}.md`,
+      },
+    },
     openGraph: {
       //images: getPageImage(page).url,
       images: [

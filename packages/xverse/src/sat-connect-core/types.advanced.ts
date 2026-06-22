@@ -135,13 +135,15 @@ export interface RpcError {
   data?: any;
 }
 
-export interface RpcErrorResponse<TError extends RpcError = RpcError>
-  extends RpcBase {
+export interface RpcErrorResponse<
+  TError extends RpcError = RpcError,
+> extends RpcBase {
   error: TError;
 }
 
-export interface RpcSuccessResponse<Method extends keyof Requests>
-  extends RpcBase {
+export interface RpcSuccessResponse<
+  Method extends keyof Requests,
+> extends RpcBase {
   result: Return<Method>;
 }
 
