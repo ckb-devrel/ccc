@@ -54,7 +54,7 @@
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
     "@ipld/dag-cbor": "^9.2.5",
-    "@noble/curves": "^1.9.7"
+    "@noble/curves": "^2.2.0"
   },
   "packageManager": "pnpm@11.8.0",
   "types": "./dist.commonjs/index.d.ts"
