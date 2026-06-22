@@ -71,7 +71,7 @@ export function fixedItemVec<Encodable, Decoded>(
         }
         return bytesFrom(concatted);
       } catch (e: unknown) {
-        throw new Error(`fixedItemVec(${e?.toString()})`);
+        throw new Error("fixedItemVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -101,7 +101,7 @@ export function fixedItemVec<Encodable, Decoded>(
         }
         return decodedArray;
       } catch (e) {
-        throw new Error(`fixedItemVec(${e?.toString()})`);
+        throw new Error("fixedItemVec failed", { cause: e });
       }
     },
   });
@@ -131,7 +131,7 @@ export function dynItemVec<Encodable, Decoded>(
         const packedTotalSize = uint32To(header.length + body.length + 4);
         return bytesConcat(packedTotalSize, header, body);
       } catch (e) {
-        throw new Error(`dynItemVec(${e?.toString()})`);
+        throw new Error("dynItemVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -168,7 +168,7 @@ export function dynItemVec<Encodable, Decoded>(
         }
         return decodedArray;
       } catch (e) {
-        throw new Error(`dynItemVec(${e?.toString()})`);
+        throw new Error("dynItemVec failed", { cause: e });
       }
     },
   });
@@ -205,7 +205,7 @@ export function option<Encodable, Decoded>(
       try {
         return innerCodec.encode(userDefinedOrNull);
       } catch (e) {
-        throw new Error(`option(${e?.toString()})`);
+        throw new Error("option failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -216,7 +216,7 @@ export function option<Encodable, Decoded>(
       try {
         return innerCodec.decode(buffer, config);
       } catch (e) {
-        throw new Error(`option(${e?.toString()})`);
+        throw new Error("option failed", { cause: e });
       }
     },
   });
@@ -236,7 +236,7 @@ export function byteVec<Encodable, Decoded>(
         const byteLength = uint32To(payload.byteLength);
         return bytesConcat(byteLength, payload);
       } catch (e) {
-        throw new Error(`byteVec(${e?.toString()})`);
+        throw new Error("byteVec failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -255,7 +255,7 @@ export function byteVec<Encodable, Decoded>(
       try {
         return codec.decode(value.slice(4), config);
       } catch (e: unknown) {
-        throw new Error(`byteVec(${e?.toString()})`);
+        throw new Error("byteVec failed", { cause: e });
       }
     },
   });
@@ -313,7 +313,7 @@ export function table<
           bytesConcatTo(body, encoded);
           offset += encoded.byteLength;
         } catch (e: unknown) {
-          throw new Error(`table.${key}(${e?.toString()})`);
+          throw new Error(`table.${key} failed`, { cause: e });
         }
       }
 
@@ -371,7 +371,7 @@ export function table<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [field]: codec.decode(payload, config) });
         } catch (e: unknown) {
-          throw new Error(`table.${field}(${e?.toString()})`);
+          throw new Error(`table.${field} failed`, { cause: e });
         }
       }
       return object as Decoded;
@@ -472,7 +472,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         const body = codec.encode(value);
         return bytesConcat(header, body);
       } catch (e: unknown) {
-        throw new Error(`union.(${typeStr})(${e?.toString()})`);
+        throw new Error(`union.${typeStr} failed`, { cause: e });
       }
     },
     decode(buffer, config) {
@@ -538,7 +538,7 @@ export function struct<
           const encoded = codecLayout[key].encode((object as any)[key]);
           bytesConcatTo(bytes, encoded);
         } catch (e: unknown) {
-          throw new Error(`struct.${key}(${e?.toString()})`);
+          throw new Error(`struct.${key} failed`, { cause: e });
         }
       }
 
@@ -554,7 +554,7 @@ export function struct<
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [key]: codec.decode(payload, config) });
         } catch (e: unknown) {
-          throw new Error(`struct.${key}(${(e as Error).toString()})`);
+          throw new Error(`struct.${key} failed`, { cause: e });
         }
         offset = offset + codec.byteLength!;
       });
@@ -589,7 +589,7 @@ export function array<Encodable, Decoded>(
 
         return bytesFrom(bytes);
       } catch (e: unknown) {
-        throw new Error(`array(${e?.toString()})`);
+        throw new Error("array failed", { cause: e });
       }
     },
     decode(buffer, config) {
@@ -608,7 +608,7 @@ export function array<Encodable, Decoded>(
         }
         return result;
       } catch (e: unknown) {
-        throw new Error(`array(${e?.toString()})`);
+        throw new Error("array failed", { cause: e });
       }
     },
   });

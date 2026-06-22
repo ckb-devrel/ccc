@@ -4,28 +4,39 @@ const common = {
   minify: true,
   dts: true,
   platform: "neutral" as const,
+  sourcemap: true,
   exports: true,
 };
+
+const entry = {
+  index: "src/index.ts",
+  barrel: "src/barrel.ts",
+  plc: "src/plc/index.ts",
+} as const;
+
+const bundleDeps = [
+  "@ipld/dag-cbor",
+  "cborg", // By @ipld/dag-cbor
+  "multiformats", // By @ipld/dag-cbor
+] as string[];
 
 export default defineConfig(
   (
     [
       {
-        entry: {
-          index: "src/index.ts",
-          barrel: "src/barrel.ts",
-          plc: "src/plc/index.ts",
+        entry,
+        deps: {
+          onlyBundle: [] as string[],
         },
         format: "esm",
         copy: "./misc/basedirs/dist/*",
       },
       {
-        entry: {
-          index: "src/index.ts",
-          barrel: "src/barrel.ts",
-          plc: "src/plc/index.ts",
+        entry,
+        deps: {
+          alwaysBundle: bundleDeps,
+          onlyBundle: bundleDeps,
         },
-        noExternal: ["@ipld/dag-cbor"] as string[],
         format: "cjs",
         outDir: "dist.commonjs",
         copy: "./misc/basedirs/dist.commonjs/*",

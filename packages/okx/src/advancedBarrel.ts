@@ -2,7 +2,8 @@ import { Nip07A } from "@ckb-ccc/nip07/advanced";
 import { UniSatA } from "@ckb-ccc/uni-sat/advanced";
 
 export interface BitcoinProvider
-  extends Pick<
+  extends
+    Pick<
       UniSatA.Provider,
       "on" | "removeListener" | "signMessage" | "signPsbt" | "pushPsbt"
     >,

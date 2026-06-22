@@ -92,9 +92,7 @@ export abstract class Entity {
        * @returns A clone of the entity
        */
       clone(): SubType {
-        return (this.constructor as typeof Impl).fromBytes(
-          this.toBytes(),
-        ) as unknown as SubType;
+        return (this.constructor as typeof Impl).fromBytes(this.toBytes());
       }
 
       /**
