@@ -25,5 +25,5 @@
     "typescript-eslint": "^8.41.0",
     "@ckb-ccc/ccc": "workspace:*"
   },
-  "packageManager": "pnpm@10.8.1"
+  "packageManager": "pnpm@11.8.0"
 }
