@@ -26,12 +26,7 @@ import {
 } from "./fee-estimator.js";
 import { isOpReturnScriptPubkey } from "./script.js";
 import { TxInputData, TxOutput } from "./transaction.js";
-import {
-  deduplicateUtxoSeals,
-  Utxo,
-  UtxoSeal,
-  utxoToInputData,
-} from "./utxo.js";
+import { deduplicateUtxoSeals, UtxoSeal, utxoToInputData } from "./utxo.js";
 
 export interface BtcTransactionBuilderOptions {
   concurrency?: number;
@@ -109,7 +104,7 @@ export class BtcTransactionBuilder {
             scriptPk: vout.scriptpubkey,
             address: vout.scriptpubkey_address,
             addressType: getAddressType(vout.scriptpubkey_address),
-          } as Utxo,
+          },
           this.publicKeyProvider,
         );
       },

@@ -104,6 +104,4 @@ export interface RgbppCkbCellProvider {
 }
 
 export interface RgbppDataSource
-  extends BtcDataProvider,
-    RgbppCkbCellProvider,
-    RgbppSpvProofProvider {}
+  extends BtcDataProvider, RgbppCkbCellProvider, RgbppSpvProofProvider {}

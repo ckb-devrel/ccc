@@ -115,7 +115,7 @@ export class BtcAssetsApiBase implements BaseApis {
         ...(headers || {}),
       },
       ...otherOptions,
-    } as RequestInit);
+    });
 
     let text: string | undefined;
     let json: Json | undefined;
@@ -220,7 +220,7 @@ export class BtcAssetsApiBase implements BaseApis {
         "Content-Type": "application/json",
         ...options?.headers,
       },
-    } as BaseApiRequestOptions);
+    });
   }
 }
 

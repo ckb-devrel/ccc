@@ -5,7 +5,6 @@ import {
   isMainnet,
   NetworkConfig,
   parseAddressType,
-  PredefinedNetwork,
   RgbppPrivateKeyBtcWallet,
 } from "../../bitcoin/index.js";
 
@@ -39,9 +38,7 @@ export async function initializeRgbppEnv(): Promise<{
 
   const addressType = parseAddressType(utxoBasedChainAddressType);
 
-  const networkConfig = buildNetworkConfig(
-    utxoBasedChainName as PredefinedNetwork,
-  );
+  const networkConfig = buildNetworkConfig(utxoBasedChainName);
 
   const rgbppUdtClient = new RgbppUdtClient(
     ckbClient,
