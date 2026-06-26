@@ -13,9 +13,6 @@
     "lint": "pnpm -r run lint",
     "format": "pnpm -r run format",
     "sync:config": "pnpm -r --filter !./packages/demo --filter !./packages/faucet --filter !./packages/playground --filter !./packages/docs -c exec \"cp ../../config/* . && cp ../../config/.* .\"",
-    "change": "pnpm changeset",
-    "version": "pnpm changeset version",
-    "publish": "pnpm publish -r",
     "docs": "typedoc"
   },
   "devDependencies": {
