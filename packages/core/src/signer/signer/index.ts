@@ -492,6 +492,105 @@ export abstract class Signer {
 }
 
 /**
+ * An abstract class representing a multisig signer.
+ * @public
+ */
+export abstract class SignerMultisig extends Signer {
+  /**
+   * Get the number of members in the multisig script.
+   * @returns The number of members.
+   */
+  abstract getMemberCount(): Promise<number>;
+
+  /**
+   * Get the threshold of the multisig script.
+   * @returns The threshold.
+   */
+  abstract getMemberThreshold(): Promise<number>;
+
+  /**
+   * Get the count of required member of the multisig script.
+   * @returns The must match count.
+   */
+  abstract getMemberRequiredCount(): Promise<number>;
+
+  /**
+   * Get the number of valid signatures for matching multisig inputs in the transaction.
+   *
+   * @remarks
+   * Returns `undefined` when the transaction has no inputs locked by any multisig address
+   * supported by this signer. This method only evaluates matching multisig inputs and does
+   * not indicate whether the transaction itself is expected to be signed by this multisig.
+   *
+   * @param _ - The transaction.
+   * @returns The matched multisig signature count, or `undefined` when the transaction is unrelated to any multisig address supported by this signer.
+   */
+  abstract getSignaturesCount(_: TransactionLike): Promise<number | undefined>;
+
+  /**
+   * Check if related multisig inputs in the transaction need more signatures.
+   *
+   * @remarks
+   * Returns `false` when the transaction has no inputs locked by any multisig address
+   * supported by this signer.
+   * A `false` result therefore means either the related multisig inputs are already fulfilled,
+   * or the transaction is unrelated to all multisig addresses supported by this signer.
+   *
+   * @param txLike - The transaction to check.
+   * @returns A promise that resolves to `true` when related multisig inputs still need signatures, and `false` otherwise.
+   */
+  abstract needMoreSignatures(_: TransactionLike): Promise<boolean>;
+
+  /**
+   * Aggregate transactions.
+   * @param _ - The transactions to aggregate.
+   * @returns The aggregated transaction.
+   */
+  abstract aggregateTransactions(_: TransactionLike[]): Promise<Transaction>;
+
+  /**
+   * Send a transaction.
+   *
+   * @remarks
+   * This method rejects the transaction only when related multisig inputs still need signatures.
+   * It does not verify that the transaction actually contains inputs locked by any multisig
+   * address supported by this signer, so transactions unrelated to those multisig addresses
+   * are not rejected by this check.
+   *
+   * @param tx - The transaction to send.
+   * @returns The transaction hash.
+   */
+  async sendTransaction(tx: TransactionLike): Promise<Hex> {
+    const signedTx = await this.signTransaction(tx);
+    if (await this.needMoreSignatures(signedTx)) {
+      const count = (await this.getSignaturesCount(signedTx)) ?? 0;
+      const threshold = await this.getMemberThreshold();
+      throw new SignerMultisigNotEnoughSignaturesError(count, threshold);
+    }
+
+    return this.client.sendTransaction(signedTx);
+  }
+}
+
+/**
+ * Thrown when a multisig transaction is sent before enough signatures are collected.
+ *
+ * @public
+ */
+export class SignerMultisigNotEnoughSignaturesError extends Error {
+  readonly signaturesCount: number;
+  readonly threshold: number;
+
+  constructor(signaturesCount: number, threshold: number) {
+    const message = `Not enough signatures: got ${signaturesCount}, need ${threshold}`;
+    super(message);
+    this.name = "SignerMultisigNotEnoughSignaturesError";
+    this.signaturesCount = signaturesCount;
+    this.threshold = threshold;
+  }
+}
+
+/**
  * A class representing information about a signer, including its type and the signer instance.
  * @public
  */
