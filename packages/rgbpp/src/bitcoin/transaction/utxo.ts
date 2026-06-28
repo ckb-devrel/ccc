@@ -1,0 +1,117 @@
+import { ccc } from "@ckb-ccc/core";
+
+import {
+  ErrorBtcMissingPublicKey,
+  ErrorBtcUnsupportedAddressType,
+} from "../../error.js";
+import {
+  AddressType,
+  isSupportedAddressType,
+  SUPPORTED_ADDRESS_TYPES,
+} from "../address.js";
+import { PublicKeyProvider, toXOnly } from "../public-key.js";
+import { TxInputData } from "./transaction.js";
+
+interface OutPoint {
+  txid: string;
+  vout: number;
+}
+
+export type UtxoSeal = OutPoint;
+
+/**
+ * Deduplicate UTXO seals based on txid and vout
+ */
+export function deduplicateUtxoSeals(utxoSeals: UtxoSeal[]): UtxoSeal[] {
+  if (!utxoSeals || utxoSeals.length === 0) {
+    return [];
+  }
+
+  const seen = new Map<string, UtxoSeal>();
+
+  for (const seal of utxoSeals) {
+    const normalizedTxId = seal.txid?.toLowerCase() ?? "";
+    const key = `${normalizedTxId}:${seal.vout}`;
+
+    if (!seen.has(key)) {
+      seen.set(key, seal);
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
+export interface Output extends OutPoint {
+  value: number;
+  scriptPk: string;
+}
+
+export interface Utxo extends Output {
+  addressType: AddressType;
+  address: string;
+  pubkey?: string;
+}
+
+/**
+ * Convert UTXO to PSBT input data
+ *
+ * @param utxo - The UTXO to convert
+ * @param publicKeyProvider - Optional provider to lookup public keys for P2TR addresses
+ * @returns PSBT input data
+ *
+ * @throws Error if address type is unsupported or public key is missing for P2TR
+ */
+export async function utxoToInputData(
+  utxo: Utxo,
+  publicKeyProvider?: PublicKeyProvider,
+): Promise<TxInputData> {
+  if (!isSupportedAddressType(utxo.addressType)) {
+    throw new ErrorBtcUnsupportedAddressType(
+      utxo.addressType,
+      SUPPORTED_ADDRESS_TYPES,
+    );
+  }
+
+  if (utxo.addressType === AddressType.P2WPKH) {
+    const data = {
+      hash: utxo.txid,
+      index: utxo.vout,
+      witnessUtxo: {
+        value: utxo.value,
+        script: ccc.bytesFrom(utxo.scriptPk),
+      },
+    };
+    return data;
+  }
+
+  if (utxo.addressType === AddressType.P2TR) {
+    let pubkey = utxo.pubkey;
+
+    if (!pubkey && publicKeyProvider) {
+      pubkey = await publicKeyProvider.getPublicKey(
+        utxo.address,
+        utxo.addressType,
+      );
+    }
+
+    if (!pubkey) {
+      throw new ErrorBtcMissingPublicKey(utxo.address);
+    }
+
+    const data = {
+      hash: utxo.txid,
+      index: utxo.vout,
+      witnessUtxo: {
+        value: utxo.value,
+        script: ccc.bytesFrom(utxo.scriptPk),
+      },
+      tapInternalKey: toXOnly(ccc.bytesFrom(pubkey)),
+    };
+    return data;
+  }
+
+  throw new ErrorBtcUnsupportedAddressType(
+    utxo.addressType,
+    SUPPORTED_ADDRESS_TYPES,
+  );
+}
