@@ -26,7 +26,7 @@
     "bitcoinjs-lib": "^7.0.0",
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^1.21.0",
-    "monaco-editor": "^0.52.2",
+    "monaco-editor": "^0.55.1",
     "next": "16.2.9",
     "prettier": "^3.6.2",
     "react": "19.2.7",
