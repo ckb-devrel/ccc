@@ -1,5 +1,39 @@
 # @ckb-ccc/core
 
+## 1.15.0
+### Minor Changes
+
+
+
+- [#392](https://github.com/ckb-devrel/ccc/pull/392) [`98597b5`](https://github.com/ckb-devrel/ccc/commit/98597b56eb6eeb029b72ea963649155dfe1f4215) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add `bytesLen` and `bytesLenUnsafe` utilities
+
+
+
+- [#387](https://github.com/ckb-devrel/ccc/pull/387) [`bef9d0a`](https://github.com/ckb-devrel/ccc/commit/bef9d0a037fba045eab24d7ad55400fa26fbbffd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): relax `@ccc.codec`'s type restriction
+
+
+
+- [#349](https://github.com/ckb-devrel/ccc/pull/349) [`8067a08`](https://github.com/ckb-devrel/ccc/commit/8067a08de041ffd7a624adea0b594eb283e2634e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): multisig Signers
+
+
+
+- [#385](https://github.com/ckb-devrel/ccc/pull/385) [`7019a1a`](https://github.com/ckb-devrel/ccc/commit/7019a1a7f765dfa7940cdfe51474bcd347f18ec6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Transaction.getWitnessArgsAtUnsafe`
+
+
+
+- [#390](https://github.com/ckb-devrel/ccc/pull/390) [`9beee4d`](https://github.com/ckb-devrel/ccc/commit/9beee4d7f39e4b4b19919c5feb86e1c8be0e089d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `signMessageSecp256k1`
+
+
+
+- [#389](https://github.com/ckb-devrel/ccc/pull/389) [`0eb8435`](https://github.com/ckb-devrel/ccc/commit/0eb8435d9694602fce3b7e6a95f04f793452a88d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `hashCkbShort`
+
+
+### Patch Changes
+
+
+
+- [#391](https://github.com/ckb-devrel/ccc/pull/391) [`2d4e701`](https://github.com/ckb-devrel/ccc/commit/2d4e701e54e9bf5247c2363490009acc5606c0ea) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: `hexFrom` passes through normalized hex; `numToHex` now throws on negative values
+
 ## 1.14.0
 ### Minor Changes
 

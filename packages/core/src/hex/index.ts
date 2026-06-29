@@ -18,13 +18,13 @@ export type HexLike = BytesLike;
  * A valid hexadecimal string:
  * - Has at least two characters.
  * - Starts with "0x".
- * - Has an even length (odd-length hex is considered non-standard).
+ * - Has an even length.
  * - Contains only characters representing digits (0-9) or lowercase letters (a-f) after the "0x" prefix.
  *
  * @param v - The value to validate as a hexadecimal (ccc.Hex) string.
  * @returns True if the string is a valid hex string, false otherwise.
  */
-export function isHex(v: unknown): v is Hex {
+function isNormalizedHex(v: unknown): v is Hex {
   if (!(typeof v === "string" && v.length % 2 === 0 && v.startsWith("0x"))) {
     return false;
   }
@@ -51,8 +51,8 @@ export function isHex(v: unknown): v is Hex {
  * ```
  */
 export function hexFrom(hex: HexLike): Hex {
-  // Passthru an already normalized hex. V8 optimization: maintain existing hidden string fields.
-  if (isHex(hex)) {
+  // Pass through already-normalized hex to avoid allocating a new string.
+  if (isNormalizedHex(hex)) {
     return hex;
   }
 
@@ -62,11 +62,7 @@ export function hexFrom(hex: HexLike): Hex {
 /**
  * Return the number of bytes occupied by `hexLike`.
  *
- * This function efficiently calculates the byte length of hex-like values.
- * For valid Hex strings, it uses a fast-path helper. For other types, it
- * converts to bytes first.
- *
- * @param hexLike - Hex-like value (Hex string, Uint8Array, ArrayBuffer, or iterable of numbers).
+ * @param hexLike - Hex-like value
  * @returns Byte length of `hexLike`.
  *
  * @example
@@ -77,15 +73,14 @@ export function hexFrom(hex: HexLike): Hex {
  * bytesLen([1, 2]) // 2
  * ```
  *
- * @throws May throw if `hexLike` contains invalid byte values when passed to `bytesFrom`.
- * @see bytesLenUnsafe - Fast version for already-validated Hex strings
+ * @see bytesLenUnsafe - Fast version for already-normalized Hex strings
  *
  * @note Prefer direct `.length`/`.byteLength` access on Uint8Array/ArrayBuffer when you already have bytes.
  *       Use `bytesLen()` only when you need length without performing additional operations.
  * @see bytesFrom - Convert values to Bytes (Uint8Array)
  */
 export function bytesLen(hexLike: HexLike): number {
-  if (isHex(hexLike)) {
+  if (isNormalizedHex(hexLike)) {
     return bytesLenUnsafe(hexLike);
   }
 
@@ -96,8 +91,8 @@ export function bytesLen(hexLike: HexLike): number {
  * Fast byte length for Hex strings.
  *
  * This function efficiently calculates the byte length of Hex values:
- * - Skips isHex validation (caller must ensure input is valid Hex)
- * - Handles odd-digit hex by rounding up, matching bytesFrom's padding behavior.
+ * - Skips validation (caller must ensure input is valid Hex)
+ * - Handles odd-digit hex as if it were padded with a leading zero (e.g., "0x123" is treated as "0x0123").
  *
  * @param hex - A valid Hex string (with "0x" prefix).
  * @returns Byte length of the hex string.
@@ -111,6 +106,5 @@ export function bytesLen(hexLike: HexLike): number {
  * @see bytesLen - Validated version for untrusted input
  */
 export function bytesLenUnsafe(hex: Hex): number {
-  // Equivalent to Math.ceil((hex.length - 2) / 2), rounds up for odd-digit hex.
-  return (hex.length - 1) >> 1;
+  return Math.floor((hex.length - 1) / 2);
 }

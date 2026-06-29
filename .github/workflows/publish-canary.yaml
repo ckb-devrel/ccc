@@ -51,7 +51,7 @@ jobs:
         run: pnpm build
 
       - name: Version changesets
-        run: pnpm changeset version --snapshot canary
+        run: pnpm dlx @changesets/cli@2.31.0 version --snapshot canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -59,7 +59,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: pnpm changeset publish --tag canary
+          publish: pnpm dlx @changesets/cli@2.31.0 publish --tag canary
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
