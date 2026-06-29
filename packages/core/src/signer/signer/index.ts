@@ -157,17 +157,6 @@ export abstract class Signer {
     }
   }
 
-  static async fromSignature(
-    _client: Client,
-    _signature: Signature,
-    _message?: string | BytesLike | null,
-    ..._addresses: (string | string[])[]
-  ): Promise<Signer | undefined> {
-    throw Error(
-      "Signer.fromSignature should be override to avoid circular references",
-    );
-  }
-
   /**
    * Connects to the signer.
    *

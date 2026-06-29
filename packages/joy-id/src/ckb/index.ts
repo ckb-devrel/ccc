@@ -148,7 +148,6 @@ export class CkbSigner extends ccc.Signer {
   async getIdentity(): Promise<string> {
     const connection = await this.assertConnection();
     return JSON.stringify({
-      address: connection.address,
       keyType: connection.keyType,
       publicKey: connection.publicKey.slice(2),
     });

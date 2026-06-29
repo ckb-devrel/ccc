@@ -131,9 +131,9 @@ export abstract class ClientJsonRpc extends Client {
   getFeeRateStatistics = this.buildSender(
     "get_fee_rate_statistics",
     [(n: NumLike) => apply(numFrom, n)],
-    (res: { mean: NumLike; median: NumLike } | null | undefined) => ({
-      mean: apply(numFrom, res?.mean),
-      median: apply(numFrom, res?.median),
+    ({ mean, median }: { mean: NumLike; median: NumLike }) => ({
+      mean: numFrom(mean),
+      median: numFrom(median),
     }),
   ) as Client["getFeeRateStatistics"];
 

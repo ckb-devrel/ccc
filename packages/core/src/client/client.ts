@@ -79,7 +79,7 @@ export abstract class Client {
 
   abstract getFeeRateStatistics(
     blockRange?: NumLike,
-  ): Promise<{ mean?: Num; median?: Num }>;
+  ): Promise<{ mean: Num; median: Num }>;
   /**
    * Get the recommended transaction fee rate based on recent blocks.
    * Returns the median fee rate, clamped between min and max fee rates.
@@ -102,7 +102,7 @@ export abstract class Client {
     options?: { maxFeeRate?: NumLike },
   ): Promise<Num> {
     const feeRate = numMax(
-      (await this.getFeeRateStatistics(blockRange)).median ?? Zero,
+      (await this.getFeeRateStatistics(blockRange)).median,
       DEFAULT_MIN_FEE_RATE,
     );
 
