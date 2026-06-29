@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "axios": "^1.18.0",
+    "axios": "^1.16.0",
     "tsdown": "^0.22.3"
   },
   "packageManager": "pnpm@11.8.0",
