@@ -7,6 +7,7 @@ export default async function Layout({
   children,
 }: LayoutProps<'/[lang]/docs'>) {
   const { lang } = await params;
+  
   return (
     <DocsLayout 
       tree={source.getPageTree(lang)}
@@ -28,7 +29,7 @@ export default async function Layout({
           },
         },
       }}
-      {...baseOptions(lang)}
+      {...baseOptions(lang, { showNavLinks: false })}
     >
       {children}
     </DocsLayout>

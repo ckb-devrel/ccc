@@ -1,4 +1,5 @@
 import type { Metadata } from 'next/types';
+import { siteUrl } from './shared';
 
 export function createMetadata(override: Metadata): Metadata {
   return {
@@ -6,7 +7,7 @@ export function createMetadata(override: Metadata): Metadata {
     openGraph: {
       title: override.title ?? undefined,
       description: override.description ?? undefined,
-      url: 'https://docs.ckbccc.com',
+      url: siteUrl,
       images: '/banner.png',
       siteName: 'CCC Docs',
       ...override.openGraph,

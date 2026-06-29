@@ -36,15 +36,7 @@
   Fully enabling CKB's Turing completeness and cryptographic freedom power.
 </p>
 
-## Preview
-
-<p align="center">
-  <a href="https://app.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png" width="30%" />
-  </a>
-</p>
-
-This project is still under active development, and we are looking forward to your feedback. [Try its demo now here](https://app.ckbccc.com/). It showcases how to use CCC for some basic scenarios in CKB.
+Check the [package documentation](https://docs.ckbccc.com/docs/packages/wallet-integrations/xverse) and [API reference](https://api.ckbccc.com/modules/_ckb-ccc_xverse.index) for more details.
 
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.

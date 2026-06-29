@@ -1,0 +1,259 @@
+---
+title: Code Examples
+description: Ready-to-run code examples for CCC — open them in the Playground, clone them for your own projects, or reference them as patterns.
+icon: Code
+---
+
+import { ExampleGrid } from '@/components/example-grid';
+
+Browse our collection of runnable code examples and interactive tools. Cards tagged **playground** open directly in the [CCC Playground](https://live.ckbccc.com/); cards tagged **app** link to the [CCC App](https://app.ckbccc.com/) — a mini-toolset for CKB that lets you perform common operations through a graphical interface, even if you're not a developer.
+
+Use the tag filter below to narrow down examples by category.
+
+<ExampleGrid lang="en" items={[
+  {
+    title: "Transfer CKB",
+    description: "Send a specified amount of native CKB to another address. Demonstrates the declare → fill → fee → send pattern.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/transfer.ts",
+  },
+  {
+    title: "Transfer All CKB",
+    description: "Sweep an entire wallet's CKB balance into a single output. Uses completeInputsAll and completeFeeChangeToOutput.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferAll.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/transferAll.ts",
+  },
+  {
+    title: "Transfer UDT Token",
+    description: "Transfer xUDT fungible tokens between addresses. Demonstrates UDT cell construction and input completion.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferUdt.ts",
+    tags: ["playground", "transaction", "udt"],
+    source: "packages/examples/src/transferUdt.ts",
+  },
+  {
+    title: "Sign & Verify Message",
+    description: "Sign an arbitrary message with the connected wallet and verify the signature on-chain. Works across all wallet types.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/sign.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/sign.ts",
+  },
+  {
+    title: "Custom UI — Specified Wallet",
+    description: "Connect a specific wallet type in your own custom UI without using the built-in connector modal.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUi.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/customUi.ts",
+  },
+  {
+    title: "Custom UI — All Wallets with Controller",
+    description: "Enumerate and connect all supported wallets using SignersController for a fully custom wallet UI.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/customUiWithController.ts",
+    tags: ["playground", "wallet"],
+    source: "packages/examples/src/customUiWithController.ts",
+  },
+  {
+    title: "Query Balance",
+    description: "Query the CKB balance of any address on testnet or mainnet. A simple read-only script.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryBalance.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryBalance.ts",
+  },
+  {
+    title: "Query Cells",
+    description: "Iterate over live cells owned by an address. Demonstrates the cell collector pattern.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryCells.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryCells.ts",
+  },
+  {
+    title: "Query Transactions",
+    description: "Fetch transaction history for an address. Shows how to use the transaction iterator.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/queryTransactions.ts",
+    tags: ["playground", "query"],
+    source: "packages/examples/src/queryTransactions.ts",
+  },
+  {
+    title: "NervosDAO Deposit & Withdraw",
+    description: "Deposit CKB into NervosDAO and withdraw with interest. Covers the full DAO lifecycle.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/dao.ts",
+    tags: ["playground", "transaction"],
+    source: "packages/examples/src/dao.ts",
+  },
+  {
+    title: "Create Spore DOB",
+    description: "Mint an on-chain digital object (DOB) using the Spore protocol. Demonstrates cluster creation and content upload.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/createSpore.ts",
+    tags: ["playground", "transaction", "spore"],
+    source: "packages/examples/src/createSpore.ts",
+  },
+  {
+    title: "Transfer Spore DOB",
+    description: "Transfer an existing Spore DOB to another address.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transferSpore.ts",
+    tags: ["playground", "transaction", "spore"],
+    source: "packages/examples/src/transferSpore.ts",
+  },
+  {
+    title: "Backend Transfer (Node.js)",
+    description: "Send CKB from a Node.js backend using @ckb-ccc/shell with a private key signer — no browser required.",
+    href: "https://github.com/ckb-devrel/ccc/blob/master/packages/examples/src/backendTransfer.ts",
+    tags: ["backend", "transaction"],
+    source: "packages/examples/src/backendTransfer.ts",
+  },
+  {
+    title: "DOB Cookbook — Colorful Loot",
+    description: "Create a colorful loot DOB using the Spore DOB Cookbook recipes. Demonstrates advanced DOB patterns.",
+    href: "https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob-cookbook/refs/heads/main/examples/dob0/1.colorful-loot.ts",
+    tags: ["playground", "spore"],
+    source: "sporeprotocol/dob-cookbook",
+  },
+  {
+    title: "Issue xUDT — Single-Use Lock",
+    description: "Issue a new xUDT token using the Single-Use Lock pattern. The lock is consumed after issuance, preventing re-minting.",
+    href: "https://app.ckbccc.com/connected/IssueXUdtSus",
+    tags: ["app", "transaction", "udt"],
+    source: "packages/demo/src/app/connected/(tools)/IssueXUdtSus/page.tsx",
+  },
+  {
+    title: "Issue xUDT — Type ID",
+    description: "Issue an xUDT token controlled by a Type ID cell, allowing future minting by the same controller.",
+    href: "https://app.ckbccc.com/connected/IssueXUdtTypeId",
+    tags: ["app", "transaction", "udt"],
+    source: "packages/demo/src/app/connected/(tools)/IssueXUdtTypeId/page.tsx",
+  },
+  {
+    title: "Create Spore Cluster",
+    description: "Create a Spore Cluster — a logical grouping for on-chain digital objects (DOBs).",
+    href: "https://app.ckbccc.com/connected/CreateSporeCluster",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/CreateSporeCluster/page.tsx",
+  },
+  {
+    title: "Mint Spore",
+    description: "Mint a Spore DOB under a cluster through the CCC App UI.",
+    href: "https://app.ckbccc.com/connected/MintSpore",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/MintSpore/page.tsx",
+  },
+  {
+    title: "Transfer / Melt Spore",
+    description: "Transfer a Spore DOB to another address, or melt (destroy) it to reclaim CKB capacity.",
+    href: "https://app.ckbccc.com/connected/TransferSpore",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/TransferSpore/page.tsx",
+  },
+  {
+    title: "Transfer Spore Cluster",
+    description: "Transfer ownership of a Spore Cluster to another address.",
+    href: "https://app.ckbccc.com/connected/TransferSporeCluster",
+    tags: ["app", "transaction", "spore"],
+    source: "packages/demo/src/app/connected/(tools)/TransferSporeCluster/page.tsx",
+  },
+  {
+    title: "Time-Locked Transfer",
+    description: "Send CKB with a time lock — the recipient cannot spend the output until a specified block number or timestamp.",
+    href: "https://app.ckbccc.com/connected/TimeLockedTransfer",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/TimeLockedTransfer/page.tsx",
+  },
+  {
+    title: "SSRI Contract Call",
+    description: "Interact with on-chain smart contracts through the SSRI (Script-Sourced Rich Information) protocol.",
+    href: "https://app.ckbccc.com/connected/SSRI",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/SSRI/page.tsx",
+  },
+  {
+    title: "Transfer CKB (Lumos)",
+    description: "Transfer native CKB using the legacy Lumos SDK with CCC's compatibility patches.",
+    href: "https://app.ckbccc.com/connected/TransferLumos",
+    tags: ["app", "transaction"],
+    source: "packages/demo/src/app/connected/(tools)/TransferLumos/page.tsx",
+  },
+  {
+    title: "CKB Hash Calculator",
+    description: "Calculate the CKB hash (Blake2b-256) of any message. A quick utility for developers.",
+    href: "https://app.ckbccc.com/utils/Hash",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Hash/page.tsx",
+  },
+  {
+    title: "Mnemonic & Keypair Generator",
+    description: "Generate BIP-39 mnemonic words and derived keypairs. Optionally encrypt to a keystore file.",
+    href: "https://app.ckbccc.com/utils/Mnemonic",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Mnemonic/page.tsx",
+  },
+  {
+    title: "Keystore Decryptor",
+    description: "Decrypt a CKB keystore file to recover the private key.",
+    href: "https://app.ckbccc.com/utils/Keystore",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/Keystore/page.tsx",
+  },
+  {
+    title: "Dep Group Manager",
+    description: "View and manage CKB dependency groups (DepGroup) used in transaction cell deps.",
+    href: "https://app.ckbccc.com/utils/DepGroup",
+    tags: ["app", "tool"],
+    source: "packages/demo/src/app/utils/(tools)/DepGroup/page.tsx",
+  },
+]} />
+
+## Contribute your examples
+
+We welcome community contributions! Whether it's a handy utility script, an interesting on-chain data analysis, or an integration example for a new protocol — it can be included here to help more people get started with CKB development.
+
+### Via GitHub Pull Request
+
+To have your example included in the official repository:
+
+<Steps>
+  <Step>
+    **Fork and clone the repo**
+
+    Go to [ckb-devrel/ccc](https://github.com/ckb-devrel/ccc), click **Fork**, then clone locally:
+
+    ```bash
+    git clone https://github.com/<your-username>/ccc.git
+    cd ccc
+    ```
+  </Step>
+  <Step>
+    **Write your script**
+
+    Create a new `.ts` file in `packages/examples/src/`, using camelCase naming (e.g. `myNewExample.ts`). Your script should:
+
+    - Import the SDK from `@ckb-ccc/ccc`
+    - Import `render`, `signer`, etc. from `@ckb-ccc/playground`
+    - Call `await render(tx)` at key steps to enable visualization in the Playground
+
+    See [`transfer.ts`](https://github.com/ckb-devrel/ccc/blob/master/packages/examples/src/transfer.ts) for a reference.
+  </Step>
+  <Step>
+    **Test locally**
+
+    Paste your script into the [Playground](https://live.ckbccc.com/) and verify it runs correctly on Testnet.
+  </Step>
+  <Step>
+    **Open a Pull Request**
+
+    Push to your fork and open a PR against the `master` branch of `ckb-devrel/ccc`. Briefly describe the example's purpose and use case in the PR description.
+  </Step>
+</Steps>
+
+### Quick share (no PR needed)
+
+The Playground can load code from **any** publicly accessible URL via the `?src=` parameter — your GitHub repo, a Gist, or any raw file URL:
+
+```
+https://live.ckbccc.com/?src=<your-raw-file-url>
+```
+
+Share the generated link with colleagues or the community — they can open it and run your code immediately.
+
+<Callout type="info">
+  The built-in **Share** button stores code on Nostr relay nodes. Nostr share links are great for quick collaboration, but relay nodes do not guarantee permanent data retention — links may expire over time. For **long-lived, stable share links**, host your script in a GitHub repository and load it via `?src=https://raw.githubusercontent.com/...` — the link will remain valid as long as the repository and file exist.
+</Callout>

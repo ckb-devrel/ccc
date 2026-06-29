@@ -1,0 +1,18 @@
+# CCC SDK developer documentation — robots.txt
+#
+# docs.ckbccc.com is published to help developers and AI agents build on CKB.
+# All documentation is openly crawlable.
+#
+# Content-Signal preferences per draft-romm-aipref-contentsignals
+# (https://contentsignals.org/): training, search indexing and use as AI
+# assistant input are all welcome.
+
+User-agent: *
+Allow: /
+Content-Signal: ai-train=yes, search=yes, ai-input=yes
+
+Sitemap: https://docs.ckbccc.com/sitemap.xml
+
+# Machine-readable documentation for AI tools:
+# https://docs.ckbccc.com/llms.txt
+# https://docs.ckbccc.com/llms-full.txt
