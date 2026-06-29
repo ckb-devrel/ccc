@@ -9,7 +9,7 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
+    "rootDir": ".",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -19,16 +19,16 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@app/tap": [
-        "libs/tap/src"
+        "./libs/tap/src"
       ],
       "@app/tap/*": [
-        "libs/tap/src/*"
+        "./libs/tap/src/*"
       ],
       "@app/commons": [
-        "libs/commons/src"
+        "./libs/commons/src"
       ],
       "@app/commons/*": [
-        "libs/commons/src/*"
+        "./libs/commons/src/*"
       ]
     }
   }
