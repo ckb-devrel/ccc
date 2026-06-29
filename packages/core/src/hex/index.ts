@@ -24,7 +24,7 @@ export type HexLike = BytesLike;
  * @param v - The value to validate as a hexadecimal (ccc.Hex) string.
  * @returns True if the string is a valid hex string, false otherwise.
  */
-export function isHex(v: unknown): v is Hex {
+function isNormalizedHex(v: unknown): v is Hex {
   if (!(typeof v === "string" && v.length % 2 === 0 && v.startsWith("0x"))) {
     return false;
   }
@@ -51,8 +51,8 @@ export function isHex(v: unknown): v is Hex {
  * ```
  */
 export function hexFrom(hex: HexLike): Hex {
-  // Passthru an already normalized hex. V8 optimization: maintain existing hidden string fields.
-  if (isHex(hex)) {
+  // Pass through already-normalized hex to avoid allocating a new string.
+  if (isNormalizedHex(hex)) {
     return hex;
   }
 

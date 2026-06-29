@@ -2,4 +2,4 @@
 "@ckb-ccc/core": patch
 ---
 
-`hexFrom` passthru normalized hex and `numToHex` enforce hex normalization
+feat: `hexFrom` passes through normalized hex; `numToHex` now throws on negative values
