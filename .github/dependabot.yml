@@ -4,6 +4,9 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    versioning-strategy: increase-if-necessary
+    cooldown:
+      default-days: 1
     open-pull-requests-limit: 10
     target-branch: dev
     commit-message:
