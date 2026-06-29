@@ -40,7 +40,7 @@
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.1",
     "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "^0.22.3",
     "typescript": "^6.0.3",
