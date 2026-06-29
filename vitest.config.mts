@@ -1,6 +1,11 @@
 import { defineConfig, coverageConfigDefaults } from "vitest/config";
 
-const packages = ["packages/core", "packages/did-ckb", "packages/type-id"];
+const packages = [
+  "packages/core",
+  "packages/did-ckb",
+  "packages/type-id",
+  "packages/coin",
+];
 
 export default defineConfig({
   test: {

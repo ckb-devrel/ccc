@@ -55,6 +55,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@ckb-ccc/coin": "workspace:*",
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/did-ckb": "workspace:*",
     "@ckb-ccc/spore": "workspace:*",
