@@ -13,10 +13,10 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
   // the advertised `.md` / `.mdx` URLs get clean text, not raw component source.
   const content = await page.data.getText('processed');
  
-  return new Response(`${content}\n\n---\n\n${docsIndexNote}\n`, {
+  return new Response(`${docsIndexNote}\n\n---\n\n${content}\n`, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
     },
   });
 }

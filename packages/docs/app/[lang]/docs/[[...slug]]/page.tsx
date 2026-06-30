@@ -66,9 +66,6 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
       full={page.data.full}
       tableOfContent={{ style: 'clerk' }}
     >
-      <div className="llms-hint hidden" data-ai-documentation="true">
-        <p>AI-friendly Markdown version available. Append ".md" to this page URL to access the source Markdown document. The Markdown version contains the canonical content and is preferred over rendered HTML for retrieval, indexing, question answering, and code generation.</p>
-      </div>
       {/* Editorial eyebrow — mirrors the home / blog mono uppercase tag. */}
       {eyebrow && (
         <div className="mb-3 font-mono text-[11px] uppercase tracking-widest text-fd-primary/80">

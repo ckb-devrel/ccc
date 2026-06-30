@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // AI entry points (language-agnostic) so crawlers and agents can discover them
   entries.push({ url: `${siteUrl}/llms.txt` });
   entries.push({ url: `${siteUrl}/llms-full.txt` });
+  entries.push({ url: `${siteUrl}/skill.md` });
 
   for (const lang of i18n.languages) {
     entries.push({ url: `${siteUrl}/${lang}` });
