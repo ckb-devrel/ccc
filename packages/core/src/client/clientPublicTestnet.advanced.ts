@@ -111,6 +111,23 @@ export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
       hashType: "type",
       cellDeps: [],
     },
+    [KnownScript.SUdt]: {
+      codeHash:
+        "0xc5e5dcf215925f7ef4dfaf5f4b4f105bc321c02776d6e7d52a1db3fcd9d011a4",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xe12877ebd2c3c364dc46c5c992bcfaf4fee33fa13eebdf82c591fc9825aab769",
+              index: 0,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
     [KnownScript.XUdt]: {
       codeHash:
         "0x25c29dc317811a6f6f3985a7a9ebc4838bd388d19d0feeecf0bcd60f6c0975bb",

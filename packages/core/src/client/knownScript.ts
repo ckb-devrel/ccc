@@ -9,6 +9,7 @@ export enum KnownScript {
   Secp256k1MultisigV2 = "Secp256k1MultisigV2", // Enhanced since handling (https://github.com/nervosnetwork/ckb-system-scripts/pull/99)
   AnyoneCanPay = "AnyoneCanPay",
   TypeId = "TypeId",
+  SUdt = "SUdt",
   XUdt = "XUdt",
   JoyId = "JoyId",
   COTA = "COTA",
