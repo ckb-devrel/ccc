@@ -1,7 +1,8 @@
 import { docsIndexNote } from '@/lib/shared';
 import { source } from '@/lib/source';
 import { notFound } from 'next/navigation';
- 
+import { siteUrl } from '@/lib/shared';
+
 export const revalidate = false;
  
 export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[[...slug]]'>) {
@@ -13,11 +14,9 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
   // the advertised `.md` / `.mdx` URLs get clean text, not raw component source.
   const processed = await page.data.getText('processed');
   const content = `# ${page.data.title}
-URL: ${page.url}
+URL: ${siteUrl}${page.url}
 Source: https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/docs/content/docs/${page.path}
-
 > ${page.data.description ?? ''}
-        
 ${processed}`;
  
   return new Response(`${docsIndexNote}\n\n---\n${content}`, {
