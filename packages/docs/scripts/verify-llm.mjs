@@ -100,7 +100,7 @@ async function checkLlmsFull() {
 async function checkSkill() {
   const { res, body } = await fetchText('/skill.md');
   check('/skill.md returns 200', res.status === 200, `status ${res.status}`);
-  check('/skill.md has skill heading', body.includes('Agent Skill'));
+  check('/skill.md has skill heading', body.includes('# CKB CCC Development Skill'));
 }
 
 async function checkHtmlDirective() {
