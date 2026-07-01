@@ -14,7 +14,7 @@ export abstract class Entity {
    * @public
    */
   static Base<SubTypeLike, SubType = SubTypeLike>() {
-    abstract class Impl {
+    abstract class Impl extends Entity {
       /**
        * The bytes length of the entity, if it is fixed, otherwise undefined
        * @public
@@ -90,6 +90,7 @@ export abstract class Entity {
        * @public
        * @returns A clone of the entity
        */
+      // @ts-expect-error SubType is always an Entity in practice, but TypeScript cannot infer this without a constraint on the type parameter
       clone(): SubType {
         return (this.constructor as typeof Impl).fromBytes(this.toBytes());
       }
