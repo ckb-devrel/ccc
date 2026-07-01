@@ -88,12 +88,12 @@ async function checkLlmsFull() {
   const { res, body } = await fetchText('/llms-full.txt');
   check('/llms-full.txt returns 200', res.status === 200, `status ${res.status}`);
   check('/llms-full.txt is non-trivial', body.length > 1000, `${body.length} chars`);
+  const cacheControl = res.headers.get('cache-control') ?? '';
   check(
     '/llms-full.txt sets a revalidating Cache-Control',
-    /must-revalidate|max-age=([0-9]{1,3}|[12][0-9]{3}|3[0-5][0-9]{2}|3600)\b/.test(
-      res.headers.get('cache-control') ?? '',
-    ),
-    res.headers.get('cache-control') ?? 'no cache-control',
+    /\bmust-revalidate\b/.test(cacheControl) &&
+      /\bmax-age=([0-9]{1,3}|[12][0-9]{3}|3[0-5][0-9]{2}|3600)\b/.test(cacheControl),
+    cacheControl || 'no cache-control',
   );
 }
 
