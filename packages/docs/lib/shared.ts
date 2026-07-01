@@ -9,7 +9,7 @@ export const siteUrl = 'https://docs.ckbccc.com';
  * single page can discover the full documentation index (Mintlify-style).
  */
 export const docsIndexNote = `> ## Documentation Index
-> Fetch the complete documentation index at: ${siteUrl}/llms.txt
+> Fetch the complete documentation index at: ${siteUrl}/llms.txt - append ".md" to any page URL for its Markdown source.
 > Use this file to discover all available pages before exploring further.`;
 
 export const docsRoute = '/docs';

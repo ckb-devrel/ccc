@@ -107,9 +107,9 @@ export function ExampleGrid({ items, lang = "en" }: { items: ExampleItem[]; lang
             className="group flex min-w-0 flex-col rounded-lg border border-fd-border bg-fd-card p-4 transition-all hover:border-fd-primary/50 hover:shadow-md"
           >
             <div className="mb-2 flex items-start justify-between gap-2">
-              <h3 className="text-sm font-semibold leading-tight text-fd-foreground group-hover:text-fd-primary transition-colors">
+              <h4 className="text-sm font-semibold leading-tight text-fd-foreground group-hover:text-fd-primary transition-colors">
                 {item.title}
-              </h3>
+              </h4>
               <ExternalLink className="size-3.5 shrink-0 text-fd-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
             <p className="mb-3 flex-1 text-xs leading-relaxed text-fd-muted-foreground">
@@ -126,12 +126,6 @@ export function ExampleGrid({ items, lang = "en" }: { items: ExampleItem[]; lang
                 </span>
               ))}
             </div>
-            {item.source && (
-              <div className="mt-2 flex items-center gap-1 text-[10px] text-fd-muted-foreground">
-                <Code className="size-3" />
-                <span className="truncate">{item.source}</span>
-              </div>
-            )}
           </a>
         ))}
       </div>

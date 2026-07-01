@@ -17,8 +17,20 @@ Notes for AI agents:
 
 - All links below are absolute URLs. Append \`.md\` to any docs page URL to get its raw Markdown version (e.g. ${siteUrl}/en/docs/getting-started/introduction.md).
 - The entire documentation concatenated into a single file: ${siteUrl}/llms-full.txt
+- Agent skill (product-specific operating guidance): ${siteUrl}/skill.md
+- Blog (release notes & tutorials): ${siteUrl}/en/blog/rgbpp-new-sdk-preview
 - Chinese versions of every page are available by replacing \`/en/\` with \`/zh/\` in the URL.
 - API reference: https://api.ckbccc.com | Playground: https://live.ckbccc.com | Source: https://github.com/ckb-devrel/ccc
+
+## Sections (index pages)
+
+- [Get Started](${siteUrl}/en/docs/getting-started): Install CCC, send your first transaction, and learn what CCC can do for you.
+- [Core Concepts](${siteUrl}/en/docs/concepts): The five primitives behind every CCC app — cells, transactions, signers, clients, and addresses.
+- [Guides](${siteUrl}/en/docs/guides): Step-by-step recipes for the most common CKB development tasks.
+- [CCC Package Guide](${siteUrl}/en/docs/packages): Overview of every NPM package; pick the right one for your runtime and features.
+- [Core Packages](${siteUrl}/en/docs/packages/core-packages): Core primitives, aggregated entry points, and wallet connectors.
+- [Protocol Support Layer](${siteUrl}/en/docs/packages/protocol-sdks): Protocol-level SDKs — Spore, UDT, SSRI, and Lumos patches.
+- [Wallet Integrations](${siteUrl}/en/docs/packages/wallet-integrations): Connect any wallet through one unified \`Signer\` interface.
 
 ## Common tasks (recommended reading paths)
 
@@ -45,6 +57,7 @@ export function GET() {
   return new Response(`${preamble}\n${index}`, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
     },
   });
 }
