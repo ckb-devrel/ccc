@@ -1153,5 +1153,95 @@ describe("Transaction", () => {
         expect(cell.capacityFree).toBe(expectedFreeCapacity);
       });
     });
+
+    describe("Witness Alignment", () => {
+      it("should not misalign witnesses when adding input with more outputs than inputs", () => {
+        const tx = ccc.Transaction.default();
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          since: 0n,
+        });
+        tx.addOutput({ lock });
+        tx.addOutput({ lock });
+
+        // Set witness for output 1 at index 1
+        tx.setWitnessAt(1, "0x2222");
+        expect(tx.witnesses).toEqual(["0x", "0x2222"]);
+
+        // Add input 1. Since outputs (2) > inputs (1), it should not splice "0x" at index 1.
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 1,
+          },
+          since: 0n,
+        });
+
+        // The witness at index 1 should remain "0x2222", aligning with both input 1 and output 1
+        expect(tx.witnesses).toEqual(["0x", "0x2222"]);
+      });
+
+      it("should not misalign witnesses when adding output with more inputs than outputs", () => {
+        const tx = ccc.Transaction.default();
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          since: 0n,
+        });
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 1,
+          },
+          since: 0n,
+        });
+        tx.addOutput({ lock });
+
+        // Set witness for input 1 at index 1
+        tx.setWitnessAt(1, "0x1111");
+        expect(tx.witnesses).toEqual(["0x", "0x1111"]);
+
+        // Add output 1. Since inputs (2) > outputs (1), it should not splice "0x" at index 1.
+        tx.addOutput({ lock });
+
+        // The witness at index 1 should remain "0x1111", aligning with both input 1 and output 1
+        expect(tx.witnesses).toEqual(["0x", "0x1111"]);
+      });
+
+      it("should splice dummy witness when witnesses length is greater than both inputs and outputs", () => {
+        const tx = ccc.Transaction.default();
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 0,
+          },
+          since: 0n,
+        });
+        tx.addOutput({ lock });
+
+        // Set an extra witness (e.g., CoBuild SighashAll) at index 1
+        tx.setWitnessAt(1, "0x3333");
+        expect(tx.witnesses).toEqual(["0x", "0x3333"]);
+
+        // Add input 1. Since inputs.length (1) >= outputs.length (1), it splices "0x" to shift the extra witness.
+        tx.addInput({
+          previousOutput: {
+            txHash: "0x" + "0".repeat(64),
+            index: 1,
+          },
+          since: 0n,
+        });
+        expect(tx.witnesses).toEqual(["0x", "0x", "0x3333"]);
+
+        // Add output 1. Since outputs.length (1) >= inputs.length (2) is false, it does not splice.
+        tx.addOutput({ lock });
+        expect(tx.witnesses).toEqual(["0x", "0x", "0x3333"]);
+      });
+    });
   });
 });

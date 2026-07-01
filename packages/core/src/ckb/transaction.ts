@@ -1653,7 +1653,10 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * ```
    */
   addInput(inputLike: CellInputLike): number {
-    if (this.witnesses.length > this.inputs.length) {
+    if (
+      this.witnesses.length > this.inputs.length &&
+      this.inputs.length >= this.outputs.length
+    ) {
       this.witnesses.splice(this.inputs.length, 0, "0x");
     }
 
@@ -1753,6 +1756,13 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
             cellOutput: cellOrOutputLike,
             outputData: outputDataLike,
           });
+
+    if (
+      this.witnesses.length > this.outputs.length &&
+      this.outputs.length >= this.inputs.length
+    ) {
+      this.witnesses.splice(this.outputs.length, 0, "0x");
+    }
 
     const len = this.outputs.push(cell.cellOutput);
     this.setOutputDataAt(len - 1, cell.outputData);
