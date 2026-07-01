@@ -1,3 +1,4 @@
+export { coBuild } from "@ckb-ccc/co-build";
 export * from "@ckb-ccc/core/barrel";
 export { didCkb } from "@ckb-ccc/did-ckb";
 export { spore } from "@ckb-ccc/spore";
