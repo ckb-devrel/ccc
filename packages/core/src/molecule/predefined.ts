@@ -105,6 +105,7 @@ export const Byte32Vec = vector(Byte32);
 export const String = byteVec({
   encode: (value: string) => bytesFrom(value, "utf8"),
   decode: (buffer) => bytesTo(buffer, "utf8"),
+  from: (value: string) => value,
 });
 export const StringVec = vector(String);
 export const StringOpt = option(String);

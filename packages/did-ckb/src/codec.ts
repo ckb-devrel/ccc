@@ -26,11 +26,13 @@ export class DidCkbDataV1 extends ccc.Entity.Base<
   DidCkbDataV1Like,
   DidCkbDataV1
 >() {
-  constructor(
-    public document: unknown,
-    public localId?: string,
-  ) {
+  public document: unknown;
+  public localId?: string;
+
+  constructor({ document, localId }: { document: unknown; localId?: string }) {
     super();
+    this.document = document;
+    this.localId = localId ?? undefined;
   }
 
   static from(data: DidCkbDataV1Like): DidCkbDataV1 {
@@ -38,7 +40,10 @@ export class DidCkbDataV1 extends ccc.Entity.Base<
       return data;
     }
 
-    return new DidCkbDataV1(data.document, data.localId ?? undefined);
+    return new DidCkbDataV1({
+      document: data.document,
+      localId: data.localId ?? undefined,
+    });
   }
 }
 
@@ -52,24 +57,32 @@ export type DidCkbDataLike = {
   }),
 )
 export class DidCkbData extends ccc.Entity.Base<DidCkbDataLike, DidCkbData>() {
-  constructor(
-    public type: "v1",
-    public value: DidCkbDataV1,
-  ) {
+  public type: "v1";
+  public value: DidCkbDataV1;
+
+  constructor({ type, value }: { type: "v1"; value: DidCkbDataV1 }) {
     super();
+    this.type = type;
+    this.value = value;
   }
 
   static from(data: DidCkbDataLike): DidCkbData {
     if (data instanceof DidCkbData) {
       return data;
     }
-    return new DidCkbData(data.type ?? "v1", DidCkbDataV1.from(data.value));
+    return new DidCkbData({
+      type: data.type ?? "v1",
+      value: DidCkbDataV1.from(data.value),
+    });
   }
 
   static fromV1(
     data: DidCkbDataV1Like,
   ): DidCkbData & { type: "v1"; value: DidCkbDataV1 } {
-    return new DidCkbData("v1", DidCkbDataV1.from(data));
+    return new DidCkbData({
+      type: "v1",
+      value: DidCkbDataV1.from(data),
+    });
   }
 }
 
@@ -101,23 +114,36 @@ export class PlcAuthorization extends ccc.Entity.Base<
   PlcAuthorizationLike,
   PlcAuthorization
 >() {
-  constructor(
-    public history: object[],
-    public sig: ccc.Hex,
-    public rotationKeyIndices: ccc.Num[],
-  ) {
+  public history: object[];
+  public sig: ccc.Hex;
+  public rotationKeyIndices: ccc.Num[];
+
+  constructor({
+    history,
+    sig,
+    rotationKeyIndices,
+  }: {
+    history: object[];
+    sig: ccc.Hex;
+    rotationKeyIndices: number[];
+  }) {
     super();
+    this.history = history;
+    this.sig = sig;
+    this.rotationKeyIndices = rotationKeyIndices.map(ccc.numFrom);
   }
 
   static from(data: PlcAuthorizationLike): PlcAuthorization {
     if (data instanceof PlcAuthorization) {
       return data;
     }
-    return new PlcAuthorization(
-      data.history,
-      ccc.hexFrom(data.sig),
-      data.rotationKeyIndices.map(ccc.numFrom),
-    );
+    return new PlcAuthorization({
+      history: data.history,
+      sig: ccc.hexFrom(data.sig),
+      rotationKeyIndices: data.rotationKeyIndices.map((v) =>
+        Number(ccc.numFrom(v)),
+      ),
+    });
   }
 }
 
@@ -133,14 +159,14 @@ export class DidCkbWitness extends ccc.Entity.Base<
   DidCkbWitnessLike,
   DidCkbWitness
 >() {
-  constructor(public localIdAuthorization: PlcAuthorization) {
-    super();
-  }
+  public localIdAuthorization: PlcAuthorization;
 
-  static from(data: DidCkbWitnessLike): DidCkbWitness {
-    if (data instanceof DidCkbWitness) {
-      return data;
-    }
-    return new DidCkbWitness(PlcAuthorization.from(data.localIdAuthorization));
+  constructor({
+    localIdAuthorization,
+  }: {
+    localIdAuthorization: PlcAuthorization;
+  }) {
+    super();
+    this.localIdAuthorization = localIdAuthorization;
   }
 }
