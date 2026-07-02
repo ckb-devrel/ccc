@@ -148,8 +148,7 @@ export class ClientCacheMemory extends ClientCache {
 
   async recordTransactionResponses(
     ...transactions: (
-      | ClientTransactionResponseLike
-      | ClientTransactionResponseLike[]
+      ClientTransactionResponseLike | ClientTransactionResponseLike[]
     )[]
   ): Promise<void> {
     transactions.flat().map((txLike) => {
