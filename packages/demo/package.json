@@ -17,12 +17,12 @@
   },
   "dependencies": {
     "@lit/react": "^1.0.8",
-    "@next/third-parties": "^16.0.10",
-    "@uiw/react-json-view": "2.0.0-alpha.37",
-    "lucide-react": "^0.542.0",
-    "next": "16.0.10",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "@next/third-parties": "16.2.9",
+    "@uiw/react-json-view": "2.0.0-alpha.43",
+    "lucide-react": "^1.21.0",
+    "next": "16.2.9",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
   },
   "devDependencies": {
     "@ckb-ccc/connector-react": "workspace:*",
@@ -39,19 +39,19 @@
     "@scure/bip32": "^2.0.0",
     "@scure/bip39": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.12",
-    "@types/node": "^24.3.0",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "^9.34.0",
-    "eslint-config-next": "16.0.10",
+    "@types/node": "^26.0.1",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "eslint": "^10.6.0",
+    "eslint-config-next": "16.2.9",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "postcss": "^8.5.6",
-    "prettier": "^3.6.2",
+    "prettier": "^3.9.1",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.1.12",
-    "typescript": "^5.9.2"
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@11.8.0"
 }

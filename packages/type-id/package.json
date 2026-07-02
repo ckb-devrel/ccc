@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/type-id",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CCC - CKBer's Codebase. CCC's support for Type ID",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -35,7 +35,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsdown",
-    "lint": "eslint ./src",
+    "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {

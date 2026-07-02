@@ -1,5 +1,19 @@
 # @ckb-ccc/ccc
 
+## 1.2.2
+### Patch Changes
+
+- Updated dependencies [[`b9cc002`](https://github.com/ckb-devrel/ccc/commit/b9cc0027121a5a857f13727965ce688440d2a61f)]:
+  - @ckb-ccc/eip6963@1.1.2
+  - @ckb-ccc/joy-id@1.1.2
+  - @ckb-ccc/nip07@1.1.2
+  - @ckb-ccc/okx@1.1.2
+  - @ckb-ccc/rei@1.1.2
+  - @ckb-ccc/uni-sat@1.1.2
+  - @ckb-ccc/utxo-global@1.1.2
+  - @ckb-ccc/xverse@1.1.2
+  - @ckb-ccc/shell@1.3.2
+
 ## 1.2.1
 ### Patch Changes
 

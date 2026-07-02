@@ -16,8 +16,7 @@ export function buildTypeIdOperations<
   getScriptInfo: (client: ccc.Client) => Promise<ccc.ScriptInfoLike>;
   codec?: ccc.CodecLike<Encodable, Decoded> | null;
   calculateTypeId?:
-    | ((client: ccc.Client, tx: ccc.Transaction) => Promise<ccc.HexLike>)
-    | null;
+    ((client: ccc.Client, tx: ccc.Transaction) => Promise<ccc.HexLike>) | null;
   addCellDeps?:
     | ((
         client: ccc.Client,

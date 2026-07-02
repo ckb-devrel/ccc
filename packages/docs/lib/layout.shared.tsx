@@ -71,7 +71,6 @@ export function baseOptions(locale: string, { showNavLinks = true }: { showNavLi
   ];
 
   return {
-    i18n,
     nav: {
       title: (
         <>

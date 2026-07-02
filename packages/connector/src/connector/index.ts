@@ -147,31 +147,33 @@ export class WebComponentConnector extends LitElement {
       @updated=${() => this.updated()}
     >
       <div class="main" ${ref(this.mainRef)}>
-        ${this.wallet && this.signer
-          ? html`
-              <ccc-connected-scene
-                ?hideMark=${this.hideMark}
-                .wallet=${this.wallet}
-                .signer=${this.signer.signer}
-                .clientOptions=${this.clientOptions}
-                @disconnect=${() => this.disconnect()}
-                @select-client=${(e: SelectClientEvent) =>
-                  this.setClient(e.client)}
-                ${ref(this.bodyRef)}
-              ></ccc-connected-scene>
-            `
-          : html`
-              <ccc-selecting-scene
-                .wallets=${this.signersControllerInner.wallets}
-                @connected=${({ walletName, signerName }: ConnectedEvent) => {
-                  this.walletName = walletName;
-                  this.signerName = signerName;
-                  this.refreshSigner();
-                  this.saveConnection();
-                }}
-                ${ref(this.bodyRef)}
-              ></ccc-selecting-scene>
-            `}
+        ${
+          this.wallet && this.signer
+            ? html`
+                <ccc-connected-scene
+                  ?hideMark=${this.hideMark}
+                  .wallet=${this.wallet}
+                  .signer=${this.signer.signer}
+                  .clientOptions=${this.clientOptions}
+                  @disconnect=${() => this.disconnect()}
+                  @select-client=${(e: SelectClientEvent) =>
+                    this.setClient(e.client)}
+                  ${ref(this.bodyRef)}
+                ></ccc-connected-scene>
+              `
+            : html`
+                <ccc-selecting-scene
+                  .wallets=${this.signersControllerInner.wallets}
+                  @connected=${({ walletName, signerName }: ConnectedEvent) => {
+                    this.walletName = walletName;
+                    this.signerName = signerName;
+                    this.refreshSigner();
+                    this.saveConnection();
+                  }}
+                  ${ref(this.bodyRef)}
+                ></ccc-selecting-scene>
+              `
+        }
       </div>
     </div>`;
   }
