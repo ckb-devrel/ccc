@@ -61,6 +61,7 @@
     "@ckb-ccc/okx": "workspace:*",
     "@ckb-ccc/rei": "workspace:*",
     "@ckb-ccc/shell": "workspace:*",
+    "@ckb-ccc/superise": "workspace:*",
     "@ckb-ccc/uni-sat": "workspace:*",
     "@ckb-ccc/utxo-global": "workspace:*",
     "@ckb-ccc/xverse": "workspace:*"
