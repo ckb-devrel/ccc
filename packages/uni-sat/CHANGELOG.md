@@ -1,5 +1,15 @@
 # @ckb-ccc/uni-sat
 
+## 1.1.2
+### Patch Changes
+
+
+
+- [`b9cc002`](https://github.com/ckb-devrel/ccc/commit/b9cc0027121a5a857f13727965ce688440d2a61f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: move tsdown to devDependencies (PR: [#422](https://github.com/ckb-devrel/ccc/issues/422))
+
+- Updated dependencies [[`209f332`](https://github.com/ckb-devrel/ccc/commit/209f3322ffc22860b1ad43f31cbf51322493b3d9), [`ac8dba2`](https://github.com/ckb-devrel/ccc/commit/ac8dba21ab899b707e46236aa40b9e12566f9c8a), [`52309a4`](https://github.com/ckb-devrel/ccc/commit/52309a442a48f1c376fa65813ba56bcceb405b90)]:
+  - @ckb-ccc/core@1.16.0
+
 ## 1.1.1
 ### Patch Changes
 
