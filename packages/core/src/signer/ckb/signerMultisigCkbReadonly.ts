@@ -18,7 +18,7 @@ import {
   ScriptInfo,
   ScriptInfoLike,
 } from "../../client/index.js";
-import { codec, Entity } from "../../codec/index.js";
+import { Codec, codec, DecodedType, Entity } from "../../codec/index.js";
 import { HASH_CKB_SHORT_LENGTH, hashCkbShort } from "../../hasher/index.js";
 import { Hex, hexFrom, HexLike } from "../../hex/index.js";
 import { numFrom, NumLike, numToBytes } from "../../num/index.js";
@@ -44,12 +44,8 @@ export type MultisigCkbWitnessLike = (
   signatures?: HexLike[] | null;
 };
 
-/**
- * A class representing multisig information, holding information ingredients and containing utilities.
- * @public
- */
-@codec({
-  encode: (encodable: MultisigCkbWitness) => {
+const MultisigCkbWitnessCodec = Codec.from({
+  encode: (encodable: MultisigCkbWitnessLike) => {
     const { publicKeyHashes, threshold, mustMatch, signatures } =
       MultisigCkbWitness.from(encodable);
 
@@ -97,7 +93,7 @@ export type MultisigCkbWitnessLike = (
       publicKeyHashesLength * HASH_CKB_SHORT_LENGTH,
     );
 
-    return MultisigCkbWitness.from({
+    return {
       publicKeyHashes: Array.from(new Array(publicKeyHashesLength), (_, i) =>
         hexFrom(
           rawKeyAndSignatures.slice(
@@ -106,8 +102,8 @@ export type MultisigCkbWitnessLike = (
           ),
         ),
       ),
-      threshold: numFrom(threshold),
-      mustMatch: numFrom(mustMatch),
+      threshold: threshold,
+      mustMatch: mustMatch,
       signatures: Array.from(
         new Array(Math.floor(signatures.length / SECP256K1_SIGNATURE_LENGTH)),
         (_, i) =>
@@ -118,25 +114,36 @@ export type MultisigCkbWitnessLike = (
             ),
           ),
       ),
-    });
+    };
   },
-})
+});
+
+/**
+ * A class representing multisig information, holding information ingredients and containing utilities.
+ * @public
+ */
+@codec(MultisigCkbWitnessCodec)
 export class MultisigCkbWitness extends Entity.Base<
   MultisigCkbWitnessLike,
   MultisigCkbWitness
 >() {
+  public publicKeyHashes: Hex[];
+  public threshold: number;
+  public mustMatch: number;
+  public signatures: Hex[];
+
   /**
    * @param publicKeyHashes - The public key hashes.
    * @param threshold - The threshold.
    * @param mustMatch - The number of signatures that must match.
    * @param signatures - The signatures.
    */
-  constructor(
-    public publicKeyHashes: Hex[],
-    public threshold: number,
-    public mustMatch: number,
-    public signatures: Hex[],
-  ) {
+  constructor({
+    publicKeyHashes,
+    threshold,
+    mustMatch,
+    signatures,
+  }: DecodedType<typeof MultisigCkbWitnessCodec>) {
     super();
 
     const keysLength = publicKeyHashes.length;
@@ -154,6 +161,11 @@ export class MultisigCkbWitness extends Entity.Base<
     if (keysLength > 255) {
       throw new Error("public keys length should be less than 256");
     }
+
+    this.publicKeyHashes = publicKeyHashes;
+    this.threshold = threshold;
+    this.mustMatch = mustMatch;
+    this.signatures = signatures;
   }
 
   /**
@@ -170,12 +182,12 @@ export class MultisigCkbWitness extends Entity.Base<
       return witness.publicKeys.map((k) => hashCkbShort(k));
     })();
 
-    return new MultisigCkbWitness(
-      publicKeyHashes.map(hexFrom),
-      Number(numFrom(witness.threshold)),
-      Number(numFrom(witness.mustMatch ?? 0)),
-      witness.signatures?.map(hexFrom) ?? [],
-    );
+    return new MultisigCkbWitness({
+      publicKeyHashes: publicKeyHashes.map(hexFrom),
+      threshold: Number(numFrom(witness.threshold)),
+      mustMatch: Number(numFrom(witness.mustMatch ?? 0)),
+      signatures: witness.signatures?.map(hexFrom) ?? [],
+    });
   }
 
   /**
