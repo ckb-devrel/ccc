@@ -148,8 +148,7 @@ export interface RpcSuccessResponse<
 }
 
 export type RpcResponse<Method extends keyof Requests> =
-  | RpcSuccessResponse<Method>
-  | RpcErrorResponse;
+  RpcSuccessResponse<Method> | RpcErrorResponse;
 
 export type RpcResult<Method extends keyof Requests> =
   | {

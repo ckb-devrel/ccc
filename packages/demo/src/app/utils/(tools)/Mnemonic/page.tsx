@@ -7,7 +7,7 @@ import { useApp } from "@/src/context";
 import { ccc } from "@ckb-ccc/connector-react";
 import { HDKey } from "@scure/bip32";
 import * as bip39 from "@scure/bip39";
-import { wordlist } from "@scure/bip39/wordlists/english";
+import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Mnemonic() {

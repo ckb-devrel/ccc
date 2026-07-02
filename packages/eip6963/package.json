@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/eip6963",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for EIP6963",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -30,7 +30,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "lint": "eslint ./src",
+    "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
@@ -40,6 +40,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
+    "tsdown": "^0.22.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1"
   },
@@ -47,8 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ckb-ccc/core": "workspace:*",
-    "tsdown": "^0.22.3"
+    "@ckb-ccc/core": "workspace:*"
   },
   "packageManager": "pnpm@11.8.0",
   "types": "./dist.commonjs/index.d.ts"

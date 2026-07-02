@@ -111,6 +111,23 @@ export const MAINNET_SCRIPTS: Record<KnownScript, ScriptInfoLike | undefined> =
       hashType: "type",
       cellDeps: [],
     },
+    [KnownScript.SUdt]: {
+      codeHash:
+        "0x5e7a36a77e68eecc013dfa2fe6a23f3b6c344b04005808694ae6dd45eea4cfd5",
+      hashType: "type",
+      cellDeps: [
+        {
+          cellDep: {
+            outPoint: {
+              txHash:
+                "0xc7813f6a415144643970c2e88e0bb6ca6a8edc5dd7c1022746f628284a9936d5",
+              index: 0,
+            },
+            depType: "code",
+          },
+        },
+      ],
+    },
     [KnownScript.XUdt]: {
       codeHash:
         "0x50bd8d6680b8b9cf98b73f3c08faf8b2a21914311954118ad6609be6e78a1b95",

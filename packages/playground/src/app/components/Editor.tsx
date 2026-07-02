@@ -1,3 +1,5 @@
+/// <reference types="webpack-env" />
+
 import MonacoEditor from "@monaco-editor/react";
 import { shikiToMonaco } from "@shikijs/monaco";
 import { LoaderCircle } from "lucide-react";
@@ -6,10 +8,11 @@ import { useEffect, useRef, useState } from "react";
 import { createHighlighter } from "shiki";
 
 const COMMON_REGEX = /^\.\/(.*\.d\.ts|.*\.d\.mts|package.json)$/;
+const webpackRequire = require as __WebpackModuleApi.RequireFunction;
 
 const EXTRA_SOURCES = [
   {
-    files: require.context(
+    files: webpackRequire.context(
       "../../../node_modules/@types/react",
       true,
       COMMON_REGEX,
@@ -17,7 +20,7 @@ const EXTRA_SOURCES = [
     name: "@types/react",
   },
   {
-    files: require.context(
+    files: webpackRequire.context(
       "../../../../",
       true,
       /^\.\/[^\/]*\/(dist\/(.*\.d\.ts|.*\.d\.mts)|package.json)$/,
@@ -25,7 +28,7 @@ const EXTRA_SOURCES = [
     name: "@ckb-ccc",
   },
   {
-    files: require.context(
+    files: webpackRequire.context(
       "../../../node_modules/@nervina-labs/dob-render",
       true,
       COMMON_REGEX,
@@ -33,7 +36,7 @@ const EXTRA_SOURCES = [
     name: "@nervina-labs/dob-render",
   },
   {
-    files: require.context(
+    files: webpackRequire.context(
       "../../../node_modules/@noble/hashes",
       true,
       COMMON_REGEX,
@@ -41,7 +44,7 @@ const EXTRA_SOURCES = [
     name: "@noble/hashes",
   },
   {
-    files: require.context(
+    files: webpackRequire.context(
       "../../../node_modules/@noble/curves",
       true,
       COMMON_REGEX,

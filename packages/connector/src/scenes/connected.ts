@@ -112,25 +112,29 @@ export class ConnectedScene extends LitElement {
             ${DISCONNECT_SVG} Disconnect
           </ccc-button>
 
-          ${this.hideMark == null
-            ? html`<a href="https://github.com/ckb-devrel/ccc" class="mark"
-                >Powered by CCC</a
-              >`
-            : ""}
+          ${
+            this.hideMark == null
+              ? html`<a href="https://github.com/ckb-devrel/ccc" class="mark"
+                  >Powered by CCC</a
+                >`
+              : ""
+          }
 
           <div
-            class="switch-btn-container ${this.clientOptions
-              ? "cursor-pointer"
-              : ""}"
+            class="switch-btn-container ${
+              this.clientOptions ? "cursor-pointer" : ""
+            }"
             @click=${() => (this.selectingClient = Boolean(this.clientOptions))}
           >
             <div class="switch-line"></div>
             <div class="switch-content ml-2 mr-2 fs-sm">
               <img class="sm-chain-logo" src=${CKB_SVG} alt="Nervos Network" />
               ${signer.client.addressPrefix === "ckb" ? "Mainnet" : "Testnet"}
-              ${["ckb", "ckt"].includes(signer.client.addressPrefix)
-                ? ""
-                : ` ${signer.client.addressPrefix}`}
+              ${
+                ["ckb", "ckt"].includes(signer.client.addressPrefix)
+                  ? ""
+                  : ` ${signer.client.addressPrefix}`
+              }
               ${this.clientOptions ? SWAP_SVG : undefined}
             </div>
             <div class="switch-line"></div>

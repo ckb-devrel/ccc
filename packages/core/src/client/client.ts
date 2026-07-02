@@ -703,8 +703,7 @@ export abstract class Client {
         transactions,
         lastCursor,
       }:
-        | ClientFindTransactionsResponse
-        | ClientFindTransactionsGroupedResponse =
+        ClientFindTransactionsResponse | ClientFindTransactionsGroupedResponse =
         await this.findTransactionsPaged(key, order, limit, last);
       for (const tx of transactions) {
         yield tx;
