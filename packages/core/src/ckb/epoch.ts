@@ -50,7 +50,7 @@ export type EpochLike =
  * - Supports arithmetic (add/sub), comparison and conversion utilities.
  *
  * @example
- * const e = new Epoch(1n, 1n, 2n); // 1 + 1/2
+ * const e = Epoch.from([1n, 1n, 2n]); // 1 + 1/2
  *
  * @remarks
  * This class is primarily a thin value-object; operations return new Epoch instances.
@@ -90,11 +90,11 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    */
   normalizeBase(): Epoch {
     if (this.denominator === Zero) {
-      return new Epoch(this.integer, Zero, numFrom(1));
+      return Epoch.from([this.integer, Zero, numFrom(1)]);
     }
 
     if (this.denominator < Zero) {
-      return new Epoch(this.integer, -this.numerator, -this.denominator);
+      return Epoch.from([this.integer, -this.numerator, -this.denominator]);
     }
 
     return this;
@@ -135,7 +135,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
     // Remainder numerator after removing whole units; ensures numerator < denominator.
     numerator %= denominator;
 
-    return new Epoch(integer, numerator, denominator);
+    return Epoch.from([integer, numerator, denominator]);
   }
 
   /**
@@ -276,7 +276,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    * @returns New Epoch instance with identical components.
    */
   override clone(): Epoch {
-    return new Epoch(this.integer, this.numerator, this.denominator);
+    return Epoch.from([this.integer, this.numerator, this.denominator]);
   }
 
   /**
@@ -288,7 +288,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    * @returns Epoch with integer = 0, numerator = 0, denominator = 0.
    */
   static get Genesis(): Epoch {
-    return new Epoch(Zero, Zero, Zero);
+    return Epoch.from([Zero, Zero, Zero]);
   }
 
   /**
@@ -297,7 +297,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    * @returns Epoch equal to 180 with denominator set to 1 to represent an exact whole unit.
    */
   static get OneNervosDaoCycle(): Epoch {
-    return new Epoch(numFrom(180), Zero, numFrom(1));
+    return Epoch.from([numFrom(180), Zero, numFrom(1)]);
   }
 
   /**
@@ -409,7 +409,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
     }
 
     // Normalize to reduce fraction and carry whole units into integer.
-    return new Epoch(integer, numerator, denominator).normalizeCanonical();
+    return Epoch.from([integer, numerator, denominator]).normalizeCanonical();
   }
 
   /**
@@ -424,7 +424,7 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    */
   sub(other: EpochLike): Epoch {
     const { integer, numerator, denominator } = Epoch.from(other);
-    return this.add(new Epoch(-integer, -numerator, denominator));
+    return this.add(Epoch.from([-integer, -numerator, denominator]));
   }
 
   /**

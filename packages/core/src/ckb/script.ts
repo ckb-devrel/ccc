@@ -147,7 +147,11 @@ export class Script extends Entity.Base<ScriptLike, Script>() {
    * ```
    */
   clone(): Script {
-    return new Script(this.codeHash, this.hashType, this.args);
+    return Script.from({
+      codeHash: this.codeHash,
+      hashType: this.hashType,
+      args: this.args,
+    });
   }
 
   /**
@@ -222,7 +226,11 @@ export class Script extends Entity.Base<ScriptLike, Script>() {
     args: HexLike,
   ): Promise<Script> {
     const script = await client.getKnownScript(knownScript);
-    return new Script(script.codeHash, script.hashType, hexFrom(args));
+    return Script.from({
+      codeHash: script.codeHash,
+      hashType: script.hashType,
+      args: hexFrom(args),
+    });
   }
 
   /**
