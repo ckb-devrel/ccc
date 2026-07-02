@@ -322,8 +322,7 @@ export class JsonRpcTransformers {
   }:
     | JsonRpcIndexerFindTransactionsResponse
     | JsonRpcIndexerFindTransactionsGroupedResponse):
-    | ClientFindTransactionsResponse
-    | ClientFindTransactionsGroupedResponse {
+    ClientFindTransactionsResponse | ClientFindTransactionsGroupedResponse {
     if (objects.length === 0) {
       return {
         lastCursor: last_cursor,

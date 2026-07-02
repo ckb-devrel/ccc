@@ -97,8 +97,7 @@ export abstract class ClientCache {
    */
   async recordTransactionResponses(
     ..._transactions: (
-      | ClientTransactionResponseLike
-      | ClientTransactionResponseLike[]
+      ClientTransactionResponseLike | ClientTransactionResponseLike[]
     )[]
   ): Promise<void> {}
   /**

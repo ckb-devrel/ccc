@@ -20,9 +20,9 @@ export function generateConnectingScene(
         alt=${wallet.name}
       />
       <span class="text-bold"
-        >${error
-          ? `Failed to open ${wallet.name}`
-          : `Opening ${wallet.name}...`}</span
+        >${
+          error ? `Failed to open ${wallet.name}` : `Opening ${wallet.name}...`
+        }</span
       >
       <span class="text-tip text-center"
         >${error ?? "Confirm connection in the wallet"}</span
