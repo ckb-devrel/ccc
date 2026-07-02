@@ -4,6 +4,7 @@ import {
   Num,
   numBeFromBytes,
   numBeToBytes,
+  numFrom,
   numFromBytes,
   NumLike,
   numToBytes,
@@ -35,6 +36,7 @@ export function codecUint(
         return numBeFromBytes(buffer);
       }
     },
+    from: numFrom,
   });
 }
 
@@ -69,17 +71,20 @@ export function codecPadding(
       return new Uint8Array(byteLength);
     },
     decode: () => {},
+    from: () => {},
   });
 }
 
 export const CodecRaw: Codec<BytesLike, Bytes> = Codec.from({
   encode: (value) => bytesFrom(value),
   decode: (buffer) => bytesFrom(buffer),
+  from: bytesFrom,
 });
 
 export const CodecBytes: Codec<HexLike, Hex> = Codec.from({
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });
 
 export const CodecUint8 = codecUintNumber(1, true);
@@ -112,34 +117,40 @@ export const CodecBool: Codec<boolean> = Codec.from({
   byteLength: 1,
   encode: (value) => bytesFrom(value ? [1] : [0]),
   decode: (buffer) => bytesFrom(buffer)[0] !== 0,
+  from: Boolean,
 });
 
 export const CodecByte: Codec<HexLike, Hex> = Codec.from({
   byteLength: 1,
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });
 
 export const CodecByte4: Codec<HexLike, Hex> = Codec.from({
   byteLength: 4,
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });
 
 export const CodecByte8: Codec<HexLike, Hex> = Codec.from({
   byteLength: 8,
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });
 
 export const CodecByte16: Codec<HexLike, Hex> = Codec.from({
   byteLength: 16,
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });
 
 export const CodecByte32: Codec<HexLike, Hex> = Codec.from({
   byteLength: 32,
   encode: (value) => bytesFrom(value),
   decode: (buffer) => hexFrom(buffer),
+  from: hexFrom,
 });

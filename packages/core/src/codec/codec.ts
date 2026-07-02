@@ -3,12 +3,13 @@
 import { Bytes, bytesFrom, BytesLike } from "../bytes/index.js";
 
 export type CodecLike<Encodable, Decoded = Encodable> = {
-  readonly encode: (encodable: Encodable) => Bytes;
-  readonly decode: (
-    decodable: BytesLike,
+  encode: (encodable: Encodable) => BytesLike;
+  decode: (
+    decodable: Bytes,
     config?: { isExtraFieldIgnored?: boolean },
   ) => Decoded;
-  readonly byteLength?: number;
+  from?: ((encoded: Encodable) => Decoded) | null;
+  byteLength?: number;
 };
 export class Codec<Encodable, Decoded = Encodable> {
   constructor(
@@ -17,6 +18,7 @@ export class Codec<Encodable, Decoded = Encodable> {
       decodable: BytesLike,
       config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
     ) => Decoded,
+    public readonly from: (encodable: Encodable) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
   ) {}
 
@@ -40,53 +42,76 @@ export class Codec<Encodable, Decoded = Encodable> {
     }
   }
 
-  static from<Encodable, Decoded = Encodable>({
-    encode,
-    decode,
-    byteLength,
-  }: CodecLike<Encodable, Decoded>): Codec<Encodable, Decoded> {
+  static from<Encodable, Decoded = Encodable>(
+    codecLike: CodecLike<Encodable, Decoded>,
+  ): Codec<Encodable, Decoded> {
+    const newEncode = function (encodable: Encodable) {
+      const encoded = bytesFrom(codecLike.encode(encodable));
+      if (
+        codecLike.byteLength !== undefined &&
+        encoded.byteLength !== codecLike.byteLength
+      ) {
+        throw new Error(
+          `Codec.encode: expected byte length ${codecLike.byteLength}, got ${encoded.byteLength}`,
+        );
+      }
+      return encoded;
+    };
+    const newDecode = function (
+      decodable: BytesLike,
+      config?: { isExtraFieldIgnored?: boolean },
+    ) {
+      const decodableBytes = bytesFrom(decodable);
+      if (
+        codecLike.byteLength !== undefined &&
+        decodableBytes.byteLength !== codecLike.byteLength
+      ) {
+        throw new Error(
+          `Codec.decode: expected byte length ${codecLike.byteLength}, got ${decodableBytes.byteLength}`,
+        );
+      }
+      return codecLike.decode(decodableBytes, config);
+    };
     return new Codec(
-      (encodable: Encodable) => {
-        const encoded = encode(encodable);
-        if (byteLength !== undefined && encoded.byteLength !== byteLength) {
-          throw new Error(
-            `Codec.encode: expected byte length ${byteLength}, got ${encoded.byteLength}`,
-          );
-        }
-        return encoded;
-      },
-      (decodable, config) => {
-        const decodableBytes = bytesFrom(decodable);
-        if (
-          byteLength !== undefined &&
-          decodableBytes.byteLength !== byteLength
-        ) {
-          throw new Error(
-            `Codec.decode: expected byte length ${byteLength}, got ${decodableBytes.byteLength}`,
-          );
-        }
-        return decode(decodable, config);
-      },
-      byteLength,
+      newEncode,
+      newDecode,
+      codecLike.from?.bind(codecLike) ??
+        function (encodable: Encodable) {
+          return newDecode(newEncode(encodable));
+        },
+      codecLike.byteLength,
     );
   }
 
   map<NewEncodable = Encodable, NewDecoded = Decoded>({
     inMap,
     outMap,
+    from,
   }: {
     inMap?: (encodable: NewEncodable) => Encodable;
     outMap?: (decoded: Decoded) => NewDecoded;
+    from?: (encodable: NewEncodable) => NewDecoded;
   }): Codec<NewEncodable, NewDecoded> {
-    return new Codec(
-      (encodable) =>
-        this.encode((inMap ? inMap(encodable) : encodable) as Encodable),
-      (buffer, config) =>
-        (outMap
-          ? outMap(this.decode(buffer, config))
-          : this.decode(buffer, config)) as NewDecoded,
-      this.byteLength,
-    );
+    const encode = inMap
+      ? (encodable: NewEncodable) => this.encode(inMap(encodable))
+      : (this.encode as unknown as (encodable: NewEncodable) => Bytes);
+    const decode = outMap
+      ? (buffer: BytesLike, config?: { isExtraFieldIgnored?: boolean }) =>
+          outMap(this.decode(buffer, config))
+      : (this.decode as unknown as (
+          buffer: BytesLike,
+          config?: { isExtraFieldIgnored?: boolean },
+        ) => NewDecoded);
+    const newFrom =
+      from ??
+      ((encodable: NewEncodable): NewDecoded => {
+        const toEncode = (inMap ? inMap(encodable) : encodable) as Encodable;
+        return (
+          outMap ? outMap(this.from(toEncode)) : this.from(toEncode)
+        ) as NewDecoded;
+      });
+
+    return new Codec(encode, decode, newFrom, this.byteLength);
   }
 
   mapIn<NewEncodable>(
