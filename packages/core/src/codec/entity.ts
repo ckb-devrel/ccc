@@ -148,15 +148,25 @@ export abstract class Entity {
  * A class decorator to add methods implementation on the {@link Entity.Base} class
  * @example
  * ```typescript
- * @codec(
- *   mol.table({
- *     codeHash: mol.Byte32,
- *     hashType: HashTypeCodec,
- *     args: mol.Bytes,
- *   }),
- * )
+ * const ScriptCodec = mol.table({
+ *   codeHash: mol.Byte32,
+ *   hashType: HashTypeCodec,
+ *   args: mol.Bytes,
+ * });
+ * export type ScriptLike = EncodableType<typeof ScriptCodec>;
+ * @codec(ScriptCodec)
  * export class Script extends Entity.Base<ScriptLike, Script>() {
- *   from(scriptLike: ScriptLike): Script {}
+ *   public codeHash: Hex;
+ *   public hashType: HashType;
+ *   public args: Hex;
+ *
+ *   constructor({ codeHash, hashType, args }: DecodedType<typeof ScriptCodec>) {
+ *     super();
+ *
+ *     this.codeHash = codeHash;
+ *     this.hashType = hashType;
+ *     this.args = args;
+ *   }
  * }
  * ```
  */
@@ -168,7 +178,8 @@ export function codec<Encodable, Decoded>(
   return function <
     TypeLike extends Encodable,
     Type extends TypeLike,
-    ConstructorType extends Constructor<Type>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ConstructorType extends Constructor<Type, [Decoded, ...any[]]>,
   >(
     Constructor: ConstructorType &
       Omit<CodecLike<TypeLike, Type>, "from"> & {
@@ -183,6 +194,8 @@ export function codec<Encodable, Decoded>(
       CodecLike<TypeLike, Type>,
       "from"
     > & {
+      // See above, we already know that Decoded extends TypeLike, so we can safely cast the type here.
+      from: (encodable: TypeLike) => Type;
       fromBytes: (bytes: BytesLike) => Type;
     };
 
@@ -211,6 +224,15 @@ export function codec<Encodable, Decoded>(
         config?: { isExtraFieldIgnored?: boolean },
       ) {
         return this.from(codec.decode(bytesFrom(bytes), config));
+      };
+    }
+    if (Base.from === undefined) {
+      Base.from = function (encodable: TypeLike) {
+        if (encodable instanceof Constructor) {
+          return encodable;
+        }
+
+        return new Constructor(codec.from(encodable));
       };
     }
   };
