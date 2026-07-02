@@ -1,5 +1,27 @@
 # @ckb-ccc/core
 
+## 2.0.0-next.0
+### Major Changes
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5ebe6b6`](https://github.com/ckb-devrel/ccc/commit/5ebe6b61e2823cbb6fdbf776bdb16ef4ab83b2f6) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(joy-id): address info in identity
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`23110d2`](https://github.com/ckb-devrel/ccc/commit/23110d2f0c90ccaf334bd4736c3e374d07913d72) Thanks [@github-actions](https://github.com/apps/github-actions)! - fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5e1f8d2`](https://github.com/ckb-devrel/ccc/commit/5e1f8d2d3e6ee26002e323ff0bcd1fcf54240f0b) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `reduce` and `reduceAsync` for `Iterable`
+
+
+### Minor Changes
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`3dd2aea`](https://github.com/ckb-devrel/ccc/commit/3dd2aea90ce235fdcc1b0b3d1e4282391ea944fe) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `Signer.fromSignature`
+
 ## 1.16.0
 ### Minor Changes
 
