@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+minimumReleaseAge: 1440
 allowBuilds:
   '@nestjs/core': true
   '@tailwindcss/oxide': true

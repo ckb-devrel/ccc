@@ -1,4 +1,4 @@
-name: Release to NPM
+name: Release to NPM Next
 
 permissions:
   pull-requests: write
@@ -7,8 +7,7 @@ permissions:
 on:
   push:
     branches:
-      - dev
-      - "releases/**"
+      - next-major
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -35,7 +34,7 @@ jobs:
           title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
           commit: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
           version: pnpm dlx @changesets/cli@2.31.0 version
-          publish: pnpm dlx @changesets/cli@2.31.0 publish
+          publish: pnpm dlx @changesets/cli@2.31.0 publish --tag next
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

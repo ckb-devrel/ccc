@@ -8,6 +8,10 @@ import { Wallet, Code, PenLine, Bitcoin, Sprout, Server } from 'lucide-react';
 
 本节指南假设你已理解[核心概念](./concepts)并完成了 CCC 的安装。每篇指南完整介绍一个真实的开发任务，所有代码示例均来自 CCC 示例库和各功能包，可直接复制使用。
 
+如果说核心概念一节讲的是 *CCC 如何抽象链上模型*，那么本节则完全面向任务：每个页面都回答一个具体的「我该怎么做？」，并以可直接放进项目的代码收尾。示例优先使用 CCC 的高层 API——`ccc.Transaction.from`、`completeInputsByCapacity` 和 `completeFeeBy`——因此无论你面向哪种钱包或协议，同一套写法都能在不同指南之间复用。
+
+不知道从哪开始？如果你在做前端，先看**连接钱包**，再用**组装交易**完成转账；如果是服务端开发，直接跳到 **Node.js 后端**；要做代币和链上资产，参见 **UDT 代币**和 **Spore 协议**。每篇指南都自成一体，前置条件具备后即可按任意顺序阅读。
+
 ## 本节页面
 
 <Cards cols={2}>

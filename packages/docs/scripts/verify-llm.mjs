@@ -11,6 +11,15 @@
 //   BASE_URL=https://docs.ckbccc.com node scripts/verify-llm.mjs  # test production
 //
 // Exits non-zero if any check fails, so it can gate CI.
+// 
+// After running this script, you can test the docs against the Agent-Friendly Documentation Spec(https://agentdocsspec.com/) with the following commands:
+// - pnpm build
+// - pnpm start
+// - npx afdocs check http://localhost:3000 --canonical-origin https://docs.ckbccc.com --format scorecard
+//
+// After deploying to production, you can test the docs against the Agent-Friendly Documentation Spec(https://agentdocsspec.com/) with the following steps:
+// - npx afdocs check https://docs.ckbccc.com --format scorecard
+// - `rerun` the score at https://www.mintlify.com/score/ckbccc
 
 import { spawn } from 'node:child_process';
 
@@ -79,12 +88,35 @@ async function checkLlmsFull() {
   const { res, body } = await fetchText('/llms-full.txt');
   check('/llms-full.txt returns 200', res.status === 200, `status ${res.status}`);
   check('/llms-full.txt is non-trivial', body.length > 1000, `${body.length} chars`);
+  const cacheControl = res.headers.get('cache-control') ?? '';
+  check(
+    '/llms-full.txt sets a revalidating Cache-Control',
+    /\bmust-revalidate\b/.test(cacheControl) &&
+      /\bmax-age=([0-9]{1,3}|[12][0-9]{3}|3[0-5][0-9]{2}|3600)\b/.test(cacheControl),
+    cacheControl || 'no cache-control',
+  );
+}
+
+async function checkSkill() {
+  const { res, body } = await fetchText('/skill.md');
+  check('/skill.md returns 200', res.status === 200, `status ${res.status}`);
+  check('/skill.md has skill heading', body.includes('# CKB CCC Development Skill'));
+}
+
+async function checkHtmlDirective() {
+  // The visually-hidden directive lives in the root layout, so any HTML page works.
+  const { body } = await fetchText('/en/docs/getting-started/introduction');
+  check(
+    'HTML page exposes an llms.txt directive link',
+    body.includes('data-llms-txt') && body.includes('/llms.txt'),
+  );
 }
 
 async function checkSitemap() {
   const { body } = await fetchText('/sitemap.xml');
   check('sitemap lists /llms.txt', body.includes('/llms.txt'));
   check('sitemap lists /llms-full.txt', body.includes('/llms-full.txt'));
+  check('sitemap lists /skill.md', body.includes('/skill.md'));
 }
 
 // Leaked MDX component imports look like `import {...} from '@/components/...'`.
@@ -171,6 +203,8 @@ async function checkInternalLinks(llmsBody) {
 async function run() {
   const llmsBody = await checkLlmsIndex();
   await checkLlmsFull();
+  await checkSkill();
+  await checkHtmlDirective();
   await checkSitemap();
   await checkSampleMarkdown();
   await checkMarkdownNegotiation();
