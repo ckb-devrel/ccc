@@ -31,7 +31,7 @@
     "test": "vitest",
     "test:ci": "vitest run",
     "build": "tsdown",
-    "lint": "eslint ./src",
+    "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {

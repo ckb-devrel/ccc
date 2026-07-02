@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "lint": "eslint ./src",
+    "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
   },
   "devDependencies": {
@@ -22,6 +22,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
+    "tsdown": "^0.22.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1"
   },
@@ -32,8 +33,7 @@
     "@ckb-ccc/ccc": "workspace:*",
     "@ckb-ccc/playground": "file:src/playground",
     "@noble/curves": "^2.2.0",
-    "@noble/hashes": "^2.2.0",
-    "tsdown": "^0.22.3"
+    "@noble/hashes": "^2.2.0"
   },
   "packageManager": "pnpm@11.8.0"
 }
