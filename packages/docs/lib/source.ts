@@ -40,7 +40,12 @@ export function getPageMarkdownUrl(page: (typeof source)['$inferPage']) {
 export async function getLLMText(page: (typeof source)['$inferPage']) {
   const processed = await page.data.getText('processed');
 
+  // Absolutize root-relative Markdown links (`](/...)`) so they resolve when the
+  // page is consumed standalone (per-page `.md`) or concatenated into
+  // `llms-full.txt`, where there is no page origin to resolve against.
+  const absolute = processed.replace(/\]\(\//g, `](${siteUrl}/`);
+
   return `# ${page.data.title} (${siteUrl}${page.url})
 
-${processed}`;
+${absolute}`;
 }

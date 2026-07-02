@@ -1,0 +1,40 @@
+---
+title: 快速上手
+description: 安装 CCC、发送你的第一笔交易，并了解 CCC 能为你做什么。
+---
+
+import { BookOpen, Rocket, Package } from 'lucide-react';
+
+刚接触 CCC？从这里开始。本节用三个简短的页面，带你从「没听说过 CKB」一路走到把一笔已签名的交易广播上链。
+
+CCC（CKBers' Codebase）是面向 CKB 区块链的一站式 TypeScript / JavaScript SDK。它为每个链上应用都会用到的能力提供了统一、带类型的 API：基于 CKB 的 Cell 模型组装交易、自动补全输入与手续费，以及通过统一的 `Signer` 接口完成签名——该接口可跨 CKB 原生、EVM（MetaMask）、Bitcoin（UniSat、Xverse）、Nostr 和 Doge 等钱包工作。同一套核心可运行在浏览器、React、Web Component 和 Node.js 后端，因此你只需学习一次 API，即可处处复用。
+
+跟随本节并不需要任何 CKB 基础。只要你会写 TypeScript、会用 `npm`，就能完成本节内容。下面三个页面建议按顺序阅读——「简介」讲清概念与生态，「快速上手」把一笔真实转账送上链，「安装」则告诉你如何把 CCC 接入你自己的技术栈。
+
+## 你将学到什么
+
+- **CCC 是什么** —— 面向 CKB 区块链的一站式 TypeScript / JavaScript SDK，以及你可以用它构建哪些应用。
+- **如何安装** —— 根据你的环境选择合适的功能包：React、Node.js、Web Component 或自定义 UI。
+- **如何发送交易** —— 用 `create-ccc-app` 脚手架创建应用、连接钱包，在五分钟内广播一笔真实的转账。
+
+读完本节后，可以前往[核心概念](./concepts)了解每个 CCC 应用背后的基本原语，或直接跳到对应你所构建场景的[使用指南](./guides)。
+
+## 本节页面
+
+<Cards cols={2}>
+  <Card title="简介" icon={<BookOpen />} href="./getting-started/introduction">
+    了解 CCC 是什么、能做什么，以及哪些项目正在生产环境中使用它。
+  </Card>
+
+  <Card title="快速上手" icon={<Rocket />} href="./getting-started/quick-start">
+    用 CCC 在 5 分钟内完成你的第一笔 CKB 链上交易。
+  </Card>
+
+  <Card title="安装" icon={<Package />} href="./getting-started/installation">
+    为 React、Node.js、Web Component 或自定义 UI 安装 CCC。
+  </Card>
+</Cards>
+
+<Callout title="提示" type="info">
+  想完全跳过环境搭建？直接在 [playground](https://live.ckbccc.com/) 里试用 CCC——无需任何安装。
+</Callout>

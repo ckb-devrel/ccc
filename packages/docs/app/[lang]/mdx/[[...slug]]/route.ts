@@ -1,7 +1,8 @@
 import { docsIndexNote } from '@/lib/shared';
 import { source } from '@/lib/source';
 import { notFound } from 'next/navigation';
- 
+import { siteUrl } from '@/lib/shared';
+
 export const revalidate = false;
  
 export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[[...slug]]'>) {
@@ -11,12 +12,17 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
  
   // Serve processed Markdown (MDX imports/JSX stripped) so AI agents fetching
   // the advertised `.md` / `.mdx` URLs get clean text, not raw component source.
-  const content = await page.data.getText('processed');
+  const processed = await page.data.getText('processed');
+  const content = `# ${page.data.title}
+URL: ${siteUrl}${page.url}
+Source: https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/docs/content/docs/${page.path}
+> ${page.data.description ?? ''}
+${processed}`;
  
-  return new Response(`${content}\n\n---\n\n${docsIndexNote}\n`, {
+  return new Response(`${docsIndexNote}\n\n---\n${content}`, {
     headers: {
       'Content-Type': 'text/markdown; charset=utf-8',
-      'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      'Cache-Control': 'public, max-age=3600, must-revalidate',
     },
   });
 }

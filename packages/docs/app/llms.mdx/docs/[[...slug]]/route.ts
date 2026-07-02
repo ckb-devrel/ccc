@@ -11,11 +11,15 @@ export async function GET(_req: Request, { params }: RouteContext<'/llms.mdx/doc
   const page = source.getPage(pageSlugs);
   if (!page) notFound();
 
-  return new Response(`${await getLLMText(page)}\n\n---\n\n${docsIndexNote}\n`, {
-    headers: {
-      'Content-Type': 'text/markdown',
+  return new Response(
+    `${docsIndexNote}\n\n${await getLLMText(page)}\n\n`,
+    {
+      headers: {
+        'Content-Type': 'text/markdown',
+        'Cache-Control': 'public, max-age=3600, must-revalidate',
+      },
     },
-  });
+  );
 }
 
 export function generateStaticParams() {

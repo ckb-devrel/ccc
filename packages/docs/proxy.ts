@@ -90,7 +90,7 @@ export default function proxy(request: NextRequest) {
 export const config = {
   // Skip static assets, API routes, and image/OG routes
   matcher: [
-    '/((?!api|_next/static|_next/image|og|llms\\.txt|llms-full\\.txt|llms\\.mdx|robots\\.txt|sitemap\\.xml|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)',
+    '/((?!api|_next/static|_next/image|og|llms\\.txt|llms-full\\.txt|llms\\.mdx|skill\\.md|robots\\.txt|sitemap\\.xml|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)',
   ],
 };
 
