@@ -54,8 +54,9 @@ function uint32From(bytesLike: BytesLike) {
  * @param itemCodec fixed-size vector item codec
  */
 export function fixedItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
   const itemByteLength = itemCodec.byteLength;
   if (itemByteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
@@ -104,6 +105,9 @@ export function fixedItemVec<Encodable, Decoded>(
         throw new Error("fixedItemVec failed", { cause: e });
       }
     },
+    from(userDefinedItems) {
+      return userDefinedItems.map(itemCodec.from);
+    },
   });
 }
 
@@ -112,8 +116,10 @@ export function fixedItemVec<Encodable, Decoded>(
  * @param itemCodec the vector item codec. It can be fixed-size or dynamic-size.
  */
 export function dynItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
+
   return Codec.from({
     encode(userDefinedItems) {
       try {
@@ -171,6 +177,9 @@ export function dynItemVec<Encodable, Decoded>(
         throw new Error("dynItemVec failed", { cause: e });
       }
     },
+    from(userDefinedItems) {
+      return userDefinedItems.map(itemCodec.from);
+    },
   });
 }
 
@@ -195,8 +204,10 @@ export function vector<Encodable, Decoded>(
  * @param innerCodec
  */
 export function option<Encodable, Decoded>(
-  innerCodec: CodecLike<Encodable, Decoded>,
+  innerCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Encodable | undefined | null, Decoded | undefined> {
+  const innerCodec = Codec.from(innerCodecLike);
+
   return Codec.from({
     encode(userDefinedOrNull) {
       if (userDefinedOrNull == null) {
@@ -219,6 +230,12 @@ export function option<Encodable, Decoded>(
         throw new Error("option failed", { cause: e });
       }
     },
+    from(userDefinedOrNull) {
+      if (userDefinedOrNull == null) {
+        return undefined;
+      }
+      return innerCodec.from(userDefinedOrNull);
+    },
   });
 }
 
@@ -227,8 +244,10 @@ export function option<Encodable, Decoded>(
  * @param codec
  */
 export function byteVec<Encodable, Decoded>(
-  codec: CodecLike<Encodable, Decoded>,
+  codecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Encodable, Decoded> {
+  const codec = Codec.from(codecLike);
+
   return Codec.from({
     encode(userDefined) {
       try {
@@ -257,6 +276,9 @@ export function byteVec<Encodable, Decoded>(
       } catch (e: unknown) {
         throw new Error("byteVec failed", { cause: e });
       }
+    },
+    from(userDefined) {
+      return codec.from(userDefined);
     },
   });
 }
@@ -308,7 +330,9 @@ export function table<
 
       for (const key of keys) {
         try {
-          const encoded = codecLayout[key].encode((object as any)[key]);
+          const encoded = Codec.from(codecLayout[key]).encode(
+            (object as any)[key],
+          );
           bytesConcatTo(header, uint32To(offset));
           bytesConcatTo(body, encoded);
           offset += encoded.byteLength;
@@ -375,6 +399,14 @@ export function table<
         }
       }
       return object as Decoded;
+    },
+    from(object) {
+      const result: any = {};
+      for (const key of keys) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        result[key] = Codec.from(codecLayout[key]).from((object as any)[key]);
+      }
+      return result as Decoded;
     },
   });
 }
@@ -508,6 +540,20 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         value: codecLayout[field].decode(value.slice(4), config),
       } as UnionDecoded<T>;
     },
+    from({ type, value }) {
+      const typeStr = type.toString();
+      const codec = codecLayout[typeStr];
+      if (!codec) {
+        throw new Error(
+          `union: invalid type, expected ${entries.map((e) => e[0]).toString()}, but got ${typeStr}`,
+        );
+      }
+      return {
+        type,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        value: Codec.from(codec).from(value),
+      } as UnionDecoded<T>;
+    },
   });
 }
 
@@ -560,6 +606,14 @@ export function struct<
       });
       return object as Decoded;
     },
+    from(object) {
+      const result: any = {};
+      for (const key of keys) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        result[key] = Codec.from(codecLayout[key]).from((object as any)[key]);
+      }
+      return result as Decoded;
+    },
   });
 }
 
@@ -570,9 +624,11 @@ export function struct<
  * @param itemCount
  */
 export function array<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
   itemCount: number,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
+
   if (itemCodec.byteLength === undefined) {
     throw new Error("array: itemCodec requires a byte length");
   }
@@ -610,6 +666,9 @@ export function array<Encodable, Decoded>(
       } catch (e: unknown) {
         throw new Error("array failed", { cause: e });
       }
+    },
+    from(userDefinedItems) {
+      return userDefinedItems.map(itemCodec.from);
     },
   });
 }

@@ -2,6 +2,7 @@ import { Bytes, bytesEq, bytesFrom, BytesLike } from "../bytes/index.js";
 import { hashCkb } from "../hasher/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import { Constructor } from "../utils/index.js";
+import { Codec, CodecLike } from "./codec.js";
 
 /**
  * The base class of CCC to create a serializable instance. This should be used with the {@link codec} decorator.
@@ -14,6 +15,13 @@ export abstract class Entity {
    * @public
    */
   static Base<SubTypeLike, SubType = SubTypeLike>() {
+    // Static methods in this class are written in function syntax not method syntax
+    // to enable strictFunctionTypes to catch more errors.
+    // This protects when the class is extended and the static methods are overridden with incompatible types.
+    // See https://www.typescriptlang.org/tsconfig/#strictFunctionTypes
+    // >> During development of this feature, we discovered a large number of inherently unsafe class hierarchies,
+    // >> including some in the DOM. Because of this, the setting only applies to functions written in function syntax,
+    // >> not to those in method syntax
     abstract class Impl extends Entity {
       /**
        * The bytes length of the entity, if it is fixed, otherwise undefined
@@ -29,11 +37,7 @@ export abstract class Entity {
        * @returns The encoded bytes
        * @throws Will throw an error if the entity is not serializable
        */
-      static encode(_: SubTypeLike): Bytes {
-        throw new Error(
-          "encode not implemented, use @ccc.codec to decorate your type",
-        );
-      }
+      static encode: (_: SubTypeLike) => Bytes;
       /**
        * Decode the entity from bytes
        * @public
@@ -42,11 +46,7 @@ export abstract class Entity {
        * @returns The decoded entity
        * @throws Will throw an error if the entity is not serializable
        */
-      static decode(_: BytesLike): SubType {
-        throw new Error(
-          "decode not implemented, use @ccc.codec to decorate your type",
-        );
-      }
+      static decode: (_: BytesLike) => SubType;
 
       /**
        * Create an entity from bytes
@@ -56,11 +56,7 @@ export abstract class Entity {
        * @returns The created entity
        * @throws Will throw an error if the entity is not serializable
        */
-      static fromBytes(_bytes: BytesLike): SubType {
-        throw new Error(
-          "fromBytes not implemented, use @ccc.codec to decorate your type",
-        );
-      }
+      static fromBytes: (_bytes: BytesLike) => SubType;
 
       /**
        * Create an entity from a serializable object
@@ -70,9 +66,7 @@ export abstract class Entity {
        * @returns The created entity
        * @throws Will throw an error if the entity is not serializable
        */
-      static from(_: SubTypeLike): SubType {
-        throw new Error("from not implemented");
-      }
+      static from: (_: SubTypeLike) => SubType;
 
       /**
        * Convert the entity to bytes
@@ -108,11 +102,9 @@ export abstract class Entity {
 
         return bytesEq(
           this.toBytes(),
-          /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any */
           (
-            ((this.constructor as any)?.from(other) ?? other) as unknown as Impl
+            (this.constructor as typeof Impl).from(other) as unknown as Impl
           ).toBytes(),
-          /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any */
         );
       }
 
@@ -135,12 +127,6 @@ export abstract class Entity {
       }
     }
 
-    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-    Impl.encode = undefined as any;
-    Impl.decode = undefined as any;
-    Impl.fromBytes = undefined as any;
-    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment */
-
     return Impl;
   }
 
@@ -154,57 +140,89 @@ export abstract class Entity {
  * A class decorator to add methods implementation on the {@link Entity.Base} class
  * @example
  * ```typescript
- * @codec(
- *   mol.table({
- *     codeHash: mol.Byte32,
- *     hashType: HashTypeCodec,
- *     args: mol.Bytes,
- *   }),
- * )
+ * const ScriptCodec = mol.table({
+ *   codeHash: mol.Byte32,
+ *   hashType: HashTypeCodec,
+ *   args: mol.Bytes,
+ * });
+ * export type ScriptLike = EncodableType<typeof ScriptCodec>;
+ * @codec(ScriptCodec)
  * export class Script extends Entity.Base<ScriptLike, Script>() {
- *   from(scriptLike: ScriptLike): Script {}
+ *   public codeHash: Hex;
+ *   public hashType: HashType;
+ *   public args: Hex;
+ *
+ *   constructor({ codeHash, hashType, args }: DecodedType<typeof ScriptCodec>) {
+ *     super();
+ *
+ *     this.codeHash = codeHash;
+ *     this.hashType = hashType;
+ *     this.args = args;
+ *   }
  * }
  * ```
  */
-export function codec<
-  Encodable,
-  TypeLike extends Encodable,
-  Decoded extends TypeLike,
->(codec: {
-  encode: (encodable: Encodable) => Bytes;
-  decode: (
-    decodable: Bytes,
-    config?: { isExtraFieldIgnored?: boolean },
-  ) => Decoded;
-  byteLength?: number;
-}) {
+export function codec<Encodable, Decoded>(
+  codecLike: CodecLike<Encodable, Decoded>,
+) {
+  const codec = Codec.from(codecLike);
+
   return function <
+    TypeLike extends Encodable,
     Type extends TypeLike,
-    ConstructorType extends Constructor<Type> & {
-      from(decoded: TypeLike): Type;
-      byteLength?: number;
-      encode(encodable: TypeLike): Bytes;
-      decode(bytesLike: BytesLike): Type;
-      fromBytes(bytes: BytesLike): Type;
-    },
-  >(Constructor: ConstructorType, ..._: unknown[]) {
-    Constructor.byteLength = codec.byteLength;
-    if (Constructor.encode === undefined) {
-      Constructor.encode = function (encodable: TypeLike) {
+    ConstructorType extends Constructor<Type, [Decoded]>,
+  >(
+    Constructor: ConstructorType &
+      Omit<CodecLike<TypeLike, Type>, "from"> & {
+        // Since Base.from only accepts TypeLike,
+        // passing this check actually tells us that Decoded extends TypeLike
+        from: (encodable: TypeLike | Decoded) => Type;
+        fromBytes: (bytes: BytesLike) => Type;
+      },
+    ..._: unknown[]
+  ): void {
+    const Base = Object.getPrototypeOf(Constructor) as Omit<
+      CodecLike<TypeLike, Type>,
+      "from"
+    > & {
+      // See above, we already know that Decoded extends TypeLike, so we can safely cast the type here.
+      from: (encodable: TypeLike) => Type;
+      fromBytes: (bytes: BytesLike) => Type;
+    };
+
+    Base.byteLength = codec.byteLength;
+    if (Base.encode === undefined) {
+      Base.encode = function (encodable: TypeLike) {
+        // Theoretically, the type allows us to codec.encode(encodable) directly.
+        // However, Constructor.from is usually do more than just casting the type,
+        // so we need to call it to ensure the correct data is passed to codec.encode.
         return codec.encode(Constructor.from(encodable));
       };
     }
-    if (Constructor.decode === undefined) {
-      Constructor.decode = function (bytesLike: BytesLike) {
-        return Constructor.from(codec.decode(bytesFrom(bytesLike)));
+    if (Base.decode === undefined) {
+      Base.decode = function (
+        bytesLike: BytesLike,
+        config?: { isExtraFieldIgnored?: boolean },
+      ) {
+        return Constructor.from(codec.decode(bytesFrom(bytesLike), config));
       };
     }
-    if (Constructor.fromBytes === undefined) {
-      Constructor.fromBytes = function (bytes: BytesLike) {
-        return Constructor.from(codec.decode(bytesFrom(bytes)));
+    if (Base.fromBytes === undefined) {
+      Base.fromBytes = function (
+        bytes: BytesLike,
+        config?: { isExtraFieldIgnored?: boolean },
+      ) {
+        return Constructor.from(codec.decode(bytesFrom(bytes), config));
       };
     }
+    if (Base.from === undefined) {
+      Base.from = function (encodable: TypeLike) {
+        if (encodable instanceof Constructor) {
+          return encodable;
+        }
 
-    return Constructor;
+        return new Constructor(codec.from(encodable));
+      };
+    }
   };
 }
