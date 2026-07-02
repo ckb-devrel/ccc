@@ -177,7 +177,10 @@ export class OutPoint extends Entity.Base<OutPointLike, OutPoint>() {
    * ```
    */
   clone(): OutPoint {
-    return new OutPoint(this.txHash, this.index);
+    return OutPoint.from({
+      txHash: this.txHash,
+      index: this.index,
+    });
   }
 
   /**
@@ -297,7 +300,11 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
    * ```
    */
   clone(): CellOutput {
-    return new CellOutput(this.capacity, this.lock.clone(), this.type?.clone());
+    return CellOutput.from({
+      capacity: this.capacity,
+      lock: this.lock.clone(),
+      type: this.type?.clone(),
+    });
   }
 }
 export const CellOutputVec = mol.vector(CellOutput);
@@ -442,11 +449,11 @@ export class CellAny {
    * ```
    */
   clone(): CellAny {
-    return new CellAny(
-      this.cellOutput.clone(),
-      this.outputData,
-      this.outPoint?.clone(),
-    );
+    return CellAny.from({
+      cellOutput: this.cellOutput.clone(),
+      outputData: this.outputData,
+      outPoint: this.outPoint?.clone(),
+    });
   }
 }
 
@@ -646,11 +653,11 @@ export class Cell extends CellAny {
    * ```
    */
   clone(): Cell {
-    return new Cell(
-      this.outPoint.clone(),
-      this.cellOutput.clone(),
-      this.outputData,
-    );
+    return Cell.from({
+      outPoint: this.outPoint.clone(),
+      cellOutput: this.cellOutput.clone(),
+      outputData: this.outputData,
+    });
   }
 }
 
@@ -698,7 +705,11 @@ export class Since extends Entity.Base<SinceLike, Since>() {
    * ```
    */
   clone(): Since {
-    return new Since(this.relative, this.metric, this.value);
+    return Since.from({
+      relative: this.relative,
+      metric: this.metric,
+      value: this.value,
+    });
   }
 
   /**
@@ -905,12 +916,12 @@ export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
    * ```
    */
   clone(): CellInput {
-    return new CellInput(
-      this.previousOutput.clone(),
-      this.since,
-      this.cellOutput?.clone(),
-      this.outputData,
-    );
+    return CellInput.from({
+      previousOutput: this.previousOutput.clone(),
+      since: this.since,
+      cellOutput: this.cellOutput?.clone(),
+      outputData: this.outputData,
+    });
   }
 }
 export const CellInputVec = mol.vector(CellInput);
@@ -983,7 +994,10 @@ export class CellDep extends Entity.Base<CellDepLike, CellDep>() {
    * ```
    */
   clone(): CellDep {
-    return new CellDep(this.outPoint.clone(), this.depType);
+    return CellDep.from({
+      outPoint: this.outPoint.clone(),
+      depType: this.depType,
+    });
   }
 }
 export const CellDepVec = mol.vector(CellDep);
@@ -1140,7 +1154,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * ```
    */
   static default(): Transaction {
-    return new Transaction(0n, [], [], [], [], [], []);
+    return Transaction.from({});
   }
 
   /**
@@ -1203,15 +1217,15 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * - Version - bigint is immutable
    */
   clone(): Transaction {
-    return new Transaction(
-      this.version,
-      this.cellDeps.map((c) => c.clone()),
-      this.headerDeps.map((h) => h),
-      this.inputs.map((i) => i.clone()),
-      this.outputs.map((o) => o.clone()),
-      this.outputsData.map((o) => o),
-      this.witnesses.map((w) => w),
-    );
+    return Transaction.from({
+      version: this.version,
+      cellDeps: this.cellDeps.map((c) => c.clone()),
+      headerDeps: this.headerDeps.map((h) => h),
+      inputs: this.inputs.map((i) => i.clone()),
+      outputs: this.outputs.map((o) => o.clone()),
+      outputsData: this.outputsData.map((o) => o),
+      witnesses: this.witnesses.map((w) => w),
+    });
   }
 
   /**
@@ -2563,5 +2577,5 @@ export function calcDaoClaimEpoch(
     withdrawInteger += -partialCycle + fullCycle;
   }
 
-  return new Epoch(withdrawInteger, deposit.numerator, deposit.denominator);
+  return Epoch.from([withdrawInteger, deposit.numerator, deposit.denominator]);
 }

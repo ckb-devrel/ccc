@@ -27,17 +27,32 @@ describe("MultisigCkbWitness", () => {
 
   it("should throw error for invalid threshold", () => {
     expect(() => {
-      new ccc.MultisigCkbWitness([], 0, 0, []);
+      ccc.MultisigCkbWitness.from({
+        publicKeyHashes: [],
+        threshold: 0,
+        mustMatch: 0,
+        signatures: [],
+      });
     }).toThrow("threshold should be in range from 1 to public keys length");
 
     expect(() => {
-      new ccc.MultisigCkbWitness([], 1, 0, []);
+      ccc.MultisigCkbWitness.from({
+        publicKeyHashes: [],
+        threshold: 1,
+        mustMatch: 0,
+        signatures: [],
+      });
     }).toThrow("threshold should be in range from 1 to public keys length");
   });
 
   it("should throw error for invalid mustMatch", () => {
     expect(() => {
-      new ccc.MultisigCkbWitness(["0x00"], 1, 2, []);
+      ccc.MultisigCkbWitness.from({
+        publicKeyHashes: ["0x00"],
+        threshold: 1,
+        mustMatch: 2,
+        signatures: [],
+      });
     }).toThrow(
       "mustMatch should be in range from 0 to min(public keys length, threshold)",
     );
