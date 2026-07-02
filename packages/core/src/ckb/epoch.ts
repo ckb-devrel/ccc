@@ -1,5 +1,11 @@
 import type { ClientBlockHeader } from "../client/clientTypes.js";
-import { codec, codecPadding, codecUint, Entity } from "../codec/index.js";
+import {
+  codec,
+  codecPadding,
+  codecUint,
+  DecodedType,
+  Entity,
+} from "../codec/index.js";
 import { Zero } from "../fixedPoint/index.js";
 import { type Hex, type HexLike } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
@@ -36,6 +42,13 @@ export type EpochLike =
   | Num
   | Hex;
 
+const EpochCodec = mol.struct({
+  padding: codecPadding(1),
+  denominator: codecUint(2),
+  numerator: codecUint(2),
+  integer: codecUint(3),
+});
+
 /**
  * Epoch
  *
@@ -55,15 +68,12 @@ export type EpochLike =
  * @remarks
  * This class is primarily a thin value-object; operations return new Epoch instances.
  */
-@codec(
-  mol.struct({
-    padding: codecPadding(1),
-    denominator: codecUint(2),
-    numerator: codecUint(2),
-    integer: codecUint(3),
-  }),
-)
+@codec(EpochCodec)
 export class Epoch extends Entity.Base<EpochLike, Epoch>() {
+  public readonly integer: Num;
+  public readonly numerator: Num;
+  public readonly denominator: Num;
+
   /**
    * Construct a new Epoch instance.
    *
@@ -71,12 +81,16 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    * @param numerator - Fractional numerator (Num).
    * @param denominator - Fractional denominator (Num).
    */
-  public constructor(
-    public readonly integer: Num,
-    public readonly numerator: Num,
-    public readonly denominator: Num,
-  ) {
+  public constructor({
+    integer,
+    numerator,
+    denominator,
+  }: Omit<DecodedType<typeof EpochCodec>, "padding">) {
     super();
+
+    this.integer = integer;
+    this.numerator = numerator;
+    this.denominator = denominator;
   }
 
   /**
@@ -229,11 +243,11 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
   static fromNum(v: NumLike): Epoch {
     const num = numFrom(v);
 
-    return new Epoch(
-      num & numFrom("0xffffff"),
-      (num >> numFrom(24)) & numFrom("0xffff"),
-      (num >> numFrom(40)) & numFrom("0xffff"),
-    );
+    return Epoch.from({
+      integer: num & numFrom("0xffffff"),
+      numerator: (num >> numFrom(24)) & numFrom("0xffff"),
+      denominator: (num >> numFrom(40)) & numFrom("0xffff"),
+    });
   }
 
   /**
@@ -250,21 +264,25 @@ export class Epoch extends Entity.Base<EpochLike, Epoch>() {
    * @param e - Value convertible to Epoch
    * @returns Epoch instance
    */
-  static override from(e: EpochLike): Epoch {
+  static from(e: EpochLike): Epoch {
     if (e instanceof Epoch) {
       return e;
     }
 
     if (Array.isArray(e)) {
-      return new Epoch(numFrom(e[0]), numFrom(e[1]), numFrom(e[2]));
+      return new Epoch({
+        integer: numFrom(e[0]),
+        numerator: numFrom(e[1]),
+        denominator: numFrom(e[2]),
+      });
     }
 
     if (typeof e === "object") {
-      return new Epoch(
-        numFrom(e.integer),
-        numFrom(e.numerator),
-        numFrom(e.denominator),
-      );
+      return new Epoch({
+        integer: numFrom(e.integer),
+        numerator: numFrom(e.numerator),
+        denominator: numFrom(e.denominator),
+      });
     }
 
     return Epoch.fromNum(e);
