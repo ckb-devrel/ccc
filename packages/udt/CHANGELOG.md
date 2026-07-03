@@ -1,5 +1,12 @@
 # @ckb-ccc/udt
 
+## 0.2.3
+### Patch Changes
+
+- Updated dependencies [[`48fbea0`](https://github.com/ckb-devrel/ccc/commit/48fbea094a64587fa2bd265d5c4e0a61d5a5e28b)]:
+  - @ckb-ccc/core@1.16.1
+  - @ckb-ccc/ssri@0.3.3
+
 ## 0.2.2
 ### Patch Changes
 
