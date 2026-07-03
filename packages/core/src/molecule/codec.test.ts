@@ -79,4 +79,30 @@ describe("molecule codec error messages", () => {
     );
     expect(error?.cause).toBeDefined();
   });
+  test("should preserve nested error messages recursively on from", () => {
+    let error: Error | undefined;
+    try {
+      const invalidData: any = [
+        {
+          optByteUnion: {
+            type: "y",
+            value: [
+              {
+                b: [2, "invalid"],
+              },
+            ],
+          },
+        },
+      ];
+      outerCodec.from(invalidData);
+    } catch (e: any) {
+      error = e as Error;
+    }
+
+    expect(error).toBeDefined();
+    expect(error?.message).toContain(
+      "dynItemVec - table.optByteUnion - option - byteVec - union.(y) - fixedItemVec - struct.b - array - Cannot convert",
+    );
+    expect(error?.cause).toBeDefined();
+  });
 });

@@ -58,8 +58,9 @@ function getMessage(e: unknown): string {
  * @param itemCodec fixed-size vector item codec
  */
 export function fixedItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
   const itemByteLength = itemCodec.byteLength;
   if (itemByteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
@@ -108,6 +109,13 @@ export function fixedItemVec<Encodable, Decoded>(
         throw new Error(`fixedItemVec - ${getMessage(e)}`, { cause: e });
       }
     },
+    from(userDefinedItems) {
+      try {
+        return userDefinedItems.map((item) => itemCodec.from(item));
+      } catch (e: unknown) {
+        throw new Error(`fixedItemVec - ${getMessage(e)}`, { cause: e });
+      }
+    },
   });
 }
 
@@ -116,8 +124,10 @@ export function fixedItemVec<Encodable, Decoded>(
  * @param itemCodec the vector item codec. It can be fixed-size or dynamic-size.
  */
 export function dynItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
+
   return Codec.from({
     encode(userDefinedItems) {
       try {
@@ -175,6 +185,13 @@ export function dynItemVec<Encodable, Decoded>(
         throw new Error(`dynItemVec - ${getMessage(e)}`, { cause: e });
       }
     },
+    from(userDefinedItems) {
+      try {
+        return userDefinedItems.map((item) => itemCodec.from(item));
+      } catch (e: unknown) {
+        throw new Error(`dynItemVec - ${getMessage(e)}`, { cause: e });
+      }
+    },
   });
 }
 
@@ -199,8 +216,10 @@ export function vector<Encodable, Decoded>(
  * @param innerCodec
  */
 export function option<Encodable, Decoded>(
-  innerCodec: CodecLike<Encodable, Decoded>,
+  innerCodecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Encodable | undefined | null, Decoded | undefined> {
+  const innerCodec = Codec.from(innerCodecLike);
+
   return Codec.from({
     encode(userDefinedOrNull) {
       if (userDefinedOrNull == null) {
@@ -223,6 +242,16 @@ export function option<Encodable, Decoded>(
         throw new Error(`option - ${getMessage(e)}`, { cause: e });
       }
     },
+    from(userDefinedOrNull) {
+      try {
+        if (userDefinedOrNull == null) {
+          return undefined;
+        }
+        return innerCodec.from(userDefinedOrNull);
+      } catch (e: unknown) {
+        throw new Error(`option - ${getMessage(e)}`, { cause: e });
+      }
+    },
   });
 }
 
@@ -231,8 +260,10 @@ export function option<Encodable, Decoded>(
  * @param codec
  */
 export function byteVec<Encodable, Decoded>(
-  codec: CodecLike<Encodable, Decoded>,
+  codecLike: CodecLike<Encodable, Decoded>,
 ): Codec<Encodable, Decoded> {
+  const codec = Codec.from(codecLike);
+
   return Codec.from({
     encode(userDefined) {
       try {
@@ -258,6 +289,13 @@ export function byteVec<Encodable, Decoded>(
       }
       try {
         return codec.decode(value.slice(4), config);
+      } catch (e: unknown) {
+        throw new Error(`byteVec - ${getMessage(e)}`, { cause: e });
+      }
+    },
+    from(userDefined) {
+      try {
+        return codec.from(userDefined);
       } catch (e: unknown) {
         throw new Error(`byteVec - ${getMessage(e)}`, { cause: e });
       }
@@ -301,7 +339,13 @@ export function table<
   T extends Record<string, CodecLike<any, any>>,
   Encodable extends EncodableRecord<T>,
   Decoded extends DecodedRecord<T>,
->(codecLayout: T): Codec<Encodable, Decoded> {
+>(codecLayoutLike: T): Codec<Encodable, Decoded> {
+  const codecLayout = Object.fromEntries(
+    Object.entries(codecLayoutLike).map(([key, codec]) => [
+      key,
+      Codec.from(codec),
+    ]),
+  );
   const keys = Object.keys(codecLayout);
 
   return Codec.from({
@@ -380,6 +424,18 @@ export function table<
       }
       return object as Decoded;
     },
+    from(object) {
+      const result: any = {};
+      for (const key of keys) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          result[key] = codecLayout[key].from((object as any)[key]);
+        } catch (e: unknown) {
+          throw new Error(`table.${key} - ${getMessage(e)}`, { cause: e });
+        }
+      }
+      return result as Decoded;
+    },
   });
 }
 
@@ -437,9 +493,15 @@ type UnionDecoded<
  */
 
 export function union<T extends Record<string, CodecLike<any, any>>>(
-  codecLayout: T,
+  codecLayoutLike: T,
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T>, UnionDecoded<T>> {
+  const codecLayout = Object.fromEntries(
+    Object.entries(codecLayoutLike).map(([key, codec]) => [
+      key,
+      Codec.from(codec),
+    ]),
+  );
   const entries = Object.entries(codecLayout);
 
   // Determine if all variants have a fixed and equal byteLength.
@@ -512,6 +574,24 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         value: codecLayout[field].decode(value.slice(4), config),
       } as UnionDecoded<T>;
     },
+    from({ type, value }) {
+      const typeStr = type.toString();
+      const codec = codecLayout[typeStr];
+      if (!codec) {
+        throw new Error(
+          `union: invalid type, expected ${entries.map((e) => e[0]).toString()}, but got ${typeStr}`,
+        );
+      }
+      try {
+        return {
+          type,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value: codec.from(value),
+        } as UnionDecoded<T>;
+      } catch (e: unknown) {
+        throw new Error(`union.(${typeStr}) - ${getMessage(e)}`, { cause: e });
+      }
+    },
   });
 }
 
@@ -524,7 +604,13 @@ export function struct<
   T extends Record<string, CodecLike<any, any>>,
   Encodable extends EncodableRecord<T>,
   Decoded extends DecodedRecord<T>,
->(codecLayout: T): Codec<Encodable, Decoded> {
+>(codecLayoutLike: T): Codec<Encodable, Decoded> {
+  const codecLayout = Object.fromEntries(
+    Object.entries(codecLayoutLike).map(([key, codec]) => [
+      key,
+      Codec.from(codec),
+    ]),
+  );
   const codecArray = Object.values(codecLayout);
   const keys = Object.keys(codecLayout);
 
@@ -564,6 +650,18 @@ export function struct<
       });
       return object as Decoded;
     },
+    from(object) {
+      const result: any = {};
+      for (const key of keys) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          result[key] = codecLayout[key].from((object as any)[key]);
+        } catch (e: unknown) {
+          throw new Error(`struct.${key} - ${getMessage(e)}`, { cause: e });
+        }
+      }
+      return result as Decoded;
+    },
   });
 }
 
@@ -574,9 +672,11 @@ export function struct<
  * @param itemCount
  */
 export function array<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+  itemCodecLike: CodecLike<Encodable, Decoded>,
   itemCount: number,
 ): Codec<Array<Encodable>, Array<Decoded>> {
+  const itemCodec = Codec.from(itemCodecLike);
+
   if (itemCodec.byteLength === undefined) {
     throw new Error("array: itemCodec requires a byte length");
   }
@@ -611,6 +711,13 @@ export function array<Encodable, Decoded>(
           );
         }
         return result;
+      } catch (e: unknown) {
+        throw new Error(`array - ${getMessage(e)}`, { cause: e });
+      }
+    },
+    from(userDefinedItems) {
+      try {
+        return userDefinedItems.map((item) => itemCodec.from(item));
       } catch (e: unknown) {
         throw new Error(`array - ${getMessage(e)}`, { cause: e });
       }
