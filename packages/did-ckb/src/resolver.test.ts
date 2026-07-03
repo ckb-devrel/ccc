@@ -65,7 +65,9 @@ describe("resolver", () => {
     const record = await findDidCkbCell({ client, id });
     expect(record?.did).toBe(did);
     expect(record?.id).toBe(id);
-    expect(record?.data.value.document).toEqual({ hello: "world" });
+    expect(record?.data.match({ v1: (data) => data.document })).toEqual({
+      hello: "world",
+    });
   });
 
   it("findDidCkbCell returns undefined when no live cell exists", async () => {

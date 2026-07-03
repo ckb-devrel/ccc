@@ -6,6 +6,7 @@ import { render, signer } from "@ckb-ccc/playground";
 const { tx: createTx, id } = await ccc.didCkb.createDidCkb({
   signer,
   data: {
+    type: "v1",
     value: { document: {} },
   },
 });

@@ -88,7 +88,9 @@ export async function getDidCkbHistory(props: {
     if (!prior) {
       // No DID input means this tx is the genesis. If the genesis carries a
       // `localId` it's a did:plc migration; otherwise a plain CREATE.
-      entry.action = entry.data.value.localId ? "MIGRATE" : "CREATE";
+      entry.action = entry.data.match({
+        v1: (data) => (data.localId ? "MIGRATE" : "CREATE"),
+      });
       history.push(entry);
       break;
     }

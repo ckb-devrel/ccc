@@ -13,11 +13,14 @@ const record = await ccc.didCkb.resolveDidCkb({
 if (!record) {
   console.log(`No live cell for ${did}`);
 } else {
+  const { document, localId } = record.data.match({
+    v1: (data) => data,
+  });
   console.log(`Resolved ${record.did}`);
   console.log(`  Type ID args: ${record.id}`);
-  console.log(`  Document:`, record.data.value.document);
-  if (record.data.value.localId) {
-    console.log(`  Imported from: ${record.data.value.localId}`);
+  console.log(`  Document:`, document);
+  if (localId) {
+    console.log(`  Imported from: ${localId}`);
   }
 }
 

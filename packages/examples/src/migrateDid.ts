@@ -34,7 +34,7 @@ if (
 const { tx } = await ccc.didCkb.migrateDidCkb({
   signer,
   sourceDid,
-  data: { value: { document: {} } },
+  data: { type: "v1", value: { document: {} } },
 });
 
 await tx.completeInputsByCapacity(signer);

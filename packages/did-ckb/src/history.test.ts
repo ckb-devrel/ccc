@@ -161,7 +161,9 @@ describe("getDidCkbHistory", () => {
     expect(history[0].txHash).toBe(txUpdate2);
     expect(history[0].blockNumber).toBe(300n);
     expect(history[2].txHash).toBe(txGenesis);
-    expect(history[2].data.value.document).toEqual({ v: 1 });
+    expect(history[2].data.match({ v1: (data) => data.document })).toEqual({
+      v: 1,
+    });
   });
 
   it("flags the genesis as MIGRATE when localId is set", async () => {
@@ -192,7 +194,9 @@ describe("getDidCkbHistory", () => {
     const history = await getDidCkbHistory({ client, id, liveCell: migrated });
     expect(history.length).toBe(1);
     expect(history[0].action).toBe("MIGRATE");
-    expect(history[0].data.value.localId).toBe("did:plc:abc");
+    expect(history[0].data.match({ v1: (data) => data.localId })).toBe(
+      "did:plc:abc",
+    );
   });
 
   it("returns an empty array when no live cell exists", async () => {

@@ -19,8 +19,9 @@ if (history.length === 0) {
     console.log(
       `  [${entry.action}] tx=${entry.txHash} out=${entry.outputIndex} block=${entry.blockNumber ?? "?"}`,
     );
-    if (entry.data.value.localId) {
-      console.log(`    localId: ${entry.data.value.localId}`);
+    const localId = entry.data.match({ v1: (data) => data.localId });
+    if (localId) {
+      console.log(`    localId: ${localId}`);
     }
   }
 }

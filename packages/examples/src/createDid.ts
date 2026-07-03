@@ -4,7 +4,7 @@ import { render, signer } from "@ckb-ccc/playground";
 // Construct create did tx
 const { tx } = await ccc.didCkb.createDidCkb({
   signer,
-  data: { value: { document: {} } },
+  data: { type: "v1", value: { document: {} } },
 });
 
 // Complete missing parts: Fill inputs

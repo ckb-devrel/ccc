@@ -504,7 +504,7 @@ export type UnionMatchHandlers<
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayoutLike: T,
   fields?: Record<keyof T, number | undefined | null>,
-): Codec<UnionEncodable<T>, UnionDecoded<T>> {
+): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
   const codecLayout = Object.fromEntries(
     Object.entries(codecLayoutLike).map(([key, codec]) => [
       key,
@@ -526,9 +526,20 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
     }
   }
 
+  function extract(
+    encodable: UnionEncodable<T> | { inner: UnionEncodable<T> },
+  ): UnionEncodable<T> {
+    if ("type" in encodable && "value" in encodable) {
+      return encodable;
+    }
+
+    return encodable.inner;
+  }
+
   return Codec.from({
     byteLength,
-    encode({ type, value }) {
+    encode(encodable) {
+      const { type, value } = extract(encodable);
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
       if (!codec) {
@@ -583,7 +594,8 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
         value: codecLayout[field].decode(value.slice(4), config),
       } as UnionDecoded<T>;
     },
-    from({ type, value }) {
+    from(encodable) {
+      const { type, value } = extract(encodable);
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
       if (!codec) {

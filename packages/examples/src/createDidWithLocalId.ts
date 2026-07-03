@@ -17,6 +17,7 @@ function plcSign(key: ccc.BytesLike, msg: ccc.BytesLike): ccc.Bytes {
 const { tx } = await ccc.didCkb.createDidCkb({
   signer,
   data: {
+    type: "v1",
     value: { document: {}, localId: "did:plc:yunkr6vorfgzmvzeoofbkhq5" },
   },
 });

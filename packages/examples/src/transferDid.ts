@@ -6,6 +6,7 @@ import { render, signer } from "@ckb-ccc/playground";
 const { tx: createTx, id } = await ccc.didCkb.createDidCkb({
   signer,
   data: {
+    type: "v1",
     value: { document: {} },
   },
 });
@@ -29,7 +30,9 @@ const { tx } = await ccc.didCkb.transferDidCkb({
       throw Error("Unknown error");
     }
 
-    (data.value.document as Record<string, unknown>)["foo"] = "bar";
+    (data.match({ v1: (data) => data.document }) as Record<string, unknown>)[
+      "foo"
+    ] = "bar";
     return data;
   },
 });

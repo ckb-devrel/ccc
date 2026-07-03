@@ -47,39 +47,20 @@ export class DidCkbDataV1 extends ccc.Entity.Base<
   }
 }
 
-export type DidCkbDataLike = {
-  type?: "v1" | null;
-  value: DidCkbDataV1Like;
-};
-@ccc.codec(
-  ccc.mol.union({
-    v1: DidCkbDataV1,
-  }),
-)
-export class DidCkbData extends ccc.Entity.Base<DidCkbDataLike, DidCkbData>() {
-  public type: "v1";
-  public value: DidCkbDataV1;
+const DidCkbDataCodec = ccc.mol.union({
+  v1: DidCkbDataV1,
+});
 
-  constructor({ type, value }: { type: "v1"; value: DidCkbDataV1 }) {
-    super();
-    this.type = type;
-    this.value = value;
-  }
+export type DidCkbDataLike = ccc.EncodableType<typeof DidCkbDataCodec>;
 
-  static from(data: DidCkbDataLike): DidCkbData {
-    if (data instanceof DidCkbData) {
-      return data;
-    }
-    return new DidCkbData({
-      type: data.type ?? "v1",
-      value: DidCkbDataV1.from(data.value),
-    });
-  }
-
-  static fromV1(
-    data: DidCkbDataV1Like,
-  ): DidCkbData & { type: "v1"; value: DidCkbDataV1 } {
-    return new DidCkbData({
+@ccc.codec(DidCkbDataCodec)
+export class DidCkbData extends ccc.Entity.BaseUnion<
+  typeof DidCkbDataCodec,
+  DidCkbDataLike,
+  DidCkbData
+>() {
+  static fromV1(data: DidCkbDataV1Like): DidCkbData {
+    return DidCkbData.from({
       type: "v1",
       value: DidCkbDataV1.from(data),
     });
