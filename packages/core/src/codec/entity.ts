@@ -1,8 +1,9 @@
 import { Bytes, bytesEq, bytesFrom, BytesLike } from "../bytes/index.js";
 import { hashCkb } from "../hasher/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
+import type { UnionDecoded, UnionMatchHandlers } from "../molecule/codec.js";
 import { Constructor } from "../utils/index.js";
-import { Codec, CodecLike } from "./codec.js";
+import { Codec, CodecLike, DecodedType } from "./codec.js";
 
 /**
  * The base class of CCC to create a serializable instance. This should be used with the {@link codec} decorator.
@@ -138,10 +139,101 @@ export abstract class Entity {
     return Impl;
   }
 
+  /**
+   * Convert the entity to bytes.
+   * @public
+   * @returns The bytes representation of the entity.
+   */
   abstract toBytes(): Bytes;
+
+  /**
+   * Calculate the hash of the entity.
+   * @public
+   * @returns The hash of the entity.
+   */
   abstract hash(): Hex;
+
+  /**
+   * Convert the entity to a full-byte untrimmed Hex representation.
+   * @public
+   * @returns The entity full-byte untrimmed hexadecimal representation.
+   */
   abstract toHex(): Hex;
+
+  /**
+   * Create a clone of the entity.
+   * @public
+   * @returns A clone of the entity.
+   */
   abstract clone(): Entity;
+
+  /**
+   * Generate a base class of CCC to create a serializable Union instance.
+   * This should be used with the {@link codec} decorator.
+   * @public
+   */
+  static BaseUnion<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+    SubTypeLike,
+    SubType = SubTypeLike,
+  >() {
+    type Handlers<Result> = UnionMatchHandlers<CodecType, Result>;
+    type Decoded = DecodedType<CodecType>;
+
+    abstract class Impl extends Entity.Base<SubTypeLike, SubType>() {
+      /**
+       * The inner decoded object representing the union value.
+       * @public
+       */
+      constructor(public readonly inner: Decoded) {
+        super();
+      }
+
+      /**
+       * Match the union type with a set of handlers.
+       * @public
+       * @param handlers - A map of type-specific handlers, all variants must be handled if no default handler `_` is provided.
+       * @returns The result returned by the matching handler.
+       */
+      match<Result>(
+        handlers: Handlers<Result> & {
+          _?: undefined | null;
+        },
+      ): Result;
+      /**
+       * Match the union type with a set of handlers.
+       * @public
+       * @param handlers - A map of type-specific handlers, unmatched variants will be handled by the default handler `_`.
+       * @returns The result returned by the matching handler.
+       */
+      match<Result>(
+        handlers: Partial<Handlers<Result>> & {
+          _: (inner: Decoded) => Result;
+        },
+      ): Result;
+      match<Result>(
+        handlers:
+          | (Handlers<Result> & {
+              _?: undefined | null;
+            })
+          | (Partial<Handlers<Result>> & {
+              _: (inner: Decoded) => Result;
+            }),
+      ): Result {
+        const type = this.inner.type as Decoded["type"];
+        const handler = (handlers as Partial<Handlers<Result>>)[type];
+
+        if (handler != undefined) {
+          return handler(this.inner.value);
+        }
+
+        return (handlers._ as (inner: Decoded) => Result)(this.inner);
+      }
+    }
+
+    return Impl;
+  }
 }
 
 /**
