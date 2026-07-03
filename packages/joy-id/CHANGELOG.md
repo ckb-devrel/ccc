@@ -1,5 +1,11 @@
 # @ckb-ccc/joy-id
 
+## 1.1.3
+### Patch Changes
+
+- Updated dependencies [[`48fbea0`](https://github.com/ckb-devrel/ccc/commit/48fbea094a64587fa2bd265d5c4e0a61d5a5e28b)]:
+  - @ckb-ccc/core@1.16.1
+
 ## 1.1.2
 ### Patch Changes
 

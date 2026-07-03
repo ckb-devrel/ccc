@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.16.1
+### Patch Changes
+
+
+
+- [#427](https://github.com/ckb-devrel/ccc/pull/427) [`48fbea0`](https://github.com/ckb-devrel/ccc/commit/48fbea094a64587fa2bd265d5c4e0a61d5a5e28b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): molecule codec recursive error message
+
 ## 1.16.0
 ### Minor Changes
 
