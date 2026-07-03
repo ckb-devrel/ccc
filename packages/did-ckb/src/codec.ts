@@ -42,27 +42,47 @@ export class DidCkbDataV1 extends ccc.Entity.Base<
   }
 }
 
-export type DidCkbDataLike = {
-  type?: "v1" | null;
-  value: DidCkbDataV1Like;
-};
-@ccc.codec(
-  ccc.mol.union({
-    v1: DidCkbDataV1,
-  }),
-)
-export class DidCkbData extends ccc.Entity.Base<DidCkbDataLike, DidCkbData>() {
+const DidCkbDataCodec = ccc.mol.union({
+  v1: DidCkbDataV1,
+});
+
+export type DidCkbDataLike =
+  | {
+      type?: "v1" | null;
+      value: DidCkbDataV1Like;
+    }
+  | {
+      inner: {
+        type?: "v1" | null;
+        value: DidCkbDataV1Like;
+      };
+    };
+
+@ccc.codec(DidCkbDataCodec)
+export class DidCkbData extends ccc.Entity.BaseUnion<
+  typeof DidCkbDataCodec,
+  DidCkbDataLike,
+  DidCkbData
+>() {
   constructor(
     public type: "v1",
     public value: DidCkbDataV1,
   ) {
-    super();
+    super({ type, value });
   }
 
   static from(data: DidCkbDataLike): DidCkbData {
     if (data instanceof DidCkbData) {
       return data;
     }
+
+    if ("inner" in data) {
+      return new DidCkbData(
+        data.inner.type ?? "v1",
+        DidCkbDataV1.from(data.inner.value),
+      );
+    }
+
     return new DidCkbData(data.type ?? "v1", DidCkbDataV1.from(data.value));
   }
 

@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { DidCkbDataLike, DidCkbWitness } from "./codec";
+import { DidCkbData, DidCkbDataLike, DidCkbWitness } from "./codec";
 import { createDidCkb } from "./didCkb";
 import {
   getRotationKeys,
@@ -77,14 +77,13 @@ export async function migrateDidCkb(props: {
   if (!props.sourceDid.startsWith("did:plc:")) {
     throw new Error(`sourceDid must be did:plc:..., got "${props.sourceDid}"`);
   }
-  const document = props.data?.value?.document ?? {};
-  const data: DidCkbDataLike = {
-    type: props.data?.type ?? "v1",
-    value: {
-      document,
-      localId: props.sourceDid,
+
+  const data = DidCkbData.from(
+    props.data ?? {
+      value: { document: {} },
     },
-  };
+  );
+  data.value.localId = props.sourceDid;
   return createDidCkb({
     signer: props.signer,
     data,
