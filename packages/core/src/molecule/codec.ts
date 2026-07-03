@@ -11,7 +11,7 @@ import {
   CodecLike,
   DecodedType,
   EncodableType,
-} from "../codec/index.js";
+} from "../codec/codec.js";
 import { numFromBytes, NumLike, numToBytes } from "../num/index.js";
 
 export {
@@ -383,7 +383,7 @@ export function table<
   });
 }
 
-type UnionEncodable<
+export type UnionEncodable<
   T extends Record<string, CodecLike<any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
@@ -392,7 +392,7 @@ type UnionEncodable<
       value: EncodableType<T[K]>;
     }
   : never;
-type UnionDecoded<
+export type UnionDecoded<
   T extends Record<string, CodecLike<any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
@@ -401,6 +401,15 @@ type UnionDecoded<
       value: DecodedType<T[K]>;
     }
   : never;
+
+export type UnionMatchHandlers<
+  CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+  Result,
+> = {
+  [T in DecodedType<CodecType>["type"]]: (
+    value: Extract<DecodedType<CodecType>, { type: T }>["value"],
+  ) => Result;
+};
 
 /**
  * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
