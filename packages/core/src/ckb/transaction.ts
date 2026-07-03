@@ -7,7 +7,13 @@ import {
   type ClientBlockHeaderLike,
 } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
-import { Codec, Entity, codec } from "../codec/index.js";
+import {
+  Codec,
+  DecodedType,
+  EncodableType,
+  Entity,
+  codec,
+} from "../codec/index.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";
 import { Hasher, HasherCkb, hashCkb } from "../hasher/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
@@ -120,50 +126,33 @@ export function depTypeFromBytes(bytes: BytesLike): DepType {
 /**
  * @public
  */
-export type OutPointLike = {
-  txHash: HexLike;
-  index: NumLike;
-};
+const OutPointCodec = mol.struct({
+  txHash: mol.Byte32,
+  index: mol.Uint32,
+});
 /**
  * @public
  */
-@codec(
-  mol.struct({
-    txHash: mol.Byte32,
-    index: mol.Uint32,
-  }),
-)
+export type OutPointLike = EncodableType<typeof OutPointCodec>;
+/**
+ * @public
+ */
+@codec(OutPointCodec)
 export class OutPoint extends Entity.Base<OutPointLike, OutPoint>() {
+  public txHash: Hex;
+  public index: Num;
+
   /**
    * Creates an instance of OutPoint.
    *
    * @param txHash - The transaction hash.
    * @param index - The index of the output in the transaction.
    */
-
-  constructor(
-    public txHash: Hex,
-    public index: Num,
-  ) {
+  constructor({ txHash, index }: DecodedType<typeof OutPointCodec>) {
     super();
-  }
 
-  /**
-   * Creates an OutPoint instance from an OutPointLike object.
-   *
-   * @param outPoint - An OutPointLike object or an instance of OutPoint.
-   * @returns An OutPoint instance.
-   *
-   * @example
-   * ```typescript
-   * const outPoint = OutPoint.from({ txHash: "0x...", index: 0 });
-   * ```
-   */
-  static from(outPoint: OutPointLike): OutPoint {
-    if (outPoint instanceof OutPoint) {
-      return outPoint;
-    }
-    return new OutPoint(hexFrom(outPoint.txHash), numFrom(outPoint.index));
+    this.txHash = txHash;
+    this.index = numFrom(index);
   }
 
   /**
@@ -203,6 +192,14 @@ export class OutPoint extends Entity.Base<OutPointLike, OutPoint>() {
 /**
  * @public
  */
+const CellOutputCodec = mol.table({
+  capacity: mol.Uint64,
+  lock: Script,
+  type: ScriptOpt,
+});
+/**
+ * @public
+ */
 export type CellOutputLike = {
   capacity?: NumLike | null;
   lock: ScriptLike;
@@ -211,14 +208,12 @@ export type CellOutputLike = {
 /**
  * @public
  */
-@codec(
-  mol.table({
-    capacity: mol.Uint64,
-    lock: Script,
-    type: ScriptOpt,
-  }),
-)
+@codec(CellOutputCodec)
 export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
+  public capacity: Num;
+  public lock: Script;
+  public type?: Script;
+
   /**
    * Creates an instance of CellOutput.
    *
@@ -226,13 +221,12 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
    * @param lock - The lock script of the cell.
    * @param type - The optional type script of the cell.
    */
-
-  constructor(
-    public capacity: Num,
-    public lock: Script,
-    public type?: Script,
-  ) {
+  constructor({ capacity, lock, type }: DecodedType<typeof CellOutputCodec>) {
     super();
+
+    this.capacity = capacity;
+    this.lock = lock;
+    this.type = type;
   }
 
   get occupiedSize(): number {
@@ -268,16 +262,13 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
     cellOutput: CellOutputLike,
     outputData?: HexLike | null,
   ): CellOutput {
-    const output = (() => {
-      if (cellOutput instanceof CellOutput) {
-        return cellOutput;
-      }
-      return new CellOutput(
-        numFrom(cellOutput.capacity ?? 0),
-        Script.from(cellOutput.lock),
-        apply(Script.from, cellOutput.type),
-      );
-    })();
+    const output =
+      cellOutput instanceof CellOutput
+        ? cellOutput
+        : super.from({
+            ...cellOutput,
+            capacity: cellOutput.capacity ?? 0,
+          });
 
     if (outputData != null) {
       output.capacity = numMax(
@@ -671,27 +662,33 @@ export type SinceLike =
       value: NumLike;
     }
   | NumLike;
+
+const SinceCodec = mol.Uint64.map({
+  inMap: (encodable: SinceLike) => Since.from(encodable).toNum(),
+  outMap: (num: Num): Pick<Since, "relative" | "metric" | "value"> =>
+    Since.fromNum(num),
+});
+
 /**
  * @public
  */
-@codec(
-  mol.Uint64.mapIn((encodable: SinceLike) => Since.from(encodable).toNum()),
-)
+@codec(SinceCodec)
 export class Since extends Entity.Base<SinceLike, Since>() {
+  public relative: "absolute" | "relative";
+  public metric: "blockNumber" | "epoch" | "timestamp";
+  public value: Num;
+
   /**
    * Creates an instance of Since.
    *
-   * @param relative - Absolute or relative
-   * @param metric - The metric of since
-   * @param value - The value of since
+   * @param num - The since representation value.
    */
-
-  constructor(
-    public relative: "absolute" | "relative",
-    public metric: "blockNumber" | "epoch" | "timestamp",
-    public value: Num,
-  ) {
+  constructor({ relative, metric, value }: DecodedType<typeof SinceCodec>) {
     super();
+
+    this.relative = relative;
+    this.metric = metric;
+    this.value = value;
   }
 
   /**
@@ -729,7 +726,11 @@ export class Since extends Entity.Base<SinceLike, Since>() {
     }
 
     if (typeof since === "object" && "relative" in since) {
-      return new Since(since.relative, since.metric, numFrom(since.value));
+      return new Since({
+        relative: since.relative,
+        metric: since.metric,
+        value: numFrom(since.value),
+      });
     }
 
     return Since.fromNum(since);
@@ -745,7 +746,6 @@ export class Since extends Entity.Base<SinceLike, Since>() {
    * const num = since.toNum();
    * ```
    */
-
   toNum(): Num {
     return (
       this.value |
@@ -769,7 +769,6 @@ export class Since extends Entity.Base<SinceLike, Since>() {
    * const since = Since.fromNum("0x0");
    * ```
    */
-
   static fromNum(numLike: NumLike): Since {
     const num = numFrom(numLike);
 
@@ -779,10 +778,17 @@ export class Since extends Entity.Base<SinceLike, Since>() {
     ];
     const value = num & numFrom("0x00ffffffffffffff");
 
-    return new Since(relative, metric, value);
+    return new Since({ relative, metric, value });
   }
 }
 
+/**
+ * @public
+ */
+const CellInputCodec = mol.struct({
+  since: Since,
+  previousOutput: OutPoint,
+});
 /**
  * @public
  */
@@ -800,14 +806,14 @@ export type CellInputLike = (
  * @public
  */
 @codec(
-  mol
-    .struct({
-      since: Since,
-      previousOutput: OutPoint,
-    })
-    .mapIn((encodable: CellInputLike) => CellInput.from(encodable)),
+  CellInputCodec.mapIn((encodable: CellInputLike) => CellInput.from(encodable)),
 )
 export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
+  public previousOutput: OutPoint;
+  public since: Num;
+  public cellOutput?: CellOutput;
+  public outputData?: Hex;
+
   /**
    * Creates an instance of CellInput.
    *
@@ -816,14 +822,21 @@ export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
    * @param cellOutput - The optional cell output associated with the cell input.
    * @param outputData - The optional output data associated with the cell input.
    */
-
-  constructor(
-    public previousOutput: OutPoint,
-    public since: Num,
-    public cellOutput?: CellOutput,
-    public outputData?: Hex,
-  ) {
+  constructor({
+    previousOutput,
+    since,
+    cellOutput,
+    outputData,
+  }: DecodedType<typeof CellInputCodec> & {
+    cellOutput?: CellOutput;
+    outputData?: Hex;
+  }) {
     super();
+
+    this.previousOutput = previousOutput;
+    this.since = Since.from(since).toNum();
+    this.cellOutput = cellOutput;
+    this.outputData = outputData;
   }
 
   /**
@@ -845,16 +858,16 @@ export class CellInput extends Entity.Base<CellInputLike, CellInput>() {
       return cellInput;
     }
 
-    return new CellInput(
-      OutPoint.from(
+    return new CellInput({
+      previousOutput: OutPoint.from(
         "previousOutput" in cellInput
           ? cellInput.previousOutput
           : cellInput.outPoint,
       ),
-      Since.from(cellInput.since ?? 0).toNum(),
-      apply(CellOutput.from, cellInput.cellOutput),
-      apply(hexFrom, cellInput.outputData),
-    );
+      since: Since.from(cellInput.since ?? 0),
+      cellOutput: apply(CellOutput.from, cellInput.cellOutput),
+      outputData: apply(hexFrom, cellInput.outputData),
+    });
   }
 
   async getCell(client: Client): Promise<Cell> {
@@ -929,58 +942,33 @@ export const CellInputVec = mol.vector(CellInput);
 /**
  * @public
  */
-export type CellDepLike = {
-  outPoint: OutPointLike;
-  depType: DepTypeLike;
-};
+const CellDepCodec = mol.struct({
+  outPoint: OutPoint,
+  depType: DepTypeCodec,
+});
 /**
  * @public
  */
-@codec(
-  mol.struct({
-    outPoint: OutPoint,
-    depType: DepTypeCodec,
-  }),
-)
+export type CellDepLike = EncodableType<typeof CellDepCodec>;
+/**
+ * @public
+ */
+@codec(CellDepCodec)
 export class CellDep extends Entity.Base<CellDepLike, CellDep>() {
+  public outPoint: OutPoint;
+  public depType: DepType;
+
   /**
    * Creates an instance of CellDep.
    *
    * @param outPoint - The outpoint of the cell dependency.
    * @param depType - The dependency type.
    */
-
-  constructor(
-    public outPoint: OutPoint,
-    public depType: DepType,
-  ) {
+  constructor({ outPoint, depType }: DecodedType<typeof CellDepCodec>) {
     super();
-  }
 
-  /**
-   * Creates a CellDep instance from a CellDepLike object.
-   *
-   * @param cellDep - A CellDepLike object or an instance of CellDep.
-   * @returns A CellDep instance.
-   *
-   * @example
-   * ```typescript
-   * const cellDep = CellDep.from({
-   *   outPoint: { txHash: "0x...", index: 0 },
-   *   depType: "depGroup"
-   * });
-   * ```
-   */
-
-  static from(cellDep: CellDepLike): CellDep {
-    if (cellDep instanceof CellDep) {
-      return cellDep;
-    }
-
-    return new CellDep(
-      OutPoint.from(cellDep.outPoint),
-      depTypeFrom(cellDep.depType),
-    );
+    this.outPoint = outPoint;
+    this.depType = depType;
   }
 
   /**
@@ -1005,22 +993,24 @@ export const CellDepVec = mol.vector(CellDep);
 /**
  * @public
  */
-export type WitnessArgsLike = {
-  lock?: HexLike | null;
-  inputType?: HexLike | null;
-  outputType?: HexLike | null;
-};
+const WitnessArgsCodec = mol.table({
+  lock: mol.BytesOpt,
+  inputType: mol.BytesOpt,
+  outputType: mol.BytesOpt,
+});
 /**
  * @public
  */
-@codec(
-  mol.table({
-    lock: mol.BytesOpt,
-    inputType: mol.BytesOpt,
-    outputType: mol.BytesOpt,
-  }),
-)
+export type WitnessArgsLike = EncodableType<typeof WitnessArgsCodec>;
+/**
+ * @public
+ */
+@codec(WitnessArgsCodec)
 export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
+  public lock?: Hex;
+  public inputType?: Hex;
+  public outputType?: Hex;
+
   /**
    * Creates an instance of WitnessArgs.
    *
@@ -1028,41 +1018,16 @@ export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
    * @param inputType - The optional input type field of the witness.
    * @param outputType - The optional output type field of the witness.
    */
-
-  constructor(
-    public lock?: Hex,
-    public inputType?: Hex,
-    public outputType?: Hex,
-  ) {
+  constructor({
+    lock,
+    inputType,
+    outputType,
+  }: DecodedType<typeof WitnessArgsCodec>) {
     super();
-  }
 
-  /**
-   * Creates a WitnessArgs instance from a WitnessArgsLike object.
-   *
-   * @param witnessArgs - A WitnessArgsLike object or an instance of WitnessArgs.
-   * @returns A WitnessArgs instance.
-   *
-   * @example
-   * ```typescript
-   * const witnessArgs = WitnessArgs.from({
-   *   lock: "0x...",
-   *   inputType: "0x...",
-   *   outputType: "0x..."
-   * });
-   * ```
-   */
-
-  static from(witnessArgs: WitnessArgsLike): WitnessArgs {
-    if (witnessArgs instanceof WitnessArgs) {
-      return witnessArgs;
-    }
-
-    return new WitnessArgs(
-      apply(hexFrom, witnessArgs.lock),
-      apply(hexFrom, witnessArgs.inputType),
-      apply(hexFrom, witnessArgs.outputType),
-    );
+    this.lock = lock;
+    this.inputType = inputType;
+    this.outputType = outputType;
   }
 }
 
@@ -1119,6 +1084,14 @@ export type TransactionLike = {
     .mapOut((tx) => Transaction.from({ ...tx.raw, witnesses: tx.witnesses })),
 )
 export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
+  public version: Num;
+  public cellDeps: CellDep[];
+  public headerDeps: Hex[];
+  public inputs: CellInput[];
+  public outputs: CellOutput[];
+  public outputsData: Hex[];
+  public witnesses: Hex[];
+
   /**
    * Creates an instance of Transaction.
    *
@@ -1130,17 +1103,32 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * @param outputsData - The data associated with the outputs.
    * @param witnesses - The witnesses of the transaction.
    */
-
-  constructor(
-    public version: Num,
-    public cellDeps: CellDep[],
-    public headerDeps: Hex[],
-    public inputs: CellInput[],
-    public outputs: CellOutput[],
-    public outputsData: Hex[],
-    public witnesses: Hex[],
-  ) {
+  constructor({
+    version,
+    cellDeps,
+    headerDeps,
+    inputs,
+    outputs,
+    outputsData,
+    witnesses,
+  }: {
+    version: Num;
+    cellDeps: CellDep[];
+    headerDeps: Hex[];
+    inputs: CellInput[];
+    outputs: CellOutput[];
+    outputsData: Hex[];
+    witnesses: Hex[];
+  }) {
     super();
+
+    this.version = version;
+    this.cellDeps = cellDeps;
+    this.headerDeps = headerDeps;
+    this.inputs = inputs;
+    this.outputs = outputs;
+    this.outputsData = outputsData;
+    this.witnesses = witnesses;
   }
 
   /**
@@ -1247,7 +1235,6 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * });
    * ```
    */
-
   static from(tx: TransactionLike): Transaction {
     if (tx instanceof Transaction) {
       return tx;
@@ -1265,15 +1252,15 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       );
     }
 
-    return new Transaction(
-      numFrom(tx.version ?? 0),
-      tx.cellDeps?.map((cellDep) => CellDep.from(cellDep)) ?? [],
-      tx.headerDeps?.map(hexFrom) ?? [],
-      tx.inputs?.map((input) => CellInput.from(input)) ?? [],
+    return new Transaction({
+      version: numFrom(tx.version ?? 0),
+      cellDeps: tx.cellDeps?.map((cellDep) => CellDep.from(cellDep)) ?? [],
+      headerDeps: tx.headerDeps?.map(hexFrom) ?? [],
+      inputs: tx.inputs?.map((input) => CellInput.from(input)) ?? [],
       outputs,
       outputsData,
-      tx.witnesses?.map(hexFrom) ?? [],
-    );
+      witnesses: tx.witnesses?.map(hexFrom) ?? [],
+    });
   }
 
   /**

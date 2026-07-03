@@ -1,7 +1,13 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
 import type { Client } from "../client/index.js";
 import { KnownScript } from "../client/knownScript.js";
-import { Codec, Entity, codec } from "../codec/index.js";
+import {
+  Codec,
+  DecodedType,
+  EncodableType,
+  Entity,
+  codec,
+} from "../codec/index.js";
 import { Hex, HexLike, hexFrom } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
 import {
@@ -98,25 +104,24 @@ export function hashTypeFromBytes(bytes: BytesLike): HashType {
   return NUM_TO_HASH_TYPE[bytesFrom(bytes)[0]];
 }
 
+const ScriptCodec = mol.table({
+  codeHash: mol.Byte32,
+  hashType: HashTypeCodec,
+  args: mol.Bytes,
+});
 /**
  * @public
  */
-export type ScriptLike = {
-  codeHash: BytesLike;
-  hashType: HashTypeLike;
-  args: BytesLike;
-};
+export type ScriptLike = EncodableType<typeof ScriptCodec>;
 /**
  * @public
  */
-@codec(
-  mol.table({
-    codeHash: mol.Byte32,
-    hashType: HashTypeCodec,
-    args: mol.Bytes,
-  }),
-)
+@codec(ScriptCodec)
 export class Script extends Entity.Base<ScriptLike, Script>() {
+  public codeHash: Hex;
+  public hashType: HashType;
+  public args: Hex;
+
   /**
    * Creates an instance of Script.
    *
@@ -124,12 +129,12 @@ export class Script extends Entity.Base<ScriptLike, Script>() {
    * @param hashType - The hash type of the script.
    * @param args - The arguments for the script.
    */
-  constructor(
-    public codeHash: Hex,
-    public hashType: HashType,
-    public args: Hex,
-  ) {
+  constructor({ codeHash, hashType, args }: DecodedType<typeof ScriptCodec>) {
     super();
+
+    this.codeHash = codeHash;
+    this.hashType = hashType;
+    this.args = args;
   }
 
   get occupiedSize(): number {
@@ -171,34 +176,6 @@ export class Script extends Entity.Base<ScriptLike, Script>() {
       this.args === other.args &&
       this.codeHash === other.codeHash &&
       this.hashType === other.hashType
-    );
-  }
-
-  /**
-   * Creates a Script instance from a ScriptLike object.
-   *
-   * @param script - A ScriptLike object or an instance of Script.
-   * @returns A Script instance.
-   *
-   * @example
-   * ```typescript
-   * const script = Script.from({
-   *   codeHash: "0x1234...",
-   *   hashType: "type",
-   *   args: "0xabcd..."
-   * });
-   * ```
-   */
-
-  static from(script: ScriptLike): Script {
-    if (script instanceof Script) {
-      return script;
-    }
-
-    return new Script(
-      hexFrom(script.codeHash),
-      hashTypeFrom(script.hashType),
-      hexFrom(script.args),
     );
   }
 
