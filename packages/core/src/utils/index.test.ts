@@ -62,6 +62,28 @@ describe("reduce", () => {
     expect(result).toBe(24);
   });
 
+  it("should work with a single value and no initial value", () => {
+    const result = reduce(5, (acc, val) => acc + val);
+    expect(result).toBe(5);
+  });
+
+  it("should work with a single value and an initial value", () => {
+    const result = reduce(5, (acc, val) => acc + val, 10);
+    expect(result).toBe(15);
+  });
+
+  it("should work with a single object value and an initial value", () => {
+    const result = reduce({ a: 5 }, (acc, val) => acc + val.a, 10);
+    expect(result).toBe(15);
+  });
+
+  it("should work with null and undefined", () => {
+    expect(reduce(null, (acc, _val) => acc, 10)).toBe(10);
+    expect(reduce(undefined, (acc, _val) => acc, 10)).toBe(10);
+    expect(reduce(null, (acc, _val) => acc)).toBe(null);
+    expect(reduce(undefined, (acc, _val) => acc)).toBe(undefined);
+  });
+
   it("should pass correct index to the accumulator", () => {
     const values = ["a", "b", "c"];
     const indicesWithInit: number[] = [];
@@ -127,6 +149,28 @@ describe("reduceAsync", () => {
     const init = Promise.resolve(10);
     const result = await reduceAsync(values, (acc, val) => acc + val, init);
     expect(result).toBe(20);
+  });
+
+  it("should work with a single value and no initial value", async () => {
+    const result = await reduceAsync(5, (acc, val) => acc + val);
+    expect(result).toBe(5);
+  });
+
+  it("should work with a single value and an initial value", async () => {
+    const result = await reduceAsync(5, (acc, val) => acc + val, 10);
+    expect(result).toBe(15);
+  });
+
+  it("should work with a single object value and an initial value", async () => {
+    const result = await reduceAsync({ a: 5 }, (acc, val) => acc + val.a, 10);
+    expect(result).toBe(15);
+  });
+
+  it("should work with null and undefined", async () => {
+    expect(await reduceAsync(null, (acc, _val) => acc, 10)).toBe(10);
+    expect(await reduceAsync(undefined, (acc, _val) => acc, 10)).toBe(10);
+    expect(await reduceAsync(null, (acc, _val) => acc)).toBe(null);
+    expect(await reduceAsync(undefined, (acc, _val) => acc)).toBe(undefined);
   });
 
   it("should throw a TypeError for an empty iterable with no initial value", async () => {
