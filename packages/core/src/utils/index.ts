@@ -103,25 +103,25 @@ export function apply<T, R>(
  * Similar to Array.reduce, but works on any iterable.
  * @public
  *
- * @param values - The iterable to be reduced.
+ * @param values - The value or iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @returns The accumulated result.
  */
 export function reduce<T>(
-  values: Iterable<T>,
+  values: T | Iterable<T>,
   accumulator: (a: T, b: T, i: number) => T | undefined | null | void,
 ): T;
 /**
  * Similar to Array.reduce, but works on any iterable.
  * @public
  *
- * @param values - The iterable to be reduced.
+ * @param values - The value or iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @param init - The initial value.
  * @returns The accumulated result.
  */
 export function reduce<T, V>(
-  values: Iterable<V>,
+  values: V | Iterable<V>,
   accumulator: (a: T, b: V, i: number) => T | undefined | null | void,
   init: T,
 ): T;
@@ -129,13 +129,13 @@ export function reduce<T, V>(
  * Similar to Array.reduce, but works on any iterable.
  * @public
  *
- * @param values - The iterable to be reduced.
+ * @param values - The value or iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @param init - The initial value.
  * @returns The accumulated result.
  */
 export function reduce<T, V>(
-  values: Iterable<T> | Iterable<V>,
+  values: T | Iterable<T> | V | Iterable<V>,
   accumulator: (a: T, b: T | V, i: number) => T | undefined | null | void,
   init?: T,
 ): T {
@@ -144,7 +144,12 @@ export function reduce<T, V>(
   let acc: T = init as T; // The compiler thinks `acc` isn't assigned without this. Since `T` might be nullable, we should not use non-null assertion here.
   let i = 0;
 
-  for (const value of values) {
+  const iterable: Iterable<T> | Iterable<V> =
+    values != null && Symbol.iterator in Object(values)
+      ? (values as Iterable<T> | Iterable<V>)
+      : ([values] as T[] | V[]);
+
+  for (const value of iterable) {
     if (!hasInit && i === 0) {
       acc = value as T;
       i++;
@@ -166,12 +171,12 @@ export function reduce<T, V>(
  * Similar to Array.reduce, but works on async iterables and the accumulator can return a Promise.
  * @public
  *
- * @param values - The iterable or async iterable to be reduced.
+ * @param values - The value, iterable, or async iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @returns The accumulated result.
  */
 export async function reduceAsync<T>(
-  values: Iterable<T> | AsyncIterable<T>,
+  values: T | Iterable<T> | AsyncIterable<T>,
   accumulator: (
     a: T,
     b: T,
@@ -182,13 +187,13 @@ export async function reduceAsync<T>(
  * Similar to Array.reduce, but works on async iterables and the accumulator can return a Promise.
  * @public
  *
- * @param values - The iterable or async iterable to be reduced.
+ * @param values - The value, iterable, or async iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @param init - The initial value.
  * @returns The accumulated result.
  */
 export async function reduceAsync<T, V>(
-  values: Iterable<V> | AsyncIterable<V>,
+  values: V | Iterable<V> | AsyncIterable<V>,
   accumulator: (
     a: T,
     b: V,
@@ -200,13 +205,14 @@ export async function reduceAsync<T, V>(
  * Similar to Array.reduce, but works on async iterables and the accumulator can return a Promise.
  * @public
  *
- * @param values - The iterable or async iterable to be reduced.
+ * @param values - The value, iterable, or async iterable to be reduced.
  * @param accumulator - A callback to be called for each value. If it returns null or undefined, the previous result will be kept.
  * @param init - The initial value.
  * @returns The accumulated result.
  */
 export async function reduceAsync<T, V>(
-  values: Iterable<T> | AsyncIterable<T> | Iterable<V> | AsyncIterable<V>,
+  values:
+    T | Iterable<T> | AsyncIterable<T> | V | Iterable<V> | AsyncIterable<V>,
   accumulator: (
     a: T,
     b: T | V,
@@ -219,7 +225,15 @@ export async function reduceAsync<T, V>(
   let acc: T = (await Promise.resolve(init)) as T; // The compiler thinks `acc` isn't assigned without this. Since `T` might be nullable, we should not use non-null assertion here.
   let i = 0;
 
-  for await (const value of values) {
+  const iterable:
+    Iterable<T> | AsyncIterable<T> | Iterable<V> | AsyncIterable<V> =
+    values != null && Symbol.asyncIterator in Object(values)
+      ? (values as AsyncIterable<T> | AsyncIterable<V>)
+      : values != null && Symbol.iterator in Object(values)
+        ? (values as Iterable<T> | Iterable<V>)
+        : ([values] as T[] | V[]);
+
+  for await (const value of iterable) {
     if (!hasInit && i === 0) {
       acc = value as T;
       i++;
