@@ -42,7 +42,7 @@
     "@types/react-dom": "19.2.3",
     "@types/webpack-env": "^1.18.8",
     "eslint": "^10.6.0",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.2.10",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "postcss": "^8.5.6",
