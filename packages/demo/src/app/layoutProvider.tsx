@@ -95,21 +95,17 @@ function Links(props: React.ComponentPropsWithoutRef<"div">) {
 
 function ClientSwitcher() {
   const { setClient, client } = ccc.useCcc();
-  const [isTestnet, setIsTestnet] = useState(true);
-
-  useEffect(() => {
-    setIsTestnet(client.addressPrefix !== "ckb");
-  }, [client]);
-
-  useEffect(() => {
-    setClient(
-      isTestnet ? new ccc.ClientPublicTestnet() : new ccc.ClientPublicMainnet(),
-    );
-  }, [isTestnet, setClient]);
+  const isTestnet = client.addressPrefix !== "ckb";
 
   return (
     <button
-      onClick={() => setIsTestnet(!isTestnet)}
+      onClick={() =>
+        setClient(
+          isTestnet
+            ? new ccc.ClientPublicMainnet()
+            : new ccc.ClientPublicTestnet(),
+        )
+      }
       className="mr-4 flex gap-2"
     >
       {isTestnet ? (
