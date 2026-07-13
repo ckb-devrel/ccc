@@ -65,6 +65,17 @@ const sUdt = await Coin.new({
   },
   client,
 });
+
+// Instantiation of xUDT via CoinXUdt with structured args
+import { CoinXUdt } from "@ckb-ccc/coin";
+
+const xUdt = await CoinXUdt.new({
+  xUdtArgs: {
+    ownerScriptHash: ownerLock.hash(),
+    ownerModeOutputType: true,
+  },
+  client,
+});
 ```
 
 ### Query balance
@@ -113,6 +124,14 @@ const txHash = await signer.sendTransaction(completedTx);
 const { script: changeLock } = await signer.getRecommendedAddressObj();
 const completedTx = await coin.completeChangeToLock(signer, changeLock, tx);
 ```
+
+## Extensible UDT (xUDT) Support
+
+`CoinXUdt` extends `Coin` to provide specialized support for RFC 52 extensible UDT (xUDT).
+
+- **Args Encoding/Decoding**: Provides `CoinXUdtArgs` to correctly build and parse xUDT type script arguments, supporting owner-mode flags.
+- **Default Known Script**: When `knownScript` is omitted, `CoinXUdt` uses `ccc.KnownScript.XUdt`. A complete `script` with `codeHash` and `hashType` takes priority over this shorthand. Pass `script.args` to use existing xUDT args, or pass `xUdtArgs` to build args from `ownerScriptHash` and `flags`.
+- **Underlying Coin Compatibility**: Inherits all query, transfer, and transaction completion methods of the generic `Coin` class.
 
 ## Learn More?
 
