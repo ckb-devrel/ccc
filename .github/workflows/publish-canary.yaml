@@ -51,7 +51,7 @@ jobs:
         run: pnpm build
 
       - name: Version changesets
-        run: pnpm dlx @changesets/cli@2.31.0 version --snapshot canary
+        run: pnpm dlx @changesets/cli@2.31.0 pre exit ; pnpm dlx @changesets/cli@2.31.0 version --snapshot canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
