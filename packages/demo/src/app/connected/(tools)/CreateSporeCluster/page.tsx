@@ -124,6 +124,7 @@ export default function CreateSporeCluster() {
   const [description, setDescription] = useState<string>("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDescription(
       JSON.stringify(
         JSON.parse(generateClusterDescriptionUnderDobProtocol(client)[1]),
