@@ -48,7 +48,7 @@
     "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "0.22.7",
-    "typescript": "^6.0.3",
+    "typescript": "^7.0.2",
     "typescript-eslint": "^8.61.1",
     "vitest": "^4.1.9"
   },
