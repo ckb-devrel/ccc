@@ -30,7 +30,7 @@ import { render, signer, client } from "@ckb-ccc/playground";
 - `render` / `signer` / `client` — playground-provided helpers (`@ckb-ccc/playground`); `signer` is pre-connected, `client` is its underlying `ClientPublicTestnet`/`ClientPublicMainnet` instance — import `client` whenever a call needs the client directly instead of going through `signer.client`.
 
 ```typescript
-// signer` is already connected — Testnet by default, no setup needed
+// signer is already connected — Testnet by default, no setup needed
 console.log(await signer.getRecommendedAddress());
 
 // replace with the recipient address

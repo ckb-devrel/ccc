@@ -7,7 +7,7 @@ metadata:
   role: spoke
   depends-on: "ckb-ccc-fundamentals, ckb-ccc-transactions"
   priority: normal
-  status: "current API — @ckb-ccc/coin expected within weeks; @ckb-ccc/udt will then be removed/unmaintained. This file becomes a redirect stub for one release cycle (new content goes in ckb-ccc-coin/, this directory is deleted afterward"
+  status: "current API — @ckb-ccc/coin expected within weeks; @ckb-ccc/udt will then be removed/unmaintained. This file becomes a redirect stub for one release cycle (new content goes in ckb-ccc-coin/, this directory is deleted afterward)"
 ---
 
 # CKB CCC — UDT Tokens
