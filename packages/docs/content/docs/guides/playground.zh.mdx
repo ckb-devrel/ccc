@@ -113,7 +113,7 @@ await render(tx);
   点击 **Step** 而非 **Run**，可在每个 `render()` 调用处暂停。点击 **Continue** 进入下一个断点，非常适合逐步理解 CCC 构建交易的过程。
 </Callout>
 
-掌握了基本的转账流程后，来看一个更复杂的场景——在链上发行代币。
+掌握了基本的转账流程后，来看一个更复杂的场景——在链上创建 Spore。
 
 ## 示例二：创建 Spore
 
@@ -130,6 +130,8 @@ const { tx, id: sporeId } = await ccc.spore.createSpore({
     content: new TextEncoder().encode("Hello, Spore!"),
   },
 });
+
+console.log("Spore ID:", sporeId);
 await render(tx);
 
 await tx.completeInputsByCapacity(signer);

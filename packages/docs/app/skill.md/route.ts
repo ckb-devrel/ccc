@@ -69,7 +69,7 @@ const preamble = `# CCC Agent Skills (CKB / CCC development)
 If your tool/agent can run a shell command, install with the [\`skills\` CLI](https://github.com/vercel-labs/skills) (supports Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ other agents — auto-discovers the \`skills/\` directory and writes each skill to the right path for your tool):
 
 \`\`\`bash
-npx skills add ${repoSlug}
+npx skills add ${repoSlug} --all
 \`\`\`
 
 If your tool/agent can only fetch URLs (no shell access — browser-based agents, plain chat models, etc.), fetch the raw \`SKILL.md\` files directly from the table below. Always fetch \`ckb-ccc-fundamentals\` first, then the spoke skill matching the task.
