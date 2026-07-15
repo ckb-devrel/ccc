@@ -1,0 +1,37 @@
+---
+title: AI 资源
+description: 让 Cursor、Claude Code、Copilot 及其他 AI 助手写出正确的 CKB/CCC 代码——配置工具、写好提示词、验证结果。
+icon: Bot
+---
+
+import { Wrench, MessageSquare, ShieldCheck } from 'lucide-react';
+
+本部分面向使用 AI 编程助手（Cursor、Claude Code、GitHub Copilot、Windsurf、ChatGPT……）在 CKB 上基于 CCC 开发的开发者。其唯一目标是：让你的助手写出**正确**的 CCC 代码，而不是自信满满地写出错误代码。
+
+为什么需要额外花这些功夫：CKB 采用 **Cell 模型**（泛化的 UTXO 模型），这在 LLM 训练数据中占绝大比重的以太坊相关内容里几乎不存在。如果不加引导，助手生成的 CCC 代码看起来像那么回事，但实际是错的——交易顺序不对、方法凭空捏造、该用 `bigint` 的地方用了 `number`、沿袭 EVM 风格的前提假设。CCC 提供了一套机器可读的 [Agent Skills](/skill.md)——包含一个 hub skill（`ckb-ccc-fundamentals`）和每个任务领域对应的 spoke skill（signer 配置、交易、UDT、Spore、playground、示例）——其中编码了 CCC 特有的规则；本部分页面会告诉你如何将这些 skill 喂给工具，并稳定获得正确输出。
+
+## 一次配置，之后无需操心
+
+1. **[配置你的工具](./ai-resources/set-up-ai-tools)**——一次性配置，让你的助手始终加载 CCC 的规则（不到 2 分钟）。
+2. **[验证配置是否生效](./ai-resources/verify-and-troubleshoot)**——用一个金丝雀问题确认规则确实被加载了。不要跳过这一步：静默加载失败的配置看起来配好了，但实际上没有。
+3. **[写好提示词](./ai-resources/prompting-best-practices)**——每次请求时，明确指出要用的包名，并将其引导至相关的指南页面。
+
+<Callout type="info">
+  新手？从 **[配置你的工具](./ai-resources/set-up-ai-tools)** 开始，花 2 分钟为你使用的工具完成配置——其余内容都建立在这个基础上。
+</Callout>
+
+## 本部分页面
+
+<Cards cols={2}>
+  <Card title="配置 AI 工具" icon={<Wrench />} href="./ai-resources/set-up-ai-tools">
+    Cursor、Claude Code、GitHub Copilot、Windsurf、ChatGPT 的配置粘贴方案——以及应该将哪些 CCC 链接指向你的助手。
+  </Card>
+
+  <Card title="提示词最佳实践" icon={<MessageSquare />} href="./ai-resources/prompting-best-practices">
+    改造前后的示例、按任务分类的提示词模板，以及 AI 常犯的 CKB 特定错误——并附上每种错误的单行修正方法。
+  </Card>
+
+  <Card title="验证与故障排查" icon={<ShieldCheck />} href="./ai-resources/verify-and-troubleshoot">
+    用于确认配置是否真正生效的金丝雀问题，以及当助手仍然答错 CKB 相关问题时的排查步骤。
+  </Card>
+</Cards>

@@ -1,0 +1,47 @@
+---
+title: Verify & Troubleshoot
+description: Canary questions to confirm your AI tool is actually using CCC's docs, and a step-by-step decision tree for when it still gets CKB wrong.
+icon: ShieldCheck
+---
+
+Setting up a rule and writing a good prompt doesn't guarantee the assistant is actually reading what you pointed it at — rules silently fail to load, context windows get truncated, and models fall back on memorized (often EVM-shaped) assumptions. This page gives you a fast way to check, and a decision tree for when it fails.
+
+## Canary questions
+
+Each of these has one objectively correct answer that a model *without* CCC's [Agent Skills](/skill.md) loaded gets wrong more often than not. Ask one after setup, or any time you suspect the assistant has stopped grounding itself. All of them are lifted directly from the Hallucination Guard / Common Gotchas tables in `ckb-ccc-fundamentals` or the matching spoke skill, so if you spot a wrong answer, that's exactly the section to point the assistant back at.
+
+| Ask | Correct answer | Wrong answer means |
+| --- | --- | --- |
+| "Does `signer.getBalance()` return a `number` or a `bigint`?" | `bigint`, in Shannon | Model is assuming EVM-style float balances |
+| "What's the correct order: build outputs, complete inputs by capacity, complete fee, then send — or complete fee before completing inputs?" | Outputs → `completeInputsByCapacity` → `completeFeeBy` → `sendTransaction` | Model doesn't know CCC's required transaction pipeline |
+| "In a Next.js app using `ccc.Provider`, do I need `\"use client\"`?" | Yes | Model isn't aware of the Next.js App Router gotcha |
+| "For a UDT transfer, what has to run before `completeInputsByCapacity`?" | `udt.completeBy(tx, signer)` | Model will produce a transaction that silently drops token change |
+| "Which package should a plain Node.js script import — `@ckb-ccc/core` or `@ckb-ccc/shell`?" | `@ckb-ccc/shell` (re-exports `core`) | Model picked the low-level package unprompted, a sign it isn't consulting the Package Selection table |
+
+<Callout type="info">
+  A model that answers all five correctly *without* you pasting any doc content into the prompt is a model that has the relevant Agent Skills (or equivalent context) genuinely loaded. That's the bar — not "sounds confident."
+</Callout>
+
+## If the assistant still gets it wrong
+
+Work through this in order — each step rules out one layer of the setup from [Set Up Your AI Tools](./set-up-ai-tools):
+
+1. **Did the install actually run?** Run `npx skills list` and confirm the `ckb-ccc-*` skills show up for your tool. If nothing's listed, re-run `npx skills add ckb-devrel/ccc` from [Set Up Your AI Tools](./set-up-ai-tools) and pick the tool you're testing.
+2. **Is it in the right scope?** Project-level rules only apply to that project. If you're testing from a different repo or a scratch file outside any project, a project rule won't load — use the global/personal path instead.
+3. **Did the tool actually attach it to this conversation?** Chat-only tools without a file-based rules mechanism (plain ChatGPT, etc.) require you to paste the system-prompt snippet per conversation, not just once — see [Set Up Your AI Tools](./set-up-ai-tools) if you're not using a rules-native tool.
+4. **Is the context window full?** In a long-running conversation, early-loaded rules can get pushed out or de-prioritized. Start a fresh conversation and re-ask the canary question before concluding the setup is broken.
+5. **Did the assistant fetch a *stale* copy?** Installed skill files are a point-in-time copy, not a live fetch. Run `npx skills update` to pull it — see [Keep skills up to date](./set-up-ai-tools#keep-skills-up-to-date).
+6. **Ask it to show its work.** Literally ask: "Quote the exact section of the `ckb-ccc-fundamentals` skill that answers this." If it can't quote anything, it isn't reading the file — it's guessing and happened to land on the right answer, or it's wrong for a different reason than missing context.
+
+## When the setup is fine but the answer still isn't
+
+If the rules are loading and the assistant is still wrong on a specific topic, it's hit the edge of what the loaded skill covers — each skill is a curated summary of its area, not the whole documentation. Ground it on the precise source instead of arguing with it:
+
+- **Point it at the exact guide.** Give it the specific page as Markdown, e.g. `https://docs.ckbccc.com/en/docs/guides/udt-tokens.md`, rather than the skill file. See [Tell your AI where to find answers](./set-up-ai-tools#tell-your-ai-where-to-find-answers) for the full list of what to fetch when.
+- **Check the matching spoke skill, not just the hub.** `ckb-ccc-fundamentals` only covers cross-cutting basics — signer/wallet, transaction, UDT, and Spore specifics live in their own spoke skills (see `/skill.md`). A wrong answer on one of those topics can mean the hub loaded but the spoke skill didn't.
+- **For signatures and types, use the API reference.** No skill file has every parameter type — send it to DeepWiki/Context7 or [api.ckbccc.com](https://api.ckbccc.com) for the exact signature (see `ckb-ccc-fundamentals` Step 0).
+- **Re-ground, don't correct from memory.** In a long conversation, ask it to re-fetch the relevant page before continuing rather than trusting an answer cached earlier in the chat.
+
+## Recap
+
+That closes the loop: your tool is [configured](./set-up-ai-tools), you've confirmed it actually loaded the rules, and you [prompt it well](./prompting-best-practices) per request. Repeat the canary check any time you set up a new machine, switch AI tools, or upgrade CCC to a new major version.

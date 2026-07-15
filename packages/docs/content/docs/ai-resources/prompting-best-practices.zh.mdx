@@ -1,0 +1,143 @@
+---
+title: 提示词最佳实践
+description: 可有效减少 AI 助手生成错误 CKB/CCC 代码的提示词模板与自查习惯。
+icon: MessageSquare
+---
+
+即使加载了 CCC 的 [Agent Skills](/skill.md)，**如何**提问仍然很重要。本页整理了特别适用于 CCC 的提示词模式，以及它们所预防的错误类型。
+
+## 根据运行环境选择提示词版本
+
+本页每个模板都有两种形式，因为"引用 skill"只有在 skill 确实存在于助手上下文中的情况下才有意义：
+
+- **Skill 原生工具** —— Cursor、Claude Code，以及通过[配置 AI 工具](./set-up-ai-tools)设置的其他工具。skill 文件已加载，因此只需提及 skill 名称（`` `ckb-ccc-fundamentals` ``）即可——助手会在本地解析，无需额外获取。
+- **Web 聊天工具** —— ChatGPT、DeepSeek，或任何未经 `npx skills` 配置的浏览器版助手。在此类环境中提及 skill 名称无效，因为无可解析的文件。每个提示词都需要提供实际 URL，并明确要求助手在回答前先获取该 URL——大多数 Web 聊天工具在被要求时可以浏览 URL，但不会主动这样做。
+
+如果不确定自己属于哪种情况：你是否在本项目中执行过[配置 AI 工具](./set-up-ai-tools)中的安装命令？如果没有，请使用 Web 聊天版本。
+
+## 核心模式：先查证，后编写
+
+最有效的一个习惯是：要求助手在生成代码前先获取具体信息，而不是依赖它已经"记住"的内容：
+
+```text
+使用 CCC（@ckb-ccc/connector-react），添加一个连接钱包并向硬编码地址发送 100 CKB 的按钮。在写代码之前，先查看
+https://docs.ckbccc.com/en/docs/guides/connect-wallets.md 和
+https://docs.ckbccc.com/en/docs/guides/compose-transactions.md 了解当前 API，
+然后遵循 ckb-ccc-fundamentals 和 ckb-ccc-transactions 技能中的提交前检查清单（https://docs.ckbccc.com/skill.md）。
+```
+
+这个写法的有效性在于它做了模糊提示词做不到的三件事：
+- 指明了**确切的包名**（`@ckb-ccc/connector-react`），防止助手混淆 `@ckb-ccc/core` 或其他无关包的 API。
+- 指向**具体页面**，而非"文档"——范围更窄，干扰更少，减少引入无关示例的可能。
+- 调用了**提交前检查清单**，强制在代码交到你手上之前，对照已知陷阱（交易排序、`"use client"`、容量最小值）进行自查。
+
+上述示例使用的是 **Web 聊天形式**（完整 URL），因此适用于所有环境。在 skill 原生工具中，可以缩短为：*"使用 CCC（`@ckb-ccc/connector-react`），添加一个连接钱包并向硬编码地址发送 100 CKB 的按钮。遵循 `ckb-ccc-fundamentals` 和 `ckb-ccc-transactions` 中的提交前检查清单。"*——无需 URL，助手已加载了 skill。
+
+## 对比：查证与否的实际差异
+
+同一任务，两种提示词，说明"先查证，后编写"并非可有可无：
+
+**模糊提示词：** *"使用 CCC 编写一个函数，从已连接钱包向一个地址发送 100 CKB。"*
+
+依赖记忆/通用模式训练的模型通常会生成类似这样的代码——看起来合理，但在 CCC 特有的三个方面是错误的：
+
+```ts
+// 展示常见错误答案——请勿复制
+async function send(signer, toAddress) {
+  const balance = await signer.getBalance(); // ❌ 下面将其当作 number 处理
+  const tx = ccc.Transaction.from({
+    outputs: [{ lock: (await ccc.Address.fromString(toAddress, signer.client)).script, capacity: 100 * 1e8 }],
+  });
+  await tx.completeFeeBy(signer);        // ❌ 在 inputs 填充之前完成费用计算
+  await tx.completeInputsByCapacity(signer);
+  return signer.sendTransaction(tx);
+}
+```
+
+**有查证的提示词：** *"使用 CCC 编写一个函数，从已连接钱包向一个地址发送 100 CKB。在写代码之前，遵循 `ckb-ccc-transactions` 技能中的交易流水线顺序和 `ckb-ccc-fundamentals` 技能中的数额转换规则（`https://docs.ckbccc.com/skill.md`）。"*
+
+```ts
+async function send(signer: ccc.Signer, toAddress: string) {
+  const { script: toLock } = await ccc.Address.fromString(toAddress, signer.client);
+  const tx = ccc.Transaction.from({
+    outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(100) }], // ✅ bigint Shannon，非浮点数
+  });
+  await tx.completeInputsByCapacity(signer); // ✅ inputs 在费用之前
+  await tx.completeFeeBy(signer);
+  return signer.sendTransaction(tx);
+}
+```
+
+这里的改进并非"模型变聪明了"——而是第二个提示词给了它权威来源来核对 `completeInputsByCapacity` 必须在 `completeFeeBy` 之前调用、以及数额是 `bigint` Shannon 而非浮点数，从而避免退回到通用/EVM 训练数据的模式。这正是"查证"的全部价值所在：将"可能正确"转化为"有来源校验的正确"。
+
+## 按任务分类的提示词模板
+
+每个任务下方提供 **skill 原生**版本（Cursor、Claude Code——skill 已加载，按名称引用）和 **Web 聊天**版本（ChatGPT、DeepSeek——无 skill 文件，务必包含 URL 并要求先获取）。替换其中的包名/错误信息/方法名即可。
+
+**新功能，不确定用哪个包**
+- *Skill 原生：* "我正在构建 `<React 应用 / Node.js 脚本 / 自定义 UI>`。根据 `ckb-ccc-fundamentals` 中的包选择表格，应该用哪个 `@ckb-ccc/*` 包？"
+- *Web 聊天：* "我正在 CKB 上用 CCC 构建 `<React 应用 / Node.js 脚本 / 自定义 UI>`。获取 `https://docs.ckbccc.com/skill.md`，找到 `ckb-ccc-fundamentals` 技能的包选择表格，告诉我该用哪个 `@ckb-ccc/*` 包。"
+
+**实现一个已知指南**
+- *Skill 原生：* "按照 `<构造交易 / 连接钱包 / UDT 代币>` 指南实现 `<功能>`。"
+- *Web 聊天：* "获取 `https://docs.ckbccc.com/en/docs/guides/<slug>.md` 并按指引实现 `<功能>`。如果不确定确切的 slug，先获取 `https://docs.ckbccc.com/llms.txt` 找到正确的页面。"
+
+**调试错误**
+- *Skill 原生：* "我遇到了这个错误：`<错误信息>`。对照 `ckb-ccc-fundamentals`（或对应的 spoke skill）中的常见陷阱表格——是否匹配某个已知原因？"
+- *Web 聊天：* "我遇到了这个错误：`<错误信息>`。获取 `https://docs.ckbccc.com/skill.md`，找到相关 skill（hub 或 spoke），在生成猜测前先对照其中的常见陷阱表格。"
+
+**审查 AI 生成的代码**
+- *Skill 原生：* "对照 `ckb-ccc-fundamentals` 和 `ckb-ccc-transactions` 中的提交前检查清单和幻觉防护来审查这段代码。逐项标注 PASS 或 FAIL——不要只给总结。"
+- *Web 聊天：* "获取 `https://docs.ckbccc.com/skill.md`，打开 `ckb-ccc-fundamentals` 和 `ckb-ccc-transactions` 技能，对照其中的提交前检查清单和幻觉防护来审查这段代码。逐项标注 PASS 或 FAIL——不要只给总结。"
+
+**精确的方法签名**
+- *Skill 原生：* "`<类>` 上的 `<方法>` 的参数类型是什么？查阅 DeepWiki/Context7 或 `https://api.ckbccc.com`，不要凭猜测（参见 `ckb-ccc-fundamentals` 第 0 步）。"
+- *Web 聊天：* "`@ckb-ccc/*` 中 `<类>` 上的 `<方法>` 的参数类型是什么？查阅 `https://api.ckbccc.com` 获取精确签名，不要凭猜测——不要按通用 TypeScript SDK 惯例回答。"
+
+**寻找已有示例代码，避免从零编写**
+- *Skill 原生：* "根据 `ckb-ccc-examples-finder`，CCC 的示例库或演示仓库中是否已有 `<功能>` 的工作示例？以此为基础，不要从零编写。"
+- *Web 聊天：* "获取 `https://docs.ckbccc.com/en/docs/code-examples.md`，检查是否有 `<功能>` 的现有示例。如果没有，获取 `https://docs.ckbccc.com/skill.md`，打开 `ckb-ccc-examples-finder`，在编写新代码前检查其列出的外部仓库。"
+
+**验证代码片段在实际运行前可用**
+- *Skill 原生：* "将此格式化为 CCC Playground 的可运行脚本（按 `ckb-ccc-playground`），以便我粘贴到 `live.ckbccc.com` 上在测试网验证后再放入正式项目。"
+- *Web 聊天：* "获取 `https://docs.ckbccc.com/skill.md`，打开 `ckb-ccc-playground`，使用 `@ckb-ccc/playground` 中的 `render()`/`signer` 将其格式化为可运行脚本，以便我粘贴到 `live.ckbccc.com` 上在测试网验证后再放入正式项目。"
+
+## 在交付前发现错误的习惯
+
+- **要求引用来源。** "这个模式出自哪份文档页面或 skill 章节？" 没有引用来源的自信回答说明需要手动核实。
+- **要求用检查清单进行自查。** `ckb-ccc-fundamentals` 和相关 spoke skill 中的提交前检查清单本就是为 AI 对照自己的输出而设计的——明确要求将此自查作为独立步骤，而非合并到首次生成中。
+- **始终先在测试网运行。** 对于任何发送主网交易的内容，不要接受"相信我"。要求助手先以 `ClientPublicTestnet` 为目标，确认行为后再切换网络——相关 skill 的检查清单中也专门提到了这一点。
+- **在版本敏感问题上重新查证。** 包版本、下载量和新增加的 `KnownScript` 条目会随时间变化；重新获取相关页面，不要依赖长对话早期缓存的答案。
+- **不要仅凭一个示例来推断协议级行为。** 菜谱/演示仓库中的单个文件可能有笔误（错误的 `contentType`、复制粘贴的值），看起来内部一致但仍然是错的。对于超出"如何调用这个方法"范围的问题——即像 DOB/Spore 这样的协议实际应如何运作——要求它与官方协议文档交叉核对，而非仅凭它找到的第一个示例：*"在最终确定之前，对照官方协议文档确认 `contentType`/`decimals`/`<字段>` 的值，不要仅凭你复制的那一个示例。"*
+
+## AI 在 CKB 上常犯的五类错误及其纠正方法
+
+这些是即使配置良好的助手也容易犯的 CCC 特有错误，因为它们与其训练数据中的 EVM 模式相冲突。当在生成代码中发现这些问题时，不要手动修复——将纠正要求作为提示词回传，让助手按正确规则重新生成并在后续对话中保持。每个纠正内容可直接粘贴使用。
+
+**1. 数额返回为 `number`，或带有小数。** 模型退回到了 EVM 风格的浮点数运算。CKB 数额始终以 Shannon 为单位的 `bigint`。
+
+> 在 CCC 中所有数额均为 Shannon 单位的 `bigint`，绝非浮点数。使用 `ccc.fixedPointFrom("100")` 构造数额，仅在 UI 边界处使用 `ccc.fixedPointToString()`。请相应修正代码。
+
+**2. 费用在 inputs 之前完成计算。** 模型不知道 CCC 的流水线是有顺序依赖的——在 inputs 存在之前无法计算费用。
+
+> 交易顺序是强制的：声明 outputs → `completeInputsByCapacity(signer)` → `completeFeeBy(signer)` → `sendTransaction(tx)`。请按此顺序重排调用。
+
+**3. 使用 `ccc.Provider` 或 CCC hook 的 Next.js 组件在渲染时报错。** 该文件是服务端组件；CCC 的 React 部分需要客户端运行时环境。
+
+> 此文件使用了 `ccc.Provider` 或 CCC hook，因此必须是客户端组件——在第一行添加 `"use client"`。
+
+**4. UDT 转账静默丢失找零。** 模型跳过了 UDT 特有的 input 步骤，导致 surplus 代币未退回给发送方。
+
+> UDT 转账时，先调用 `udt.completeBy(tx, signer)`（添加 UDT inputs + 找零），**再**调用 `tx.completeInputsByCapacity(signer)`（添加 CKB 容量）。请按此顺序插入缺失的步骤。
+
+**5. Node.js 脚本从 `@ckb-ccc/core` 导入。** 模型未经提示使用了底层包；后端应使用聚合包。
+
+> 后端/Node.js 脚本应从 `@ckb-ccc/shell` 导入，该包已重新导出 `@ckb-ccc/core`。请切换导入来源。
+
+<Callout type="info">
+  上述每一条都对应 `ckb-ccc-fundamentals` 或对应 spoke skill 中"常见陷阱"和"幻觉防护"部分的条目——参见 [skills 索引](/skill.md)，即你的工具在[配置](./set-up-ai-tools)期间加载的同一份文件。如果你的助手**全部**答错，那就不只是提示词的问题了：规则可能没有加载。请运行[验证与排查](./verify-and-troubleshoot)中的检查步骤。
+</Callout>
+
+## 形成闭环
+
+好的提示词习惯是每次请求时应用的习惯，而非一次性步骤。将其与正确的[工具配置](./set-up-ai-tools)（确保规则始终加载）和[验证检查](./verify-and-troubleshoot)（确保你确认它们已加载）配合使用，AI 辅助的 CCC 开发就会更接近与一位真正读过文档的开发者结对编程。
