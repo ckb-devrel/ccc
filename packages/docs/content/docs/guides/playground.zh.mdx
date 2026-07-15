@@ -115,43 +115,27 @@ await render(tx);
 
 掌握了基本的转账流程后，来看一个更复杂的场景——在链上发行代币。
 
-## 示例二：发行自定义 UDT 代币
+## 示例二：创建 Spore
 
-本示例演示如何在 CKB 上发行用户自定义代币（User-Defined Token，简称 UDT）：
+本示例演示如何在 CKB 上创建一个 Spore：
 
 ```typescript
 import { ccc } from "@ckb-ccc/ccc";
-import { render, signer } from "@ckb-ccc/playground";
+import { render, signer, client } from "@ckb-ccc/playground";
 
-// 获取 signer 的 Lock Script，作为代币所有者
-const lock = (await signer.getRecommendedAddressObj()).script;
-console.log("代币所有者 Lock：", lock);
-
-// 构建包含 UDT 输出的交易
-const tx = ccc.Transaction.from({
-  outputs: [{ lock }],
-  outputsData: [ccc.numLeToBytes(1000000, 16)], // 初始供应量：1,000,000 个代币
+const { tx, id: sporeId } = await ccc.spore.createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
 });
 await render(tx);
 
-// xUDT 的 Type Script 以第一个输入的 OutPoint 作为唯一 ID
-// 需要先添加输入，再设置 Type Script
 await tx.completeInputsByCapacity(signer);
 await render(tx);
 
-const firstInput = tx.inputs[0];
-const typeScript = await ccc.Script.fromKnownScript(
-  signer.client,
-  ccc.KnownScript.XUdt,
-  (await firstInput.getCell(signer.client)).cellOutput.lock.hash(),
-);
-await render(tx);
-
-tx.outputs[0].type = typeScript;
-await render(tx);
-
-// 重新计算输入（Type Script 会改变占用容量）
-await tx.completeFeeBy(signer, 1000);
+await tx.completeFeeBy(signer);
 await render(tx);
 ```
 
