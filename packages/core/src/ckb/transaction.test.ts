@@ -38,7 +38,7 @@ describe("Transaction", () => {
       });
       tx.outputsData = [];
 
-      tx.setOutputDataAt(2, "0x1234");
+      tx.setOutputData(2, "0x1234");
 
       expect(tx.outputsData).toEqual(["0x", "0x", "0x1234"]);
       expect(tx.getOutputData(2)).toBe("0x1234");
@@ -95,6 +95,17 @@ describe("Transaction", () => {
       expect(tx.witnesses).toEqual(["0xaa", "0x", "0xbb"]);
     });
 
+    it("sets and gets witness args without At suffixes", () => {
+      const tx = ccc.Transaction.default();
+
+      tx.setWitnessArgs(1, { lock: "0x1234" });
+
+      expect(tx.getWitness(0)).toBe("0x");
+      expect(tx.getWitness(1)).not.toBe("0x");
+      expect(tx.getWitnessArgs(1)?.lock).toBe("0x1234");
+      expect(tx.getWitnessArgsUnsafe(1)?.lock).toBe("0x1234");
+    });
+
     it.each([-1, 0.5, NaN, 2 ** 32 - 1, Number.MAX_SAFE_INTEGER + 1])(
       "returns undefined from getters for invalid index %s",
       (index) => {
@@ -104,6 +115,8 @@ describe("Transaction", () => {
         expect(tx.getOutput(index)).toBeUndefined();
         expect(tx.getOutputData(index)).toBeUndefined();
         expect(tx.getWitness(index)).toBeUndefined();
+        expect(tx.getWitnessArgs(index)).toBeUndefined();
+        expect(tx.getWitnessArgsUnsafe(index)).toBeUndefined();
       },
     );
 
@@ -112,11 +125,9 @@ describe("Transaction", () => {
       ["setOutput", (tx: ccc.Transaction) => tx.setOutput(0.5, { lock })],
       ["setInput", (tx: ccc.Transaction) => tx.setInput(1, input("1"))],
       ["setInput", (tx: ccc.Transaction) => tx.setInput(NaN, input("1"))],
-      [
-        "setOutputDataAt",
-        (tx: ccc.Transaction) => tx.setOutputDataAt(-1, "0x"),
-      ],
-      ["setOutputDataAt", (tx: ccc.Transaction) => tx.setOutputDataAt(0, "0x")],
+      ["setOutputData", (tx: ccc.Transaction) => tx.setOutputData(-1, "0x")],
+      ["setOutputData", (tx: ccc.Transaction) => tx.setOutputData(0, "0x")],
+      ["setWitness", (tx: ccc.Transaction) => tx.setWitness(-1, "0x")],
     ])("rejects invalid indices in %s", (_name, setValue) => {
       expect(() => setValue(ccc.Transaction.default())).toThrow(/Index/);
     });
@@ -125,7 +136,7 @@ describe("Transaction", () => {
       const tx = ccc.Transaction.default();
       tx.witnesses.length = 2 ** 32 - 1;
 
-      expect(() => tx.setWitnessAt(2 ** 32 - 1, "0x")).toThrow(
+      expect(() => tx.setWitness(2 ** 32 - 1, "0x")).toThrow(
         "must be a valid array index between 0 and 4294967294",
       );
     });

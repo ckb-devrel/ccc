@@ -1644,6 +1644,15 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
+   * Sets output data at an index.
+   *
+   * @deprecated Use {@link setOutputData} instead.
+   */
+  setOutputDataAt(index: number, data: HexLike): void {
+    this.setOutputData(index, data);
+  }
+
+  /**
    * Sets output data at an index, filling any skipped positions with empty data.
    *
    * @param index - The index of the output data.
@@ -1652,10 +1661,10 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @example
    * ```typescript
-   * tx.setOutputDataAt(0, "0x00");
+   * tx.setOutputData(0, "0x00");
    * ```
    */
-  setOutputDataAt(index: number, data: HexLike): void {
+  setOutputData(index: number, data: HexLike): void {
     const i = transactionIndexOrThrow(index);
     if (i >= this.outputs.length) {
       throw new Error(
@@ -1819,7 +1828,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
           });
 
     const len = this.outputs.push(cell.cellOutput);
-    this.setOutputDataAt(len - 1, cell.outputData);
+    this.setOutputData(len - 1, cell.outputData);
 
     return len;
   }
@@ -1886,7 +1895,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       this.addOutput(cell);
     } else {
       this.outputs[i] = cell.cellOutput;
-      this.setOutputDataAt(i, cell.outputData);
+      this.setOutputData(i, cell.outputData);
     }
   }
 
@@ -1940,26 +1949,37 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
-   * Get witness at index as WitnessArgs
+   * Gets the witness at an index as `WitnessArgs`.
    *
    * @param index - The index of the witness.
    * @returns The witness parsed as WitnessArgs.
+   *
+   * @example
+   * ```typescript
+   * const witnessArgs = tx.getWitnessArgs(0);
+   * ```
    */
-  getWitnessArgsAt(index: NumLike): WitnessArgs | undefined {
+  getWitnessArgs(index: NumLike): WitnessArgs | undefined {
     try {
-      return this.getWitnessArgsAtUnsafe(index);
+      return this.getWitnessArgsUnsafe(index);
     } catch (_) {
       return undefined;
     }
   }
 
   /**
-   * Get witness at index as WitnessArgs, throw if failed to decode
+   * Gets the witness at an index as `WitnessArgs`, throwing if decoding fails.
    *
    * @param index - The index of the witness.
    * @returns The witness parsed as WitnessArgs.
+   * @throws If the witness cannot be decoded as `WitnessArgs`.
+   *
+   * @example
+   * ```typescript
+   * const witnessArgs = tx.getWitnessArgsUnsafe(0);
+   * ```
    */
-  getWitnessArgsAtUnsafe(index: NumLike): WitnessArgs | undefined {
+  getWitnessArgsUnsafe(index: NumLike): WitnessArgs | undefined {
     const rawWitness = this.getWitness(index);
     return rawWitness && rawWitness !== "0x"
       ? WitnessArgs.fromBytes(rawWitness)
@@ -1967,23 +1987,34 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
-   * Set witness at index by WitnessArgs
+   * Sets a witness at an index from `WitnessArgs`.
    *
    * @param index - The index of the witness.
-   * @param witness - The WitnessArgs to set.
+   * @param witnessLike - The WitnessArgs-like value to set.
+   * @throws If `index` is not a valid array index.
+   *
+   * @example
+   * ```typescript
+   * tx.setWitnessArgs(0, witnessArgs);
+   * ```
    */
-  setWitnessArgsAt(index: number, witness: WitnessArgs): void {
-    this.setWitnessAt(index, witness.toBytes());
+  setWitnessArgs(index: number, witnessLike: WitnessArgsLike): void {
+    this.setWitness(index, WitnessArgs.from(witnessLike).toBytes());
   }
 
   /**
-   * Set witness at index
+   * Sets a witness at an index, filling any skipped positions with empty witnesses.
    *
    * @param index - The index of the witness.
    * @param witness - The witness to set.
    * @throws If `index` is not a valid array index.
+   *
+   * @example
+   * ```typescript
+   * tx.setWitness(0, witness);
+   * ```
    */
-  setWitnessAt(index: number, witness: HexLike): void {
+  setWitness(index: number, witness: HexLike): void {
     const i = transactionIndexOrThrow(index);
 
     if (this.witnesses.length < i) {
@@ -1993,6 +2024,42 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     }
 
     this.witnesses[i] = hexFrom(witness);
+  }
+
+  /**
+   * Gets the witness at an index as `WitnessArgs`.
+   *
+   * @deprecated Use {@link getWitnessArgs} instead.
+   */
+  getWitnessArgsAt(index: NumLike): WitnessArgs | undefined {
+    return this.getWitnessArgs(index);
+  }
+
+  /**
+   * Gets the witness at an index as `WitnessArgs`, throwing if decoding fails.
+   *
+   * @deprecated Use {@link getWitnessArgsUnsafe} instead.
+   */
+  getWitnessArgsAtUnsafe(index: NumLike): WitnessArgs | undefined {
+    return this.getWitnessArgsUnsafe(index);
+  }
+
+  /**
+   * Sets a witness at an index from `WitnessArgs`.
+   *
+   * @deprecated Use {@link setWitnessArgs} instead.
+   */
+  setWitnessArgsAt(index: number, witnessLike: WitnessArgsLike): void {
+    this.setWitnessArgs(index, witnessLike);
+  }
+
+  /**
+   * Sets a witness at an index.
+   *
+   * @deprecated Use {@link setWitness} instead.
+   */
+  setWitnessAt(index: number, witness: HexLike): void {
+    this.setWitness(index, witness);
   }
 
   /**
@@ -2018,9 +2085,9 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       return;
     }
 
-    const witness = this.getWitnessArgsAt(position) ?? WitnessArgs.from({});
+    const witness = this.getWitnessArgs(position) ?? WitnessArgs.from({});
     witness.lock = hexFrom(Array.from(new Array(lockLen), () => 0));
-    this.setWitnessArgsAt(position, witness);
+    this.setWitnessArgs(position, witness);
   }
 
   async getInputsCapacityExtra(client: Client): Promise<Num> {
