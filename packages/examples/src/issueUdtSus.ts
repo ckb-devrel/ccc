@@ -178,7 +178,8 @@ class XudtSusIssuer {
     ownerLock: ccc.Script;
     metadata: IssueXudtSusParams;
   }): Promise<{ mintTxHash: ccc.Hex; typeScriptHash: ccc.Hex }> {
-    const { sealTxHash, ownerTxHash, singleUseLock, ownerLock, metadata } = args;
+    const { sealTxHash, ownerTxHash, singleUseLock, ownerLock, metadata } =
+      args;
     const { decimals, symbol, name, totalSupply } = metadata;
 
     const xudtType = await ccc.Script.fromKnownScript(
@@ -219,7 +220,9 @@ class XudtSusIssuer {
     // UniqueType's args must be a TypeId derived from the first input + output
     // index, which is only known once inputs are finalized above.
     if (!tx.outputs[1].type) {
-      throw new Error("UniqueType output unexpectedly missing before TypeId patch");
+      throw new Error(
+        "UniqueType output unexpectedly missing before TypeId patch",
+      );
     }
     tx.outputs[1].type.args = ccc.hexFrom(
       ccc.bytesFrom(ccc.hashTypeId(tx.inputs[0], 1)).slice(0, 20),
