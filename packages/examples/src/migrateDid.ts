@@ -49,7 +49,7 @@ const witness = ccc.didCkb.buildMigrationWitness({
   rotationKeyIndex,
   rotationPrivateKey,
 });
-tx.setWitnessArgsAt(0, ccc.WitnessArgs.from({ outputType: witness.toBytes() }));
+tx.setWitnessArgs(0, ccc.WitnessArgs.from({ outputType: witness.toBytes() }));
 
 const txHash = await signer.sendTransaction(tx);
 console.log(`Migration tx ${txHash} sent`);

@@ -209,7 +209,7 @@ export abstract class SignerEvm extends Signer {
       ),
     );
 
-    tx.setWitnessArgsAt(info.position, witness);
+    tx.setWitnessArgs(info.position, witness);
 
     return tx;
   }
@@ -231,7 +231,7 @@ export abstract class SignerEvm extends Signer {
 
     const witness = WitnessArgs.fromBytes(tx.witnesses[info.position]);
     witness.lock = hexFrom(info.signature);
-    tx.setWitnessArgsAt(info.position, witness);
+    tx.setWitnessArgs(info.position, witness);
 
     return tx;
   }

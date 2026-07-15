@@ -44,10 +44,9 @@ export class SignerCkbPrivateKey extends SignerCkbPublicKey {
 
       const signature = await this._signMessage(info.message);
 
-      const witness =
-        tx.getWitnessArgsAt(info.position) ?? WitnessArgs.from({});
+      const witness = tx.getWitnessArgs(info.position) ?? WitnessArgs.from({});
       witness.lock = signature;
-      tx.setWitnessArgsAt(info.position, witness);
+      tx.setWitnessArgs(info.position, witness);
     }
 
     return tx;
