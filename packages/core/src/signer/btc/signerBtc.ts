@@ -136,7 +136,7 @@ export abstract class SignerBtc extends Signer {
       ),
     );
 
-    tx.setWitnessArgsAt(info.position, witness);
+    tx.setWitnessArgs(info.position, witness);
     return tx;
   }
 

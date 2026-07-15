@@ -190,10 +190,10 @@ export class CkbSigner extends ccc.Signer {
       return tx;
     }
 
-    const witness = tx.getWitnessArgsAt(position) ?? ccc.WitnessArgs.from({});
+    const witness = tx.getWitnessArgs(position) ?? ccc.WitnessArgs.from({});
     witness.lock = ccc.hexFrom("00".repeat(1000));
     await this.prepareTransactionForSubKey(tx, witness);
-    tx.setWitnessArgsAt(position, witness);
+    tx.setWitnessArgs(position, witness);
 
     return tx;
   }

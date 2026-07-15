@@ -204,7 +204,7 @@ export function injectCobuild(
   tx: ccc.Transaction,
   actions: ccc.EncodableType<typeof ActionVec>,
 ): void {
-  tx.setWitnessAt(
+  tx.setWitness(
     Math.max(tx.witnesses.length, tx.inputs.length),
     WitnessLayout.encode({
       type: "SighashAll",
