@@ -49,7 +49,7 @@ CKB uses the **Cell model** — a generalized UTXO model. This is the #1 source 
 | React/Next.js dApp | `@ckb-ccc/connector-react` | `import { ccc } from "@ckb-ccc/connector-react"` |
 | Node.js backend / scripts | `@ckb-ccc/shell` | `import { ccc } from "@ckb-ccc/shell"` |
 | Custom wallet UI (non-React) | `@ckb-ccc/ccc` | `import { ccc } from "@ckb-ccc/ccc"` |
-| Framework-agnostic Web Component | `@ckb-ccc/connector` | Web Component `<ccc-connector>` |
+| Framework-agnostic Web Component | `@ckb-ccc/connector` | `import { ccc } from "@ckb-ccc/connector"` |
 | Library authoring (minimal deps) | `@ckb-ccc/core` | `import { ccc } from "@ckb-ccc/core"` |
 
 **Rule**: `@ckb-ccc/shell` and `@ckb-ccc/connector-react` already re-export everything from `@ckb-ccc/core` — do not install core separately unless authoring a library.
