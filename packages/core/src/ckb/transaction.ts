@@ -32,6 +32,30 @@ import {
 } from "./transactionErrors.js";
 import type { LumosTransactionSkeletonType } from "./transactionLumos.js";
 
+const MAX_ARRAY_INDEX = 2n ** 32n - 2n;
+
+function transactionIndexFrom(index: NumLike): number | undefined {
+  try {
+    const value = numFrom(index);
+    if (value < 0n || value > MAX_ARRAY_INDEX) {
+      return;
+    }
+    return Number(value);
+  } catch (_) {
+    return;
+  }
+}
+
+function transactionIndexOrThrow(index: number): number {
+  const value = transactionIndexFrom(index);
+  if (value === undefined) {
+    throw new Error(
+      `Index ${index} must be a valid array index between 0 and ${MAX_ARRAY_INDEX}`,
+    );
+  }
+  return value;
+}
+
 export const DepTypeCodec: Codec<DepTypeLike, DepType> = Codec.from({
   byteLength: 1,
   encode: depTypeToBytes,
@@ -1620,10 +1644,11 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
-   * Set output data at index.
+   * Sets output data at an index, filling any skipped positions with empty data.
    *
    * @param index - The index of the output data.
    * @param data - The data to set.
+   * @throws If `index` is invalid or does not identify an existing output.
    *
    * @example
    * ```typescript
@@ -1631,30 +1656,54 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * ```
    */
   setOutputDataAt(index: number, data: HexLike): void {
-    if (this.outputsData.length < index) {
-      this.outputsData.push(
-        ...Array.from(
-          new Array(index - this.outputsData.length),
-          (): Hex => "0x",
-        ),
+    const i = transactionIndexOrThrow(index);
+    if (i >= this.outputs.length) {
+      throw new Error(
+        `Index ${index} is out of bounds for outputs of length ${this.outputs.length}`,
       );
     }
 
-    this.outputsData[index] = hexFrom(data);
+    if (this.outputsData.length < i) {
+      this.outputsData.push(
+        ...Array.from(new Array(i - this.outputsData.length), (): Hex => "0x"),
+      );
+    }
+
+    this.outputsData[i] = hexFrom(data);
   }
 
   /**
-   * get input
+   * Gets the data associated with an output.
    *
-   * @param index - The cell input index
+   * @param index - The output index.
+   * @returns The output data, or `undefined` if the index is invalid or out of bounds.
    *
    * @example
    * ```typescript
-   * await tx.getInput(0);
+   * const data = tx.getOutputData(0);
+   * ```
+   */
+  getOutputData(index: NumLike): Hex | undefined {
+    const i = transactionIndexFrom(index);
+    return i !== undefined && i < this.outputs.length
+      ? (this.outputsData[i] ?? "0x")
+      : undefined;
+  }
+
+  /**
+   * Gets an input.
+   *
+   * @param index - The cell input index.
+   * @returns The input, or `undefined` if the index is invalid or out of bounds.
+   *
+   * @example
+   * ```typescript
+   * tx.getInput(0);
    * ```
    */
   getInput(index: NumLike): CellInput | undefined {
-    return this.inputs[Number(numFrom(index))];
+    const i = transactionIndexFrom(index);
+    return i === undefined ? undefined : this.inputs[i];
   }
   /**
    * add input
@@ -1675,18 +1724,19 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
-   * get output
+   * Gets an output cell together with its data.
    *
-   * @param index - The cell output index
+   * @param index - The cell output index.
+   * @returns The output cell, or `undefined` if the index is invalid or out of bounds.
    *
    * @example
    * ```typescript
-   * await tx.getOutput(0);
+   * tx.getOutput(0);
    * ```
    */
   getOutput(index: NumLike): CellAny | undefined {
-    const i = Number(numFrom(index));
-    if (i >= this.outputs.length) {
+    const i = transactionIndexFrom(index);
+    if (i === undefined || i >= this.outputs.length) {
       return;
     }
     return CellAny.from({
@@ -1775,17 +1825,127 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
+   * Sets or appends an output cell.
+   *
+   * An index equal to the current output count appends the cell. Existing
+   * outputs are replaced together with their corresponding output data.
+   *
+   * @param index - The output index to set, from zero through the current output count.
+   * @param cellLike - A cell-like object containing both the output and its data.
+   * @throws If `index` is not a valid array index or is greater than the output count.
+   *
+   * @example
+   * ```typescript
+   * tx.setOutput(0, {
+   *   cellOutput: { lock: recipientLock },
+   *   outputData: "0x1234",
+   * });
+   * ```
+   */
+  setOutput(index: number, cellLike: CellAnyLike): void;
+
+  /**
+   * Sets or appends an output and its data.
+   *
+   * @param index - The output index to set, from zero through the current output count.
+   * @param outputLike - The cell output to set.
+   * @param outputDataLike - The output data, defaulting to `"0x"`.
+   * @throws If `index` is not a valid array index or is greater than the output count.
+   *
+   * @example
+   * ```typescript
+   * tx.setOutput(0, { lock: recipientLock }, "0x1234");
+   * ```
+   */
+  setOutput(
+    index: number,
+    outputLike: CellOutputLike,
+    outputDataLike?: HexLike | null,
+  ): void;
+  setOutput(
+    index: number,
+    cellOrOutputLike: CellAnyLike | CellOutputLike,
+    outputDataLike?: HexLike | null,
+  ): void {
+    const i = transactionIndexOrThrow(index);
+    if (i > this.outputs.length) {
+      throw new Error(
+        `Index ${index} is out of bounds for outputs of length ${this.outputs.length}`,
+      );
+    }
+
+    const cell =
+      "cellOutput" in cellOrOutputLike
+        ? CellAny.from(cellOrOutputLike)
+        : CellAny.from({
+            cellOutput: cellOrOutputLike,
+            outputData: outputDataLike,
+          });
+
+    if (i === this.outputs.length) {
+      this.addOutput(cell);
+    } else {
+      this.outputs[i] = cell.cellOutput;
+      this.setOutputDataAt(i, cell.outputData);
+    }
+  }
+
+  /**
+   * Sets or appends an input.
+   *
+   * An index equal to the current input count appends the input using
+   * {@link addInput}, preserving witness alignment. An existing index replaces
+   * only that input.
+   *
+   * @param index - The input index to set, from zero through the current input count.
+   * @param inputLike - The cell input to set.
+   * @throws If `index` is not a valid array index or is greater than the input count.
+   *
+   * @example
+   * ```typescript
+   * tx.setInput(0, {
+   *   previousOutput: { txHash: "0x...", index: 0 },
+   * });
+   * ```
+   */
+  setInput(index: number, inputLike: CellInputLike): void {
+    const i = transactionIndexOrThrow(index);
+    if (i > this.inputs.length) {
+      throw new Error(
+        `Index ${index} is out of bounds for inputs of length ${this.inputs.length}`,
+      );
+    }
+
+    if (i === this.inputs.length) {
+      this.addInput(inputLike);
+    } else {
+      this.inputs[i] = CellInput.from(inputLike);
+    }
+  }
+
+  /**
+   * Gets a raw witness.
+   *
+   * @param index - The witness index.
+   * @returns The witness, or `undefined` if the index is invalid or out of bounds.
+   *
+   * @example
+   * ```typescript
+   * const witness = tx.getWitness(0);
+   * ```
+   */
+  getWitness(index: NumLike): Hex | undefined {
+    const i = transactionIndexFrom(index);
+    return i === undefined ? undefined : this.witnesses[i];
+  }
+
+  /**
    * Get witness at index as WitnessArgs
    *
    * @param index - The index of the witness.
    * @returns The witness parsed as WitnessArgs.
-   *
-   * @example
-   * ```typescript
-   * const witnessArgs = tx.getWitnessArgsAt(0);
-   * ```
    */
-  getWitnessArgsAt(index: number): WitnessArgs | undefined {
+  getWitnessArgsAt(index: NumLike): WitnessArgs | undefined {
     try {
       return this.getWitnessArgsAtUnsafe(index);
     } catch (_) {
@@ -1798,15 +1958,10 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @param index - The index of the witness.
    * @returns The witness parsed as WitnessArgs.
-   *
-   * @example
-   * ```typescript
-   * const witnessArgs = tx.getWitnessArgsAtUnsafe(0);
-   * ```
    */
-  getWitnessArgsAtUnsafe(index: number): WitnessArgs | undefined {
-    const rawWitness = this.witnesses[index];
-    return (rawWitness ?? "0x") !== "0x"
+  getWitnessArgsAtUnsafe(index: NumLike): WitnessArgs | undefined {
+    const rawWitness = this.getWitness(index);
+    return rawWitness && rawWitness !== "0x"
       ? WitnessArgs.fromBytes(rawWitness)
       : undefined;
   }
@@ -1816,11 +1971,6 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @param index - The index of the witness.
    * @param witness - The WitnessArgs to set.
-   *
-   * @example
-   * ```typescript
-   * await tx.setWitnessArgsAt(0, witnessArgs);
-   * ```
    */
   setWitnessArgsAt(index: number, witness: WitnessArgs): void {
     this.setWitnessAt(index, witness.toBytes());
@@ -1831,23 +1981,18 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    *
    * @param index - The index of the witness.
    * @param witness - The witness to set.
-   *
-   * @example
-   * ```typescript
-   * await tx.setWitnessAt(0, witness);
-   * ```
+   * @throws If `index` is not a valid array index.
    */
   setWitnessAt(index: number, witness: HexLike): void {
-    if (this.witnesses.length < index) {
+    const i = transactionIndexOrThrow(index);
+
+    if (this.witnesses.length < i) {
       this.witnesses.push(
-        ...Array.from(
-          new Array(index - this.witnesses.length),
-          (): Hex => "0x",
-        ),
+        ...Array.from(new Array(i - this.witnesses.length), (): Hex => "0x"),
       );
     }
 
-    this.witnesses[index] = hexFrom(witness);
+    this.witnesses[i] = hexFrom(witness);
   }
 
   /**
