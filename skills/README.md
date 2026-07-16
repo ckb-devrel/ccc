@@ -14,7 +14,7 @@ Both paths mean **anyone with an existing install only sees your changes after t
    - **patch** (`1.0.0` → `1.0.1`): wording/clarity fixes, no behavior change.
    - **minor** (`1.0.0` → `1.1.0`): new guidance added, existing guidance unchanged.
    - **major** (`1.0.0` → `2.0.0`): a previous instruction was wrong and is being corrected/reversed — this is the case most worth calling out in the PR description, since an agent that already loaded the old version may be acting on bad guidance.
-2. **Keep `docs.ckbccc.com/skill.md`'s skill table in sync** if you add, remove, or rename a skill, or change its `role`/`dependsOn` — it's maintained by hand in `packages/docs/app/skill.md/route.ts`, not generated from this directory.
+2. **Keep `docs.ckbccc.com/skill.md`'s skill table in sync** if you add, remove, or rename a skill, or change its `role`/`depends-on` — it's maintained by hand in `packages/docs/app/skill.md/route.ts`, not generated from this directory.
 3. **Don't rely on `npx skills update` alone to signal urgency.** It's a pull-based content-hash diff, not a version check, and has known reliability gaps (e.g. [vercel-labs/skills#484](https://github.com/vercel-labs/skills/issues/484) — sometimes reports "up to date" when the remote has changed). For a correction significant enough that stale guidance would actively mislead an agent (a major bump), call it out in the PR/release notes so it's not silently missed.
 
 ## Verifying a change

@@ -1,3 +1,5 @@
+// Example: Issue an xUDT token using the Single-Use-Seal (SUS) pattern.
+
 import { ccc } from "@ckb-ccc/ccc";
 import { signer } from "@ckb-ccc/playground";
 
