@@ -26,7 +26,8 @@
     "typedoc-material-theme": "^1.4.1",
     "typedoc-plugin-extras": "^4.0.1",
     "typedoc-plugin-ga": "^1.1.1",
-    "typescript": "^7.0.2",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^4.1.9"
   },
   "packageManager": "pnpm@11.8.0"
