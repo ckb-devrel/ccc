@@ -136,7 +136,7 @@ export abstract class SignerNostr extends Signer {
 
     const witness = WitnessArgs.fromBytes(tx.witnesses[info.position]);
     witness.lock = hexFrom(signedEvent);
-    tx.setWitnessArgsAt(info.position, witness);
+    tx.setWitnessArgs(info.position, witness);
 
     return tx;
   }

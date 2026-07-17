@@ -19,14 +19,15 @@
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
     "@types/jest": "^30.0.0",
-    "@vitest/coverage-v8": "4.1.9",
+    "@vitest/coverage-v8": "4.1.10",
     "jest": "30.4.2",
     "ts-jest": "^29.4.11",
-    "typedoc": "0.28.19",
+    "typedoc": "0.28.20",
     "typedoc-material-theme": "^1.4.1",
     "typedoc-plugin-extras": "^4.0.1",
     "typedoc-plugin-ga": "^1.1.1",
-    "typescript": "^6.0.3",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^4.1.9"
   },
   "packageManager": "pnpm@11.8.0"

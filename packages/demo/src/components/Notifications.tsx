@@ -11,6 +11,7 @@ export function Notifications({ messages }: NotificationProps) {
   const [shownMsgCount, setShownMsgCount] = useState(0);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setShownMsgCount(messages.length);
     const newMsgCount = messages.length - shownMsgCount;
     if (newMsgCount <= 0) {

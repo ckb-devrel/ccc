@@ -171,7 +171,7 @@ export async function prepareSporeTransaction(
 
 export function unpackCommonCobuildProof(
   data: ccc.HexLike,
-): ccc.EncodableType<typeof WitnessLayout> | undefined {
+): ccc.DecodedType<typeof WitnessLayout> | undefined {
   try {
     return WitnessLayout.decode(ccc.bytesFrom(data));
   } catch {
@@ -181,7 +181,7 @@ export function unpackCommonCobuildProof(
 
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
-): ccc.EncodableType<typeof ActionVec> {
+): ccc.DecodedType<typeof ActionVec> {
   if (tx.witnesses.length === 0) {
     return [];
   }
@@ -204,7 +204,7 @@ export function injectCobuild(
   tx: ccc.Transaction,
   actions: ccc.EncodableType<typeof ActionVec>,
 ): void {
-  tx.setWitnessAt(
+  tx.setWitness(
     Math.max(tx.witnesses.length, tx.inputs.length),
     WitnessLayout.encode({
       type: "SighashAll",

@@ -426,7 +426,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
   ): MultisigCkbWitness | undefined {
     const tx = Transaction.from(txLike);
 
-    return this.decodeWitnessArgs(tx.getWitnessArgsAt(index));
+    return this.decodeWitnessArgs(tx.getWitnessArgs(index));
   }
 
   /**
@@ -482,7 +482,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
   ): Promise<Transaction> {
     const tx = Transaction.from(txLike);
 
-    const witnessArgs = tx.getWitnessArgsAt(index) ?? WitnessArgs.from({});
+    const witnessArgs = tx.getWitnessArgs(index) ?? WitnessArgs.from({});
     const multisigWitness =
       this.decodeWitnessArgs(witnessArgs) ?? this.multisigInfo.clone();
 
@@ -502,7 +502,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     );
 
     witnessArgs.lock = transformed.toHex();
-    tx.setWitnessArgsAt(index, witnessArgs);
+    tx.setWitnessArgs(index, witnessArgs);
 
     return tx;
   }
@@ -625,7 +625,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     }
 
     // === Replace the witness with a dummy one ===
-    const witness = tx.getWitnessArgsAt(position) ?? WitnessArgs.from({});
+    const witness = tx.getWitnessArgs(position) ?? WitnessArgs.from({});
     witness.lock = MultisigCkbWitness.from({
       ...this.multisigInfo,
       signatures: Array.from(
@@ -635,7 +635,7 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
     }).toHex();
 
     const clonedTx = tx.clone();
-    clonedTx.setWitnessArgsAt(position, witness);
+    clonedTx.setWitnessArgs(position, witness);
     // === Replace the witness with a dummy one ===
 
     return clonedTx.getSignHashInfo(script, this.client);

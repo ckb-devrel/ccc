@@ -13,6 +13,7 @@ import { Num, NumLike, numFrom, numToHex } from "../../num/index.js";
 import { apply } from "../../utils/index.js";
 import { ClientCache } from "../cache/index.js";
 import { Client } from "../client.js";
+import { DEFAULT_MIN_FEE_RATE } from "../clientTypes.advanced.js";
 import {
   ClientFindCellsResponse,
   ClientIndexerSearchKeyLike,
@@ -131,9 +132,12 @@ export abstract class ClientJsonRpc extends Client {
   getFeeRateStatistics = this.buildSender(
     "get_fee_rate_statistics",
     [(n: NumLike) => apply(numFrom, n)],
-    ({ mean, median }: { mean: NumLike; median: NumLike }) => ({
-      mean: numFrom(mean),
-      median: numFrom(median),
+    // TODO: This is a temporary workaround for the fact that the node may return null for fee rate statistics.
+    // We should change the method signature to return null instead of falling back to the default value,
+    // but this would be a breaking change.
+    (res: { mean: NumLike; median: NumLike } | null) => ({
+      mean: numFrom(res?.mean ?? DEFAULT_MIN_FEE_RATE),
+      median: numFrom(res?.median ?? DEFAULT_MIN_FEE_RATE),
     }),
   ) as Client["getFeeRateStatistics"];
 

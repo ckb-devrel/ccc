@@ -51,6 +51,7 @@ export default function Mnemonic() {
   }, [countStr, mnemonic]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAccount([]);
     if (isValid) {
       moreAccounts();
@@ -150,7 +151,7 @@ export default function Mnemonic() {
                 encodeURIComponent(`${path}, ${address}, ${privateKey}`),
               )
               .join("\n")}`}
-            download={`ckb_accounts_${Date.now()}.csv`}
+            download="ckb_accounts.csv"
           >
             Save as CSV
           </Button>

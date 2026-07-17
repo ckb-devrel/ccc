@@ -110,7 +110,7 @@ export abstract class SignerDoge extends Signer {
       ),
     );
 
-    tx.setWitnessArgsAt(info.position, witness);
+    tx.setWitnessArgs(info.position, witness);
     return tx;
   }
 }

@@ -192,15 +192,7 @@ export default function Home() {
   const [tab, setTab] = useState("Console");
   const [highlight, setHighlight] = useState<number[] | undefined>(undefined);
 
-  const [isTestnet, setIsTestnet] = useState(true);
-  useEffect(() => {
-    setIsTestnet(client.addressPrefix !== "ckb");
-  }, [client]);
-  useEffect(() => {
-    setClient(
-      isTestnet ? new ccc.ClientPublicTestnet() : new ccc.ClientPublicMainnet(),
-    );
-  }, [isTestnet, setClient]);
+  const isTestnet = client.addressPrefix !== "ckb";
 
   const runCode = useCallback(
     async (autoPlay: boolean) => {
@@ -246,6 +238,7 @@ export default function Home() {
     if (src == null) {
       const source = window.localStorage.getItem("playgroundSourceCode");
       if (source) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSource(source);
       }
       return;
@@ -296,7 +289,15 @@ export default function Home() {
           highlight={highlight}
         />
         <div className="flex shrink-0 overflow-x-auto bg-gray-800">
-          <Button onClick={() => setIsTestnet(!isTestnet)}>
+          <Button
+            onClick={() =>
+              setClient(
+                isTestnet
+                  ? new ccc.ClientPublicMainnet()
+                  : new ccc.ClientPublicTestnet(),
+              )
+            }
+          >
             {isTestnet ? (
               <FlaskConical size="16" />
             ) : (

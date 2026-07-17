@@ -1,5 +1,35 @@
 # @ckb-ccc/core
 
+## 1.17.0
+### Minor Changes
+
+
+
+- [#430](https://github.com/ckb-devrel/ccc/pull/430) [`eb806a1`](https://github.com/ckb-devrel/ccc/commit/eb806a171356a35200fccb46667da5574b350609) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): UnionMatchHandlers
+
+
+
+- [#432](https://github.com/ckb-devrel/ccc/pull/432) [`235676f`](https://github.com/ckb-devrel/ccc/commit/235676f5a7edb0ed95a0909bf530767e35952ffa) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): union codec accepts BaseUnion
+
+
+
+- [#438](https://github.com/ckb-devrel/ccc/pull/438) [`a85cb75`](https://github.com/ckb-devrel/ccc/commit/a85cb75134bbb81af0587aa78e1105f890f3b203) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add indexed transaction accessors
+
+
+
+- [#438](https://github.com/ckb-devrel/ccc/pull/438) [`4c96c9a`](https://github.com/ckb-devrel/ccc/commit/4c96c9ada3a2a626fdd976caff55356c58aa59de) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): deprecate transaction At methods
+
+
+### Patch Changes
+
+
+
+- [#437](https://github.com/ckb-devrel/ccc/pull/437) [`4cd2517`](https://github.com/ckb-devrel/ccc/commit/4cd25172b3ce89c219a0536393a62667df7edf9d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `getFeeRateStatistics` throws when the response is `null`
+
+
+
+- [#438](https://github.com/ckb-devrel/ccc/pull/438) [`a80ca8d`](https://github.com/ckb-devrel/ccc/commit/a80ca8dee79a97b034ff430d148eb3db896690eb) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor: migrate deprecated transaction methods
+
 ## 1.16.1
 ### Patch Changes
 

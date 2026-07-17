@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/did-ckb",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "CCC - CKBer's Codebase. CCC's support for DID on CKB",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -43,7 +43,8 @@
     "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
     "tsdown": "^0.22.3",
-    "typescript": "^6.0.3",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.61.1",
     "vitest": "^4.1.9"
   },

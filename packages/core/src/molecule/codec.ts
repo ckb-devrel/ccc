@@ -11,7 +11,7 @@ import {
   CodecLike,
   DecodedType,
   EncodableType,
-} from "../codec/index.js";
+} from "../codec/codec.js";
 import { numFromBytes, NumLike, numToBytes } from "../num/index.js";
 
 export {
@@ -383,7 +383,7 @@ export function table<
   });
 }
 
-type UnionEncodable<
+export type UnionEncodable<
   T extends Record<string, CodecLike<any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
@@ -392,7 +392,7 @@ type UnionEncodable<
       value: EncodableType<T[K]>;
     }
   : never;
-type UnionDecoded<
+export type UnionDecoded<
   T extends Record<string, CodecLike<any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
@@ -401,6 +401,15 @@ type UnionDecoded<
       value: DecodedType<T[K]>;
     }
   : never;
+
+export type UnionMatchHandlers<
+  CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+  Result,
+> = {
+  [T in DecodedType<CodecType>["type"]]: (
+    value: Extract<DecodedType<CodecType>, { type: T }>["value"],
+  ) => Result;
+};
 
 /**
  * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
@@ -439,7 +448,7 @@ type UnionDecoded<
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
-): Codec<UnionEncodable<T>, UnionDecoded<T>> {
+): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
   const entries = Object.entries(codecLayout);
 
   // Determine if all variants have a fixed and equal byteLength.
@@ -455,9 +464,20 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
     }
   }
 
+  function extract(
+    encodable: UnionEncodable<T> | { inner: UnionEncodable<T> },
+  ): UnionEncodable<T> {
+    if ("type" in encodable && "value" in encodable) {
+      return encodable;
+    }
+
+    return encodable.inner;
+  }
+
   return Codec.from({
     byteLength,
-    encode({ type, value }) {
+    encode(encodable) {
+      const { type, value } = extract(encodable);
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
       if (!codec) {

@@ -1,5 +1,19 @@
 # @ckb-ccc/ccc
 
+## 1.2.4
+### Patch Changes
+
+- Updated dependencies [[`a80ca8d`](https://github.com/ckb-devrel/ccc/commit/a80ca8dee79a97b034ff430d148eb3db896690eb)]:
+  - @ckb-ccc/joy-id@1.1.4
+  - @ckb-ccc/eip6963@1.1.4
+  - @ckb-ccc/nip07@1.1.4
+  - @ckb-ccc/okx@1.1.4
+  - @ckb-ccc/rei@1.1.4
+  - @ckb-ccc/shell@1.3.4
+  - @ckb-ccc/uni-sat@1.1.4
+  - @ckb-ccc/utxo-global@1.1.4
+  - @ckb-ccc/xverse@1.1.4
+
 ## 1.2.3
 ### Patch Changes
 

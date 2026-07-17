@@ -59,7 +59,7 @@ const witness = ccc.didCkb.DidCkbWitness.from({
     sig: plcSign(rotationKey, tx.hash()),
   },
 });
-tx.setWitnessArgsAt(0, ccc.WitnessArgs.from({ outputType: witness.toBytes() }));
+tx.setWitnessArgs(0, ccc.WitnessArgs.from({ outputType: witness.toBytes() }));
 
 // Sign and send the transaction
 const txHash = await signer.sendTransaction(tx);
