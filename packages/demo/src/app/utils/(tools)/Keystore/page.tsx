@@ -46,12 +46,14 @@ export default function Keystore() {
     ]);
   }, [hdKey, countStr]);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAccount([]);
     moreAccounts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hdKey]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAccount([]);
     setHdKey(undefined);
   }, [keystore, password]);
@@ -140,7 +142,7 @@ export default function Keystore() {
                 encodeURIComponent(`${path}, ${address}, ${privateKey}`),
               )
               .join("\n")}`}
-            download={`ckb_accounts_${Date.now()}.csv`}
+            download="ckb_accounts.csv"
           >
             Save as CSV
           </Button>

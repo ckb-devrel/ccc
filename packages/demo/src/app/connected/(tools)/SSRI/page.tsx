@@ -118,6 +118,7 @@ export default function SSRI() {
 
   useEffect(() => {
     if (contractOutPointTx == "" && contractOutPointIndex == "0") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       getOutPointFromTypeIDArgs();
     }
   }, [

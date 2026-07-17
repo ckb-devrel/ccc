@@ -40,7 +40,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'issue_comment' && steps.get_pr_head_sha.outputs.sha || github.ref }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
       - uses: pnpm/action-setup@v6
@@ -51,7 +51,7 @@ jobs:
         run: pnpm build
 
       - name: Version changesets
-        run: pnpm dlx @changesets/cli@2.31.0 version --snapshot canary
+        run: pnpm dlx @changesets/cli@2.31.0 pre exit ; pnpm dlx @changesets/cli@2.31.0 version --snapshot canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

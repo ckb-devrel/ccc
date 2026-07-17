@@ -1,5 +1,12 @@
 # @ckb-ccc/udt
 
+## 0.2.4
+### Patch Changes
+
+- Updated dependencies [[`eb806a1`](https://github.com/ckb-devrel/ccc/commit/eb806a171356a35200fccb46667da5574b350609), [`4cd2517`](https://github.com/ckb-devrel/ccc/commit/4cd25172b3ce89c219a0536393a62667df7edf9d), [`235676f`](https://github.com/ckb-devrel/ccc/commit/235676f5a7edb0ed95a0909bf530767e35952ffa), [`a85cb75`](https://github.com/ckb-devrel/ccc/commit/a85cb75134bbb81af0587aa78e1105f890f3b203), [`4c96c9a`](https://github.com/ckb-devrel/ccc/commit/4c96c9ada3a2a626fdd976caff55356c58aa59de), [`a80ca8d`](https://github.com/ckb-devrel/ccc/commit/a80ca8dee79a97b034ff430d148eb3db896690eb)]:
+  - @ckb-ccc/core@1.17.0
+  - @ckb-ccc/ssri@0.3.4
+
 ## 0.2.3
 ### Patch Changes
 

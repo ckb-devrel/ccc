@@ -24,6 +24,124 @@ beforeEach(async () => {
 });
 
 describe("Transaction", () => {
+  describe("indexed setters", () => {
+    const input = (suffix: string, index = 0): ccc.CellInputLike => ({
+      previousOutput: {
+        txHash: `0x${"0".repeat(64 - suffix.length)}${suffix}`,
+        index,
+      },
+    });
+
+    it("sets output data and fills skipped positions with empty data", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock }, { lock }, { lock }],
+      });
+      tx.outputsData = [];
+
+      tx.setOutputData(2, "0x1234");
+
+      expect(tx.outputsData).toEqual(["0x", "0x", "0x1234"]);
+      expect(tx.getOutputData(2)).toBe("0x1234");
+    });
+
+    it("replaces an output and its data", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock }],
+        outputsData: ["0x12"],
+      });
+
+      tx.setOutput(0, {
+        cellOutput: { lock, type },
+        outputData: "0x3456",
+      });
+
+      expect(tx.outputs).toHaveLength(1);
+      expect(tx.outputs[0].type?.eq(type)).toBe(true);
+      expect(tx.outputsData).toEqual(["0x3456"]);
+    });
+
+    it("appends an output when index equals the output count", () => {
+      const tx = ccc.Transaction.default();
+
+      tx.setOutput(0, { lock }, "0xab");
+
+      expect(tx.outputs).toHaveLength(1);
+      expect(tx.outputsData).toEqual(["0xab"]);
+    });
+
+    it("replaces an input without changing witnesses", () => {
+      const tx = ccc.Transaction.from({
+        inputs: [input("1")],
+        witnesses: ["0xaa"],
+      });
+
+      tx.setInput(0, input("2", 1));
+
+      expect(tx.inputs).toHaveLength(1);
+      expect(tx.inputs[0].previousOutput.txHash).toBe(`0x${"0".repeat(63)}2`);
+      expect(tx.inputs[0].previousOutput.index).toBe(1n);
+      expect(tx.witnesses).toEqual(["0xaa"]);
+    });
+
+    it("appends an input while preserving witness alignment", () => {
+      const tx = ccc.Transaction.from({
+        inputs: [input("1")],
+        witnesses: ["0xaa", "0xbb"],
+      });
+
+      tx.setInput(1, input("2"));
+
+      expect(tx.inputs).toHaveLength(2);
+      expect(tx.witnesses).toEqual(["0xaa", "0x", "0xbb"]);
+    });
+
+    it("sets and gets witness args without At suffixes", () => {
+      const tx = ccc.Transaction.default();
+
+      tx.setWitnessArgs(1, { lock: "0x1234" });
+
+      expect(tx.getWitness(0)).toBe("0x");
+      expect(tx.getWitness(1)).not.toBe("0x");
+      expect(tx.getWitnessArgs(1)?.lock).toBe("0x1234");
+      expect(tx.getWitnessArgsUnsafe(1)?.lock).toBe("0x1234");
+    });
+
+    it.each([-1, 0.5, NaN, 2 ** 32 - 1, Number.MAX_SAFE_INTEGER + 1])(
+      "returns undefined from getters for invalid index %s",
+      (index) => {
+        const tx = ccc.Transaction.default();
+
+        expect(tx.getInput(index)).toBeUndefined();
+        expect(tx.getOutput(index)).toBeUndefined();
+        expect(tx.getOutputData(index)).toBeUndefined();
+        expect(tx.getWitness(index)).toBeUndefined();
+        expect(tx.getWitnessArgs(index)).toBeUndefined();
+        expect(tx.getWitnessArgsUnsafe(index)).toBeUndefined();
+      },
+    );
+
+    it.each([
+      ["setOutput", (tx: ccc.Transaction) => tx.setOutput(1, { lock })],
+      ["setOutput", (tx: ccc.Transaction) => tx.setOutput(0.5, { lock })],
+      ["setInput", (tx: ccc.Transaction) => tx.setInput(1, input("1"))],
+      ["setInput", (tx: ccc.Transaction) => tx.setInput(NaN, input("1"))],
+      ["setOutputData", (tx: ccc.Transaction) => tx.setOutputData(-1, "0x")],
+      ["setOutputData", (tx: ccc.Transaction) => tx.setOutputData(0, "0x")],
+      ["setWitness", (tx: ccc.Transaction) => tx.setWitness(-1, "0x")],
+    ])("rejects invalid indices in %s", (_name, setValue) => {
+      expect(() => setValue(ccc.Transaction.default())).toThrow(/Index/);
+    });
+
+    it("rejects indices above the maximum array index", () => {
+      const tx = ccc.Transaction.default();
+      tx.witnesses.length = 2 ** 32 - 1;
+
+      expect(() => tx.setWitness(2 ** 32 - 1, "0x")).toThrow(
+        "must be a valid array index between 0 and 4294967294",
+      );
+    });
+  });
+
   describe("completeInputsByUdt", () => {
     // Mock cells with 100 UDT each (10 cells total = 1000 UDT)
     let mockUdtCells: ccc.Cell[];
