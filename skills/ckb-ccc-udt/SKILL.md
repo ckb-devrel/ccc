@@ -358,7 +358,7 @@ A: You can view it in the CKB explorer:
 ## Checklist (UDT-specific)
 
 - [ ] **UDT change** — `udt.completeBy()` called before `completeInputsByCapacity` for token transfers
-- [ ] **Supply scaling** — `totalSupply` (and any amount) is the on-chain integer (`display * 10^decimals`), not the human-facing number
+- [ ] **Supply scaling** — `totalSupply` (and any amount) is the human-readable number (e.g., `100_000_000`), which `ccc.fixedPointFrom(totalSupply, decimals)` converts to the on-chain integer by applying `10^decimals`
 - [ ] **Tested on testnet first** — for real issuance, run the full flow on `ClientPublicTestnet` and verify in an explorer before switching to `ClientPublicMainnet`
 - [ ] **symbol vs name** — `symbol` holds the ticker/display identifier; `name` is supplementary description
 
