@@ -19,7 +19,7 @@ Before writing example code from memory, check whether a working, tested example
 
 `docs.ckbccc.com` maintains a tagged gallery of runnable examples, each with a raw source URL and a direct Playground link:
 
-```
+```http
 GET https://docs.ckbccc.com/en/docs/code-examples.md
 ```
 

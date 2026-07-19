@@ -174,7 +174,7 @@ CCC's source is indexed on DeepWiki (`ckb-devrel/ccc`) and Context7 (`ckb-devrel
 
 ### Step 1 — Start with llms.txt for navigation
 
-```
+```http
 GET https://docs.ckbccc.com/llms.txt
 ```
 
@@ -184,7 +184,7 @@ Returns a structured index of all documentation pages with titles and URLs. Use 
 
 Append `.md` to any docs URL to get clean Markdown without HTML boilerplate:
 
-```
+```http
 # Example: fetch the Cell model concept page
 GET https://docs.ckbccc.com/en/docs/concepts/cell-model.md
 
@@ -196,7 +196,7 @@ Alternatively, send `Accept: text/markdown` and the server will serve Markdown a
 
 ### Step 3 — Use llms-full.txt for broad questions
 
-```
+```http
 GET https://docs.ckbccc.com/llms-full.txt
 ```
 
@@ -218,13 +218,13 @@ Contains the full text of all English documentation pages concatenated. Use when
 
 ### For API signatures and types — use the API reference (fallback only)
 
-```
+```text
 https://api.ckbccc.com
 ```
 
 TypeDoc-generated reference for all `@ckb-ccc/*` packages. Only reach for this when no DeepWiki or Context7 MCP tool is available this session — see "Step 0" above, which is the preferred path for any exact method signature, interface field, or enum value. When you do use this fallback, search by class or method name directly in the URL:
 
-```
+```text
 https://api.ckbccc.com/modules/_ckb-ccc_connector-react
 https://api.ckbccc.com/functions/_ckb-ccc_connector-react.index.useccc
 https://api.ckbccc.com/classes/_ckb-ccc_core.index.transaction
