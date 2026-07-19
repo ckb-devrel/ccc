@@ -1,0 +1,37 @@
+---
+title: AI Resources
+description: Make Cursor, Claude Code, Copilot, and other AI assistants write correct CKB/CCC code — set them up, prompt them well, and verify the result.
+icon: Bot
+---
+
+import { Wrench, MessageSquare, ShieldCheck } from 'lucide-react';
+
+This section is for developers who use an AI coding assistant (Cursor, Claude Code, GitHub Copilot, Windsurf, ChatGPT, …) to build on CKB with CCC. Its only goal: make your assistant write **correct** CCC code instead of confidently wrong code.
+
+Why the extra effort is needed: CKB uses the **Cell model** (a generalized UTXO model), which barely appears in the Ethereum-heavy data most LLMs were trained on. Left unguided, an assistant will produce CCC code that looks right but isn't — wrong transaction ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions. CCC ships a set of machine-readable [Agent Skills](/skill.md) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples) — that encode the CCC-specific rules; these pages show you how to feed them to your tool and get reliable output.
+
+## Do this once, then it just works
+
+1. **[Set up your tool](./ai-resources/set-up-ai-tools)** — one-time config so your assistant always loads CCC's rules (under 2 minutes).
+2. **[Verify it worked](./ai-resources/verify-and-troubleshoot)** — ask one canary question to confirm the rules actually loaded. Don't skip this: a silently-failed setup looks configured but isn't.
+3. **[Prompt it well](./ai-resources/prompting-best-practices)** — per request, name the exact package and point it at the relevant guide.
+
+<Callout type="info">
+  New here? Start with **[Set Up Your AI Tools](./ai-resources/set-up-ai-tools)** and do the 2-minute setup for the tool you use — everything else builds on it.
+</Callout>
+
+## Pages in this section
+
+<Cards cols={2}>
+  <Card title="Set Up Your AI Tools" icon={<Wrench />} href="./ai-resources/set-up-ai-tools">
+    Copy-paste config for Cursor, Claude Code, GitHub Copilot, Windsurf, and ChatGPT — plus which CCC links to point your assistant at.
+  </Card>
+
+  <Card title="Prompting Best Practices" icon={<MessageSquare />} href="./ai-resources/prompting-best-practices">
+    A before/after example, prompt templates by task, and the specific CKB mistakes AI makes — with the one-line correction for each.
+  </Card>
+
+  <Card title="Verify & Troubleshoot" icon={<ShieldCheck />} href="./ai-resources/verify-and-troubleshoot">
+    Canary questions to confirm your setup actually works, and a step-by-step decision tree for when the assistant still gets CKB wrong.
+  </Card>
+</Cards>

@@ -97,10 +97,11 @@ async function checkLlmsFull() {
   );
 }
 
-async function checkSkill() {
+async function checkSkillsIndex() {
   const { res, body } = await fetchText('/skill.md');
   check('/skill.md returns 200', res.status === 200, `status ${res.status}`);
-  check('/skill.md has skill heading', body.includes('# CKB CCC Development Skill'));
+  check('/skill.md has skills heading', body.includes('# CCC Agent Skills'));
+  check('/skill.md lists the hub skill', body.includes('ckb-ccc-fundamentals'));
 }
 
 async function checkHtmlDirective() {
@@ -203,7 +204,7 @@ async function checkInternalLinks(llmsBody) {
 async function run() {
   const llmsBody = await checkLlmsIndex();
   await checkLlmsFull();
-  await checkSkill();
+  await checkSkillsIndex();
   await checkHtmlDirective();
   await checkSitemap();
   await checkSampleMarkdown();
