@@ -163,8 +163,8 @@ More DOB/0 patterns (image-linked traits via BTCFS/IPFS, programmatic images) an
 6. **Melt (destroy)** — `const { tx } = await ccc.spore.meltSpore({ signer, id: sporeId })`. **Irreversible** — permanently destroys the NFT and all on-chain content.
 
 ```typescript
-import { ccc } from "`@ckb-ccc/ccc`";
-import { signer } from "`@ckb-ccc/playground`"; // replace with an application signer outside Playground
+import { ccc } from "@ckb-ccc/ccc";
+import { signer } from "@ckb-ccc/playground"; // replace with an application signer outside Playground
  
 const recipientAddr = await signer.getRecommendedAddress(); // replace with the intended recipient
 
