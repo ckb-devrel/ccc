@@ -94,7 +94,7 @@ Both resolve to the same implementation — pick whichever keeps the script's im
 1. **Share button (Nostr)** — fast, no repo needed, good for quick back-and-forth with a colleague. **Not guaranteed permanent** — Nostr relay nodes don't guarantee long-term data retention, so these links can expire.
 2. **`?src=` query parameter (raw URL)** — loads code from any publicly reachable raw file URL: `https://live.ckbccc.com/?src=<your-raw-file-url>`. 
 
-For **stable, long-lived links**, host the script in a GitHub repo and point `?src=` at the `raw.githubusercontent.com` URL — this is exactly how every example in the official `code-examples` gallery is linked (see `ckb-ccc-examples-finder`). The link stays valid as long as the file exists in the repo.
+For **stable, long-lived links**, host the script in a GitHub repo and point `?src=` at a raw URL pinned to an immutable commit. Treat every `?src=` source as executable code: inspect it before **Run**, and never run an unreviewed source while the signer is connected to mainnet.
 
 ---
 

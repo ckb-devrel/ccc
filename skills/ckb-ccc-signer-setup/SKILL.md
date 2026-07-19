@@ -65,14 +65,18 @@ function ConnectButton() {
 3. **Check connection** — Some signers require `await signer.connect()`. Check with `await signer.isConnected()` if operations fail unexpectedly.
 4. **Query data** — `await signer.getRecommendedAddress()`, `await signer.getBalance()`, `for await (const cell of client.findCellsByLock(...))`.
 5. **Build and send** — Follow the transaction-composition pattern in `ckb-ccc-transactions`; the pattern is identical regardless of how the signer was created.
-6. **Verify** — Log `txHash`; use `client.getTransaction(txHash)` to poll for confirmation.
+6. **Verify** — Log `txHash`; use `await client.waitTransaction(txHash, 1)` for confirmation checks.
 
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
 // Always load private key from environment — never hardcode
 const client = new ccc.ClientPublicTestnet(); // or ClientPublicMainnet
-const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
+
+const privateKey = process.env.CKB_PRIVATE_KEY;
+if (!privateKey) throw new Error("CKB_PRIVATE_KEY is required");
+const signer = new ccc.SignerCkbPrivateKey(client, privateKey);
+
 await signer.connect();
 
 const address = await signer.getRecommendedAddress(); // "ckt1q..." or "ckb1q..."

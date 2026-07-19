@@ -155,18 +155,21 @@ More DOB/0 patterns (image-linked traits via BTCFS/IPFS, programmatic images) an
 
 ## Creating and managing Spore NFTs
 
-1. **Create Spore** — `const { tx, id: sporeId } = await spore.createSpore({ signer, data: { contentType: "text/plain", content: bytes } })`.
+1. **Create Spore** — `const { tx, id: sporeId } = await ccc.spore.createSpore({ signer, data: { contentType: "text/plain", content: bytes } })`.
 2. **If using a Cluster** — Specify `clusterMode: "lockProxy" | "clusterCell" | "skip"` in `createSpore()`. Omitting it when `clusterId` is set throws.
 3. **Complete and send** — `await tx.completeInputsByCapacity(signer)`, `await tx.completeFeeBy(signer)`, `await signer.sendTransaction(tx)`.
 4. **Save `sporeId`** — It is the Type script args; required for all subsequent transfer/melt operations.
-5. **Transfer** — `const { tx } = await spore.transferSpore({ signer, id: sporeId, to: newOwnerLock })`. Then `completeFeeBy` and `sendTransaction`.
-6. **Melt (destroy)** — `const { tx } = await spore.meltSpore({ signer, id: sporeId })`. **Irreversible** — permanently destroys the NFT and all on-chain content.
+5. **Transfer** — `const { tx } = await ccc.spore.transferSpore({ signer, id: sporeId, to: newOwnerLock })`. Then `completeFeeBy` and `sendTransaction`.
+6. **Melt (destroy)** — `const { tx } = await ccc.spore.meltSpore({ signer, id: sporeId })`. **Irreversible** — permanently destroys the NFT and all on-chain content.
 
 ```typescript
-import { spore } from "@ckb-ccc/spore"; // or ccc.spore from @ckb-ccc/shell
+import { ccc } from "`@ckb-ccc/ccc`";
+import { signer } from "`@ckb-ccc/playground`"; // replace with an application signer outside Playground
+ 
+const recipientAddr = await signer.getRecommendedAddress(); // replace with the intended recipient
 
 // Create a Spore (stores content permanently on-chain)
-const { tx, id: sporeId } = await spore.createSpore({
+const { tx, id: sporeId } = await ccc.spore.createSpore({
   signer,
   data: {
     contentType: "text/plain",
@@ -180,12 +183,12 @@ const txHash = await signer.sendTransaction(tx);
 
 // Transfer a Spore
 const { script: newOwner } = await ccc.Address.fromString(recipientAddr, signer.client);
-const { tx: transferTx } = await spore.transferSpore({ signer, id: sporeId, to: newOwner });
+const { tx: transferTx } = await ccc.spore.transferSpore({ signer, id: sporeId, to: newOwner });
 await transferTx.completeFeeBy(signer);
 await signer.sendTransaction(transferTx);
 
 // Melt (destroy) a Spore — irreversible
-const { tx: meltTx } = await spore.meltSpore({ signer, id: sporeId });
+const { tx: meltTx } = await ccc.spore.meltSpore({ signer, id: sporeId });
 await meltTx.completeFeeBy(signer);
 await signer.sendTransaction(meltTx);
 ```

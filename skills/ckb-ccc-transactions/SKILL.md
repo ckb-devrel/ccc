@@ -67,9 +67,8 @@ const balance = await signer.getBalance(); // total Shannon across all addresses
 
 | Symptom / Error | Cause | Fix |
 |---|---|---|
-| `"not enough capacity"` | Insufficient CKB | Fund the address; each output cell needs ≥ 61 CKB |
-| `"InsufficientCellCapacity"` | Output cell below minimum | Each basic output needs ≥ 61 CKB capacity; use CCC helpers, not manual calculation |
-| Transaction rejected by node | Fee too low or missing | Always call `completeFeeBy` after `completeInputsByCapacity`; omit fee rate arg for automatic rate |
+| `"not enough capacity"` | Total input capacity doesn't cover outputs + fee  | Fund the address, or confirm `completeInputsByCapacity` is called before `completeFeeBy` so CCC collects enough inputs automatically |
+| Transaction rejected by node | Fee too low or missing | Call `completeFeeBy` after `completeInputsByCapacity`; if a second argument (explicit `feeRate`) is passed, check it's not below `1000n` (the node's default `min_fee_rate`) — bump to `2000n`/`4000n` if rejections persist. Omit the argument entirely to let CCC calculate the network rate automatically. |
 | `addCellDepsOfKnownScripts is not a function` | Wrong import or outdated version | Use `@ckb-ccc/shell` not `@ckb-ccc/core` for backend; update CCC to latest |
 
 ---
@@ -87,8 +86,8 @@ const balance = await signer.getBalance(); // total Shannon across all addresses
 ## Checklist (transaction-specific)
 
 - [ ] **Transaction order** — `outputs declared → completeInputsByCapacity → completeFeeBy → sendTransaction`
-- [ ] **Capacity** — Output cells have ≥ 61 CKB (CCC helpers enforce this; manual calc may not)
-- [ ] **Fee rate** — `completeFeeBy` called without explicit rate (automatic) unless custom rate needed
+- [ ] **Capacity** — Output capacity is calculated from each output's lock, type script, and data (use CCC helpers, not manual calculation)
+- [ ] **Fee rate** — `completeFeeBy` called without explicit rate (automatic) unless a custom rate is needed; if custom, ensure it's ≥ `1000n` (node's `min_fee_rate`), recommend `2000n`.
 - [ ] **Error handling** — `try/catch` around `sendTransaction`
 
 Also check the cross-cutting checklist in `ckb-ccc-fundamentals`.
