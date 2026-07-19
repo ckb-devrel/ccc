@@ -61,7 +61,7 @@ function ConnectButton() {
 ## Building a Node.js backend script
 
 1. **Import and connect** — Install `@ckb-ccc/shell`. Create client: `new ccc.ClientPublicTestnet()` or `ClientPublicMainnet()`.
-2. **Create signer** — `new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!)`. Never hardcode keys.
+2. **Create signer** — `new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!)`. Never hardcode keys. (Validate environment variable exists first—see code example below)
 3. **Check connection** — Some signers require `await signer.connect()`. Check with `await signer.isConnected()` if operations fail unexpectedly.
 4. **Query data** — `await signer.getRecommendedAddress()`, `await signer.getBalance()`, `for await (const cell of client.findCellsByLock(...))`.
 5. **Build and send** — Follow the transaction-composition pattern in `ckb-ccc-transactions`; the pattern is identical regardless of how the signer was created.
