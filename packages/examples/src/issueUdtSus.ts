@@ -70,8 +70,8 @@ function encodeTokenInfo({
   if (!symbol) {
     throw new Error("symbol is required");
   }
-  if (decimals < 0 || decimals > 255) {
-    throw new Error("decimals must be within 0-255 (1-byte field)");
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+    throw new Error("decimals must be an integer within 0-255 (1-byte field)");
   }
 
   const symbolBytes = ccc.bytesFrom(symbol, "utf8");
@@ -123,6 +123,18 @@ class XudtSusIssuer {
    * ```
    */
   async issue(params: IssueXudtSusParams): Promise<IssueXudtSusResult> {
+    const { decimals, totalSupply } = params;
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) {
+      throw new Error(
+        "decimals must be an integer within 0-255 (1-byte field)",
+      );
+    }
+    const tokenInfo = encodeTokenInfo(params);
+    const supply = ccc.fixedPointFrom(totalSupply, decimals);
+    if (supply < 0n || supply >= 1n << 128n) {
+      throw new Error("totalSupply must encode to a non-negative uint128");
+    }
+
     const { script: ownerLock } = await this.signer.getRecommendedAddressObj();
 
     const sealTxHash = await this.createSealCell(ownerLock);
@@ -142,7 +154,8 @@ class XudtSusIssuer {
       ownerTxHash,
       singleUseLock,
       ownerLock,
-      metadata: params,
+      supply,
+      tokenInfo,
     });
     params.onProgress?.("mint", mintTxHash);
 
@@ -178,11 +191,17 @@ class XudtSusIssuer {
     ownerTxHash: ccc.Hex;
     singleUseLock: ccc.Script;
     ownerLock: ccc.Script;
-    metadata: IssueXudtSusParams;
+    supply: bigint;
+    tokenInfo: Uint8Array;
   }): Promise<{ mintTxHash: ccc.Hex; typeScriptHash: ccc.Hex }> {
-    const { sealTxHash, ownerTxHash, singleUseLock, ownerLock, metadata } =
-      args;
-    const { decimals, symbol, name, totalSupply } = metadata;
+    const {
+      sealTxHash,
+      ownerTxHash,
+      singleUseLock,
+      ownerLock,
+      supply,
+      tokenInfo,
+    } = args;
 
     const xudtType = await ccc.Script.fromKnownScript(
       this.signer.client,
@@ -204,10 +223,7 @@ class XudtSusIssuer {
         { lock: ownerLock, type: xudtType },
         { lock: ownerLock, type: uniqueType },
       ],
-      outputsData: [
-        ccc.numLeToBytes(ccc.fixedPointFrom(totalSupply, decimals), 16),
-        encodeTokenInfo({ decimals, symbol, name }),
-      ],
+      outputsData: [ccc.numLeToBytes(supply, 16), tokenInfo],
     });
 
     await tx.addCellDepsOfKnownScripts(
@@ -259,7 +275,7 @@ class XudtSusIssuer {
  * console.log(result);
  * ```
  */
-export async function issueXudtWithSUS(
+async function issueXudtWithSUS(
   params: IssueXudtSusParams,
 ): Promise<IssueXudtSusResult> {
   return new XudtSusIssuer(signer).issue(params);
