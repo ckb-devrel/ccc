@@ -1,5 +1,46 @@
 # @ckb-ccc/core
 
+## 2.0.0-next.0
+### Major Changes
+
+
+
+- [#425](https://github.com/ckb-devrel/ccc/pull/425) [`584a1eb`](https://github.com/ckb-devrel/ccc/commit/584a1ebeeb083904e5c2851208bc8491914b3d34) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: Codec.from
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5ebe6b6`](https://github.com/ckb-devrel/ccc/commit/5ebe6b61e2823cbb6fdbf776bdb16ef4ab83b2f6) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(joy-id): address info in identity
+
+
+
+- [#429](https://github.com/ckb-devrel/ccc/pull/429) [`ec643ac`](https://github.com/ckb-devrel/ccc/commit/ec643ac6bbfeacd3e444ccf5970ea070a30fce8f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: @codec implements a default from
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`23110d2`](https://github.com/ckb-devrel/ccc/commit/23110d2f0c90ccaf334bd4736c3e374d07913d72) Thanks [@github-actions](https://github.com/apps/github-actions)! - fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5e1f8d2`](https://github.com/ckb-devrel/ccc/commit/5e1f8d2d3e6ee26002e323ff0bcd1fcf54240f0b) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `reduce` and `reduceAsync` for `Iterable`
+
+
+### Minor Changes
+
+
+
+- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`3dd2aea`](https://github.com/ckb-devrel/ccc/commit/3dd2aea90ce235fdcc1b0b3d1e4282391ea944fe) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `Signer.fromSignature`
+
+
+
+- [#433](https://github.com/ckb-devrel/ccc/pull/433) [`2a8f542`](https://github.com/ckb-devrel/ccc/commit/2a8f542ac2aa1f117991d5737a64da90ef3b138a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): reduce(Async) accept single value
+
+
+### Patch Changes
+
+
+
+- [#419](https://github.com/ckb-devrel/ccc/pull/419) [`81ca371`](https://github.com/ckb-devrel/ccc/commit/81ca3713edd3c74968e391e48e9a36978435c45f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): occupy witness while adding output
+
 ## 1.18.0
 ### Minor Changes
 
