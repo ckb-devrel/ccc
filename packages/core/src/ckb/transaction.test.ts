@@ -534,6 +534,87 @@ describe("Transaction", () => {
       expect(tx.outputs[1].capacity).toBeGreaterThan(minChangeCapacity);
     });
 
+    it("keeps preparations made in place on the caller's transaction", async () => {
+      const cellDep = {
+        outPoint: { txHash: `0x${"2".repeat(64)}`, index: 0 },
+        depType: "code" as const,
+      };
+      const dummyLock = `0x${"00".repeat(65)}`;
+      vi.mocked(signer.prepareTransaction).mockImplementation(
+        async (txLike) => {
+          const prepared = ccc.Transaction.from(txLike);
+          prepared.addCellDeps(cellDep);
+          prepared.setWitnessArgs(0, { lock: dummyLock });
+          return prepared;
+        },
+      );
+      const tx = ccc.Transaction.from({
+        inputs: [{ previousOutput: mockCapacityCells[0].outPoint }],
+        outputs: [{ capacity: ccc.fixedPointFrom(30), lock }],
+      });
+
+      await tx.completeFeeBy(signer, 1000n);
+
+      expect(tx.cellDeps).toHaveLength(1);
+      expect(tx.getWitnessArgs(0)?.lock).toBe(dummyLock);
+      expect(signer.prepareTransaction).toHaveBeenCalled();
+    });
+
+    it("copies a newly returned prepared transaction back and charges for its final size", async () => {
+      const cellDep = {
+        outPoint: { txHash: `0x${"3".repeat(64)}`, index: 0 },
+        depType: "code" as const,
+      };
+      const dummyLock = `0x${"00".repeat(572)}`;
+      const signedLock = `0x${"01".repeat(572)}`;
+      const returnedTransactions: ccc.Transaction[] = [];
+      vi.mocked(signer.prepareTransaction).mockImplementation(
+        async (txLike) => {
+          const original = ccc.Transaction.from(txLike);
+          // A plain structural value models a Transaction supplied across a
+          // package instance/runtime realm, where instanceof Transaction is false.
+          const foreignRealmTxLike: ccc.TransactionLike = {
+            ...original.clone(),
+          };
+          expect(foreignRealmTxLike).not.toBeInstanceOf(ccc.Transaction);
+          const prepared = ccc.Transaction.from(foreignRealmTxLike);
+          expect(prepared).not.toBe(original);
+          prepared.addCellDeps(cellDep);
+          prepared.setWitnessArgs(0, { lock: dummyLock });
+          if (returnedTransactions.length === 0) {
+            expect(original.cellDeps).toHaveLength(0);
+            expect(original.getWitnessArgs(0)?.lock).toBeUndefined();
+            expect(prepared.inputs[0].cellOutput).toBeDefined();
+            expect(prepared.inputs[0].outputData).toBeDefined();
+          }
+          returnedTransactions.push(prepared);
+          return prepared;
+        },
+      );
+      const tx = ccc.Transaction.from({
+        inputs: [{ previousOutput: mockCapacityCells[0].outPoint }],
+        outputs: [{ capacity: ccc.fixedPointFrom(30), lock }],
+      });
+
+      await tx.completeFeeBy(signer, 1000n);
+
+      expect(returnedTransactions.length).toBeGreaterThan(0);
+      expect(tx.cellDeps).toHaveLength(1);
+      expect(tx.getWitnessArgs(0)?.lock).toBe(dummyLock);
+      const preparedSize = tx.toBytes().length;
+
+      vi.spyOn(signer, "signOnlyTransaction").mockImplementation(
+        async (txLike) => {
+          const signed = ccc.Transaction.from(txLike);
+          signed.setWitnessArgs(0, { lock: signedLock });
+          return signed;
+        },
+      );
+      const signed = await signer.signTransaction(tx);
+      expect(signed.toBytes()).toHaveLength(preparedSize);
+      expect(await signed.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+    });
+
     it("should add inputs when insufficient capacity for fee", async () => {
       const tx = ccc.Transaction.from({
         outputs: [
@@ -641,6 +722,28 @@ describe("Transaction", () => {
           shouldAddInputs: false,
         }),
       ).rejects.toThrow("Insufficient CKB");
+    });
+
+    it("should complete a funded prepared transaction without adding inputs", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          { previousOutput: mockCapacityCells[0].outPoint },
+          { previousOutput: mockCapacityCells[1].outPoint },
+        ],
+        outputs: [{ capacity: ccc.fixedPointFrom(30), lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeBy(
+        signer,
+        1000n,
+        undefined,
+        { shouldAddInputs: false },
+      );
+
+      expect(addedInputs).toBe(0);
+      expect(hasChange).toBe(true);
+      expect(tx.inputs).toHaveLength(2);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
     });
 
     it("should handle filter parameter for input selection", async () => {

@@ -1181,6 +1181,10 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    * ```
    */
   copy(txLike: TransactionLike) {
+    if (txLike === this) {
+      return;
+    }
+
     const tx = Transaction.from(txLike);
     this.version = tx.version;
     this.cellDeps = tx.cellDeps;
@@ -2419,6 +2423,8 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     let leastFee = Zero;
     let leastExtraCapacity = Zero;
     let collected = 0;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let tx: Transaction = this;
 
     // ===
     // Usually, for the worst situation, three iterations are needed
@@ -2433,7 +2439,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
         }
 
         try {
-          return await this.completeInputsByCapacity(
+          return await tx.completeInputsByCapacity(
             from,
             leastFee + leastExtraCapacity,
             filter,
@@ -2452,7 +2458,8 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
         }
       })();
 
-      const fee = await this.getFee(from.client);
+      tx = await from.prepareTransaction(tx);
+      const fee = await tx.getFee(from.client);
       if (fee < leastFee + leastExtraCapacity) {
         // Not enough capacity are collected, it should only happens when shouldAddInputs is false
         throw new ErrorTransactionInsufficientCapacity(
@@ -2460,44 +2467,45 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
           { isForChange: leastExtraCapacity !== Zero },
         );
       }
-
-      await from.prepareTransaction(this);
       if (leastFee === Zero) {
         // The initial fee is calculated based on prepared transaction
         // This should only happens during the first iteration
-        leastFee = this.estimateFee(feeRate);
+        leastFee = tx.estimateFee(feeRate);
       }
       // The extra capacity paid the fee without a change
       // leastExtraCapacity should be 0 here, otherwise we should failed in the previous check
       // So this only happens in the first iteration
       if (fee === leastFee) {
+        this.copy(tx);
         return [collected, false];
       }
 
       // Invoke the change function on a transaction multiple times may cause problems, so we clone it
-      const tx = this.clone();
-      const needed = numFrom(await Promise.resolve(change(tx, fee - leastFee)));
+      let changedTx = tx.clone();
+      const needed = numFrom(
+        await Promise.resolve(change(changedTx, fee - leastFee)),
+      );
       if (needed > Zero) {
         // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
 
-      if ((await tx.getFee(from.client)) !== leastFee) {
+      if ((await changedTx.getFee(from.client)) !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
       }
 
       // New change cells created, update the fee
-      await from.prepareTransaction(tx);
-      const changedFee = tx.estimateFee(feeRate);
+      changedTx = await from.prepareTransaction(changedTx);
+      const changedFee = changedTx.estimateFee(feeRate);
       if (leastFee > changedFee) {
         throw new Error("The change function removed existed transaction data");
       }
       // The fee has been paid
       if (leastFee === changedFee) {
-        this.copy(tx);
+        this.copy(changedTx);
         return [collected, true];
       }
 

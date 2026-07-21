@@ -1,5 +1,28 @@
 # @ckb-ccc/core
 
+## 1.18.0
+### Minor Changes
+
+
+
+- [#449](https://github.com/ckb-devrel/ccc/pull/449) [`09042bb`](https://github.com/ckb-devrel/ccc/commit/09042bb3a8e4058e3ce78368284c8b0c06acf35f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `SignerCkbAlwaysSuccess`
+
+
+### Patch Changes
+
+
+
+- [#448](https://github.com/ckb-devrel/ccc/pull/448) [`8c148af`](https://github.com/ckb-devrel/ccc/commit/8c148af2e2290630b0fe32464df62faae3f989cd) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - fix(core): Fix concurrent client requests skipping healthy RPC fallback
+
+
+
+- [#446](https://github.com/ckb-devrel/ccc/pull/446) [`2bf3eeb`](https://github.com/ckb-devrel/ccc/commit/2bf3eeba9d903f98c538ad552c9aafb0003ad3f6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): respect `Signer.prepareTransaction` return value in `Transaction.completeFee`
+  
+  Fix underestimated fees when `Signer.prepareTransaction` returns a new transaction, including when the transaction and signer come from different `@ckb-ccc/core` instances.
+
+
+- [#452](https://github.com/ckb-devrel/ccc/pull/452) [`fd8ed22`](https://github.com/ckb-devrel/ccc/commit/fd8ed2228041a773d9baa7326dd391d312a965fa) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): release JSON-RPC concurrency slots after transport errors
+
 ## 1.17.0
 ### Minor Changes
 

@@ -1,0 +1,85 @@
+---
+title: 配置你的 AI 工具
+description: 通过一条命令将 CCC 的 Agent Skills 安装到 Cursor、Claude Code、GitHub Copilot、Windsurf 及其他 60 多种 AI 工具中。
+icon: Wrench
+---
+
+你的 AI 助手只有在真正加载了 CCC 的规则之后，才能写出正确的 CCC 代码。CCC 将这些规则打包为一组 [Agent Skills](/skill.md)——一个 **hub skill** `ckb-ccc-fundamentals`（包含包选择、Cell 模型、地址/数额处理、幻觉防护），外加每个任务领域对应的 **spoke skill**（`ckb-ccc-signer-setup`、`ckb-ccc-transactions`、`ckb-ccc-udt`、`ckb-ccc-spore`、`ckb-ccc-playground`、`ckb-ccc-examples-finder`），全部提交在 [CCC 仓库](https://github.com/ckb-devrel/ccc) 的 `skills/` 目录下。
+
+使用开源 Agent Skills CLI —— [`skills`](https://github.com/vercel-labs/skills) 来安装。它会自动发现 `skills/` 目录，并将每个 skill 写入你所指定的工具的对应路径：
+
+```bash
+npx skills add ckb-devrel/ccc --all
+```
+
+`--all` 会非交互式地安装所有 skill——这是大多数项目所需的单行命令。不加 `--all` 时，CLI 会打开交互式选择器，让你选择*安装哪些 skill*（除了选择工具之外），如果你只需要其中的一部分，这会很有用：
+
+```bash
+# 仅 Cursor 和 Claude Code，安装所有 skill
+npx skills add ckb-devrel/ccc --all -a cursor -a claude-code
+
+# 所有支持的工具，仅安装 fundamentals + UDT 两个 skill
+npx skills add ckb-devrel/ccc --skill 'ckb-ccc-fundamentals' --skill 'ckb-ccc-udt'
+
+# 全局安装（作用于你所有项目），而非仅当前项目
+npx skills add ckb-devrel/ccc --all -g
+```
+
+`skills` 支持 Cursor、Claude Code、GitHub Copilot、Windsurf、Codex 及其他 60 多种代理——每个 skill 的 `description` 元数据决定了工具何时加载它，因此安装之外无需额外的规则文件配置。
+
+<Callout type="warning">
+  每个项目执行一次即可（或使用 `-g` 全局执行一次）。大约需要两分钟，这是提高 AI 生成 CCC 代码质量性价比最高的操作。配置完成后，务必运行[验证与排查](./verify-and-troubleshoot)中的检查——一个静默加载失败的 skill 比没有更糟糕。
+</Callout>
+
+对于没有基于文件的 rules/skills 机制的工具（例如普通 ChatGPT），`npx skills add` 没有可写入的目标。请将以下内容粘贴到系统提示词（或第一条消息）中：
+
+```text
+在编写任何 CKB/CCC 代码之前，先获取 https://docs.ckbccc.com/skill.md 查看 CCC agent skills 列表。
+始终先获取并遵循 ckb-ccc-fundamentals skill，然后在生成代码之前获取与任务对应的 spoke skill（signer 配置、交易、UDT、Spore、playground 或示例）。
+```
+
+## 保持 skills 最新
+
+已安装的 skill 是某个时间点的副本——CCC 的 skills 在不断改进，但这些改进不会自动推送到已执行过 `npx skills add` 的项目中。`skills` 会在 `skills-lock.json` 中记录安装内容，因此你可以按需检查并拉取更新：
+
+```bash
+# 拉取所有已安装 skill 的最新版本
+npx skills update
+
+# 仅更新某一个
+npx skills update ckb-ccc-udt
+```
+
+<Callout type="warning">
+  `npx skills update` 比较的是内容哈希而非版本号，存在一个已知缺陷：即使源文件已变更，它仍可能报告"已是最新"（[vercel-labs/skills#484](https://github.com/vercel-labs/skills/issues/484)）。如果 CCC skills 更新发布后，[验证与排查](./verify-and-troubleshoot)中的检测问题开始失败，不要仅凭 `check` 的结果——请移除并重新添加该 skill（`npx skills remove ckb-ccc-fundamentals && npx skills add ckb-devrel/ccc --skill 'ckb-ccc-fundamentals'`）。
+</Callout>
+
+skill 变更时不会有通知——请定期检查（例如在开始重要的新工作之前），不要指望会收到消息。
+
+## 告诉你的 AI 去哪里找答案
+
+skills 覆盖了常见场景，但超出这些范围的场景，你的助手应该从文档中获取答案而非凭猜测。以下是可供指向的机器可读入口点——无论你是将其粘贴到提示词中还是写入规则，这些 URL 都有效：
+
+| 资源 | URL | 用途 |
+| --- | --- | --- |
+| Skills 索引 | [`/skill.md`](/skill.md) | 默认入口：列出所有 skill（hub + spoke）、各自覆盖范围及其原始 `SKILL.md` URL。先加载 `ckb-ccc-fundamentals`。 |
+| 文档索引 | [`/llms.txt`](/llms.txt) | "哪个页面覆盖了 X 主题？"——一份简短的、带链接的文档页面索引，先获取以导航。 |
+| 单个页面（Markdown 格式） | 任意文档 URL 后加 `.md` | 一个主题的聚焦操作指南，例如 `https://docs.ckbccc.com/en/docs/guides/udt-tokens.md`。干净的 Markdown，无页面框架。 |
+| 完整文档导出 | [`/llms-full.txt`](/llms-full.txt) | 跨越多个主题的宽泛问题，当你希望一次获取全部内容时使用。 |
+| API 参考 | [api.ckbccc.com](https://api.ckbccc.com) | 任何 `@ckb-ccc/*` 导出项的方法签名、参数类型和枚举值。 |
+
+<Callout type="info">
+  任意文档页面都有对应的 Markdown 版本：在其 URL 后追加 `.md`（或发送 `Accept: text/markdown` 请求头）。这是你希望 AI 阅读的内容——只有文章正文，没有导航或组件标记，因此上下文消耗在内容上而非布局上。
+</Callout>
+
+## 验证是否生效
+
+向助手提一个 CKB 特有且它本会答错的问题：
+
+> "在 CCC 中，`signer.getBalance()` 返回的是 `number` 还是 `bigint`？"
+
+配置正确的助手会回答 `bigint`（单位为 Shannon）——这个陷阱在 `ckb-ccc-fundamentals` skill 的"幻觉防护"部分有专门说明。如果它回答 `number`，说明 skill/规则未加载。请参阅[验证与排查](./verify-and-troubleshoot)，其中包含另外四个这类检测问题以及修复错误配置的完整决策树。
+
+## 下一步
+
+配置工具是必要的，但还不够——请参阅[提示词最佳实践](./prompting-best-practices)，了解如何组织请求，让助手真正使用它现在已能访问的内容。

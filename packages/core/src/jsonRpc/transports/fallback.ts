@@ -7,21 +7,24 @@ export class TransportFallback implements Transport {
   constructor(private readonly transports: Transport[]) {}
 
   async request(data: JsonRpcPayload): Promise<unknown> {
-    let triedCount = 0;
+    const startI = this.i;
+    let lastErr: unknown = new Error(
+      "TransportFallback requires at least one transport",
+    );
 
-    while (true) {
+    for (let tried = 0; tried < this.transports.length; tried += 1) {
+      const i = (startI + tried) % this.transports.length;
+
       try {
-        return await this.transports[this.i % this.transports.length].request(
-          data,
-        );
-      } catch (err) {
-        triedCount += 1;
-        this.i += 1;
+        const res = await this.transports[i].request(data);
 
-        if (triedCount >= this.transports.length) {
-          throw err;
-        }
+        this.i = i;
+        return res;
+      } catch (err) {
+        lastErr = err;
       }
     }
+
+    throw lastErr;
   }
 }

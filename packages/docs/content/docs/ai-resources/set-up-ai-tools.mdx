@@ -1,0 +1,85 @@
+---
+title: Set Up Your AI Tools
+description: Install CCC's Agent Skills into Cursor, Claude Code, GitHub Copilot, Windsurf, and 60+ other AI tools with one command.
+icon: Wrench
+---
+ 
+Your AI assistant only writes correct CCC code once it's actually loading CCC's rules. CCC ships these as a set of [Agent Skills](/skill.md) — one **hub skill**, `ckb-ccc-fundamentals` (package selection, Cell model, address/amount handling, hallucination guard), plus a **spoke skill** per task area (`ckb-ccc-signer-setup`, `ckb-ccc-transactions`, `ckb-ccc-udt`, `ckb-ccc-spore`, `ckb-ccc-playground`, `ckb-ccc-examples-finder`), all committed under `skills/` in the [CCC repo](https://github.com/ckb-devrel/ccc).
+ 
+Install them with [`skills`](https://github.com/vercel-labs/skills), the open Agent Skills CLI — it auto-discovers the `skills/` directory and writes each skill to the right path for whichever tool(s) you target:
+ 
+```bash
+npx skills add ckb-devrel/ccc --all
+```
+ 
+`--all` installs every skill non-interactively — the one-line path most projects want. Leave it off and the CLI opens an interactive picker for *which skills* to install (in addition to the tool picker), which is useful if you only want a subset:
+ 
+```bash
+# Only Cursor and Claude Code, every skill
+npx skills add ckb-devrel/ccc --all -a cursor -a claude-code
+ 
+# Every supported tool, only the fundamentals + UDT skills
+npx skills add ckb-devrel/ccc --skill 'ckb-ccc-fundamentals' --skill 'ckb-ccc-udt'
+ 
+# Install globally (all your projects) instead of this project only
+npx skills add ckb-devrel/ccc --all -g
+```
+ 
+`skills` supports Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ other agents — each skill's `description` frontmatter drives when the tool loads it, so no extra rule-file wiring is needed on top of the install.
+ 
+<Callout type="warning">
+  Do this once per project (or once globally with `-g`). It takes about two minutes and is the single highest-leverage thing you can do to improve AI-generated CCC code. After setup, always run the check on [Verify & Troubleshoot](./verify-and-troubleshoot) — a skill that silently failed to load is worse than none.
+</Callout>
+For tools without a file-based rules/skills mechanism (e.g. plain ChatGPT), `npx skills add` has nothing to write to. Paste this into the system prompt (or the first message) instead:
+ 
+```text
+Before writing any CKB/CCC code, fetch https://docs.ckbccc.com/skill.md to see the list of CCC agent skills. 
+Always fetch and follow the ckb-ccc-fundamentals skill first,
+then fetch the spoke skill matching the task (signer setup, transactions, UDT, Spore,
+playground, or examples) before generating code.
+```
+
+## Keep skills up to date
+
+An installed skill is a point-in-time copy — CCC's skills keep improving, and nothing pushes those improvements to a project that already ran `npx skills add`. `skills` tracks what you installed in a `skills-lock.json`, so you can check and pull updates on demand:
+
+```bash
+# Pull the latest version of every installed skill
+npx skills update
+
+# Update just one
+npx skills update ckb-ccc-udt
+```
+
+<Callout type="warning">
+  `npx skills update` diffs content hashes, not version numbers, and has a known gap where it can report "up to date" even when the source changed ([vercel-labs/skills#484](https://github.com/vercel-labs/skills/issues/484)). If a canary question on [Verify & Troubleshoot](./verify-and-troubleshoot) starts failing right after a CCC skills update was announced, don't trust `check` alone — remove and re-add the skill (`npx skills remove ckb-ccc-fundamentals && npx skills add ckb-devrel/ccc --skill 'ckb-ccc-fundamentals'`).
+</Callout>
+
+There's no notification when a skill changes — check periodically (e.g. before starting significant new work) rather than assuming you'll hear about it.
+
+## Tell your AI where to find answers
+ 
+The skills cover the common cases, but for anything beyond them your assistant should fetch from the docs rather than guess. These are the machine-readable entry points to point it at — the same URLs work whether you paste them into a prompt or bake them into a rule:
+ 
+| Resource | URL | Use it for |
+| --- | --- | --- |
+| Skills index | [`/skill.md`](/skill.md) | The default: lists every skill (hub + spoke), what each covers, and its raw `SKILL.md` URL. Load `ckb-ccc-fundamentals` first. |
+| Docs index | [`/llms.txt`](/llms.txt) | "Which page covers topic X?" A short, linked index of every docs page — fetch first to navigate. |
+| Single page as Markdown | any docs URL `+ .md` | A focused how-to on one topic, e.g. `https://docs.ckbccc.com/en/docs/guides/udt-tokens.md`. Clean Markdown, no page chrome. |
+| Full docs dump | [`/llms-full.txt`](/llms-full.txt) | A broad question spanning several topics, when you want everything in one fetch. |
+| API reference | [api.ckbccc.com](https://api.ckbccc.com) | Exact method signatures, parameter types, and enum values for any `@ckb-ccc/*` export. |
+ 
+<Callout type="info">
+  Any docs page has a Markdown twin: append `.md` to its URL (or send an `Accept: text/markdown` header). That's what you want an AI to read — it's the article text without navigation or component markup, so it spends context on content, not layout.
+</Callout>
+## Verify it worked
+ 
+Ask the assistant a CKB-specific question it would otherwise get wrong:
+ 
+> "In CCC, does `signer.getBalance()` return a `number` or a `bigint`?"
+ 
+A correctly configured assistant answers `bigint` (in Shannon) — this exact gotcha is called out in the `ckb-ccc-fundamentals` skill's Hallucination Guard. If it answers `number`, the skill/rule isn't loading. See [Verify & Troubleshoot](./verify-and-troubleshoot) for four more of these canary questions and a full decision tree for fixing a broken setup.
+ 
+## Next step
+ 
+Configuring the tool is necessary but not sufficient — see [Prompting Best Practices](./prompting-best-practices) for how to phrase requests so the assistant actually uses what it now has access to.

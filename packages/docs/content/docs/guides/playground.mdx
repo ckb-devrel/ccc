@@ -115,45 +115,31 @@ await render(tx);
   Click **Step** instead of **Run** to pause at each `render()` call. Click **Continue** to advance to the next breakpoint. This is useful for studying how CCC builds a transaction step by step.
 </Callout>
 
-Now that we've mastered the basic transfer flow, let's explore a more complex scenario — issuing a token on chain.
+Now that we've mastered the basic transfer flow, let's explore a more complex scenario — creating a Spore.
 
-## Example 2 — Issue a custom UDT token
+## Example 2 — Create a Spore
 
-This example shows how to issue a UDT (User Defined Token) — a fungible token on CKB:
+This example shows how to create a Spore — a non-fungible token on CKB:
 
 ```typescript
 import { ccc } from "@ckb-ccc/ccc";
 import { render, signer } from "@ckb-ccc/playground";
 
-// Get the signer's lock script — this will be the token owner
-const lock = (await signer.getRecommendedAddressObj()).script;
-console.log("Token owner lock:", lock);
-
-// Build a transaction with the UDT output
-const tx = ccc.Transaction.from({
-  outputs: [{ lock }],
-  outputsData: [ccc.numLeToBytes(1000000, 16)], // initial supply: 1,000,000 tokens
+const { tx, id: sporeId } = await ccc.spore.createSpore({
+  signer,
+  data: {
+    contentType: "text/plain",
+    content: new TextEncoder().encode("Hello, Spore!"),
+  },
 });
+
+console.log("Spore ID:", sporeId);
 await render(tx);
 
-// The Type script for xUDT uses the first input's outPoint as a unique ID
-// We need to add inputs first, then set the Type script
 await tx.completeInputsByCapacity(signer);
 await render(tx);
 
-const firstInput = tx.inputs[0];
-const typeScript = await ccc.Script.fromKnownScript(
-  signer.client,
-  ccc.KnownScript.XUdt,
-  (await firstInput.getCell(signer.client)).cellOutput.lock.hash(),
-);
-await render(tx);
-
-tx.outputs[0].type = typeScript;
-await render(tx);
-
-// Recalculate inputs (the Type script changes occupied capacity)
-await tx.completeFeeBy(signer, 1000);
+await tx.completeFeeBy(signer);
 await render(tx);
 ```
 
