@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/core",
-  "version": "1.18.0",
+  "version": "2.0.0-next.0",
   "description": "Core of CCC - CKBer's Codebase",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
