@@ -129,14 +129,19 @@ export class RequestorJsonRpc {
       await pending;
     }
 
-    this.concurrent += 1;
-    const res = (await this.transport.request(payload)) as {
+    const res = (await (async () => {
+      this.concurrent += 1;
+      try {
+        return await this.transport.request(payload);
+      } finally {
+        this.concurrent -= 1;
+        this.pending.shift()?.();
+      }
+    })()) as {
       id: number;
       error: unknown;
       result: unknown;
     };
-    this.concurrent -= 1;
-    this.pending.shift()?.();
 
     if (res.id !== payload.id) {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
