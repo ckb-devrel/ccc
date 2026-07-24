@@ -1,5 +1,12 @@
 # @ckb-ccc/did-ckb
 
+## 0.2.6
+### Patch Changes
+
+- Updated dependencies [[`2afb50a`](https://github.com/ckb-devrel/ccc/commit/2afb50ab2059e04c9b2f0475f658a51ee02bc424)]:
+  - @ckb-ccc/core@1.18.1
+  - @ckb-ccc/type-id@0.1.6
+
 ## 0.2.5
 ### Patch Changes
 
