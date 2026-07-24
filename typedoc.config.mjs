@@ -6,6 +6,7 @@ const config = {
     "packages/core",
     "packages/type-id",
     "packages/ssri",
+    "packages/coin",
     "packages/udt",
     "packages/spore",
     "packages/did-ckb",
