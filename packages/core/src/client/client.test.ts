@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Cell, OutPoint, Transaction } from "../ckb";
 import { ClientCacheMemory } from "./cache/memory";
 import { ClientPublicTestnet } from "./clientPublicTestnet";
-import { ClientTransactionResponse, ErrorClientVerification } from "./clientTypes";
+import {
+  ClientTransactionResponse,
+  ErrorClientVerification,
+} from "./clientTypes";
 
 describe("Client", () => {
   let client: ClientPublicTestnet;
