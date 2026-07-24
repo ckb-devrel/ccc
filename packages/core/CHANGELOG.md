@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.18.1
+### Patch Changes
+
+
+
+- [#454](https://github.com/ckb-devrel/ccc/pull/454) [`2afb50a`](https://github.com/ckb-devrel/ccc/commit/2afb50ab2059e04c9b2f0475f658a51ee02bc424) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - fix(core): Fix parsing of multi-digit CKB script error code
+
 ## 1.18.0
 ### Minor Changes
 
