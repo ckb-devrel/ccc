@@ -39,6 +39,9 @@ const coBuild = new CoBuild(
 // Build action
 const action = coBuild.buildAction(ccc.bytesFrom("action payload"));
 
-// Append to transaction
-const { tx } = await coBuild.appendActions(transaction, action);
+// Append to a new transaction
+const { tx } = await coBuild.appendActions(action);
+
+// Or build upon an existing transaction
+const { tx: updatedTx } = await coBuild.appendActions(action, transaction);
 ```

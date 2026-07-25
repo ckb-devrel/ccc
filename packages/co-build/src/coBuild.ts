@@ -10,18 +10,18 @@ import {
 
 /**
  * Parses the CoBuild actions from the last witness of a transaction.
- * @param txLike The transaction containing the witnesses.
+ * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
  * @param shouldRemoveParsedWitness If true, removes the last witness from the returned transaction.
  * @returns An object containing the parsed actions and the transaction.
  */
 export function parseActions(
-  txLike: ccc.TransactionLike,
+  txLike?: ccc.TransactionLike | null,
   shouldRemoveParsedWitness: boolean = false,
 ): {
   actions: Action[];
   tx: ccc.Transaction;
 } {
-  const tx = ccc.Transaction.from(txLike);
+  const tx = ccc.Transaction.from(txLike ?? {});
 
   if (tx.witnesses.length === 0) {
     return { actions: [], tx };
@@ -49,18 +49,18 @@ export function parseActions(
 /**
  * Parses existing actions, executes a manipulator function to modify or add actions,
  * and encodes/updates the witness layout at the correct index.
- * @param txLike The target transaction.
  * @param manipulator A function that takes the current actions and returns updated actions.
+ * @param txLike The target transaction. A new transaction is created if omitted.
  * @returns The updated transaction and the index of the modified witness.
  */
 export async function manipulateActions(
-  txLike: ccc.TransactionLike,
   manipulator: (actions: Action[]) => Action[] | Promise<Action[]>,
+  txLike?: ccc.TransactionLike | null,
 ): Promise<{
   tx: ccc.Transaction;
   witnessIndex: number;
 }> {
-  let tx = ccc.Transaction.from(txLike);
+  let tx = ccc.Transaction.from(txLike ?? {});
   const parsedRes = parseActions(tx, true);
   tx = parsedRes.tx;
 
@@ -70,7 +70,7 @@ export async function manipulateActions(
     tx.outputs.length,
   );
 
-  tx.setWitnessAt(
+  tx.setWitness(
     witnessIndex,
     WitnessLayout.encode({
       type: WitnessLayoutVariant.SighashAll,
@@ -92,13 +92,13 @@ export async function manipulateActions(
 /**
  * Appends actions to the transaction's CoBuild witness.
  * Supports single action, iterables, or async iterables of actions.
- * @param txLike The target transaction.
  * @param actions The action(s) to append. Can be a single ActionLike, or an iterable/async iterable of ActionLike.
+ * @param txLike The target transaction. A new transaction is created if omitted.
  * @returns The updated transaction and the index of the witness.
  */
 export async function appendActions(
-  txLike: ccc.TransactionLike,
   actions: ActionLike | Iterable<ActionLike> | AsyncIterable<ActionLike>,
+  txLike?: ccc.TransactionLike | null,
 ): Promise<{
   tx: ccc.Transaction;
   witnessIndex: number;
@@ -118,8 +118,9 @@ export async function appendActions(
     }
   }
 
-  return manipulateActions(txLike, (existedActions) =>
-    existedActions.concat(actionList.map(Action.from)),
+  return manipulateActions(
+    (existedActions) => existedActions.concat(actionList.map(Action.from)),
+    txLike,
   );
 }
 
@@ -236,12 +237,12 @@ export class CoBuild {
 
   /**
    * Parses the CoBuild actions from the last witness of a transaction.
-   * @param txLike The transaction containing the witnesses.
+   * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
    * @param shouldRemoveParsedWitness If true, removes the last witness from the returned transaction.
    * @returns An object containing the parsed actions and the transaction.
    */
   parseActions(
-    txLike: ccc.TransactionLike,
+    txLike?: ccc.TransactionLike | null,
     shouldRemoveParsedWitness: boolean = false,
   ): {
     actions: Action[];
@@ -253,34 +254,34 @@ export class CoBuild {
   /**
    * Parses existing actions, executes a manipulator function to modify or add actions,
    * and encodes/updates the witness layout at the correct index.
-   * @param txLike The target transaction.
    * @param manipulator A function that takes the current actions and returns updated actions.
+   * @param txLike The target transaction. A new transaction is created if omitted.
    * @returns The updated transaction and the index of the modified witness.
    */
   manipulateActions(
-    txLike: ccc.TransactionLike,
     manipulator: (actions: Action[]) => Action[] | Promise<Action[]>,
+    txLike?: ccc.TransactionLike | null,
   ): Promise<{
     tx: ccc.Transaction;
     witnessIndex: number;
   }> {
-    return manipulateActions(txLike, manipulator);
+    return manipulateActions(manipulator, txLike);
   }
 
   /**
    * Appends actions to the transaction's CoBuild witness using the script context.
    * Supports single, iterables, or async iterables of actions or entities.
-   * @param txLike The target transaction.
    * @param actions The action(s) to append.
+   * @param txLike The target transaction. A new transaction is created if omitted.
    * @returns The updated transaction and the index of the witness.
    */
   async appendActions(
-    txLike: ccc.TransactionLike,
     actions:
       | ActionLike
       | ccc.Entity
       | Iterable<ActionLike | ccc.Entity>
       | AsyncIterable<ActionLike | ccc.Entity>,
+    txLike?: ccc.TransactionLike | null,
   ): Promise<{
     tx: ccc.Transaction;
     witnessIndex: number;
@@ -300,37 +301,39 @@ export class CoBuild {
       }
     }
 
-    return this.manipulateActions(txLike, (existedActions) =>
-      existedActions.concat(
-        actionList.map((action) => {
-          if (typeof action === "object" && action !== null) {
-            if (
-              "scriptInfoHash" in action &&
-              "scriptHash" in action &&
-              "data" in action
-            ) {
-              return Action.from(action);
+    return this.manipulateActions(
+      (existedActions) =>
+        existedActions.concat(
+          actionList.map((action) => {
+            if (typeof action === "object" && action !== null) {
+              if (
+                "scriptInfoHash" in action &&
+                "scriptHash" in action &&
+                "data" in action
+              ) {
+                return Action.from(action);
+              }
             }
-          }
-          return this.buildAction(action);
-        }),
-      ),
+            return this.buildAction(action);
+          }),
+        ),
+      txLike,
     );
   }
 
   /**
    * Filters actions in a transaction matching the given CKB Script.
    * If omitted or null, defaults to the helper's script.
-   * @param txLike The transaction containing the witnesses.
+   * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
    * @param scriptLike The script to match actions against.
    * @returns The list of matching actions.
    */
   findActions(
-    txLike: ccc.TransactionLike,
+    txLike?: ccc.TransactionLike | null,
     scriptLike?: ccc.ScriptLike | null,
   ): Action[] {
     return findActionsByHash(
-      txLike,
+      txLike ?? {},
       scriptLike ? ccc.Script.from(scriptLike).hash() : this.scriptHash,
     );
   }
@@ -338,30 +341,30 @@ export class CoBuild {
   /**
    * Filters actions in a transaction matching the given script hash.
    * If omitted or null, defaults to the helper's script hash.
-   * @param txLike The transaction containing the witnesses.
+   * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
    * @param scriptHashLike The script hash to match.
    * @returns The list of matching actions.
    */
   findActionsByHash(
-    txLike: ccc.TransactionLike,
+    txLike?: ccc.TransactionLike | null,
     scriptHashLike?: ccc.HexLike | null,
   ): Action[] {
-    return findActionsByHash(txLike, scriptHashLike ?? this.scriptHash);
+    return findActionsByHash(txLike ?? {}, scriptHashLike ?? this.scriptHash);
   }
 
   /**
    * Filters actions in a transaction matching the given ScriptInfo.
    * If omitted or null, defaults to the helper's script info.
-   * @param txLike The transaction containing the witnesses.
+   * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
    * @param scriptInfoLike The ScriptInfo metadata to match.
    * @returns The list of matching actions.
    */
   findActionsByScriptInfo(
-    txLike: ccc.TransactionLike,
+    txLike?: ccc.TransactionLike | null,
     scriptInfoLike?: ScriptInfoLike | null,
   ): Action[] {
     return findActionsByScriptInfoHash(
-      txLike,
+      txLike ?? {},
       scriptInfoLike
         ? ScriptInfo.from(scriptInfoLike).hash()
         : this.scriptInfoHash,
@@ -371,16 +374,16 @@ export class CoBuild {
   /**
    * Filters actions in a transaction matching the given ScriptInfo hash.
    * If omitted or null, defaults to the helper's script info hash.
-   * @param txLike The transaction containing the witnesses.
+   * @param txLike The transaction containing the witnesses. A new transaction is created if omitted.
    * @param scriptInfoHashLike The ScriptInfo hash to match.
    * @returns The list of matching actions.
    */
   findActionsByScriptInfoHash(
-    txLike: ccc.TransactionLike,
+    txLike?: ccc.TransactionLike | null,
     scriptInfoHashLike?: ccc.HexLike | null,
   ): Action[] {
     return findActionsByScriptInfoHash(
-      txLike,
+      txLike ?? {},
       scriptInfoHashLike ?? this.scriptInfoHash,
     );
   }
