@@ -1,6 +1,15 @@
 import { ccc } from "@ckb-ccc/core";
 import { describe, expect, test } from "vitest";
-import { CoBuild } from "./coBuild.js";
+import {
+  appendActions,
+  CoBuild,
+  findActions,
+  findActionsByHash,
+  findActionsByScriptInfo,
+  findActionsByScriptInfoHash,
+  manipulateActions,
+  parseActions,
+} from "./coBuild.js";
 import { Action, ScriptInfo } from "./codec/index.js";
 
 describe("CoBuild", () => {
@@ -52,7 +61,7 @@ describe("CoBuild", () => {
     });
 
     const action = coBuild.buildAction("0xaabb");
-    const { tx: txUpdated } = await coBuild.appendActions(tx, action);
+    const { tx: txUpdated } = await coBuild.appendActions(action, tx);
 
     expect(txUpdated.witnesses.length).toBe(1);
 
@@ -77,10 +86,10 @@ describe("CoBuild", () => {
       outputsData: [],
       witnesses: [],
     });
-    const { tx: txSync } = await coBuild.appendActions(txSyncBase, [
-      action1,
-      action2,
-    ]);
+    const { tx: txSync } = await coBuild.appendActions(
+      [action1, action2],
+      txSyncBase,
+    );
     const { actions: actionsSync } = coBuild.parseActions(txSync);
     expect(actionsSync.length).toBe(2);
     expect(actionsSync[0].data).toBe("0x11");
@@ -101,8 +110,8 @@ describe("CoBuild", () => {
       yield action2;
     }
     const { tx: txAsync } = await coBuild.appendActions(
-      txAsyncBase,
       asyncGenerator(),
+      txAsyncBase,
     );
     const { actions: actionsAsync } = coBuild.parseActions(txAsync);
     expect(actionsAsync.length).toBe(2);
@@ -134,10 +143,10 @@ describe("CoBuild", () => {
       data: "0x22",
     });
 
-    const { tx: txUpdated } = await coBuild.appendActions(tx, [
-      actionCurrent,
-      actionOther,
-    ]);
+    const { tx: txUpdated } = await coBuild.appendActions(
+      [actionCurrent, actionOther],
+      tx,
+    );
 
     // findActions matching current script
     const foundActions1 = coBuild.findActions(txUpdated);
@@ -164,5 +173,42 @@ describe("CoBuild", () => {
     );
     expect(foundActions4.length).toBe(1);
     expect(foundActions4[0].data).toBe("0x11");
+  });
+
+  test("creates a transaction when tx is omitted", async () => {
+    const action = coBuild.buildAction("0xaabb");
+
+    const { tx, witnessIndex } = await coBuild.appendActions(action);
+
+    expect(witnessIndex).toBe(0);
+    expect(tx.inputs).toEqual([]);
+    expect(tx.outputs).toEqual([]);
+    expect(coBuild.parseActions(tx).actions).toHaveLength(1);
+    expect(coBuild.parseActions().tx).toEqual(ccc.Transaction.default());
+
+    const manipulated = await coBuild.manipulateActions(() => [action]);
+    expect(coBuild.parseActions(manipulated.tx).actions).toHaveLength(1);
+
+    expect(coBuild.findActions()).toEqual([]);
+    expect(coBuild.findActionsByHash()).toEqual([]);
+    expect(coBuild.findActionsByScriptInfo()).toEqual([]);
+    expect(coBuild.findActionsByScriptInfoHash()).toEqual([]);
+  });
+
+  test("top-level build helpers accept an omitted transaction", async () => {
+    const action = coBuild.buildAction("0xccdd");
+    const appended = await appendActions(action);
+    expect(parseActions(appended.tx).actions).toHaveLength(1);
+    expect(findActions(appended.tx, script)).toHaveLength(1);
+    expect(findActionsByHash(appended.tx, script.hash())).toHaveLength(1);
+    expect(findActionsByScriptInfo(appended.tx, scriptInfo)).toHaveLength(1);
+    expect(
+      findActionsByScriptInfoHash(appended.tx, scriptInfo.hash()),
+    ).toHaveLength(1);
+
+    const manipulated = await manipulateActions(() => [action]);
+    expect(parseActions(manipulated.tx).actions).toHaveLength(1);
+
+    expect(parseActions().actions).toEqual([]);
   });
 });
