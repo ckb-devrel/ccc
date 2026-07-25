@@ -1,5 +1,12 @@
 # @ckb-ccc/core
 
+## 1.18.2
+### Patch Changes
+
+
+
+- [#459](https://github.com/ckb-devrel/ccc/pull/459) [`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): enforce minimum cell capacity after output data mutations
+
 ## 1.18.1
 ### Patch Changes
 

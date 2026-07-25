@@ -1,5 +1,11 @@
 # @ckb-ccc/type-id
 
+## 0.1.7
+### Patch Changes
+
+- Updated dependencies [[`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969)]:
+  - @ckb-ccc/core@1.18.2
+
 ## 0.1.6
 ### Patch Changes
 
