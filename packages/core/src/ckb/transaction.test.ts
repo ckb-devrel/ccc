@@ -44,6 +44,64 @@ describe("Transaction", () => {
       expect(tx.getOutputData(2)).toBe("0x1234");
     });
 
+    it("increases output capacity when output data grows", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock }],
+        outputsData: ["0x"],
+      });
+
+      tx.setOutputData(0, `0x${"12".repeat(100)}`);
+
+      const actual = tx.outputs[0].capacity;
+      const required = ccc.CellOutput.from(
+        tx.outputs[0].clone(),
+        tx.outputsData[0],
+      ).capacity;
+      expect(actual).toBeGreaterThanOrEqual(required);
+    });
+
+    it("does not decrease output capacity when output data shrinks", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock }],
+        outputsData: [`0x${"12".repeat(100)}`],
+      });
+      const capacity = tx.outputs[0].capacity;
+
+      tx.setOutputData(0, "0x12");
+
+      expect(tx.outputs[0].capacity).toBe(capacity);
+    });
+
+    it("preserves explicitly assigned excess capacity when setting output data", () => {
+      const capacity = ccc.fixedPointFrom(1_000);
+      const tx = ccc.Transaction.from({
+        outputs: [{ capacity, lock }],
+        outputsData: ["0x"],
+      });
+
+      tx.setOutputData(0, `0x${"12".repeat(100)}`);
+
+      expect(tx.outputs[0].capacity).toBe(capacity);
+    });
+
+    it("increases output capacity when setting a mutated CellAny", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock }],
+        outputsData: ["0x"],
+      });
+      const cell = tx.getOutput(0)!;
+      cell.outputData = `0x${"12".repeat(100)}`;
+
+      tx.setOutput(0, cell);
+
+      const actual = tx.outputs[0].capacity;
+      const required = ccc.CellOutput.from(
+        tx.outputs[0].clone(),
+        tx.outputsData[0],
+      ).capacity;
+      expect(actual).toBeGreaterThanOrEqual(required);
+    });
+
     it("replaces an output and its data", () => {
       const tx = ccc.Transaction.from({
         outputs: [{ lock }],
@@ -58,6 +116,12 @@ describe("Transaction", () => {
       expect(tx.outputs).toHaveLength(1);
       expect(tx.outputs[0].type?.eq(type)).toBe(true);
       expect(tx.outputsData).toEqual(["0x3456"]);
+      const actual = tx.outputs[0].capacity;
+      const required = ccc.CellOutput.from(
+        tx.outputs[0].clone(),
+        tx.outputsData[0],
+      ).capacity;
+      expect(actual).toBeGreaterThanOrEqual(required);
     });
 
     it("appends an output when index equals the output count", () => {
@@ -976,6 +1040,26 @@ describe("Transaction", () => {
       });
     });
 
+    describe("CellAny.from", () => {
+      it("ensures capacity when passed a CellAny instance", () => {
+        const cell = ccc.CellAny.from({
+          cellOutput: { lock },
+          outputData: "0x",
+        });
+        cell.outputData = `0x${"12".repeat(100)}`;
+
+        const result = ccc.CellAny.from(cell);
+
+        expect(result).toBe(cell);
+        const actual = cell.cellOutput.capacity;
+        const required = ccc.CellOutput.from(
+          cell.cellOutput.clone(),
+          cell.outputData,
+        ).capacity;
+        expect(actual).toBeGreaterThanOrEqual(required);
+      });
+    });
+
     describe("Transaction.from", () => {
       it("should create transaction with automatic capacity calculation for outputs", () => {
         const outputsData = ["0x1234", "0x567890"];
@@ -1037,18 +1121,7 @@ describe("Transaction", () => {
       });
 
       it("should automatically fill capacity considering outputData while deserialization", () => {
-        const outputsData = ["0x1234"];
-        const calculatedTx = ccc.Transaction.from({
-          outputs: [
-            {
-              lock,
-            },
-          ],
-          outputsData,
-        });
-        calculatedTx.outputs[0].capacity = 0n;
-        const data = calculatedTx.toBytes();
-        expect(ccc.hexFrom(data)).toBe(
+        const data = ccc.bytesFrom(
           "0xb30000000c000000af000000a30000001c0000002000000024000000280000002c00000095000000000000000000000000000000000000006900000008000000610000001000000018000000610000000000000000000000490000001000000030000000310000009bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8011400000036053c1bbc237e164137c03664fe8384b2cf9b260e0000000800000002000000123404000000",
         );
         const tx = ccc.Transaction.fromBytes(data);
@@ -1243,9 +1316,17 @@ describe("Transaction", () => {
           },
           outputData: "0x",
         });
+        originalCell.outputData = `0x${"12".repeat(100)}`;
 
         const result = ccc.Cell.from(originalCell);
+
         expect(result).toBe(originalCell); // Should return the same instance
+        const actual = originalCell.cellOutput.capacity;
+        const required = ccc.CellOutput.from(
+          originalCell.cellOutput.clone(),
+          originalCell.outputData,
+        ).capacity;
+        expect(actual).toBeGreaterThanOrEqual(required);
       });
 
       it("should handle Transaction instance passed to Transaction.from", () => {
@@ -1253,9 +1334,17 @@ describe("Transaction", () => {
           outputs: [{ capacity: 1000n, lock }],
           outputsData: ["0x"],
         });
+        originalTx.outputsData[0] = `0x${"12".repeat(100)}`;
 
         const result = ccc.Transaction.from(originalTx);
+
         expect(result).toBe(originalTx); // Should return the same instance
+        const actual = originalTx.outputs[0].capacity;
+        const required = ccc.CellOutput.from(
+          originalTx.outputs[0].clone(),
+          originalTx.outputsData[0],
+        ).capacity;
+        expect(actual).toBeGreaterThanOrEqual(required);
       });
 
       it("should calculate minimum capacity correctly", () => {

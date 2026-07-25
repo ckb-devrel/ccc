@@ -389,6 +389,7 @@ export class CellAny {
    */
   static from(cell: CellAnyLike): CellAny {
     if (cell instanceof CellAny) {
+      cell.cellOutput = CellOutput.from(cell.cellOutput, cell.outputData);
       return cell;
     }
 
@@ -549,6 +550,7 @@ export class Cell extends CellAny {
 
   static from(cell: CellLike): Cell {
     if (cell instanceof Cell) {
+      cell.cellOutput = CellOutput.from(cell.cellOutput, cell.outputData);
       return cell;
     }
 
@@ -1265,6 +1267,9 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    */
   static from(tx: TransactionLike): Transaction {
     if (tx instanceof Transaction) {
+      tx.outputs.forEach((_, i) => {
+        tx.setOutputData(i, tx.outputsData[i] ?? "0x");
+      });
       return tx;
     }
     const outputs =
@@ -1669,7 +1674,9 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       );
     }
 
-    this.outputsData[i] = hexFrom(data);
+    const outputData = hexFrom(data);
+    this.outputs[i] = CellOutput.from(this.outputs[i], outputData);
+    this.outputsData[i] = outputData;
   }
 
   /**

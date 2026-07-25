@@ -1,5 +1,16 @@
 # @ckb-ccc/shell
 
+## 1.3.6
+### Patch Changes
+
+- Updated dependencies [[`2afb50a`](https://github.com/ckb-devrel/ccc/commit/2afb50ab2059e04c9b2f0475f658a51ee02bc424)]:
+  - @ckb-ccc/core@1.18.1
+  - @ckb-ccc/did-ckb@0.2.6
+  - @ckb-ccc/spore@1.6.6
+  - @ckb-ccc/ssri@0.3.6
+  - @ckb-ccc/type-id@0.1.6
+  - @ckb-ccc/udt@0.2.6
+
 ## 1.3.5
 ### Patch Changes
 
