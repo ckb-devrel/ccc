@@ -35,15 +35,12 @@
 - [#433](https://github.com/ckb-devrel/ccc/pull/433) [`2a8f542`](https://github.com/ckb-devrel/ccc/commit/2a8f542ac2aa1f117991d5737a64da90ef3b138a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): reduce(Async) accept single value
 
 
+## 1.18.2
 ### Patch Changes
-
-
 
 - [#419](https://github.com/ckb-devrel/ccc/pull/419) [`81ca371`](https://github.com/ckb-devrel/ccc/commit/81ca3713edd3c74968e391e48e9a36978435c45f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): occupy witness while adding output
 
-
-
-- [#424](https://github.com/ckb-devrel/ccc/pull/424) [`a88edee`](https://github.com/ckb-devrel/ccc/commit/a88edee5487caf50831d60a9333b85634f83eb97) Thanks [@github-actions](https://github.com/apps/github-actions)! - fix(core): enforce minimum cell capacity after output data mutations
+- [#459](https://github.com/ckb-devrel/ccc/pull/459) [`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): enforce minimum cell capacity after output data mutations
 
 ## 1.18.1
 ### Patch Changes

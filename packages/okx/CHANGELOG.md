@@ -8,6 +8,14 @@
   - @ckb-ccc/nip07@1.1.7-next.0
   - @ckb-ccc/uni-sat@1.1.7-next.0
 
+## 1.1.7
+### Patch Changes
+
+- Updated dependencies [[`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969)]:
+  - @ckb-ccc/core@1.18.2
+  - @ckb-ccc/nip07@1.1.7
+  - @ckb-ccc/uni-sat@1.1.7
+
 ## 1.1.6
 ### Patch Changes
 

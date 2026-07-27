@@ -1267,8 +1267,8 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    */
   static from(tx: TransactionLike): Transaction {
     if (tx instanceof Transaction) {
-      tx.outputs.forEach((_, i) => {
-        tx.setOutputData(i, tx.outputsData[i] ?? "0x");
+      tx.outputs.forEach((output, i) => {
+        tx.outputs[i] = CellOutput.from(output, tx.outputsData[i] ?? "0x");
       });
       return tx;
     }

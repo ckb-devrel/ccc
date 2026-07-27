@@ -14,6 +14,20 @@
   - @ckb-ccc/utxo-global@1.1.7-next.0
   - @ckb-ccc/xverse@1.1.7-next.0
 
+## 1.2.7
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/eip6963@1.1.7
+  - @ckb-ccc/joy-id@1.1.7
+  - @ckb-ccc/nip07@1.1.7
+  - @ckb-ccc/okx@1.1.7
+  - @ckb-ccc/rei@1.1.7
+  - @ckb-ccc/shell@1.3.7
+  - @ckb-ccc/uni-sat@1.1.7
+  - @ckb-ccc/utxo-global@1.1.7
+  - @ckb-ccc/xverse@1.1.7
+
 ## 1.2.6
 ### Patch Changes
 
