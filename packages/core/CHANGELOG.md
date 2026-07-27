@@ -1,5 +1,19 @@
 # @ckb-ccc/core
 
+## 1.18.2
+### Patch Changes
+
+
+
+- [#459](https://github.com/ckb-devrel/ccc/pull/459) [`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): enforce minimum cell capacity after output data mutations
+
+## 1.18.1
+### Patch Changes
+
+
+
+- [#454](https://github.com/ckb-devrel/ccc/pull/454) [`2afb50a`](https://github.com/ckb-devrel/ccc/commit/2afb50ab2059e04c9b2f0475f658a51ee02bc424) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - fix(core): Fix parsing of multi-digit CKB script error code
+
 ## 1.18.0
 ### Minor Changes
 
