@@ -1,5 +1,25 @@
 # @ckb-ccc/shell
 
+## 1.4.0-next.0
+### Minor Changes
+
+
+
+- [#415](https://github.com/ckb-devrel/ccc/pull/415) [`a2d877f`](https://github.com/ckb-devrel/ccc/commit/a2d877fb7a4dd868062a7681291ae011c080d4ce) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(coin): new coin package
+
+
+### Patch Changes
+
+- Updated dependencies [[`584a1eb`](https://github.com/ckb-devrel/ccc/commit/584a1ebeeb083904e5c2851208bc8491914b3d34), [`a2d877f`](https://github.com/ckb-devrel/ccc/commit/a2d877fb7a4dd868062a7681291ae011c080d4ce), [`81ca371`](https://github.com/ckb-devrel/ccc/commit/81ca3713edd3c74968e391e48e9a36978435c45f), [`67b0d05`](https://github.com/ckb-devrel/ccc/commit/67b0d054b3d59e9679eba39630775240314850aa), [`3dd2aea`](https://github.com/ckb-devrel/ccc/commit/3dd2aea90ce235fdcc1b0b3d1e4282391ea944fe), [`5ebe6b6`](https://github.com/ckb-devrel/ccc/commit/5ebe6b61e2823cbb6fdbf776bdb16ef4ab83b2f6), [`81ca371`](https://github.com/ckb-devrel/ccc/commit/81ca3713edd3c74968e391e48e9a36978435c45f), [`ec643ac`](https://github.com/ckb-devrel/ccc/commit/ec643ac6bbfeacd3e444ccf5970ea070a30fce8f), [`23110d2`](https://github.com/ckb-devrel/ccc/commit/23110d2f0c90ccaf334bd4736c3e374d07913d72), [`2a8f542`](https://github.com/ckb-devrel/ccc/commit/2a8f542ac2aa1f117991d5737a64da90ef3b138a), [`5e1f8d2`](https://github.com/ckb-devrel/ccc/commit/5e1f8d2d3e6ee26002e323ff0bcd1fcf54240f0b), [`a88edee`](https://github.com/ckb-devrel/ccc/commit/a88edee5487caf50831d60a9333b85634f83eb97)]:
+  - @ckb-ccc/core@2.0.0-next.0
+  - @ckb-ccc/coin@0.1.0-next.0
+  - @ckb-ccc/co-build@0.1.0-next.0
+  - @ckb-ccc/did-ckb@0.3.0-next.0
+  - @ckb-ccc/spore@1.6.7-next.0
+  - @ckb-ccc/ssri@0.3.7-next.0
+  - @ckb-ccc/type-id@0.1.7-next.0
+  - @ckb-ccc/udt@0.2.7-next.0
+
 ## 1.3.6
 ### Patch Changes
 
