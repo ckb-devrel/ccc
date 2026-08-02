@@ -36,9 +36,9 @@ await tx.completeInputsByCapacity(signer);  // inputs must come before fee
 await tx.completeFeeBy(signer);
 ```
  
-**One rule is enough to remember: 
+**One rule is enough to remember:**
 - In skill-native environments, just describe the task in your own words — no need to know or type any skill name, the tool routes itself based on each skill's description. 
-- In web chat there's no local file to route from, so a `skill.md` link is the substitute for that ability.**
+- In web chat there's no local file to route from, so a `skill.md` link is the substitute for that ability.
  
 ## Task templates
  
@@ -93,7 +93,7 @@ If you spot any of these symptoms, just send the matching line back to the AI an
 | Amount is a `number` or has decimals | "CKB amounts are always a bigint in Shannon. Construct them with `ccc.fixedPointFrom()`, not a float — please fix." |
 | Fee computed before inputs are filled | "The order must be outputs → completeInputsByCapacity → completeFeeBy → sendTransaction — please reorder." |
 | Next.js component errors, missing `"use client"` | "This file uses `ccc.Provider`/a CCC hook, so it must be a client component — add `\"use client\"` as the first line." |
-| UDT transfer silently drops change | "For UDT transfers, call `completeBy(tx, signer)` first to add UDT inputs and change, then `completeInputsByCapacity` for CKB capacity — please fix the order." |
+| UDT transfer silently drops change | "For UDT transfers, call `udt.completeBy(tx, signer)` first to add UDT inputs and change, then `completeInputsByCapacity` for CKB capacity — please fix the order." |
 | Node script imports from `@ckb-ccc/core` | "Backend scripts should import from `@ckb-ccc/shell` (which re-exports core) — please switch it." |
  
 <Callout type="info">
@@ -103,5 +103,5 @@ If you spot any of these symptoms, just send the matching line back to the AI an
  
 - Run mainnet-bound transactions on `ClientPublicTestnet` first — don't trust a "should work" answer.
 - For protocol-level questions (e.g. what a DOB's `contentType` should be), don't trust a single example file — have the AI cross-check the official protocol docs instead of "copying whatever example it found."
-- Don't trust what the AI said earlier in the conversation. CCC packages keep iterating and API fields change with them — the AI having "said it once" doesn't mean it's still correct. E.g. if it looked up which package to use back at message 3, and you rely on that again at message 50, don't let it just repeat its earlier answer — ask again or have it re-check.
+- Don't trust what the AI said earlier in the conversation. CCC packages keep iterating and API fields change with them — the AI having "said it once" doesn't mean it's still correct. E.g. if it looked up which package to use back at message 3, and you rely on that again at message 50, don't let it just repeat its earlier answer — ask it to verify the choice, not recall it.
 - Skills themselves get updated too. In skill-native environments (Cursor / Claude Code, etc.), run `npx skills update ckb-devrel/ccc` occasionally so your local copy doesn't fall behind the latest rules — but note `update` only refreshes skills you've already installed, it won't pull in newly added ones. If we add a new skill (say a future `ckb-ccc-fiber`), you'll need to re-run `npx skills add ckb-devrel/ccc --all` to get it. Web chat doesn't have this problem — it fetches `skill.md` fresh every time, so it's always current.

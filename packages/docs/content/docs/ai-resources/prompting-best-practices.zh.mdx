@@ -92,7 +92,7 @@ Web 聊天版 = Skill 原生版 + "先获取 `https://docs.ckbccc.com/skill.md`"
 | 金额是 `number` 或带小数 | "CKB 数额一律是 Shannon 单位的 bigint，用 `ccc.fixedPointFrom()` 构造，别用浮点数，请修正。" |
 | 先算费用再填 input | "顺序必须是 outputs → completeInputsByCapacity → completeFeeBy → sendTransaction，请重排。" |
 | Next.js 组件报错、缺 `"use client"` | "这个文件用了 `ccc.Provider`/CCC hook，必须是客户端组件，第一行加 `\"use client\"`。" |
-| UDT 转账丢失找零 | "UDT 转账要先 `completeBy(tx, signer)` 补 UDT input 和找零，再 `completeInputsByCapacity` 补 CKB 容量，请补上顺序。" |
+| UDT 转账丢失找零 | "UDT 转账要先 `udt.completeBy(tx, signer)` 补 UDT input 和找零，再 `completeInputsByCapacity` 补 CKB 容量，请补上顺序。" |
 | Node 脚本从 `@ckb-ccc/core` 导入 | "后端脚本应从 `@ckb-ccc/shell` 导入（已重新导出 core），请切换。" |
  
 <Callout type="info">

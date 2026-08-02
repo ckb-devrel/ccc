@@ -60,7 +60,7 @@ Install them into Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ 
 npx skills add ckb-devrel/ccc --all
 ```
 
-See [AI Resources](https://docs.ckbccc.com/docs/ai-resources) for full setup instructions per tool, how to verify a skill actually loaded, and prompting tips.
+See [AI Resources](https://docs.ckbccc.com/en/docs/ai-resources) for full setup instructions per tool, how to verify a skill actually loaded, and prompting tips.
 
 ## Try in the Playground
 
@@ -72,7 +72,7 @@ See [AI Resources](https://docs.ckbccc.com/docs/ai-resources) for full setup ins
 
 The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing. [Click the link](https://live.ckbccc.com/) to run your code without the annoying preparation and watch how the code works, exploring CCC's capabilities.
 
-For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/docs/guides/playground).
+For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/en/docs/guides/playground).
 
 ## Quick Start with `create-ccc-app`
 
@@ -126,7 +126,7 @@ import { cccA } from "@ckb-ccc/<package-name>/advanced";
 
 The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. 
 
-To learn more examples, visit [the documentation](https://docs.ckbccc.com/docs/code-examples).
+To learn more examples, visit [the documentation](https://docs.ckbccc.com/en/docs/code-examples).
 
 ### Transaction Composing
 
@@ -150,7 +150,7 @@ That's it! The transaction is sent.
 
 [Click here to read the full example of transferring native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
 
-Additional examples can be found in [the documentation](https://docs.ckbccc.com/docs/code-examples).
+Additional examples can be found in [the documentation](https://docs.ckbccc.com/en/docs/code-examples).
 
 ## Build and Run
 
