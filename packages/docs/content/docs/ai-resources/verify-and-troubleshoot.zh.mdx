@@ -8,15 +8,15 @@ icon: ShieldCheck
 
 ## 金丝雀问题（Canary Questions）
 
-以下每个问题都有唯一正确的答案，而**未**加载 CCC 的 [Agent Skills](/skill.md) 的模型答错的概率很高。你可以在完成配置后，或在任何怀疑助手已不再基于文档回答时，选一个问题来验证。这些问题都直接取自 `ckb-ccc-fundamentals` 或对应的 spoke skill 中的"幻觉防护 / 常见陷阱"表格，因此如果你发现答案有误，可以直接将助手引导回那部分内容。
+以下每个问题都有唯一正确的答案，而**未**加载 CCC 的 [Agent Skills](https://docs.ckbccc.com/skill.md) 的模型答错的概率很高。你可以在完成配置后，或在任何怀疑助手已不再基于文档回答时，选一个问题来验证。这些问题都直接取自 `ckb-ccc-fundamentals` 或对应的 spoke skill 中的"幻觉防护 / 常见陷阱"表格，因此如果你发现答案有误，可以直接将助手引导回那部分内容。
 
 | 问题 | 正确答案 | 答错意味着 |
 | --- | --- | --- |
 | "`signer.getBalance()` 返回 `number` 还是 `bigint`？" | `bigint`，单位是 Shannon | 模型在假设 EVM 风格的浮点数余额 |
-| "正确顺序是什么：先构建输出（outputs），再按 capacity 补全输入（inputs），然后补全手续费（fee），最后发送——还是先补全手续费再补全输入？" | Outputs → `completeInputsByCapacity` → `completeFeeBy` → `sendTransaction` | 模型不了解 CCC 要求的交易构建流水线 |
+| "用 CCC 构建 CKB 交易的正确顺序是什么？" | Outputs → `completeInputsByCapacity` → `completeFeeBy` → `sendTransaction` | 模型不了解 CCC 要求的交易构建流水线 |
 | "在使用了 `ccc.Provider` 的 Next.js 应用中，是否需要 `"use client"`？" | 是 | 模型不知道 Next.js App Router 的常见陷阱 |
 | "对于 UDT 转账，在 `completeInputsByCapacity` 之前必须执行什么操作？" | `udt.completeBy(tx, signer)` | 模型生成的交易会静默丢失 UDT 找零 |
-| "普通的 Node.js 脚本应该导入哪个包——`@ckb-ccc/core` 还是 `@ckb-ccc/shell`？" | `@ckb-ccc/shell`（它重新导出了 `core`） | 模型在未被提示的情况下选了底层包，说明它没有参考"包选择"表格 |
+| "普通的 Node.js 脚本应该导入哪个包？" | `@ckb-ccc/shell`（它重新导出了 `core`） | 模型在未被提示的情况下选了底层包，说明它没有参考"包选择"表格 |
 
 <Callout type="info">
   模型能在你未向提示词中粘贴任何文档内容的情况下全部答对这五个问题，说明它确实加载了相关的 Agent Skills（或同等上下文）。这才是衡量标准——而不是"听起来很自信"。

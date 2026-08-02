@@ -8,7 +8,7 @@ import { Wrench, MessageSquare, ShieldCheck } from 'lucide-react';
 
 This section is for developers who use an AI coding assistant (Cursor, Claude Code, GitHub Copilot, Windsurf, ChatGPT, …) to build on CKB with CCC. Its only goal: make your assistant write **correct** CCC code instead of confidently wrong code.
 
-Why the extra effort is needed: CKB uses the **Cell model** (a generalized UTXO model), which barely appears in the Ethereum-heavy data most LLMs were trained on. Left unguided, an assistant will produce CCC code that looks right but isn't — wrong transaction ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions. CCC ships a set of machine-readable [Agent Skills](/skill.md) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples) — that encode the CCC-specific rules; these pages show you how to feed them to your tool and get reliable output.
+Why the extra effort is needed: CKB uses the **Cell model** (a generalized UTXO model), which barely appears in the Ethereum-heavy data most LLMs were trained on. Left unguided, an assistant will produce CCC code that looks right but isn't — wrong transaction ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions. CCC ships a set of machine-readable [Agent Skills](https:docs.ckbccc.com/skill.md) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples) — that encode the CCC-specific rules; these pages show you how to feed them to your tool and get reliable output.
 
 ## Do this once, then it just works
 

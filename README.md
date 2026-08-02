@@ -50,6 +50,18 @@ Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckb
 
 > **Using an AI assistant?** CCC's docs are LLM-friendly: start from [docs.ckbccc.com/llms.txt](https://docs.ckbccc.com/llms.txt) for a curated index with task-oriented reading paths, or [docs.ckbccc.com/llms-full.txt](https://docs.ckbccc.com/llms-full.txt) for the full documentation in a single file. Append `.md` to any docs page URL to get its raw Markdown.
 
+## AI Coding Assistants (Agent Skills)
+
+CKB's Cell model rarely appears in the Ethereum-heavy data most LLMs are trained on, so an unguided assistant will confidently write wrong CCC code (wrong tx ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions). To fix this, CCC ships a set of machine-readable [Agent Skills](https://docs.ckbccc.com/skill.md) under [`skills/`](https://github.com/ckb-devrel/ccc/tree/master/skills) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples).
+
+Install them into Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ other tools with one command, using the open-source [`skills`](https://github.com/vercel-labs/skills) CLI:
+
+```bash
+npx skills add ckb-devrel/ccc --all
+```
+
+See [AI Resources](https://docs.ckbccc.com/docs/ai-resources) for full setup instructions per tool, how to verify a skill actually loaded, and prompting tips.
+
 ## Try in the Playground
 
 <p align="center">
