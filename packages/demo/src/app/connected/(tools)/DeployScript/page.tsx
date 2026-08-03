@@ -156,17 +156,8 @@ export default function DeployScript() {
     setLastDeployment(null);
     try {
       log("Reading file...");
-      const result = await runDeploy(
-        signer,
-        file,
-        immutable,
-        typeIdArgs,
-        foundCell,
-        log,
-        error,
-      );
+      const result = await runDeploy(signer, file, immutable, foundCell, log);
 
-      if (!result) return;
       const { txHash } = result;
 
       log("Transaction sent:", explorerTransaction(txHash));
@@ -185,7 +176,6 @@ export default function DeployScript() {
     signer,
     file,
     immutable,
-    typeIdArgs,
     foundCell,
     log,
     error,

@@ -329,6 +329,9 @@ importers:
       '@ckb-ccc/ssri':
         specifier: workspace:*
         version: link:../ssri
+      '@ckb-ccc/type-id':
+        specifier: workspace:*
+        version: link:../type-id
       '@ckb-ccc/udt':
         specifier: workspace:*
         version: link:../udt
