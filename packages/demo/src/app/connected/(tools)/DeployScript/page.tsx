@@ -1,23 +1,22 @@
 "use client";
 
 import FileUploadArea from "@/src/app/utils/(tools)/FileUpload/page";
-import TxConfirm from "@/src/app/utils/(tools)/TxConfirm/page";
 import { Button } from "@/src/components/Button";
 import { ButtonsPanel } from "@/src/components/ButtonsPanel";
-import { TextInput } from "@/src/components/Input";
 import { Message } from "@/src/components/Message";
 import { useApp } from "@/src/context";
 import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
-import { useCallback, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BurnButton,
   CellFoundSection,
-  ClearSelectionButton,
-  LoadingMessage,
-  TypeIdCellButton,
+  DeploymentResultSection,
+  TypeIdCellListItem,
 } from "./deployComponents";
-import { runBurn, runDeploy } from "./deployLogic";
+import { runBurn, runDeploy, type DeployResult } from "./deployLogic";
+import { createImmutableLock } from "./helpers";
 import { useDeployScript } from "./useDeployScript";
 
 export default function DeployScript() {
@@ -26,69 +25,120 @@ export default function DeployScript() {
   const { explorerTransaction } = useGetExplorerLink();
 
   const [file, setFile] = useState<File | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [isWaitingConfirmation, setIsWaitingConfirmation] = useState(false);
-  const [confirmationMessage, setConfirmationMessage] = useState("");
-  const [confirmationTxHash, setConfirmationTxHash] = useState("");
+  const [immutable, setImmutable] = useState(false);
+  const [operation, setOperation] = useState<
+    "deploy" | "update" | "burn" | null
+  >(null);
+  const [lastDeployment, setLastDeployment] = useState<
+    | (DeployResult & { immutable: boolean; action: "deployed" | "updated" })
+    | null
+  >(null);
+  const [newCellOccupiedSizes, setNewCellOccupiedSizes] = useState<{
+    signer: ccc.Signer;
+    ownedBaseSize: number | null;
+    immutableBaseSize: number | null;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const refreshTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const {
     signer,
-    userAddress,
     typeIdArgs,
-    setTypeIdArgs,
     typeIdCells,
     cellCreationTimestamps,
     isScanningCells,
+    isLoadingMoreCells,
+    hasMoreTypeIdCells,
+    cellScanError,
     foundCell,
-    foundCellAddress,
-    isAddressMatch,
-    isCheckingCell,
-    cellCheckError,
     handleSelectTypeIdCell,
     clearSelection,
     normalizeTypeIdArgs,
     refreshTypeIdCells,
+    loadMoreTypeIdCells,
   } = useDeployScript();
+
+  const isDeploying = operation !== null;
+
+  const refreshCellsAfterTransaction = useCallback(() => {
+    refreshTimersRef.current.forEach(clearTimeout);
+    refreshTypeIdCells();
+    refreshTimersRef.current = [
+      setTimeout(refreshTypeIdCells, 1500),
+      setTimeout(refreshTypeIdCells, 4000),
+    ];
+  }, [refreshTypeIdCells]);
+
+  useEffect(() => () => refreshTimersRef.current.forEach(clearTimeout), []);
+
+  useEffect(() => {
+    if (!signer) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const [{ script: lock }, type] = await Promise.all([
+          signer.getRecommendedAddressObj(),
+          ccc.Script.fromKnownScript(
+            signer.client,
+            ccc.KnownScript.TypeId,
+            "00".repeat(32),
+          ),
+        ]);
+        const ownedBaseSize = ccc.CellOutput.from({ lock, type }).occupiedSize;
+        const immutableBaseSize = ccc.CellOutput.from({
+          lock: createImmutableLock(),
+          type,
+        }).occupiedSize;
+        if (!cancelled) {
+          setNewCellOccupiedSizes({
+            signer,
+            ownedBaseSize,
+            immutableBaseSize,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setNewCellOccupiedSizes({
+            signer,
+            ownedBaseSize: null,
+            immutableBaseSize: null,
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [signer]);
 
   const handleBurn = useCallback(async () => {
     if (!signer || !foundCell) return;
-    if (isAddressMatch !== true) {
-      error("You can only burn a cell that you own.");
-      return;
-    }
-    setIsDeploying(true);
+    setOperation("burn");
+    setLastDeployment(null);
     try {
       const txHash = await runBurn(signer, foundCell, log);
-      if (!txHash) {
-        setIsDeploying(false);
-        return;
-      }
-      setIsWaitingConfirmation(true);
-      setConfirmationMessage("Waiting for burn transaction confirmation...");
-      setConfirmationTxHash(txHash);
+      if (!txHash) return;
       log("Transaction sent:", explorerTransaction(txHash));
       await signer.client.waitTransaction(txHash);
       log("Transaction committed:", explorerTransaction(txHash));
       clearSelection();
-      refreshTypeIdCells();
+      refreshCellsAfterTransaction();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       error("Burn failed:", msg);
     } finally {
-      setIsDeploying(false);
-      setIsWaitingConfirmation(false);
-      setConfirmationMessage("");
-      setConfirmationTxHash("");
+      setOperation(null);
     }
   }, [
     signer,
     foundCell,
-    isAddressMatch,
     log,
     error,
     explorerTransaction,
     clearSelection,
-    refreshTypeIdCells,
+    refreshCellsAfterTransaction,
   ]);
 
   const handleDeploy = useCallback(async () => {
@@ -101,161 +151,205 @@ export default function DeployScript() {
       return;
     }
 
-    setIsDeploying(true);
+    const action = foundCell ? "updated" : "deployed";
+    setOperation(foundCell ? "update" : "deploy");
+    setLastDeployment(null);
     try {
       log("Reading file...");
-      const txHash = await runDeploy(
+      const result = await runDeploy(
         signer,
         file,
+        immutable,
         typeIdArgs,
         foundCell,
-        isAddressMatch,
         log,
         error,
       );
 
-      if (!txHash) {
-        setIsDeploying(false);
-        return;
-      }
-
-      setIsWaitingConfirmation(true);
-      setConfirmationMessage("Waiting for transaction confirmation...");
-      setConfirmationTxHash(txHash);
+      if (!result) return;
+      const { txHash } = result;
 
       log("Transaction sent:", explorerTransaction(txHash));
       await signer.client.waitTransaction(txHash);
       log("Transaction committed:", explorerTransaction(txHash));
-      refreshTypeIdCells();
+      setLastDeployment({ ...result, immutable, action });
+      if (foundCell) clearSelection();
+      refreshCellsAfterTransaction();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       error("Deployment failed:", msg);
     } finally {
-      setIsWaitingConfirmation(false);
-      setConfirmationMessage("");
-      setConfirmationTxHash("");
-      setIsDeploying(false);
+      setOperation(null);
     }
   }, [
     signer,
     file,
+    immutable,
     typeIdArgs,
     foundCell,
-    isAddressMatch,
     log,
     error,
     explorerTransaction,
-    refreshTypeIdCells,
+    clearSelection,
+    refreshCellsAfterTransaction,
   ]);
 
   const normalizedInput = normalizeTypeIdArgs(typeIdArgs);
+  const baseOccupiedSize = (() => {
+    if (foundCell) {
+      if (!immutable) return foundCell.cellOutput.occupiedSize;
+      return ccc.CellOutput.from({
+        lock: createImmutableLock(),
+        type: foundCell.cellOutput.type,
+      }).occupiedSize;
+    }
+    if (newCellOccupiedSizes && newCellOccupiedSizes.signer === signer) {
+      return immutable
+        ? newCellOccupiedSizes.immutableBaseSize
+        : newCellOccupiedSizes.ownedBaseSize;
+    }
+    return undefined;
+  })();
+  const toOccupy = !file
+    ? undefined
+    : baseOccupiedSize === null
+      ? "Unavailable"
+      : baseOccupiedSize === undefined
+        ? signer
+          ? "Calculating..."
+          : "Connect wallet to calculate"
+        : `${ccc.fixedPointToString(
+            ccc.fixedPointFrom(baseOccupiedSize + file.size),
+          )} CKB`;
+  const deployButtonLabel =
+    operation === "update"
+      ? "Updating..."
+      : operation === "deploy"
+        ? "Deploying..."
+        : !file
+          ? "Select File"
+          : typeIdArgs
+            ? "Update"
+            : "Deploy";
 
   return (
-    <>
-      <TxConfirm
-        isOpen={isWaitingConfirmation}
-        message={confirmationMessage}
-        txHash={confirmationTxHash}
-      />
-      <div className="flex w-full flex-col items-stretch">
-        <Message title="Hint" type="info">
-          Upload a file to deploy it as a CKB cell with Type ID trait. The file
-          will be stored on-chain and can be referenced by its Type ID. Select
-          an existing Type ID cell below to update it, or leave empty to create
-          a new cell.
-        </Message>
+    <div className="flex w-full flex-col items-stretch">
+      <Message title="Hint" type="info">
+        Upload a file to deploy it as a CKB cell with Type ID trait. The file
+        will be stored on-chain and can be referenced by its Type ID. Select an
+        existing Type ID cell below to update it, or leave all cells unselected
+        to create a new one.
+      </Message>
 
-        {isScanningCells && (
-          <LoadingMessage title="Scanning...">
-            Scanning for Type ID cells...
-          </LoadingMessage>
+      <FileUploadArea
+        file={file}
+        onFileChange={setFile}
+        fileInputRef={fileInputRef}
+        toOccupy={toOccupy}
+        immutable={immutable}
+        onImmutableChange={() => setImmutable((value) => !value)}
+      >
+        {foundCell && (
+          <CellFoundSection foundCell={foundCell} onClear={clearSelection} />
+        )}
+      </FileUploadArea>
+
+      {lastDeployment && <DeploymentResultSection result={lastDeployment} />}
+
+      {cellScanError && (
+        <Message title="Unable to load cells" type="error" expandable={false}>
+          <div className="space-y-2">
+            <p>{cellScanError}</p>
+            <Button variant="info" onClick={refreshTypeIdCells}>
+              Retry
+            </Button>
+          </div>
+        </Message>
+      )}
+
+      <div className="mb-4">
+        <div className="mb-2 flex items-center justify-between gap-4">
+          <h2 className="text-sm font-medium text-gray-700">
+            Update Existing Cell
+          </h2>
+          <button
+            type="button"
+            onClick={refreshTypeIdCells}
+            disabled={isScanningCells}
+            className="flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${isScanningCells ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </button>
+        </div>
+
+        {!isScanningCells && !cellScanError && typeIdCells.length === 0 && (
+          <p className="text-sm text-gray-500">
+            No existing Type ID cells found.
+          </p>
         )}
 
         {typeIdCells.length > 0 && (
-          <div className="mb-4">
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Select Existing Type ID Cell (Optional)
-            </label>
-            <div className="mt-2 flex flex-wrap justify-center gap-2">
-              {typeIdCells.map((cell, index) => {
-                const cellNorm = normalizeTypeIdArgs(
-                  cell.cellOutput.type?.args || "",
-                );
-                const isSelected =
-                  cellNorm === normalizedInput && normalizedInput !== "";
+          <>
+            <div className="mt-2">
+              <div className="flex flex-col gap-2">
+                {typeIdCells.map((cell, index) => {
+                  const cellNorm = normalizeTypeIdArgs(
+                    cell.cellOutput.type?.args || "",
+                  );
+                  const isSelected =
+                    cellNorm === normalizedInput && normalizedInput !== "";
 
-                return (
-                  <TypeIdCellButton
-                    key={ccc.hexFrom(cell.outPoint.toBytes())}
-                    cell={cell}
-                    index={index}
-                    onSelect={() => handleSelectTypeIdCell(cell)}
-                    isSelected={isSelected}
-                    creationTimestamp={
-                      cellCreationTimestamps[
-                        ccc.hexFrom(cell.outPoint.toBytes())
-                      ]
-                    }
-                  />
-                );
-              })}
+                  return (
+                    <TypeIdCellListItem
+                      key={ccc.hexFrom(cell.outPoint.toBytes())}
+                      cell={cell}
+                      index={index}
+                      onSelect={() => handleSelectTypeIdCell(cell)}
+                      isSelected={isSelected}
+                      creationTimestamp={
+                        cellCreationTimestamps[
+                          ccc.hexFrom(cell.outPoint.toBytes())
+                        ]
+                      }
+                    />
+                  );
+                })}
+              </div>
             </div>
-            {typeIdArgs && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                <ClearSelectionButton onClick={clearSelection} />
-                <BurnButton
-                  onClick={handleBurn}
-                  disabled={
-                    isAddressMatch !== true ||
-                    isDeploying ||
-                    !foundCell ||
-                    !signer
-                  }
-                />
+            {hasMoreTypeIdCells && (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  variant="info"
+                  onClick={loadMoreTypeIdCells}
+                  disabled={isLoadingMoreCells}
+                >
+                  {isLoadingMoreCells ? "Loading..." : "Load More"}
+                </Button>
               </div>
             )}
-          </div>
+          </>
         )}
+      </div>
 
-        <TextInput
-          label="Type ID Args (Optional - Manual Input)"
-          placeholder="Leave empty to create new, or enter existing Type ID args (64 hex chars) to update"
-          state={[typeIdArgs, setTypeIdArgs]}
-        />
-
-        {isCheckingCell && (
-          <LoadingMessage title="Checking...">
-            Searching for Type ID cell on-chain...
-          </LoadingMessage>
-        )}
-
-        {foundCell && !isCheckingCell && (
-          <CellFoundSection
-            foundCell={foundCell}
-            foundCellAddress={foundCellAddress}
-            isAddressMatch={isAddressMatch}
-            userAddress={userAddress}
+      <ButtonsPanel>
+        <Button
+          variant="success"
+          className="self-center"
+          onClick={file ? handleDeploy : () => fileInputRef.current?.click()}
+          disabled={isDeploying}
+        >
+          {deployButtonLabel}
+        </Button>
+        {typeIdArgs && (
+          <BurnButton
+            onClick={handleBurn}
+            disabled={isDeploying || !foundCell || !signer}
           />
         )}
-
-        {cellCheckError && !isCheckingCell && (
-          <Message title="Error" type="error">
-            {cellCheckError}
-          </Message>
-        )}
-
-        <FileUploadArea file={file} onFileChange={setFile} />
-
-        <ButtonsPanel>
-          <Button
-            className="self-center"
-            onClick={handleDeploy}
-            disabled={!file || isDeploying}
-          >
-            {isDeploying ? "Deploying..." : "Deploy"}
-          </Button>
-        </ButtonsPanel>
-      </div>
-    </>
+      </ButtonsPanel>
+    </div>
   );
 }

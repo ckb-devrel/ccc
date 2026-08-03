@@ -1,27 +1,27 @@
 "use client";
 
-import { formatFileSize } from "@/src/app/utils/(tools)/FileUpload/page";
-import { BigButton } from "@/src/components/BigButton";
 import { Button } from "@/src/components/Button";
 import { Message } from "@/src/components/Message";
-import { formatString, useGetExplorerLink } from "@/src/utils";
+import { useGetExplorerLink } from "@/src/utils";
 import { ccc } from "@ckb-ccc/connector-react";
-import { Loader2 } from "lucide-react";
-import { typeIdArgsToFourLines } from "./helpers";
+import { FileCode, X } from "lucide-react";
+import type { DeployResult } from "./deployLogic";
 
 function formatCellCreationDate(timestampMs: number): string {
   try {
-    return new Date(timestampMs).toLocaleDateString(undefined, {
+    return new Date(timestampMs).toLocaleString(undefined, {
       year: "numeric",
       month: "short",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return "";
   }
 }
 
-export function TypeIdCellButton({
+export function TypeIdCellListItem({
   cell,
   index,
   onSelect,
@@ -34,150 +34,147 @@ export function TypeIdCellButton({
   isSelected: boolean;
   creationTimestamp?: number;
 }) {
-  const typeIdArgs = cell.cellOutput.type?.args || "";
-  const dataSize = cell.outputData ? ccc.bytesFrom(cell.outputData).length : 0;
-  const fourLines = typeIdArgsToFourLines(typeIdArgs.slice(2));
+  const outPoint = `${cell.outPoint.txHash}:${cell.outPoint.index}`;
 
   return (
-    <BigButton
-      key={ccc.hexFrom(cell.outPoint.toBytes())}
-      size="sm"
-      iconName="FileCode"
+    <button
+      type="button"
       onClick={onSelect}
-      className={isSelected ? "border-2 border-purple-500 bg-purple-50" : ""}
+      className={`flex w-full flex-col gap-2 rounded-lg border p-4 text-left text-sm transition-colors hover:border-purple-300 hover:bg-purple-50/50 ${
+        isSelected
+          ? "border-purple-400 bg-purple-50"
+          : "border-gray-200 bg-white"
+      }`}
     >
-      <div className="text-md flex w-full min-w-0 flex-col">
-        <span className="shrink-0 text-xs font-medium text-gray-500">
-          #{index + 1}
-        </span>
-        {creationTimestamp != null && (
-          <span className="mt-0.5 shrink-0 text-[10px] font-normal text-gray-400">
-            {formatCellCreationDate(creationTimestamp)}
-          </span>
-        )}
-        <div className="mt-1 flex w-full min-w-0 flex-col font-mono text-[10px]">
-          {fourLines.map((line, i) => (
-            <span key={i} className="truncate">
-              {line}
-            </span>
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-semibold text-gray-700">
+          <span>#{index + 1}</span>
+          <span>Type ID</span>
         </div>
-        <span className="mt-2 shrink-0 truncate text-xs text-gray-500">
-          {formatFileSize(dataSize)}
+        <span className="text-xs text-gray-600">
+          <span className="font-medium">Occupied / Capacity:</span>{" "}
+          {ccc.fixedPointToString(ccc.fixedPointFrom(cell.occupiedSize))} /{" "}
+          {ccc.fixedPointToString(cell.cellOutput.capacity)} CKB
         </span>
       </div>
-    </BigButton>
-  );
-}
-
-export function LoadingMessage({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Message title={title} type="info">
-      <div className="flex items-center gap-2">
-        <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-        <span>{children}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <span
+          className="min-w-0 truncate font-mono text-xs text-gray-600"
+          title={outPoint}
+        >
+          <span className="font-sans font-medium">Out Point:</span> {outPoint}
+        </span>
+        <span className="shrink-0 text-xs text-gray-500">
+          {creationTimestamp == null
+            ? "Unavailable"
+            : formatCellCreationDate(creationTimestamp)}
+        </span>
       </div>
-    </Message>
+    </button>
   );
 }
 
 export function CellFoundSection({
   foundCell,
-  foundCellAddress,
-  isAddressMatch,
-  userAddress,
+  onClear,
 }: {
   foundCell: ccc.Cell;
-  foundCellAddress: string;
-  isAddressMatch: boolean | null;
-  userAddress: string;
+  onClear: () => void;
 }) {
-  const { explorerTransaction, explorerAddress } = useGetExplorerLink();
+  const { explorerTransaction } = useGetExplorerLink();
+  const typeScript = foundCell.cellOutput.type;
+  const typeId = typeScript?.args;
 
   return (
-    <>
-      <Message title="Cell Found" type="success" expandable={false}>
-        <div className="space-y-1 text-sm">
-          <p>
-            <span className="font-medium">Transaction:</span>{" "}
-            {explorerTransaction(foundCell.outPoint.txHash)}
-          </p>
-          <p>
-            <span className="font-medium">Index:</span>{" "}
-            {foundCell.outPoint.index}
-          </p>
-          <p>
-            <span className="font-medium">Capacity:</span>{" "}
-            {ccc.fixedPointToString(foundCell.cellOutput.capacity)} CKB
-          </p>
-          <p>
-            <span className="font-medium">Lock Address:</span>{" "}
-            {explorerAddress(
-              foundCellAddress,
-              formatString(foundCellAddress, 8, 6),
-            )}
-          </p>
-          {foundCell.outputData && (
-            <p>
-              <span className="font-medium">Data Size:</span>{" "}
-              {formatFileSize(ccc.bytesFrom(foundCell.outputData).length)}
-            </p>
-          )}
+    <div>
+      <div className="flex items-center justify-between text-gray-800">
+        <div className="flex items-center gap-2">
+          <FileCode className="h-5 w-5 text-purple-500" />
+          <p className="font-semibold">Cell to Update</p>
         </div>
-      </Message>
-      {isAddressMatch === false && (
-        <Message
-          title="Address Mismatch Warning"
-          type="error"
-          expandable={false}
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-full p-1 text-gray-400 transition-colors hover:text-gray-700"
+          aria-label="Clear selected cell"
+          title="Clear selection"
         >
-          <div className="space-y-1 text-sm">
-            <p>
-              The cell&apos;s lock address does not match your wallet address.
-              You will not be able to unlock this cell to update it.
-            </p>
-            <p className="mt-2">
-              <span className="font-medium">Cell Lock:</span>{" "}
-              {explorerAddress(
-                foundCellAddress,
-                formatString(foundCellAddress, 8, 6),
-              )}
-            </p>
-            <p>
-              <span className="font-medium">Your Address:</span>{" "}
-              {userAddress
-                ? explorerAddress(userAddress, formatString(userAddress, 8, 6))
-                : "Not connected"}
-            </p>
-            <p className="mt-2 font-semibold">
-              Deployment will fail because you cannot unlock this cell.
-            </p>
-          </div>
-        </Message>
-      )}
-      {isAddressMatch === true && (
-        <Message title="Address Match" type="success" expandable={false}>
-          <div className="text-sm">
-            The cell&apos;s lock address matches your wallet address. You can
-            update this cell.
-          </div>
-        </Message>
-      )}
-    </>
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div className="mt-3 space-y-1 text-sm text-gray-700">
+        <p>
+          <span className="font-medium">Out Point:</span>{" "}
+          {explorerTransaction(
+            foundCell.outPoint.txHash,
+            `${foundCell.outPoint.txHash}:${foundCell.outPoint.index}`,
+          )}
+        </p>
+        <p>
+          <span className="font-medium">Occupied / Capacity:</span>{" "}
+          {ccc.fixedPointToString(ccc.fixedPointFrom(foundCell.occupiedSize))} /{" "}
+          {ccc.fixedPointToString(foundCell.cellOutput.capacity)} CKB
+        </p>
+        <p>
+          <span className="font-medium">Data Hash:</span>{" "}
+          <span className="font-mono break-all">
+            {ccc.hashCkb(foundCell.outputData ?? "0x")}
+          </span>
+        </p>
+        {typeScript && (
+          <p>
+            <span className="font-medium">Type Hash:</span>{" "}
+            <span className="font-mono break-all">{typeScript.hash()}</span>
+          </p>
+        )}
+        {typeId && typeId !== "0x" && (
+          <p>
+            <span className="font-medium">Type ID:</span>{" "}
+            <span className="font-mono break-all">{typeId}</span>
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
-export function ClearSelectionButton({ onClick }: { onClick: () => void }) {
+export function DeploymentResultSection({
+  result,
+}: {
+  result: DeployResult & {
+    immutable: boolean;
+    action: "deployed" | "updated";
+  };
+}) {
+  const { explorerTransaction } = useGetExplorerLink();
+  const outPoint = `${result.txHash}:0`;
+
   return (
-    <Button variant="info" className="mt-2" onClick={onClick}>
-      Clear Selection
-    </Button>
+    <Message
+      title={`Cell ${result.action === "deployed" ? "Deployed" : "Updated"}`}
+      type="success"
+      expandable={false}
+    >
+      <div className="space-y-1 text-sm text-gray-700">
+        <p>
+          <span className="font-medium">Out Point:</span>{" "}
+          {explorerTransaction(result.txHash, outPoint)}
+        </p>
+        <p>
+          <span className="font-medium">Type ID:</span>{" "}
+          <span className="font-mono break-all">{result.typeId}</span>
+        </p>
+        <p>
+          <span className="font-medium">Data Hash:</span>{" "}
+          <span className="font-mono break-all">{result.dataHash}</span>
+        </p>
+        {result.immutable && (
+          <p className="text-green-700">
+            This cell is immutable and can never be updated.
+          </p>
+        )}
+      </div>
+    </Message>
   );
 }
 
@@ -191,7 +188,7 @@ export function BurnButton({
   return (
     <Button
       variant="danger"
-      className="mt-2"
+      className="ml-2"
       onClick={onClick}
       disabled={disabled}
     >

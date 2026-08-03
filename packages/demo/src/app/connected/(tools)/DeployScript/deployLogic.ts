@@ -1,21 +1,25 @@
 import { readFileAsBytes } from "@/src/app/utils/(tools)/FileUpload/page";
 import { ccc } from "@ckb-ccc/connector-react";
 import { ReactNode } from "react";
-import { normalizeTypeIdArgs } from "./helpers";
+import { createImmutableLock } from "./helpers";
 
 export type Logger = (...args: ReactNode[]) => void;
+export type DeployResult = {
+  txHash: string;
+  typeId: string;
+  dataHash: string;
+};
 
 export async function runDeploy(
   signer: ccc.Signer,
   file: File,
+  immutable: boolean,
   typeIdArgs: string,
   foundCell: ccc.Cell | null,
-  isAddressMatch: boolean | null,
   log: Logger,
   error: Logger,
-): Promise<string | null> {
+): Promise<DeployResult | null> {
   const fileBytes = (await readFileAsBytes(file)) as ccc.Bytes;
-  const { script } = await signer.getRecommendedAddressObj();
 
   let tx: ccc.Transaction;
   let typeIdArgsValue: string;
@@ -25,14 +29,6 @@ export async function runDeploy(
       error("Type ID cell not found. Please check the Type ID args.");
       return null;
     }
-    if (isAddressMatch === false) {
-      error(
-        "Cannot update cell: The cell's lock address does not match your wallet address. You cannot unlock this cell.",
-      );
-      return null;
-    }
-
-    const normalized = normalizeTypeIdArgs(typeIdArgs);
     log("Updating existing Type ID cell...");
 
     tx = ccc.Transaction.from({
@@ -40,18 +36,22 @@ export async function runDeploy(
       outputs: [
         {
           ...foundCell.cellOutput,
+          lock: immutable ? createImmutableLock() : foundCell.cellOutput.lock,
           capacity: ccc.Zero,
         },
       ],
       outputsData: [fileBytes],
     });
-    typeIdArgsValue = normalized;
+    typeIdArgsValue = foundCell.cellOutput.type?.args ?? typeIdArgs;
   } else {
     log("Building transaction...");
+    const lock = immutable
+      ? createImmutableLock()
+      : (await signer.getRecommendedAddressObj()).script;
     tx = ccc.Transaction.from({
       outputs: [
         {
-          lock: script,
+          lock,
           type: await ccc.Script.fromKnownScript(
             signer.client,
             ccc.KnownScript.TypeId,
@@ -72,11 +72,16 @@ export async function runDeploy(
     log("Type ID created:", typeIdArgsValue);
   }
 
+  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.TypeId);
   await tx.completeFeeBy(signer);
   log("Sending transaction...");
   const txHash = await signer.sendTransaction(tx);
   log("Transaction sent:", txHash);
-  return txHash;
+  return {
+    txHash,
+    typeId: typeIdArgsValue,
+    dataHash: ccc.hashCkb(fileBytes),
+  };
 }
 
 /** Burn the selected type_id cell: consume it and send capacity back to the lock (no type script). */
