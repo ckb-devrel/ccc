@@ -4,7 +4,7 @@ description: 通过一条命令将 CCC 的 Agent Skills 安装到 Cursor、Claud
 icon: Wrench
 ---
 
-你的 AI 助手只有在真正加载了 CCC 的规则之后，才能写出正确的 CCC 代码。CCC 将这些规则打包为一组 [Agent Skills](/skill.md)——一个 **hub skill** `ckb-ccc-fundamentals`（包含包选择、Cell 模型、地址/数额处理、幻觉防护），外加每个任务领域对应的 **spoke skill**（`ckb-ccc-signer-setup`、`ckb-ccc-transactions`、`ckb-ccc-udt`、`ckb-ccc-spore`、`ckb-ccc-playground`、`ckb-ccc-examples-finder`），全部提交在 [CCC 仓库](https://github.com/ckb-devrel/ccc) 的 `skills/` 目录下。
+你的 AI 助手只有在真正加载了 CCC 的规则之后，才能写出正确的 CCC 代码。CCC 将这些规则打包为一组 [Agent Skills](https://docs.ckbccc.com/skill.md)——一个 **hub skill** `ckb-ccc-fundamentals`（包含包选择、Cell 模型、地址/数额处理、幻觉防护），外加每个任务领域对应的 **spoke skill**（`ckb-ccc-signer-setup`、`ckb-ccc-transactions`、`ckb-ccc-udt`、`ckb-ccc-spore`、`ckb-ccc-playground`、`ckb-ccc-examples-finder`），全部提交在 [CCC 仓库](https://github.com/ckb-devrel/ccc) 的 `skills/` 目录下。
 
 使用开源 Agent Skills CLI —— [`skills`](https://github.com/vercel-labs/skills) 来安装。它会自动发现 `skills/` 目录，并将每个 skill 写入你所指定的工具的对应路径：
 
@@ -62,10 +62,10 @@ skills 覆盖了常见场景，但超出这些范围的场景，你的助手应�
 
 | 资源 | URL | 用途 |
 | --- | --- | --- |
-| Skills 索引 | [`/skill.md`](/skill.md) | 默认入口：列出所有 skill（hub + spoke）、各自覆盖范围及其原始 `SKILL.md` URL。先加载 `ckb-ccc-fundamentals`。 |
-| 文档索引 | [`/llms.txt`](/llms.txt) | "哪个页面覆盖了 X 主题？"——一份简短的、带链接的文档页面索引，先获取以导航。 |
+| Skills 索引 | [`/skill.md`](https://docs.ckbccc.com/skill.md) | 默认入口：列出所有 skill（hub + spoke）、各自覆盖范围及其原始 `SKILL.md` URL。先加载 `ckb-ccc-fundamentals`。 |
+| 文档索引 | [`/llms.txt`](https://docs.ckbccc.com/llms.txt) | "哪个页面覆盖了 X 主题？"——一份简短的、带链接的文档页面索引，先获取以导航。 |
 | 单个页面（Markdown 格式） | 任意文档 URL 后加 `.md` | 一个主题的聚焦操作指南，例如 `https://docs.ckbccc.com/en/docs/guides/udt-tokens.md`。干净的 Markdown，无页面框架。 |
-| 完整文档导出 | [`/llms-full.txt`](/llms-full.txt) | 跨越多个主题的宽泛问题，当你希望一次获取全部内容时使用。 |
+| 完整文档导出 | [`/llms-full.txt`](https://docs.ckbccc.com/llms-full.txt) | 跨越多个主题的宽泛问题，当你希望一次获取全部内容时使用。 |
 | API 参考 | [api.ckbccc.com](https://api.ckbccc.com) | 任何 `@ckb-ccc/*` 导出项的方法签名、参数类型和枚举值。 |
 
 <Callout type="info">

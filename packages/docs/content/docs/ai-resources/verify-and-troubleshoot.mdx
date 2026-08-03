@@ -8,15 +8,15 @@ Setting up a rule and writing a good prompt doesn't guarantee the assistant is a
 
 ## Canary questions
 
-Each of these has one objectively correct answer that a model *without* CCC's [Agent Skills](/skill.md) loaded gets wrong more often than not. Ask one after setup, or any time you suspect the assistant has stopped grounding itself. All of them are lifted directly from the Hallucination Guard / Common Gotchas tables in `ckb-ccc-fundamentals` or the matching spoke skill, so if you spot a wrong answer, that's exactly the section to point the assistant back at.
+Each of these has one objectively correct answer that a model *without* CCC's [Agent Skills](https://docs.ckbccc.com/skill.md) loaded gets wrong more often than not. Ask one after setup, or any time you suspect the assistant has stopped grounding itself. All of them are lifted directly from the Hallucination Guard / Common Gotchas tables in `ckb-ccc-fundamentals` or the matching spoke skill, so if you spot a wrong answer, that's exactly the section to point the assistant back at.
 
 | Ask | Correct answer | Wrong answer means |
 | --- | --- | --- |
 | "Does `signer.getBalance()` return a `number` or a `bigint`?" | `bigint`, in Shannon | Model is assuming EVM-style float balances |
-| "What's the correct order: build outputs, complete inputs by capacity, complete fee, then send — or complete fee before completing inputs?" | Outputs → `completeInputsByCapacity` → `completeFeeBy` → `sendTransaction` | Model doesn't know CCC's required transaction pipeline |
+| "What's the correct order for building a CKB transaction in CCC?" | Outputs → `completeInputsByCapacity` → `completeFeeBy` → `sendTransaction` | Model doesn't know CCC's required transaction pipeline |
 | "In a Next.js app using `ccc.Provider`, do I need `\"use client\"`?" | Yes | Model isn't aware of the Next.js App Router gotcha |
 | "For a UDT transfer, what has to run before `completeInputsByCapacity`?" | `udt.completeBy(tx, signer)` | Model will produce a transaction that silently drops token change |
-| "Which package should a plain Node.js script import — `@ckb-ccc/core` or `@ckb-ccc/shell`?" | `@ckb-ccc/shell` (re-exports `core`) | Model picked the low-level package unprompted, a sign it isn't consulting the Package Selection table |
+| "Which package should a plain Node.js script import?" | `@ckb-ccc/shell` (re-exports `core`) | Model picked the low-level package unprompted, a sign it isn't consulting the Package Selection table |
 
 <Callout type="info">
   A model that answers all five correctly *without* you pasting any doc content into the prompt is a model that has the relevant Agent Skills (or equivalent context) genuinely loaded. That's the bar — not "sounds confident."

@@ -1,143 +1,107 @@
 ---
 title: Prompting Best Practices
-description: Prompt templates and self-check habits that measurably reduce incorrect CKB/CCC code from AI assistants.
+description: A handful of prompts that help you get accurate, working CKB/CCC code faster.
 icon: MessageSquare
 ---
-
-Even with CCC's [Agent Skills](/skill.md) loaded, *how* you ask still matters. This page collects prompt patterns that work well for CCC specifically, and the failure modes they prevent.
-
-## Match your prompt to your environment
-
-Every template on this page comes in two forms, because "reference the skill" only means something if the skill is actually sitting in the assistant's context:
-
-- **Skill-native tools** — Cursor, Claude Code, and anything else set up via [Set Up Your AI Tools](./set-up-ai-tools). The skill files are already loaded, so naming a skill (`` `ckb-ccc-fundamentals` ``) is enough — the assistant resolves it locally, no fetch needed.
-- **Web chat tools** — ChatGPT, DeepSeek, or any browser-based assistant without the `npx skills` setup. Naming a skill does nothing here; there's no file for it to resolve. Every prompt needs the actual URL, and should explicitly ask the assistant to fetch it before answering — most web chat tools can browse a URL if told to, but won't do it unprompted.
-
-If you're not sure which situation you're in: did you run the install command from [Set Up Your AI Tools](./set-up-ai-tools) in this project? If not, use the web chat version.
-
-## The core pattern: ground, then act
-
-The single most effective habit is asking the assistant to fetch specifics before generating code, instead of relying on what it already "remembers":
-
-```text
-Using CCC (@ckb-ccc/connector-react), add a button that connects a wallet and sends 100 CKB to a hardcoded address. 
-Before writing code, check https://docs.ckbccc.com/en/docs/guides/connect-wallets.md and 
-https://docs.ckbccc.com/en/docs/guides/compose-transactions.md for the current API, 
-then follow the pre-submission checklists in the ckb-ccc-fundamentals and ckb-ccc-transactions skills (https://docs.ckbccc.com/skill.md).
-```
-
-This works because it does three things a vague prompt doesn't:
-- Names the **exact package** (`@ckb-ccc/connector-react`), preventing the assistant from mixing APIs from `@ckb-ccc/core` or an unrelated package.
-- Points at **specific pages**, not "the docs" — narrower context, less noise, less chance of pulling in an unrelated example.
-- Invokes the **pre-submission checklist**, which forces a self-review pass against known gotchas (transaction ordering, `"use client"`, capacity minimums) before the code reaches you.
-
-The example above is written in the **web chat form** (full URLs) so it works everywhere. In a skill-native tool, you can shorten it: *"Using CCC (`@ckb-ccc/connector-react`), add a button that connects a wallet and sends 100 CKB to a hardcoded address. Follow the pre-submission checklists in `ckb-ccc-fundamentals` and `ckb-ccc-transactions`."* — no URLs needed, the assistant already has the skills loaded.
-
-## Before / after: what grounding actually changes
-
-Same task, two prompts, illustrating why "ground, then act" isn't just a nicety:
-
-**Vague prompt:** *"Write a function that sends 100 CKB from the connected wallet to an address using CCC."*
-
-A model relying on memorized/generic patterns typically produces something shaped like this — plausible-looking, and wrong in three CCC-specific ways:
-
+ 
+Even with [Agent Skills](https://docs.ckbccc.com/skill.md) installed, **how you ask** still decides how good the answer is. This page keeps only the patterns that actually move accuracy — copy and use directly.
+ 
+## First, know which environment you're in
+ 
+|  | Skill-native (Cursor / Claude Code, installed via the [setup guide](./set-up-ai-tools)) | Web chat (ChatGPT / DeepSeek / etc., not installed) |
+| --- | --- | --- |
+| How to use it | Just describe what you need — the tool routes itself to the right skill | Describe what you need, and also include `https://docs.ckbccc.com/skill.md`, asking it to "fetch first, then answer" — with no local files to route from, that link is what lets it find the right skill |
+ 
+Haven't run the install command from the [setup guide](./set-up-ai-tools)? Use the web chat version.
+ 
+## Core principle: verify before writing
+ 
+Without a source, the model falls back on EVM training patterns and guesses; give it a source, and it has something to check itself against. Same task, the only difference is this one sentence:
+ 
+- Vague prompt: *"Write a function using CCC that sends 100 CKB from the connected wallet."*
+- Verified prompt: *"…Before writing the code, confirm CKB-specific rules first (amount units, transaction ordering, etc.) — don't rely on training memory."* (In web chat, add `https://docs.ckbccc.com/skill.md` so it can route itself to the right rules.)
+The code each prompt produces differs in exactly these lines:
+ 
 ```ts
-// Illustrative of a common wrong answer — do not copy
-async function send(signer, toAddress) {
-  const balance = await signer.getBalance(); // ❌ treated as `number` below
-  const tx = ccc.Transaction.from({
-    outputs: [{ lock: (await ccc.Address.fromString(toAddress, signer.client)).script, capacity: 100 * 1e8 }],
-  });
-  await tx.completeFeeBy(signer);        // ❌ fee completed before inputs exist
-  await tx.completeInputsByCapacity(signer);
-  return signer.sendTransaction(tx);
-}
+// ❌ Vague prompt
+capacity: 100 * 1e8                         // number, not bigint
+await tx.completeFeeBy(signer);             // fee computed before inputs are filled
+await tx.completeInputsByCapacity(signer);
 ```
-
-**Grounded prompt:** *"Using CCC, write a function that sends 100 CKB from the connected wallet to an address. Follow the transaction pipeline order in the `ckb-ccc-transactions` skill and the Amount Conversion rules in the `ckb-ccc-fundamentals` skill (`https://docs.ckbccc.com/skill.md`) before writing code."*
-
+ 
 ```ts
-async function send(signer: ccc.Signer, toAddress: string) {
-  const { script: toLock } = await ccc.Address.fromString(toAddress, signer.client);
-  const tx = ccc.Transaction.from({
-    outputs: [{ lock: toLock, capacity: ccc.fixedPointFrom(100) }], // ✅ bigint Shannon, not a float
-  });
-  await tx.completeInputsByCapacity(signer); // ✅ inputs before fee
-  await tx.completeFeeBy(signer);
-  return signer.sendTransaction(tx);
-}
+// ✅ Verified prompt
+capacity: ccc.fixedPointFrom(100)           // bigint, in Shannon
+await tx.completeInputsByCapacity(signer);  // inputs must come before fee
+await tx.completeFeeBy(signer);
 ```
+ 
+**One rule is enough to remember:**
+- In skill-native environments, just describe the task in your own words — no need to know or type any skill name, the tool routes itself based on each skill's description. 
+- In web chat there's no local file to route from, so a `skill.md` link is the substitute for that ability.
+ 
+## Task templates
+ 
+Web chat version = skill-native version + "fetch `https://docs.ckbccc.com/skill.md` first" — that one rule is more useful than memorizing the 7 rows below.
+ 
+| Task | What to ask (skill-native) |
+| --- | --- |
+| Not sure which package | "I'm building `<a React app / a Node.js script / a custom UI>` — which `@ckb-ccc/*` package should I use?" |
+| Implement a known guide | "Implement `<feature>` following the `<connect-wallets / compose-transactions / UDT>` guide." |
+| Debug an error | "I'm getting this error: `<error>`. Does it match a known cause in the relevant skill's common-pitfalls table?" |
+| Review AI-generated code | "Review this against the CCC pre-submit checklist and mark each item PASS/FAIL — don't just give a summary." |
+| Exact method signature | "What are the parameter types for `<method>`? Check `api.ckbccc.com`, don't guess." |
+| Find an existing example | "Is there an existing example for `<feature>` I can adapt instead of writing it from scratch?" |
+| Verify in Playground first | "Format this as a runnable script for `live.ckbccc.com` (CCC Playground) so I can test it on testnet first." |
+ 
+The rows above are single-feature prompts, narrow enough that the tool naturally matches the right skill. "Build a whole app from scratch" is too generic a phrasing, though — the AI will likely just treat it as an everyday web-dev task and never think to check the CCC rules at all. So these two examples add one generic nudge (still no specific skill name required): web chat substitutes the link, skill-native substitutes a line like "use the CCC-related skill(s)":
+ 
+**xUDT issuance/transfer app**
+- Web chat:
+  ```
+  Please visit https://docs.ckbccc.com/skill.md first, then build a React web app for me:
+  after connecting a wallet, users can issue an xUDT token and also transfer that token.
+  ```
+- Skill-native:
+  ```
+  Use the CCC-related skill(s) to build a React web app for me:
+  after connecting a wallet, users can issue an xUDT token and also transfer that token.
+  ```
+ 
+**On-chain guestbook**
+- Web chat:
+  ```
+  Please visit https://docs.ckbccc.com/skill.md first, then use the CCC SDK to build a React web app
+  on Nervos CKB: after connecting a wallet, users can post a short message, which gets written into
+  the cell data of a CKB transaction so it's permanently on-chain. The homepage lists all messages and
+  their senders' addresses, newest first.
+  ```
+- Skill-native:
+  ```
+  Use the CCC-related skill(s) to build a React web app on Nervos CKB:
+  after connecting a wallet, users can post a short message, which gets written into the cell data
+  of a CKB transaction so it's permanently on-chain. The homepage lists all messages and their
+  senders' addresses, newest first.
+  ```
 
-The fix isn't "the model got smarter" — it's that the second prompt gave it somewhere authoritative to check `completeInputsByCapacity`-before-`completeFeeBy` ordering and `bigint` Shannon amounts, instead of falling back on generic/EVM-shaped training data. This is the entire value proposition of grounding: it converts "probably right" into "checked against a source."
-
-## Prompt templates by task
-
-Each task below has a **skill-native** version (Cursor, Claude Code — skill already loaded, reference by name) and a **web chat** version (ChatGPT, DeepSeek — no skill files, always include the URL and ask it to fetch first). Swap in your own package/error/method.
-
-**New feature, unsure which package**
-- *Skill-native:* "I'm building `<React app / Node.js script / custom UI>`. Which `@ckb-ccc/*` package should I use, per the Package Selection table in `ckb-ccc-fundamentals`?"
-- *Web chat:* "I'm building `<React app / Node.js script / custom UI>` on CKB with CCC. Fetch `https://docs.ckbccc.com/skill.md`, find the `ckb-ccc-fundamentals` skill's Package Selection table, and tell me which `@ckb-ccc/*` package to use."
-
-**Implementing a known guide**
-- *Skill-native:* "Follow the `<Compose Transactions / Connect Wallets / UDT Tokens>` guide to implement `<feature>`."
-- *Web chat:* "Fetch `https://docs.ckbccc.com/en/docs/guides/<slug>.md` and follow it to implement `<feature>`. If you're not sure of the exact slug, fetch `https://docs.ckbccc.com/llms.txt` first to find the right page."
-
-**Debugging an error**
-- *Skill-native:* "I got this error: `<error>`. Check the Common Gotchas table in `ckb-ccc-fundamentals` (or the matching spoke skill) — does it match a known cause?"
-- *Web chat:* "I got this error: `<error>`. Fetch `https://docs.ckbccc.com/skill.md`, find the relevant skill (hub or spoke), and check its Common Gotchas table for a matching cause before guessing."
-
-**Reviewing AI-generated code**
-- *Skill-native:* "Review this code against the Pre-submission Checklist and Hallucination Guard in `ckb-ccc-fundamentals` and `ckb-ccc-transactions`. Go item by item and mark each PASS or FAIL — don't just summarize."
-- *Web chat:* "Fetch `https://docs.ckbccc.com/skill.md`, open the `ckb-ccc-fundamentals` and `ckb-ccc-transactions` skills, and review this code against their Pre-submission Checklists and Hallucination Guards. Go item by item and mark each PASS or FAIL — don't just summarize."
-
-**Exact method signature**
-- *Skill-native:* "What are the parameter types for `<method>` on `<class>`? Check DeepWiki/Context7 or `https://api.ckbccc.com` rather than assuming (see `ckb-ccc-fundamentals` Step 0)."
-- *Web chat:* "What are the parameter types for `<method>` on `<class>` in `@ckb-ccc/*`? Check `https://api.ckbccc.com` for the exact signature rather than assuming — don't answer from general TypeScript SDK conventions."
-
-**Looking for existing example code before writing from scratch**
-- *Skill-native:* "Is there already a working example for `<feature>` in CCC's example gallery or a demo repo, per `ckb-ccc-examples-finder`? Use that as the starting point instead of writing from scratch."
-- *Web chat:* "Fetch `https://docs.ckbccc.com/en/docs/code-examples.md` and check if there's an existing example for `<feature>`. If not, fetch `https://docs.ckbccc.com/skill.md`, open `ckb-ccc-examples-finder`, and check the external repos it lists before writing new code."
-
-**Verifying a snippet actually runs before it ships**
-- *Skill-native:* "Format this as a runnable script for the CCC Playground (per `ckb-ccc-playground`) so I can paste it into `live.ckbccc.com` and confirm it works on testnet before I put it in the real project."
-- *Web chat:* "Fetch `https://docs.ckbccc.com/skill.md`, open `ckb-ccc-playground`, and format this as a runnable script using `render()`/`signer` from `@ckb-ccc/playground` so I can paste it into `live.ckbccc.com` and confirm it works on testnet."
-
-## Habits that catch mistakes before they ship
-
-- **Ask for citations.** "Which doc page or skill section is this pattern from?" A confident answer without a citation is a signal to verify manually.
-- **Ask it to self-review with the checklist.** The pre-submission checklists in `ckb-ccc-fundamentals` and the relevant spoke skill are written to be run by an AI against its own output — explicitly ask for that pass as a separate step, not folded into the first generation.
-- **Testnet first, always.** Never accept "trust me" for anything that sends a mainnet transaction. Ask the assistant to target `ClientPublicTestnet` first and confirm behavior before switching networks — this is also called out in the relevant skill's checklist.
-- **Re-ground on version-sensitive questions.** Package versions, download counts, and newly added `KnownScript` entries change over time; re-fetch the relevant page rather than trusting a cached answer from earlier in a long conversation.
-- **Don't trust one example for protocol-level behavior.** A single file in a cookbook/demo repo can have a typo (a wrong `contentType`, a copy-pasted value) that looks internally consistent but is still wrong. For anything beyond "how do I call this method" — i.e. how a protocol like DOB/Spore is actually supposed to behave — ask it to cross-check the official protocol docs, not just the one example it found first: *"Before finalizing this, confirm the `contentType`/`decimals`/`<field>` value against the official protocol docs, not just the example you copied it from."*
-
-## The five mistakes AI makes on CKB — and how to correct them
-
-These are the CCC-specific slips even a well-configured assistant makes, because they contradict the EVM-shaped patterns in its training data. When you spot one in generated code, don't fix it by hand — hand the correction back as a prompt, so the assistant re-generates with the right rule and keeps it for the rest of the session. Each fix below is written to paste as-is.
-
-**1. Amounts come back as a `number`, or with decimals.** The model fell back on EVM-style float math. CKB amounts are always `bigint` in Shannon.
-
-> In CCC all amounts are `bigint` in Shannon, never floating point. Use `ccc.fixedPointFrom("100")` to build them and `ccc.fixedPointToString()` only at the UI boundary. Fix the code accordingly.
-
-**2. The fee is completed before the inputs.** The model didn't know CCC's pipeline is order-dependent — you can't compute a fee before inputs exist.
-
-> The transaction order is mandatory: declare outputs → `completeInputsByCapacity(signer)` → `completeFeeBy(signer)` → `sendTransaction(tx)`. Reorder the calls to match.
-
-**3. A Next.js component using `ccc.Provider` or a CCC hook throws at render.** The file is a Server Component; CCC's React pieces need the client runtime.
-
-> This file uses `ccc.Provider` / a CCC hook, so it must be a Client Component — add `"use client"` as the first line.
-
-**4. A UDT transfer silently loses token change.** The model skipped the UDT-specific input step, so surplus tokens aren't returned to the sender.
-
-> For UDT transfers, call `udt.completeBy(tx, signer)` (adds UDT inputs + change) **before** `tx.completeInputsByCapacity(signer)` (adds CKB capacity). Insert the missing step in that order.
-
-**5. A Node.js script imports `@ckb-ccc/core`.** The model reached for the low-level package unprompted; backends should use the aggregated one.
-
-> Backend/Node.js scripts should import from `@ckb-ccc/shell`, which already re-exports `@ckb-ccc/core`. Switch the import.
-
+## 5 common mistakes, one-line fixes
+ 
+If you spot any of these symptoms, just send the matching line back to the AI and have it regenerate:
+ 
+| Symptom | One-line fix |
+| --- | --- |
+| Amount is a `number` or has decimals | "CKB amounts are always a bigint in Shannon. Construct them with `ccc.fixedPointFrom()`, not a float — please fix." |
+| Fee computed before inputs are filled | "The order must be outputs → completeInputsByCapacity → completeFeeBy → sendTransaction — please reorder." |
+| Next.js component errors, missing `"use client"` | "This file uses `ccc.Provider`/a CCC hook, so it must be a client component — add `\"use client\"` as the first line." |
+| UDT transfer silently drops change | "For UDT transfers, call `udt.completeBy(tx, signer)` first to add UDT inputs and change, then `completeInputsByCapacity` for CKB capacity — please fix the order." |
+| Node script imports from `@ckb-ccc/core` | "Backend scripts should import from `@ckb-ccc/shell` (which re-exports core) — please switch it." |
+ 
 <Callout type="info">
-  Each of these maps to an entry in the Common Gotchas and Hallucination Guard sections of `ckb-ccc-fundamentals` or the matching spoke skill — see the [skills index](/skill.md), the same one your tool loads during [setup](./set-up-ai-tools). If your assistant gets **all** of them wrong, that's not a prompting problem: the rules probably didn't load. Run the checks on [Verify & Troubleshoot](./verify-and-troubleshoot).
+  If all five come back wrong, it's probably not a prompting problem — the skill likely isn't loaded. Check [Verify & Troubleshoot](./verify-and-troubleshoot) instead of tweaking your prompt further.
 </Callout>
-
-## Closing the loop
-
-Prompting well is a habit applied per request, not a one-time step. Pair it with a correct [tool setup](./set-up-ai-tools) (so the rules are always loaded) and the [verification check](./verify-and-troubleshoot) (so you know they are), and AI-assisted CCC development gets much closer to pairing with a developer who has actually read the docs.
+## Three closing habits
+ 
+- Run mainnet-bound transactions on `ClientPublicTestnet` first — don't trust a "should work" answer.
+- For protocol-level questions (e.g. what a DOB's `contentType` should be), don't trust a single example file — have the AI cross-check the official protocol docs instead of "copying whatever example it found."
+- Don't trust what the AI said earlier in the conversation. CCC packages keep iterating and API fields change with them — the AI having "said it once" doesn't mean it's still correct. E.g. if it looked up which package to use back at message 3, and you rely on that again at message 50, don't let it just repeat its earlier answer — ask it to verify the choice, not recall it.
+- Skills themselves get updated too. In skill-native environments (Cursor / Claude Code, etc.), run `npx skills update ckb-devrel/ccc` occasionally so your local copy doesn't fall behind the latest rules — but note `update` only refreshes skills you've already installed, it won't pull in newly added ones. If we add a new skill (say a future `ckb-ccc-fiber`), you'll need to re-run `npx skills add ckb-devrel/ccc --all` to get it. Web chat doesn't have this problem — it fetches `skill.md` fresh every time, so it's always current.
