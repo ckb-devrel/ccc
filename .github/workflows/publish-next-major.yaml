@@ -33,8 +33,8 @@ jobs:
         with:
           title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
           commit: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
-          version: pnpm dlx @changesets/cli@2.31.0 version
-          publish: pnpm dlx @changesets/cli@2.31.0 publish --tag next
+          version: pnpm dlx @changesets/cli@3.0.0 version
+          publish: pnpm dlx @changesets/cli@3.0.0 publish --tag next
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
