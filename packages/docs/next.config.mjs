@@ -5,6 +5,11 @@ const withMDX = createMDX();
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  experimental: {
+    // Work around Next.js 16.3's incompatibility with TypeScript 7's dual-version aliases.
+    // https://github.com/vercel/next.js/issues/96589
+    useTypeScriptCli: false,
+  },
   async rewrites() {
     return [
       // Constrain :lang to a single dot-free segment so these rewrites match
