@@ -60,8 +60,8 @@
   "packageManager": "pnpm@11.8.0",
   "types": "./dist.commonjs/index.d.ts",
   "inlinedDependencies": {
-    "@ipld/dag-cbor": "10.0.1",
-    "cborg": "5.1.1",
-    "multiformats": "14.0.0"
+    "@ipld/dag-cbor": "10.0.2",
+    "cborg": "6.1.1",
+    "multiformats": "14.0.5"
   }
 }

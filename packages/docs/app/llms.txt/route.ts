@@ -17,8 +17,7 @@ Notes for AI agents:
 
 - All links below are absolute URLs. Append \`.md\` to any docs page URL to get its raw Markdown version (e.g. ${siteUrl}/en/docs/getting-started/introduction.md).
 - The entire documentation concatenated into a single file: ${siteUrl}/llms-full.txt
-- Agent skill (product-specific operating guidance): ${siteUrl}/skill.md
-- Blog (release notes & tutorials): ${siteUrl}/en/blog/rgbpp-new-sdk-preview
+- Agent skills index (product-specific operating guidance, split by topic): ${siteUrl}/skill.md
 - Chinese versions of every page are available by replacing \`/en/\` with \`/zh/\` in the URL.
 - API reference: https://api.ckbccc.com | Playground: https://live.ckbccc.com | Source: https://github.com/ckb-devrel/ccc
 
@@ -31,6 +30,7 @@ Notes for AI agents:
 - [Core Packages](${siteUrl}/en/docs/packages/core-packages): Core primitives, aggregated entry points, and wallet connectors.
 - [Protocol Support Layer](${siteUrl}/en/docs/packages/protocol-sdks): Protocol-level SDKs — Spore, UDT, SSRI, and Lumos patches.
 - [Wallet Integrations](${siteUrl}/en/docs/packages/wallet-integrations): Connect any wallet through one unified \`Signer\` interface.
+- [AI Resources](${siteUrl}/en/docs/ai-resources): How this documentation is built for AI agents, and how developers should configure and prompt their own AI tools to use it correctly.
 
 ## Common tasks (recommended reading paths)
 

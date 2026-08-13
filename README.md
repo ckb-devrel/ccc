@@ -50,6 +50,18 @@ Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckb
 
 > **Using an AI assistant?** CCC's docs are LLM-friendly: start from [docs.ckbccc.com/llms.txt](https://docs.ckbccc.com/llms.txt) for a curated index with task-oriented reading paths, or [docs.ckbccc.com/llms-full.txt](https://docs.ckbccc.com/llms-full.txt) for the full documentation in a single file. Append `.md` to any docs page URL to get its raw Markdown.
 
+## AI Coding Assistants (Agent Skills)
+
+CKB's Cell model rarely appears in the Ethereum-heavy data most LLMs are trained on, so an unguided assistant will confidently write wrong CCC code (wrong tx ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions). To fix this, CCC ships a set of machine-readable [Agent Skills](https://docs.ckbccc.com/skill.md) under [`skills/`](https://github.com/ckb-devrel/ccc/tree/master/skills) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples).
+
+Install them into Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ other tools with one command, using the open-source [`skills`](https://github.com/vercel-labs/skills) CLI:
+
+```bash
+npx skills add ckb-devrel/ccc --all
+```
+
+See [AI Resources](https://docs.ckbccc.com/en/docs/ai-resources) for full setup instructions per tool, how to verify a skill actually loaded, and prompting tips.
+
 ## Try in the Playground
 
 <p align="center">
@@ -60,7 +72,7 @@ Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckb
 
 The CCC Playground is an integrated testing environment in web browsers that supports data visualization and code-sharing. [Click the link](https://live.ckbccc.com/) to run your code without the annoying preparation and watch how the code works, exploring CCC's capabilities.
 
-For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/docs/guides/playground).
+For an explanation of the visual elements and interface components in the playground, please refer to [the CCC Playground guide](https://docs.ckbccc.com/en/docs/guides/playground).
 
 ## Quick Start with `create-ccc-app`
 
@@ -114,7 +126,7 @@ import { cccA } from "@ckb-ccc/<package-name>/advanced";
 
 The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. 
 
-To learn more examples, visit [the documentation](https://docs.ckbccc.com/docs/code-examples).
+To learn more examples, visit [the documentation](https://docs.ckbccc.com/en/docs/code-examples).
 
 ### Transaction Composing
 
@@ -138,7 +150,7 @@ That's it! The transaction is sent.
 
 [Click here to read the full example of transferring native CKB token.](https://live.ckbccc.com/?src=https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/examples/src/transfer.ts)
 
-Additional examples can be found in [the documentation](https://docs.ckbccc.com/docs/code-examples).
+Additional examples can be found in [the documentation](https://docs.ckbccc.com/en/docs/code-examples).
 
 ## Build and Run
 

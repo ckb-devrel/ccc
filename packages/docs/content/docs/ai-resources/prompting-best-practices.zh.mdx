@@ -1,0 +1,107 @@
+---
+title: 提示词最佳实践
+description: 几句好用的提示词，帮你更快写出准确、能跑的 CKB/CCC 代码。
+icon: MessageSquare
+---
+ 
+即使装好了 [Agent Skills](https://docs.ckbccc.com/skill.md)，**怎么问**依然决定着结果的好坏。这页只留下真正影响准确率的几个模式，照抄即用。
+ 
+## 先确认你在哪种环境
+ 
+|  | Skill 原生（Cursor / Claude Code，已按[配置指南](./set-up-ai-tools)安装） | Web 聊天（ChatGPT / DeepSeek 等，未安装） |
+| --- | --- | --- |
+| 怎么用 | 把需求描述清楚就行，工具会自己路由到该用哪个 skill | 需求描述清楚之外，还要附上 `https://docs.ckbccc.com/skill.md`，并要求"先获取再回答"——它没有本地文件可路由，得靠这个链接自己去找该用哪份 skill |
+
+若你的开发环境没有执行过[配置指南](./set-up-ai-tools)里的安装命令，就按 Web 聊天版处理。
+ 
+## 核心原则：先查证，后编写
+ 
+若不指定来源，模型可能会退回到 EVM 训练模式瞎编；给定一个来源，它就有东西可以对照检查：
+ 
+- 模糊提示词：*"用 CCC 写一个从已连接钱包转 100 CKB 的函数。"*
+- 查证提示词：*"…… 写代码前先确认 CKB 特有的规则（数额单位、交易顺序等），别凭训练记忆写。"*（Web 聊天再加一句 `https://docs.ckbccc.com/skill.md`，让它自己路由到该查哪份规则）
+
+两种提示词生成的代码，差异可能就体现在这几行：
+ 
+```ts
+// ❌ 模糊提示词
+capacity: 100 * 1e8                         // number，不是 bigint
+await tx.completeFeeBy(signer);             // 费用算在 input 填充之前
+await tx.completeInputsByCapacity(signer);
+```
+ 
+```ts
+// ✅ 查证提示词
+capacity: ccc.fixedPointFrom(100)           // bigint，Shannon 单位
+await tx.completeInputsByCapacity(signer);  // input 必须先于费用
+await tx.completeFeeBy(signer);
+```
+ 
+**记住这一条就够了：**
+- Skill 原生环境里，用你自己的话把任务说清楚就行——不用记、也不用写 skill 名字，工具会按每个 skill 的描述自己路由；
+- Web 聊天环境里没有本地文件可路由，用一句 `skill.md` 链接顶替这个能力即可。
+ 
+## 场景模板
+ 
+Web 聊天版 = Skill 原生版 + "先获取 `https://docs.ckbccc.com/skill.md`"——背这条规律，比背下面7行更有用。
+ 
+| 场景 | Skill 原生怎么问 |
+| --- | --- |
+| 不确定用哪个包 | "我要做 `<React 应用/Node脚本/…>`，该用哪个 `@ckb-ccc/*` 包？" |
+| 照指南实现功能 | "按 `<连接钱包/组装交易/UDT>` 指南实现 `<功能>`。" |
+| 调试报错 | "报错：`<错误信息>`。对照相关 skill 的常见陷阱表，是否匹配已知原因？" |
+| 审查 AI 写的代码 | "对照 CCC 相关规则的提交前检查清单，逐项打 PASS/FAIL，不要只给总结。" |
+| 查精确方法签名 | "`<方法>` 的参数类型是什么？查 `api.ckbccc.com`，不要凭猜测。" |
+| 找现成示例 | "有没有 `<功能>` 的现成示例可以参考？照着改，别从零写。" |
+| 先在 Playground 验证 | "帮我格式化成可以直接贴到 `live.ckbccc.com`（CCC Playground）跑的脚本，我先在测试网跑一遍。" |
+ 
+上面都是单功能级别的提示词，措辞本身就够窄，足以让工具自动命中对应 skill。但"从零生成一个完整应用"这种话术太宽泛，AI 很容易当成普通 web 开发直接下笔、压根不会想起来查 CCC 的规则——所以这两个例子会额外加一句通用提醒（不需要记具体 skill 名字），Web 聊天用链接顶替，Skill 原生用一句"用 CCC 相关的 skill"：
+ 
+**发行/转账 xUDT 代币的应用**
+- Web 聊天：
+  ```
+  请先访问 https://docs.ckbccc.com/skill.md，然后帮我写一个 React 网页应用：
+  连接钱包后，可以发行一个 xUDT 代币，也可以对该代币发起转账。
+  ```
+- Skill 原生：
+  ```
+  使用 CCC 相关的 skill，帮我写一个 React 网页应用：
+  连接钱包后，可以发行一个 xUDT 代币，也可以对该代币发起转账。
+  ```
+ 
+**链上留言墙**
+- Web 聊天：
+  ```
+  请先访问 https://docs.ckbccc.com/skill.md，然后用 CCC SDK 做一个 React 网页应用：
+  连接钱包后可以发一条短留言，留言内容写入一笔 CKB 交易的 cell data 里，永久上链；
+  首页按时间倒序展示所有留言和发送者地址。
+  ```
+- Skill 原生：
+  ```
+  使用 CCC 相关的 skill，做一个 React 网页应用：
+  连接钱包后可以发一条短留言，留言内容写入一笔 CKB 交易的 cell data 里，永久上链；
+  首页按时间倒序展示所有留言和发送者地址。
+  ```
+
+## 5类高发错误，一句话纠正
+ 
+发现下面任一症状，把对应这句话直接回传给 AI 重新生成即可：
+ 
+| 症状 | 一句纠正语 |
+| --- | --- |
+| 金额是 `number` 或带小数 | "CKB 数额一律是 Shannon 单位的 bigint，用 `ccc.fixedPointFrom()` 构造，别用浮点数，请修正。" |
+| 先算费用再填 input | "顺序必须是 outputs → completeInputsByCapacity → completeFeeBy → sendTransaction，请重排。" |
+| Next.js 组件报错、缺 `"use client"` | "这个文件用了 `ccc.Provider`/CCC hook，必须是客户端组件，第一行加 `\"use client\"`。" |
+| UDT 转账丢失找零 | "UDT 转账要先 `udt.completeBy(tx, signer)` 补 UDT input 和找零，再 `completeInputsByCapacity` 补 CKB 容量，请补上顺序。" |
+| Node 脚本从 `@ckb-ccc/core` 导入 | "后端脚本应从 `@ckb-ccc/shell` 导入（已重新导出 core），请切换。" |
+ 
+<Callout type="info">
+  五条全错，大概率不是提示词问题，而是 skill 没加载——去[验证与排查](./verify-and-troubleshoot)查一下，别继续在提示词上找原因。
+</Callout>
+
+## 三条收尾习惯
+ 
+- 主网交易前先在 `ClientPublicTestnet` 跑一遍，别信"一次过"。
+- 协议级问题（比如 DOB 的 `contentType` 该填什么）别只信一个示例文件，让 AI 去对官方协议文档，不要"抄一个凑合"。
+- 别信 AI 早些时候说过的话。CCC 的包会不断迭代，API 字段也会跟着更新，AI 在对话里"说过一次"不代表现在还对——比如第3条消息里查过一次该用哪个包，聊到第50条又用到这信息时，别让它直接照搬自己之前的答案，要重新问一遍或重新查一遍。
+- Skill 本身也会迭代更新。Skill 原生环境（Cursor / Claude Code 等）建议时不时执行一次 `npx skills update ckb-devrel/ccc`，避免本地这份 skill 落后于最新规则——但注意 `update` 只刷新已装过的 skill 内容，不会把仓库里新增的 skill 拉进来；如果我们新增了 skill（比如未来的 `ckb-ccc-fiber`），得重新跑一次 `npx skills add ckb-devrel/ccc --all` 才能装上。Web 聊天不存在这个问题——它每次都是现查 `skill.md`，天然是最新版。
