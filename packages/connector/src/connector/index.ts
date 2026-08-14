@@ -5,6 +5,7 @@ import { Ref, createRef, ref } from "lit/directives/ref.js";
 import {
   CloseEvent,
   ConnectedEvent,
+  FeeRateSelectedEvent,
   SelectClientEvent,
 } from "../events/index.js";
 import { SignersController } from "../signers/index.js";
@@ -27,8 +28,14 @@ export class WebComponentConnector extends LitElement {
   @state()
   public client: ccc.Client = new ccc.ClientPublicTestnet();
   public setClient(client: ccc.Client) {
+    if (client !== this.client) {
+      this.feeRate = undefined;
+    }
     this.client = client;
   }
+
+  @state()
+  public feeRate?: ccc.Num;
 
   private signersControllerInner = new SignersController(this);
 
@@ -154,8 +161,12 @@ export class WebComponentConnector extends LitElement {
                   ?hideMark=${this.hideMark}
                   .wallet=${this.wallet}
                   .signer=${this.signer.signer}
+                  .feeRate=${this.feeRate}
                   .clientOptions=${this.clientOptions}
                   @disconnect=${() => this.disconnect()}
+                  @fee-rate-selected=${(event: FeeRateSelectedEvent) => {
+                    this.feeRate = event.feeRate;
+                  }}
                   @select-client=${(e: SelectClientEvent) =>
                     this.setClient(e.client)}
                   ${ref(this.bodyRef)}

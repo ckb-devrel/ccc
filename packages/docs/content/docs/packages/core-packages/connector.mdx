@@ -51,6 +51,15 @@ connector.disconnect(); // disconnect the current wallet
 connector.setClient(newClient); // switch networks
 ```
 
+## Select a transaction fee rate
+
+The connected-wallet view includes a **Fee Rate** entry above **Manage**, so
+applications do not need to provide a separate trigger. It opens the selector
+inside the same modal and offers economy, auto, and custom
+rates. Selections apply immediately; use the back button to return to the
+connected-wallet view. For now, the selection is retained by the connector UI
+only.
+
 ## Usage in plain HTML
 
 ```html
