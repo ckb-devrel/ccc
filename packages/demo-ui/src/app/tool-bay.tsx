@@ -22,14 +22,24 @@ export function ToolBay({
 
       <div className="tool-bay-header">
         <div>
-          <span className="section-index">01 / TOOL ARRAY</span>
+          <div className="tool-bay-meta">
+            <span className="section-index">
+              <span className="section-glyph" aria-hidden="true">
+                壹
+              </span>
+              <span className="section-separator" aria-hidden="true">
+                ·
+              </span>
+              <span>TOOL ARRAY</span>
+            </span>
+            <div className="bay-status">
+              <Activity size={14} />
+              <span>{demoModules.length} MODULES READY</span>
+            </div>
+          </div>
           <h2>
             {selectedModule ? "Operation selected" : "What do you want to do?"}
           </h2>
-        </div>
-        <div className="bay-status">
-          <Activity size={14} />
-          <span>{demoModules.length} MODULES READY</span>
         </div>
       </div>
 
@@ -47,7 +57,8 @@ export function ToolBay({
               onClick={() => onSelect(module)}
             >
               <span className="module-index">
-                {String(index + 1).padStart(2, "0")}
+                {String(index + 1).padStart(2, "0")}-
+                {access === "local" ? "L" : "S"}
               </span>
               <span
                 className={`module-icon ${access === "signer" ? "requires-signer" : "is-local"}`}

@@ -9,7 +9,7 @@
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ./src",

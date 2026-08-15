@@ -21,18 +21,23 @@
 }
 
 html {
+  height: 100%;
   min-width: 320px;
   background: var(--paper);
 }
 
 body {
-  min-height: 100vh;
+  height: 100%;
   margin: 0;
+  overflow: hidden;
   color: var(--ink);
   background-color: var(--paper);
   background-image:
     linear-gradient(rgb(230 238 242 / 4%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(230 238 242 / 4%) 1px, transparent 1px);
+  background-position:
+    0 var(--page-scroll-y, 0px),
+    0 var(--page-scroll-y, 0px);
   background-size: 32px 32px;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -40,6 +45,7 @@ body {
 button {
   color: inherit;
   font: inherit;
+  touch-action: manipulation;
 }
 
 button:not(:disabled) {
@@ -52,10 +58,21 @@ button:not(:disabled) {
 }
 
 .demo-shell {
-  width: min(1180px, calc(100% - 32px));
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 22px 0 16px;
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 34px);
+  height: calc(100dvh - 34px);
+  flex-direction: column;
+  margin: 0;
+  padding: 22px max(16px, calc((100vw - 1180px) / 2)) 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  scrollbar-width: none;
+}
+
+.demo-shell::-webkit-scrollbar {
+  display: none;
 }
 
 .topbar {
@@ -67,8 +84,6 @@ button:not(:disabled) {
 }
 
 .brand-lockup,
-.brand-copy,
-.system-readout,
 .panel-kicker,
 .account-primary,
 .bay-status,
@@ -79,7 +94,9 @@ button:not(:disabled) {
 }
 
 .brand-lockup {
-  gap: 10px;
+  gap: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
 .brand-mark {
@@ -87,57 +104,61 @@ button:not(:disabled) {
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid var(--ink);
-  background: var(--panel);
-  box-shadow: 3px 3px 0 var(--ink);
 }
 
-.brand-copy {
-  align-items: flex-start;
-  flex-direction: column;
-  line-height: 1;
+.brand-wordmark {
+  width: 45px;
+  height: auto;
 }
 
-.brand-copy strong {
-  font-size: 15px;
-  letter-spacing: 0.08em;
+.header-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.brand-copy small {
-  margin-top: 5px;
+.header-link {
+  display: grid;
+  width: 28px;
+  height: 30px;
+  place-items: center;
+  border: 0;
   color: var(--muted);
-  font-family: "Courier New", monospace;
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 160ms ease;
 }
 
-.system-readout {
-  gap: 9px;
-  color: var(--muted);
-  font-family: "Courier New", monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+.header-link:hover {
+  color: var(--signal);
 }
 
-.signal-light {
-  width: 7px;
-  height: 7px;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  background: var(--signal);
-  box-shadow: 0 0 8px rgb(91 206 250 / 65%);
+.header-link:focus-visible {
+  color: var(--signal);
+  outline: none;
 }
 
-.readout-divider {
-  width: 1px;
-  height: 14px;
-  background: var(--line-dark);
+.header-link svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.header-link .github-mark,
+.header-link .nervos-mark {
+  fill: currentColor;
+  stroke: none;
 }
 
 .machine {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  justify-content: center;
   padding: 46px 0 30px;
+}
+
+.machine.has-selection {
+  justify-content: flex-start;
 }
 
 .machine-heading {
@@ -186,8 +207,28 @@ button:not(:disabled) {
 }
 
 .section-index {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
+}
+
+.section-separator {
+  color: var(--line-dark);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.section-glyph {
+  display: inline;
+  color: var(--muted);
+  font-family: "Noto Serif TC", "Songti TC", PMingLiU, serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
 }
 
 .machine-heading h1,
@@ -272,7 +313,7 @@ button:not(:disabled) {
 
 .hardware-code {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .hardware-line {
@@ -316,6 +357,13 @@ button:not(:disabled) {
 
 .address-list::-webkit-scrollbar {
   display: none;
+}
+
+.address-list.is-loading {
+  display: flex;
+  align-items: center;
+  padding-block: 0;
+  overflow: hidden;
 }
 
 .address-row {
@@ -390,9 +438,10 @@ button:not(:disabled) {
 
 .address-row.is-loading {
   display: flex;
+  justify-content: center;
   padding: 0 8px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .connection-copy p {
@@ -406,7 +455,7 @@ button:not(:disabled) {
 .panel-kicker {
   gap: 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .connection-options {
@@ -476,7 +525,7 @@ button:not(:disabled) {
 .option-copy small {
   margin-bottom: 4px;
   opacity: 0.6;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 .option-copy strong {
@@ -507,7 +556,7 @@ button:not(:disabled) {
 .private-key-message {
   color: var(--muted);
   font-family: "Courier New", monospace;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -517,7 +566,7 @@ button:not(:disabled) {
   display: grid;
   min-height: 48px;
   align-items: center;
-  grid-template-columns: 20px minmax(0, 1fr);
+  grid-template-columns: 20px minmax(0, 1fr) 28px;
   gap: 10px;
   padding: 0 13px;
   border: 1px solid var(--line-dark);
@@ -526,6 +575,23 @@ button:not(:disabled) {
   transition:
     border-color 160ms ease,
     color 160ms ease;
+}
+
+.private-key-visibility {
+  display: grid;
+  width: 28px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  transition: color 160ms ease;
+}
+
+.private-key-visibility:hover,
+.private-key-visibility[aria-pressed="true"] {
+  color: var(--signal);
 }
 
 .private-key-input-frame:focus-within {
@@ -558,7 +624,7 @@ button:not(:disabled) {
 
 .private-key-actions {
   display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
+  grid-template-columns: 0.7fr 0.8fr 1.3fr;
   gap: 8px;
 }
 
@@ -568,7 +634,7 @@ button:not(:disabled) {
   color: var(--ink);
   background: #171d21;
   font-family: "Courier New", monospace;
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -792,7 +858,7 @@ div.wallet-icon-stage {
   color: var(--ink);
   background: #171d21;
   font-family: "Courier New", monospace;
-  font-size: 7px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -826,7 +892,7 @@ div.wallet-icon-stage {
 
 .account-balance span {
   color: var(--muted);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -881,7 +947,7 @@ div.wallet-icon-stage {
   width: min(1080px, 100%);
   max-height: 760px;
   margin: 0 auto;
-  padding: 0 38px;
+  padding: 12px 38px 8px;
   overflow: hidden;
   opacity: 1;
   transform: translateY(0);
@@ -898,7 +964,7 @@ div.wallet-icon-stage {
 
 .bay-rail {
   position: absolute;
-  top: 20px;
+  top: 0;
   bottom: 0;
   width: 12px;
   overflow: hidden;
@@ -939,8 +1005,13 @@ div.wallet-icon-stage {
 .tool-bay-header {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
   margin-bottom: 16px;
+}
+
+.tool-bay-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .tool-bay-header h2 {
@@ -950,7 +1021,7 @@ div.wallet-icon-stage {
 .bay-status {
   gap: 7px;
   color: var(--muted);
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .bay-status svg {
@@ -984,7 +1055,7 @@ div.wallet-icon-stage {
   display: grid;
   min-height: 88px;
   align-items: center;
-  grid-template-columns: 30px 36px 1fr 20px;
+  grid-template-columns: 34px 36px 1fr 20px;
   gap: 9px;
   padding: 12px;
   border: 0;
@@ -1029,7 +1100,7 @@ div.wallet-icon-stage {
 
 .module-index {
   color: currentColor;
-  font-size: 8px;
+  font-size: 10px;
   opacity: 0.62;
 }
 
@@ -1058,7 +1129,7 @@ div.wallet-icon-stage {
 }
 
 .module-copy small {
-  margin-bottom: 4px;
+  margin-bottom: 0;
   color: currentColor;
   font-size: 7px;
   opacity: 0.62;
@@ -1067,7 +1138,7 @@ div.wallet-icon-stage {
 .module-copy strong {
   overflow: hidden;
   max-width: 100%;
-  font-size: 12px;
+  font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1187,18 +1258,18 @@ div.wallet-icon-stage {
 .dock-selection small {
   margin-bottom: 3px;
   color: #8e958e;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .dock-selection strong {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .dock-checks {
   display: flex;
   gap: 14px;
   color: #aeb4ae;
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .dock-checks span {
@@ -1221,22 +1292,612 @@ div.wallet-icon-stage {
   color: var(--signal);
 }
 
+.module-workspace-slot {
+  width: min(900px, 100%);
+  max-height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(22px);
+  pointer-events: none;
+  transition:
+    max-height 700ms var(--easing-mechanical),
+    margin 700ms var(--easing-mechanical),
+    opacity 220ms ease,
+    transform 520ms var(--easing-mechanical);
+}
+
+.module-workspace-slot.is-active {
+  max-height: 760px;
+  margin-top: 34px;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.module-workspace {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line-dark);
+  background: transparent;
+  clip-path: polygon(
+    0 14px,
+    14px 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% calc(100% - 14px),
+    calc(100% - 14px) 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+.module-workspace::before {
+  position: absolute;
+  inset: 5px;
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px),
+    linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px);
+  background-position: center;
+  background-size: 18px 18px;
+  content: "";
+  pointer-events: none;
+}
+
+.workspace-hardware {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.workspace-hardware-line {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
+.workspace-header {
+  position: relative;
+  display: flex;
+  min-height: 126px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 42px 34px 21px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.workspace-header::after {
+  position: absolute;
+  z-index: 1;
+  right: 34px;
+  bottom: 0;
+  left: 34px;
+  height: 1px;
+  background: var(--line);
+  content: "";
+}
+
+.workspace-header > *:not(.workspace-header-glyph-viewport) {
+  position: relative;
+  z-index: 1;
+}
+
+.workspace-header-glyph-viewport {
+  position: absolute;
+  z-index: 0;
+  inset: 5px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.workspace-header-glyph {
+  position: absolute;
+  top: -63px;
+  right: -39px;
+  color: rgb(230 238 242 / 5%);
+  font-family: "Noto Serif TC", "Songti TC", PMingLiU, serif;
+  font-size: 192px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+.workspace-header h1 {
+  margin: 6px 0 0;
+  font-size: clamp(29px, 4vw, 45px);
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.workspace-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--line-dark);
+  color: var(--muted);
+  background: var(--recess);
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.workspace-core {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: 27px 34px 31px;
+}
+
+.module-console {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+}
+
+.module-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.module-field {
+  display: grid;
+  gap: 7px;
+}
+
+.module-field-wide {
+  grid-column: 1 / -1;
+}
+
+.module-field > span,
+.module-readout-label {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.module-field input,
+.module-field textarea {
+  width: 100%;
+  border: 1px solid var(--line-dark);
+  border-radius: 0;
+  outline: none;
+  color: var(--ink);
+  background: rgb(7 10 12 / 72%);
+  font:
+    13px/1.5 "Courier New",
+    monospace;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.module-field input {
+  height: 46px;
+  padding: 0 13px;
+}
+
+.module-field textarea {
+  min-height: 88px;
+  padding: 11px 13px;
+  resize: vertical;
+}
+
+.module-field input:focus,
+.module-field textarea:focus {
+  border-color: var(--signal);
+  background: rgb(91 206 250 / 5%);
+}
+
+.module-field input::placeholder,
+.module-field textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.58;
+}
+
+.module-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.module-actions button {
+  display: inline-flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid var(--line-dark);
+  color: var(--ink);
+  background: rgb(230 238 242 / 4%);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.module-actions button:not(:disabled):hover,
+.module-actions button.is-primary:not(:disabled):hover {
+  border-color: var(--signal);
+  color: var(--signal);
+  background: rgb(91 206 250 / 8%);
+}
+
+.module-actions button.is-primary {
+  border-color: color-mix(in srgb, var(--signal) 56%, transparent);
+}
+
+.module-actions button:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.module-readout {
+  display: grid;
+  min-height: 54px;
+  align-items: center;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 12px;
+  border-left: 2px solid var(--line-dark);
+  background: rgb(7 10 12 / 68%);
+}
+
+.module-readout > strong,
+.module-readout > a,
+.module-readout button {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--ink);
+  font:
+    400 12px/1.4 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-readout button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.module-readout button strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.module-readout button:hover,
+.module-readout button:hover strong,
+.module-readout > a:hover {
+  color: var(--signal);
+}
+
+.module-readout .is-empty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+
+.module-readout.is-error {
+  border-left-color: #d77676;
+}
+
+.module-readout.is-pending {
+  border-left-color: var(--signal-dark);
+}
+
+.module-readout.is-success {
+  border-left-color: var(--signal);
+}
+
+.module-readout > a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.module-readout > a span {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-readout > a code {
+  margin-left: auto;
+  color: var(--signal);
+  font: inherit;
+  white-space: nowrap;
+}
+
+.module-readout > a svg {
+  flex: 0 0 auto;
+}
+
+.activity-console {
+  --console-gutter: max(16px, calc((100vw - 1180px) / 2));
+
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+.activity-console-panel {
+  position: absolute;
+  right: auto;
+  bottom: 34px;
+  left: var(--console-gutter);
+  width: min(760px, calc(100% - 32px));
+  max-height: 0;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background-color: rgb(17 24 28 / 98%);
+  background-image:
+    linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px),
+    linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px);
+  background-position: center;
+  background-size: 18px 18px;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition:
+    max-height 520ms var(--easing-mechanical),
+    border-color 180ms ease,
+    opacity 180ms ease,
+    transform 420ms var(--easing-mechanical);
+}
+
+.activity-console.is-open .activity-console-panel {
+  max-height: 340px;
+  border-color: var(--line-dark);
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.activity-console-panel > header {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(7 10 12 / 72%);
+}
+
+.activity-console-panel > header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+}
+
+.activity-console-panel > header strong {
+  color: var(--muted);
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+}
+
+.activity-console-panel > header button {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  text-transform: uppercase;
+}
+
+.activity-console-panel > header button:not(:disabled):hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.activity-console-panel > header button:disabled {
+  opacity: 0.3;
+}
+
+.activity-log {
+  max-height: 266px;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-color: var(--line-dark) transparent;
+  scrollbar-width: thin;
+}
+
+.activity-entry {
+  display: grid;
+  min-height: 32px;
+  align-items: baseline;
+  grid-template-columns: 65px 84px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 14px;
+  border-left: 2px solid transparent;
+  font:
+    400 11px/1.45 "Courier New",
+    monospace;
+}
+
+.activity-entry:hover {
+  background: rgb(230 238 242 / 3%);
+}
+
+.activity-entry time,
+.activity-entry > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.activity-entry strong {
+  overflow-wrap: anywhere;
+  font-weight: 400;
+}
+
+.activity-entry.is-success {
+  border-left-color: var(--signal);
+}
+
+.activity-entry.is-error {
+  border-left-color: #d77676;
+}
+
+.activity-entry.is-error strong {
+  color: #e5aaaa;
+}
+
+.activity-log-empty {
+  display: grid;
+  min-height: 92px;
+  place-items: center;
+  color: var(--muted);
+  font:
+    700 11px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .footer-readout {
   display: flex;
+  min-width: 0;
+  overflow: hidden;
   min-height: 34px;
   align-items: center;
   gap: 20px;
+  padding-right: var(--console-gutter);
+  padding-left: var(--console-gutter);
   border-top: 1px solid var(--ink);
   color: var(--muted);
-  font-size: 7px;
+  background: transparent;
+  font-size: 10px;
 }
 
 .footer-readout span {
   gap: 5px;
 }
 
-.footer-spacer {
-  flex: 1;
+.footer-readout > span,
+.network-switch {
+  flex: 0 0 auto;
+}
+
+.network-switch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  transition: color 160ms ease;
+}
+
+.network-switch:hover,
+.network-switch:focus-visible {
+  color: var(--signal);
+  outline: none;
+}
+
+.activity-console-toggle {
+  display: flex;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  height: 33px;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 0 0 0 13px;
+  border: 0;
+  border-left: 1px solid var(--line-dark);
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  overflow: hidden;
+}
+
+.activity-console-toggle > span {
+  overflow: hidden;
+  min-width: 0;
+  flex: 0 1 auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-console-toggle > svg,
+.activity-console-toggle > b {
+  flex: 0 0 auto;
+}
+
+.activity-console-toggle b {
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  color: var(--recess);
+  background: #d77676;
+  font-size: 10px;
+}
+
+.activity-console-toggle svg:last-child {
+  transition: transform 220ms var(--easing-mechanical);
+}
+
+.activity-console-toggle:hover,
+.activity-console.is-open .activity-console-toggle {
+  color: var(--signal);
+}
+
+.activity-console.is-open .activity-console-toggle svg:last-child {
+  transform: rotate(180deg);
 }
 
 @media (max-width: 900px) {
@@ -1252,22 +1913,28 @@ div.wallet-icon-stage {
   .tool-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .footer-readout span:nth-child(2),
-  .footer-readout span:nth-child(3) {
-    display: none;
-  }
 }
 
 @media (max-width: 680px) {
   .demo-shell {
-    width: min(100% - 20px, 1180px);
-    padding-top: 12px;
+    width: 100%;
+    padding: 12px 10px 0;
   }
 
-  .system-readout .readout-divider,
-  .system-readout span:last-child {
-    display: none;
+  .activity-console {
+    --console-gutter: 10px;
+  }
+
+  .activity-console-panel {
+    width: calc(100% - 20px);
+  }
+
+  .header-links {
+    gap: 1px;
+  }
+
+  .header-link {
+    width: 25px;
   }
 
   .machine {
@@ -1331,6 +1998,8 @@ div.wallet-icon-stage {
     content: "";
     opacity: 0.6;
     pointer-events: none;
+    will-change: background-position;
+    animation: account-mobile-rail-scroll 1.1s linear infinite;
   }
 
   .account-panel::before {
@@ -1339,11 +2008,18 @@ div.wallet-icon-stage {
 
   .account-panel::after {
     bottom: 18px;
+    animation-direction: reverse;
+  }
+
+  @keyframes account-mobile-rail-scroll {
+    to {
+      background-position-x: 11px;
+    }
   }
 
   .account-primary {
     height: 180px;
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 94px minmax(0, 1fr);
     gap: 10px;
     padding-right: 0;
   }
@@ -1357,6 +2033,12 @@ div.wallet-icon-stage {
 
   .wallet-control {
     padding: 0;
+  }
+
+  .wallet-open-control,
+  .wallet-disconnect-control,
+  .wallet-signer-label {
+    padding-inline: 8px;
   }
 
   .address-value {
@@ -1378,16 +2060,16 @@ div.wallet-icon-stage {
   }
 
   .account-balance strong {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .tool-bay {
-    padding: 0 20px;
+    padding: 12px 20px 8px;
   }
 
   .tool-grid {
     max-height: 560px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .machine.has-selection .tool-grid {
@@ -1395,16 +2077,22 @@ div.wallet-icon-stage {
   }
 
   .tool-module {
-    min-height: 82px;
-    grid-template-columns: 28px 1fr 18px;
+    min-height: 88px;
+    grid-template-columns: 34px 36px minmax(0, 1fr) 20px;
   }
 
   .module-icon {
-    display: none;
+    display: grid;
   }
 
   .bay-status {
-    display: none;
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .bay-status svg {
+    width: 12px;
+    height: 12px;
   }
 
   .command-dock {
@@ -1413,13 +2101,84 @@ div.wallet-icon-stage {
     padding-left: 14px;
   }
 
+  .module-workspace-slot.is-active {
+    margin-top: 26px;
+    max-height: 920px;
+  }
+
+  .module-workspace {
+    background-size: 14px 14px;
+  }
+
+  .workspace-header {
+    min-height: 116px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 13px;
+    padding: 40px 22px 18px;
+  }
+
+  .workspace-header::after {
+    right: 22px;
+    left: 22px;
+  }
+
+  .workspace-header h1 {
+    font-size: 34px;
+  }
+
+  .workspace-state {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .workspace-core {
+    padding: 24px 22px 26px;
+  }
+
+  .module-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .module-field-wide {
+    grid-column: auto;
+  }
+
+  .module-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .module-actions button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .module-readout {
+    min-height: 68px;
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
   .footer-readout {
     gap: 10px;
   }
 
-  .footer-readout span:nth-child(4),
-  .footer-readout span:nth-child(5) {
-    display: none;
+  .activity-console-panel > header > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .activity-entry {
+    grid-template-columns: 54px 62px minmax(0, 1fr);
+    gap: 7px;
+    padding-inline: 10px;
+  }
+
+  .activity-console-toggle {
+    padding-left: 10px;
   }
 }
 

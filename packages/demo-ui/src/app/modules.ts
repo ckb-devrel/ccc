@@ -1,67 +1,42 @@
-import {
-  ArrowDownToLine,
-  Braces,
-  CircleDollarSign,
-  Cpu,
-  Fingerprint,
-  Hash,
-  KeyRound,
-  LockKeyhole,
-  Send,
-  Shapes,
-  Sparkles,
-  Vault,
-  type LucideIcon,
-} from "lucide-react";
+import type { ccc } from "@ckb-ccc/connector-react";
+import { Hash, Send, type LucideIcon } from "lucide-react";
+import type { ComponentType } from "react";
+import type { DemoLogLevel } from "./activity-console";
+import type { ShowModuleReadout } from "./module-readout";
+import { HashModule } from "./modules/hash-module";
+import { TransferModule } from "./modules/transfer-module";
+
+export type ModuleRuntimeProps = {
+  client: ccc.Client;
+  log: (message: string, level?: DemoLogLevel) => void;
+  show: ShowModuleReadout;
+  signer?: ccc.Signer;
+};
 
 export type DemoModule = {
+  id: "hash" | "transfer";
   name: string;
   group: string;
   icon: LucideIcon;
   access: "signer" | "local";
+  component: ComponentType<ModuleRuntimeProps>;
 };
 
 export const demoModules: readonly DemoModule[] = [
-  { name: "Transfer CKB", group: "Transaction", icon: Send, access: "signer" },
-  { name: "Nervos DAO", group: "Transaction", icon: Vault, access: "signer" },
   {
-    name: "Sign message",
+    id: "hash",
+    name: "Hash",
+    group: "Utilities",
+    icon: Hash,
+    access: "local",
+    component: HashModule,
+  },
+  {
+    id: "transfer",
+    name: "Transfer",
     group: "Transaction",
-    icon: Fingerprint,
+    icon: Send,
     access: "signer",
+    component: TransferModule,
   },
-  {
-    name: "Time lock",
-    group: "Transaction",
-    icon: LockKeyhole,
-    access: "signer",
-  },
-  {
-    name: "Issue xUDT",
-    group: "Assets",
-    icon: CircleDollarSign,
-    access: "signer",
-  },
-  {
-    name: "Transfer xUDT",
-    group: "Assets",
-    icon: ArrowDownToLine,
-    access: "signer",
-  },
-  { name: "Mint Spore", group: "Assets", icon: Sparkles, access: "signer" },
-  {
-    name: "Spore cluster",
-    group: "Assets",
-    icon: Shapes,
-    access: "signer",
-  },
-  {
-    name: "Deploy script",
-    group: "Developer",
-    icon: Cpu,
-    access: "signer",
-  },
-  { name: "SSRI", group: "Developer", icon: Braces, access: "signer" },
-  { name: "Hash utilities", group: "Utilities", icon: Hash, access: "local" },
-  { name: "Mnemonic", group: "Utilities", icon: KeyRound, access: "local" },
 ];
