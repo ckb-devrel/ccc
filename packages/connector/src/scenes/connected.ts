@@ -129,7 +129,7 @@ export class ConnectedScene extends LitElement {
 
           <ccc-button
             class="mt-1"
-            @click=${() => window.open("https://mobit.app/", "_blank")}
+            @click=${() => window.open("https://nervdao.com/", "_blank")}
           >
             ${USER_SVG} Manage
           </ccc-button>
