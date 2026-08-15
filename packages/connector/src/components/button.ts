@@ -24,7 +24,7 @@ export class Button extends LitElement {
 
     .control {
       background: none;
-      color: inherit;
+      color: var(--btn-color, inherit);
       border: none;
       padding: 0;
       font: inherit;
@@ -40,11 +40,14 @@ export class Button extends LitElement {
       background: var(--btn-primary);
       border-radius: 0.4rem;
       text-align: left;
-      transition: background 0.15s ease-in-out;
+      transition:
+        background 0.15s ease-in-out,
+        color 0.15s ease-in-out;
     }
     .control:hover,
     .control.selected {
       background: var(--btn-primary-hover);
+      color: var(--btn-color-hover, var(--btn-color, inherit));
     }
     .control:disabled {
       cursor: not-allowed;
@@ -52,6 +55,7 @@ export class Button extends LitElement {
     }
     .control:disabled:hover {
       background: var(--btn-primary);
+      color: var(--btn-color, inherit);
     }
 
     .control ::slotted(img),
@@ -60,6 +64,21 @@ export class Button extends LitElement {
       height: 2rem;
       margin-right: 1rem;
       border-radius: 0.4rem;
+    }
+    .control ::slotted(svg),
+    .control ::slotted(ccc-input) {
+      color: var(--btn-color, inherit) !important;
+      transition: color 0.15s ease-in-out;
+    }
+    .control:hover ::slotted(svg),
+    .control.selected ::slotted(svg),
+    .control:hover ::slotted(ccc-input),
+    .control.selected ::slotted(ccc-input) {
+      color: var(--btn-color-hover, var(--btn-color, inherit)) !important;
+    }
+    .control:disabled:hover ::slotted(svg),
+    .control:disabled:hover ::slotted(ccc-input) {
+      color: var(--btn-color, inherit) !important;
     }
   `;
 
