@@ -29,7 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const tools = [
   { name: "Transfer CKB", group: "Transaction", icon: Send },
@@ -52,11 +52,57 @@ type Telemetry = {
 };
 
 export default function Home() {
-  const { client, disconnect, open, signerInfo, wallet } = ccc.useCcc();
-  const signer = signerInfo?.signer;
+  const {
+    client,
+    disconnect: disconnectWallet,
+    open,
+    signerInfo,
+    wallet,
+  } = ccc.useCcc();
+  const [privateKeySigner, setPrivateKeySigner] = useState<
+    ccc.SignerCkbPrivateKey | undefined
+  >();
+  const [privateKeyMode, setPrivateKeyMode] = useState(false);
+  const [privateKey, setPrivateKey] = useState("");
+  const [privateKeyError, setPrivateKeyError] = useState<string>();
   const [selectedTool, setSelectedTool] = useState("Transfer CKB");
   const [telemetry, setTelemetry] = useState<Telemetry>();
+  const signer = useMemo(() => {
+    if (!privateKeySigner) {
+      return signerInfo?.signer;
+    }
+
+    if (privateKeySigner.client.addressPrefix === client.addressPrefix) {
+      return privateKeySigner;
+    }
+
+    return new ccc.SignerCkbPrivateKey(client, privateKeySigner.privateKey);
+  }, [client, privateKeySigner, signerInfo]);
   const connected = signer !== undefined;
+  const usingPrivateKey = privateKeySigner !== undefined;
+
+  const disconnect = () => {
+    setTelemetry(undefined);
+    if (privateKeySigner) {
+      setPrivateKeySigner(undefined);
+      return;
+    }
+    disconnectWallet();
+  };
+
+  const connectPrivateKey = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      const nextSigner = new ccc.SignerCkbPrivateKey(client, privateKey.trim());
+      setTelemetry(undefined);
+      setPrivateKeySigner(nextSigner);
+      setPrivateKey("");
+      setPrivateKeyError(undefined);
+      setPrivateKeyMode(false);
+    } catch {
+      setPrivateKeyError("Invalid private key");
+    }
+  };
 
   useEffect(() => {
     if (!signer) {
@@ -125,45 +171,100 @@ export default function Home() {
             className="machine-panel connection-panel"
             aria-hidden={connected}
           >
-            <PanelHardware code="LINK/00" />
+            <PanelHardware code={privateKeyMode ? "KEY/01" : "LINK/00"} />
             <div className="connection-copy">
               <span className="panel-kicker">
-                <Link2 size={14} /> Connection interface
+                {privateKeyMode ? <KeyRound size={14} /> : <Link2 size={14} />}
+                {privateKeyMode ? "Local signer" : "Connection interface"}
               </span>
-              <h2>Select an access method</h2>
+              <h2>
+                {privateKeyMode
+                  ? "Enter your private key"
+                  : "Select an access method"}
+              </h2>
               <p>
-                Establish a secure link to reveal account telemetry and the
-                complete tool assembly.
+                {privateKeyMode
+                  ? "The key stays in this browser session and is never persisted by this demo."
+                  : "Establish a secure link to reveal account telemetry and the complete tool assembly."}
               </p>
             </div>
 
-            <div className="connection-options">
-              <button
-                type="button"
-                className="connection-option option-primary"
-                onClick={open}
-              >
-                <span className="option-icon">
-                  <WalletCards size={23} />
+            {privateKeyMode ? (
+              <form className="private-key-form" onSubmit={connectPrivateKey}>
+                <label className="private-key-field">
+                  <span>Private key</span>
+                  <span className="private-key-input-frame">
+                    <KeyRound size={16} aria-hidden="true" />
+                    <input
+                      autoFocus
+                      type="password"
+                      value={privateKey}
+                      placeholder="0x0123456789…"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      onChange={(event) => {
+                        setPrivateKey(event.currentTarget.value);
+                        setPrivateKeyError(undefined);
+                      }}
+                    />
+                  </span>
+                </label>
+                <span className="private-key-message" aria-live="polite">
+                  {privateKeyError ?? "32-byte CKB secp256k1 key"}
                 </span>
-                <span className="option-copy">
-                  <small>Recommended</small>
-                  <strong>Connect wallet</strong>
-                </span>
-                <ArrowRight className="option-arrow" size={18} />
-              </button>
+                <div className="private-key-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPrivateKey("");
+                      setPrivateKeyError(undefined);
+                      setPrivateKeyMode(false);
+                    }}
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="is-primary"
+                    disabled={privateKey.trim().length === 0}
+                  >
+                    Establish link
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="connection-options">
+                <button
+                  type="button"
+                  className="connection-option option-primary"
+                  onClick={open}
+                >
+                  <span className="option-icon">
+                    <WalletCards size={23} />
+                  </span>
+                  <span className="option-copy">
+                    <small>Recommended</small>
+                    <strong>Connect wallet</strong>
+                  </span>
+                  <ArrowRight className="option-arrow" size={18} />
+                </button>
 
-              <button type="button" className="connection-option" disabled>
-                <span className="option-icon">
-                  <KeyRound size={22} />
-                </span>
-                <span className="option-copy">
-                  <small>Coming next</small>
-                  <strong>Private key</strong>
-                </span>
-                <ChevronRight className="option-arrow" size={18} />
-              </button>
-            </div>
+                <button
+                  type="button"
+                  className="connection-option"
+                  onClick={() => setPrivateKeyMode(true)}
+                >
+                  <span className="option-icon">
+                    <KeyRound size={22} />
+                  </span>
+                  <span className="option-copy">
+                    <small>Local signer</small>
+                    <strong>Private key</strong>
+                  </span>
+                  <ChevronRight className="option-arrow" size={18} />
+                </button>
+              </div>
+            )}
           </section>
 
           <section
@@ -177,28 +278,46 @@ export default function Home() {
             </div>
             <div className="account-primary">
               <div className="wallet-control">
-                <div className="wallet-icon-stage">
-                  <div className="connection-seal">
-                    <span className="seal-pulse" />
-                    {wallet?.icon ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        className="connected-wallet-icon"
-                        src={wallet.icon}
-                        alt={wallet.name}
-                      />
-                    ) : (
-                      <ShieldCheck size={25} />
-                    )}
+                {usingPrivateKey ? (
+                  <div className="wallet-icon-stage">
+                    <div className="connection-seal">
+                      <span className="seal-pulse" />
+                      <KeyRound size={25} />
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="wallet-open-control"
-                  onClick={open}
-                >
-                  Open wallet
-                </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="wallet-icon-stage"
+                    aria-label="Open wallet"
+                    onClick={open}
+                  >
+                    <div className="connection-seal">
+                      <span className="seal-pulse" />
+                      {wallet?.icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          className="connected-wallet-icon"
+                          src={wallet.icon}
+                          alt={wallet.name}
+                        />
+                      ) : (
+                        <ShieldCheck size={25} />
+                      )}
+                    </div>
+                  </button>
+                )}
+                {usingPrivateKey ? (
+                  <div className="wallet-signer-label">Local key</div>
+                ) : (
+                  <button
+                    type="button"
+                    className="wallet-open-control"
+                    onClick={open}
+                  >
+                    Open wallet
+                  </button>
+                )}
                 <button
                   type="button"
                   className="wallet-disconnect-control"

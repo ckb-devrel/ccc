@@ -462,6 +462,120 @@ button:not(:disabled) {
   transform: translateX(3px);
 }
 
+.private-key-form {
+  display: grid;
+  gap: 9px;
+  animation: private-key-form-enter 280ms var(--easing-mechanical) both;
+}
+
+.private-key-field {
+  display: grid;
+  gap: 7px;
+}
+
+.private-key-field > span:first-child,
+.private-key-message {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.private-key-input-frame {
+  display: grid;
+  min-height: 48px;
+  align-items: center;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 10px;
+  padding: 0 13px;
+  border: 1px solid var(--line-dark);
+  color: var(--muted);
+  background: var(--recess);
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.private-key-input-frame:focus-within {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.private-key-input-frame input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  outline: none;
+}
+
+.private-key-input-frame input::placeholder {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.private-key-message {
+  min-height: 10px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.private-key-actions {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 8px;
+}
+
+.private-key-actions button {
+  min-height: 34px;
+  border: 1px solid var(--line-dark);
+  color: var(--ink);
+  background: #171d21;
+  font-family: "Courier New", monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: 160ms ease;
+}
+
+.private-key-actions button:hover {
+  border-color: var(--signal);
+}
+
+.private-key-actions button.is-primary {
+  border-color: var(--signal);
+  color: var(--recess);
+  background: var(--signal);
+}
+
+.private-key-actions button.is-primary:hover {
+  background: var(--signal-hover);
+}
+
+.private-key-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+@keyframes private-key-form-enter {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .account-panel {
   position: absolute;
   grid-template-columns: 1fr;
@@ -601,10 +715,25 @@ button:not(:disabled) {
   min-height: 0;
   flex: 0 0 62px;
   place-items: center;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wallet-icon-stage:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 5px;
+}
+
+div.wallet-icon-stage {
+  cursor: default;
 }
 
 .wallet-open-control,
-.wallet-disconnect-control {
+.wallet-disconnect-control,
+.wallet-signer-label {
   display: grid;
   min-height: 30px;
   place-items: center;
@@ -617,6 +746,11 @@ button:not(:disabled) {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   transition: 160ms ease;
+}
+
+.wallet-signer-label {
+  color: var(--muted);
+  background: transparent;
 }
 
 .wallet-open-control:hover,
