@@ -4,6 +4,10 @@ import { html, unsafeStatic } from "lit/static-html.js";
 
 @customElement("ccc-button")
 export class Button extends LitElement {
+  /**
+   * The tag name is passed to `unsafeStatic` and must be a trusted static value,
+   * never unchecked user-controlled input.
+   */
   @property()
   public as = "button";
 

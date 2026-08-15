@@ -15,7 +15,9 @@ const MAX_FEE_RATE = 10_000_000n;
 @customElement("ccc-fee-rate-scene")
 export class FeeRateScene extends LitElement {
   @property({ attribute: false })
-  public client!: ccc.Client;
+  public client!: ccc.Client & {
+    readonly [ccc.Proxy.inner]?: ccc.Client;
+  };
 
   @property({ attribute: false })
   public feeRate?: ccc.NumLike;
@@ -47,7 +49,9 @@ export class FeeRateScene extends LitElement {
   private async refreshFeeRate() {
     const requestId = ++this.requestId;
 
-    const feeRate = await this.client.getFeeRate();
+    const feeRate = await (
+      this.client[ccc.Proxy.inner] ?? this.client
+    ).getFeeRate();
     if (requestId !== this.requestId) {
       return;
     }

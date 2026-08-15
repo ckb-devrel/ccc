@@ -9,6 +9,7 @@ import {
   SelectClientEvent,
 } from "../events/index.js";
 import { SignersController } from "../signers/index.js";
+import { ClientWithFeeRate } from "./client.js";
 
 @customElement("ccc-connector")
 export class WebComponentConnector extends LitElement {
@@ -25,17 +26,25 @@ export class WebComponentConnector extends LitElement {
   @state()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
 
+  private _client = new ClientWithFeeRate(new ccc.ClientPublicTestnet());
+
+  // The connector owns and may switch the active client internally, so it is
+  // state rather than an externally controlled property.
   @state()
-  public client: ccc.Client = new ccc.ClientPublicTestnet();
-  public setClient(client: ccc.Client) {
-    if (client !== this.client) {
-      this.feeRate = undefined;
+  public get client(): ccc.Client {
+    return this._client;
+  }
+  public set client(client: ccc.Client) {
+    if (client === this._client || client === this._client[ccc.Proxy.inner]) {
+      return;
     }
-    this.client = client;
+
+    this._client = new ClientWithFeeRate(client);
   }
 
-  @state()
-  public feeRate?: ccc.Num;
+  public setClient(client: ccc.Client) {
+    this.client = client;
+  }
 
   private signersControllerInner = new SignersController(this);
 
@@ -161,11 +170,12 @@ export class WebComponentConnector extends LitElement {
                   ?hideMark=${this.hideMark}
                   .wallet=${this.wallet}
                   .signer=${this.signer.signer}
-                  .feeRate=${this.feeRate}
+                  .feeRate=${this._client.feeRate}
                   .clientOptions=${this.clientOptions}
                   @disconnect=${() => this.disconnect()}
                   @fee-rate-selected=${(event: FeeRateSelectedEvent) => {
-                    this.feeRate = event.feeRate;
+                    this._client.feeRate = event.feeRate;
+                    this.requestUpdate();
                   }}
                   @select-client=${(e: SelectClientEvent) =>
                     this.setClient(e.client)}
