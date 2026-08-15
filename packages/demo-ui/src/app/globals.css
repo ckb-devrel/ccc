@@ -641,13 +641,24 @@ button:not(:disabled) {
   top: 50%;
   width: 13px;
   height: 82px;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--line-dark) 0 1px,
-    transparent 1px 8px
-  );
-  opacity: 0.65;
+  overflow: hidden;
+  background: transparent;
   transform: translateY(-50%);
+}
+
+.backplane-vent::before {
+  position: absolute;
+  inset: -8px 0;
+  background: linear-gradient(
+      to bottom,
+      var(--line-dark) 0 1px,
+      transparent 1px
+    )
+    0 0 / 100% 8px repeat-y;
+  content: "";
+  opacity: 0.65;
+  will-change: transform;
+  animation: backplane-vent-scroll 1.1s linear infinite;
 }
 
 .vent-left {
@@ -656,6 +667,16 @@ button:not(:disabled) {
 
 .vent-right {
   right: 0;
+}
+
+.vent-left::before {
+  animation-direction: reverse;
+}
+
+@keyframes backplane-vent-scroll {
+  to {
+    transform: translateY(8px);
+  }
 }
 
 .address-column {

@@ -2,98 +2,22 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import {
-  Activity,
-  ArrowDownToLine,
   ArrowRight,
   Box,
-  Braces,
-  Check,
   ChevronRight,
-  CircleDollarSign,
-  Cpu,
   Database,
-  Fingerprint,
-  Hash,
   KeyRound,
   Link2,
-  LockKeyhole,
   Pickaxe,
-  Send,
-  Shapes,
   ShieldCheck,
-  Sparkles,
   Unplug,
-  Vault,
   WalletCards,
   Wrench,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-
-const tools = [
-  {
-    name: "Transfer CKB",
-    group: "Transaction",
-    icon: Send,
-    requiresSigner: true,
-  },
-  {
-    name: "Nervos DAO",
-    group: "Transaction",
-    icon: Vault,
-    requiresSigner: true,
-  },
-  {
-    name: "Sign message",
-    group: "Transaction",
-    icon: Fingerprint,
-    requiresSigner: true,
-  },
-  {
-    name: "Time lock",
-    group: "Transaction",
-    icon: LockKeyhole,
-    requiresSigner: true,
-  },
-  {
-    name: "Issue xUDT",
-    group: "Assets",
-    icon: CircleDollarSign,
-    requiresSigner: true,
-  },
-  {
-    name: "Transfer xUDT",
-    group: "Assets",
-    icon: ArrowDownToLine,
-    requiresSigner: true,
-  },
-  { name: "Mint Spore", group: "Assets", icon: Sparkles, requiresSigner: true },
-  {
-    name: "Spore cluster",
-    group: "Assets",
-    icon: Shapes,
-    requiresSigner: true,
-  },
-  {
-    name: "Deploy script",
-    group: "Developer",
-    icon: Cpu,
-    requiresSigner: true,
-  },
-  { name: "SSRI", group: "Developer", icon: Braces, requiresSigner: true },
-  {
-    name: "Hash utilities",
-    group: "Utilities",
-    icon: Hash,
-    requiresSigner: false,
-  },
-  {
-    name: "Mnemonic",
-    group: "Utilities",
-    icon: KeyRound,
-    requiresSigner: false,
-  },
-];
+import type { DemoModule } from "./modules";
+import { ToolBay } from "./tool-bay";
 
 type Telemetry = {
   addresses: string[];
@@ -114,7 +38,7 @@ export default function Home() {
   const [privateKeyMode, setPrivateKeyMode] = useState(false);
   const [privateKey, setPrivateKey] = useState("");
   const [privateKeyError, setPrivateKeyError] = useState<string>();
-  const [selectedTool, setSelectedTool] = useState<string>();
+  const [selectedModule, setSelectedModule] = useState<DemoModule>();
   const [telemetry, setTelemetry] = useState<Telemetry>();
   const signer = useMemo(() => {
     if (!privateKeySigner) {
@@ -129,8 +53,7 @@ export default function Home() {
   }, [client, privateKeySigner, signerInfo]);
   const connected = signer !== undefined;
   const usingPrivateKey = privateKeySigner !== undefined;
-  const selectedModule = tools.find(({ name }) => name === selectedTool);
-  const needsAccess = selectedModule?.requiresSigner === true;
+  const needsAccess = selectedModule?.access === "signer";
 
   const disconnect = () => {
     setTelemetry(undefined);
@@ -210,7 +133,7 @@ export default function Home() {
               ? "SESSION ACTIVE"
               : needsAccess
                 ? "AWAITING LINK"
-                : selectedTool
+                : selectedModule
                   ? "LOCAL MODULE READY"
                   : "AWAITING COMMAND"}
           </span>
@@ -218,17 +141,17 @@ export default function Home() {
       </header>
 
       <section
-        className={`machine ${selectedTool ? "has-selection" : ""} ${needsAccess ? "needs-access" : ""} ${connected ? "is-connected" : ""}`}
+        className={`machine ${selectedModule ? "has-selection" : ""} ${needsAccess ? "needs-access" : ""} ${connected ? "is-connected" : ""}`}
       >
         <ToolBay
           connected={connected}
-          selectedTool={selectedTool}
-          onSelect={setSelectedTool}
+          selectedModule={selectedModule}
+          onSelect={setSelectedModule}
           onClear={() => {
             setPrivateKey("");
             setPrivateKeyError(undefined);
             setPrivateKeyMode(false);
-            setSelectedTool(undefined);
+            setSelectedModule(undefined);
           }}
         />
 
@@ -440,105 +363,6 @@ export default function Home() {
         </span>
       </footer>
     </main>
-  );
-}
-
-function ToolBay({
-  connected,
-  onClear,
-  onSelect,
-  selectedTool,
-}: {
-  connected: boolean;
-  onClear: () => void;
-  onSelect: (tool: string) => void;
-  selectedTool?: string;
-}) {
-  const selectedModule = tools.find(({ name }) => name === selectedTool);
-
-  return (
-    <section className="tool-bay">
-      <div className="bay-rail bay-rail-left" aria-hidden="true" />
-      <div className="bay-rail bay-rail-right" aria-hidden="true" />
-
-      <div className="tool-bay-header">
-        <div>
-          <span className="section-index">01 / TOOL ARRAY</span>
-          <h2>
-            {selectedTool ? "Operation selected" : "What do you want to do?"}
-          </h2>
-        </div>
-        <div className="bay-status">
-          <Activity size={14} />
-          <span>12 MODULES READY</span>
-        </div>
-      </div>
-
-      <div className="tool-grid" aria-hidden={selectedTool !== undefined}>
-        {tools.map(({ name, group, icon: ToolIcon, requiresSigner }, index) => {
-          const selected = selectedTool === name;
-          return (
-            <button
-              key={name}
-              type="button"
-              disabled={selectedTool !== undefined}
-              className={`tool-module ${selected ? "is-selected" : ""}`}
-              style={{ "--module-index": index } as React.CSSProperties}
-              onClick={() => onSelect(name)}
-            >
-              <span className="module-index">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span
-                className={`module-icon ${requiresSigner ? "requires-signer" : "is-local"}`}
-              >
-                <ToolIcon size={19} />
-              </span>
-              <span className="module-copy">
-                <small>{group}</small>
-                <strong>{name}</strong>
-              </span>
-              <span className="module-state">
-                {selected ? <Check size={14} /> : <ChevronRight size={14} />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <button
-        type="button"
-        className={`command-dock ${selectedTool ? "is-mounted" : ""}`}
-        disabled={!selectedTool}
-        aria-label={selectedTool ? "Change operation" : "Select an operation"}
-        onClick={onClear}
-      >
-        <span className="dock-grip" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-        <span className="dock-selection">
-          <small>{selectedTool ? "CHANGE OPERATION" : "SELECT A MODULE"}</small>
-          <strong>{selectedTool ?? "No operation selected"}</strong>
-          <span className="dock-checks">
-            <span className={selectedTool ? "is-ready" : ""}>
-              <Check size={12} /> {selectedTool ? "Mounted" : "Slot empty"}
-            </span>
-            <span
-              className={
-                selectedModule?.requiresSigner === false || connected
-                  ? "is-ready"
-                  : ""
-              }
-            >
-              <Check size={12} />
-              {selectedModule?.requiresSigner === false ? "Local" : "Signer"}
-            </span>
-          </span>
-        </span>
-      </button>
-    </section>
   );
 }
 

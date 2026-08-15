@@ -19,14 +19,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]}
       connectorProps={{
         style: {
-          "--background": "#11181c",
+          "--background":
+            "linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px) center / 18px 18px, linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px) center / 18px 18px, #11181c",
           "--divider": "#28343a",
-          "--btn-primary": "#171d21",
-          "--btn-primary-hover": "#5bcefa",
-          "--btn-secondary": "#171d21",
-          "--btn-secondary-hover": "#5bcefa",
+          "--btn-primary": "rgb(230 238 242 / 6%)",
+          "--btn-primary-hover": "rgb(91 206 250 / 10%)",
+          "--btn-secondary": "rgb(230 238 242 / 6%)",
+          "--btn-secondary-hover": "rgb(91 206 250 / 10%)",
           "--btn-color": "#e6eef2",
-          "--btn-color-hover": "#070a0c",
+          "--btn-color-hover": "#5bcefa",
           "--icon-primary": "#e6eef2",
           "--icon-secondary": "#89979f",
           "--tip-color": "#76858d",
