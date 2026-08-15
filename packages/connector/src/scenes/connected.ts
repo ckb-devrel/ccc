@@ -4,6 +4,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { CKB_SVG } from "../assets/chains/index.js";
 import { DISCONNECT_SVG } from "../assets/diconnect.svg.js";
+import { FEE_SVG } from "../assets/fee.svg.js";
 import { SWAP_SVG } from "../assets/swap.svg.js";
 import { USER_SVG } from "../assets/user.svg.js";
 import { SelectClientEvent } from "../events/index.js";
@@ -28,6 +29,8 @@ export class ConnectedScene extends LitElement {
   public wallet?: ccc.Wallet;
   @property()
   public signer?: ccc.Signer;
+  @property({ attribute: false })
+  public feeRate?: ccc.Num;
   @property()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
 
@@ -39,6 +42,8 @@ export class ConnectedScene extends LitElement {
   private balance?: ccc.Num;
   @state()
   private selectingClient = false;
+  @state()
+  private selectingFeeRate = false;
 
   willUpdate(changedProperties: PropertyValues<this>): void {
     if (
@@ -66,6 +71,15 @@ export class ConnectedScene extends LitElement {
     }
 
     const body = (() => {
+      if (this.selectingFeeRate) {
+        return html`
+          <ccc-fee-rate-scene
+            .client=${signer.client}
+            .feeRate=${this.feeRate}
+          ></ccc-fee-rate-scene>
+        `;
+      }
+
       if (!this.selectingClient || !this.clientOptions) {
         return html`
           <div class="position-relative">
@@ -100,6 +114,21 @@ export class ConnectedScene extends LitElement {
 
           <ccc-button
             class="mt-2"
+            @click=${() => (this.selectingFeeRate = true)}
+          >
+            ${FEE_SVG}
+            <span>Fee Rate</span>
+            <span class="fee-rate-value">
+              ${
+                this.feeRate == null
+                  ? "Auto"
+                  : `${this.feeRate.toString()} shannons/KB`
+              }
+            </span>
+          </ccc-button>
+
+          <ccc-button
+            class="mt-1"
             @click=${() => window.open("https://mobit.app/", "_blank")}
           >
             ${USER_SVG} Manage
@@ -159,9 +188,18 @@ export class ConnectedScene extends LitElement {
 
     return html`
       <ccc-dialog
-        header=${this.selectingClient ? "Select Network" : undefined}
-        ?canBack=${this.selectingClient}
-        @back=${() => (this.selectingClient = false)}
+        header=${
+          this.selectingFeeRate
+            ? "Select Fee Rate"
+            : this.selectingClient
+              ? "Select Network"
+              : undefined
+        }
+        ?canBack=${this.selectingFeeRate || this.selectingClient}
+        @back=${() => {
+          this.selectingFeeRate = false;
+          this.selectingClient = false;
+        }}
       >
         ${body}
       </ccc-dialog>
@@ -189,6 +227,13 @@ export class ConnectedScene extends LitElement {
 
     .text-tip {
       color: var(--tip-color);
+    }
+
+    .fee-rate-value {
+      margin-left: auto;
+      color: var(--tip-color);
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
     }
 
     .fs-sm {
@@ -301,5 +346,10 @@ export class ConnectedScene extends LitElement {
 
   updated() {
     this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
+  }
+
+  public onClose() {
+    this.selectingClient = false;
+    this.selectingFeeRate = false;
   }
 }

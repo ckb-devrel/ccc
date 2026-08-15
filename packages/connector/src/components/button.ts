@@ -1,14 +1,28 @@
-import { css, html, LitElement } from "lit";
-import { customElement } from "lit/decorators.js";
+import { css, LitElement } from "lit";
+import { customElement, property } from "lit/decorators.js";
+import { html, unsafeStatic } from "lit/static-html.js";
 
 @customElement("ccc-button")
 export class Button extends LitElement {
+  /**
+   * The tag name is passed to `unsafeStatic` and must be a trusted static value,
+   * never unchecked user-controlled input.
+   */
+  @property()
+  public as = "button";
+
+  @property({ type: Boolean, reflect: true })
+  public disabled = false;
+
+  @property({ type: Boolean, reflect: true })
+  public selected?: boolean;
+
   static styles = css`
     :host {
       width: 100%;
     }
 
-    button {
+    .control {
       background: none;
       color: inherit;
       border: none;
@@ -18,26 +32,30 @@ export class Button extends LitElement {
       outline: inherit;
 
       width: 100%;
+      box-sizing: border-box;
       display: flex;
       align-items: center;
       justify-content: start;
       padding: 0.75rem 1rem;
       background: var(--btn-primary);
       border-radius: 0.4rem;
+      text-align: left;
       transition: background 0.15s ease-in-out;
     }
-    button:hover {
+    .control:hover,
+    .control.selected {
       background: var(--btn-primary-hover);
     }
-    button:disabled {
+    .control:disabled {
       cursor: not-allowed;
+      opacity: 0.7;
     }
-    button:disabled:hover {
+    .control:disabled:hover {
       background: var(--btn-primary);
     }
 
-    button ::slotted(img),
-    button ::slotted(svg) {
+    .control ::slotted(img),
+    .control ::slotted(svg) {
       width: 2rem;
       height: 2rem;
       margin-right: 1rem;
@@ -50,6 +68,14 @@ export class Button extends LitElement {
   }
 
   render() {
-    return html`<button><slot></slot></button>`;
+    const tag = unsafeStatic(this.as);
+    return html`
+      <${tag}
+        class="control ${this.selected ? "selected" : ""}"
+        ?disabled=${this.disabled}
+      >
+        <slot></slot>
+      </${tag}>
+    `;
   }
 }

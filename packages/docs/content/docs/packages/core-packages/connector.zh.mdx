@@ -51,6 +51,13 @@ connector.disconnect(); // 断开当前钱包连接
 connector.setClient(newClient); // 切换网络
 ```
 
+## 选择交易费率
+
+连接钱包后的界面会在 **Manage** 上方显示 **Fee Rate** 入口，应用无需
+额外设计触发按钮。点击后会在同一个弹窗内进入费率选择页，并提供经济、
+自动和自定义费率。选择会立即生效，点击左上角返回连接页。目前选择
+结果只保存在 connector UI 状态中。
+
 ## 在纯 HTML 中使用
 
 ```html
