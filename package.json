@@ -7,12 +7,12 @@
     "test": "pnpm run -C packages/tests test && vitest",
     "test:ci": "pnpm run -C packages/tests test && vitest run",
     "test:cov": "vitest run --coverage",
-    "build:prepare": "pnpm -r --filter !./packages/tests --filter !./packages/demo --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs --filter !. install",
-    "build": "pnpm -r --filter !./packages/tests --filter !./packages/demo --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs run build",
+    "build:prepare": "pnpm -r --filter !./packages/tests --filter !./packages/demo --filter !./packages/demo-ui --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs --filter !. install",
+    "build": "pnpm -r --filter !./packages/tests --filter !./packages/demo --filter !./packages/demo-ui --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs run build",
     "build:all": "pnpm -r run build",
     "lint": "pnpm -r run lint",
     "format": "pnpm -r run format",
-    "sync:config": "pnpm -r --filter !./packages/demo --filter !./packages/faucet --filter !./packages/playground --filter !./packages/docs -c exec \"cp ../../config/* . && cp ../../config/.* .\"",
+    "sync:config": "pnpm -r --filter !./packages/demo --filter !./packages/demo-ui --filter !./packages/faucet --filter !./packages/playground --filter !./packages/docs -c exec \"cp ../../config/* . && cp ../../config/.* .\"",
     "docs": "typedoc"
   },
   "devDependencies": {
