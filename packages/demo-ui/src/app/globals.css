@@ -148,6 +148,27 @@ button:not(:disabled) {
   margin: 0 auto 18px;
 }
 
+.access-heading {
+  max-height: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    max-height 500ms var(--easing-mechanical),
+    margin 500ms var(--easing-mechanical),
+    opacity 240ms ease,
+    transform 500ms var(--easing-mechanical);
+}
+
+.machine.needs-access .access-heading {
+  max-height: 72px;
+  margin-top: 34px;
+  margin-bottom: 18px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .section-index,
 .panel-kicker,
 .option-copy small,
@@ -180,9 +201,18 @@ button:not(:disabled) {
 .panel-viewport {
   position: relative;
   width: min(900px, 100%);
-  height: 286px;
+  height: 0;
   margin: 0 auto;
   overflow: hidden;
+  opacity: 0;
+  transition:
+    height 650ms var(--easing-mechanical),
+    opacity 260ms ease 120ms;
+}
+
+.machine.needs-access .panel-viewport {
+  height: 286px;
+  opacity: 1;
 }
 
 .machine-panel {
@@ -828,26 +858,21 @@ div.wallet-icon-stage {
 .tool-bay {
   position: relative;
   width: min(1080px, 100%);
-  max-height: 0;
+  max-height: 760px;
   margin: 0 auto;
   padding: 0 38px;
   overflow: hidden;
-  opacity: 0;
-  transform: translateY(70px);
-  pointer-events: none;
-  transition:
-    max-height 850ms var(--easing-mechanical),
-    margin-top 650ms var(--easing-mechanical),
-    opacity 300ms ease 100ms,
-    transform 780ms var(--easing-mechanical);
-}
-
-.machine.is-connected .tool-bay {
-  max-height: 760px;
-  margin-top: 28px;
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
+  animation: tool-bay-enter 650ms var(--easing-mechanical) both;
+}
+
+@keyframes tool-bay-enter {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
 }
 
 .bay-rail {
@@ -855,12 +880,21 @@ div.wallet-icon-stage {
   top: 20px;
   bottom: 0;
   width: 12px;
+  overflow: hidden;
   border: 1px solid var(--line-dark);
+}
+
+.bay-rail::before {
+  position: absolute;
+  inset: -9px 2px;
   background: repeating-linear-gradient(
     180deg,
     transparent 0 8px,
     var(--line-dark) 8px 9px
   );
+  content: "";
+  will-change: transform;
+  animation: bay-rail-scroll 1.1s linear infinite;
 }
 
 .bay-rail-left {
@@ -869,6 +903,16 @@ div.wallet-icon-stage {
 
 .bay-rail-right {
   right: 0;
+}
+
+.bay-rail-right::before {
+  animation-direction: reverse;
+}
+
+@keyframes bay-rail-scroll {
+  to {
+    transform: translateY(9px);
+  }
 }
 
 .tool-bay-header {
@@ -894,12 +938,27 @@ div.wallet-icon-stage {
 
 .tool-grid {
   display: grid;
+  max-height: 400px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--line-dark);
-  border-left: 1px solid var(--line-dark);
+  gap: 4px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    max-height 620ms var(--easing-mechanical),
+    opacity 220ms ease,
+    transform 500ms var(--easing-mechanical);
+}
+
+.machine.has-selection .tool-grid {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-18px);
 }
 
 .tool-module {
+  --module-access-color: var(--ink);
+
   position: relative;
   display: grid;
   min-height: 88px;
@@ -908,29 +967,32 @@ div.wallet-icon-stage {
   gap: 9px;
   padding: 12px;
   border: 0;
-  border-right: 1px solid var(--line-dark);
-  border-bottom: 1px solid var(--line-dark);
+  color: var(--module-access-color);
   background: rgb(17 24 28 / 76%);
   text-align: left;
-  opacity: 0;
-  transform: translateY(18px);
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    opacity 300ms ease calc(300ms + var(--module-index) * 32ms),
-    transform 420ms var(--easing-mechanical)
-      calc(250ms + var(--module-index) * 32ms);
-}
-
-.machine.is-connected .tool-module {
   opacity: 1;
   transform: translateY(0);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+  animation: tool-module-enter 420ms var(--easing-mechanical)
+    calc(120ms + var(--module-index) * 32ms) both;
+}
+
+@keyframes tool-module-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
 }
 
 .tool-module:hover {
+  --module-access-color: var(--signal);
+
   z-index: 1;
-  background: #1b252a;
-  box-shadow: inset 0 0 0 2px var(--ink);
+  background: rgb(91 206 250 / 8%);
 }
 
 .tool-module.is-selected {
@@ -945,8 +1007,9 @@ div.wallet-icon-stage {
 }
 
 .module-index {
-  color: var(--muted);
+  color: currentColor;
   font-size: 8px;
+  opacity: 0.62;
 }
 
 .module-icon {
@@ -954,7 +1017,16 @@ div.wallet-icon-stage {
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid var(--line-dark);
+  border: 1px solid color-mix(in srgb, currentColor 42%, transparent);
+  transition: border-color 160ms ease;
+}
+
+.module-icon.requires-signer {
+  border-radius: 0;
+}
+
+.module-icon.is-local {
+  border-radius: 50%;
 }
 
 .module-copy {
@@ -966,8 +1038,9 @@ div.wallet-icon-stage {
 
 .module-copy small {
   margin-bottom: 4px;
-  color: var(--muted);
+  color: currentColor;
   font-size: 7px;
+  opacity: 0.62;
 }
 
 .module-copy strong {
@@ -983,9 +1056,12 @@ div.wallet-icon-stage {
   width: 19px;
   height: 19px;
   place-items: center;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  opacity: 0.55;
+  border: 0;
+  color: var(--module-access-color);
+  opacity: 1;
+  transition:
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
 .tool-module.is-selected .module-state {
@@ -995,15 +1071,48 @@ div.wallet-icon-stage {
 
 .command-dock {
   display: grid;
+  width: 100%;
   min-height: 74px;
   align-items: center;
-  grid-template-columns: 32px minmax(150px, 1fr) auto auto;
+  grid-template-columns: 32px minmax(150px, 1fr);
   gap: 20px;
   margin-top: 14px;
   padding: 10px 10px 10px 16px;
   border: 1px solid var(--line-dark);
   color: var(--ink);
   background: var(--recess);
+  font: inherit;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.command-dock:not(:disabled) {
+  cursor: pointer;
+}
+
+.command-dock:not(:disabled):hover {
+  border-color: var(--signal);
+  background: #111a1f;
+}
+
+.command-dock.is-mounted {
+  border-color: var(--signal);
+  color: var(--ink);
+  background: rgb(17 26 31 / 72%);
+  box-shadow: 3px 3px 0 var(--line-dark);
+  transform: translate(-1px, -1px);
+}
+
+.command-dock.is-mounted:hover {
+  color: var(--ink);
+  background: rgb(91 206 250 / 8%);
+  box-shadow: 5px 5px 0 var(--signal-dark);
+  transform: translate(-2px, -2px);
 }
 
 .dock-grip {
@@ -1017,10 +1126,41 @@ div.wallet-icon-stage {
   background: #666c66;
 }
 
+.command-dock.is-mounted .dock-grip span {
+  background: var(--signal);
+}
+
 .dock-selection {
   display: flex;
+  min-width: 0;
   align-items: flex-start;
   flex-direction: column;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.dock-selection > strong {
+  margin-bottom: 5px;
+}
+
+.dock-selection strong {
+  transition: color 160ms ease;
+}
+
+.command-dock:not(:disabled):hover .dock-selection strong {
+  color: var(--signal);
+}
+
+.command-dock.is-mounted .dock-selection small,
+.command-dock.is-mounted .dock-checks {
+  color: var(--muted);
+}
+
+.command-dock.is-mounted:hover .dock-selection strong {
+  color: var(--signal);
 }
 
 .dock-selection small {
@@ -1044,29 +1184,20 @@ div.wallet-icon-stage {
   gap: 4px;
 }
 
-.dock-checks svg {
+.dock-checks span {
+  opacity: 0.4;
+}
+
+.dock-checks span.is-ready {
+  opacity: 1;
+}
+
+.dock-checks .is-ready svg {
   color: var(--signal);
 }
 
-.engage-button {
-  display: flex;
-  height: 48px;
-  align-items: center;
-  gap: 12px;
-  padding: 0 18px;
-  border: 1px solid var(--signal);
-  color: var(--recess);
-  background: var(--signal);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  transition: 160ms ease;
-}
-
-.engage-button:hover {
-  background: var(--signal-hover);
-  box-shadow: 4px 4px 0 var(--ink);
-  transform: translate(-2px, -2px);
+.command-dock.is-mounted .dock-checks .is-ready svg {
+  color: var(--signal);
 }
 
 .footer-readout {
@@ -1127,11 +1258,15 @@ div.wallet-icon-stage {
   }
 
   .panel-viewport {
-    height: 430px;
+    height: 0;
     transition: height 650ms var(--easing-mechanical);
   }
 
-  .machine.is-connected .panel-viewport {
+  .machine.needs-access .panel-viewport {
+    height: 430px;
+  }
+
+  .machine.needs-access.is-connected .panel-viewport {
     height: 310px;
   }
 
@@ -1229,12 +1364,13 @@ div.wallet-icon-stage {
     padding: 0 20px;
   }
 
-  .machine.is-connected .tool-bay {
-    margin-top: 18px;
+  .tool-grid {
+    max-height: 560px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tool-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .machine.has-selection .tool-grid {
+    max-height: 0;
   }
 
   .tool-module {
@@ -1246,26 +1382,14 @@ div.wallet-icon-stage {
     display: none;
   }
 
-  .bay-status,
-  .dock-checks,
-  .dock-grip {
+  .bay-status {
     display: none;
   }
 
   .command-dock {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 32px minmax(0, 1fr);
     gap: 10px;
     padding-left: 14px;
-  }
-
-  .engage-button {
-    padding: 0 13px;
-    font-size: 0;
-  }
-
-  .engage-button svg {
-    width: 18px;
-    height: 18px;
   }
 
   .footer-readout {

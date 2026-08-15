@@ -26,24 +26,73 @@ import {
   Vault,
   WalletCards,
   Wrench,
-  Zap,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const tools = [
-  { name: "Transfer CKB", group: "Transaction", icon: Send },
-  { name: "Nervos DAO", group: "Transaction", icon: Vault },
-  { name: "Sign message", group: "Transaction", icon: Fingerprint },
-  { name: "Time lock", group: "Transaction", icon: LockKeyhole },
-  { name: "Issue xUDT", group: "Assets", icon: CircleDollarSign },
-  { name: "Transfer xUDT", group: "Assets", icon: ArrowDownToLine },
-  { name: "Mint Spore", group: "Assets", icon: Sparkles },
-  { name: "Spore cluster", group: "Assets", icon: Shapes },
-  { name: "Deploy script", group: "Developer", icon: Cpu },
-  { name: "SSRI", group: "Developer", icon: Braces },
-  { name: "Hash utilities", group: "Utilities", icon: Hash },
-  { name: "Mnemonic", group: "Utilities", icon: KeyRound },
+  {
+    name: "Transfer CKB",
+    group: "Transaction",
+    icon: Send,
+    requiresSigner: true,
+  },
+  {
+    name: "Nervos DAO",
+    group: "Transaction",
+    icon: Vault,
+    requiresSigner: true,
+  },
+  {
+    name: "Sign message",
+    group: "Transaction",
+    icon: Fingerprint,
+    requiresSigner: true,
+  },
+  {
+    name: "Time lock",
+    group: "Transaction",
+    icon: LockKeyhole,
+    requiresSigner: true,
+  },
+  {
+    name: "Issue xUDT",
+    group: "Assets",
+    icon: CircleDollarSign,
+    requiresSigner: true,
+  },
+  {
+    name: "Transfer xUDT",
+    group: "Assets",
+    icon: ArrowDownToLine,
+    requiresSigner: true,
+  },
+  { name: "Mint Spore", group: "Assets", icon: Sparkles, requiresSigner: true },
+  {
+    name: "Spore cluster",
+    group: "Assets",
+    icon: Shapes,
+    requiresSigner: true,
+  },
+  {
+    name: "Deploy script",
+    group: "Developer",
+    icon: Cpu,
+    requiresSigner: true,
+  },
+  { name: "SSRI", group: "Developer", icon: Braces, requiresSigner: true },
+  {
+    name: "Hash utilities",
+    group: "Utilities",
+    icon: Hash,
+    requiresSigner: false,
+  },
+  {
+    name: "Mnemonic",
+    group: "Utilities",
+    icon: KeyRound,
+    requiresSigner: false,
+  },
 ];
 
 type Telemetry = {
@@ -65,7 +114,7 @@ export default function Home() {
   const [privateKeyMode, setPrivateKeyMode] = useState(false);
   const [privateKey, setPrivateKey] = useState("");
   const [privateKeyError, setPrivateKeyError] = useState<string>();
-  const [selectedTool, setSelectedTool] = useState("Transfer CKB");
+  const [selectedTool, setSelectedTool] = useState<string>();
   const [telemetry, setTelemetry] = useState<Telemetry>();
   const signer = useMemo(() => {
     if (!privateKeySigner) {
@@ -80,6 +129,8 @@ export default function Home() {
   }, [client, privateKeySigner, signerInfo]);
   const connected = signer !== undefined;
   const usingPrivateKey = privateKeySigner !== undefined;
+  const selectedModule = tools.find(({ name }) => name === selectedTool);
+  const needsAccess = selectedModule?.requiresSigner === true;
 
   const disconnect = () => {
     setTelemetry(undefined);
@@ -154,19 +205,43 @@ export default function Home() {
           <span className="signal-light" />
           <span>UI PROTOTYPE</span>
           <span className="readout-divider" />
-          <span>{connected ? "SESSION ACTIVE" : "AWAITING LINK"}</span>
+          <span>
+            {connected
+              ? "SESSION ACTIVE"
+              : needsAccess
+                ? "AWAITING LINK"
+                : selectedTool
+                  ? "LOCAL MODULE READY"
+                  : "AWAITING COMMAND"}
+          </span>
         </div>
       </header>
 
-      <section className={`machine ${connected ? "is-connected" : ""}`}>
-        <div className="machine-heading">
+      <section
+        className={`machine ${selectedTool ? "has-selection" : ""} ${needsAccess ? "needs-access" : ""} ${connected ? "is-connected" : ""}`}
+      >
+        <ToolBay
+          connected={connected}
+          selectedTool={selectedTool}
+          onSelect={setSelectedTool}
+          onClear={() => {
+            setPrivateKey("");
+            setPrivateKeyError(undefined);
+            setPrivateKeyMode(false);
+            setSelectedTool(undefined);
+          }}
+        />
+
+        <div className="machine-heading access-heading">
           <div>
-            <span className="section-index">01 / ACCESS</span>
-            <h1>{connected ? "Connection established" : "Connect to begin"}</h1>
+            <span className="section-index">02 / ACCESS</span>
+            <h1>
+              {connected ? "Connection established" : "Connect to continue"}
+            </h1>
           </div>
         </div>
 
-        <div className="panel-viewport">
+        <div className="panel-viewport" aria-hidden={!needsAccess}>
           <section
             className="machine-panel connection-panel"
             aria-hidden={connected}
@@ -343,79 +418,6 @@ export default function Home() {
             </div>
           </section>
         </div>
-
-        <section className="tool-bay" aria-hidden={!connected}>
-          <div className="bay-rail bay-rail-left" aria-hidden="true" />
-          <div className="bay-rail bay-rail-right" aria-hidden="true" />
-
-          <div className="tool-bay-header">
-            <div>
-              <span className="section-index">02 / TOOL ARRAY</span>
-              <h2>Select an operation</h2>
-            </div>
-            <div className="bay-status">
-              <Activity size={14} />
-              <span>12 MODULES READY</span>
-            </div>
-          </div>
-
-          <div className="tool-grid">
-            {tools.map(({ name, group, icon: ToolIcon }, index) => {
-              const selected = selectedTool === name;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  className={`tool-module ${selected ? "is-selected" : ""}`}
-                  style={{ "--module-index": index } as React.CSSProperties}
-                  onClick={() => setSelectedTool(name)}
-                >
-                  <span className="module-index">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="module-icon">
-                    <ToolIcon size={19} />
-                  </span>
-                  <span className="module-copy">
-                    <small>{group}</small>
-                    <strong>{name}</strong>
-                  </span>
-                  <span className="module-state">
-                    {selected ? (
-                      <Check size={14} />
-                    ) : (
-                      <ChevronRight size={14} />
-                    )}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="command-dock">
-            <div className="dock-grip" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="dock-selection">
-              <small>MODULE SELECTED</small>
-              <strong>{selectedTool}</strong>
-            </div>
-            <div className="dock-checks">
-              <span>
-                <Check size={12} /> Network
-              </span>
-              <span>
-                <Check size={12} /> Signer
-              </span>
-            </div>
-            <button type="button" className="engage-button">
-              Engage module
-              <Zap size={16} />
-            </button>
-          </div>
-        </section>
       </section>
 
       <footer className="footer-readout">
@@ -438,6 +440,105 @@ export default function Home() {
         </span>
       </footer>
     </main>
+  );
+}
+
+function ToolBay({
+  connected,
+  onClear,
+  onSelect,
+  selectedTool,
+}: {
+  connected: boolean;
+  onClear: () => void;
+  onSelect: (tool: string) => void;
+  selectedTool?: string;
+}) {
+  const selectedModule = tools.find(({ name }) => name === selectedTool);
+
+  return (
+    <section className="tool-bay">
+      <div className="bay-rail bay-rail-left" aria-hidden="true" />
+      <div className="bay-rail bay-rail-right" aria-hidden="true" />
+
+      <div className="tool-bay-header">
+        <div>
+          <span className="section-index">01 / TOOL ARRAY</span>
+          <h2>
+            {selectedTool ? "Operation selected" : "What do you want to do?"}
+          </h2>
+        </div>
+        <div className="bay-status">
+          <Activity size={14} />
+          <span>12 MODULES READY</span>
+        </div>
+      </div>
+
+      <div className="tool-grid" aria-hidden={selectedTool !== undefined}>
+        {tools.map(({ name, group, icon: ToolIcon, requiresSigner }, index) => {
+          const selected = selectedTool === name;
+          return (
+            <button
+              key={name}
+              type="button"
+              disabled={selectedTool !== undefined}
+              className={`tool-module ${selected ? "is-selected" : ""}`}
+              style={{ "--module-index": index } as React.CSSProperties}
+              onClick={() => onSelect(name)}
+            >
+              <span className="module-index">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span
+                className={`module-icon ${requiresSigner ? "requires-signer" : "is-local"}`}
+              >
+                <ToolIcon size={19} />
+              </span>
+              <span className="module-copy">
+                <small>{group}</small>
+                <strong>{name}</strong>
+              </span>
+              <span className="module-state">
+                {selected ? <Check size={14} /> : <ChevronRight size={14} />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className={`command-dock ${selectedTool ? "is-mounted" : ""}`}
+        disabled={!selectedTool}
+        aria-label={selectedTool ? "Change operation" : "Select an operation"}
+        onClick={onClear}
+      >
+        <span className="dock-grip" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className="dock-selection">
+          <small>{selectedTool ? "CHANGE OPERATION" : "SELECT A MODULE"}</small>
+          <strong>{selectedTool ?? "No operation selected"}</strong>
+          <span className="dock-checks">
+            <span className={selectedTool ? "is-ready" : ""}>
+              <Check size={12} /> {selectedTool ? "Mounted" : "Slot empty"}
+            </span>
+            <span
+              className={
+                selectedModule?.requiresSigner === false || connected
+                  ? "is-ready"
+                  : ""
+              }
+            >
+              <Check size={12} />
+              {selectedModule?.requiresSigner === false ? "Local" : "Signer"}
+            </span>
+          </span>
+        </span>
+      </button>
+    </section>
   );
 }
 
