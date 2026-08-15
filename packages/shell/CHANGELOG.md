@@ -1,5 +1,17 @@
 # @ckb-ccc/shell
 
+## 1.3.8
+
+### Patch Changes
+
+- Updated dependencies [[`2bec687`](https://github.com/ckb-devrel/ccc/commit/2bec687b6ec25449665c2d8e98d1a433b14b9d90)]:
+  - @ckb-ccc/core@1.19.0
+  - @ckb-ccc/did-ckb@0.2.8
+  - @ckb-ccc/spore@1.6.8
+  - @ckb-ccc/ssri@0.3.8
+  - @ckb-ccc/type-id@0.1.8
+  - @ckb-ccc/udt@0.2.8
+
 ## 1.3.7
 ### Patch Changes
 

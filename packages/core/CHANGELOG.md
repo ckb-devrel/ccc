@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.19.0
+
+### Minor Changes
+
+- [#478](https://github.com/ckb-devrel/ccc/pull/478) [`2bec687`](https://github.com/ckb-devrel/ccc/commit/2bec687b6ec25449665c2d8e98d1a433b14b9d90) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Add `Proxy.Base` for creating wrappers that forward inherited members to an inner object
+
 ## 1.18.2
 ### Patch Changes
 

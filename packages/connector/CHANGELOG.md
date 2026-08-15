@@ -1,5 +1,21 @@
 # @ckb-ccc/connector
 
+## 1.2.0
+
+### Minor Changes
+
+- [#479](https://github.com/ckb-devrel/ccc/pull/479) [`63288b6`](https://github.com/ckb-devrel/ccc/commit/63288b6df8caabe3b82c68c73a69895dcf385870) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): Add a fee rate selection scene
+  
+  The connected-wallet view now includes a built-in fee-rate selector above the
+  Manage action, with economy, automatic network recommendations, and custom
+  values.
+
+### Patch Changes
+
+- [#481](https://github.com/ckb-devrel/ccc/pull/481) [`8da7601`](https://github.com/ckb-devrel/ccc/commit/8da76014fd946e5b59314aef3b30d0ca84b05d6c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): replace mobit with nervdao
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.2.8
+
 ## 1.1.7
 ### Patch Changes
 
