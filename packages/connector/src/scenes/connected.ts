@@ -227,6 +227,11 @@ export class ConnectedScene extends LitElement {
 
     .text-tip {
       color: var(--tip-color);
+      transition: color 0.15s ease-in-out;
+    }
+
+    .text-tip:hover {
+      color: var(--tip-color-hover, var(--tip-color));
     }
 
     .fee-rate-value {
@@ -234,6 +239,11 @@ export class ConnectedScene extends LitElement {
       color: var(--tip-color);
       font-size: 0.85rem;
       font-variant-numeric: tabular-nums;
+      transition: color 0.15s ease-in-out;
+    }
+
+    ccc-button:hover .fee-rate-value {
+      color: var(--tip-color-hover, var(--tip-color));
     }
 
     .fs-sm {

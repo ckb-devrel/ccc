@@ -123,6 +123,47 @@ connector.addEventListener("willUpdate", () => {
 connector.setClient(new ccc.ClientPublicMainnet());
 ```
 
+## 使用 CSS 自定义属性调整样式
+
+在 `<ccc-connector>` 上设置 CSS 自定义属性，即可定制内置界面的主题。下表
+列出了 Web Component 使用的全部变量；其中默认值来自
+`@ckb-ccc/connector-react` 提供的浅色主题。
+
+| 自定义属性 | React 默认值 | 控制内容 |
+| --- | --- | --- |
+| `--background` | `#fff` | 弹窗及输入框的基础背景 |
+| `--divider` | `#eee` | 分隔线 |
+| `--btn-primary` | `#f8f8f8` | 主要按钮背景 |
+| `--btn-primary-hover` | `#efeeee` | 主要按钮 hover 及选中状态背景 |
+| `--btn-secondary` | `#ddd` | 次要胶囊按钮背景 |
+| `--btn-secondary-hover` | `#ccc` | 次要胶囊按钮 hover 背景 |
+| `--btn-color` | `color`（`#1e1e1e`） | 按钮文字、SVG 图标及内嵌输入框文字 |
+| `--btn-color-hover` | `--btn-color` | 按钮 hover 或选中状态下的内容颜色 |
+| `--icon-primary` | `#1E1E1E` | 主要图标 |
+| `--icon-secondary` | `#666666` | 次要图标 |
+| `--tip-color` | `#666` | 辅助及提示文字 |
+| `--tip-color-hover` | `--tip-color` | 可交互提示文字 hover 或选中状态的颜色 |
+
+Connector 的普通文字继承标准 CSS `color` 属性。未指定时，
+`--btn-color` 同样继承 `color`，`--btn-color-hover` 回退到
+`--btn-color`，`--tip-color-hover` 回退到 `--tip-color`。
+
+```html
+<ccc-connector
+  style="
+    color: #e6eef2;
+    --background: #11181c;
+    --divider: #28343a;
+    --btn-primary: #171d21;
+    --btn-primary-hover: #5bcefa;
+    --btn-color: #e6eef2;
+    --btn-color-hover: #070a0c;
+    --tip-color: #76858d;
+    --tip-color-hover: #31515f;
+  "
+></ccc-connector>
+```
+
 ## 与 `@ckb-ccc/connector-react` 的对比
 
 | 特性         | `@ckb-ccc/connector` | `@ckb-ccc/connector-react`     |

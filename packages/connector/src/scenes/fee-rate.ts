@@ -218,6 +218,12 @@ export class FeeRateScene extends LitElement {
     small {
       color: var(--tip-color);
       font-size: 0.75rem;
+      transition: color 0.15s ease-in-out;
+    }
+
+    ccc-button:hover small,
+    ccc-button[selected] small {
+      color: var(--tip-color-hover, var(--tip-color));
     }
 
     .custom {

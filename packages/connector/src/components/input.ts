@@ -39,14 +39,19 @@ export class Input extends LitElement {
       box-sizing: border-box;
       width: 100%;
       padding: 0.55rem 0.65rem;
-      border: none;
+      border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
       border-radius: 0.35rem;
-      background: var(--background);
+      background: transparent;
       color: inherit;
       font: inherit;
       text-align: right;
       outline: none;
       cursor: text;
+    }
+
+    input::placeholder {
+      color: inherit;
+      opacity: 0.55;
     }
   `;
 }
