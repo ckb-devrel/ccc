@@ -3,10 +3,9 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { HDKey } from "@scure/bip32";
 import { useState } from "react";
+import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
-
-type DerivedAccount = { address: string; path: string; privateKey: string };
 
 async function deriveAccounts(
   client: ccc.Client,
@@ -110,14 +109,10 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
           />
         </label>
         {accounts.length ? (
-          <label className="module-field module-field-wide">
-            <span>Derived accounts</span>
-            <ModuleTextarea
-              className="module-output"
-              readOnly
-              value={accountsText(accounts)}
-            />
-          </label>
+          <DerivedAccounts
+            accounts={accounts}
+            onCopyError={(cause) => showFailure(cause, show, log)}
+          />
         ) : null}
       </div>
       <div className="module-actions">
@@ -127,11 +122,6 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
         <button type="button" disabled={!root} onClick={more}>
           More accounts
         </button>
-        {accounts.length ? (
-          <a href={accountsCsv(accounts)} download="ckb_accounts.csv">
-            CSV
-          </a>
-        ) : null}
       </div>
     </div>
   );
@@ -139,18 +129,6 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
 
 function boundedCount(value: string) {
   return Math.max(1, Math.min(100, Number.parseInt(value, 10)));
-}
-
-function accountsText(accounts: DerivedAccount[]) {
-  return accounts
-    .map(
-      ({ path, address, privateKey }) => `${path}, ${address}, ${privateKey}`,
-    )
-    .join("\n");
-}
-
-function accountsCsv(accounts: DerivedAccount[]) {
-  return `data:text/csv;charset=utf-8,${encodeURIComponent(`path,address,private key\n${accountsText(accounts)}`)}`;
 }
 
 function showFailure(

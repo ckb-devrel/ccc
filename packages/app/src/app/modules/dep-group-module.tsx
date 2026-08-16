@@ -1,9 +1,11 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
+import { usePagedModuleItems } from "../use-paged-module-items";
 import {
   reportModuleError,
   showTransaction,
@@ -11,6 +13,46 @@ import {
 } from "./module-helpers";
 
 const OutPointVec = ccc.mol.vector(ccc.OutPoint);
+
+function isCompleteTypeId(value: string) {
+  try {
+    return ccc.bytesFrom(value).length === 32;
+  } catch {
+    return false;
+  }
+}
+
+type DepGroupCell = {
+  cell: ccc.Cell;
+  outPoints: ccc.OutPoint[];
+};
+
+type TypeIdSelection = "cell" | "manual" | "new";
+
+async function* findDepGroups(signer: ccc.Signer) {
+  const { script: lock } = await signer.getRecommendedAddressObj();
+  const type = await ccc.Script.fromKnownScript(
+    signer.client,
+    ccc.KnownScript.TypeId,
+    "",
+  );
+  for await (const cell of signer.client.findCells(
+    {
+      script: type,
+      scriptType: "type",
+      scriptSearchMode: "prefix",
+      withData: true,
+      filter: { script: lock },
+    },
+    "desc",
+  )) {
+    try {
+      yield { cell, outPoints: OutPointVec.decode(cell.outputData) };
+    } catch {
+      // A Type ID cell is only a dep group when its data is a valid OutPointVec.
+    }
+  }
+}
 
 async function findDepGroup(client: ccc.Client, typeId: string) {
   if (ccc.bytesFrom(typeId).length !== 32) {
@@ -80,34 +122,77 @@ export function DepGroupModule({
   show,
   signer,
 }: ModuleRuntimeProps) {
+  const activeSigner = useRef(signer);
+  const refreshTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [typeId, setTypeId] = useState("");
+  const [typeIdSelection, setTypeIdSelection] =
+    useState<TypeIdSelection>("new");
   const [outPoints, setOutPoints] = useState("");
   const [busy, setBusy] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const {
+    hasMore: hasMoreDepGroups,
+    items: depGroups,
+    loadMore: loadMoreDepGroups,
+    loading: loadingDepGroups,
+  } = usePagedModuleItems<ccc.Signer, DepGroupCell>({
+    source: signer,
+    revision: refreshNonce,
+    iterate: findDepGroups,
+    onError: (cause) =>
+      reportModuleError(cause, show, log, "Unable to load dep groups"),
+  });
 
-  const search = async () => {
-    try {
-      const result = await findDepGroup(client, typeId);
-      setOutPoints(
-        result.outPoints
-          .map(({ txHash, index }) => `${txHash}:${index}`)
-          .join("\n"),
-      );
-      show({
-        label: "DEP GROUP",
-        tone: "success",
-        content: (
-          <strong>{`${result.outPoints.length} outpoints loaded`}</strong>
-        ),
-      });
-      log(`${result.outPoints.length} outpoints loaded`, "success");
-    } catch (cause) {
-      reportModuleError(cause, show, log, "Dep group lookup failed");
+  useEffect(() => {
+    if (activeSigner.current !== signer) {
+      activeSigner.current = signer;
+      setTypeId("");
+      setTypeIdSelection("new");
+      setOutPoints("");
     }
+  }, [signer]);
+
+  useEffect(
+    () => () => {
+      refreshTimers.current.forEach(clearTimeout);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (typeIdSelection !== "manual" || !isCompleteTypeId(typeId)) return;
+    let cancelled = false;
+    findDepGroup(client, typeId)
+      .then(({ outPoints: loadedOutPoints }) => {
+        if (cancelled) return;
+        setOutPoints(
+          loadedOutPoints
+            .map(({ txHash, index }) => `${txHash}:${index}`)
+            .join("\n"),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setOutPoints("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [client, typeId, typeIdSelection]);
+
+  const selectDepGroup = (depGroup?: DepGroupCell) => {
+    setTypeIdSelection(depGroup ? "cell" : "new");
+    setTypeId(depGroup?.cell.cellOutput.type?.args ?? "");
+    setOutPoints(
+      depGroup?.outPoints
+        .map(({ txHash, index }) => `${txHash}:${index}`)
+        .join("\n") ?? "",
+    );
   };
 
   const save = async () => {
     if (!signer) return;
     setBusy(true);
+    const updating = typeIdSelection !== "new";
     try {
       const result = await saveDepGroup(
         signer,
@@ -116,11 +201,12 @@ export function DepGroupModule({
       );
       const txHash = await signer.sendTransaction(result.tx);
       setTypeId(result.typeId);
+      if (!updating) setTypeIdSelection("cell");
       showTransaction(
         client,
         show,
         txHash,
-        `Dep group ${typeId ? "updated" : "created"}`,
+        `Dep group ${updating ? "updated" : "created"}`,
       );
       log(`Type ID ${result.typeId}; transaction sent: ${txHash}`);
       await signer.client.waitTransaction(txHash);
@@ -132,6 +218,12 @@ export function DepGroupModule({
         true,
       );
       log(`Transaction committed: ${txHash}`, "success");
+      refreshTimers.current.forEach(clearTimeout);
+      setRefreshNonce((value) => value + 1);
+      refreshTimers.current = [
+        setTimeout(() => setRefreshNonce((value) => value + 1), 1500),
+        setTimeout(() => setRefreshNonce((value) => value + 1), 4000),
+      ];
     } catch (cause) {
       reportModuleError(cause, show, log, "Unable to save dep group");
     } finally {
@@ -142,14 +234,63 @@ export function DepGroupModule({
   return (
     <div className="module-console">
       <div className="module-fields">
-        <label className="module-field module-field-wide">
-          <span>Type ID / empty to create</span>
-          <input
-            value={typeId}
-            spellCheck={false}
-            onChange={(event) => setTypeId(event.currentTarget.value)}
+        {typeIdSelection === "manual" ? (
+          <label className="module-field module-field-wide">
+            <span>Type ID</span>
+            <input
+              value={typeId}
+              spellCheck={false}
+              placeholder="0x…"
+              onChange={(event) => {
+                setTypeId(event.currentTarget.value);
+                setOutPoints("");
+              }}
+            />
+          </label>
+        ) : null}
+        <ModuleItemList
+          label="Dep groups"
+          count={depGroups.length}
+          emptyText="No dep groups found"
+          hasMore={hasMoreDepGroups}
+          loadingMore={loadingDepGroups}
+          onLoadMore={loadMoreDepGroups}
+          selection
+        >
+          <ModuleSelectionItem
+            selected={typeIdSelection === "new"}
+            title="Create a new dep group"
+            onClick={() => selectDepGroup()}
+            label="Create new"
+            description="Create a new Type ID dep group"
           />
-        </label>
+          <ModuleSelectionItem
+            selected={typeIdSelection === "manual"}
+            title="Enter a Type ID manually"
+            onClick={() => {
+              setTypeIdSelection("manual");
+              setTypeId("");
+              setOutPoints("");
+            }}
+            label="Enter manually"
+            description="Use a Type ID that is not listed"
+          />
+          {depGroups.map((depGroup) => {
+            const id = depGroup.cell.cellOutput.type?.args;
+            if (!id) return null;
+            const count = depGroup.outPoints.length;
+            return (
+              <ModuleSelectionItem
+                selected={typeIdSelection === "cell" && id === typeId}
+                title={`Type ID: ${id}\nOut point: ${depGroup.cell.outPoint.txHash}:${depGroup.cell.outPoint.index}`}
+                key={ccc.hexFrom(depGroup.cell.outPoint.toBytes())}
+                onClick={() => selectDepGroup(depGroup)}
+                label={`Type ID · ${shortHex(id)}`}
+                description={`${count} ${count === 1 ? "outpoint" : "outpoints"} · ${shortHex(depGroup.cell.outPoint.txHash)}`}
+              />
+            );
+          })}
+        </ModuleItemList>
         <label className="module-field module-field-wide">
           <span>Outpoints / txHash:index, one per line</span>
           <ModuleTextarea
@@ -161,18 +302,27 @@ export function DepGroupModule({
         </label>
       </div>
       <div className="module-actions">
-        <button type="button" disabled={!typeId || busy} onClick={search}>
-          Load
-        </button>
         <button
           type="button"
           className="is-primary"
-          disabled={!signer || busy}
+          disabled={
+            !signer ||
+            busy ||
+            (typeIdSelection === "manual" && !isCompleteTypeId(typeId))
+          }
           onClick={save}
         >
-          {busy ? "Saving…" : typeId ? "Update dep group" : "Create dep group"}
+          {busy
+            ? "Saving…"
+            : typeIdSelection === "new"
+              ? "Create dep group"
+              : "Update dep group"}
         </button>
       </div>
     </div>
   );
+}
+
+function shortHex(value: string) {
+  return `${value.slice(0, 10)}…${value.slice(-8)}`;
 }

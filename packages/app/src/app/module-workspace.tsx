@@ -1,7 +1,7 @@
 "use client";
 
 import type { ccc } from "@ckb-ccc/connector-react";
-import { Circle, LockKeyhole } from "lucide-react";
+import { ArrowUpRight, Circle } from "lucide-react";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { DemoLogger } from "./activity-console";
 import { ModuleReadout, type ModuleReadoutState } from "./module-readout";
@@ -78,7 +78,6 @@ function MountedModuleWorkspace({
   workspaceRef: React.RefObject<HTMLElement | null>;
 }) {
   const Module = module.component;
-  const ready = module.access === "local" || signer !== undefined;
   const moduleLog = useCallback(
     (message: string, level?: Parameters<DemoLogger>[2]) =>
       log(module.name.toUpperCase(), message, level),
@@ -123,12 +122,10 @@ function MountedModuleWorkspace({
       </div>
 
       <header className="workspace-header">
-        {ready ? (
-          <span className="workspace-header-glyph-viewport" aria-hidden="true">
-            <span className="workspace-header-glyph">啟</span>
-          </span>
-        ) : null}
-        <div>
+        <span className="workspace-header-glyph-viewport" aria-hidden="true">
+          <span className="workspace-header-glyph">啟</span>
+        </span>
+        <div className="workspace-title">
           <span className="section-index">
             <span className="section-glyph" aria-hidden="true">
               {module.access === "signer" ? "參" : "貳"}
@@ -139,13 +136,26 @@ function MountedModuleWorkspace({
             <span>ACTIVE MODULE</span>
           </span>
           <h1>{module.name}</h1>
+          <p className="workspace-description">{module.description}</p>
+          {module.resources?.length ? (
+            <nav
+              className="workspace-resources"
+              aria-label={`${module.name} resources`}
+            >
+              {module.resources.map((resource) => (
+                <a
+                  key={resource.href}
+                  href={resource.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>{resource.label}</span>
+                  <ArrowUpRight size={11} />
+                </a>
+              ))}
+            </nav>
+          ) : null}
         </div>
-        {!ready ? (
-          <div className="workspace-state">
-            <LockKeyhole size={14} />
-            <span>SIGNER REQUIRED</span>
-          </div>
-        ) : null}
       </header>
 
       <div className="workspace-core">

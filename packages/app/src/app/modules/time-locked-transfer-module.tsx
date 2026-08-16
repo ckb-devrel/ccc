@@ -2,7 +2,9 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import { useEffect, useState } from "react";
+import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
+import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
 type TimeLockCell = { cell: ccc.Cell; lock: ccc.Script };
@@ -41,8 +43,7 @@ async function buildTimeLockedTransfer(
   return tx;
 }
 
-async function findTimeLockCells(signer: ccc.Signer) {
-  const cells: TimeLockCell[] = [];
+async function* findTimeLockCells(signer: ccc.Signer) {
   for await (const { script: ownerLock } of await signer.getAddressObjs()) {
     const prefix = await ccc.Script.fromKnownScript(
       signer.client,
@@ -54,10 +55,9 @@ async function findTimeLockCells(signer: ccc.Signer) {
       scriptType: "lock",
       scriptSearchMode: "prefix",
     })) {
-      cells.push({ cell, lock: ownerLock });
+      yield { cell, lock: ownerLock };
     }
   }
-  return cells;
 }
 
 async function buildClaim(signer: ccc.Signer, { cell, lock }: TimeLockCell) {
@@ -104,40 +104,50 @@ export function TimeLockedTransferModule({
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
   const [blocks, setBlocks] = useState("");
-  const [cells, setCells] = useState<TimeLockCell[]>([]);
-  const [selectedCell, setSelectedCell] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [tip, setTip] = useState<ccc.Num>();
+  const [busyAction, setBusyAction] = useState<string>();
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const {
+    hasMore,
+    items: cells,
+    loadMore,
+    loading,
+  } = usePagedModuleItems<ccc.Signer, TimeLockCell>({
+    source: signer,
+    revision: refreshNonce,
+    iterate: findTimeLockCells,
+    onError: (cause) =>
+      reportModuleError(cause, show, log, "Unable to load time-lock cells"),
+  });
 
   useEffect(() => {
     if (!signer) return;
     let cancelled = false;
-    findTimeLockCells(signer)
-      .then((next) => {
-        if (!cancelled) {
-          setCells(next);
-          setSelectedCell(cellKey(next[0]?.cell));
-        }
+    signer.client
+      .getTip()
+      .then((nextTip) => {
+        if (!cancelled) setTip(nextTip);
       })
       .catch(
         (cause) =>
           !cancelled &&
-          reportModuleError(cause, show, log, "Unable to load time-lock cells"),
+          reportModuleError(cause, show, log, "Unable to load chain tip"),
       );
     return () => {
       cancelled = true;
     };
-  }, [log, show, signer]);
+  }, [log, refreshNonce, show, signer]);
 
-  const transmit = async (mode: "claim" | "lock") => {
+  const transmit = async (mode: "claim" | "lock", target?: TimeLockCell) => {
     if (!signer) return;
-    setBusy(true);
+    const actionKey = mode === "lock" ? mode : cellKey(target?.cell);
+    setBusyAction(actionKey);
     try {
-      const selected = cells.find(({ cell }) => cellKey(cell) === selectedCell);
       const tx =
         mode === "lock"
           ? await buildTimeLockedTransfer(signer, destination, amount, blocks)
-          : selected
-            ? await buildClaim(signer, selected)
+          : target
+            ? await buildClaim(signer, target)
             : undefined;
       if (!tx) throw new Error("Select a time-lock cell to claim");
       const txHash = await signer.sendTransaction(tx);
@@ -152,10 +162,11 @@ export function TimeLockedTransferModule({
         true,
       );
       log(`Transaction committed: ${txHash}`, "success");
+      setRefreshNonce((value) => value + 1);
     } catch (cause) {
       reportModuleError(cause, show, log, `Time-lock ${mode} failed`);
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   };
 
@@ -184,39 +195,59 @@ export function TimeLockedTransferModule({
             onChange={(event) => setBlocks(event.currentTarget.value)}
           />
         </label>
-        <label className="module-field module-field-wide">
-          <span>Claimable time-lock cell</span>
-          <select
-            value={selectedCell}
-            onChange={(event) => setSelectedCell(event.currentTarget.value)}
-          >
-            <option value="">
-              {cells.length ? "Select a cell" : "No time-lock cells found"}
-            </option>
-            {cells.map(({ cell }) => (
-              <option value={cellKey(cell)} key={cellKey(cell)}>
-                {ccc.fixedPointToString(cell.cellOutput.capacity)} CKB ·{" "}
-                {cell.outPoint.txHash.slice(0, 12)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ModuleItemList
+          label="Time-lock cells"
+          count={cells.length}
+          emptyText="No time-lock cells found"
+          hasMore={hasMore}
+          loadingMore={loading}
+          onLoadMore={loadMore}
+        >
+          {cells.map((target) => {
+            const { cell } = target;
+            const key = cellKey(cell);
+            const since = timeLockSince(cell);
+            const unlocked = tip !== undefined && since.value <= tip;
+            const remaining = tip === undefined ? ccc.Zero : since.value - tip;
+            return (
+              <ModuleItem
+                className="time-lock-cell"
+                disabled={busyAction !== undefined || !unlocked}
+                title={`${cell.outPoint.txHash}:${cell.outPoint.index}`}
+                key={key}
+                onClick={() => transmit("claim", target)}
+              >
+                <span className="module-selection-value">
+                  <strong>
+                    {ccc.fixedPointToString(cell.cellOutput.capacity)} CKB
+                  </strong>
+                  <small>{shortHash(cell.outPoint.txHash)}</small>
+                </span>
+                <span className="time-lock-cell-status">
+                  <strong>
+                    {busyAction === key
+                      ? "Processing…"
+                      : unlocked
+                        ? "Claim"
+                        : `${remaining} blocks left`}
+                  </strong>
+                  <small>Block {since.value}</small>
+                </span>
+              </ModuleItem>
+            );
+          })}
+        </ModuleItemList>
       </div>
       <div className="module-actions">
         <button
           type="button"
-          disabled={busy || !selectedCell}
-          onClick={() => transmit("claim")}
-        >
-          Claim
-        </button>
-        <button
-          type="button"
           className="is-primary"
-          disabled={busy || !destination || !amount || !blocks}
+          disabled={
+            busyAction !== undefined || !destination || !amount || !blocks
+          }
           onClick={() => transmit("lock")}
         >
-          {busy ? "Processing…" : "Lock capacity"}
+          {busyAction === "lock" ? "Processing…" : "Lock capacity"}
         </button>
       </div>
     </div>
@@ -225,4 +256,14 @@ export function TimeLockedTransferModule({
 
 function cellKey(cell?: ccc.Cell) {
   return cell ? ccc.hexFrom(cell.outPoint.toBytes()) : "";
+}
+
+function timeLockSince(cell: ccc.Cell) {
+  return ccc.Since.from(
+    ccc.numFromBytes(ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40)),
+  );
+}
+
+function shortHash(value: string) {
+  return `${value.slice(0, 10)}…${value.slice(-8)}`;
 }

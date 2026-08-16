@@ -23,7 +23,7 @@ import {
 } from "react";
 import logoText from "../../../../assets/logoText.svg";
 import { ActivityConsole, useActivityLog } from "./activity-console";
-import { copyText } from "./copy-text";
+import { CopyableText } from "./copyable-text";
 import { explorerLink } from "./explorer-link";
 import { HeaderLinks } from "./header-links";
 import { ModuleWorkspace } from "./module-workspace";
@@ -610,17 +610,8 @@ function AddressList({
   onActiveAddressChange?: (address: string) => void;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const addressCount = addresses?.length ?? 0;
   const [activeIndex, setActiveIndex] = useState(0);
-  const [copiedIndex, setCopiedIndex] = useState<number>();
-
-  useEffect(
-    () => () => {
-      clearTimeout(copyTimerRef.current);
-    },
-    [],
-  );
 
   useEffect(() => {
     const list = listRef.current;
@@ -691,56 +682,63 @@ function AddressList({
       ) : addresses.length === 0 ? (
         <div className="address-row is-loading">No address available</div>
       ) : (
-        addresses.map((address, index) => (
-          <button
-            type="button"
-            className={`address-row ${
-              index === activeIndex
-                ? "is-active"
-                : Math.abs(index - activeIndex) === 1
-                  ? "is-adjacent"
-                  : ""
-            } ${copiedIndex === index ? "is-copied" : ""}`}
-            title={address}
-            aria-label={
-              index === activeIndex
-                ? `Copy address ${address}`
-                : `Scroll to address ${address}`
-            }
-            key={`${address}-${index}`}
-            onClick={() => {
-              if (index !== activeIndex) {
+        addresses.map((address, index) => {
+          const active = index === activeIndex;
+          const className = `address-row ${
+            active
+              ? "is-active"
+              : Math.abs(index - activeIndex) === 1
+                ? "is-adjacent"
+                : ""
+          }`;
+          const label = (
+            <>
+              <span className="address-value address-value-wide">
+                {shortenAddress(address, 12)}
+              </span>
+              <span className="address-value address-value-medium">
+                {shortenAddress(address, 10)}
+              </span>
+              <span className="address-value address-value-compact">
+                {shortenAddress(address, 7)}
+              </span>
+            </>
+          );
+
+          if (active) {
+            return (
+              <CopyableText
+                className={className}
+                value={address}
+                ariaLabel={`Copy address ${address}`}
+                iconSize={13}
+                key={`${address}-${index}`}
+              >
+                {label}
+              </CopyableText>
+            );
+          }
+
+          return (
+            <button
+              type="button"
+              className={className}
+              title={address}
+              aria-label={`Scroll to address ${address}`}
+              key={`${address}-${index}`}
+              onClick={() => {
                 setActiveIndex(index);
                 onActiveAddressChange?.(address);
                 listRef.current?.scrollTo({
                   top: index * getAddressRowStep(listRef.current),
                   behavior: "smooth",
                 });
-                return;
-              }
-
-              void copyText(address)
-                .then(() => {
-                  clearTimeout(copyTimerRef.current);
-                  setCopiedIndex(index);
-                  copyTimerRef.current = setTimeout(() => {
-                    setCopiedIndex(undefined);
-                  }, 900);
-                })
-                .catch(() => undefined);
-            }}
-          >
-            <span className="address-value address-value-wide">
-              {shortenAddress(address, 12)}
-            </span>
-            <span className="address-value address-value-medium">
-              {shortenAddress(address, 10)}
-            </span>
-            <span className="address-value address-value-compact">
-              {shortenAddress(address, 7)}
-            </span>
-          </button>
-        ))
+              }}
+            >
+              {label}
+            </button>
+          );
+        })
       )}
     </div>
   );

@@ -6,14 +6,9 @@ import * as bip39 from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { useMemo, useState } from "react";
 import { CopyableReadoutValue } from "../copyable-readout-value";
+import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
-
-type DerivedAccount = {
-  address: string;
-  path: string;
-  privateKey: string;
-};
 
 async function deriveAccounts(
   client: ccc.Client,
@@ -128,14 +123,10 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
           />
         </label>
         {accounts.length ? (
-          <label className="module-field module-field-wide">
-            <span>Derived accounts</span>
-            <ModuleTextarea
-              className="module-output"
-              readOnly
-              value={accountsText(accounts)}
-            />
-          </label>
+          <DerivedAccounts
+            accounts={accounts}
+            onCopyError={(cause) => showFailure(cause, show, log)}
+          />
         ) : null}
       </div>
       <div className="module-actions">
@@ -159,26 +150,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
         <button type="button" disabled={!valid} onClick={makeKeystore}>
           To keystore
         </button>
-        {accounts.length ? (
-          <a href={accountsCsv(accounts)} download="ckb_accounts.csv">
-            CSV
-          </a>
-        ) : null}
       </div>
     </div>
   );
-}
-
-function accountsText(accounts: DerivedAccount[]) {
-  return accounts
-    .map(
-      ({ path, address, privateKey }) => `${path}, ${address}, ${privateKey}`,
-    )
-    .join("\n");
-}
-
-function accountsCsv(accounts: DerivedAccount[]) {
-  return `data:text/csv;charset=utf-8,${encodeURIComponent(`path,address,private key\n${accountsText(accounts)}`)}`;
 }
 
 function showFailure(

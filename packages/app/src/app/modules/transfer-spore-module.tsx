@@ -1,11 +1,49 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
+import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
-type SporeOption = { id: string; name: string };
+type SporeOption = {
+  clusterId?: string;
+  clusterName: string;
+  id: string;
+};
+
+type RawSporeOption = Omit<SporeOption, "clusterName">;
+
+async function* findSignerSpores(signer: ccc.Signer) {
+  for await (const { spore, sporeData } of ccc.spore.findSporesBySigner({
+    signer,
+    order: "desc",
+  })) {
+    const id = spore.cellOutput.type?.args;
+    if (!id) continue;
+    yield {
+      id,
+      clusterId: sporeData.clusterId
+        ? ccc.hexFrom(sporeData.clusterId)
+        : undefined,
+    };
+  }
+}
+
+async function prepareSpores(items: RawSporeOption[], signer: ccc.Signer) {
+  return Promise.all(
+    items.map(async ({ clusterId, id }): Promise<SporeOption> => {
+      if (!clusterId) return { clusterId, clusterName: "Public Spore", id };
+      const cluster = await ccc.spore.findCluster(signer.client, clusterId);
+      return {
+        clusterId,
+        clusterName: cluster?.clusterData.name ?? "Unknown cluster",
+        id,
+      };
+    }),
+  );
+}
 
 async function transferSpore(signer: ccc.Signer, id: string, address: string) {
   const { script: to } = await ccc.Address.fromString(address, signer.client);
@@ -27,55 +65,32 @@ export function TransferSporeModule({
   signer,
 }: ModuleRuntimeProps) {
   const [address, setAddress] = useState("");
-  const [spores, setSpores] = useState<SporeOption[]>([]);
   const [sporeId, setSporeId] = useState("");
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!signer) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const list: SporeOption[] = [];
-        for await (const { spore, sporeData } of ccc.spore.findSporesBySigner({
-          signer,
-          order: "desc",
-        })) {
-          const id = spore.cellOutput.type?.args;
-          if (!id) continue;
-          let name = `Public Spore (${id.slice(0, 10)})`;
-          if (sporeData.clusterId) {
-            const cluster = await ccc.spore.findCluster(
-              signer.client,
-              sporeData.clusterId,
-            );
-            if (cluster)
-              name = `${cluster.clusterData.name} (${id.slice(0, 10)})`;
-          }
-          list.push({ id, name });
-        }
-        if (!cancelled) {
-          setSpores(list);
-          setSporeId((current) => current || list[0]?.id || "");
-        }
-      } catch (cause) {
-        if (!cancelled)
-          reportModuleError(cause, show, log, "Unable to load spores");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [log, show, signer]);
+  const {
+    hasMore,
+    items: spores,
+    loadMore,
+    loading,
+  } = usePagedModuleItems({
+    source: signer,
+    iterate: findSignerSpores,
+    preparePage: prepareSpores,
+    onError: (cause) =>
+      reportModuleError(cause, show, log, "Unable to load spores"),
+  });
+  const activeSporeId = spores.some(({ id }) => id === sporeId)
+    ? sporeId
+    : (spores[0]?.id ?? "");
 
   const submit = async (mode: "melt" | "transfer") => {
-    if (!signer || !sporeId) return;
+    if (!signer || !activeSporeId) return;
     setBusy(true);
     try {
       const tx =
         mode === "transfer"
-          ? await transferSpore(signer, sporeId, address)
-          : await meltSpore(signer, sporeId);
+          ? await transferSpore(signer, activeSporeId, address)
+          : await meltSpore(signer, activeSporeId);
       const txHash = await signer.sendTransaction(tx);
       showTransaction(client, show, txHash, `Spore ${mode} sent`);
       log(`Transaction sent: ${txHash}`);
@@ -92,22 +107,37 @@ export function TransferSporeModule({
   return (
     <div className="module-console">
       <div className="module-fields">
-        <label className="module-field module-field-wide">
-          <span>Spore</span>
-          <select
-            value={sporeId}
-            onChange={(event) => setSporeId(event.currentTarget.value)}
-          >
-            <option value="">
-              {spores.length ? "Select a spore" : "No spores found"}
-            </option>
-            {spores.map(({ id, name }) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ModuleItemList
+          label="Spores"
+          count={spores.length}
+          emptyText="No spores found"
+          hasMore={hasMore}
+          loadingMore={loading}
+          onLoadMore={loadMore}
+          selection
+        >
+          {spores.map(({ clusterId, clusterName, id }) => {
+            const selected = id === activeSporeId;
+            return (
+              <ModuleSelectionItem
+                selected={selected}
+                title={
+                  clusterId
+                    ? `Spore: ${id}\nCluster: ${clusterId}`
+                    : `Spore: ${id}\nNo cluster`
+                }
+                key={id}
+                onClick={() => setSporeId(id)}
+                label={shortId(id)}
+                description={
+                  clusterId
+                    ? `${shortId(clusterId)} · ${clusterName}`
+                    : "No cluster · Public Spore"
+                }
+              />
+            );
+          })}
+        </ModuleItemList>
         <label className="module-field module-field-wide">
           <span>Receiver address</span>
           <input
@@ -119,7 +149,7 @@ export function TransferSporeModule({
       <div className="module-actions">
         <button
           type="button"
-          disabled={busy || !sporeId}
+          disabled={busy || !activeSporeId}
           onClick={() => submit("melt")}
         >
           Melt
@@ -127,7 +157,7 @@ export function TransferSporeModule({
         <button
           type="button"
           className="is-primary"
-          disabled={busy || !sporeId || !address}
+          disabled={busy || !activeSporeId || !address}
           onClick={() => submit("transfer")}
         >
           Transfer
@@ -135,4 +165,8 @@ export function TransferSporeModule({
       </div>
     </div>
   );
+}
+
+function shortId(id: string) {
+  return `${id.slice(0, 10)}…${id.slice(-8)}`;
 }

@@ -1,12 +1,24 @@
 "use client";
 
 import { ccc, spore } from "@ckb-ccc/connector-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
+import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
 type ClusterOption = { id: string; name: string };
+
+async function* findSignerClusters(signer: ccc.Signer) {
+  for await (const { cluster, clusterData } of spore.findSporeClustersBySigner({
+    signer,
+    order: "desc",
+  })) {
+    const id = cluster.cellOutput.type?.args;
+    if (id) yield { id, name: clusterData.name };
+  }
+}
 
 async function buildSpore(
   signer: ccc.Signer,
@@ -41,33 +53,22 @@ export function MintSporeModule({
   const [contentType, setContentType] = useState("dob/1");
   const [content, setContent] = useState('{ "dna": "0123456789abcdef" }');
   const [clusterId, setClusterId] = useState("");
-  const [clusters, setClusters] = useState<ClusterOption[]>([]);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!signer) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const list: ClusterOption[] = [];
-        for await (const {
-          cluster,
-          clusterData,
-        } of spore.findSporeClustersBySigner({ signer, order: "desc" })) {
-          const id = cluster.cellOutput.type?.args;
-          if (id)
-            list.push({ id, name: `${clusterData.name} (${id.slice(0, 10)})` });
-        }
-        if (!cancelled) setClusters(list);
-      } catch (cause) {
-        if (!cancelled)
-          reportModuleError(cause, show, log, "Unable to load clusters");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [log, show, signer]);
+  const {
+    hasMore,
+    items: clusters,
+    loadMore,
+    loading,
+  } = usePagedModuleItems<ccc.Signer, ClusterOption>({
+    source: signer,
+    iterate: findSignerClusters,
+    onError: (cause) =>
+      reportModuleError(cause, show, log, "Unable to load clusters"),
+  });
+  const activeClusterId =
+    clusterId === "" || clusters.some(({ id }) => id === clusterId)
+      ? clusterId
+      : "";
 
   const mint = async () => {
     if (!signer) return;
@@ -77,7 +78,7 @@ export function MintSporeModule({
         signer,
         contentType,
         content,
-        clusterId,
+        activeClusterId,
       );
       const txHash = await signer.sendTransaction(tx);
       showTransaction(client, show, txHash, `Spore ${id.slice(0, 10)} minted`);
@@ -95,27 +96,42 @@ export function MintSporeModule({
   return (
     <div className="module-console">
       <div className="module-fields">
-        <label className="module-field">
+        <label className="module-field module-field-wide">
           <span>Content type</span>
           <input
             value={contentType}
             onChange={(event) => setContentType(event.currentTarget.value)}
           />
         </label>
-        <label className="module-field">
-          <span>Cluster / optional</span>
-          <select
-            value={clusterId}
-            onChange={(event) => setClusterId(event.currentTarget.value)}
-          >
-            <option value="">Without cluster</option>
-            {clusters.map(({ id, name }) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ModuleItemList
+          label="Cluster / optional"
+          count={clusters.length}
+          emptyText="No clusters found"
+          hasMore={hasMore}
+          loadingMore={loading}
+          onLoadMore={loadMore}
+          selection
+        >
+          {[{ id: "", name: "Without cluster" }, ...clusters].map(
+            ({ id, name }) => {
+              const selected = id === activeClusterId;
+              return (
+                <ModuleSelectionItem
+                  selected={selected}
+                  title={id || "Mint without a cluster"}
+                  key={id || "without-cluster"}
+                  onClick={() => setClusterId(id)}
+                  label={clusterName(name, id)}
+                  description={
+                    id
+                      ? `${id.slice(0, 10)}…${id.slice(-8)}`
+                      : "Public / unclustered"
+                  }
+                />
+              );
+            },
+          )}
+        </ModuleItemList>
         <label className="module-field module-field-wide">
           <span>Content</span>
           <ModuleTextarea
@@ -136,4 +152,11 @@ export function MintSporeModule({
       </div>
     </div>
   );
+}
+
+function clusterName(name: string, id: string) {
+  const legacyIdSuffix = ` (${id.slice(0, 10)})`;
+  return id && name.endsWith(legacyIdSuffix)
+    ? name.slice(0, -legacyIdSuffix.length)
+    : name;
 }

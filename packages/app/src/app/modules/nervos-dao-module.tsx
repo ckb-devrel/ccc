@@ -1,13 +1,14 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CopyableReadoutValue } from "../copyable-readout-value";
+import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
+import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
-async function findDaoCells(signer: ccc.Signer) {
-  const cells: ccc.Cell[] = [];
+async function* findDaoCells(signer: ccc.Signer) {
   const dao = await ccc.Script.fromKnownScript(
     signer.client,
     ccc.KnownScript.NervosDao,
@@ -17,9 +18,42 @@ async function findDaoCells(signer: ccc.Signer) {
     { script: dao, scriptLenRange: [33, 34], outputDataLenRange: [8, 9] },
     true,
   )) {
-    cells.push(cell);
+    yield cell;
   }
-  return cells;
+}
+
+type DaoPosition = {
+  cell: ccc.Cell;
+  profit: ccc.Num;
+  unlockIn: ccc.FixedPoint;
+};
+
+async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
+  const tip = await signer.client.getTipHeader();
+
+  return Promise.all(
+    cells.map(async (cell): Promise<DaoPosition> => {
+      const { depositHeader, withdrawHeader } = await cell.getNervosDaoInfo(
+        signer.client,
+      );
+      if (!depositHeader) {
+        throw new Error("DAO deposit header not found");
+      }
+
+      const referenceHeader = withdrawHeader ?? tip;
+      return {
+        cell,
+        profit: ccc.calcDaoProfit(
+          cell.capacityFree,
+          depositHeader,
+          referenceHeader,
+        ),
+        unlockIn:
+          parseEpoch(ccc.calcDaoClaimEpoch(depositHeader, referenceHeader)) -
+          parseEpoch(tip.epoch),
+      };
+    }),
+  );
 }
 
 async function buildDaoDeposit(signer: ccc.Signer, amount?: string) {
@@ -109,29 +143,21 @@ export function NervosDaoModule({
   signer,
 }: ModuleRuntimeProps) {
   const [amount, setAmount] = useState("");
-  const [cells, setCells] = useState<ccc.Cell[]>([]);
-  const [selectedCell, setSelectedCell] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!signer) return;
-    let cancelled = false;
-    findDaoCells(signer)
-      .then((next) => {
-        if (!cancelled) {
-          setCells(next);
-          setSelectedCell(cellKey(next[0]));
-        }
-      })
-      .catch(
-        (cause) =>
-          !cancelled &&
-          reportModuleError(cause, show, log, "Unable to load DAO cells"),
-      );
-    return () => {
-      cancelled = true;
-    };
-  }, [log, show, signer]);
+  const [busyAction, setBusyAction] = useState<string>();
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const {
+    hasMore,
+    items: positions,
+    loadMore,
+    loading,
+  } = usePagedModuleItems({
+    source: signer,
+    revision: refreshNonce,
+    iterate: findDaoCells,
+    preparePage: prepareDaoPositions,
+    onError: (cause) =>
+      reportModuleError(cause, show, log, "Unable to load DAO cells"),
+  });
 
   const maximum = async () => {
     if (!signer) return;
@@ -159,13 +185,11 @@ export function NervosDaoModule({
     }
   };
 
-  const submit = async (mode: "deposit" | "progress") => {
+  const submit = async (mode: "deposit" | "progress", cell?: ccc.Cell) => {
     if (!signer) return;
-    setBusy(true);
+    const actionKey = mode === "deposit" ? mode : cellKey(cell);
+    setBusyAction(actionKey);
     try {
-      const cell = cells.find(
-        (candidate) => cellKey(candidate) === selectedCell,
-      );
       const tx =
         mode === "deposit"
           ? await buildDaoDeposit(signer, amount)
@@ -179,66 +203,79 @@ export function NervosDaoModule({
       await signer.client.waitTransaction(txHash);
       showTransaction(client, show, txHash, `DAO ${mode} committed`, true);
       log(`Transaction committed: ${txHash}`, "success");
+      setRefreshNonce((value) => value + 1);
     } catch (cause) {
       reportModuleError(cause, show, log, `DAO ${mode} failed`);
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   };
-
-  const selected = cells.find((cell) => cellKey(cell) === selectedCell);
-  const action =
-    selected?.outputData === "0x0000000000000000" ? "Redeem" : "Withdraw";
 
   return (
     <div className="module-console">
       <div className="module-fields">
-        <label className="module-field">
+        <label className="module-field module-field-wide">
           <span>Deposit amount / CKB</span>
           <input
             value={amount}
             onChange={(event) => setAmount(event.currentTarget.value)}
           />
         </label>
-        <label className="module-field">
-          <span>DAO cell</span>
-          <select
-            value={selectedCell}
-            onChange={(event) => setSelectedCell(event.currentTarget.value)}
+        <div className="module-actions module-field-wide">
+          <button
+            type="button"
+            disabled={!signer || busyAction !== undefined}
+            onClick={maximum}
           >
-            <option value="">
-              {cells.length ? "Select a DAO cell" : "No DAO cells found"}
-            </option>
-            {cells.map((cell) => (
-              <option key={cellKey(cell)} value={cellKey(cell)}>
-                {ccc.fixedPointToString(cell.cellOutput.capacity)} CKB ·{" "}
-                {cell.outputData === "0x0000000000000000"
-                  ? "deposited"
-                  : "withdrawing"}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="module-actions">
-        <button type="button" disabled={!signer || busy} onClick={maximum}>
-          Max
-        </button>
-        <button
-          type="button"
-          disabled={!selectedCell || busy}
-          onClick={() => submit("progress")}
+            Max
+          </button>
+          <button
+            type="button"
+            className="is-primary"
+            disabled={!signer || !amount || busyAction !== undefined}
+            onClick={() => submit("deposit")}
+          >
+            {busyAction === "deposit" ? "Processing…" : "Deposit"}
+          </button>
+        </div>
+        <ModuleItemList
+          label="DAO positions"
+          count={positions.length}
+          emptyText="No DAO positions found"
+          expandedRowsOnMobile
+          hasMore={hasMore}
+          loadingMore={loading}
+          onLoadMore={loadMore}
         >
-          {action}
-        </button>
-        <button
-          type="button"
-          className="is-primary"
-          disabled={!signer || !amount || busy}
-          onClick={() => submit("deposit")}
-        >
-          {busy ? "Processing…" : "Deposit"}
-        </button>
+          {positions.map(({ cell, profit, unlockIn }) => {
+            const key = cellKey(cell);
+            const action =
+              cell.outputData === "0x0000000000000000" ? "Redeem" : "Withdraw";
+            return (
+              <ModuleItem
+                className="dao-position"
+                disabled={busyAction !== undefined}
+                title={key}
+                key={key}
+                onClick={() => submit("progress", cell)}
+              >
+                <span className="dao-position-value">
+                  <strong>
+                    {formatCkb(cell.cellOutput.capacity, "0.01")} CKB
+                  </strong>
+                  <small>+{formatCkb(profit, "0.0001")} CKB</small>
+                </span>
+                <span className="dao-position-unlock">
+                  <strong>{formatUnlockEpochs(unlockIn)} Epochs</strong>
+                  <small>until unlock</small>
+                </span>
+                <span className="dao-position-action">
+                  <strong>{busyAction === key ? "Processing…" : action}</strong>
+                </span>
+              </ModuleItem>
+            );
+          })}
+        </ModuleItemList>
       </div>
     </div>
   );
@@ -246,4 +283,25 @@ export function NervosDaoModule({
 
 function cellKey(cell?: ccc.Cell) {
   return cell ? ccc.hexFrom(cell.outPoint.toBytes()) : "";
+}
+
+function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
+  return (
+    ccc.fixedPointFrom(epoch[0].toString()) +
+    (ccc.fixedPointFrom(epoch[1].toString()) * ccc.fixedPointFrom(1)) /
+      ccc.fixedPointFrom(epoch[2].toString())
+  );
+}
+
+function formatCkb(value: ccc.Num, precision: string) {
+  const step = ccc.fixedPointFrom(precision);
+  return ccc.fixedPointToString((value / step) * step);
+}
+
+function formatUnlockEpochs(value: ccc.FixedPoint) {
+  if (value <= 0) {
+    return "0";
+  }
+  const step = ccc.fixedPointFrom("0.001");
+  return ccc.fixedPointToString((value / step) * step);
 }

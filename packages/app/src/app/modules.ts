@@ -25,7 +25,7 @@ import type { DemoLogLevel } from "./activity-console";
 import type { ShowModuleReadout } from "./module-readout";
 import { CreateSporeClusterModule } from "./modules/create-spore-cluster-module";
 import { DepGroupModule } from "./modules/dep-group-module";
-import { DeployScriptModule } from "./modules/deploy-script-module";
+import { DeployerModule } from "./modules/deployer-module";
 import { HashModule } from "./modules/hash-module";
 import {
   IssueXUdtSusModule,
@@ -64,6 +64,11 @@ export type ModuleGroup =
 export type DemoModule = {
   id: string;
   name: string;
+  description: string;
+  resources?: readonly {
+    label: string;
+    href: string;
+  }[];
   group: ModuleGroup;
   icon: LucideIcon;
   access: "signer" | "local";
@@ -71,6 +76,13 @@ export type DemoModule = {
 };
 
 type DemoModuleDefinition = Omit<DemoModule, "id">;
+
+const SPORE_PROTOCOL_RESOURCES = [
+  {
+    label: "Spore Protocol Docs",
+    href: "https://docs.spore.pro/",
+  },
+] as const;
 
 export function moduleIdFromName(name: string) {
   return name
@@ -95,6 +107,8 @@ function defineModules(definitions: readonly DemoModuleDefinition[]) {
 export const demoModules: readonly DemoModule[] = defineModules([
   {
     name: "Hash",
+    description:
+      "Hash UTF-8 text or raw hex bytes with CKB's default Blake2b configuration.",
     group: "Utilities",
     icon: Hash,
     access: "local",
@@ -102,6 +116,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Mnemonic",
+    description:
+      "Generate or import a mnemonic, derive CKB accounts, and export an encrypted keystore.",
     group: "Wallet",
     icon: BookKey,
     access: "local",
@@ -109,6 +125,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Keystore",
+    description:
+      "Decrypt a JSON keystore and derive its CKB accounts with an optional address limit.",
     group: "Wallet",
     icon: FileLock,
     access: "local",
@@ -116,6 +134,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Sign",
+    description:
+      "Sign arbitrary messages with the connected signer and verify serialized signatures.",
     group: "Cryptography",
     icon: Signature,
     access: "signer",
@@ -123,6 +143,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Transfer",
+    description:
+      "Send CKB to one or many addresses, attach output data, or calculate the maximum spendable amount.",
     group: "Transaction",
     icon: ArrowLeftRight,
     access: "signer",
@@ -130,6 +152,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Transfer xUDT",
+    description:
+      "Configure an xUDT script and transfer tokens to one or more CKB addresses.",
     group: "Token",
     icon: BadgeCent,
     access: "signer",
@@ -137,6 +161,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Nervos DAO",
+    description:
+      "Deposit CKB into Nervos DAO, then redeem and withdraw existing DAO cells.",
     group: "Protocol",
     icon: PiggyBank,
     access: "signer",
@@ -144,6 +170,9 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Transfer Spore",
+    description:
+      "Find Spores owned by the signer and transfer a selected Spore to another address.",
+    resources: SPORE_PROTOCOL_RESOURCES,
     group: "Spore",
     icon: CircleDotDashed,
     access: "signer",
@@ -151,6 +180,9 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Transfer Spore Cluster",
+    description:
+      "Find Spore clusters owned by the signer and transfer a selected cluster to another address.",
+    resources: SPORE_PROTOCOL_RESOURCES,
     group: "Spore",
     icon: Network,
     access: "signer",
@@ -158,20 +190,32 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Time Locked Transfer",
+    description:
+      "Lock CKB for a relative number of blocks or claim matured time-locked cells.",
     group: "Transaction",
     icon: LockKeyhole,
     access: "signer",
     component: TimeLockedTransferModule,
   },
   {
-    name: "Deploy Script",
+    name: "Deployer",
+    description:
+      "Deploy, update, or burn an on-chain cell backed by a Type ID.",
     group: "Development",
     icon: Rocket,
     access: "signer",
-    component: DeployScriptModule,
+    component: DeployerModule,
   },
   {
     name: "Dep Group",
+    description:
+      "Create, inspect, or update a Type ID dep group from a list of cell outpoints.",
+    resources: [
+      {
+        label: "RFC 22 · Dep Group",
+        href: "https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#dep-group",
+      },
+    ],
     group: "Development",
     icon: Combine,
     access: "signer",
@@ -179,6 +223,14 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Issue xUDT (Type ID)",
+    description:
+      "Issue an xUDT through two or three transactions, with owner authority controlled by a Type ID proxy lock.",
+    resources: [
+      {
+        label: "Single-Use Seals · EN/CN",
+        href: "https://talk.nervos.org/t/en-cn-misc-single-use-seals/8279",
+      },
+    ],
     group: "Token",
     icon: KeySquare,
     access: "signer",
@@ -186,6 +238,14 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Issue xUDT (SUS)",
+    description:
+      "Create a single-use seal, owner cell, and xUDT issuance across three signed transactions.",
+    resources: [
+      {
+        label: "Single-Use Seals · EN/CN",
+        href: "https://talk.nervos.org/t/en-cn-misc-single-use-seals/8279",
+      },
+    ],
     group: "Token",
     icon: Stamp,
     access: "signer",
@@ -193,6 +253,9 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Create Spore Cluster",
+    description:
+      "Create a Spore cluster with plain metadata or a DOB/0 or DOB/1 description.",
+    resources: SPORE_PROTOCOL_RESOURCES,
     group: "Spore",
     icon: PackagePlus,
     access: "signer",
@@ -200,6 +263,9 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Mint Spore",
+    description:
+      "Mint a Spore with custom content, optionally assigning it to one of your clusters.",
+    resources: SPORE_PROTOCOL_RESOURCES,
     group: "Spore",
     icon: Sparkles,
     access: "signer",
@@ -207,6 +273,14 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "SSRI",
+    description:
+      "Locate a contract by Type ID and invoke an SSRI method through a local executor.",
+    resources: [
+      {
+        label: "SSRI Design Notes · EN/CN",
+        href: "https://talk.nervos.org/t/en-cn-script-sourced-rich-information-script/8256",
+      },
+    ],
     group: "Development",
     icon: Braces,
     access: "signer",
@@ -214,6 +288,8 @@ export const demoModules: readonly DemoModule[] = defineModules([
   },
   {
     name: "Transfer with Lumos",
+    description:
+      "Build and send a basic CKB transfer through the legacy Lumos integration.",
     group: "Transaction",
     icon: Workflow,
     access: "signer",
