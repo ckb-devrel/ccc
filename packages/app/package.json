@@ -1,0 +1,55 @@
+{
+  "name": "@ckb-ccc/app",
+  "description": "An app based on the CCC library",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "homepage": "https://github.com/ckb-devrel/ccc",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ckb-devrel/ccc.git"
+  },
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ./src",
+    "format": "prettier --write ./src"
+  },
+  "dependencies": {
+    "@ckb-ccc/connector-react": "workspace:*",
+    "@ckb-ccc/lumos-patches": "workspace:*",
+    "@ckb-ccc/ssri": "workspace:*",
+    "@ckb-ccc/type-id": "workspace:*",
+    "@ckb-lumos/ckb-indexer": "0.24.0-next.2",
+    "@ckb-lumos/common-scripts": "0.24.0-next.2",
+    "@ckb-lumos/config-manager": "0.24.0-next.2",
+    "@ckb-lumos/helpers": "0.24.0-next.2",
+    "@scure/bip32": "^2.0.0",
+    "@scure/bip39": "^2.0.0",
+    "lucide-react": "^1.21.0",
+    "next": "16.3.0",
+    "qrcode.react": "^4.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "^26.0.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@typescript/native": "npm:typescript@^7.0.2",
+    "eslint": "^10.6.0",
+    "eslint-config-next": "16.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "postcss": "^8.5.23",
+    "prettier": "^3.9.1",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "tailwindcss": "^4.1.12",
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
+  },
+  "packageManager": "pnpm@11.8.0"
+}

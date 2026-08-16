@@ -48,6 +48,103 @@ importers:
         specifier: ^4.1.9
         version: 4.1.10(@types/node@26.2.0)(@vitest/coverage-v8@4.1.10)(vite@7.3.5(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.49.2)(tsx@4.23.5)(yaml@2.9.0))
 
+  packages/app:
+    dependencies:
+      '@ckb-ccc/connector-react':
+        specifier: workspace:*
+        version: link:../connector-react
+      '@ckb-ccc/lumos-patches':
+        specifier: workspace:*
+        version: link:../lumos-patches
+      '@ckb-ccc/ssri':
+        specifier: workspace:*
+        version: link:../ssri
+      '@ckb-ccc/type-id':
+        specifier: workspace:*
+        version: link:../type-id
+      '@ckb-lumos/ckb-indexer':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/common-scripts':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/config-manager':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/helpers':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@scure/bip32':
+        specifier: ^2.0.0
+        version: 2.3.0
+      '@scure/bip39':
+        specifier: ^2.0.0
+        version: 2.3.0
+      lucide-react:
+        specifier: ^1.21.0
+        version: 1.31.0(react@19.2.8)
+      next:
+        specifier: 16.3.0
+        version: 16.3.0(@babel/core@7.29.7)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      qrcode.react:
+        specifier: ^4.2.0
+        version: 4.2.0(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3.3.1
+        version: 3.3.6
+      '@tailwindcss/postcss':
+        specifier: ^4.1.12
+        version: 4.3.3
+      '@types/node':
+        specifier: ^26.0.1
+        version: 26.2.0
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.4
+        version: 19.2.4(@types/react@19.2.18)
+      '@typescript/native':
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
+      eslint:
+        specifier: ^10.6.0
+        version: 10.8.0(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.3.0
+        version: 16.3.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(@typescript/typescript6@6.0.2)(eslint@10.8.0(jiti@2.7.0))
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@10.8.0(jiti@2.7.0))
+      eslint-plugin-prettier:
+        specifier: ^5.5.4
+        version: 5.5.6(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0))(prettier@3.9.6)
+      postcss:
+        specifier: ^8.5.23
+        version: 8.5.26
+      prettier:
+        specifier: ^3.9.1
+        version: 3.9.6
+      prettier-plugin-organize-imports:
+        specifier: ^4.2.0
+        version: 4.3.0(@typescript/typescript6@6.0.2)(prettier@3.9.6)
+      prettier-plugin-tailwindcss:
+        specifier: ^0.8.0
+        version: 0.8.1(prettier-plugin-organize-imports@4.3.0(@typescript/typescript6@6.0.2)(prettier@3.9.6))(prettier@3.9.6)
+      tailwindcss:
+        specifier: ^4.1.12
+        version: 4.3.3
+      typescript:
+        specifier: npm:@typescript/typescript6@^6.0.2
+        version: '@typescript/typescript6@6.0.2'
+
   packages/ccc:
     dependencies:
       '@ckb-ccc/eip6963':
@@ -8334,6 +8431,11 @@ packages:
   pure-rand@7.0.1:
     resolution: {integrity: sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ==}
 
+  qrcode.react@4.2.0:
+    resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   qs@6.15.3:
     resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
     engines: {node: '>=0.6'}
@@ -14546,7 +14648,7 @@ snapshots:
       '@next/eslint-plugin-next': 16.3.0(eslint@10.8.0(jiti@2.7.0))
       eslint: 10.8.0(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint-import-resolver-typescript@3.10.1)(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@10.8.0(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@10.8.0(jiti@2.7.0))
@@ -14582,7 +14684,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -14597,14 +14699,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.14.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0)):
+  eslint-module-utils@2.14.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@10.8.0(jiti@2.7.0)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1)
       eslint: 10.8.0(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.8.0(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -14619,7 +14721,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 10.8.0(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.14.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0)))(eslint@10.8.0(jiti@2.7.0))
+      eslint-module-utils: 2.14.0(@typescript-eslint/parser@6.21.0(@typescript/typescript6@6.0.2)(eslint@8.57.1))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@10.8.0(jiti@2.7.0))
       hasown: 2.0.4
       is-core-module: 2.16.2
       is-glob: 4.0.3
@@ -17496,6 +17598,10 @@ snapshots:
   punycode@2.3.1: {}
 
   pure-rand@7.0.1: {}
+
+  qrcode.react@4.2.0(react@19.2.8):
+    dependencies:
+      react: 19.2.8
 
   qs@6.15.3:
     dependencies:

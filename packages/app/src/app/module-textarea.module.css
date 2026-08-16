@@ -1,0 +1,42 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.root textarea {
+  display: block;
+}
+
+.indicator {
+  position: absolute;
+  z-index: 1;
+  right: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line-dark);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: background-color 160ms ease;
+}
+
+.root:focus-within .indicator {
+  background: var(--signal);
+}
+
+.resizer {
+  position: absolute;
+  z-index: 2;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  color: rgb(230 238 242 / 42%);
+  background: linear-gradient(135deg, transparent 0 49%, currentcolor 50%);
+  pointer-events: none;
+  transition: color 160ms ease;
+}
+
+.root:focus-within .resizer {
+  color: var(--signal);
+}
