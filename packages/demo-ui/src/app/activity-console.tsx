@@ -3,12 +3,12 @@
 import { AlertTriangle, ChevronUp, Terminal, Trash2 } from "lucide-react";
 import {
   type ReactNode,
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 export type DemoLogLevel = "error" | "info" | "success";
@@ -19,7 +19,7 @@ export type DemoLogger = (
   level?: DemoLogLevel,
 ) => void;
 
-type ActivityEntry = {
+export type ActivityEntry = {
   id: number;
   level: DemoLogLevel;
   message: string;
@@ -27,20 +27,47 @@ type ActivityEntry = {
   timestamp: Date;
 };
 
-export function useActivityLog() {
-  const nextId = useRef(0);
-  const [entries, setEntries] = useState<ActivityEntry[]>([]);
+export type ActivityLogStore = {
+  clear: () => void;
+  getSnapshot: () => ActivityEntry[];
+  log: DemoLogger;
+  subscribe: (listener: () => void) => () => void;
+};
 
-  const log = useCallback<DemoLogger>((source, message, level = "info") => {
-    const entry: ActivityEntry = {
-      id: nextId.current++,
-      level,
-      message: message.slice(0, 500),
-      source,
-      timestamp: new Date(),
-    };
-    setEntries((current) => [...current, entry].slice(-100));
-  }, []);
+function createActivityLogStore(): ActivityLogStore {
+  let entries: ActivityEntry[] = [];
+  let nextId = 0;
+  const listeners = new Set<() => void>();
+  const emit = () => listeners.forEach((listener) => listener());
+
+  return {
+    clear: () => {
+      if (entries.length === 0) return;
+      entries = [];
+      emit();
+    },
+    getSnapshot: () => entries,
+    log: (source, message, level = "info") => {
+      const entry: ActivityEntry = {
+        id: nextId++,
+        level,
+        message: message.slice(0, 500),
+        source,
+        timestamp: new Date(),
+      };
+      entries = [...entries, entry].slice(-100);
+      emit();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+export function useActivityLog() {
+  const [store] = useState(createActivityLogStore);
+  const { log } = store;
 
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -59,21 +86,23 @@ export function useActivityLog() {
   }, [log]);
 
   return {
-    clear: useCallback(() => setEntries([]), []),
-    entries,
     log,
+    store,
   };
 }
 
 export function ActivityConsole({
   children,
-  entries,
-  onClear,
+  store,
 }: {
   children: ReactNode;
-  entries: ActivityEntry[];
-  onClear: () => void;
+  store: ActivityLogStore;
 }) {
+  const entries = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  );
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const previewLineRef = useRef<HTMLSpanElement>(null);
@@ -123,7 +152,7 @@ export function ActivityConsole({
           <button
             type="button"
             disabled={entries.length === 0}
-            onClick={onClear}
+            onClick={store.clear}
           >
             <Trash2 size={13} /> Clear
           </button>

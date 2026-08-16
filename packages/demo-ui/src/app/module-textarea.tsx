@@ -56,6 +56,7 @@ export function ModuleTextarea({
         className={className}
         onScroll={handleScroll}
       />
+      <span className="module-textarea-resizer" aria-hidden="true" />
       {indicatorTop === undefined ? null : (
         <span
           className="module-textarea-indicator"

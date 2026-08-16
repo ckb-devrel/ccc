@@ -1,17 +1,5 @@
 @import "tailwindcss";
 
-@property --workspace-grid-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-@property --body-grid-rotation {
-  syntax: "<angle>";
-  inherits: true;
-  initial-value: 0deg;
-}
-
 :root {
   color-scheme: dark;
   --paper: #090d10;
@@ -49,7 +37,6 @@ body {
   color: var(--ink);
   background-color: var(--paper);
   font-family: Arial, Helvetica, sans-serif;
-  transition: --body-grid-rotation 4000ms linear;
 }
 
 html::-webkit-scrollbar,
@@ -81,21 +68,24 @@ body::-webkit-scrollbar {
 .background-projection::before,
 .background-projection::after {
   position: absolute;
-  inset: -50vmax;
-  background-position: 0 var(--page-scroll-y, 0px);
+  inset: -15vmax;
+  background-position: 0 0;
   background-size: 32px 32px;
   content: "";
   pointer-events: none;
-  transform: rotate(var(--body-grid-rotation));
+  transform: rotate(0deg);
+  translate: 0 var(--page-scroll-y, 0px);
   transition:
-    background-position 600ms ease-out,
+    transform 4000ms linear,
+    translate 600ms ease-out,
     opacity 500ms ease;
 }
 
 .footer-background::before,
 .footer-background::after {
-  inset: auto -50vmax -50vmax;
-  height: calc(100dvh + 100vmax);
+  inset: auto -15vmax -15vmax;
+  height: calc(100dvh + 30vmax);
+  will-change: translate;
 }
 
 .background-projection::before {
@@ -120,6 +110,11 @@ body.has-active-workspace .background-projection::before {
 
 body.has-active-workspace .background-projection::after {
   opacity: 1;
+}
+
+body.has-active-workspace .background-projection::before,
+body.has-active-workspace .background-projection::after {
+  transform: rotate(-6deg);
 }
 
 button {
@@ -1377,23 +1372,22 @@ div.wallet-icon-stage {
 }
 
 .module-workspace-slot {
-  display: grid;
   width: min(900px, 100%);
-  grid-template-rows: 0fr;
+  height: 0;
   margin: 0 auto;
   overflow: hidden;
   opacity: 0;
   transform: translateY(22px);
   pointer-events: none;
   transition:
-    grid-template-rows 700ms var(--easing-mechanical),
+    height 700ms var(--easing-mechanical),
     margin 700ms var(--easing-mechanical),
     opacity 220ms ease,
     transform 520ms var(--easing-mechanical);
 }
 
 .module-workspace-slot.is-active {
-  grid-template-rows: 1fr;
+  height: var(--module-workspace-height, 0px);
   margin-top: 34px;
   opacity: 1;
   transform: translateY(0);
@@ -1421,22 +1415,18 @@ div.wallet-icon-stage {
   );
 }
 
-.module-workspace-slot.is-active .module-workspace {
-  animation: workspace-frame-enter 620ms var(--easing-mechanical) both;
+.workspace-reveal {
+  min-height: 0;
+  clip-path: inset(0);
 }
 
-@keyframes workspace-frame-enter {
+.module-workspace-slot.is-active .workspace-reveal {
+  animation: workspace-reveal-enter 620ms var(--easing-mechanical) both;
+}
+
+@keyframes workspace-reveal-enter {
   from {
-    clip-path: polygon(
-      0 50%,
-      14px 50%,
-      calc(100% - 14px) 50%,
-      100% 50%,
-      100% 50%,
-      calc(100% - 14px) 50%,
-      14px 50%,
-      0 50%
-    );
+    clip-path: inset(50% 0);
   }
 }
 
@@ -1455,53 +1445,62 @@ div.wallet-icon-stage {
   pointer-events: none;
 }
 
-.workspace-backdrop::before {
+.workspace-grid-orbit,
+.workspace-grid-plane {
   position: absolute;
+  inset: -75%;
+}
+
+.workspace-grid-plane {
   inset: 0;
   background-image:
     repeating-linear-gradient(
-      calc(90deg + var(--workspace-grid-angle)),
+      90deg,
       rgb(230 238 242 / 1%) 0 1px,
       transparent 1px var(--workspace-grid-size)
     ),
     repeating-linear-gradient(
-      var(--workspace-grid-angle),
+      0deg,
       rgb(230 238 242 / 1%) 0 1px,
       transparent 1px var(--workspace-grid-size)
     );
   background-position: center;
-  content: "";
 }
 
-.module-workspace-slot.is-active .workspace-backdrop::before {
-  animation:
-    workspace-grid-rotate 2000s linear infinite,
-    workspace-grid-translate 90s linear infinite;
+.module-workspace-slot.is-active .workspace-grid-orbit {
+  animation: workspace-grid-translate 90s linear infinite;
+}
+
+.module-workspace-slot.is-active .workspace-grid-plane {
+  animation: workspace-grid-rotate 2000s linear infinite;
 }
 
 @keyframes workspace-grid-rotate {
   to {
-    --workspace-grid-angle: 360deg;
+    transform: rotate(360deg);
   }
 }
 
 @keyframes workspace-grid-translate {
   0%,
   100% {
-    background-position: 50% 50%;
+    transform: translate3d(0, 0, 0);
   }
 
   25% {
-    background-position: calc(50% + var(--workspace-grid-size)) 50%;
+    transform: translate3d(var(--workspace-grid-size), 0, 0);
   }
 
   50% {
-    background-position: calc(50% + var(--workspace-grid-size))
-      calc(50% + var(--workspace-grid-size));
+    transform: translate3d(
+      var(--workspace-grid-size),
+      var(--workspace-grid-size),
+      0
+    );
   }
 
   75% {
-    background-position: 50% calc(50% + var(--workspace-grid-size));
+    transform: translate3d(0, var(--workspace-grid-size), 0);
   }
 }
 
@@ -1630,28 +1629,8 @@ div.wallet-icon-stage {
   padding: 27px 34px 31px;
 }
 
-.module-workspace-slot.is-active .module-field {
+.module-workspace-slot.is-active .module-fields {
   animation: workspace-control-enter 440ms var(--easing-mechanical) 310ms both;
-}
-
-.module-workspace-slot.is-active .module-field:nth-child(2) {
-  animation-delay: 355ms;
-}
-
-.module-workspace-slot.is-active .module-field:nth-child(3) {
-  animation-delay: 400ms;
-}
-
-.module-workspace-slot.is-active .module-field:nth-child(4) {
-  animation-delay: 445ms;
-}
-
-.module-workspace-slot.is-active .module-field:nth-child(5) {
-  animation-delay: 490ms;
-}
-
-.module-workspace-slot.is-active .module-field:nth-child(n + 6) {
-  animation-delay: 535ms;
 }
 
 .module-workspace-slot.is-active .module-actions {
@@ -1780,6 +1759,28 @@ div.wallet-icon-stage {
   background: var(--line-dark);
   pointer-events: none;
   transform: translateY(-50%);
+  transition: background-color 160ms ease;
+}
+
+.module-textarea:focus-within .module-textarea-indicator {
+  background: var(--signal);
+}
+
+.module-textarea-resizer {
+  position: absolute;
+  z-index: 2;
+  right: 2px;
+  bottom: 2px;
+  width: 5px;
+  height: 5px;
+  color: rgb(230 238 242 / 42%);
+  background: linear-gradient(135deg, transparent 0 49%, currentcolor 50%);
+  pointer-events: none;
+  transition: color 160ms ease;
+}
+
+.module-textarea:focus-within .module-textarea-resizer {
+  color: var(--signal);
 }
 
 .module-field textarea::-webkit-scrollbar {
@@ -1806,13 +1807,7 @@ div.wallet-icon-stage {
 }
 
 .module-field textarea::-webkit-resizer {
-  background: linear-gradient(
-      135deg,
-      transparent 0 58%,
-      rgb(230 238 242 / 24%) 59% 64%,
-      transparent 65%
-    )
-    bottom right / 10px 10px no-repeat;
+  background: transparent;
 }
 
 .module-field input:focus,

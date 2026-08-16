@@ -1,10 +1,10 @@
 "use client";
 
 import { Activity, Check, ChevronRight, Eject } from "lucide-react";
-import { useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
 import { demoModules, type DemoModule } from "./modules";
 
-export function ToolBay({
+export const ToolBay = memo(function ToolBay({
   connected,
   onClear,
   onSelect,
@@ -159,4 +159,4 @@ export function ToolBay({
       </div>
     </section>
   );
-}
+});

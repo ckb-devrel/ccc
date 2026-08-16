@@ -2,12 +2,12 @@
 
 import type { ccc } from "@ckb-ccc/connector-react";
 import { Circle, LockKeyhole } from "lucide-react";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { DemoLogger } from "./activity-console";
 import { ModuleReadout, type ModuleReadoutState } from "./module-readout";
 import type { DemoModule } from "./modules";
 
-export function ModuleWorkspace({
+export const ModuleWorkspace = memo(function ModuleWorkspace({
   active,
   client,
   log,
@@ -21,35 +21,61 @@ export function ModuleWorkspace({
   signer?: ccc.Signer;
 }) {
   const Module = module?.component;
+  const slotRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const slot = slotRef.current;
+    const workspace = workspaceRef.current;
+    if (!slot || !workspace) return;
+
+    const syncHeight = () => {
+      slot.style.setProperty(
+        "--module-workspace-height",
+        `${workspace.getBoundingClientRect().height}px`,
+      );
+    };
+    const observer = new ResizeObserver(syncHeight);
+    syncHeight();
+    observer.observe(workspace);
+
+    return () => observer.disconnect();
+  }, [module?.id]);
 
   return (
     <div
+      ref={slotRef}
       className={`module-workspace-slot ${active ? "is-active" : ""}`}
       aria-hidden={!active}
     >
       {module && Module ? (
-        <MountedModuleWorkspace
-          key={module.id}
-          client={client}
-          log={log}
-          module={module}
-          signer={signer}
-        />
+        <div className="workspace-reveal">
+          <MountedModuleWorkspace
+            key={module.id}
+            client={client}
+            log={log}
+            module={module}
+            signer={signer}
+            workspaceRef={workspaceRef}
+          />
+        </div>
       ) : null}
     </div>
   );
-}
+});
 
 function MountedModuleWorkspace({
   client,
   log,
   module,
   signer,
+  workspaceRef,
 }: {
   client: ccc.Client;
   log: DemoLogger;
   module: DemoModule;
   signer?: ccc.Signer;
+  workspaceRef: React.RefObject<HTMLElement | null>;
 }) {
   const Module = module.component;
   const ready = module.access === "local" || signer !== undefined;
@@ -80,10 +106,15 @@ function MountedModuleWorkspace({
 
   return (
     <section
+      ref={workspaceRef}
       className="module-workspace"
       aria-label={`${module.name} workspace`}
     >
-      <div className="workspace-backdrop" aria-hidden="true" />
+      <div className="workspace-backdrop" aria-hidden="true">
+        <span className="workspace-grid-orbit">
+          <span className="workspace-grid-plane" />
+        </span>
+      </div>
 
       <div className="workspace-hardware" aria-hidden="true">
         <span>CORE/{module.id.toUpperCase()}</span>

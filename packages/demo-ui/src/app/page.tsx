@@ -13,7 +13,14 @@ import {
   WalletCards,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import logoText from "../../../../assets/logoText.svg";
 import { ActivityConsole, useActivityLog } from "./activity-console";
 import { copyText } from "./copy-text";
@@ -36,7 +43,7 @@ function setModuleAnchor(id?: DemoModule["id"]) {
 }
 
 export default function Home() {
-  const { clear: clearLog, entries: activityEntries, log } = useActivityLog();
+  const { log, store: activityLog } = useActivityLog();
   const {
     client,
     disconnect: disconnectWallet,
@@ -107,10 +114,6 @@ export default function Home() {
 
   useLayoutEffect(() => {
     document.body.classList.toggle("has-active-workspace", workspaceReady);
-    document.body.style.setProperty(
-      "--body-grid-rotation",
-      workspaceReady ? "-6deg" : "0deg",
-    );
   }, [workspaceReady]);
 
   useEffect(() => {
@@ -255,9 +258,21 @@ export default function Home() {
     return () => {
       window.removeEventListener("scroll", syncBackgroundPosition);
       document.body.style.removeProperty("--page-scroll-y");
-      document.body.style.removeProperty("--body-grid-rotation");
       document.body.classList.remove("has-active-workspace");
     };
+  }, []);
+
+  const selectModule = useCallback((module: DemoModule) => {
+    setSelectedModule(module);
+    setModuleAnchor(module.id);
+  }, []);
+
+  const clearModule = useCallback(() => {
+    setPrivateKey("");
+    setPrivateKeyError(undefined);
+    setPrivateKeyMode(false);
+    setSelectedModule(undefined);
+    setModuleAnchor();
   }, []);
 
   return (
@@ -303,17 +318,8 @@ export default function Home() {
           <ToolBay
             connected={connected}
             selectedModule={selectedModule}
-            onSelect={(module) => {
-              setSelectedModule(module);
-              setModuleAnchor(module.id);
-            }}
-            onClear={() => {
-              setPrivateKey("");
-              setPrivateKeyError(undefined);
-              setPrivateKeyMode(false);
-              setSelectedModule(undefined);
-              setModuleAnchor();
-            }}
+            onSelect={selectModule}
+            onClear={clearModule}
           />
 
           <ModuleWorkspace
@@ -552,7 +558,7 @@ export default function Home() {
         </section>
       </main>
 
-      <ActivityConsole entries={activityEntries} onClear={clearLog}>
+      <ActivityConsole store={activityLog}>
         <button
           type="button"
           className="network-switch"
