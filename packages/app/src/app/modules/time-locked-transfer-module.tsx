@@ -10,6 +10,8 @@ import styles from "./time-locked-transfer-module.module.css";
 
 type TimeLockCell = { cell: ccc.Cell; lock: ccc.Script };
 
+const TIP_REFRESH_INTERVAL = 10_000;
+
 function buildTimeLockArgs(
   requiredScriptHash: ccc.HexLike,
   lockedUntil: ccc.NumLike,
@@ -135,18 +137,31 @@ export function TimeLockedTransferModule({
   useEffect(() => {
     if (!signer) return;
     let cancelled = false;
-    signer.client
-      .getTip()
-      .then((nextTip) => {
-        if (!cancelled) setTip(nextTip);
-      })
-      .catch(
-        (cause) =>
-          !cancelled &&
-          reportModuleError(cause, show, log, "Unable to load chain tip"),
-      );
+    let reportedError = false;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const refreshTip = () => {
+      void signer.client
+        .getTip()
+        .then((nextTip) => {
+          if (cancelled) return;
+          reportedError = false;
+          setTip(nextTip);
+        })
+        .catch((cause) => {
+          if (cancelled || reportedError) return;
+          reportedError = true;
+          reportModuleError(cause, show, log, "Unable to load chain tip");
+        })
+        .finally(() => {
+          if (!cancelled) {
+            refreshTimer = setTimeout(refreshTip, TIP_REFRESH_INTERVAL);
+          }
+        });
+    };
+    refreshTip();
     return () => {
       cancelled = true;
+      if (refreshTimer !== undefined) clearTimeout(refreshTimer);
     };
   }, [log, refreshNonce, show, signer]);
 

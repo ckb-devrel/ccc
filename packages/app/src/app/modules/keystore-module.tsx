@@ -19,7 +19,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   const [count, setCount] = useState("10");
   const [root, setRoot] = useState<HDKey>();
   const [accounts, setAccounts] = useState<DerivedAccount[]>([]);
+  const [derivingMore, setDerivingMore] = useState(false);
   const credentialRevision = useRef(0);
+  const moreInFlight = useRef(false);
 
   const decrypt = async () => {
     const revision = credentialRevision.current;
@@ -44,7 +46,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   };
 
   const more = async () => {
-    if (!root) return;
+    if (!root || moreInFlight.current) return;
+    moreInFlight.current = true;
+    setDerivingMore(true);
     const revision = credentialRevision.current;
     try {
       const next = await deriveCkbAccounts(
@@ -65,6 +69,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
       if (revision === credentialRevision.current) {
         showFailure(cause, show, log);
       }
+    } finally {
+      moreInFlight.current = false;
+      setDerivingMore(false);
     }
   };
 
@@ -116,8 +123,8 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
         <button className="is-primary" type="button" onClick={decrypt}>
           Decrypt
         </button>
-        <button type="button" disabled={!root} onClick={more}>
-          More accounts
+        <button type="button" disabled={!root || derivingMore} onClick={more}>
+          {derivingMore ? "Deriving…" : "More accounts"}
         </button>
       </div>
     </div>

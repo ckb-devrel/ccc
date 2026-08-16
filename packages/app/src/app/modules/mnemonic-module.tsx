@@ -21,7 +21,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   const [password, setPassword] = useState("");
   const [count, setCount] = useState("10");
   const [accounts, setAccounts] = useState<DerivedAccount[]>([]);
+  const [deriving, setDeriving] = useState(false);
   const derivationRevision = useRef(0);
+  const derivationInFlight = useRef(false);
   const valid = useMemo(
     () => bip39.validateMnemonic(mnemonic, wordlist),
     [mnemonic],
@@ -69,7 +71,10 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   };
 
   const derive = async () => {
-    derivationRevision.current += 1;
+    if (derivationInFlight.current) return;
+    derivationInFlight.current = true;
+    setDeriving(true);
+    const revision = ++derivationRevision.current;
     try {
       const amount = boundedAccountCount(count);
       const next = await deriveCkbAccounts(
@@ -78,6 +83,7 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
         accounts.length,
         amount,
       );
+      if (revision !== derivationRevision.current) return;
       setAccounts((current) => [...current, ...next]);
       show({
         label: "DERIVATION",
@@ -86,7 +92,12 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
       });
       log(`${next.length} accounts derived`, "success");
     } catch (cause) {
-      showFailure(cause, show, log);
+      if (revision === derivationRevision.current) {
+        showFailure(cause, show, log);
+      }
+    } finally {
+      derivationInFlight.current = false;
+      setDeriving(false);
     }
   };
 
@@ -146,10 +157,10 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
         <button
           className="is-primary"
           type="button"
-          disabled={!valid}
+          disabled={!valid || deriving}
           onClick={derive}
         >
-          Derive
+          {deriving ? "Deriving…" : "Derive"}
         </button>
         <button type="button" disabled={!valid} onClick={makeKeystore}>
           To keystore

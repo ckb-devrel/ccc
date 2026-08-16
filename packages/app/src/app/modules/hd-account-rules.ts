@@ -54,5 +54,12 @@ export async function decryptHdKeystore(keystore: string, password: string) {
 }
 
 export function boundedAccountCount(value: string) {
-  return Math.max(1, Math.min(100, Number.parseInt(value, 10)));
+  if (!value.trim()) throw new Error("Account count is required");
+
+  const count = Number(value);
+  if (!Number.isFinite(count) || !Number.isInteger(count)) {
+    throw new Error("Account count must be a finite integer");
+  }
+
+  return Math.max(1, Math.min(100, count));
 }
