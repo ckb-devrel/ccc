@@ -7,6 +7,7 @@ import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
+import styles from "./nervos-dao-module.module.css";
 
 async function* findDaoCells(signer: ccc.Signer) {
   const dao = await ccc.Script.fromKnownScript(
@@ -253,23 +254,23 @@ export function NervosDaoModule({
               cell.outputData === "0x0000000000000000" ? "Redeem" : "Withdraw";
             return (
               <ModuleItem
-                className="dao-position"
+                className={styles["dao-position"]}
                 disabled={busyAction !== undefined}
                 title={key}
                 key={key}
                 onClick={() => submit("progress", cell)}
               >
-                <span className="dao-position-value">
+                <span className={styles["dao-position-value"]}>
                   <strong>
                     {formatCkb(cell.cellOutput.capacity, "0.01")} CKB
                   </strong>
                   <small>+{formatCkb(profit, "0.0001")} CKB</small>
                 </span>
-                <span className="dao-position-unlock">
+                <span className={styles["dao-position-unlock"]}>
                   <strong>{formatUnlockEpochs(unlockIn)} Epochs</strong>
                   <small>until unlock</small>
                 </span>
-                <span className="dao-position-action">
+                <span className={styles["dao-position-action"]}>
                   <strong>{busyAction === key ? "Processing…" : action}</strong>
                 </span>
               </ModuleItem>

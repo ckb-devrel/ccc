@@ -1,0 +1,46 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.link {
+  display: grid;
+  width: 28px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--signal);
+}
+
+.link:focus-visible {
+  outline: none;
+}
+
+.link svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.link .mark {
+  fill: currentColor;
+  stroke: none;
+}
+
+@media (max-width: 680px) {
+  .root {
+    gap: 1px;
+  }
+
+  .link {
+    width: 25px;
+  }
+}

@@ -1,0 +1,87 @@
+.background-projection {
+  position: fixed;
+  right: 0;
+  left: 0;
+  height: 100dvh;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.page-background {
+  z-index: 0;
+  top: 0;
+}
+
+.footer-background {
+  z-index: 19;
+  bottom: 0;
+  height: 34px;
+  background: var(--paper);
+}
+
+.background-projection::before,
+.background-projection::after {
+  position: absolute;
+  inset: -15vmax;
+  background-position: 0 0;
+  background-size: 32px 32px;
+  content: "";
+  pointer-events: none;
+  transform: rotate(0deg);
+  translate: 0 var(--page-scroll-y, 0px);
+  transition:
+    transform 4000ms linear,
+    translate 600ms ease-out,
+    opacity 500ms ease;
+}
+
+.footer-background::before,
+.footer-background::after {
+  inset: auto -15vmax -15vmax;
+  height: calc(100dvh + 30vmax);
+  will-change: translate;
+}
+
+.background-projection::before {
+  background-image:
+    linear-gradient(rgb(230 238 242 / 1%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(230 238 242 / 1%) 1px, transparent 1px);
+  opacity: 1;
+}
+
+.background-projection::after {
+  background-image: radial-gradient(
+    circle at 0 0,
+    rgb(230 238 242 / 7%) 0 2px,
+    transparent 2.3px
+  );
+  opacity: 0;
+}
+
+body.has-active-workspace .background-projection::before {
+  opacity: 0;
+}
+
+body.has-active-workspace .background-projection::after {
+  opacity: 1;
+}
+
+body.has-active-workspace .background-projection::before,
+body.has-active-workspace .background-projection::after {
+  transform: rotate(-6deg);
+}
+
+button {
+  color: inherit;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+::selection {
+  color: var(--recess);
+  background: var(--signal);
+}

@@ -7,7 +7,6 @@ import {
   type UIEvent,
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -36,6 +35,8 @@ export function ModuleItemList({
   const labelId = useId();
   const empty = Children.count(children) === 0;
   const list = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const [listHeight, setListHeight] = useState<number>();
   const [indicatorTop, setIndicatorTop] = useState<number>();
 
   const updateIndicator = (element: HTMLDivElement) => {
@@ -50,16 +51,19 @@ export function ModuleItemList({
     setIndicatorTop(trackInset + (element.scrollTop / maximum) * travel);
   };
 
-  useLayoutEffect(() => {
-    if (list.current) updateIndicator(list.current);
-  });
-
   useEffect(() => {
     const element = list.current;
-    if (!element) return;
+    const contentElement = content.current;
+    if (!element || !contentElement) return;
 
-    const observer = new ResizeObserver(() => updateIndicator(element));
+    const observer = new ResizeObserver(() => {
+      updateHeight(element, contentElement, setListHeight);
+      updateIndicator(element);
+    });
+    updateHeight(element, contentElement, setListHeight);
+    updateIndicator(element);
     observer.observe(element);
+    observer.observe(contentElement);
     return () => observer.disconnect();
   }, []);
 
@@ -84,24 +88,27 @@ export function ModuleItemList({
           role={selection ? "listbox" : "group"}
           aria-labelledby={labelId}
           onScroll={handleScroll}
+          style={{ height: listHeight }}
         >
-          {empty ? (
-            <span className="module-item-empty">{emptyText}</span>
-          ) : (
-            children
-          )}
-          {hasMore && onLoadMore ? (
-            <div className="module-item-list-more-row" role="presentation">
-              <button
-                type="button"
-                className="module-item-list-more"
-                disabled={loadingMore}
-                onClick={onLoadMore}
-              >
-                {loadingMore ? "Loading…" : "Load more"}
-              </button>
-            </div>
-          ) : null}
+          <div ref={content} className="module-item-list-content">
+            {empty ? (
+              <span className="module-item-empty">{emptyText}</span>
+            ) : (
+              children
+            )}
+            {hasMore && onLoadMore ? (
+              <div className="module-item-list-more-row" role="presentation">
+                <button
+                  type="button"
+                  className="module-item-list-more"
+                  disabled={loadingMore}
+                  onClick={onLoadMore}
+                >
+                  {loadingMore ? "Loading…" : "Load more"}
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
         {indicatorTop === undefined ? null : (
           <span
@@ -112,6 +119,18 @@ export function ModuleItemList({
         )}
       </div>
     </div>
+  );
+}
+
+function updateHeight(
+  element: HTMLDivElement,
+  content: HTMLDivElement,
+  setHeight: (height: number) => void,
+) {
+  const maximum = Number.parseFloat(getComputedStyle(element).maxHeight);
+  const contentHeight = Math.ceil(content.getBoundingClientRect().height);
+  setHeight(
+    Number.isFinite(maximum) ? Math.min(contentHeight, maximum) : contentHeight,
   );
 }
 

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import styles from "./module-textarea.module.css";
 
 export function ModuleTextarea({
   className,
@@ -49,17 +50,17 @@ export function ModuleTextarea({
   };
 
   return (
-    <div className="module-textarea">
+    <div className={styles.root}>
       <textarea
         {...props}
         ref={textarea}
         className={className}
         onScroll={handleScroll}
       />
-      <span className="module-textarea-resizer" aria-hidden="true" />
+      <span className={styles.resizer} aria-hidden="true" />
       {indicatorTop === undefined ? null : (
         <span
-          className="module-textarea-indicator"
+          className={styles.indicator}
           style={{ top: indicatorTop }}
           aria-hidden="true"
         />

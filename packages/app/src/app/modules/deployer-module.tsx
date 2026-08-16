@@ -8,6 +8,7 @@ import { CopyableText } from "../copyable-text";
 import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
+import styles from "./deployer-module.module.css";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
 function immutableLock() {
@@ -358,7 +359,7 @@ export function DeployerModule({
             <DeployDetails
               title="File readout"
               footer={
-                <label className="deploy-lock-toggle">
+                <label className={styles["deploy-lock-toggle"]}>
                   <input
                     type="checkbox"
                     checked={immutable}
@@ -366,13 +367,16 @@ export function DeployerModule({
                       setImmutable(event.currentTarget.checked)
                     }
                   />
-                  <span className="deploy-lock-copy">
+                  <span className={styles["deploy-lock-copy"]}>
                     <strong>Immutable lock</strong>
                     <small>
                       Make this cell immutable. It can never be updated.
                     </small>
                   </span>
-                  <span className="deploy-lock-indicator" aria-hidden="true" />
+                  <span
+                    className={styles["deploy-lock-indicator"]}
+                    aria-hidden="true"
+                  />
                 </label>
               }
             >
@@ -541,7 +545,7 @@ function DeployDetails({
   title: string;
 }) {
   return (
-    <section className="deploy-details">
+    <section className={styles["deploy-details"]}>
       <h3>{title}</h3>
       <dl>{children}</dl>
       {footer}
@@ -560,7 +564,11 @@ function DeployDetail({
 }) {
   return (
     <div
-      className={wide ? "deploy-detail deploy-detail-wide" : "deploy-detail"}
+      className={
+        wide
+          ? `${styles["deploy-detail"]} ${styles["deploy-detail-wide"]}`
+          : styles["deploy-detail"]
+      }
     >
       <dt>{label}</dt>
       <dd title={value}>{value}</dd>
@@ -579,12 +587,16 @@ function DeployCopyDetail({
 }) {
   return (
     <div
-      className={wide ? "deploy-detail deploy-detail-wide" : "deploy-detail"}
+      className={
+        wide
+          ? `${styles["deploy-detail"]} ${styles["deploy-detail-wide"]}`
+          : styles["deploy-detail"]
+      }
     >
       <dt>{label}</dt>
       <dd>
         <CopyableText
-          className="deploy-detail-copy"
+          className={styles["deploy-detail-copy"]}
           value={value}
           ariaLabel={`Copy ${label.toLowerCase()}`}
         >

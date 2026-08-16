@@ -1,5 +1,6 @@
 import { QRCodeSVG } from "qrcode.react";
 import type { CSSProperties } from "react";
+import styles from "./qr-code.module.css";
 
 export type QrCodeProps = {
   value?: string;
@@ -27,13 +28,13 @@ export function QrCode({
 
   return (
     <div
-      className={["qr-code", className].filter(Boolean).join(" ")}
+      className={[styles.root, className].filter(Boolean).join(" ")}
       style={style}
       aria-live="polite"
     >
       {value ? (
         <QRCodeSVG
-          className="qr-code-image"
+          className={styles.image}
           value={value}
           level="M"
           marginSize={2}
@@ -43,7 +44,7 @@ export function QrCode({
           style={{ background: "transparent" }}
         />
       ) : (
-        <span className="qr-code-placeholder" aria-hidden="true" />
+        <span className={styles.placeholder} aria-hidden="true" />
       )}
     </div>
   );

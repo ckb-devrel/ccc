@@ -1,0 +1,16 @@
+:root {
+  color-scheme: dark;
+  --paper: #090d10;
+  --panel: #11181c;
+  --ink: #e6eef2;
+  --muted: #89979f;
+  --line: #28343a;
+  --line-dark: #4a5b64;
+  --signal: #5bcefa;
+  --signal-dark: #1d8fbd;
+  --signal-hover: #80ddff;
+  --error: #f5a9b8;
+  --steel: #36434a;
+  --recess: #070a0c;
+  --easing-mechanical: cubic-bezier(0.22, 1, 0.36, 1);
+}

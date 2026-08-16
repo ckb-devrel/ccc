@@ -6,6 +6,7 @@ import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
 import { reportModuleError, showTransaction } from "./module-helpers";
+import styles from "./time-locked-transfer-module.module.css";
 
 type TimeLockCell = { cell: ccc.Cell; lock: ccc.Script };
 
@@ -211,7 +212,7 @@ export function TimeLockedTransferModule({
             const remaining = tip === undefined ? ccc.Zero : since.value - tip;
             return (
               <ModuleItem
-                className="time-lock-cell"
+                className={styles["time-lock-cell"]}
                 disabled={busyAction !== undefined || !unlocked}
                 title={`${cell.outPoint.txHash}:${cell.outPoint.index}`}
                 key={key}
@@ -223,7 +224,7 @@ export function TimeLockedTransferModule({
                   </strong>
                   <small>{shortHash(cell.outPoint.txHash)}</small>
                 </span>
-                <span className="time-lock-cell-status">
+                <span className={styles["time-lock-cell-status"]}>
                   <strong>
                     {busyAction === key
                       ? "Processing…"

@@ -4,6 +4,7 @@ import { Check, Copy, Download } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { copyText } from "./copy-text";
 import { CopyableText } from "./copyable-text";
+import styles from "./derived-accounts.module.css";
 
 export type DerivedAccount = {
   address: string;
@@ -46,10 +47,10 @@ export function DerivedAccounts({
   };
 
   return (
-    <section className="derived-accounts module-field-wide">
-      <header className="derived-accounts-header">
+    <section className={`${styles["derived-accounts"]} module-field-wide`}>
+      <header className={styles["derived-accounts-header"]}>
         <span>Derived accounts</span>
-        <div className="derived-accounts-actions">
+        <div className={styles["derived-accounts-actions"]}>
           <button type="button" onClick={copy}>
             {copied ? <Check size={13} /> : <Copy size={13} />}
             <span>{copied ? "Copied" : "Copy CSV"}</span>
@@ -60,7 +61,7 @@ export function DerivedAccounts({
           </a>
         </div>
       </header>
-      <div className="derived-accounts-viewport">
+      <div className={styles["derived-accounts-viewport"]}>
         <table>
           <thead>
             <tr>
@@ -79,7 +80,7 @@ export function DerivedAccounts({
                     onCopyError={onCopyError}
                   />
                 </td>
-                <td className="derived-account-address">
+                <td className={styles["derived-account-address"]}>
                   <DerivedAccountValue
                     label="address"
                     value={address}
@@ -113,7 +114,7 @@ function DerivedAccountValue({
 }) {
   return (
     <CopyableText
-      className="derived-account-value"
+      className={styles["derived-account-value"]}
       value={value}
       ariaLabel={`Copy ${label}`}
       onError={onCopyError}
