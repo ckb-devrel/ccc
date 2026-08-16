@@ -1,9 +1,9 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { Gauge, Send } from "lucide-react";
 import { useState } from "react";
 import { explorerLink } from "../explorer-link";
+import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
 
 type TransferState = {
@@ -207,7 +207,7 @@ export function TransferModule({
       <div className="module-fields">
         <label className="module-field module-field-wide">
           <span>Destination addresses</span>
-          <textarea
+          <ModuleTextarea
             value={destinations}
             placeholder="One CKB address per line"
             spellCheck={false}
@@ -236,7 +236,7 @@ export function TransferModule({
 
       <div className="module-actions">
         <button type="button" disabled={disabled} onClick={calculateMax}>
-          <Gauge size={15} /> {busy === "max" ? "Calculating…" : "Max amount"}
+          {busy === "max" ? "Calculating…" : "Max amount"}
         </button>
         <button
           type="button"
@@ -244,7 +244,6 @@ export function TransferModule({
           disabled={disabled || amount.trim() === ""}
           onClick={transfer}
         >
-          <Send size={15} />
           {busy === "transfer" ? "Transmitting…" : "Transfer"}
         </button>
       </div>

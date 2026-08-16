@@ -413,6 +413,33 @@ importers:
       '@ckb-ccc/connector-react':
         specifier: workspace:*
         version: link:../connector-react
+      '@ckb-ccc/lumos-patches':
+        specifier: workspace:*
+        version: link:../lumos-patches
+      '@ckb-ccc/ssri':
+        specifier: workspace:*
+        version: link:../ssri
+      '@ckb-ccc/type-id':
+        specifier: workspace:*
+        version: link:../type-id
+      '@ckb-lumos/ckb-indexer':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/common-scripts':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/config-manager':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@ckb-lumos/helpers':
+        specifier: 0.24.0-next.2
+        version: 0.24.0-next.2
+      '@scure/bip32':
+        specifier: ^2.0.0
+        version: 2.3.0
+      '@scure/bip39':
+        specifier: ^2.0.0
+        version: 2.3.0
       lucide-react:
         specifier: ^1.21.0
         version: 1.31.0(react@19.2.8)

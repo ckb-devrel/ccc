@@ -64,7 +64,7 @@ button:not(:disabled) {
   height: calc(100dvh - 34px);
   flex-direction: column;
   margin: 0;
-  padding: 22px max(16px, calc((100vw - 1180px) / 2)) 0;
+  padding: 4px max(16px, calc((100vw - 1180px) / 2)) 0;
   overflow-x: hidden;
   overflow-y: auto;
   overflow-anchor: none;
@@ -945,7 +945,6 @@ div.wallet-icon-stage {
 .tool-bay {
   position: relative;
   width: min(1080px, 100%);
-  max-height: 760px;
   margin: 0 auto;
   padding: 12px 38px 8px;
   overflow: hidden;
@@ -1030,8 +1029,8 @@ div.wallet-icon-stage {
 
 .tool-grid {
   display: grid;
-  max-height: 400px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 600px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   overflow: hidden;
   opacity: 1;
@@ -1178,9 +1177,7 @@ div.wallet-icon-stage {
   transition:
     border-color 160ms ease,
     color 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+    background 160ms ease;
 }
 
 .command-dock:not(:disabled) {
@@ -1476,6 +1473,7 @@ div.wallet-icon-stage {
 }
 
 .module-field input,
+.module-field select,
 .module-field textarea {
   width: 100%;
   border: 1px solid var(--line-dark);
@@ -1496,16 +1494,90 @@ div.wallet-icon-stage {
   padding: 0 13px;
 }
 
+.module-field select {
+  appearance: none;
+  height: 46px;
+  padding: 0 38px 0 13px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4.25 6 8l4-3.75' fill='none' stroke='%2389979f' stroke-width='1.4' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 12px 12px;
+}
+
+.module-field select:not(:disabled) {
+  cursor: pointer;
+}
+
+.module-field select:disabled {
+  cursor: not-allowed;
+}
+
 .module-field textarea {
   min-height: 88px;
   padding: 11px 13px;
   resize: vertical;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
+
+.module-textarea {
+  position: relative;
+  min-width: 0;
+}
+
+.module-textarea textarea {
+  display: block;
+}
+
+.module-textarea-indicator {
+  position: absolute;
+  z-index: 1;
+  right: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--line-dark);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.module-field textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.module-field textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.module-field textarea::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.module-field textarea::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  background: transparent;
+  background-clip: padding-box;
+}
+
+.module-field textarea::-webkit-scrollbar-thumb:hover {
+  background: transparent;
+  background-clip: padding-box;
+}
+
+.module-field textarea::-webkit-resizer {
+  background: linear-gradient(
+      135deg,
+      transparent 0 58%,
+      rgb(230 238 242 / 24%) 59% 64%,
+      transparent 65%
+    )
+    bottom right / 10px 10px no-repeat;
 }
 
 .module-field input:focus,
+.module-field select:focus,
 .module-field textarea:focus {
   border-color: var(--signal);
-  background: rgb(91 206 250 / 5%);
 }
 
 .module-field input::placeholder,
@@ -1521,7 +1593,8 @@ div.wallet-icon-stage {
   gap: 8px;
 }
 
-.module-actions button {
+.module-actions button,
+.module-actions a {
   display: inline-flex;
   min-height: 39px;
   align-items: center;
@@ -1536,26 +1609,56 @@ div.wallet-icon-stage {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  text-decoration: none;
   transition:
     border-color 160ms ease,
     color 160ms ease,
-    background 160ms ease;
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .module-actions button:not(:disabled):hover,
-.module-actions button.is-primary:not(:disabled):hover {
+.module-actions a:hover {
   border-color: var(--signal);
   color: var(--signal);
   background: rgb(91 206 250 / 8%);
 }
 
 .module-actions button.is-primary {
-  border-color: color-mix(in srgb, var(--signal) 56%, transparent);
+  min-width: 210px;
+  border-color: var(--signal);
+  background: rgb(17 26 31 / 72%);
+}
+
+.module-actions button.is-primary:not(:disabled):hover {
+  color: var(--recess);
+  background: var(--signal);
 }
 
 .module-actions button:disabled {
   opacity: 0.28;
   cursor: not-allowed;
+}
+
+.module-field .module-output {
+  min-height: 132px;
+}
+
+.module-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.module-check input {
+  accent-color: var(--signal);
 }
 
 .module-readout {
@@ -1594,8 +1697,14 @@ div.wallet-icon-stage {
 }
 
 .module-readout button strong {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.module-readout button svg {
+  flex: 0 0 auto;
 }
 
 .module-readout button:hover,
@@ -1911,14 +2020,15 @@ div.wallet-icon-stage {
   }
 
   .tool-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: 900px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 680px) {
   .demo-shell {
     width: 100%;
-    padding: 12px 10px 0;
+    padding: 2px 10px 0;
   }
 
   .activity-console {
@@ -2068,7 +2178,7 @@ div.wallet-icon-stage {
   }
 
   .tool-grid {
-    max-height: 560px;
+    max-height: 1800px;
     grid-template-columns: 1fr;
   }
 

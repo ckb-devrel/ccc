@@ -2,7 +2,7 @@
 
 import type { ccc } from "@ckb-ccc/connector-react";
 import { Circle, LockKeyhole } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { DemoLogger } from "./activity-console";
 import { ModuleReadout, type ModuleReadoutState } from "./module-readout";
 import type { DemoModule } from "./modules";
@@ -53,6 +53,11 @@ function MountedModuleWorkspace({
 }) {
   const Module = module.component;
   const ready = module.access === "local" || signer !== undefined;
+  const moduleLog = useCallback(
+    (message: string, level?: Parameters<DemoLogger>[2]) =>
+      log(module.name.toUpperCase(), message, level),
+    [log, module.name],
+  );
   const [readout, show] = useState<ModuleReadoutState>({
     label: "OUTPUT",
     tone: "idle",
@@ -97,14 +102,7 @@ function MountedModuleWorkspace({
       </header>
 
       <div className="workspace-core">
-        <Module
-          client={client}
-          log={(message, level) =>
-            log(module.name.toUpperCase(), message, level)
-          }
-          show={show}
-          signer={signer}
-        />
+        <Module client={client} log={moduleLog} show={show} signer={signer} />
         <ModuleReadout label={readout.label} tone={readout.tone}>
           {readout.content}
         </ModuleReadout>
