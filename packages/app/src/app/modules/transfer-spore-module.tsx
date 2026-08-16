@@ -58,6 +58,8 @@ async function meltSpore(signer: ccc.Signer, id: string) {
   return tx;
 }
 
+// -----------------------------------------------------------------------------
+
 export function TransferSporeModule({
   client,
   log,

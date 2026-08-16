@@ -12,6 +12,38 @@ import { reportModuleError, splitLines } from "./module-helpers";
 type ContextLevel = "none" | "script" | "cell" | "transaction";
 type ContractSource = "typeId" | "outPoint";
 
+function contextName(level: Exclude<ContextLevel, "none">) {
+  return level[0].toUpperCase() + level.slice(1);
+}
+
+function parseContext(level: ContextLevel, value: string) {
+  if (level === "none") return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${contextName(level)} context must be valid JSON`);
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`${contextName(level)} context must be a JSON object`);
+  }
+
+  if (level === "cell") {
+    return {
+      cell: ccc.CellAny.from(parsed as ccc.CellAnyLike),
+    } satisfies ssri.ContextCell;
+  }
+  if (level === "script") {
+    return {
+      script: ccc.Script.from(parsed as ccc.ScriptLike),
+    } satisfies ssri.ContextScript;
+  }
+  return {
+    tx: ccc.Transaction.from(parsed as ccc.TransactionLike),
+  } satisfies ssri.ContextTransaction;
+}
+
 async function findContract(client: ccc.Client, typeIdArgs: string) {
   const type = await ccc.Script.fromKnownScript(
     client,
@@ -23,6 +55,26 @@ async function findContract(client: ccc.Client, typeIdArgs: string) {
   return cell.outPoint;
 }
 
+async function resolveContractOutPoint(
+  client: ccc.Client,
+  source: ContractSource,
+  typeIdArgs: string,
+  outPoint: string,
+) {
+  if (source === "outPoint") return outPoint;
+  const found = await findContract(client, typeIdArgs);
+  return `${found.txHash}:${found.index}`;
+}
+
+function parseOutPoint(value: string) {
+  const separator = value.lastIndexOf(":");
+  if (separator < 0) throw new Error("OutPoint must use txHash:index format");
+  return ccc.OutPoint.from({
+    txHash: value.slice(0, separator),
+    index: value.slice(separator + 1),
+  });
+}
+
 async function callSsri(
   client: ccc.Client,
   executorUrl: string,
@@ -32,12 +84,7 @@ async function callSsri(
   contextLevel: ContextLevel,
   contextText: string,
 ) {
-  const separator = outPointText.lastIndexOf(":");
-  if (separator < 0) throw new Error("OutPoint must use txHash:index format");
-  const outPoint = ccc.OutPoint.from({
-    txHash: outPointText.slice(0, separator),
-    index: outPointText.slice(separator + 1),
-  });
+  const outPoint = parseOutPoint(outPointText);
   const scriptCell = await client.getCell(outPoint);
   if (!scriptCell) throw new Error("SSRI contract cell not found");
   const args = splitLines(argsText).map((value) => ccc.hexFrom(value));
@@ -48,6 +95,8 @@ async function callSsri(
     .assertExecutor()
     .runScript(contract.code, method, args, context);
 }
+
+// -----------------------------------------------------------------------------
 
 export function SsriModule({ client, log, show }: ModuleRuntimeProps) {
   const [executor, setExecutor] = useState("http://localhost:9090");
@@ -72,11 +121,12 @@ export function SsriModule({ client, log, show }: ModuleRuntimeProps) {
       content: <strong>{`Calling ${method}…`}</strong>,
     });
     try {
-      const outPoint = await (async () => {
-        if (contractSource === "outPoint") return directOutPoint;
-        const found = await findContract(client, typeId);
-        return `${found.txHash}:${found.index}`;
-      })();
+      const outPoint = await resolveContractOutPoint(
+        client,
+        contractSource,
+        typeId,
+        directOutPoint,
+      );
       const response = await callSsri(
         client,
         executor,
@@ -224,38 +274,6 @@ export function SsriModule({ client, log, show }: ModuleRuntimeProps) {
       </div>
     </div>
   );
-}
-
-function parseContext(level: ContextLevel, value: string) {
-  if (level === "none") return undefined;
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw new Error(`${contextName(level)} context must be valid JSON`);
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`${contextName(level)} context must be a JSON object`);
-  }
-
-  if (level === "cell") {
-    return {
-      cell: ccc.CellAny.from(parsed as ccc.CellAnyLike),
-    } satisfies ssri.ContextCell;
-  }
-  if (level === "script") {
-    return {
-      script: ccc.Script.from(parsed as ccc.ScriptLike),
-    } satisfies ssri.ContextScript;
-  }
-  return {
-    tx: ccc.Transaction.from(parsed as ccc.TransactionLike),
-  } satisfies ssri.ContextTransaction;
-}
-
-function contextName(level: Exclude<ContextLevel, "none">) {
-  return level[0].toUpperCase() + level.slice(1);
 }
 
 function contextLabel(level: Exclude<ContextLevel, "none">) {

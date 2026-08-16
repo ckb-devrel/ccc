@@ -79,6 +79,10 @@ function parseOutPoints(value: string) {
   });
 }
 
+function formatOutPoints(outPoints: ccc.OutPoint[]) {
+  return outPoints.map(({ txHash, index }) => `${txHash}:${index}`).join("\n");
+}
+
 async function saveDepGroup(
   signer: ccc.Signer,
   typeId: string,
@@ -115,6 +119,8 @@ async function saveDepGroup(
   await tx.completeFeeBy(signer);
   return { tx, typeId };
 }
+
+// -----------------------------------------------------------------------------
 
 export function DepGroupModule({
   client,
@@ -165,11 +171,7 @@ export function DepGroupModule({
     findDepGroup(client, typeId)
       .then(({ outPoints: loadedOutPoints }) => {
         if (cancelled) return;
-        setOutPoints(
-          loadedOutPoints
-            .map(({ txHash, index }) => `${txHash}:${index}`)
-            .join("\n"),
-        );
+        setOutPoints(formatOutPoints(loadedOutPoints));
       })
       .catch(() => {
         if (!cancelled) setOutPoints("");
@@ -182,11 +184,7 @@ export function DepGroupModule({
   const selectDepGroup = (depGroup?: DepGroupCell) => {
     setTypeIdSelection(depGroup ? "cell" : "new");
     setTypeId(depGroup?.cell.cellOutput.type?.args ?? "");
-    setOutPoints(
-      depGroup?.outPoints
-        .map(({ txHash, index }) => `${txHash}:${index}`)
-        .join("\n") ?? "",
-    );
+    setOutPoints(depGroup ? formatOutPoints(depGroup.outPoints) : "");
   };
 
   const save = async () => {

@@ -13,6 +13,8 @@ function hashPayload(payload: string, encoding: HashEncoding) {
   return ccc.hashCkb(bytes);
 }
 
+// -----------------------------------------------------------------------------
+
 export function HashModule({ log, show }: ModuleRuntimeProps) {
   const [message, setMessage] = useState("");
 

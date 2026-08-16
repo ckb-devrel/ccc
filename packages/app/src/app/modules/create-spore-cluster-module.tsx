@@ -6,6 +6,10 @@ import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
 import { reportModuleError, showTransaction } from "./module-helpers";
 
+function formatJson(value: string) {
+  return JSON.stringify(JSON.parse(value), undefined, 2);
+}
+
 function dobExamples(client: ccc.Client) {
   const description = "My First DOB Cluster";
   const dob0Pattern: spore.dob.PatternElementDob0[] = [
@@ -77,21 +81,26 @@ function dobExamples(client: ccc.Client) {
   };
 }
 
+function normalizeClusterDescription(description: string) {
+  return description.trim().startsWith("{")
+    ? JSON.stringify(JSON.parse(description))
+    : description;
+}
+
 async function buildCluster(
   signer: ccc.Signer,
   name: string,
   description: string,
 ) {
-  const normalized = description.trim().startsWith("{")
-    ? JSON.stringify(JSON.parse(description))
-    : description;
   const { tx, id } = await spore.createSporeCluster({
     signer,
-    data: { name, description: normalized },
+    data: { name, description: normalizeClusterDescription(description) },
   });
   await tx.completeFeeBy(signer);
   return { id, tx };
 }
+
+// -----------------------------------------------------------------------------
 
 export function CreateSporeClusterModule({
   client,
@@ -171,8 +180,4 @@ export function CreateSporeClusterModule({
       </div>
     </div>
   );
-}
-
-function formatJson(value: string) {
-  return JSON.stringify(JSON.parse(value), undefined, 2);
 }

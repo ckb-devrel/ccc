@@ -17,6 +17,21 @@ function buildTimeLockArgs(
   return ccc.bytesConcat(requiredScriptHash, ccc.numToBytes(lockedUntil, 8));
 }
 
+function timeLockSince(cell: ccc.Cell) {
+  return ccc.Since.from(
+    ccc.numFromBytes(ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40)),
+  );
+}
+
+function getTimeLockStatus(cell: ccc.Cell, tip?: ccc.Num) {
+  const since = timeLockSince(cell);
+  return {
+    since,
+    unlocked: tip !== undefined && since.value <= tip,
+    remaining: tip === undefined ? ccc.Zero : since.value - tip,
+  };
+}
+
 async function buildTimeLockedTransfer(
   signer: ccc.Signer,
   destination: string,
@@ -95,6 +110,8 @@ async function buildClaim(signer: ccc.Signer, { cell, lock }: TimeLockCell) {
   await tx.completeFeeChangeToOutput(signer, 0);
   return tx;
 }
+
+// -----------------------------------------------------------------------------
 
 export function TimeLockedTransferModule({
   client,
@@ -207,9 +224,7 @@ export function TimeLockedTransferModule({
           {cells.map((target) => {
             const { cell } = target;
             const key = cellKey(cell);
-            const since = timeLockSince(cell);
-            const unlocked = tip !== undefined && since.value <= tip;
-            const remaining = tip === undefined ? ccc.Zero : since.value - tip;
+            const { remaining, since, unlocked } = getTimeLockStatus(cell, tip);
             return (
               <ModuleItem
                 className={styles["time-lock-cell"]}
@@ -257,12 +272,6 @@ export function TimeLockedTransferModule({
 
 function cellKey(cell?: ccc.Cell) {
   return cell ? ccc.hexFrom(cell.outPoint.toBytes()) : "";
-}
-
-function timeLockSince(cell: ccc.Cell) {
-  return ccc.Since.from(
-    ccc.numFromBytes(ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40)),
-  );
 }
 
 function shortHash(value: string) {

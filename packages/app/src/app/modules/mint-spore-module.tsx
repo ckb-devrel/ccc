@@ -20,22 +20,24 @@ async function* findSignerClusters(signer: ccc.Signer) {
   }
 }
 
+function normalizeSporeContent(content: string) {
+  const trimmed = content.trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}")
+    ? JSON.stringify(JSON.parse(content))
+    : content;
+}
+
 async function buildSpore(
   signer: ccc.Signer,
   contentType: string,
   content: string,
   clusterId: string,
 ) {
-  const trimmed = content.trim();
-  const normalized =
-    trimmed.startsWith("{") && trimmed.endsWith("}")
-      ? JSON.stringify(JSON.parse(content))
-      : content;
   const { tx, id } = await spore.createSpore({
     signer,
     data: {
       contentType,
-      content: ccc.bytesFrom(normalized, "utf8"),
+      content: ccc.bytesFrom(normalizeSporeContent(content), "utf8"),
       clusterId: clusterId || undefined,
     },
     clusterMode: clusterId ? "clusterCell" : "skip",
@@ -43,6 +45,8 @@ async function buildSpore(
   await tx.completeFeeBy(signer);
   return { id, tx };
 }
+
+// -----------------------------------------------------------------------------
 
 export function MintSporeModule({
   client,

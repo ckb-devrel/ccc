@@ -29,6 +29,18 @@ type DaoPosition = {
   unlockIn: ccc.FixedPoint;
 };
 
+function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
+  return (
+    ccc.fixedPointFrom(epoch[0].toString()) +
+    (ccc.fixedPointFrom(epoch[1].toString()) * ccc.fixedPointFrom(1)) /
+      ccc.fixedPointFrom(epoch[2].toString())
+  );
+}
+
+function isDaoDeposit(cell: ccc.Cell) {
+  return cell.outputData === "0x0000000000000000";
+}
+
 async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
   const tip = await signer.client.getTipHeader();
 
@@ -94,8 +106,7 @@ async function buildDaoAction(signer: ccc.Signer, dao: ccc.Cell) {
     signer.client,
   );
   if (!depositHeader) throw new Error("DAO deposit header not found");
-  const deposited = dao.outputData === "0x0000000000000000";
-  if (deposited) {
+  if (isDaoDeposit(dao)) {
     const tx = ccc.Transaction.from({
       headerDeps: [depositHeader.hash],
       inputs: [{ previousOutput: dao.outPoint }],
@@ -136,6 +147,8 @@ async function buildDaoAction(signer: ccc.Signer, dao: ccc.Cell) {
   await tx.completeFeeChangeToOutput(signer, 0);
   return tx;
 }
+
+// -----------------------------------------------------------------------------
 
 export function NervosDaoModule({
   client,
@@ -250,8 +263,7 @@ export function NervosDaoModule({
         >
           {positions.map(({ cell, profit, unlockIn }) => {
             const key = cellKey(cell);
-            const action =
-              cell.outputData === "0x0000000000000000" ? "Redeem" : "Withdraw";
+            const action = isDaoDeposit(cell) ? "Redeem" : "Withdraw";
             return (
               <ModuleItem
                 className={styles["dao-position"]}
@@ -284,14 +296,6 @@ export function NervosDaoModule({
 
 function cellKey(cell?: ccc.Cell) {
   return cell ? ccc.hexFrom(cell.outPoint.toBytes()) : "";
-}
-
-function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
-  return (
-    ccc.fixedPointFrom(epoch[0].toString()) +
-    (ccc.fixedPointFrom(epoch[1].toString()) * ccc.fixedPointFrom(1)) /
-      ccc.fixedPointFrom(epoch[2].toString())
-  );
 }
 
 function formatCkb(value: ccc.Num, precision: string) {

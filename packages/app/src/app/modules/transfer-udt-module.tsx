@@ -18,6 +18,19 @@ type UdtConfig = {
   txHash: string;
 };
 
+async function loadKnownXUdtConfig(
+  client: ccc.Client,
+): Promise<Omit<UdtConfig, "args">> {
+  const script = await client.getKnownScript(ccc.KnownScript.XUdt);
+  const codeCell = script.cellDeps[0].cellDep.outPoint;
+  return {
+    codeHash: script.codeHash,
+    hashType: script.hashType,
+    txHash: codeCell.txHash,
+    index: codeCell.index.toString(),
+  };
+}
+
 async function transferUdt(
   signer: ccc.Signer,
   config: UdtConfig,
@@ -45,6 +58,8 @@ async function transferUdt(
   return txHash;
 }
 
+// -----------------------------------------------------------------------------
+
 export function TransferUdtModule({
   client,
   log,
@@ -64,17 +79,10 @@ export function TransferUdtModule({
 
   useEffect(() => {
     let cancelled = false;
-    client
-      .getKnownScript(ccc.KnownScript.XUdt)
-      .then((script) => {
+    loadKnownXUdtConfig(client)
+      .then((knownConfig) => {
         if (cancelled) return;
-        setConfig((current) => ({
-          ...current,
-          codeHash: script.codeHash,
-          hashType: script.hashType,
-          txHash: script.cellDeps[0].cellDep.outPoint.txHash,
-          index: script.cellDeps[0].cellDep.outPoint.index.toString(),
-        }));
+        setConfig((current) => ({ ...current, ...knownConfig }));
       })
       .catch((cause) =>
         reportModuleError(cause, show, log, "Unable to load xUDT script"),

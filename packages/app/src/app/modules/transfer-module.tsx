@@ -5,6 +5,7 @@ import { useState } from "react";
 import { explorerLink } from "../explorer-link";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
+import { bytesFromAnyString, splitLines } from "./module-helpers";
 
 type TransferState = {
   kind: "error" | "idle" | "pending" | "success";
@@ -68,13 +69,25 @@ async function sendTransfer({
   return txHash;
 }
 
-function bytesFromAnyString(value: string): ccc.Bytes {
-  try {
-    return ccc.bytesFrom(value);
-  } catch {
-    return ccc.bytesFrom(value, "utf8");
-  }
+function parseDestinationAddresses(value: string) {
+  return splitLines(value);
 }
+
+function requireSingleDestination(addresses: string[]) {
+  if (addresses.length !== 1) {
+    throw new Error("Max amount requires exactly one destination");
+  }
+  return addresses[0];
+}
+
+function requireDestinations(addresses: string[]) {
+  if (addresses.length === 0) {
+    throw new Error("Enter at least one destination");
+  }
+  return addresses;
+}
+
+// -----------------------------------------------------------------------------
 
 export function TransferModule({
   client,
@@ -86,10 +99,7 @@ export function TransferModule({
   const [amount, setAmount] = useState("");
   const [data, setData] = useState("");
   const [busy, setBusy] = useState<"max" | "transfer">();
-  const addresses = destinations
-    .split(/\r?\n/)
-    .map((address) => address.trim())
-    .filter(Boolean);
+  const addresses = parseDestinationAddresses(destinations);
   const disabled = signer === undefined || busy !== undefined;
 
   const updateReadout = ({ kind, message, txHash }: TransferState) => {
@@ -117,14 +127,13 @@ export function TransferModule({
       updateReadout({ kind: "error", message: "Connect a signer first" });
       return;
     }
-    if (addresses.length !== 1) {
-      updateReadout({
-        kind: "error",
-        message: "Max amount requires exactly one destination",
-      });
+    let destination: string;
+    try {
+      destination = requireSingleDestination(addresses);
+    } catch (cause) {
+      updateReadout({ kind: "error", message: errorMessage(cause) });
       return;
     }
-
     setBusy("max");
     updateReadout({
       kind: "pending",
@@ -132,11 +141,7 @@ export function TransferModule({
     });
     log("Calculating maximum transferable capacity");
     try {
-      const maximum = await calculateMaximumTransfer(
-        signer,
-        addresses[0],
-        data,
-      );
+      const maximum = await calculateMaximumTransfer(signer, destination, data);
       setAmount(maximum);
       updateReadout({
         kind: "success",
@@ -157,14 +162,13 @@ export function TransferModule({
       updateReadout({ kind: "error", message: "Connect a signer first" });
       return;
     }
-    if (addresses.length === 0) {
-      updateReadout({
-        kind: "error",
-        message: "Enter at least one destination",
-      });
+    let validDestinations: string[];
+    try {
+      validDestinations = requireDestinations(addresses);
+    } catch (cause) {
+      updateReadout({ kind: "error", message: errorMessage(cause) });
       return;
     }
-
     setBusy("transfer");
     updateReadout({ kind: "pending", message: "Assembling transaction…" });
     log(`Assembling transfer to ${addresses.length} destination(s)`);
@@ -176,7 +180,7 @@ export function TransferModule({
       const txHash = await sendTransfer({
         amount,
         data,
-        destinations: addresses,
+        destinations: validDestinations,
         signer,
         onSent: (txHash) => {
           updateReadout({

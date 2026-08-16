@@ -1,7 +1,5 @@
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
-import { HDKey } from "@scure/bip32";
 import * as bip39 from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
 import { useMemo, useState } from "react";
@@ -9,31 +7,14 @@ import { CopyableReadoutValue } from "../copyable-readout-value";
 import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
+import {
+  boundedAccountCount,
+  deriveCkbAccounts,
+  encryptMnemonicKeystore,
+  mnemonicToHdKey,
+} from "./hd-account-rules";
 
-async function deriveAccounts(
-  client: ccc.Client,
-  mnemonic: string,
-  start: number,
-  count: number,
-) {
-  const root = HDKey.fromMasterSeed(await bip39.mnemonicToSeed(mnemonic));
-  return Promise.all(
-    Array.from(
-      { length: count },
-      async (_, offset): Promise<DerivedAccount> => {
-        const path = `m/44'/309'/0'/0/${start + offset}`;
-        const key = root.derive(path);
-        const privateKey = ccc.hexFrom(key.privateKey!);
-        const publicKey = ccc.hexFrom(key.publicKey!);
-        const address = await new ccc.SignerCkbPublicKey(
-          client,
-          publicKey,
-        ).getRecommendedAddress();
-        return { address, path, privateKey };
-      },
-    ),
-  );
-}
+// -----------------------------------------------------------------------------
 
 export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   const [mnemonic, setMnemonic] = useState("");
@@ -60,10 +41,10 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
 
   const derive = async () => {
     try {
-      const amount = Math.max(1, Math.min(100, Number.parseInt(count, 10)));
-      const next = await deriveAccounts(
+      const amount = boundedAccountCount(count);
+      const next = await deriveCkbAccounts(
         client,
-        mnemonic,
+        await mnemonicToHdKey(mnemonic),
         accounts.length,
         amount,
       );
@@ -81,10 +62,7 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
 
   const makeKeystore = async () => {
     try {
-      const root = HDKey.fromMasterSeed(await bip39.mnemonicToSeed(mnemonic));
-      const keystore = JSON.stringify(
-        await ccc.keystoreEncrypt(root.privateKey!, root.chainCode!, password),
-      );
+      const keystore = await encryptMnemonicKeystore(mnemonic, password);
       showKeystore(keystore);
       log(keystore, "success");
     } catch (cause) {

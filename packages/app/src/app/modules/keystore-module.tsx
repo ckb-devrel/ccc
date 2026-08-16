@@ -1,35 +1,17 @@
 "use client";
 
-import { ccc } from "@ckb-ccc/connector-react";
 import { HDKey } from "@scure/bip32";
 import { useState } from "react";
 import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
+import {
+  boundedAccountCount,
+  decryptHdKeystore,
+  deriveCkbAccounts,
+} from "./hd-account-rules";
 
-async function deriveAccounts(
-  client: ccc.Client,
-  root: HDKey,
-  start: number,
-  count: number,
-) {
-  return Promise.all(
-    Array.from(
-      { length: count },
-      async (_, offset): Promise<DerivedAccount> => {
-        const path = `m/44'/309'/0'/0/${start + offset}`;
-        const key = root.derive(path);
-        const privateKey = ccc.hexFrom(key.privateKey!);
-        const publicKey = ccc.hexFrom(key.publicKey!);
-        const address = await new ccc.SignerCkbPublicKey(
-          client,
-          publicKey,
-        ).getRecommendedAddress();
-        return { address, path, privateKey };
-      },
-    ),
-  );
-}
+// -----------------------------------------------------------------------------
 
 export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   const [keystore, setKeystore] = useState("");
@@ -40,13 +22,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
 
   const decrypt = async () => {
     try {
-      const { privateKey, chainCode } = await ccc.keystoreDecrypt(
-        JSON.parse(keystore),
-        password,
-      );
-      const nextRoot = new HDKey({ privateKey, chainCode });
-      const amount = boundedCount(count);
-      const next = await deriveAccounts(client, nextRoot, 0, amount);
+      const nextRoot = await decryptHdKeystore(keystore, password);
+      const amount = boundedAccountCount(count);
+      const next = await deriveCkbAccounts(client, nextRoot, 0, amount);
       setRoot(nextRoot);
       setAccounts(next);
       show({
@@ -63,11 +41,11 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   const more = async () => {
     if (!root) return;
     try {
-      const next = await deriveAccounts(
+      const next = await deriveCkbAccounts(
         client,
         root,
         accounts.length,
-        boundedCount(count),
+        boundedAccountCount(count),
       );
       setAccounts((current) => [...current, ...next]);
       show({
@@ -125,10 +103,6 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
       </div>
     </div>
   );
-}
-
-function boundedCount(value: string) {
-  return Math.max(1, Math.min(100, Number.parseInt(value, 10)));
 }
 
 function showFailure(

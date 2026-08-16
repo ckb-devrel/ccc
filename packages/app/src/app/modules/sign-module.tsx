@@ -14,6 +14,8 @@ async function verifyMessage(message: string, signature: string) {
   return ccc.Signer.verifyMessage(message, JSON.parse(signature));
 }
 
+// -----------------------------------------------------------------------------
+
 export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
   const [message, setMessage] = useState("");
   const [signature, setSignature] = useState("");

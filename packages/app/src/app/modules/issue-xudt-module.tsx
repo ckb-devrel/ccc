@@ -17,6 +17,13 @@ type TokenInfo = {
 };
 type Progress = (txHash: string, message: string) => void;
 
+function validateTokenInfo(token: TokenInfo) {
+  if (!token.amount || !token.decimals || !token.symbol) {
+    throw new Error("Amount, decimals and symbol are required");
+  }
+  return token;
+}
+
 async function issueWithSingleUseSeal(
   signer: ccc.Signer,
   token: TokenInfo,
@@ -184,6 +191,8 @@ async function issueWithTypeId(
   return txHash;
 }
 
+// -----------------------------------------------------------------------------
+
 export function IssueXUdtSusModule(props: ModuleRuntimeProps) {
   return <IssueXUdtModule {...props} mode="sus" />;
 }
@@ -212,12 +221,11 @@ function IssueXUdtModule({
 
   const issue = async () => {
     if (!signer) return;
-    if (!token.decimals || !token.symbol || !token.amount) {
-      reportModuleError(
-        new Error("Amount, decimals and symbol are required"),
-        show,
-        log,
-      );
+    let validToken: TokenInfo;
+    try {
+      validToken = validateTokenInfo(token);
+    } catch (cause) {
+      reportModuleError(cause, show, log);
       return;
     }
     setBusy(true);
@@ -228,8 +236,8 @@ function IssueXUdtModule({
     try {
       const txHash =
         mode === "sus"
-          ? await issueWithSingleUseSeal(signer, token, progress)
-          : await issueWithTypeId(signer, token, typeIdArgs, progress);
+          ? await issueWithSingleUseSeal(signer, validToken, progress)
+          : await issueWithTypeId(signer, validToken, typeIdArgs, progress);
       showTransaction(client, show, txHash, "xUDT issued", true);
       log(`Transaction committed: ${txHash}`, "success");
     } catch (cause) {

@@ -64,6 +64,8 @@ async function composeWithLumos(
   return tx;
 }
 
+// -----------------------------------------------------------------------------
+
 export function TransferLumosModule({
   client,
   log,
