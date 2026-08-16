@@ -20,7 +20,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       connectorProps={{
         style: {
           "--background":
-            "linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px) center / 18px 18px, linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px) center / 18px 18px, #11181c",
+            "linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px) center / 48px 48px, linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px) center / 48px 48px, #11181c",
           "--divider": "#28343a",
           "--btn-primary": "rgb(230 238 242 / 6%)",
           "--btn-primary-hover": "rgb(91 206 250 / 10%)",

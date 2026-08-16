@@ -24,9 +24,11 @@ import {
 import logoText from "../../../../assets/logoText.svg";
 import { ActivityConsole, useActivityLog } from "./activity-console";
 import { copyText } from "./copy-text";
+import { explorerLink } from "./explorer-link";
 import { HeaderLinks } from "./header-links";
 import { ModuleWorkspace } from "./module-workspace";
 import { demoModules, type DemoModule } from "./modules";
+import { QrCode } from "./qr-code";
 import { ToolBay } from "./tool-bay";
 
 type Telemetry = {
@@ -63,6 +65,7 @@ export default function Home() {
   const [stagedModule, setStagedModule] = useState<DemoModule>();
   const [workspaceVisible, setWorkspaceVisible] = useState(false);
   const [telemetry, setTelemetry] = useState<Telemetry>();
+  const [activeAddress, setActiveAddress] = useState<string>();
   const previousNetworkRef = useRef(client.addressPrefix);
   const previousSelectedModuleRef = useRef<DemoModule | undefined>(undefined);
   const signer = useMemo(() => {
@@ -227,6 +230,7 @@ export default function Home() {
             2,
           ),
         });
+        setActiveAddress(addresses[0]);
       })
       .catch(() => {
         if (!cancelled) {
@@ -234,6 +238,7 @@ export default function Home() {
             addresses: [],
             balance: "Unavailable",
           });
+          setActiveAddress(undefined);
         }
       });
 
@@ -341,7 +346,7 @@ export default function Home() {
                 </span>
                 <span>{connected ? "ESTABLISHED" : "LINK"}</span>
               </span>
-              <h1>{connected ? "You're ready" : "Establish link"}</h1>
+              <h1>{connected ? "Signal resolved" : "Establish link"}</h1>
             </div>
           </div>
 
@@ -365,7 +370,14 @@ export default function Home() {
                 </h2>
                 <p>
                   {privateKeyMode ? (
-                    "It stays only on this page and is cleared when you leave or reload."
+                    <>
+                      <span className="private-key-warning">
+                        Make sure you understand the risks before continuing.
+                      </span>{" "}
+                      Private keys entered into any webpage are unsafe and may
+                      be read by browser extensions. This key stays only on this
+                      page and is cleared when you leave or reload.
+                    </>
                   ) : (
                     <>
                       Link required for this module.
@@ -543,15 +555,32 @@ export default function Home() {
                     <AddressList
                       key={telemetry?.addresses.join("|") ?? "loading"}
                       addresses={telemetry?.addresses}
+                      onActiveAddressChange={setActiveAddress}
                     />
                   </div>
-                  <div className="account-balance">
-                    <span>Balance</span>
-                    <strong>
-                      {telemetry ? `${telemetry.balance} CKB` : "Loading…"}
-                    </strong>
-                  </div>
+                  {telemetry && activeAddress ? (
+                    explorerLink(
+                      client,
+                      "address",
+                      activeAddress,
+                      <>
+                        <span>Balance</span>
+                        <strong>{telemetry.balance} CKB</strong>
+                      </>,
+                      "account-balance",
+                    )
+                  ) : (
+                    <div className="account-balance">
+                      <span>Balance</span>
+                      <strong>Loading…</strong>
+                    </div>
+                  )}
                 </div>
+                <QrCode
+                  className="address-qr"
+                  value={telemetry ? activeAddress : undefined}
+                  title="Current wallet address"
+                />
               </div>
             </section>
           </div>
@@ -573,7 +602,13 @@ export default function Home() {
   );
 }
 
-function AddressList({ addresses }: { addresses?: string[] }) {
+function AddressList({
+  addresses,
+  onActiveAddressChange,
+}: {
+  addresses?: string[];
+  onActiveAddressChange?: (address: string) => void;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const addressCount = addresses?.length ?? 0;
@@ -613,7 +648,8 @@ function AddressList({ addresses }: { addresses?: string[] }) {
         return;
       }
 
-      const currentIndex = Math.round(list.scrollTop / 42);
+      const rowStep = getAddressRowStep(list);
+      const currentIndex = Math.round(list.scrollTop / rowStep);
       const nextIndex = Math.max(
         0,
         Math.min(addressCount - 1, currentIndex + Math.sign(event.deltaY)),
@@ -626,7 +662,8 @@ function AddressList({ addresses }: { addresses?: string[] }) {
       event.preventDefault();
       gestureLocked = true;
       setActiveIndex(nextIndex);
-      list.scrollTo({ top: nextIndex * 42, behavior: "smooth" });
+      onActiveAddressChange?.(addresses?.[nextIndex] ?? "");
+      list.scrollTo({ top: nextIndex * rowStep, behavior: "smooth" });
       unlockAfterGesture();
     };
 
@@ -635,7 +672,7 @@ function AddressList({ addresses }: { addresses?: string[] }) {
       clearTimeout(unlockTimer);
       list.removeEventListener("wheel", handleWheel);
     };
-  }, [addressCount]);
+  }, [addressCount, addresses, onActiveAddressChange]);
 
   return (
     <div
@@ -643,7 +680,10 @@ function AddressList({ addresses }: { addresses?: string[] }) {
       className={`address-list ${!addresses ? "is-loading" : ""}`}
       aria-label="Wallet addresses"
       onScroll={(event) => {
-        setActiveIndex(Math.round(event.currentTarget.scrollTop / 42));
+        const rowStep = getAddressRowStep(event.currentTarget);
+        const nextIndex = Math.round(event.currentTarget.scrollTop / rowStep);
+        setActiveIndex(nextIndex);
+        onActiveAddressChange?.(addresses?.[nextIndex] ?? "");
       }}
     >
       {!addresses ? (
@@ -671,8 +711,9 @@ function AddressList({ addresses }: { addresses?: string[] }) {
             onClick={() => {
               if (index !== activeIndex) {
                 setActiveIndex(index);
+                onActiveAddressChange?.(address);
                 listRef.current?.scrollTo({
-                  top: index * 42,
+                  top: index * getAddressRowStep(listRef.current),
                   behavior: "smooth",
                 });
                 return;
@@ -692,6 +733,9 @@ function AddressList({ addresses }: { addresses?: string[] }) {
             <span className="address-value address-value-wide">
               {shortenAddress(address, 12)}
             </span>
+            <span className="address-value address-value-medium">
+              {shortenAddress(address, 10)}
+            </span>
             <span className="address-value address-value-compact">
               {shortenAddress(address, 7)}
             </span>
@@ -700,6 +744,10 @@ function AddressList({ addresses }: { addresses?: string[] }) {
       )}
     </div>
   );
+}
+
+function getAddressRowStep(list: HTMLDivElement | null) {
+  return list?.querySelector<HTMLElement>(".address-row")?.offsetHeight ?? 42;
 }
 
 function shortenAddress(address: string, sideLength: number) {

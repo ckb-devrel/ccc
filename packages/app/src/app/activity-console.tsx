@@ -105,7 +105,7 @@ export function ActivityConsole({
   );
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const previewLineRef = useRef<HTMLSpanElement>(null);
+  const previewMeasureRef = useRef<HTMLSpanElement>(null);
   const previewWidthInitialized = useRef(false);
   const [previewWidth, setPreviewWidth] = useState<number>();
   const errorCount = useMemo(
@@ -118,9 +118,9 @@ export function ActivityConsole({
     : undefined;
 
   useLayoutEffect(() => {
-    const line = previewLineRef.current;
-    if (!line) return;
-    const nextWidth = Math.ceil(line.scrollWidth);
+    const measure = previewMeasureRef.current;
+    if (!measure) return;
+    const nextWidth = Math.ceil(measure.getBoundingClientRect().width) + 1;
 
     if (!previewWidthInitialized.current) {
       previewWidthInitialized.current = true;
@@ -142,8 +142,12 @@ export function ActivityConsole({
   }, [entries, open]);
 
   return (
-    <div className={`activity-console ${open ? "is-open" : ""}`}>
-      <section className="activity-console-panel" aria-label="Activity log">
+    <>
+      <section
+        className={`activity-console-panel ${open ? "is-open" : ""}`}
+        aria-label="Activity log"
+        aria-hidden={!open}
+      >
         <header>
           <div>
             <span className="section-index">ACTIVITY / SESSION LOG</span>
@@ -175,47 +179,58 @@ export function ActivityConsole({
         </div>
       </section>
 
-      <footer className="footer-readout">
-        {children}
-        <button
-          type="button"
-          className="activity-console-toggle"
-          aria-expanded={open}
-          onClick={() => setOpen((current) => !current)}
-        >
-          {errorCount > 0 ? (
-            <AlertTriangle className="activity-console-error-icon" size={13} />
-          ) : (
-            <Terminal size={13} />
-          )}
-          <span
-            className="activity-console-preview"
-            style={
-              previewWidth === undefined ? undefined : { width: previewWidth }
-            }
-            aria-live="polite"
+      <div className={`activity-console ${open ? "is-open" : ""}`}>
+        <footer className="footer-readout">
+          {children}
+          <button
+            type="button"
+            className="activity-console-toggle"
+            aria-expanded={open}
+            onClick={() => setOpen((current) => !current)}
           >
-            {previousLatest ? (
-              <span
-                key={`previous-${latest?.id}`}
-                className="activity-console-preview-line is-leaving"
-                aria-hidden="true"
-              >
-                {previousLatest}
-              </span>
-            ) : null}
+            {errorCount > 0 ? (
+              <AlertTriangle
+                className="activity-console-error-icon"
+                size={13}
+              />
+            ) : (
+              <Terminal size={13} />
+            )}
             <span
-              ref={previewLineRef}
-              key={`current-${latest?.id ?? "empty"}`}
-              className={`activity-console-preview-line ${previousLatest ? "is-entering" : ""}`}
+              ref={previewMeasureRef}
+              className="activity-console-preview-measure"
+              aria-hidden="true"
             >
               {latest?.message ?? "ACTIVITY LOG"}
             </span>
-          </span>
-          <ChevronUp size={13} />
-        </button>
-      </footer>
-    </div>
+            <span
+              className="activity-console-preview"
+              style={
+                previewWidth === undefined ? undefined : { width: previewWidth }
+              }
+              aria-live="polite"
+            >
+              {previousLatest ? (
+                <span
+                  key={`previous-${latest?.id}`}
+                  className="activity-console-preview-line is-leaving"
+                  aria-hidden="true"
+                >
+                  {previousLatest}
+                </span>
+              ) : null}
+              <span
+                key={`current-${latest?.id ?? "empty"}`}
+                className={`activity-console-preview-line ${previousLatest ? "is-entering" : ""}`}
+              >
+                {latest?.message ?? "ACTIVITY LOG"}
+              </span>
+            </span>
+            <ChevronUp size={13} />
+          </button>
+        </footer>
+      </div>
+    </>
   );
 }
 

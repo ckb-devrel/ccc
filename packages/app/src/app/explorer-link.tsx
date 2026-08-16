@@ -9,6 +9,7 @@ export function explorerLink(
   resource: ExplorerResource,
   value: string,
   content: ReactNode = value,
+  className?: string,
 ) {
   const origin =
     client.addressPrefix === "ckb"
@@ -21,6 +22,7 @@ export function explorerLink(
       target="_blank"
       rel="noreferrer"
       title={value}
+      className={className}
     >
       {content}
       <ArrowUpRight size={14} />

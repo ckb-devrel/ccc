@@ -350,6 +350,7 @@ button:not(:disabled) {
 }
 
 .connection-panel {
+  background: rgb(17 24 28 / 50%);
   transform: translateX(0);
 }
 
@@ -414,7 +415,7 @@ button:not(:disabled) {
   height: 100%;
   max-height: none;
   margin: 0;
-  padding-block: 30px;
+  padding-block: 33px;
   overflow-x: hidden;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
@@ -435,7 +436,7 @@ button:not(:disabled) {
 .address-row {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-height: 36px;
   align-items: center;
   padding: 0;
   border: 0;
@@ -498,6 +499,7 @@ button:not(:disabled) {
     transform 160ms ease;
 }
 
+.address-value-medium,
 .address-value-compact {
   display: none;
 }
@@ -665,6 +667,10 @@ button:not(:disabled) {
   color: var(--signal);
 }
 
+.private-key-input-frame:focus-within .private-key-visibility {
+  color: var(--signal);
+}
+
 .private-key-input-frame input {
   width: 100%;
   min-width: 0;
@@ -679,6 +685,10 @@ button:not(:disabled) {
 .private-key-input-frame input::placeholder {
   color: var(--muted);
   opacity: 0.55;
+}
+
+.private-key-warning {
+  color: var(--error);
 }
 
 .private-key-message {
@@ -756,7 +766,7 @@ button:not(:disabled) {
   height: 202px;
   align-items: center;
   justify-content: center;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 132px minmax(0, 1fr) 132px;
   gap: 30px;
   justify-self: center;
 }
@@ -820,9 +830,87 @@ button:not(:disabled) {
   gap: 8px;
 }
 
+.qr-code {
+  position: relative;
+  display: grid;
+  width: var(--qr-code-size, 128px);
+  height: var(--qr-code-size, 128px);
+  overflow: hidden;
+  place-items: center;
+  padding: 4px;
+  border: 0;
+  background: none;
+}
+
+.qr-code::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--line-dark), var(--line-dark)) 0 0 / 13px 1px no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 0 0 / 1px 13px no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 100% 0 / 13px 1px
+      no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 100% 0 / 1px 13px
+      no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 0 100% / 13px 1px
+      no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 0 100% / 1px 13px
+      no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 100% 100% / 13px 1px
+      no-repeat,
+    linear-gradient(var(--line-dark), var(--line-dark)) 100% 100% / 1px 13px
+      no-repeat;
+  content: "";
+  pointer-events: none;
+}
+
+.qr-code::after {
+  position: absolute;
+  top: 50%;
+  right: -2px;
+  left: -2px;
+  height: 1px;
+  border-right: 4px solid var(--line-dark);
+  border-left: 4px solid var(--line-dark);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.qr-code-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  opacity: 0.52;
+}
+
+.qr-code-image path:first-of-type {
+  display: none;
+}
+
+.qr-code-image path:last-of-type {
+  fill: var(--muted) !important;
+}
+
+.qr-code-placeholder {
+  width: calc(100% - 12px);
+  height: calc(100% - 12px);
+  background: var(--muted);
+  opacity: 0.18;
+}
+
+.address-qr {
+  --qr-code-size: 100px;
+
+  justify-self: center;
+}
+
 .address-stack {
   position: relative;
-  width: min(380px, 100%);
+  width: 100%;
   height: 102px;
   margin-inline: auto;
   min-width: 0;
@@ -944,16 +1032,21 @@ div.wallet-icon-stage {
 }
 
 .account-balance {
-  display: flex;
+  display: grid;
   min-height: 30px;
   align-items: center;
-  justify-content: space-between;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 9px;
   padding: 0 14px;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
   background: rgb(17 24 28 / 88%);
+  color: var(--ink);
   font-family: "Courier New", monospace;
+  text-decoration: none;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .account-balance span {
@@ -961,11 +1054,47 @@ div.wallet-icon-stage {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  line-height: 1;
   text-transform: uppercase;
+  transition: color 160ms ease;
 }
 
 .account-balance strong {
+  overflow: hidden;
+  justify-self: end;
+  color: var(--ink);
   font-size: 12px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  transition: color 160ms ease;
+  white-space: nowrap;
+}
+
+.account-balance > svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  align-self: center;
+  color: var(--muted);
+  transition: color 160ms ease;
+}
+
+a.account-balance:hover,
+a.account-balance:focus-visible {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+a.account-balance:hover > svg,
+a.account-balance:focus-visible > svg {
+  color: var(--signal);
+}
+
+a.account-balance:hover strong,
+a.account-balance:focus-visible strong,
+a.account-balance:hover span,
+a.account-balance:focus-visible span {
+  color: var(--signal);
 }
 
 .connection-seal {
@@ -1249,7 +1378,9 @@ div.wallet-icon-stage {
   transition:
     border-color 160ms ease,
     color 160ms ease,
-    background 160ms ease;
+    background 160ms ease,
+    box-shadow 220ms var(--easing-mechanical),
+    transform 220ms var(--easing-mechanical);
 }
 
 .command-dock:not(:disabled) {
@@ -1262,6 +1393,7 @@ div.wallet-icon-stage {
 }
 
 .command-dock.is-mounted {
+  grid-template-columns: 32px minmax(150px, 1fr) 32px;
   border-color: var(--signal);
   color: var(--ink);
   background: rgb(17 26 31 / 72%);
@@ -1281,13 +1413,36 @@ div.wallet-icon-stage {
   gap: 4px;
 }
 
-.dock-grip.is-eject {
+.command-dock.is-mounted .dock-grip,
+.dock-eject {
   color: var(--ink);
   place-items: center;
   transition: color 160ms ease;
 }
 
-.command-dock:not(:disabled):hover .dock-grip.is-eject {
+.command-dock:not(:disabled):hover .dock-grip,
+.command-dock:not(:disabled):hover .dock-eject {
+  color: var(--signal);
+}
+
+.dock-eject {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dock-eject small {
+  color: var(--muted);
+  font-family: "Courier New", monospace;
+  font-size: 6px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  transition: color 160ms ease;
+}
+
+.command-dock:not(:disabled):hover .dock-eject small {
   color: var(--signal);
 }
 
@@ -2057,9 +2212,12 @@ div.wallet-icon-stage {
   flex: 0 0 auto;
 }
 
-.activity-console {
+.activity-console,
+.activity-console-panel {
   --console-gutter: max(16px, calc((100vw - 1180px) / 2));
+}
 
+.activity-console {
   position: fixed;
   z-index: 20;
   right: 0;
@@ -2069,34 +2227,28 @@ div.wallet-icon-stage {
 }
 
 .activity-console-panel {
-  position: absolute;
+  position: fixed;
+  z-index: 18;
   right: auto;
-  bottom: 34px;
+  bottom: 33px;
   left: var(--console-gutter);
   width: min(760px, calc(100% - 32px));
-  max-height: 0;
+  max-height: 340px;
   overflow: hidden;
-  border: 1px solid transparent;
+  border: 1px solid var(--line-dark);
   background-color: rgb(17 24 28 / 98%);
   background-image:
     linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px),
     linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px);
   background-position: center;
   background-size: 18px 18px;
-  opacity: 0;
-  transform: translateY(12px);
+  transform: translateY(calc(100% + 1px));
   pointer-events: none;
-  transition:
-    max-height 520ms var(--easing-mechanical),
-    border-color 180ms ease,
-    opacity 180ms ease,
-    transform 420ms var(--easing-mechanical);
+  will-change: transform;
+  transition: transform 600ms var(--easing-mechanical);
 }
 
-.activity-console.is-open .activity-console-panel {
-  max-height: 340px;
-  border-color: var(--line-dark);
-  opacity: 1;
+.activity-console-panel.is-open {
   transform: translateY(0);
   pointer-events: auto;
 }
@@ -2139,6 +2291,10 @@ div.wallet-icon-stage {
     700 10px/1 "Courier New",
     monospace;
   text-transform: uppercase;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
 .activity-console-panel > header button:not(:disabled):hover {
@@ -2213,6 +2369,8 @@ div.wallet-icon-stage {
 }
 
 .footer-readout {
+  position: relative;
+  z-index: 20;
   display: flex;
   min-width: 0;
   overflow: hidden;
@@ -2271,6 +2429,7 @@ div.wallet-icon-stage {
   background: transparent;
   font: inherit;
   overflow: hidden;
+  transition: color 160ms ease;
 }
 
 .activity-console-toggle > span {
@@ -2279,6 +2438,16 @@ div.wallet-icon-stage {
   flex: 0 1 auto;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.activity-console-preview-measure {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: none;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .activity-console-preview {
@@ -2349,6 +2518,20 @@ div.wallet-icon-stage {
 }
 
 @media (max-width: 900px) {
+  .address-value-wide {
+    display: none;
+  }
+
+  .address-value {
+    padding-inline: 4px;
+  }
+
+  .address-value-medium {
+    display: block;
+  }
+}
+
+@media (max-width: 900px) {
   .machine-panel {
     grid-template-columns: 1fr 300px;
     padding: 38px 30px;
@@ -2363,13 +2546,30 @@ div.wallet-icon-stage {
   }
 }
 
+@media (min-width: 681px) {
+  .account-panel {
+    padding-inline: 70px;
+  }
+
+  .account-primary {
+    width: 100%;
+    grid-template-columns: 110px minmax(0, 1fr) 110px;
+    gap: 20px;
+  }
+
+  .wallet-control {
+    padding-inline: 10px;
+  }
+}
+
 @media (max-width: 680px) {
   .demo-shell {
     width: 100%;
     padding: 2px 10px 34px;
   }
 
-  .activity-console {
+  .activity-console,
+  .activity-console-panel {
     --console-gutter: 10px;
   }
 
@@ -2403,7 +2603,7 @@ div.wallet-icon-stage {
   }
 
   .machine.needs-access.is-connected .panel-viewport {
-    height: 310px;
+    height: 326px;
   }
 
   .machine-panel,
@@ -2427,7 +2627,9 @@ div.wallet-icon-stage {
   }
 
   .account-panel {
-    padding-top: 56px;
+    padding-top: 64px;
+    padding-bottom: 36px;
+    padding-inline: 16px;
     background-size: 14px 14px;
   }
 
@@ -2467,10 +2669,43 @@ div.wallet-icon-stage {
   }
 
   .account-primary {
-    height: 180px;
+    height: 224px;
+    grid-template-areas:
+      "wallet qr"
+      "wallet address";
     grid-template-columns: 94px minmax(0, 1fr);
-    gap: 10px;
+    grid-template-rows: 104px 110px;
+    column-gap: 16px;
+    row-gap: 10px;
     padding-right: 0;
+  }
+
+  .wallet-control {
+    grid-area: wallet;
+  }
+
+  .address-column {
+    grid-area: address;
+  }
+
+  .address-qr {
+    --qr-code-size: 104px;
+
+    grid-area: qr;
+    padding: 3px;
+  }
+
+  .address-stack {
+    height: 72px;
+  }
+
+  .address-list {
+    padding-block: 24px;
+  }
+
+  .address-row {
+    height: 24px;
+    min-height: 24px;
   }
 
   .backplane-vent,
@@ -2496,6 +2731,10 @@ div.wallet-icon-stage {
   }
 
   .address-value-wide {
+    display: none;
+  }
+
+  .address-value-medium {
     display: none;
   }
 
@@ -2543,6 +2782,10 @@ div.wallet-icon-stage {
     grid-template-columns: 32px minmax(0, 1fr);
     gap: 10px;
     padding-left: 14px;
+  }
+
+  .command-dock.is-mounted {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
   }
 
   .module-workspace-slot.is-active {
@@ -2631,6 +2874,27 @@ div.wallet-icon-stage {
 
   .activity-console-toggle {
     padding-left: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .account-primary {
+    height: 210px;
+    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-rows: 94px 110px;
+    column-gap: 10px;
+    row-gap: 6px;
+  }
+
+  .address-qr {
+    --qr-code-size: 94px;
+  }
+
+  .wallet-open-control,
+  .wallet-disconnect-control,
+  .wallet-signer-label {
+    padding-inline: 3px;
+    font-size: 9px;
   }
 }
 

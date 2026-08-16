@@ -38,6 +38,8 @@ export const ToolBay = memo(function ToolBay({
     return () => observer.disconnect();
   }, []);
 
+  const MountedIcon = selectedModule?.icon;
+
   return (
     <section className="tool-bay">
       <div className="bay-rail bay-rail-left" aria-hidden="true" />
@@ -60,9 +62,7 @@ export const ToolBay = memo(function ToolBay({
               <span>{demoModules.length} MODULES READY</span>
             </div>
           </div>
-          <h2>
-            {selectedModule ? "Operation selected" : "What do you want to do?"}
-          </h2>
+          <h2>{selectedModule ? "Module mounted" : "What’s your move?"}</h2>
         </div>
       </div>
 
@@ -120,12 +120,9 @@ export const ToolBay = memo(function ToolBay({
           }
           onClick={onClear}
         >
-          <span
-            className={`dock-grip ${selectedModule ? "is-eject" : ""}`}
-            aria-hidden="true"
-          >
-            {selectedModule ? (
-              <Eject size={20} />
+          <span className="dock-grip" aria-hidden="true">
+            {MountedIcon ? (
+              <MountedIcon size={20} />
             ) : (
               <>
                 <span />
@@ -135,10 +132,7 @@ export const ToolBay = memo(function ToolBay({
             )}
           </span>
           <span className="dock-selection">
-            <small>
-              {selectedModule ? "CHANGE OPERATION" : "SELECT A MODULE"}
-            </small>
-            <strong>{selectedModule?.name ?? "No operation selected"}</strong>
+            <strong>{selectedModule?.name ?? "Select a module"}</strong>
             <span className="dock-checks">
               <span className={selectedModule ? "is-ready" : ""}>
                 <Check size={12} /> {selectedModule ? "Mounted" : "Slot empty"}
@@ -155,6 +149,12 @@ export const ToolBay = memo(function ToolBay({
               </span>
             </span>
           </span>
+          {selectedModule ? (
+            <span className="dock-eject" aria-hidden="true">
+              <Eject size={20} />
+              <small>EJECT</small>
+            </span>
+          ) : null}
         </button>
       </div>
     </section>
