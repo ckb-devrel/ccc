@@ -58,17 +58,33 @@ function MountedModuleWorkspace({
       log(module.name.toUpperCase(), message, level),
     [log, module.name],
   );
-  const [readout, show] = useState<ModuleReadoutState>({
-    label: "OUTPUT",
-    tone: "idle",
-    content: <strong className="is-empty">Awaiting module output</strong>,
+  const [{ previousReadout, readout, revision }, setReadout] = useState<{
+    previousReadout?: ModuleReadoutState;
+    readout: ModuleReadoutState;
+    revision: number;
+  }>({
+    readout: {
+      label: "OUTPUT",
+      tone: "idle",
+      content: <strong className="is-empty">Awaiting module output</strong>,
+    },
+    revision: 0,
   });
+  const show = useCallback((next: ModuleReadoutState) => {
+    setReadout((current) => ({
+      previousReadout: current.readout,
+      readout: next,
+      revision: current.revision + 1,
+    }));
+  }, []);
 
   return (
     <section
       className="module-workspace"
       aria-label={`${module.name} workspace`}
     >
+      <div className="workspace-backdrop" aria-hidden="true" />
+
       <div className="workspace-hardware" aria-hidden="true">
         <span>CORE/{module.id.toUpperCase()}</span>
         <span className="workspace-hardware-line" />
@@ -103,7 +119,12 @@ function MountedModuleWorkspace({
 
       <div className="workspace-core">
         <Module client={client} log={moduleLog} show={show} signer={signer} />
-        <ModuleReadout label={readout.label} tone={readout.tone}>
+        <ModuleReadout
+          label={readout.label}
+          previous={previousReadout}
+          revision={revision}
+          tone={readout.tone}
+        >
           {readout.content}
         </ModuleReadout>
       </div>

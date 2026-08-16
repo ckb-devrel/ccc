@@ -27,6 +27,8 @@ type Telemetry = {
   balance: string;
 };
 
+const BODY_BACKGROUND_PARALLAX = 0.2;
+
 function setModuleAnchor(id?: DemoModule["id"]) {
   const url = new URL(window.location.href);
   url.hash = id ?? "";
@@ -54,9 +56,8 @@ export default function Home() {
   const [stagedModule, setStagedModule] = useState<DemoModule>();
   const [workspaceVisible, setWorkspaceVisible] = useState(false);
   const [telemetry, setTelemetry] = useState<Telemetry>();
-  const machineRef = useRef<HTMLElement>(null);
-  const machineMotionRef = useRef<Animation | undefined>(undefined);
-  const previousToolTopRef = useRef<number | undefined>(undefined);
+  const previousNetworkRef = useRef(client.addressPrefix);
+  const previousSelectedModuleRef = useRef<DemoModule | undefined>(undefined);
   const signer = useMemo(() => {
     if (!privateKeySigner) {
       return signerInfo?.signer;
@@ -90,66 +91,56 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    let firstFrame = 0;
-    let secondFrame = 0;
-    let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+    const previous = previousSelectedModuleRef.current;
+    if (previous?.id === selectedModule?.id) {
+      return;
+    }
 
-    const stageTimer = setTimeout(() => {
-      if (workspaceReady) {
-        setWorkspaceVisible(false);
-        setStagedModule(selectedModule);
-        firstFrame = requestAnimationFrame(() => {
-          secondFrame = requestAnimationFrame(() => {
-            setWorkspaceVisible(true);
-          });
-        });
-        return;
-      }
-
-      setWorkspaceVisible(false);
-      releaseTimer = setTimeout(() => setStagedModule(undefined), 720);
-    }, 0);
-
-    return () => {
-      clearTimeout(stageTimer);
-      clearTimeout(releaseTimer);
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-    };
-  }, [selectedModule, workspaceReady]);
+    if (previous) {
+      log("SYSTEM", `${previous.name} module ejected`);
+    }
+    if (selectedModule) {
+      log("SYSTEM", `${selectedModule.name} module mounted`);
+    }
+    previousSelectedModuleRef.current = selectedModule;
+  }, [log, selectedModule]);
 
   useLayoutEffect(() => {
-    const previousTop = previousToolTopRef.current;
-    const machine = machineRef.current;
-    const toolBay = machine?.querySelector<HTMLElement>(".tool-bay");
-    previousToolTopRef.current = undefined;
-    if (previousTop === undefined || !machine || !toolBay) {
-      return;
-    }
-
-    const offset = previousTop - toolBay.getBoundingClientRect().top;
-    if (Math.abs(offset) < 1) {
-      return;
-    }
-
-    machineMotionRef.current?.cancel();
-    machineMotionRef.current = machine.animate(
-      [
-        { transform: `translateY(${offset}px)` },
-        { transform: "translateY(0)" },
-      ],
-      {
-        duration: 650,
-        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-      },
+    document.body.classList.toggle("has-active-workspace", workspaceReady);
+    document.body.style.setProperty(
+      "--body-grid-rotation",
+      workspaceReady ? "-6deg" : "0deg",
     );
+  }, [workspaceReady]);
+
+  useEffect(() => {
+    let stageFrame = 0;
+    let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+
+    stageFrame = requestAnimationFrame(() => {
+      setWorkspaceVisible(false);
+      if (selectedModule) {
+        setStagedModule(selectedModule);
+      } else {
+        releaseTimer = setTimeout(() => setStagedModule(undefined), 720);
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(stageFrame);
+      clearTimeout(releaseTimer);
+    };
   }, [selectedModule]);
 
-  const captureToolPosition = () => {
-    previousToolTopRef.current = machineRef.current
-      ?.querySelector<HTMLElement>(".tool-bay")
-      ?.getBoundingClientRect().top;
-  };
+  useEffect(() => {
+    const activeFrame = requestAnimationFrame(() => {
+      setWorkspaceVisible(
+        workspaceReady && stagedModule?.id === selectedModule?.id,
+      );
+    });
+
+    return () => cancelAnimationFrame(activeFrame);
+  }, [selectedModule, stagedModule, workspaceReady]);
 
   const disconnect = () => {
     setTelemetry(undefined);
@@ -200,11 +191,20 @@ export default function Home() {
         ? new ccc.ClientPublicMainnet()
         : new ccc.ClientPublicTestnet(),
     );
+  };
+
+  useEffect(() => {
+    if (previousNetworkRef.current === client.addressPrefix) {
+      return;
+    }
+
+    previousNetworkRef.current = client.addressPrefix;
+    setTelemetry(undefined);
     log(
       "SYSTEM",
-      `Network switched to CKB ${nextIsMainnet ? "MAINNET" : "TESTNET"}`,
+      `Network switched to CKB ${client.addressPrefix === "ckb" ? "MAINNET" : "TESTNET"}`,
     );
-  };
+  }, [client.addressPrefix, log]);
 
   useEffect(() => {
     if (!signer) {
@@ -239,24 +239,39 @@ export default function Home() {
     };
   }, [signer]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const syncBackgroundPosition = () => {
+      document.body.style.setProperty(
+        "--page-scroll-y",
+        `${-window.scrollY * BODY_BACKGROUND_PARALLAX}px`,
+      );
+    };
+
+    syncBackgroundPosition();
+    window.addEventListener("scroll", syncBackgroundPosition, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("scroll", syncBackgroundPosition);
       document.body.style.removeProperty("--page-scroll-y");
-    },
-    [],
-  );
+      document.body.style.removeProperty("--body-grid-rotation");
+      document.body.classList.remove("has-active-workspace");
+    };
+  }, []);
 
   return (
     <>
-      <main
-        className="demo-shell"
-        onScroll={(event) => {
-          document.body.style.setProperty(
-            "--page-scroll-y",
-            `${-event.currentTarget.scrollTop}px`,
-          );
-        }}
-      >
+      <div
+        className="background-projection page-background"
+        aria-hidden="true"
+      />
+      <div
+        className="background-projection footer-background"
+        aria-hidden="true"
+      />
+
+      <main className="demo-shell">
         <header className="topbar">
           {/* A native link intentionally resets this single-page demo. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
@@ -283,22 +298,16 @@ export default function Home() {
         </header>
 
         <section
-          ref={machineRef}
           className={`machine ${selectedModule ? "has-selection" : ""} ${needsAccess ? "needs-access" : ""} ${connected ? "is-connected" : ""}`}
         >
           <ToolBay
             connected={connected}
             selectedModule={selectedModule}
             onSelect={(module) => {
-              captureToolPosition();
-              log("SYSTEM", `${module.name} module selected`);
               setSelectedModule(module);
               setModuleAnchor(module.id);
             }}
             onClear={() => {
-              if (selectedModule) {
-                log("SYSTEM", `${selectedModule.name} module released`);
-              }
               setPrivateKey("");
               setPrivateKeyError(undefined);
               setPrivateKeyMode(false);
@@ -324,9 +333,9 @@ export default function Home() {
                 <span className="section-separator" aria-hidden="true">
                   ·
                 </span>
-                <span>{connected ? "LINK STATUS" : "ACCESS"}</span>
+                <span>{connected ? "ESTABLISHED" : "LINK"}</span>
               </span>
-              <h1>{connected ? "Signer telemetry" : "Connect to continue"}</h1>
+              <h1>{connected ? "You're ready" : "Establish link"}</h1>
             </div>
           </div>
 
@@ -335,7 +344,7 @@ export default function Home() {
               className="machine-panel connection-panel"
               aria-hidden={connected}
             >
-              <PanelHardware code={privateKeyMode ? "KEY/01" : "LINK/00"} />
+              <PanelHardware code={privateKeyMode ? "KEY/01" : "ACCESS/00"} />
               <div className="connection-copy">
                 <span className="panel-kicker">
                   {privateKeyMode ? (
@@ -343,17 +352,21 @@ export default function Home() {
                   ) : (
                     <Link2 size={14} />
                   )}
-                  {privateKeyMode ? "Local signer" : "Connection interface"}
+                  {privateKeyMode ? "Private key" : "Module mounted"}
                 </span>
                 <h2>
-                  {privateKeyMode
-                    ? "Enter your private key"
-                    : "Select an access method"}
+                  {privateKeyMode ? "Enter your private key" : "Who are you?"}
                 </h2>
                 <p>
-                  {privateKeyMode
-                    ? "The key stays in this browser session and is never persisted by this demo."
-                    : "Establish a secure link to reveal account telemetry and the complete tool assembly."}
+                  {privateKeyMode ? (
+                    "It stays only on this page and is cleared when you leave or reload."
+                  ) : (
+                    <>
+                      Link required for this module.
+                      <br />
+                      Choose one of the link options to continue.
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -397,7 +410,7 @@ export default function Home() {
                     </span>
                   </label>
                   <span className="private-key-message" aria-live="polite">
-                    {privateKeyError ?? "32-byte CKB secp256k1 key"}
+                    {privateKeyError ?? "64 hexadecimal characters"}
                   </span>
                   <div className="private-key-actions">
                     <button
@@ -419,7 +432,7 @@ export default function Home() {
                       className="is-primary"
                       disabled={privateKey.trim().length === 0}
                     >
-                      Establish link
+                      Continue
                     </button>
                   </div>
                 </form>
@@ -449,8 +462,8 @@ export default function Home() {
                       <KeyRound size={22} />
                     </span>
                     <span className="option-copy">
-                      <small>Local signer</small>
-                      <strong>Private key</strong>
+                      <small>For this visit</small>
+                      <strong>Enter private key</strong>
                     </span>
                     <ChevronRight className="option-arrow" size={18} />
                   </button>
@@ -462,7 +475,9 @@ export default function Home() {
               className="machine-panel account-panel"
               aria-hidden={!connected}
             >
-              <PanelHardware code="LINK/01" />
+              <PanelHardware
+                code={usingPrivateKey ? "ESTABLISHED/02" : "ESTABLISHED/01"}
+              />
               <div className="account-backplane" aria-hidden="true">
                 <span className="backplane-vent vent-left" />
                 <span className="backplane-vent vent-right" />

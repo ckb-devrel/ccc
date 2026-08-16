@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -75,11 +76,32 @@ export function ActivityConsole({
 }) {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const previewLineRef = useRef<HTMLSpanElement>(null);
+  const previewWidthInitialized = useRef(false);
+  const [previewWidth, setPreviewWidth] = useState<number>();
   const errorCount = useMemo(
     () => entries.filter(({ level }) => level === "error").length,
     [entries],
   );
   const latest = entries[entries.length - 1];
+  const previousLatest = latest
+    ? (entries[entries.length - 2]?.message ?? "ACTIVITY LOG")
+    : undefined;
+
+  useLayoutEffect(() => {
+    const line = previewLineRef.current;
+    if (!line) return;
+    const nextWidth = Math.ceil(line.scrollWidth);
+
+    if (!previewWidthInitialized.current) {
+      previewWidthInitialized.current = true;
+      setPreviewWidth(nextWidth);
+      return;
+    }
+
+    const frame = requestAnimationFrame(() => setPreviewWidth(nextWidth));
+    return () => cancelAnimationFrame(frame);
+  }, [latest?.id]);
 
   useEffect(() => {
     if (open) {
@@ -133,12 +155,34 @@ export function ActivityConsole({
           onClick={() => setOpen((current) => !current)}
         >
           {errorCount > 0 ? (
-            <AlertTriangle size={13} />
+            <AlertTriangle className="activity-console-error-icon" size={13} />
           ) : (
             <Terminal size={13} />
           )}
-          <span>{latest?.message ?? "ACTIVITY LOG"}</span>
-          {errorCount > 0 ? <b>{errorCount}</b> : null}
+          <span
+            className="activity-console-preview"
+            style={
+              previewWidth === undefined ? undefined : { width: previewWidth }
+            }
+            aria-live="polite"
+          >
+            {previousLatest ? (
+              <span
+                key={`previous-${latest?.id}`}
+                className="activity-console-preview-line is-leaving"
+                aria-hidden="true"
+              >
+                {previousLatest}
+              </span>
+            ) : null}
+            <span
+              ref={previewLineRef}
+              key={`current-${latest?.id ?? "empty"}`}
+              className={`activity-console-preview-line ${previousLatest ? "is-entering" : ""}`}
+            >
+              {latest?.message ?? "ACTIVITY LOG"}
+            </span>
+          </span>
           <ChevronUp size={13} />
         </button>
       </footer>
