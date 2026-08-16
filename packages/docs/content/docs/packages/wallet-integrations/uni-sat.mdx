@@ -64,7 +64,7 @@ graph TB
 
 ### Entry point: `getUniSatSigners`
 
-`getUniSatSigners(client, preferredNetworks?)` checks for `window.unisat` and returns a `SignerInfo[]` array — empty if the wallet isn't available:
+`getUniSatSigners(client)` checks for `window.unisat` and returns one `SignerInfo` per supported network — empty if the wallet isn't available.
 
 ```mermaid
 graph TD
@@ -91,12 +91,7 @@ graph TD
 
 ### Network management
 
-UniSat supports multiple Bitcoin networks. On `connect()`, the signer automatically switches the wallet to the correct network based on `preferredNetworks` configuration:
-
-| CKB Network | Default BTC Network |
-| ----------- | ------------------- |
-| Mainnet (`ckb`) | `btc` (livenet) |
-| Testnet (`ckt`) | `btcTestnet` (testnet) |
+UniSat exposes `BTC`, `BTC Testnet`, `BTC Testnet4`, `BTC Signet`, `Fractal Bitcoin`, and `Fractal Bitcoin Testnet` signers. On `connect()`, the selected signer switches the wallet to its fixed network.
 
 ```mermaid
 sequenceDiagram
@@ -109,13 +104,13 @@ sequenceDiagram
     Wallet->>Signer: accounts[]
     Signer->>Wallet: getNetwork() / getChain()
     Wallet->>Signer: current network
-    Signer->>Signer: Match preferred network
+    Signer->>Signer: Compare with selected network
     alt Network mismatch
         Signer->>Wallet: switchNetwork("livenet" | "testnet") or switchChain(chain)
     end
 ```
 
-The signer also supports Fractal Bitcoin via the `switchChain` API (when available).
+Testnet4, Signet, and Fractal Bitcoin require the wallet's `switchChain` API.
 
 ### Signing flow
 

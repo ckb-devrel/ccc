@@ -94,7 +94,6 @@ import { PackageBadges } from '@/components/package-badges';
     { name: "Testnet", client: new ccc.ClientPublicTestnet() },
     { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
   ]}
-  preferredNetworks={[{ addressPrefix: "ckb", signerType: ccc.SignerType.BTC, network: "btc" }]}
 >
   {children}
 </ccc.Provider>
@@ -111,7 +110,6 @@ import { PackageBadges } from '@/components/package-badges';
 | `signersController` | `ccc.SignersController?`                   | 自定义 Signers Controller（高级用法）              |
 | `defaultClient`     | `ccc.Client?`                              | 初始网络客户端                                     |
 | `clientOptions`     | `{ icon?, client, name }[]?`               | 在连接器中展示的可选网络列表                       |
-| `preferredNetworks` | `ccc.NetworkPreference[]?`                 | 当钱包支持多网络时优先使用的网络                   |
 
 ## 调整 Connector 样式
 

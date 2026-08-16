@@ -64,7 +64,7 @@ graph TB
 
 ### 入口：`getUniSatSigners`
 
-`getUniSatSigners(client, preferredNetworks?)` 检查 `window.unisat` 是否存在，并返回 `SignerInfo[]` 数组——钱包不可用时返回空数组：
+`getUniSatSigners(client)` 检查 `window.unisat` 是否存在，并为每个支持的网络返回一个 `SignerInfo`——钱包不可用时返回空数组。
 
 ```mermaid
 graph TD
@@ -91,12 +91,7 @@ graph TD
 
 ### 网络管理
 
-UniSat 支持多个 Bitcoin 网络。调用 `connect()` 时，Signer 根据 `preferredNetworks` 配置自动将钱包切换到正确的网络：
-
-| CKB 网络 | 默认 BTC 网络 |
-| ----------- | ------------------- |
-| 主网（`ckb`） | `btc`（livenet） |
-| 测试网（`ckt`） | `btcTestnet`（testnet） |
+UniSat 分别提供 `BTC`、`BTC Testnet`、`BTC Testnet4`、`BTC Signet`、`Fractal Bitcoin` 和 `Fractal Bitcoin Testnet` Signer。调用 `connect()` 时，所选 Signer 会将钱包切换到其固定网络。
 
 ```mermaid
 sequenceDiagram
@@ -115,7 +110,7 @@ sequenceDiagram
     end
 ```
 
-通过 `switchChain` API（若可用），Signer 还支持 Fractal Bitcoin。
+Testnet4、Signet 和 Fractal Bitcoin 需要钱包提供 `switchChain` API。
 
 ### 签名流程
 

@@ -68,7 +68,7 @@ graph TB
 
 ### 入口：`getXverseSigners`
 
-`getXverseSigners(client, preferredNetworks?)` 从 `window.btc_providers` 读取数据，为每个发现的钱包返回一个 `{ wallet, signerInfo }[]` 数组条目：
+`getXverseSigners(client)` 从 `window.btc_providers` 读取数据。Xverse 及支持 WBIP 网络方法的 Provider 会分别获得 Mainnet、Testnet4、Signet 和 Regtest 条目；旧 Provider 保留单个 `BTC` 条目。
 
 ```mermaid
 graph TD
@@ -89,9 +89,9 @@ graph TD
 
 | 方法 | 说明 |
 | ------------------------- | ----------- |
-| `connect()` | 若尚未连接，调用 `wallet_requestPermissions` |
+| `connect()` | 请求授权，并切换至所选网络 |
 | `disconnect()` | 清除缓存的地址 |
-| `isConnected()` | 尝试调用 `getBalance`，成功则返回 `true` |
+| `isConnected()` | 检查选定网络并静默读取支付地址，不触发授权弹窗 |
 | `getBtcAccount()` | 通过 `getAddresses` 返回支付地址 |
 | `getBtcPublicKey()` | 从支付地址中返回公钥 |
 | `signMessageRaw(message)` | 通过 `signMessage` 使用 ECDSA 协议签名 |
@@ -113,19 +113,21 @@ sequenceDiagram
         Signer->>Wallet: wallet_requestPermissions
         Wallet->>Signer: 已授权
     end
+    opt 固定网络 Signer
+        Signer->>Wallet: wallet_getNetwork
+        Wallet->>Signer: 当前网络
+        alt 当前网络与所选网络不同
+            Signer->>Wallet: wallet_changeNetwork({name: selectedNetwork})
+            Wallet->>Signer: 已切换
+            Signer->>Signer: 清除地址缓存
+        end
+    end
     App->>Signer: getBtcAccount()
     Signer->>Wallet: getAddresses({purposes: [Payment]})
     Wallet->>Signer: addresses[0]
     Signer->>Signer: 缓存地址
     Signer->>App: address.address
 ```
-
-### 网络偏好
-
-| CKB 网络 | 默认 BTC 网络 |
-| --------------- | ------------------- |
-| 主网（`ckb`） | `btc` |
-| 测试网（`ckt`） | `btcTestnet` |
 
 ### 签名流程
 
@@ -159,7 +161,6 @@ sequenceDiagram
 | --------------------------- | ----------- |
 | `wallet_requestPermissions` | 请求钱包连接权限 |
 | `getAddresses` | 按用途（Payment、Ordinals 等）获取地址列表 |
-| `getBalance` | 获取钱包余额（用于连接状态检查） |
 | `signMessage` | 使用 ECDSA 或 BIP-322 签名消息 |
 
 ## 集成模式
