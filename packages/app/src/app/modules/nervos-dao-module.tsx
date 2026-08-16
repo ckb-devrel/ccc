@@ -113,9 +113,9 @@ async function buildDaoAction(
       since: {
         relative: "absolute",
         metric: "epoch",
-        value: ccc.epochToHex(
-          ccc.calcDaoClaimEpoch(depositHeader, withdrawHeader),
-        ),
+        value: ccc
+          .calcDaoClaimEpoch(depositHeader, withdrawHeader)
+          .toPackedHex(),
       },
       cellOutput: dao.cellOutput,
       outputData: dao.outputData,
@@ -135,17 +135,21 @@ type DaoPosition = {
 
 function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
   return (
-    ccc.fixedPointFrom(epoch[0].toString()) +
-    (ccc.fixedPointFrom(epoch[1].toString()) * ccc.fixedPointFrom(1)) /
-      ccc.fixedPointFrom(epoch[2].toString())
+    ccc.fixedPointFrom(epoch.integer.toString()) +
+    (ccc.fixedPointFrom(epoch.numerator.toString()) * ccc.fixedPointFrom(1)) /
+      ccc.fixedPointFrom(epoch.denominator.toString())
   );
 }
 
 async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
   const tip = await signer.client.getTipHeader();
+  const positions = await Promise.all(
+    cells.map(async (cell): Promise<DaoPosition | undefined> => {
+      const transaction = await signer.client.getTransaction(
+        cell.outPoint.txHash,
+      );
+      if (transaction && transaction.status !== "committed") return;
 
-  return Promise.all(
-    cells.map(async (cell): Promise<DaoPosition> => {
       const { depositHeader, withdrawHeader } = await cell.getNervosDaoInfo(
         signer.client,
       );
@@ -166,6 +170,9 @@ async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
           parseEpoch(tip.epoch),
       };
     }),
+  );
+  return positions.filter(
+    (position): position is DaoPosition => position !== undefined,
   );
 }
 

@@ -111,6 +111,10 @@ function MountedModuleWorkspace({
       const txHash = await signer.sendTransaction(tx);
       moduleLog(`${actionName} sent: ${txHash}`);
       showTransaction(client, show, txHash, `${actionName} sent`);
+      void signer.client
+        .waitTransaction(txHash)
+        .then(() => moduleLog(`${actionName} committed: ${txHash}`, "success"))
+        .catch(() => undefined);
       return txHash;
     },
     [client, moduleLog, show, signer],
