@@ -1,5 +1,6 @@
 {
-  "name": "@ckb-ccc/demo-ui",
+  "name": "@ckb-ccc/app",
+  "description": "An app based on the CCC library",
   "version": "0.0.0",
   "private": true,
   "type": "module",
