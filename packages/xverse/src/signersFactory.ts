@@ -32,20 +32,35 @@ export function getXverseSigners(
 
   const signers = (() => {
     if (windowRef.btc_providers) {
-      return windowRef.btc_providers.map((provider) => ({
-        wallet: {
-          name: provider.name,
-          icon: provider.icon,
-        },
-        signerInfo: {
-          name: "BTC",
-          signer: new Signer(
-            client,
-            getProviderById(provider.id),
-            preferredNetworks,
-          ),
-        },
-      }));
+      return windowRef.btc_providers.flatMap((provider) => {
+        const networks =
+          provider.name === "Xverse Wallet" ||
+          (provider.methods?.includes("wallet_getNetwork") &&
+            provider.methods.includes("wallet_changeNetwork"))
+            ? (["Mainnet", "Testnet4", "Signet", "Regtest"] as const)
+            : ([undefined] as const);
+
+        return networks
+          .filter(
+            (network) =>
+              client.addressPrefix !== "ckb" || network === "Mainnet",
+          )
+          .map((network) => ({
+            wallet: {
+              name: provider.name,
+              icon: provider.icon,
+            },
+            signerInfo: {
+              name: network && network !== "Mainnet" ? `BTC ${network}` : "BTC",
+              signer: new Signer(
+                client,
+                getProviderById(provider.id),
+                preferredNetworks,
+                network,
+              ),
+            },
+          }));
+      });
     }
 
     return [];
