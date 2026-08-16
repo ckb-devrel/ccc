@@ -6,7 +6,7 @@ import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import { reportModuleError, showTransaction } from "./module-helpers";
+import { reportModuleError } from "./module-helpers";
 
 type ClusterOption = { id: string; name: string };
 
@@ -29,12 +29,14 @@ function normalizeSporeContent(content: string) {
 
 async function buildSpore(
   signer: ccc.Signer,
+  tx: ccc.Transaction,
   contentType: string,
   content: string,
   clusterId: string,
 ) {
-  const { tx, id } = await spore.createSpore({
+  return spore.createSpore({
     signer,
+    tx,
     data: {
       contentType,
       content: ccc.bytesFrom(normalizeSporeContent(content), "utf8"),
@@ -42,17 +44,15 @@ async function buildSpore(
     },
     clusterMode: clusterId ? "clusterCell" : "skip",
   });
-  await tx.completeFeeBy(signer);
-  return { id, tx };
 }
 
 // -----------------------------------------------------------------------------
 
 export function MintSporeModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [contentType, setContentType] = useState("dob/1");
   const [content, setContent] = useState('{ "dna": "0123456789abcdef" }');
@@ -78,18 +78,19 @@ export function MintSporeModule({
     if (!signer) return;
     setBusy(true);
     try {
-      const { id, tx } = await buildSpore(
-        signer,
-        contentType,
-        content,
-        activeClusterId,
-      );
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, `Spore ${id.slice(0, 10)} minted`);
-      log(`Transaction sent: ${txHash}; Spore ID: ${id}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, "Spore mint committed", true);
-      log(`Transaction committed: ${txHash}`, "success");
+      let sporeId = "";
+      await submitTransaction("Mint Spore", async (tx) => {
+        const { id, tx: next } = await buildSpore(
+          signer,
+          tx,
+          contentType,
+          content,
+          activeClusterId,
+        );
+        sporeId = id;
+        return next;
+      });
+      log(`Spore ID: ${sporeId}`, "success");
     } catch (cause) {
       reportModuleError(cause, show, log, "Spore mint failed");
     } finally {

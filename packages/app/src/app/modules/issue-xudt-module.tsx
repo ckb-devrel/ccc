@@ -28,6 +28,7 @@ async function issueWithSingleUseSeal(
   signer: ccc.Signer,
   token: TokenInfo,
   progress: Progress,
+  submitTransaction: ModuleRuntimeProps["submitTransaction"],
 ) {
   const { script } = await signer.getRecommendedAddressObj();
   const sealTx = ccc.Transaction.from({ outputs: [{ lock: script }] });
@@ -48,12 +49,11 @@ async function issueWithSingleUseSeal(
   const ownerHash = await signer.sendTransaction(ownerTx);
   progress(ownerHash, "Owner cell created");
 
-  const mintTx = ccc.Transaction.from({
-    inputs: [
-      { previousOutput: { txHash: sealHash, index: 0 } },
-      { previousOutput: { txHash: ownerHash, index: 0 } },
-    ],
-    outputs: [
+  await submitTransaction("Issue xUDT with single-use seal", async (tx) => {
+    const sealInputIndex = tx.inputs.length;
+    tx.addInput({ previousOutput: { txHash: sealHash, index: 0 } });
+    tx.addInput({ previousOutput: { txHash: ownerHash, index: 0 } });
+    tx.addOutput(
       {
         lock: script,
         type: await ccc.Script.fromKnownScript(
@@ -62,6 +62,10 @@ async function issueWithSingleUseSeal(
           singleUseLock.hash(),
         ),
       },
+      ccc.numLeToBytes(token.amount, 16),
+    );
+    const infoOutputIndex = tx.outputs.length;
+    tx.addOutput(
       {
         lock: script,
         type: await ccc.Script.fromKnownScript(
@@ -70,28 +74,23 @@ async function issueWithSingleUseSeal(
           "00".repeat(32),
         ),
       },
-    ],
-    outputsData: [
-      ccc.numLeToBytes(token.amount, 16),
       tokenInfoToBytes(token.decimals, token.symbol, token.name),
-    ],
+    );
+    await tx.addCellDepsOfKnownScripts(
+      signer.client,
+      ccc.KnownScript.SingleUseLock,
+      ccc.KnownScript.XUdt,
+      ccc.KnownScript.UniqueType,
+    );
+    const infoType = tx.outputs[infoOutputIndex].type;
+    if (!infoType) throw new Error("Token info output disappeared");
+    infoType.args = ccc.hexFrom(
+      ccc
+        .bytesFrom(ccc.hashTypeId(tx.inputs[sealInputIndex], infoOutputIndex))
+        .slice(0, 20),
+    );
+    return tx;
   });
-  await mintTx.addCellDepsOfKnownScripts(
-    signer.client,
-    ccc.KnownScript.SingleUseLock,
-    ccc.KnownScript.XUdt,
-    ccc.KnownScript.UniqueType,
-  );
-  await mintTx.completeInputsByCapacity(signer);
-  if (!mintTx.outputs[1].type) throw new Error("Token info output disappeared");
-  mintTx.outputs[1].type.args = ccc.hexFrom(
-    ccc.bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 1)).slice(0, 20),
-  );
-  await mintTx.completeFeeBy(signer);
-  const txHash = await signer.sendTransaction(mintTx);
-  progress(txHash, "xUDT mint sent");
-  await signer.client.waitTransaction(txHash);
-  return txHash;
 }
 
 async function issueWithTypeId(
@@ -99,6 +98,7 @@ async function issueWithTypeId(
   token: TokenInfo,
   typeIdArgs: string,
   progress: Progress,
+  submitTransaction: ModuleRuntimeProps["submitTransaction"],
 ) {
   const { script } = await signer.getRecommendedAddressObj();
   let typeId: ccc.Script;
@@ -143,13 +143,12 @@ async function issueWithTypeId(
 
   const typeIdCell = await signer.client.findSingletonCellByType(typeId);
   if (!typeIdCell) throw new Error("Type ID cell not found");
-  const mintTx = ccc.Transaction.from({
-    inputs: [
-      { previousOutput: typeIdCell.outPoint },
-      { previousOutput: { txHash: ownerHash, index: 0 } },
-    ],
-    outputs: [
-      typeIdCell.cellOutput,
+  await submitTransaction("Issue xUDT with Type ID", async (tx) => {
+    const typeIdInputIndex = tx.inputs.length;
+    tx.addInput(typeIdCell);
+    tx.addInput({ previousOutput: { txHash: ownerHash, index: 0 } });
+    tx.addOutput(typeIdCell.cellOutput, typeIdCell.outputData);
+    tx.addOutput(
       {
         lock: script,
         type: await ccc.Script.fromKnownScript(
@@ -158,6 +157,10 @@ async function issueWithTypeId(
           outputTypeLock.hash(),
         ),
       },
+      ccc.numLeToBytes(token.amount, 16),
+    );
+    const infoOutputIndex = tx.outputs.length;
+    tx.addOutput(
       {
         lock: script,
         type: await ccc.Script.fromKnownScript(
@@ -166,29 +169,23 @@ async function issueWithTypeId(
           "00".repeat(32),
         ),
       },
-    ],
-    outputsData: [
-      typeIdCell.outputData,
-      ccc.numLeToBytes(token.amount, 16),
       tokenInfoToBytes(token.decimals, token.symbol, token.name),
-    ],
+    );
+    await tx.addCellDepsOfKnownScripts(
+      signer.client,
+      ccc.KnownScript.OutputTypeProxyLock,
+      ccc.KnownScript.XUdt,
+      ccc.KnownScript.UniqueType,
+    );
+    const infoType = tx.outputs[infoOutputIndex].type;
+    if (!infoType) throw new Error("Token info output disappeared");
+    infoType.args = ccc.hexFrom(
+      ccc
+        .bytesFrom(ccc.hashTypeId(tx.inputs[typeIdInputIndex], infoOutputIndex))
+        .slice(0, 20),
+    );
+    return tx;
   });
-  await mintTx.addCellDepsOfKnownScripts(
-    signer.client,
-    ccc.KnownScript.OutputTypeProxyLock,
-    ccc.KnownScript.XUdt,
-    ccc.KnownScript.UniqueType,
-  );
-  await mintTx.completeInputsByCapacity(signer);
-  if (!mintTx.outputs[2].type) throw new Error("Token info output disappeared");
-  mintTx.outputs[2].type.args = ccc.hexFrom(
-    ccc.bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 2)).slice(0, 20),
-  );
-  await mintTx.completeFeeBy(signer);
-  const txHash = await signer.sendTransaction(mintTx);
-  progress(txHash, "xUDT mint sent");
-  await signer.client.waitTransaction(txHash);
-  return txHash;
 }
 
 // -----------------------------------------------------------------------------
@@ -207,6 +204,7 @@ function IssueXUdtModule({
   mode,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps & { mode: "sus" | "typeId" }) {
   const [token, setToken] = useState<TokenInfo>({
     amount: "",
@@ -234,12 +232,22 @@ function IssueXUdtModule({
       log(`${message}: ${hash}`);
     };
     try {
-      const txHash =
-        mode === "sus"
-          ? await issueWithSingleUseSeal(signer, validToken, progress)
-          : await issueWithTypeId(signer, validToken, typeIdArgs, progress);
-      showTransaction(client, show, txHash, "xUDT issued", true);
-      log(`Transaction committed: ${txHash}`, "success");
+      if (mode === "sus") {
+        await issueWithSingleUseSeal(
+          signer,
+          validToken,
+          progress,
+          submitTransaction,
+        );
+      } else {
+        await issueWithTypeId(
+          signer,
+          validToken,
+          typeIdArgs,
+          progress,
+          submitTransaction,
+        );
+      }
     } catch (cause) {
       reportModuleError(cause, show, log, "xUDT issue failed");
     } finally {

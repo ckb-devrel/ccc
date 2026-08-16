@@ -5,15 +5,7 @@ import { useState } from "react";
 import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import { reportModuleError, showTransaction } from "./module-helpers";
-
-type SporeOption = {
-  clusterId?: string;
-  clusterName: string;
-  id: string;
-};
-
-type RawSporeOption = Omit<SporeOption, "clusterName">;
+import { reportModuleError } from "./module-helpers";
 
 async function* findSignerSpores(signer: ccc.Signer) {
   for await (const { spore, sporeData } of ccc.spore.findSporesBySigner({
@@ -31,6 +23,30 @@ async function* findSignerSpores(signer: ccc.Signer) {
   }
 }
 
+async function transferSpore(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  id: string,
+  address: string,
+) {
+  const { script: to } = await ccc.Address.fromString(address, signer.client);
+  return (await ccc.spore.transferSpore({ signer, tx, id, to })).tx;
+}
+
+async function meltSpore(signer: ccc.Signer, tx: ccc.Transaction, id: string) {
+  return (await ccc.spore.meltSpore({ signer, tx, id })).tx;
+}
+
+// -----------------------------------------------------------------------------
+
+type SporeOption = {
+  clusterId?: string;
+  clusterName: string;
+  id: string;
+};
+
+type RawSporeOption = Omit<SporeOption, "clusterName">;
+
 async function prepareSpores(items: RawSporeOption[], signer: ccc.Signer) {
   return Promise.all(
     items.map(async ({ clusterId, id }): Promise<SporeOption> => {
@@ -45,26 +61,11 @@ async function prepareSpores(items: RawSporeOption[], signer: ccc.Signer) {
   );
 }
 
-async function transferSpore(signer: ccc.Signer, id: string, address: string) {
-  const { script: to } = await ccc.Address.fromString(address, signer.client);
-  const { tx } = await ccc.spore.transferSpore({ signer, id, to });
-  await tx.completeFeeBy(signer);
-  return tx;
-}
-
-async function meltSpore(signer: ccc.Signer, id: string) {
-  const { tx } = await ccc.spore.meltSpore({ signer, id });
-  await tx.completeFeeBy(signer);
-  return tx;
-}
-
-// -----------------------------------------------------------------------------
-
 export function TransferSporeModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [address, setAddress] = useState("");
   const [sporeId, setSporeId] = useState("");
@@ -89,16 +90,13 @@ export function TransferSporeModule({
     if (!signer || !activeSporeId) return;
     setBusy(true);
     try {
-      const tx =
-        mode === "transfer"
-          ? await transferSpore(signer, activeSporeId, address)
-          : await meltSpore(signer, activeSporeId);
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, `Spore ${mode} sent`);
-      log(`Transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, `Spore ${mode} committed`, true);
-      log(`Transaction committed: ${txHash}`, "success");
+      await submitTransaction(
+        mode === "transfer" ? "Transfer Spore" : "Melt Spore",
+        (tx) =>
+          mode === "transfer"
+            ? transferSpore(signer, tx, activeSporeId, address)
+            : meltSpore(signer, tx, activeSporeId),
+      );
     } catch (cause) {
       reportModuleError(cause, show, log, `Spore ${mode} failed`);
     } finally {

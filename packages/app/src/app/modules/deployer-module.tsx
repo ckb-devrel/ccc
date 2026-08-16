@@ -9,23 +9,7 @@ import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
 import styles from "./deployer-module.module.css";
-import { reportModuleError, showTransaction } from "./module-helpers";
-
-function immutableLock() {
-  return ccc.Script.from({
-    codeHash: `0x${"00".repeat(32)}`,
-    hashType: "data",
-    args: "0x",
-  });
-}
-
-function isCompleteTypeId(value: string) {
-  try {
-    return ccc.bytesFrom(value).length === 32;
-  } catch {
-    return false;
-  }
-}
+import { reportModuleError } from "./module-helpers";
 
 async function findTypeIdCell(client: ccc.Client, args: string) {
   if (!args) return undefined;
@@ -37,28 +21,6 @@ async function findTypeIdCell(client: ccc.Client, args: string) {
   const cell = await client.findSingletonCellByType(type, true);
   if (!cell) throw new Error(`Type ID cell ${args} not found`);
   return cell;
-}
-
-type TypeIdCellInfo = {
-  cell: ccc.Cell;
-  createdAt?: number;
-};
-
-type TypeIdSelection = "cell" | "manual" | "new";
-
-async function prepareTypeIdCell(
-  cell: ccc.Cell,
-  client: ccc.Client,
-): Promise<TypeIdCellInfo> {
-  try {
-    const result = await client.getCellWithHeader(cell.outPoint);
-    return {
-      cell,
-      createdAt: result?.header ? Number(result.header.timestamp) : undefined,
-    };
-  } catch {
-    return { cell };
-  }
 }
 
 async function* findTypeIdCells(signer: ccc.Signer) {
@@ -82,63 +44,14 @@ async function* findTypeIdCells(signer: ccc.Signer) {
   }
 }
 
-async function prepareTypeIdCells(cells: ccc.Cell[], signer: ccc.Signer) {
-  return Promise.all(
-    cells.map((cell) => prepareTypeIdCell(cell, signer.client)),
-  );
-}
-
-async function hashFile(file: File) {
-  return ccc.hashCkb(new Uint8Array(await file.arrayBuffer()));
-}
-
-async function getNewTypeIdCellBaseSizes(signer: ccc.Signer) {
-  const [{ script: lock }, type] = await Promise.all([
-    signer.getRecommendedAddressObj(),
-    ccc.Script.fromKnownScript(
-      signer.client,
-      ccc.KnownScript.TypeId,
-      "00".repeat(32),
-    ),
-  ]);
-  return {
-    owned: ccc.CellOutput.from({ lock, type }).occupiedSize,
-    immutable: ccc.CellOutput.from({
-      lock: immutableLock(),
-      type,
-    }).occupiedSize,
-  };
-}
-
-function deploymentCapacity(
-  fileSize: number,
-  immutable: boolean,
-  newCellBaseSizes?: { immutable: number; owned: number },
-  selectedCell?: ccc.Cell,
-) {
-  const baseSize = selectedCell
-    ? immutable
-      ? ccc.CellOutput.from({
-          lock: immutableLock(),
-          type: selectedCell.cellOutput.type,
-        }).occupiedSize
-      : selectedCell.cellOutput.occupiedSize
-    : immutable
-      ? newCellBaseSizes?.immutable
-      : newCellBaseSizes?.owned;
-  if (baseSize === undefined) return undefined;
-  return ccc.fixedPointToString(ccc.fixedPointFrom(baseSize + fileSize));
-}
-
 async function deploy(
   signer: ccc.Signer,
-  file: File,
+  tx: ccc.Transaction,
+  data: ccc.HexLike,
   typeIdArgs: string,
-  immutable: boolean,
+  receiver: ccc.ScriptLike,
 ) {
-  const data = ccc.hexFrom(new Uint8Array(await file.arrayBuffer()));
   const existing = await findTypeIdCell(signer.client, typeIdArgs);
-  let tx: ccc.Transaction;
   let id: string;
   if (existing) {
     if (!existing.cellOutput.type?.args)
@@ -146,43 +59,117 @@ async function deploy(
     ({ tx } = await transferTypeId({
       client: signer.client,
       id: existing.cellOutput.type.args,
-      receiver: immutable ? immutableLock() : existing.cellOutput.lock,
-      data,
+      receiver,
+      data: ccc.hexFrom(data),
+      tx,
     }));
     id = existing.cellOutput.type.args;
   } else {
     const created = await createTypeId({
       signer,
-      data,
-      receiver: immutable ? immutableLock() : undefined,
+      data: ccc.hexFrom(data),
+      receiver,
+      tx,
     });
     tx = created.tx;
     id = created.id;
   }
-  await tx.completeFeeBy(signer);
-  return { dataHash: ccc.hashCkb(data), id, tx };
+  return { id, tx };
 }
 
-async function burnTypeId(signer: ccc.Signer, typeIdArgs: string) {
+async function burnTypeId(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  typeIdArgs: string,
+) {
   const cell = await findTypeIdCell(signer.client, typeIdArgs);
   if (!cell) throw new Error("Select a Type ID cell to burn");
-  const tx = ccc.Transaction.from({
-    inputs: [{ previousOutput: cell.outPoint }],
-    outputs: [{ lock: cell.cellOutput.lock, capacity: ccc.Zero }],
-    outputsData: ["0x"],
-  });
+  tx.addInput(cell);
   await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.TypeId);
-  await tx.completeFeeChangeToOutput(signer, 0);
   return tx;
 }
 
 // -----------------------------------------------------------------------------
 
+type TypeIdCellInfo = {
+  cell: ccc.Cell;
+  createdAt?: number;
+};
+
+type TypeIdSelection = "cell" | "manual" | "new";
+
+function immutableReceiver() {
+  return ccc.Script.from({
+    codeHash: `0x${"00".repeat(32)}`,
+    hashType: "data",
+    args: "0x",
+  });
+}
+
+function isCompleteTypeId(value: string) {
+  try {
+    return ccc.bytesFrom(value).length === 32;
+  } catch {
+    return false;
+  }
+}
+
+async function prepareTypeIdCell(
+  cell: ccc.Cell,
+  client: ccc.Client,
+): Promise<TypeIdCellInfo> {
+  try {
+    const result = await client.getCellWithHeader(cell.outPoint);
+    return {
+      cell,
+      createdAt: result?.header ? Number(result.header.timestamp) : undefined,
+    };
+  } catch {
+    return { cell };
+  }
+}
+
+async function prepareTypeIdCells(cells: ccc.Cell[], signer: ccc.Signer) {
+  return Promise.all(
+    cells.map((cell) => prepareTypeIdCell(cell, signer.client)),
+  );
+}
+
+async function readFile(file: File) {
+  return ccc.hexFrom(new Uint8Array(await file.arrayBuffer()));
+}
+
+async function hashFile(file: File) {
+  return ccc.hashCkb(await readFile(file));
+}
+
+async function getNewTypeIdDefaults(signer: ccc.Signer) {
+  const [{ script: receiver }, type] = await Promise.all([
+    signer.getRecommendedAddressObj(),
+    ccc.Script.fromKnownScript(
+      signer.client,
+      ccc.KnownScript.TypeId,
+      "00".repeat(32),
+    ),
+  ]);
+  return { receiver, type };
+}
+
+function deploymentCapacity(
+  fileSize: number,
+  receiver?: ccc.ScriptLike,
+  type?: ccc.ScriptLike,
+) {
+  if (!receiver || !type) return undefined;
+  const baseSize = ccc.CellOutput.from({ lock: receiver, type }).occupiedSize;
+  return ccc.fixedPointToString(ccc.fixedPointFrom(baseSize + fileSize));
+}
+
 export function DeployerModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const activeSigner = useRef(signer);
@@ -193,9 +180,9 @@ export function DeployerModule({
     useState<TypeIdSelection>("new");
   const [manualTypeIdCell, setManualTypeIdCell] = useState<TypeIdCellInfo>();
   const [fileDataHash, setFileDataHash] = useState<string>();
-  const [newCellBaseSizes, setNewCellBaseSizes] = useState<{
-    immutable: number;
-    owned: number;
+  const [newTypeIdDefaults, setNewTypeIdDefaults] = useState<{
+    receiver: ccc.Script;
+    type: ccc.Script;
   }>();
   const [immutable, setImmutable] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -233,13 +220,13 @@ export function DeployerModule({
   useEffect(() => {
     if (!signer) return;
     let cancelled = false;
-    getNewTypeIdCellBaseSizes(signer)
-      .then((sizes) => {
+    getNewTypeIdDefaults(signer)
+      .then((defaults) => {
         if (cancelled) return;
-        setNewCellBaseSizes(sizes);
+        setNewTypeIdDefaults(defaults);
       })
       .catch(() => {
-        if (!cancelled) setNewCellBaseSizes(undefined);
+        if (!cancelled) setNewTypeIdDefaults(undefined);
       });
     return () => {
       cancelled = true;
@@ -291,24 +278,31 @@ export function DeployerModule({
           ? "deployment"
           : "update";
     try {
-      let tx: ccc.Transaction;
       let detail = "";
-      if (mode === "burn") {
-        tx = await burnTypeId(signer, typeId);
-      } else {
+      let deployedTypeId = typeId;
+      await submitTransaction(`Cell ${action}`, async (tx) => {
+        if (mode === "burn") return burnTypeId(signer, tx, typeId);
         if (!file) throw new Error("Select a file to deploy");
-        const result = await deploy(signer, file, typeId, immutable);
-        tx = result.tx;
-        detail = `; Type ID: ${result.id}; Data hash: ${result.dataHash}`;
-        setTypeId(result.id);
+        if (!deploymentReceiver) {
+          throw new Error("Unable to resolve deployment receiver");
+        }
+        const data = await readFile(file);
+        const result = await deploy(
+          signer,
+          tx,
+          data,
+          typeId,
+          deploymentReceiver,
+        );
+        detail = `Type ID: ${result.id}; Data hash: ${ccc.hashCkb(data)}`;
+        deployedTypeId = result.id;
+        return result.tx;
+      });
+      if (detail) log(detail, "success");
+      if (mode === "deploy") {
+        setTypeId(deployedTypeId);
         if (typeIdSelection === "new") setTypeIdSelection("cell");
       }
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, `Cell ${action} sent`);
-      log(`Transaction sent: ${txHash}${detail}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, `Cell ${action} committed`, true);
-      log(`Transaction committed: ${txHash}`, "success");
       if (mode === "burn") setTypeId("");
       refreshTimers.current.forEach(clearTimeout);
       setRefreshNonce((value) => value + 1);
@@ -329,14 +323,18 @@ export function DeployerModule({
       : typeIdSelection === "manual"
         ? manualTypeIdCell
         : undefined;
+  const deploymentReceiver = immutable
+    ? immutableReceiver()
+    : (selectedTypeIdCell?.cell.cellOutput.lock ?? newTypeIdDefaults?.receiver);
+  const deploymentType =
+    selectedTypeIdCell?.cell.cellOutput.type ?? newTypeIdDefaults?.type;
   const capacityToOccupy =
     file === undefined
       ? undefined
       : deploymentCapacity(
           file.size,
-          immutable,
-          newCellBaseSizes,
-          selectedTypeIdCell?.cell,
+          deploymentReceiver,
+          deploymentType ?? undefined,
         );
 
   return (

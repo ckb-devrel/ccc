@@ -1,7 +1,7 @@
 "use client";
 
 import { HDKey } from "@scure/bip32";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
@@ -19,12 +19,15 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   const [count, setCount] = useState("10");
   const [root, setRoot] = useState<HDKey>();
   const [accounts, setAccounts] = useState<DerivedAccount[]>([]);
+  const credentialRevision = useRef(0);
 
   const decrypt = async () => {
+    const revision = credentialRevision.current;
     try {
       const nextRoot = await decryptHdKeystore(keystore, password);
       const amount = boundedAccountCount(count);
       const next = await deriveCkbAccounts(client, nextRoot, 0, amount);
+      if (revision !== credentialRevision.current) return;
       setRoot(nextRoot);
       setAccounts(next);
       show({
@@ -34,12 +37,15 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
       });
       log("Keystore decrypted", "success");
     } catch (cause) {
-      showFailure(cause, show, log);
+      if (revision === credentialRevision.current) {
+        showFailure(cause, show, log);
+      }
     }
   };
 
   const more = async () => {
     if (!root) return;
+    const revision = credentialRevision.current;
     try {
       const next = await deriveCkbAccounts(
         client,
@@ -47,6 +53,7 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
         accounts.length,
         boundedAccountCount(count),
       );
+      if (revision !== credentialRevision.current) return;
       setAccounts((current) => [...current, ...next]);
       show({
         label: "DERIVATION",
@@ -55,7 +62,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
       });
       log(`${next.length} accounts derived`, "success");
     } catch (cause) {
-      showFailure(cause, show, log);
+      if (revision === credentialRevision.current) {
+        showFailure(cause, show, log);
+      }
     }
   };
 
@@ -67,7 +76,12 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
           <ModuleTextarea
             value={keystore}
             spellCheck={false}
-            onChange={(event) => setKeystore(event.currentTarget.value)}
+            onChange={(event) => {
+              credentialRevision.current += 1;
+              setKeystore(event.currentTarget.value);
+              setRoot(undefined);
+              setAccounts([]);
+            }}
           />
         </label>
         <label className="module-field">
@@ -75,7 +89,12 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
           <input
             type="password"
             value={password}
-            onChange={(event) => setPassword(event.currentTarget.value)}
+            onChange={(event) => {
+              credentialRevision.current += 1;
+              setPassword(event.currentTarget.value);
+              setRoot(undefined);
+              setAccounts([]);
+            }}
           />
         </label>
         <label className="module-field">

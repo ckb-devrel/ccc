@@ -6,21 +6,9 @@ import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import {
-  reportModuleError,
-  showTransaction,
-  splitLines,
-} from "./module-helpers";
+import { reportModuleError, splitLines } from "./module-helpers";
 
 const OutPointVec = ccc.mol.vector(ccc.OutPoint);
-
-function isCompleteTypeId(value: string) {
-  try {
-    return ccc.bytesFrom(value).length === 32;
-  } catch {
-    return false;
-  }
-}
 
 type DepGroupCell = {
   cell: ccc.Cell;
@@ -68,6 +56,44 @@ async function findDepGroup(client: ccc.Client, typeId: string) {
   return { cell, outPoints: OutPointVec.decode(cell.outputData) };
 }
 
+async function saveDepGroup(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  typeId: string,
+  outPoints: ccc.OutPoint[],
+) {
+  if (!typeId) {
+    const { script: lock } = await signer.getRecommendedAddressObj();
+    const outputIndex = tx.outputs.length;
+    tx.addOutput(
+      {
+        lock,
+        type: await ccc.Script.fromKnownScript(
+          signer.client,
+          ccc.KnownScript.TypeId,
+          "00".repeat(32),
+        ),
+      },
+      OutPointVec.encode(outPoints),
+    );
+    await tx.completeInputsAtLeastOne(signer);
+    const outputType = tx.outputs[outputIndex].type;
+    if (!outputType) throw new Error("Type ID output disappeared");
+    outputType.args = ccc.hashTypeId(tx.inputs[0], outputIndex);
+    return { tx, typeId: outputType.args };
+  }
+
+  const { cell } = await findDepGroup(signer.client, typeId);
+  tx.addInput(cell);
+  tx.addOutput(
+    { ...cell.cellOutput, capacity: ccc.Zero },
+    OutPointVec.encode(outPoints),
+  );
+  return { tx, typeId };
+}
+
+// -----------------------------------------------------------------------------
+
 function parseOutPoints(value: string) {
   return splitLines(value).map((line) => {
     const separator = line.lastIndexOf(":");
@@ -79,54 +105,24 @@ function parseOutPoints(value: string) {
   });
 }
 
+function isCompleteTypeId(value: string) {
+  try {
+    return ccc.bytesFrom(value).length === 32;
+  } catch {
+    return false;
+  }
+}
+
 function formatOutPoints(outPoints: ccc.OutPoint[]) {
   return outPoints.map(({ txHash, index }) => `${txHash}:${index}`).join("\n");
 }
-
-async function saveDepGroup(
-  signer: ccc.Signer,
-  typeId: string,
-  outPoints: ccc.OutPoint[],
-) {
-  if (!typeId) {
-    const { script: lock } = await signer.getRecommendedAddressObj();
-    const tx = ccc.Transaction.from({
-      outputs: [
-        {
-          lock,
-          type: await ccc.Script.fromKnownScript(
-            signer.client,
-            ccc.KnownScript.TypeId,
-            "00".repeat(32),
-          ),
-        },
-      ],
-      outputsData: [OutPointVec.encode(outPoints)],
-    });
-    await tx.completeInputsAtLeastOne(signer);
-    if (!tx.outputs[0].type) throw new Error("Type ID output disappeared");
-    tx.outputs[0].type.args = ccc.hashTypeId(tx.inputs[0], 0);
-    await tx.completeFeeBy(signer);
-    return { tx, typeId: tx.outputs[0].type.args };
-  }
-
-  const { cell } = await findDepGroup(signer.client, typeId);
-  const tx = ccc.Transaction.from({
-    inputs: [cell],
-    outputs: [{ ...cell.cellOutput, capacity: ccc.Zero }],
-    outputsData: [OutPointVec.encode(outPoints)],
-  });
-  await tx.completeFeeBy(signer);
-  return { tx, typeId };
-}
-
-// -----------------------------------------------------------------------------
 
 export function DepGroupModule({
   client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const activeSigner = useRef(signer);
   const refreshTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -192,30 +188,23 @@ export function DepGroupModule({
     setBusy(true);
     const updating = typeIdSelection !== "new";
     try {
-      const result = await saveDepGroup(
-        signer,
-        typeId,
-        parseOutPoints(outPoints),
+      let savedTypeId = typeId;
+      await submitTransaction(
+        updating ? "Update dep group" : "Create dep group",
+        async (tx) => {
+          const result = await saveDepGroup(
+            signer,
+            tx,
+            typeId,
+            parseOutPoints(outPoints),
+          );
+          savedTypeId = result.typeId;
+          return result.tx;
+        },
       );
-      const txHash = await signer.sendTransaction(result.tx);
-      setTypeId(result.typeId);
+      setTypeId(savedTypeId);
       if (!updating) setTypeIdSelection("cell");
-      showTransaction(
-        client,
-        show,
-        txHash,
-        `Dep group ${updating ? "updated" : "created"}`,
-      );
-      log(`Type ID ${result.typeId}; transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(
-        client,
-        show,
-        txHash,
-        "Dep group transaction committed",
-        true,
-      );
-      log(`Transaction committed: ${txHash}`, "success");
+      log(`Type ID: ${savedTypeId}`, "success");
       refreshTimers.current.forEach(clearTimeout);
       setRefreshNonce((value) => value + 1);
       refreshTimers.current = [

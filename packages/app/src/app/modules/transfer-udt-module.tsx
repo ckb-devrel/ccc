@@ -4,11 +4,7 @@ import { ccc } from "@ckb-ccc/connector-react";
 import { useEffect, useState } from "react";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
-import {
-  reportModuleError,
-  showTransaction,
-  splitLines,
-} from "./module-helpers";
+import { reportModuleError, splitLines } from "./module-helpers";
 
 type UdtConfig = {
   args: string;
@@ -33,10 +29,10 @@ async function loadKnownXUdtConfig(
 
 async function transferUdt(
   signer: ccc.Signer,
+  tx: ccc.Transaction,
   config: UdtConfig,
   addresses: string[],
   amount: string,
-  onSent: (txHash: string) => void,
 ) {
   const recipients = await Promise.all(
     addresses.map((address) => ccc.Address.fromString(address, signer.client)),
@@ -45,17 +41,14 @@ async function transferUdt(
     { txHash: config.txHash, index: config.index },
     { codeHash: config.codeHash, hashType: config.hashType, args: config.args },
   );
-  const { res: tx } = await udt.transfer(
+  const { res: transfer } = await udt.transfer(
     signer,
     recipients.map(({ script }) => ({ to: script, amount })),
+    tx,
   );
-  const completed = await udt.completeBy(tx, signer);
+  const completed = await udt.completeBy(transfer, signer);
   await completed.completeInputsByCapacity(signer);
-  await completed.completeFeeBy(signer);
-  const txHash = await signer.sendTransaction(completed);
-  onSent(txHash);
-  await signer.client.waitTransaction(txHash);
-  return txHash;
+  return completed;
 }
 
 // -----------------------------------------------------------------------------
@@ -65,6 +58,7 @@ export function TransferUdtModule({
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [destinations, setDestinations] = useState("");
   const [amount, setAmount] = useState("");
@@ -101,18 +95,9 @@ export function TransferUdtModule({
       content: <strong>Building xUDT transfer…</strong>,
     });
     try {
-      const txHash = await transferUdt(
-        signer,
-        config,
-        splitLines(destinations),
-        amount,
-        (hash) => {
-          showTransaction(client, show, hash, "xUDT transaction sent");
-          log(`Transaction sent: ${hash}`);
-        },
+      await submitTransaction("Transfer xUDT", (tx) =>
+        transferUdt(signer, tx, config, splitLines(destinations), amount),
       );
-      showTransaction(client, show, txHash, "xUDT transaction committed", true);
-      log(`Transaction committed: ${txHash}`, "success");
     } catch (cause) {
       reportModuleError(cause, show, log, "xUDT transfer failed");
     } finally {

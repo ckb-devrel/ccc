@@ -44,11 +44,22 @@ import { TransferSporeClusterModule } from "./modules/transfer-spore-cluster-mod
 import { TransferSporeModule } from "./modules/transfer-spore-module";
 import { TransferUdtModule } from "./modules/transfer-udt-module";
 
+export type TransactionAction = (
+  tx: ccc.Transaction,
+) => ccc.Transaction | Promise<ccc.Transaction>;
+
+export type SubmitTransaction = (
+  actionName: string,
+  action: TransactionAction,
+  options?: { feeRate?: ccc.Num },
+) => Promise<ccc.Hex>;
+
 export type ModuleRuntimeProps = {
   client: ccc.Client;
   log: (message: string, level?: DemoLogLevel) => void;
   show: ShowModuleReadout;
   signer?: ccc.Signer;
+  submitTransaction: SubmitTransaction;
 };
 
 export type ModuleGroup =

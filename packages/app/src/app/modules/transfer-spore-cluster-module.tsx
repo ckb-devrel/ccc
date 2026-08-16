@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ModuleItemList, ModuleSelectionItem } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import { reportModuleError, showTransaction } from "./module-helpers";
+import { reportModuleError } from "./module-helpers";
 
 type ClusterOption = { id: string; name: string };
 
@@ -21,22 +21,21 @@ async function* findSignerClusters(signer: ccc.Signer) {
 
 async function buildClusterTransfer(
   signer: ccc.Signer,
+  tx: ccc.Transaction,
   id: string,
   address: string,
 ) {
   const { script: to } = await ccc.Address.fromString(address, signer.client);
-  const { tx } = await ccc.spore.transferSporeCluster({ signer, id, to });
-  await tx.completeFeeBy(signer);
-  return tx;
+  return (await ccc.spore.transferSporeCluster({ signer, tx, id, to })).tx;
 }
 
 // -----------------------------------------------------------------------------
 
 export function TransferSporeClusterModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [address, setAddress] = useState("");
   const [clusterId, setClusterId] = useState("");
@@ -60,13 +59,9 @@ export function TransferSporeClusterModule({
     if (!signer || !activeClusterId) return;
     setBusy(true);
     try {
-      const tx = await buildClusterTransfer(signer, activeClusterId, address);
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, "Cluster transfer sent");
-      log(`Transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, "Cluster transfer committed", true);
-      log(`Transaction committed: ${txHash}`, "success");
+      await submitTransaction("Transfer Spore cluster", (tx) =>
+        buildClusterTransfer(signer, tx, activeClusterId, address),
+      );
     } catch (cause) {
       reportModuleError(cause, show, log, "Cluster transfer failed");
     } finally {

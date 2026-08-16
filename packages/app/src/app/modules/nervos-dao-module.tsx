@@ -6,8 +6,14 @@ import { CopyableReadoutValue } from "../copyable-readout-value";
 import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import { reportModuleError, showTransaction } from "./module-helpers";
+import { reportModuleError } from "./module-helpers";
 import styles from "./nervos-dao-module.module.css";
+
+class DaoDepositTooSmallError extends Error {
+  constructor(readonly minimum: ccc.Num) {
+    super("DAO deposit is below the minimum cell capacity");
+  }
+}
 
 async function* findDaoCells(signer: ccc.Signer) {
   const dao = await ccc.Script.fromKnownScript(
@@ -23,6 +29,104 @@ async function* findDaoCells(signer: ccc.Signer) {
   }
 }
 
+function isDaoDeposit(cell: ccc.Cell) {
+  return cell.outputData === "0x0000000000000000";
+}
+
+function addHeaderDeps(tx: ccc.Transaction, ...hashes: ccc.Hex[]) {
+  hashes.forEach((hash) => {
+    if (!tx.headerDeps.includes(hash)) tx.headerDeps.push(hash);
+  });
+}
+
+async function addDaoDeposit(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  amount?: string,
+) {
+  const { script: lock } = await signer.getRecommendedAddressObj();
+  const outputIndex = tx.outputs.length;
+  tx.addOutput(
+    {
+      lock,
+      type: await ccc.Script.fromKnownScript(
+        signer.client,
+        ccc.KnownScript.NervosDao,
+        "0x",
+      ),
+    },
+    "00".repeat(8),
+  );
+  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.NervosDao);
+  if (amount !== undefined) {
+    if (tx.outputs[outputIndex].capacity > ccc.fixedPointFrom(amount)) {
+      throw new DaoDepositTooSmallError(tx.outputs[outputIndex].capacity);
+    }
+    tx.outputs[outputIndex].capacity = ccc.fixedPointFrom(amount);
+  }
+  return outputIndex;
+}
+
+async function calculateMaximumDaoDeposit(signer: ccc.Signer) {
+  const tx = ccc.Transaction.from({});
+  const outputIndex = await addDaoDeposit(signer, tx);
+  const feeRate = await signer.client.getFeeRate();
+  await tx.completeInputsAll(signer);
+  await tx.completeFeeChangeToOutput(signer, outputIndex, feeRate);
+  return { capacity: tx.outputs[outputIndex].capacity, feeRate };
+}
+
+async function buildDaoDeposit(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  amount: string,
+) {
+  await addDaoDeposit(signer, tx, amount);
+  return tx;
+}
+
+async function buildDaoAction(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  dao: ccc.Cell,
+) {
+  const { depositHeader, withdrawHeader } = await dao.getNervosDaoInfo(
+    signer.client,
+  );
+  if (!depositHeader) throw new Error("DAO deposit header not found");
+  if (isDaoDeposit(dao)) {
+    addHeaderDeps(tx, depositHeader.hash);
+    tx.addInput(dao);
+    tx.addOutput(dao.cellOutput, ccc.numLeToBytes(depositHeader.number, 8));
+    await tx.addCellDepsOfKnownScripts(
+      signer.client,
+      ccc.KnownScript.NervosDao,
+    );
+    return tx;
+  }
+
+  if (!withdrawHeader) throw new Error("DAO withdraw header not found");
+  addHeaderDeps(tx, withdrawHeader.hash, depositHeader.hash);
+  const inputIndex =
+    tx.addInput({
+      previousOutput: dao.outPoint,
+      since: {
+        relative: "absolute",
+        metric: "epoch",
+        value: ccc.epochToHex(
+          ccc.calcDaoClaimEpoch(depositHeader, withdrawHeader),
+        ),
+      },
+      cellOutput: dao.cellOutput,
+      outputData: dao.outputData,
+    }) - 1;
+  tx.setWitnessArgs(inputIndex, { inputType: ccc.numLeToBytes(1, 8) });
+  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.NervosDao);
+  return tx;
+}
+
+// -----------------------------------------------------------------------------
+
 type DaoPosition = {
   cell: ccc.Cell;
   profit: ccc.Num;
@@ -35,10 +139,6 @@ function parseEpoch(epoch: ccc.Epoch): ccc.FixedPoint {
     (ccc.fixedPointFrom(epoch[1].toString()) * ccc.fixedPointFrom(1)) /
       ccc.fixedPointFrom(epoch[2].toString())
   );
-}
-
-function isDaoDeposit(cell: ccc.Cell) {
-  return cell.outputData === "0x0000000000000000";
 }
 
 async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
@@ -69,94 +169,14 @@ async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
   );
 }
 
-async function buildDaoDeposit(signer: ccc.Signer, amount?: string) {
-  const { script: lock } = await signer.getRecommendedAddressObj();
-  const tx = ccc.Transaction.from({
-    outputs: [
-      {
-        lock,
-        type: await ccc.Script.fromKnownScript(
-          signer.client,
-          ccc.KnownScript.NervosDao,
-          "0x",
-        ),
-      },
-    ],
-    outputsData: ["00".repeat(8)],
-  });
-  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.NervosDao);
-  if (amount === undefined) {
-    await tx.completeInputsAll(signer);
-    await tx.completeFeeChangeToOutput(signer, 0);
-  } else {
-    if (tx.outputs[0].capacity > ccc.fixedPointFrom(amount)) {
-      throw new Error(
-        `Minimum deposit is ${ccc.fixedPointToString(tx.outputs[0].capacity)} CKB`,
-      );
-    }
-    tx.outputs[0].capacity = ccc.fixedPointFrom(amount);
-    await tx.completeInputsByCapacity(signer);
-    await tx.completeFeeBy(signer);
-  }
-  return tx;
-}
-
-async function buildDaoAction(signer: ccc.Signer, dao: ccc.Cell) {
-  const { depositHeader, withdrawHeader } = await dao.getNervosDaoInfo(
-    signer.client,
-  );
-  if (!depositHeader) throw new Error("DAO deposit header not found");
-  if (isDaoDeposit(dao)) {
-    const tx = ccc.Transaction.from({
-      headerDeps: [depositHeader.hash],
-      inputs: [{ previousOutput: dao.outPoint }],
-      outputs: [dao.cellOutput],
-      outputsData: [ccc.numLeToBytes(depositHeader.number, 8)],
-    });
-    await tx.addCellDepsOfKnownScripts(
-      signer.client,
-      ccc.KnownScript.NervosDao,
-    );
-    await tx.completeInputsByCapacity(signer);
-    await tx.completeFeeBy(signer);
-    return tx;
-  }
-
-  if (!withdrawHeader) throw new Error("DAO withdraw header not found");
-  const tx = ccc.Transaction.from({
-    headerDeps: [withdrawHeader.hash, depositHeader.hash],
-    inputs: [
-      {
-        previousOutput: dao.outPoint,
-        since: {
-          relative: "absolute",
-          metric: "epoch",
-          value: ccc.epochToHex(
-            ccc.calcDaoClaimEpoch(depositHeader, withdrawHeader),
-          ),
-        },
-      },
-    ],
-    outputs: [{ lock: (await signer.getRecommendedAddressObj()).script }],
-    witnesses: [
-      ccc.WitnessArgs.from({ inputType: ccc.numLeToBytes(1, 8) }).toBytes(),
-    ],
-  });
-  await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.NervosDao);
-  await tx.completeInputsByCapacity(signer);
-  await tx.completeFeeChangeToOutput(signer, 0);
-  return tx;
-}
-
-// -----------------------------------------------------------------------------
-
 export function NervosDaoModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [amount, setAmount] = useState("");
+  const [maximumFeeRate, setMaximumFeeRate] = useState<ccc.Num>();
   const [busyAction, setBusyAction] = useState<string>();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const {
@@ -174,11 +194,13 @@ export function NervosDaoModule({
   });
 
   const maximum = async () => {
+    setMaximumFeeRate(undefined);
     if (!signer) return;
     try {
-      const tx = await buildDaoDeposit(signer);
-      const value = ccc.fixedPointToString(tx.outputs[0].capacity);
+      const result = await calculateMaximumDaoDeposit(signer);
+      const value = ccc.fixedPointToString(result.capacity);
       setAmount(value);
+      setMaximumFeeRate(result.feeRate);
       show({
         label: "MAXIMUM",
         tone: "success",
@@ -204,22 +226,29 @@ export function NervosDaoModule({
     const actionKey = mode === "deposit" ? mode : cellKey(cell);
     setBusyAction(actionKey);
     try {
-      const tx =
+      const actionName =
         mode === "deposit"
-          ? await buildDaoDeposit(signer, amount)
-          : cell
-            ? await buildDaoAction(signer, cell)
-            : undefined;
-      if (!tx) throw new Error("Select a DAO cell");
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, `DAO ${mode} sent`);
-      log(`Transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, `DAO ${mode} committed`, true);
-      log(`Transaction committed: ${txHash}`, "success");
+          ? "DAO deposit"
+          : cell && isDaoDeposit(cell)
+            ? "DAO redeem"
+            : "DAO withdraw";
+      await submitTransaction(
+        actionName,
+        (tx) => {
+          if (mode === "deposit") return buildDaoDeposit(signer, tx, amount);
+          if (!cell) throw new Error("Select a DAO cell");
+          return buildDaoAction(signer, tx, cell);
+        },
+        { feeRate: mode === "deposit" ? maximumFeeRate : undefined },
+      );
       setRefreshNonce((value) => value + 1);
     } catch (cause) {
-      reportModuleError(cause, show, log, `DAO ${mode} failed`);
+      reportModuleError(
+        describeDaoError(cause),
+        show,
+        log,
+        `DAO ${mode} failed`,
+      );
     } finally {
       setBusyAction(undefined);
     }
@@ -232,7 +261,10 @@ export function NervosDaoModule({
           <span>Deposit amount / CKB</span>
           <input
             value={amount}
-            onChange={(event) => setAmount(event.currentTarget.value)}
+            onChange={(event) => {
+              setAmount(event.currentTarget.value);
+              setMaximumFeeRate(undefined);
+            }}
           />
         </label>
         <div className="module-actions module-field-wide">
@@ -296,6 +328,13 @@ export function NervosDaoModule({
 
 function cellKey(cell?: ccc.Cell) {
   return cell ? ccc.hexFrom(cell.outPoint.toBytes()) : "";
+}
+
+function describeDaoError(cause: unknown) {
+  if (!(cause instanceof DaoDepositTooSmallError)) return cause;
+  return new Error(
+    `Minimum deposit is ${ccc.fixedPointToString(cause.minimum)} CKB`,
+  );
 }
 
 function formatCkb(value: ccc.Num, precision: string) {

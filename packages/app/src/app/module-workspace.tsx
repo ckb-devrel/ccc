@@ -1,11 +1,12 @@
 "use client";
 
-import type { ccc } from "@ckb-ccc/connector-react";
+import { ccc } from "@ckb-ccc/connector-react";
 import { ArrowUpRight, Circle } from "lucide-react";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { DemoLogger } from "./activity-console";
 import { ModuleReadout, type ModuleReadoutState } from "./module-readout";
-import type { DemoModule } from "./modules";
+import type { DemoModule, SubmitTransaction } from "./modules";
+import { showTransaction } from "./modules/module-helpers";
 
 export const ModuleWorkspace = memo(function ModuleWorkspace({
   active,
@@ -102,6 +103,18 @@ function MountedModuleWorkspace({
       revision: current.revision + 1,
     }));
   }, []);
+  const submitTransaction = useCallback<SubmitTransaction>(
+    async (actionName, action, options) => {
+      if (!signer) throw new Error("Connect a signer first");
+      const tx = await action(ccc.Transaction.from({}));
+      await tx.completeFeeBy(signer, options?.feeRate);
+      const txHash = await signer.sendTransaction(tx);
+      moduleLog(`${actionName} sent: ${txHash}`);
+      showTransaction(client, show, txHash, `${actionName} sent`);
+      return txHash;
+    },
+    [client, moduleLog, show, signer],
+  );
 
   return (
     <section
@@ -159,7 +172,13 @@ function MountedModuleWorkspace({
       </header>
 
       <div className="workspace-core">
-        <Module client={client} log={moduleLog} show={show} signer={signer} />
+        <Module
+          client={client}
+          log={moduleLog}
+          show={show}
+          signer={signer}
+          submitTransaction={submitTransaction}
+        />
         <ModuleReadout
           label={readout.label}
           previous={previousReadout}

@@ -2,16 +2,18 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import { useState } from "react";
-import { explorerLink } from "../explorer-link";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
 import { bytesFromAnyString, splitLines } from "./module-helpers";
 
-type TransferState = {
-  kind: "error" | "idle" | "pending" | "success";
-  message: string;
-  txHash?: string;
-};
+class TransferCapacityError extends Error {
+  constructor(
+    readonly outputIndex: number,
+    readonly minimum: ccc.Num,
+  ) {
+    super("Transfer amount is below the minimum cell capacity");
+  }
+}
 
 async function calculateMaximumTransfer(
   signer: ccc.Signer,
@@ -27,24 +29,25 @@ async function calculateMaximumTransfer(
     outputsData: [bytesFromAnyString(data)],
   });
 
+  const feeRate = await signer.client.getFeeRate();
   await tx.completeInputsAll(signer);
-  await tx.completeFeeChangeToOutput(signer, 0);
+  await tx.completeFeeChangeToOutput(signer, 0, feeRate);
 
-  return ccc.fixedPointToString(tx.outputs[0].capacity);
+  return { capacity: tx.outputs[0].capacity, feeRate };
 }
 
-async function sendTransfer({
+async function buildTransfer({
   amount,
   data,
   destinations,
-  onSent,
   signer,
+  tx,
 }: {
   amount: string;
   data: string;
   destinations: string[];
-  onSent: (txHash: string) => void;
   signer: ccc.Signer;
+  tx: ccc.Transaction;
 }) {
   const capacity = ccc.fixedPointFrom(amount);
   const recipients = await Promise.all(
@@ -52,22 +55,23 @@ async function sendTransfer({
       ccc.Address.fromString(address, signer.client),
     ),
   );
-  const tx = ccc.Transaction.from({
-    outputs: recipients.map(({ script }) => ({ capacity, lock: script })),
-    outputsData: recipients.map((_, index) =>
-      index === 0 ? bytesFromAnyString(data) : "0x",
-    ),
+  recipients.forEach(({ script }, index) => {
+    const outputData = index === 0 ? bytesFromAnyString(data) : "0x";
+    const minimum = ccc.CellOutput.from({ lock: script }, outputData).capacity;
+    if (capacity < minimum) {
+      throw new TransferCapacityError(index, minimum);
+    }
+    tx.addOutput({ capacity, lock: script }, outputData);
   });
-
-  await tx.completeInputsByCapacity(signer);
-  await tx.completeFeeBy(signer);
-
-  const txHash = await signer.sendTransaction(tx);
-  onSent(txHash);
-  await signer.client.waitTransaction(txHash);
-
-  return txHash;
+  return tx;
 }
+
+// -----------------------------------------------------------------------------
+
+type TransferState = {
+  kind: "error" | "idle" | "pending" | "success";
+  message: string;
+};
 
 function parseDestinationAddresses(value: string) {
   return splitLines(value);
@@ -87,42 +91,30 @@ function requireDestinations(addresses: string[]) {
   return addresses;
 }
 
-// -----------------------------------------------------------------------------
-
 export function TransferModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [destinations, setDestinations] = useState("");
   const [amount, setAmount] = useState("");
+  const [maximumFeeRate, setMaximumFeeRate] = useState<ccc.Num>();
   const [data, setData] = useState("");
   const [busy, setBusy] = useState<"max" | "transfer">();
   const addresses = parseDestinationAddresses(destinations);
   const disabled = signer === undefined || busy !== undefined;
 
-  const updateReadout = ({ kind, message, txHash }: TransferState) => {
+  const updateReadout = ({ kind, message }: TransferState) => {
     show({
       label: kind,
       tone: kind,
-      content: txHash ? (
-        explorerLink(
-          client,
-          "transaction",
-          txHash,
-          <>
-            <span>{message}</span>
-            <code>{shortHash(txHash)}</code>
-          </>,
-        )
-      ) : (
-        <strong>{message}</strong>
-      ),
+      content: <strong>{message}</strong>,
     });
   };
 
   const calculateMax = async () => {
+    setMaximumFeeRate(undefined);
     if (!signer) {
       updateReadout({ kind: "error", message: "Connect a signer first" });
       return;
@@ -141,8 +133,10 @@ export function TransferModule({
     });
     log("Calculating maximum transferable capacity");
     try {
-      const maximum = await calculateMaximumTransfer(signer, destination, data);
+      const result = await calculateMaximumTransfer(signer, destination, data);
+      const maximum = ccc.fixedPointToString(result.capacity);
       setAmount(maximum);
+      setMaximumFeeRate(result.feeRate);
       updateReadout({
         kind: "success",
         message: `Maximum: ${maximum} CKB`,
@@ -177,26 +171,18 @@ export function TransferModule({
         kind: "pending",
         message: "Awaiting wallet approval…",
       });
-      const txHash = await sendTransfer({
-        amount,
-        data,
-        destinations: validDestinations,
-        signer,
-        onSent: (txHash) => {
-          updateReadout({
-            kind: "pending",
-            message: "Transaction sent; confirming…",
-            txHash,
-          });
-          log(`Transaction sent: ${txHash}`);
-        },
-      });
-      updateReadout({
-        kind: "success",
-        message: "Transaction committed",
-        txHash,
-      });
-      log(`Transaction committed: ${txHash}`, "success");
+      await submitTransaction(
+        "Transfer CKB",
+        (tx) =>
+          buildTransfer({
+            amount,
+            data,
+            destinations: validDestinations,
+            signer,
+            tx,
+          }),
+        { feeRate: maximumFeeRate },
+      );
     } catch (cause) {
       const error = errorMessage(cause);
       updateReadout({ kind: "error", message: error });
@@ -224,7 +210,10 @@ export function TransferModule({
             value={amount}
             inputMode="decimal"
             placeholder="0.00"
-            onChange={(event) => setAmount(event.currentTarget.value)}
+            onChange={(event) => {
+              setAmount(event.currentTarget.value);
+              setMaximumFeeRate(undefined);
+            }}
           />
         </label>
         <label className="module-field">
@@ -256,9 +245,8 @@ export function TransferModule({
 }
 
 function errorMessage(cause: unknown) {
+  if (cause instanceof TransferCapacityError) {
+    return `Minimum for output ${cause.outputIndex} is ${ccc.fixedPointToString(cause.minimum)} CKB`;
+  }
   return cause instanceof Error ? cause.message : "Transaction failed";
-}
-
-function shortHash(hash: string) {
-  return `${hash.slice(0, 10)}…${hash.slice(-8)}`;
 }

@@ -2,7 +2,7 @@
 
 import * as bip39 from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english.js";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CopyableReadoutValue } from "../copyable-readout-value";
 import { DerivedAccounts, type DerivedAccount } from "../derived-accounts";
 import { ModuleTextarea } from "../module-textarea";
@@ -21,6 +21,7 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   const [password, setPassword] = useState("");
   const [count, setCount] = useState("10");
   const [accounts, setAccounts] = useState<DerivedAccount[]>([]);
+  const derivationRevision = useRef(0);
   const valid = useMemo(
     () => bip39.validateMnemonic(mnemonic, wordlist),
     [mnemonic],
@@ -39,7 +40,36 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
     });
   }
 
+  const replaceMnemonic = async (nextMnemonic: string) => {
+    const revision = ++derivationRevision.current;
+    setMnemonic(nextMnemonic);
+    setAccounts([]);
+    if (!bip39.validateMnemonic(nextMnemonic, wordlist)) return;
+
+    try {
+      const next = await deriveCkbAccounts(
+        client,
+        await mnemonicToHdKey(nextMnemonic),
+        0,
+        boundedAccountCount(count),
+      );
+      if (revision !== derivationRevision.current) return;
+      setAccounts(next);
+      show({
+        label: "DERIVATION",
+        tone: "success",
+        content: <strong>{`${next.length} accounts derived`}</strong>,
+      });
+      log(`${next.length} accounts derived`, "success");
+    } catch (cause) {
+      if (revision === derivationRevision.current) {
+        showFailure(cause, show, log);
+      }
+    }
+  };
+
   const derive = async () => {
+    derivationRevision.current += 1;
     try {
       const amount = boundedAccountCount(count);
       const next = await deriveCkbAccounts(
@@ -78,10 +108,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
           <ModuleTextarea
             value={mnemonic}
             placeholder="BIP-39 mnemonic"
-            onChange={(event) => {
-              setMnemonic(event.currentTarget.value);
-              setAccounts([]);
-            }}
+            onChange={(event) =>
+              void replaceMnemonic(event.currentTarget.value)
+            }
           />
         </label>
         <label className="module-field">
@@ -110,10 +139,7 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
       <div className="module-actions">
         <button
           type="button"
-          onClick={() => {
-            setMnemonic(bip39.generateMnemonic(wordlist));
-            setAccounts([]);
-          }}
+          onClick={() => void replaceMnemonic(bip39.generateMnemonic(wordlist))}
         >
           Random
         </button>

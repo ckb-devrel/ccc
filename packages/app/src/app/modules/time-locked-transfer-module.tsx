@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ModuleItem, ModuleItemList } from "../module-item-list";
 import type { ModuleRuntimeProps } from "../modules";
 import { usePagedModuleItems } from "../use-paged-module-items";
-import { reportModuleError, showTransaction } from "./module-helpers";
+import { reportModuleError } from "./module-helpers";
 import styles from "./time-locked-transfer-module.module.css";
 
 type TimeLockCell = { cell: ccc.Cell; lock: ccc.Script };
@@ -23,17 +23,9 @@ function timeLockSince(cell: ccc.Cell) {
   );
 }
 
-function getTimeLockStatus(cell: ccc.Cell, tip?: ccc.Num) {
-  const since = timeLockSince(cell);
-  return {
-    since,
-    unlocked: tip !== undefined && since.value <= tip,
-    remaining: tip === undefined ? ccc.Zero : since.value - tip,
-  };
-}
-
 async function buildTimeLockedTransfer(
   signer: ccc.Signer,
+  tx: ccc.Transaction,
   destination: string,
   amount: string,
   blocks: string,
@@ -49,13 +41,12 @@ async function buildTimeLockedTransfer(
     ccc.KnownScript.TimeLock,
     buildTimeLockArgs(to.script.hash(), lockedUntil.toNum()),
   );
-  const tx = ccc.Transaction.from({ outputs: [{ lock }] });
-  if (tx.getOutputsCapacity() > ccc.fixedPointFrom(amount)) {
+  const outputIndex = tx.outputs.length;
+  tx.addOutput({ lock });
+  if (tx.outputs[outputIndex].capacity > ccc.fixedPointFrom(amount)) {
     throw new Error("Amount is below the minimum cell capacity");
   }
-  tx.outputs[0].capacity = ccc.fixedPointFrom(amount);
-  await tx.completeInputsByCapacity(signer);
-  await tx.completeFeeBy(signer);
+  tx.outputs[outputIndex].capacity = ccc.fixedPointFrom(amount);
   return tx;
 }
 
@@ -76,8 +67,11 @@ async function* findTimeLockCells(signer: ccc.Signer) {
   }
 }
 
-async function buildClaim(signer: ccc.Signer, { cell, lock }: TimeLockCell) {
-  const to = await signer.getRecommendedAddressObj();
+async function buildClaim(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  { cell, lock }: TimeLockCell,
+) {
   const iterator = signer.client.findCells(
     {
       script: lock,
@@ -91,33 +85,33 @@ async function buildClaim(signer: ccc.Signer, { cell, lock }: TimeLockCell) {
   );
   const { value: ownerCell, done } = await iterator.next();
   if (done || !ownerCell) throw new Error("An owner cell is required to claim");
-  const tx = ccc.Transaction.from({
-    inputs: [
-      ownerCell,
-      {
-        previousOutput: cell.outPoint,
-        since: ccc.numFromBytes(
-          ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40),
-        ),
-        cellOutput: cell.cellOutput,
-        outputData: cell.outputData,
-      },
-    ],
-    outputs: [{ lock: to.script }],
+  tx.addInput(ownerCell);
+  tx.addInput({
+    previousOutput: cell.outPoint,
+    since: timeLockSince(cell).toNum(),
+    cellOutput: cell.cellOutput,
+    outputData: cell.outputData,
   });
   await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.TimeLock);
-  await tx.completeInputsByCapacity(signer);
-  await tx.completeFeeChangeToOutput(signer, 0);
   return tx;
 }
 
 // -----------------------------------------------------------------------------
 
+function getTimeLockStatus(cell: ccc.Cell, tip?: ccc.Num) {
+  const since = timeLockSince(cell);
+  return {
+    since,
+    unlocked: tip !== undefined && since.value <= tip,
+    remaining: tip === undefined ? ccc.Zero : since.value - tip,
+  };
+}
+
 export function TimeLockedTransferModule({
-  client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("");
@@ -161,25 +155,22 @@ export function TimeLockedTransferModule({
     const actionKey = mode === "lock" ? mode : cellKey(target?.cell);
     setBusyAction(actionKey);
     try {
-      const tx =
-        mode === "lock"
-          ? await buildTimeLockedTransfer(signer, destination, amount, blocks)
-          : target
-            ? await buildClaim(signer, target)
-            : undefined;
-      if (!tx) throw new Error("Select a time-lock cell to claim");
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, `Time-lock ${mode} sent`);
-      log(`Transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(
-        client,
-        show,
-        txHash,
-        `Time-lock ${mode} committed`,
-        true,
+      await submitTransaction(
+        mode === "lock" ? "Lock capacity" : "Claim time-lock",
+        (tx) => {
+          if (mode === "lock") {
+            return buildTimeLockedTransfer(
+              signer,
+              tx,
+              destination,
+              amount,
+              blocks,
+            );
+          }
+          if (!target) throw new Error("Select a time-lock cell to claim");
+          return buildClaim(signer, tx, target);
+        },
       );
-      log(`Transaction committed: ${txHash}`, "success");
       setRefreshNonce((value) => value + 1);
     } catch (cause) {
       reportModuleError(cause, show, log, `Time-lock ${mode} failed`);

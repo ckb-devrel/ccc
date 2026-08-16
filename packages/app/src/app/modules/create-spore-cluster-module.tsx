@@ -4,7 +4,28 @@ import { ccc, spore } from "@ckb-ccc/connector-react";
 import { useState } from "react";
 import { ModuleTextarea } from "../module-textarea";
 import type { ModuleRuntimeProps } from "../modules";
-import { reportModuleError, showTransaction } from "./module-helpers";
+import { reportModuleError } from "./module-helpers";
+
+function normalizeClusterDescription(description: string) {
+  return description.trim().startsWith("{")
+    ? JSON.stringify(JSON.parse(description))
+    : description;
+}
+
+async function buildCluster(
+  signer: ccc.Signer,
+  tx: ccc.Transaction,
+  name: string,
+  description: string,
+) {
+  return spore.createSporeCluster({
+    signer,
+    tx,
+    data: { name, description: normalizeClusterDescription(description) },
+  });
+}
+
+// -----------------------------------------------------------------------------
 
 function formatJson(value: string) {
   return JSON.stringify(JSON.parse(value), undefined, 2);
@@ -81,32 +102,12 @@ function dobExamples(client: ccc.Client) {
   };
 }
 
-function normalizeClusterDescription(description: string) {
-  return description.trim().startsWith("{")
-    ? JSON.stringify(JSON.parse(description))
-    : description;
-}
-
-async function buildCluster(
-  signer: ccc.Signer,
-  name: string,
-  description: string,
-) {
-  const { tx, id } = await spore.createSporeCluster({
-    signer,
-    data: { name, description: normalizeClusterDescription(description) },
-  });
-  await tx.completeFeeBy(signer);
-  return { id, tx };
-}
-
-// -----------------------------------------------------------------------------
-
 export function CreateSporeClusterModule({
   client,
   log,
   show,
   signer,
+  submitTransaction,
 }: ModuleRuntimeProps) {
   const [name, setName] = useState("My First DOB Cluster");
   const [description, setDescription] = useState(
@@ -118,18 +119,18 @@ export function CreateSporeClusterModule({
     if (!signer) return;
     setBusy(true);
     try {
-      const { id, tx } = await buildCluster(signer, name, description);
-      const txHash = await signer.sendTransaction(tx);
-      showTransaction(
-        client,
-        show,
-        txHash,
-        `Cluster ${id.slice(0, 10)} created`,
-      );
-      log(`Transaction sent: ${txHash}; Cluster ID: ${id}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(client, show, txHash, "Cluster creation committed", true);
-      log(`Transaction committed: ${txHash}`, "success");
+      let clusterId = "";
+      await submitTransaction("Create Spore cluster", async (tx) => {
+        const { id, tx: next } = await buildCluster(
+          signer,
+          tx,
+          name,
+          description,
+        );
+        clusterId = id;
+        return next;
+      });
+      log(`Cluster ID: ${clusterId}`, "success");
     } catch (cause) {
       reportModuleError(cause, show, log, "Cluster creation failed");
     } finally {

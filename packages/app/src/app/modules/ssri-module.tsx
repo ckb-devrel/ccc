@@ -55,36 +55,15 @@ async function findContract(client: ccc.Client, typeIdArgs: string) {
   return cell.outPoint;
 }
 
-async function resolveContractOutPoint(
-  client: ccc.Client,
-  source: ContractSource,
-  typeIdArgs: string,
-  outPoint: string,
-) {
-  if (source === "outPoint") return outPoint;
-  const found = await findContract(client, typeIdArgs);
-  return `${found.txHash}:${found.index}`;
-}
-
-function parseOutPoint(value: string) {
-  const separator = value.lastIndexOf(":");
-  if (separator < 0) throw new Error("OutPoint must use txHash:index format");
-  return ccc.OutPoint.from({
-    txHash: value.slice(0, separator),
-    index: value.slice(separator + 1),
-  });
-}
-
 async function callSsri(
   client: ccc.Client,
   executorUrl: string,
-  outPointText: string,
+  outPoint: ccc.OutPointLike,
   method: string,
   argsText: string,
   contextLevel: ContextLevel,
   contextText: string,
 ) {
-  const outPoint = parseOutPoint(outPointText);
   const scriptCell = await client.getCell(outPoint);
   if (!scriptCell) throw new Error("SSRI contract cell not found");
   const args = splitLines(argsText).map((value) => ccc.hexFrom(value));
@@ -97,6 +76,15 @@ async function callSsri(
 }
 
 // -----------------------------------------------------------------------------
+
+function parseOutPoint(value: string) {
+  const separator = value.lastIndexOf(":");
+  if (separator < 0) throw new Error("OutPoint must use txHash:index format");
+  return ccc.OutPoint.from({
+    txHash: value.slice(0, separator),
+    index: value.slice(separator + 1),
+  });
+}
 
 export function SsriModule({ client, log, show }: ModuleRuntimeProps) {
   const [executor, setExecutor] = useState("http://localhost:9090");
@@ -121,12 +109,10 @@ export function SsriModule({ client, log, show }: ModuleRuntimeProps) {
       content: <strong>{`Calling ${method}…`}</strong>,
     });
     try {
-      const outPoint = await resolveContractOutPoint(
-        client,
-        contractSource,
-        typeId,
-        directOutPoint,
-      );
+      const outPoint =
+        contractSource === "typeId"
+          ? await findContract(client, typeId)
+          : parseOutPoint(directOutPoint);
       const response = await callSsri(
         client,
         executor,

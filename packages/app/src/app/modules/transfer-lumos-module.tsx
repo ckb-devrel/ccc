@@ -54,7 +54,6 @@ async function composeWithLumos(
     undefined,
     { config },
   );
-
   const tx = ccc.Transaction.fromLumosSkeleton(skeleton);
   const dataBytes = bytesFromAnyString(data);
   if (tx.outputs[0].capacity < ccc.fixedPointFrom(dataBytes.length)) {
@@ -88,17 +87,8 @@ export function TransferLumosModule({
     try {
       const tx = await composeWithLumos(signer, destination, amount, data);
       const txHash = await signer.sendTransaction(tx);
-      showTransaction(client, show, txHash, "Lumos transaction sent");
-      log(`Transaction sent: ${txHash}`);
-      await signer.client.waitTransaction(txHash);
-      showTransaction(
-        client,
-        show,
-        txHash,
-        "Lumos transaction committed",
-        true,
-      );
-      log(`Transaction committed: ${txHash}`, "success");
+      showTransaction(client, show, txHash, "Transfer with Lumos sent");
+      log(`Transfer with Lumos sent: ${txHash}`);
     } catch (cause) {
       reportModuleError(cause, show, log, "Lumos transfer failed");
     } finally {
