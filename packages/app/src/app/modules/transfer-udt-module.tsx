@@ -111,12 +111,13 @@ export function TransferUdtModule({
       <input
         value={config[key]}
         spellCheck={false}
-        onChange={(event) =>
+        onChange={(event) => {
+          const { value } = event.currentTarget;
           setConfig((current) => ({
             ...current,
-            [key]: event.currentTarget.value,
-          }))
-        }
+            [key]: value,
+          }));
+        }}
       />
     </label>
   );
