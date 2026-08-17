@@ -13,7 +13,6 @@ import {
  */
 export class BitcoinSigner extends ccc.SignerBtc {
   private connection?: Connection;
-  private network = "btcTestnet";
 
   /**
    * Ensures that the signer is connected and returns the connection.
@@ -41,21 +40,11 @@ export class BitcoinSigner extends ccc.SignerBtc {
     client: ccc.Client,
     public readonly name: string,
     public readonly icon: string,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
     public readonly addressType: "auto" | "p2wpkh" | "p2tr" = "auto",
     private readonly _appUri?: string,
     private readonly connectionsRepo: ConnectionsRepo = new ConnectionsRepoLocalStorage(),
+    public readonly network = "btc",
   ) {
     super(client);
   }
@@ -65,19 +54,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * @returns The configuration object.
    */
   private getConfig() {
-    const { network } = this.matchNetworkPreference(
-      this.preferredNetworks,
-      this.network,
-    ) ?? { network: this.network };
-    if (this.network !== network) {
-      this.connection = undefined;
-    }
-    this.network = network;
-
     const url = {
       btc: "https://app.joy.id",
       btcTestnet: "https://testnet.joyid.dev",
-    }[network];
+    }[this.network];
     if (!url) {
       throw new Error(
         `JoyID wallet doesn't support the requested chain ${this.network}`,

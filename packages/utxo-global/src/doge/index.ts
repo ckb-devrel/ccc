@@ -10,18 +10,8 @@ export class SignerDoge extends ccc.SignerDoge {
   constructor(
     client: ccc.Client,
     public readonly provider: Provider,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.Doge,
-        network: "doge",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.Doge,
-        network: "dogeTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
+    public readonly network = "doge",
   ) {
     super(client);
   }
@@ -62,15 +52,11 @@ export class SignerDoge extends ccc.SignerDoge {
       dogecoin_testnet: "dogeTestnet",
     }[await this.provider.getNetwork()];
 
-    const { network } = this.matchNetworkPreference(
-      this.preferredNetworks,
-      currentNetwork,
-    ) ?? { network: currentNetwork };
-    if (network === currentNetwork) {
+    if (this.network === currentNetwork) {
       return;
     }
 
-    return network;
+    return this.network;
   }
 
   onReplaced(listener: () => void): () => void {

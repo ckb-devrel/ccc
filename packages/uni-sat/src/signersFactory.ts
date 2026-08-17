@@ -20,9 +20,21 @@ export function getUniSatSigners(
   }
 
   return [
-    {
-      signer: new Signer(client, windowRef.unisat, preferredNetworks),
-      name: "BTC",
-    },
-  ];
+    ["BTC", "btc"],
+    ["BTC Testnet", "btcTestnet"],
+    ["BTC Testnet4", "btcTestnet4"],
+    ["BTC Signet", "btcSignet"],
+    ["Fractal Bitcoin", "fractalBtc"],
+    ["Fractal Bitcoin Testnet", "fractalBtcTestnet"],
+  ]
+    .filter(
+      ([, network]) =>
+        client.addressPrefix !== "ckb" ||
+        network === "btc" ||
+        network === "fractalBtc",
+    )
+    .map(([name, network]) => ({
+      signer: new Signer(client, windowRef.unisat!, preferredNetworks, network),
+      name,
+    }));
 }

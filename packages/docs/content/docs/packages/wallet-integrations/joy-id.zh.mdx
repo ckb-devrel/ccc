@@ -167,10 +167,10 @@ new BitcoinSigner(
   client: ccc.Client,
   name: string,
   icon: string,
-  preferredNetworks?: ccc.NetworkPreference[],  // 默认为 btc / btcTestnet
   addressType?: "auto" | "p2wpkh" | "p2tr",     // 默认为 "auto"
   _appUri?: string,
-  connectionsRepo?: ConnectionsRepo
+  connectionsRepo?: ConnectionsRepo,
+  network?: "btc" | "btcTestnet"                 // 默认为 "btc"
 )
 ```
 
@@ -244,20 +244,21 @@ function getJoyIdSigners(
   client: ccc.Client,
   name: string,
   icon: string,
-  preferredNetworks?: ccc.NetworkPreference[],
 ): ccc.SignerInfo[]
 ```
+
+Factory 会为每种 BTC 地址模式分别返回 Mainnet 和 Testnet 版本。
 
 **标准浏览器环境下返回的 Signer 列表：**
 
 | name | Signer 类型 |
 |------|------------|
 | `"CKB"` | `CkbSigner` |
-| `"BTC"` | `BitcoinSigner`（auto） |
+| `"BTC"` / `"BTC Testnet"` | `BitcoinSigner`（auto） |
 | `"Nostr"` | `NostrSigner` |
 | `"EVM"` | `EvmSigner` |
-| `"BTC (P2WPKH)"` | `BitcoinSigner`（p2wpkh） |
-| `"BTC (P2TR)"` | `BitcoinSigner`（p2tr） |
+| `"BTC (P2WPKH)"` / `"BTC Testnet (P2WPKH)"` | `BitcoinSigner`（p2wpkh） |
+| `"BTC (P2TR)"` / `"BTC Testnet (P2TR)"` | `BitcoinSigner`（p2tr） |
 
 **WebView / 独立浏览器兜底：**
 

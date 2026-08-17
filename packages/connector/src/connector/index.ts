@@ -19,6 +19,7 @@ export class WebComponentConnector extends LitElement {
   public name?: string;
   @property()
   public icon?: string;
+  /** @deprecated This compatibility property is ignored. */
   @property()
   public preferredNetworks?: ccc.NetworkPreference[];
   @property()

@@ -44,21 +44,12 @@ export enum SignerType {
 
 /**
  * @public
+ * @deprecated Wallet integrations now expose one signer per selectable network.
+ * This compatibility type will be removed in the next major release.
  */
 export type NetworkPreference = {
   addressPrefix: string;
   signerType: SignerType;
-  /**
-   * Wallet signers should check if the wallet is using preferred networks.
-   * If not, try to switch to the first preferred network.
-   * If non preferred, let users choose what they want.
-   * BTC: // They made a mess...
-   *   btc
-   *   btcTestnet
-   *   btcTestnet4 // UTXO Global
-   *   btcSignet // OKX & UTXO Global
-   *   fractalBtc // UniSat
-   */
   network: string;
 };
 
@@ -88,8 +79,9 @@ export abstract class Signer {
     return this.client_;
   }
 
-  // Returns the preference if we need to switch network
-  // undefined otherwise
+  /**
+   * @deprecated Wallet integrations now use fixed-network signers.
+   */
   matchNetworkPreference(
     preferences: NetworkPreference[],
     currentNetwork: string | undefined,

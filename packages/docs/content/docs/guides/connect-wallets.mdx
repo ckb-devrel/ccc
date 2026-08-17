@@ -136,7 +136,6 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
 | `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
 | `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |
 | `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | Network switching options shown in the connector |
-| `preferredNetworks` | `ccc.NetworkPreference[]`                                              | Preferred networks per signer type               |
 
 ## Hooks reference
 
@@ -185,39 +184,9 @@ const address = await signer?.getRecommendedAddress();
 
 `ccc.SignerType` values: `CKB`, `EVM`, `BTC`, `Nostr`, `Doge`.
 
-## Force a specific network per wallet type
+## Choose a wallet network
 
-**Use this when:** your dApp targets, for example, CKB mainnet and you want users' BTC wallet to also be on Bitcoin mainnet (not testnet/signet). When the user's wallet is on the wrong network, CCC will prompt it to switch automatically.
-
-```tsx
-<ccc.Provider
-  preferredNetworks={[
-    {
-      addressPrefix: "ckb",          // when CKB client is on mainnet (mainnet prefix = "ckb")
-      signerType: ccc.SignerType.BTC,
-      network: "btc",                // pair BTC wallets with Bitcoin mainnet
-    },
-    {
-      addressPrefix: "ckt",          // when CKB client is on testnet (testnet prefix = "ckt")
-      signerType: ccc.SignerType.BTC,
-      network: "btcTestnet",
-    },
-  ]}
->
-  {children}
-</ccc.Provider>
-```
-
-`NetworkPreference` type:
-
-```typescript
-type NetworkPreference = {
-  addressPrefix: string; // "ckb" for mainnet, "ckt" for testnet
-  signerType: SignerType;
-  network: string;
-  // BTC network values: "btc" | "btcTestnet" | "btcTestnet4" | "btcSignet" | "fractalBtc"
-};
-```
+Wallet integrations expose a separate signer for every compatible network they can switch to, such as `BTC`, `BTC Testnet`, and `BTC Signet`. The user selects the network directly in the connector; `connect()` then asks the wallet to switch when necessary. CKB mainnet clients only show mainnet-compatible signers.
 
 ## Custom UI with `SignersController`
 
@@ -304,7 +273,7 @@ Check that:
 - For EVM wallets, the wallet must implement EIP-6963 (MetaMask and most modern wallets do).
 
 **The user's BTC/EVM wallet is on the wrong network**
-Configure [`preferredNetworks`](#force-a-specific-network-per-wallet-type) so CCC prompts the wallet to switch.
+Disconnect and select the signer for the required network, such as `BTC` or `BTC Signet`.
 
 **Connection state is lost on page reload**
 CCC persists the last connection in `localStorage` and restores it on `Provider` mount. If it isn't restoring, make sure the `Provider` is mounted on every page (typically in your root layout).

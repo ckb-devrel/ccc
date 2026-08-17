@@ -18,17 +18,25 @@ export function getOKXSigners(
     okxwallet?: Record<string, BitcoinProvider> & { nostr: NostrProvider };
   };
 
-  if (typeof windowRef.okxwallet === "undefined") {
+  const okxwallet = windowRef.okxwallet;
+  if (typeof okxwallet === "undefined") {
     return [];
   }
 
+  const btcSigners = [
+    ["BTC", "btc"],
+    ...(client.addressPrefix !== "ckb" && okxwallet.bitcoinSignet
+      ? [["BTC Signet", "btcSignet"]]
+      : []),
+  ].map(([name, network]) => ({
+    signer: new BitcoinSigner(client, okxwallet, preferredNetworks, network),
+    name,
+  }));
+
   return [
+    ...btcSigners,
     {
-      signer: new BitcoinSigner(client, windowRef.okxwallet, preferredNetworks),
-      name: "BTC",
-    },
-    {
-      signer: new NostrSigner(client, windowRef.okxwallet.nostr),
+      signer: new NostrSigner(client, okxwallet.nostr),
       name: "Nostr",
     },
   ];
