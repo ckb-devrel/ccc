@@ -1,5 +1,16 @@
 # @ckb-ccc/connector
 
+## 1.3.0
+
+### Minor Changes
+
+- [#482](https://github.com/ckb-devrel/ccc/pull/482) [`403ac43`](https://github.com/ckb-devrel/ccc/commit/403ac439826c2b028ee8360881b9d723ca123509) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): styling variables for hovered button
+
+### Patch Changes
+
+- Updated dependencies [[`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1)]:
+  - @ckb-ccc/ccc@1.3.0
+
 ## 1.2.0
 
 ### Minor Changes

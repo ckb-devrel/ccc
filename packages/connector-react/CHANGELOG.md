@@ -1,5 +1,13 @@
 # @ckb-ccc/connector-react
 
+## 1.1.9
+
+### Patch Changes
+
+- [#482](https://github.com/ckb-devrel/ccc/pull/482) [`403ac43`](https://github.com/ckb-devrel/ccc/commit/403ac439826c2b028ee8360881b9d723ca123509) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): styling variables for hovered button
+- Updated dependencies [[`403ac43`](https://github.com/ckb-devrel/ccc/commit/403ac439826c2b028ee8360881b9d723ca123509)]:
+  - @ckb-ccc/connector@1.3.0
+
 ## 1.1.8
 
 ### Patch Changes
