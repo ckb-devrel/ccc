@@ -97,9 +97,10 @@ graph TD
 | Network key | Chain | Network type | Provider access |
 | ----------- | ----- | ------------ | --------------- |
 | `btc` | `bitcoin` | Mainnet | `this.providers.bitcoin` |
+| `btcSignet` | `bitcoinSignet` | Signet | `this.providers.bitcoinSignet` |
 
 <Callout type="warning">
-  OKX only supports Bitcoin mainnet. While the code includes mappings for `btcTestnet` and `btcSignet`, OKX no longer provides providers for these networks, so they are not actually available. See [the announcement](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet) for details.
+  OKX exposes Bitcoin mainnet and Signet signers. BTC Testnet is not listed because OKX discontinued its support. See [the announcement](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet) for details.
 </Callout>
 
 ### Account and public key retrieval

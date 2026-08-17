@@ -8,7 +8,7 @@ import { Wrench, MessageSquare, ShieldCheck } from 'lucide-react';
 
 本部分面向使用 AI 编程助手（Cursor、Claude Code、GitHub Copilot、Windsurf、ChatGPT……）在 CKB 上基于 CCC 开发的开发者。其唯一目标是：让你的助手写出**正确**的 CCC 代码，而不是自信满满地写出错误代码。
 
-为什么需要额外花这些功夫：CKB 采用 **Cell 模型**（泛化的 UTXO 模型），这在 LLM 训练数据中占绝大比重的以太坊相关内容里几乎不存在。如果不加引导，助手生成的 CCC 代码看起来像那么回事，但实际是错的——交易顺序不对、方法凭空捏造、该用 `bigint` 的地方用了 `number`、沿袭 EVM 风格的前提假设。CCC 提供了一套机器可读的 [Agent Skills](/skill.md)——包含一个 hub skill（`ckb-ccc-fundamentals`）和每个任务领域对应的 spoke skill（signer 配置、交易、UDT、Spore、playground、示例）——其中编码了 CCC 特有的规则；本部分页面会告诉你如何将这些 skill 喂给工具，并稳定获得正确输出。
+为什么需要额外花这些功夫：CKB 采用 **Cell 模型**（泛化的 UTXO 模型），这在 LLM 训练数据中占绝大比重的以太坊相关内容里几乎不存在。如果不加引导，助手生成的 CCC 代码看起来像那么回事，但实际是错的——交易顺序不对、方法凭空捏造、该用 `bigint` 的地方用了 `number`、沿袭 EVM 风格的前提假设。CCC 提供了一套机器可读的 [Agent Skills](https://docs.ckbccc.com/skill.md)——包含一个 hub skill（`ckb-ccc-fundamentals`）和每个任务领域对应的 spoke skill（signer 配置、交易、UDT、Spore、playground、示例）——其中编码了 CCC 特有的规则；本部分页面会告诉你如何将这些 skill 喂给工具，并稳定获得正确输出。
 
 ## 一次配置，之后无需操心
 

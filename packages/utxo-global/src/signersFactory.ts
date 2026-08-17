@@ -28,21 +28,39 @@ export function getUtxoGlobalSigners(
       name: "CKB",
       signer: new SignerCkb(client, windowRef.utxoGlobal.ckbSigner),
     },
-    {
-      name: "BTC",
-      signer: new SignerBtc(
-        client,
-        windowRef.utxoGlobal.bitcoinSigner,
-        preferredNetworks,
-      ),
-    },
-    {
-      name: "DOGE",
-      signer: new SignerDoge(
-        client,
-        windowRef.utxoGlobal.dogeSigner,
-        preferredNetworks,
-      ),
-    },
+    ...[
+      ["BTC", "btc"],
+      ["BTC Testnet", "btcTestnet"],
+      ["BTC Testnet4", "btcTestnet4"],
+      ["BTC Signet", "btcSignet"],
+    ]
+      .filter(
+        ([, network]) => client.addressPrefix !== "ckb" || network === "btc",
+      )
+      .map(([name, network]) => ({
+        name,
+        signer: new SignerBtc(
+          client,
+          windowRef.utxoGlobal!.bitcoinSigner,
+          preferredNetworks,
+          network,
+        ),
+      })),
+    ...[
+      ["DOGE", "doge"],
+      ["DOGE Testnet", "dogeTestnet"],
+    ]
+      .filter(
+        ([, network]) => client.addressPrefix !== "ckb" || network === "doge",
+      )
+      .map(([name, network]) => ({
+        name,
+        signer: new SignerDoge(
+          client,
+          windowRef.utxoGlobal!.dogeSigner,
+          preferredNetworks,
+          network,
+        ),
+      })),
   ];
 }

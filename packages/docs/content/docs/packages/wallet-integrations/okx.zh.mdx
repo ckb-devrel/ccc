@@ -97,9 +97,10 @@ graph TD
 | 网络键值       | 链      | 网络类型 | Provider 访问路径         |
 | -------------- | ------- | -------- | ------------------------- |
 | `btc`          | bitcoin | 主网     | `this.providers.bitcoin`  |
+| `btcSignet`    | bitcoinSignet | Signet | `this.providers.bitcoinSignet` |
 
 <Callout type="warning">
-  OKX 仅支持 Bitcoin 主网。虽然代码中保留了 `btcTestnet` 和 `btcSignet` 的映射，但 OKX 已不再为这些网络提供 Provider，实际上无法使用。详见[官方公告](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
+  OKX 提供 Bitcoin 主网和 Signet Signer。由于 OKX 已停止支持 BTC Testnet，因此不再展示 BTC Testnet。详见[官方公告](https://www.okx.com/help/okx-wallet-to-cease-support-for-the-btc-testnet)。
 </Callout>
 
 ### 账户与公钥获取

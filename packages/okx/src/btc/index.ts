@@ -6,45 +6,27 @@ import { BitcoinProvider } from "../advancedBarrel.js";
  * @public
  */
 export class BitcoinSigner extends ccc.SignerBtc {
-  private network = "btcTestnet";
-
   /**
    * Creates an instance of Signer.
    * @param client - The client instance.
    * @param providers - The providers instance.
-   * @param preferredNetworks - All preferred networks
+   * @param preferredNetworks - Deprecated network preferences (ignored).
+   * @param network - The network represented by this signer.
    */
   constructor(
     client: ccc.Client,
     public readonly providers: Record<string, BitcoinProvider>,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
+    public readonly network = "btc",
   ) {
     super(client);
   }
 
   get provider(): BitcoinProvider {
-    const { network } = this.matchNetworkPreference(
-      this.preferredNetworks,
-      this.network,
-    ) ?? { network: this.network };
-    this.network = network;
-
     const chain = {
       btc: "bitcoin",
-      btcTestnet: "bitcoinTestnet",
       btcSignet: "bitcoinSignet",
-    }[network];
+    }[this.network];
     if (!chain) {
       throw new Error(
         `OKX wallet doesn't support the requested chain ${this.network}`,
@@ -159,9 +141,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
       if ((await this.provider.getSelectedAccount()) === null) {
         return false;
       }
+    } else {
+      await this.connect();
     }
 
-    await this.connect();
     return true;
   }
 

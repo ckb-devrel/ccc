@@ -1,5 +1,17 @@
 # @ckb-ccc/core
 
+## 1.19.1
+
+### Patch Changes
+
+- [#485](https://github.com/ckb-devrel/ccc/pull/485) [`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): expose selectable wallet networks as separate signers
+
+## 1.19.0
+
+### Minor Changes
+
+- [#478](https://github.com/ckb-devrel/ccc/pull/478) [`2bec687`](https://github.com/ckb-devrel/ccc/commit/2bec687b6ec25449665c2d8e98d1a433b14b9d90) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Add `Proxy.Base` for creating wrappers that forward inherited members to an inner object
+
 ## 2.0.0-next.0
 ### Major Changes
 
@@ -33,7 +45,6 @@
 
 
 - [#433](https://github.com/ckb-devrel/ccc/pull/433) [`2a8f542`](https://github.com/ckb-devrel/ccc/commit/2a8f542ac2aa1f117991d5737a64da90ef3b138a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): reduce(Async) accept single value
-
 
 ## 1.18.2
 ### Patch Changes

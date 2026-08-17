@@ -128,6 +128,11 @@ export class SelectingScene extends LitElement {
 
     .text-tip {
       color: var(--tip-color);
+      transition: color 0.15s ease-in-out;
+    }
+
+    .text-tip:hover {
+      color: var(--tip-color-hover, var(--tip-color));
     }
 
     .mb-1 {

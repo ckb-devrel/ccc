@@ -256,13 +256,6 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
       signersController={new ccc.SignersController()}
         // Custom signers controller, see SignersController from @ckb-ccc/ccc
         // Overrides signerFilter
-      preferredNetworks={[
-        {
-          addressPrefix: "ckt",
-          signerType: ccc.SignerType.BTC,
-          network: "btc",
-        },
-      ]}
       hideMark // Hide "Powered by CCC"
     */
       clientOptions={[

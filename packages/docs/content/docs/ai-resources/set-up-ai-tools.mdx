@@ -4,7 +4,7 @@ description: Install CCC's Agent Skills into Cursor, Claude Code, GitHub Copilot
 icon: Wrench
 ---
  
-Your AI assistant only writes correct CCC code once it's actually loading CCC's rules. CCC ships these as a set of [Agent Skills](/skill.md) — one **hub skill**, `ckb-ccc-fundamentals` (package selection, Cell model, address/amount handling, hallucination guard), plus a **spoke skill** per task area (`ckb-ccc-signer-setup`, `ckb-ccc-transactions`, `ckb-ccc-udt`, `ckb-ccc-spore`, `ckb-ccc-playground`, `ckb-ccc-examples-finder`), all committed under `skills/` in the [CCC repo](https://github.com/ckb-devrel/ccc).
+Your AI assistant only writes correct CCC code once it's actually loading CCC's rules. CCC ships these as a set of [Agent Skills](https://docs.ckbccc.com/skill.md) — one **hub skill**, `ckb-ccc-fundamentals` (package selection, Cell model, address/amount handling, hallucination guard), plus a **spoke skill** per task area (`ckb-ccc-signer-setup`, `ckb-ccc-transactions`, `ckb-ccc-udt`, `ckb-ccc-spore`, `ckb-ccc-playground`, `ckb-ccc-examples-finder`), all committed under `skills/` in the [CCC repo](https://github.com/ckb-devrel/ccc).
  
 Install them with [`skills`](https://github.com/vercel-labs/skills), the open Agent Skills CLI — it auto-discovers the `skills/` directory and writes each skill to the right path for whichever tool(s) you target:
  
@@ -63,10 +63,10 @@ The skills cover the common cases, but for anything beyond them your assistant s
  
 | Resource | URL | Use it for |
 | --- | --- | --- |
-| Skills index | [`/skill.md`](/skill.md) | The default: lists every skill (hub + spoke), what each covers, and its raw `SKILL.md` URL. Load `ckb-ccc-fundamentals` first. |
-| Docs index | [`/llms.txt`](/llms.txt) | "Which page covers topic X?" A short, linked index of every docs page — fetch first to navigate. |
+| Skills index | [`/skill.md`](https://docs.ckbccc.com/skill.md) | The default: lists every skill (hub + spoke), what each covers, and its raw `SKILL.md` URL. Load `ckb-ccc-fundamentals` first. |
+| Docs index | [`/llms.txt`](https://docs.ckbccc.com/llms.txt) | "Which page covers topic X?" A short, linked index of every docs page — fetch first to navigate. |
 | Single page as Markdown | any docs URL `+ .md` | A focused how-to on one topic, e.g. `https://docs.ckbccc.com/en/docs/guides/udt-tokens.md`. Clean Markdown, no page chrome. |
-| Full docs dump | [`/llms-full.txt`](/llms-full.txt) | A broad question spanning several topics, when you want everything in one fetch. |
+| Full docs dump | [`/llms-full.txt`](https://docs.ckbccc.com/llms-full.txt) | A broad question spanning several topics, when you want everything in one fetch. |
 | API reference | [api.ckbccc.com](https://api.ckbccc.com) | Exact method signatures, parameter types, and enum values for any `@ckb-ccc/*` export. |
  
 <Callout type="info">

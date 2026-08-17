@@ -5,9 +5,11 @@ import { Ref, createRef, ref } from "lit/directives/ref.js";
 import {
   CloseEvent,
   ConnectedEvent,
+  FeeRateSelectedEvent,
   SelectClientEvent,
 } from "../events/index.js";
 import { SignersController } from "../signers/index.js";
+import { ClientWithFeeRate } from "./client.js";
 
 @customElement("ccc-connector")
 export class WebComponentConnector extends LitElement {
@@ -17,6 +19,7 @@ export class WebComponentConnector extends LitElement {
   public name?: string;
   @property()
   public icon?: string;
+  /** @deprecated This compatibility property is ignored. */
   @property()
   public preferredNetworks?: ccc.NetworkPreference[];
   @property()
@@ -24,8 +27,22 @@ export class WebComponentConnector extends LitElement {
   @state()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
 
+  private _client = new ClientWithFeeRate(new ccc.ClientPublicTestnet());
+
+  // The connector owns and may switch the active client internally, so it is
+  // state rather than an externally controlled property.
   @state()
-  public client: ccc.Client = new ccc.ClientPublicTestnet();
+  public get client(): ccc.Client {
+    return this._client;
+  }
+  public set client(client: ccc.Client) {
+    if (client === this._client || client === this._client[ccc.Proxy.inner]) {
+      return;
+    }
+
+    this._client = new ClientWithFeeRate(client);
+  }
+
   public setClient(client: ccc.Client) {
     this.client = client;
   }
@@ -154,8 +171,13 @@ export class WebComponentConnector extends LitElement {
                   ?hideMark=${this.hideMark}
                   .wallet=${this.wallet}
                   .signer=${this.signer.signer}
+                  .feeRate=${this._client.feeRate}
                   .clientOptions=${this.clientOptions}
                   @disconnect=${() => this.disconnect()}
+                  @fee-rate-selected=${(event: FeeRateSelectedEvent) => {
+                    this._client.feeRate = event.feeRate;
+                    this.requestUpdate();
+                  }}
                   @select-client=${(e: SelectClientEvent) =>
                     this.setClient(e.client)}
                   ${ref(this.bodyRef)}

@@ -97,7 +97,6 @@ import { PackageBadges } from '@/components/package-badges';
     { name: "Testnet", client: new ccc.ClientPublicTestnet() },
     { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
   ]}
-  preferredNetworks={[{ addressPrefix: "ckb", signerType: ccc.SignerType.BTC, network: "btc" }]}
 >
   {children}
 </ccc.Provider>
@@ -114,7 +113,34 @@ import { PackageBadges } from '@/components/package-badges';
 | `signersController` | `ccc.SignersController?`                   | Custom signers controller (advanced)               |
 | `defaultClient`     | `ccc.Client?`                              | The initial network client                         |
 | `clientOptions`     | `{ icon?, client, name }[]?`               | Network options to display in the connector        |
-| `preferredNetworks` | `ccc.NetworkPreference[]?`                 | Networks to prefer when a wallet supports multiple |
+
+## Styling the connector
+
+Pass CSS custom properties through `connectorProps.style`. The Provider starts
+with a complete light theme, so you only need to override the values your theme
+changes.
+
+```tsx
+<ccc.Provider
+  connectorProps={{
+    style: {
+      color: "#e6eef2",
+      "--background": "#11181c",
+      "--btn-primary": "#171d21",
+      "--btn-primary-hover": "#5bcefa",
+      "--btn-color": "#e6eef2",
+      "--btn-color-hover": "#070a0c",
+      "--tip-color": "#76858d",
+      "--tip-color-hover": "#31515f",
+    } as React.CSSProperties,
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+See the [`@ckb-ccc/connector` styling reference](./connector#styling-with-css-custom-properties)
+for the complete variable list, defaults, and fallback behavior.
 
 ## `useCcc()` hook
 

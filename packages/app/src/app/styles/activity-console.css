@@ -1,0 +1,347 @@
+.activity-console,
+.activity-console-panel {
+  --console-gutter: max(16px, calc((100vw - 1180px) / 2));
+}
+
+.footer-readout {
+  font-family: "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footer-readout span {
+  display: flex;
+  align-items: center;
+}
+
+.activity-console {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+.activity-console-panel {
+  position: fixed;
+  z-index: 18;
+  right: auto;
+  bottom: 33px;
+  left: var(--console-gutter);
+  width: min(760px, calc(100% - 32px));
+  max-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--line-dark);
+  background-color: rgb(17 24 28 / 98%);
+  background-image:
+    linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px),
+    linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px);
+  background-position: center;
+  background-size: 18px 18px;
+  transform: translateY(calc(100% + 1px));
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 600ms var(--easing-mechanical);
+}
+
+.activity-console-panel.is-open {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.activity-console-panel > header {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgb(7 10 12 / 72%);
+}
+
+.activity-console-panel > header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+}
+
+.activity-console-panel > header strong {
+  color: var(--muted);
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+}
+
+.activity-console-panel > header button {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  text-transform: uppercase;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.activity-console-panel > header button:not(:disabled):hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.activity-console-panel > header button:disabled {
+  opacity: 0.3;
+}
+
+.activity-log {
+  max-height: 266px;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-color: var(--line-dark) transparent;
+  scrollbar-width: thin;
+}
+
+.activity-entry {
+  display: grid;
+  min-height: 32px;
+  align-items: baseline;
+  grid-template-columns: 65px 84px minmax(0, 1fr);
+  gap: 10px;
+  padding: 7px 14px;
+  border-left: 2px solid transparent;
+  font:
+    400 11px/1.45 "Courier New",
+    monospace;
+}
+
+.activity-entry:hover {
+  background: rgb(230 238 242 / 3%);
+}
+
+.activity-entry time,
+.activity-entry > span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.activity-entry strong {
+  overflow-wrap: anywhere;
+  font-weight: 400;
+}
+
+.activity-entry.is-success {
+  border-left-color: var(--signal);
+}
+
+.activity-entry.is-error {
+  border-left-color: var(--error);
+}
+
+.activity-entry.is-error strong {
+  color: var(--error);
+}
+
+.activity-log-empty {
+  display: grid;
+  min-height: 92px;
+  place-items: center;
+  color: var(--muted);
+  font:
+    700 11px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer-readout {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 34px;
+  align-items: center;
+  gap: 20px;
+  padding-right: var(--console-gutter);
+  padding-left: var(--console-gutter);
+  border-top: 1px solid var(--line-dark);
+  color: var(--muted);
+  background: transparent;
+  font-size: 10px;
+}
+
+.footer-readout span {
+  gap: 5px;
+}
+
+.footer-readout > span,
+.network-switch {
+  flex: 0 0 auto;
+}
+
+.network-switch {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  transition: color 160ms ease;
+}
+
+.network-switch:hover,
+.network-switch:focus-visible {
+  color: var(--signal);
+  outline: none;
+}
+
+.activity-console-toggle {
+  display: flex;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  height: 33px;
+  flex: 0 1 auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  padding: 0 0 0 13px;
+  border: 0;
+  border-left: 1px solid var(--line-dark);
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  overflow: hidden;
+  transition: color 160ms ease;
+}
+
+.activity-console-toggle > span {
+  overflow: hidden;
+  min-width: 0;
+  flex: 0 1 auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-console-preview-measure {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.activity-console-preview {
+  position: relative;
+  height: 100%;
+  align-self: stretch;
+  line-height: 1;
+  transition: width 460ms var(--easing-mechanical);
+}
+
+.activity-console-toggle > .activity-console-preview {
+  overflow: visible;
+}
+
+.activity-console-preview > .activity-console-preview-line {
+  display: block;
+  overflow: hidden;
+  width: max-content;
+  height: 100%;
+  max-width: 100%;
+  min-width: 0;
+  line-height: 33px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-console-preview-line.is-leaving {
+  position: absolute;
+  inset: 0;
+  animation: activity-preview-slot-out 460ms var(--easing-mechanical) both;
+}
+
+.activity-console-preview-line.is-entering {
+  animation: activity-preview-slot-in 460ms var(--easing-mechanical) 55ms both;
+}
+
+@keyframes activity-preview-slot-out {
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@keyframes activity-preview-slot-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.activity-console-toggle > svg {
+  flex: 0 0 auto;
+}
+
+.activity-console-toggle > .activity-console-error-icon {
+  color: var(--error);
+}
+
+.activity-console-toggle svg:last-child {
+  transition: transform 220ms var(--easing-mechanical);
+}
+
+.activity-console-toggle:hover,
+.activity-console.is-open .activity-console-toggle {
+  color: var(--signal);
+}
+
+.activity-console.is-open .activity-console-toggle svg:last-child {
+  transform: rotate(180deg);
+}
+
+@media (max-width: 680px) {
+  .activity-console,
+  .activity-console-panel {
+    --console-gutter: 10px;
+  }
+
+  .activity-console-panel {
+    width: calc(100% - 20px);
+  }
+
+  .footer-readout {
+    gap: 10px;
+  }
+
+  .activity-console-panel > header > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .activity-entry {
+    grid-template-columns: 54px 62px minmax(0, 1fr);
+    gap: 7px;
+    padding-inline: 10px;
+  }
+
+  .activity-console-toggle {
+    padding-left: 10px;
+  }
+}

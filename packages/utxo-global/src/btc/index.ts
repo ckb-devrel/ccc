@@ -10,18 +10,8 @@ export class SignerBtc extends ccc.SignerBtc {
   constructor(
     client: ccc.Client,
     public readonly provider: Provider,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
+    public readonly network = "btc",
   ) {
     super(client);
   }
@@ -78,15 +68,11 @@ export class SignerBtc extends ccc.SignerBtc {
       btc_signet: "btcSignet",
     }[await this.provider.getNetwork()];
 
-    const { network } = this.matchNetworkPreference(
-      this.preferredNetworks,
-      currentNetwork,
-    ) ?? { network: currentNetwork };
-    if (network === currentNetwork) {
+    if (this.network === currentNetwork) {
       return;
     }
 
-    return network;
+    return this.network;
   }
 
   onReplaced(listener: () => void): () => void {

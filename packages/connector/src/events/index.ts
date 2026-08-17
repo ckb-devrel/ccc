@@ -6,6 +6,12 @@ export class SelectClientEvent extends Event {
   }
 }
 
+export class FeeRateSelectedEvent extends Event {
+  constructor(public readonly feeRate?: ccc.Num) {
+    super("fee-rate-selected", { bubbles: true, composed: true });
+  }
+}
+
 export class ConnectedEvent extends Event {
   constructor(
     public readonly walletName: string,

@@ -94,7 +94,6 @@ import { PackageBadges } from '@/components/package-badges';
     { name: "Testnet", client: new ccc.ClientPublicTestnet() },
     { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
   ]}
-  preferredNetworks={[{ addressPrefix: "ckb", signerType: ccc.SignerType.BTC, network: "btc" }]}
 >
   {children}
 </ccc.Provider>
@@ -111,7 +110,33 @@ import { PackageBadges } from '@/components/package-badges';
 | `signersController` | `ccc.SignersController?`                   | 自定义 Signers Controller（高级用法）              |
 | `defaultClient`     | `ccc.Client?`                              | 初始网络客户端                                     |
 | `clientOptions`     | `{ icon?, client, name }[]?`               | 在连接器中展示的可选网络列表                       |
-| `preferredNetworks` | `ccc.NetworkPreference[]?`                 | 当钱包支持多网络时优先使用的网络                   |
+
+## 调整 Connector 样式
+
+通过 `connectorProps.style` 传入 CSS 自定义属性。Provider 已提供一套完整的
+浅色默认主题，因此只需要覆盖当前主题会改变的值。
+
+```tsx
+<ccc.Provider
+  connectorProps={{
+    style: {
+      color: "#e6eef2",
+      "--background": "#11181c",
+      "--btn-primary": "#171d21",
+      "--btn-primary-hover": "#5bcefa",
+      "--btn-color": "#e6eef2",
+      "--btn-color-hover": "#070a0c",
+      "--tip-color": "#76858d",
+      "--tip-color-hover": "#31515f",
+    } as React.CSSProperties,
+  }}
+>
+  {children}
+</ccc.Provider>
+```
+
+完整变量清单、默认值及回退行为请参阅
+[`@ckb-ccc/connector` 样式参考](./connector#使用-css-自定义属性调整样式)。
 
 ## `useCcc()` Hook
 

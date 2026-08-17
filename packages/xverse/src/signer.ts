@@ -10,6 +10,7 @@ import {
   Return,
   RpcErrorCode,
   RpcResponse,
+  WalletNetworkName,
   rpcErrorResponseMessageSchema,
   rpcSuccessResponseMessageSchema,
 } from "./advancedBarrel.js";
@@ -50,44 +51,45 @@ export class Signer extends ccc.SignerBtc {
   constructor(
     client: ccc.Client,
     public readonly provider: BtcProvider,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
+    public readonly network?: WalletNetworkName,
   ) {
     super(client);
   }
 
   async assertAddress(): Promise<Address> {
-    this.addressCache =
-      this.addressCache ??
-      (async () => {
-        if (!(await this.isConnected())) {
-          return;
-        }
+    const request = this.addressCache ?? this.requestAddress();
+    this.addressCache = request;
 
-        return (
-          await checkResponse(
-            this.provider.request("getAddresses", {
-              purposes: [AddressPurpose.Payment],
-            }),
-          )
-        ).addresses[0];
-      })();
-    const address = await this.addressCache;
+    let address: Address | undefined;
+    try {
+      address = await request;
+    } catch (error) {
+      if (this.addressCache === request) {
+        this.addressCache = undefined;
+      }
+      throw error;
+    }
 
     if (address) {
       return address;
     }
+    this.addressCache = undefined;
     throw Error("Not connected");
+  }
+
+  private async requestAddress(): Promise<Address | undefined> {
+    if (this.network && (await this.getNetwork()) !== this.network) {
+      return;
+    }
+
+    return (
+      await checkResponse(
+        this.provider.request("getAddresses", {
+          purposes: [AddressPurpose.Payment],
+        }),
+      )
+    ).addresses[0];
   }
 
   /**
@@ -118,6 +120,13 @@ export class Signer extends ccc.SignerBtc {
     await checkResponse(
       this.provider.request("wallet_requestPermissions", undefined),
     );
+    const currentNetwork = this.network ? await this.getNetwork() : undefined;
+    if (this.network && currentNetwork !== this.network) {
+      await checkResponse(
+        this.provider.request("wallet_changeNetwork", { name: this.network }),
+      );
+      this.addressCache = undefined;
+    }
   }
 
   async disconnect(): Promise<void> {
@@ -125,17 +134,20 @@ export class Signer extends ccc.SignerBtc {
   }
 
   onReplaced(listener: () => void): () => void {
-    const stop: (() => void)[] = [];
+    const stops: (() => void)[] = [];
+    const stop = () => {
+      stops.splice(0).forEach((unregister) => unregister());
+    };
     const replacer = () => {
       listener();
-      stop[0]?.();
+      stop();
     };
-    stop.push(
+    stops.push(
       this.provider.addListener("accountChange", replacer),
       this.provider.addListener("networkChange", replacer),
     );
 
-    return stop[0];
+    return stop;
   }
 
   /**
@@ -144,11 +156,23 @@ export class Signer extends ccc.SignerBtc {
    */
   async isConnected(): Promise<boolean> {
     try {
-      await checkResponse(this.provider.request("getBalance", undefined));
-      return true;
+      const address = await this.requestAddress();
+      if (address) {
+        this.addressCache = Promise.resolve(address);
+      } else {
+        this.addressCache = undefined;
+      }
+      return address !== undefined;
     } catch (_error) {
+      this.addressCache = undefined;
       return false;
     }
+  }
+
+  private async getNetwork(): Promise<WalletNetworkName> {
+    return (
+      await checkResponse(this.provider.request("wallet_getNetwork", null))
+    ).bitcoin.name;
   }
 
   /**

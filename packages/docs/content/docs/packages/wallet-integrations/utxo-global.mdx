@@ -79,17 +79,17 @@ graph TB
 
 ### Entry point: `getUtxoGlobalSigners`
 
-`getUtxoGlobalSigners(client, preferredNetworks?)` checks for `window.utxoGlobal` and returns a `SignerInfo[]` array with all three signers — or an empty array if the wallet isn't available:
+`getUtxoGlobalSigners(client)` checks for `window.utxoGlobal` and returns CKB, four fixed-network BTC signers, and two fixed-network Dogecoin signers — or an empty array if the wallet isn't available.
 
 ```mermaid
 graph TD
     Start["getUtxoGlobalSigners(client)"] --> Check["window.utxoGlobal exists?"]
     Check -->|No| Empty["return []"]
-    Check -->|Yes| Create["Create three SignerInfo entries"]
+    Check -->|Yes| Create["Create fixed-network SignerInfo entries"]
 
     Create --> CKB["SignerCkb (name: 'CKB')"]
-    Create --> BTC["SignerBtc (name: 'BTC')"]
-    Create --> DOGE["SignerDoge (name: 'DOGE')"]
+    Create --> BTC["BTC / BTC Testnet / Testnet4 / Signet"]
+    Create --> DOGE["DOGE / DOGE Testnet"]
 
     CKB --> Array["SignerInfo[]"]
     BTC --> Array

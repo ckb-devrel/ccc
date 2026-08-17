@@ -1,6 +1,9 @@
 import { Zero } from "../fixedPoint/index.js";
 import { NumLike, numFrom, numToHex, type Num } from "../num/index.js";
 
+export * from "./constructor.js";
+export * from "./proxy.js";
+
 /**
  * A type safe way to apply a transformer on a value if it's not empty.
  * @public
@@ -254,11 +257,6 @@ export async function reduceAsync<T, V>(
 export function sleep(ms: NumLike) {
   return new Promise((resolve) => setTimeout(resolve, Number(numFrom(ms))));
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Constructor<T, Args extends any[] = any[]> = {
-  new (...args: Args): T;
-};
 
 /**
  * @public

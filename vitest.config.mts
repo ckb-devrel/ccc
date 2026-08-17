@@ -6,6 +6,7 @@ const packages = [
   "packages/type-id",
   "packages/co-build",
   "packages/coin",
+  "packages/nip07",
 ];
 
 export default defineConfig({

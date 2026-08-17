@@ -47,7 +47,7 @@
     "eslint-plugin-prettier": "^5.5.6",
     "prettier": "^3.8.4",
     "prettier-plugin-organize-imports": "^4.3.0",
-    "tsdown": "0.22.12",
+    "tsdown": "0.22.14",
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.61.1",
@@ -71,11 +71,11 @@
   "packageManager": "pnpm@11.8.0",
   "types": "./dist.commonjs/index.d.ts",
   "inlinedDependencies": {
-    "@noble/ciphers": "2.2.0",
-    "@noble/curves": "2.2.0",
+    "@noble/ciphers": "2.3.0",
+    "@noble/curves": "2.3.0",
     "@noble/hashes": [
       "1.8.0",
-      "2.2.0"
+      "2.3.0"
     ],
     "base-x": "5.0.1",
     "bs58": "6.0.0",

@@ -68,15 +68,15 @@ graph TB
 
 ### Entry point: `getXverseSigners`
 
-`getXverseSigners(client, preferredNetworks?)` reads from `window.btc_providers` and returns a `{ wallet, signerInfo }[]` array — one entry per discovered wallet:
+`getXverseSigners(client)` reads from `window.btc_providers`. Xverse and providers supporting the WBIP network methods get separate Mainnet, Testnet4, Signet, and Regtest entries; legacy providers retain a single `BTC` entry.
 
 ```mermaid
 graph TD
     Start["getXverseSigners(client)"] --> Check["window.btc_providers exists?"]
     Check -->|No| Empty["return []"]
     Check -->|Yes| Iter["For each provider in btc_providers"]
-    Iter --> Create["new Signer(client, getProviderById(provider.id))"]
-    Create --> Result["{ wallet: {name, icon}, signerInfo: {name: 'BTC', signer} }"]
+    Iter --> Create["Create fixed-network signers"]
+    Create --> Result["BTC / BTC Testnet4 / Signet / Regtest"]
 ```
 
 Each provider entry includes wallet metadata (`name`, `icon`) allowing `SignersController` to display distinct wallet entries.
@@ -89,9 +89,9 @@ Each provider entry includes wallet metadata (`name`, `icon`) allowing `SignersC
 
 | Method                    | Description |
 | ------------------------- | ----------- |
-| `connect()`               | Calls `wallet_requestPermissions` if not already connected |
+| `connect()`               | Requests permissions and switches to the selected network |
 | `disconnect()`            | Clears the cached address |
-| `isConnected()`           | Attempts `getBalance` — returns `true` on success |
+| `isConnected()`           | Checks the selected network, then reads the payment address without prompting |
 | `getBtcAccount()`         | Returns the payment address via `getAddresses` |
 | `getBtcPublicKey()`       | Returns the public key from the payment address |
 | `signMessageRaw(message)` | Signs via `signMessage` with ECDSA protocol |
@@ -113,19 +113,21 @@ sequenceDiagram
         Signer->>Wallet: wallet_requestPermissions
         Wallet->>Signer: granted
     end
+    opt Fixed-network signer
+        Signer->>Wallet: wallet_getNetwork
+        Wallet->>Signer: current network
+        alt Network differs from selected network
+            Signer->>Wallet: wallet_changeNetwork({name: selectedNetwork})
+            Wallet->>Signer: switched
+            Signer->>Signer: Clear cached address
+        end
+    end
     App->>Signer: getBtcAccount()
     Signer->>Wallet: getAddresses({purposes: [Payment]})
     Wallet->>Signer: addresses[0]
     Signer->>Signer: Cache address
     Signer->>App: address.address
 ```
-
-### Network preferences
-
-| CKB Network     | Default BTC Network |
-| --------------- | ------------------- |
-| Mainnet (`ckb`) | `btc` |
-| Testnet (`ckt`) | `btcTestnet` |
 
 ### Signing flow
 
@@ -159,7 +161,6 @@ Returns cleanup functions from `provider.addListener()` for proper teardown.
 | --------------------------- | ----------- |
 | `wallet_requestPermissions` | Request wallet connection permissions |
 | `getAddresses`              | Get addresses filtered by purpose (Payment, Ordinals, etc.) |
-| `getBalance`                | Get wallet balance (used for connection check) |
 | `signMessage`               | Sign a message with ECDSA or BIP-322 |
 
 ## Integration pattern

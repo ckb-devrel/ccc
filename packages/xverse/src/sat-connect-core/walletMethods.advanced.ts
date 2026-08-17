@@ -56,3 +56,19 @@ export type GetWalletType = MethodParamsAndResult<
   v.InferOutput<typeof getWalletTypeParamsSchema>,
   v.InferOutput<typeof getWalletTypeResultSchema>
 >;
+
+export type WalletNetworkName = "Mainnet" | "Testnet4" | "Signet" | "Regtest";
+
+export type GetNetwork = MethodParamsAndResult<
+  null,
+  {
+    bitcoin: { name: WalletNetworkName };
+    stacks?: { name: string };
+    spark?: { name: string };
+  }
+>;
+
+export type ChangeNetwork = MethodParamsAndResult<
+  { name: WalletNetworkName },
+  null
+>;

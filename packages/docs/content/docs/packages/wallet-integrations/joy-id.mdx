@@ -174,10 +174,10 @@ new BitcoinSigner(
   client: ccc.Client,
   name: string,
   icon: string,
-  preferredNetworks?: ccc.NetworkPreference[],  // defaults to btc/btcTestnet
   addressType?: "auto" | "p2wpkh" | "p2tr",     // defaults to "auto"
   _appUri?: string,
-  connectionsRepo?: ConnectionsRepo
+  connectionsRepo?: ConnectionsRepo,
+  network?: "btc" | "btcTestnet"                 // defaults to "btc"
 )
 ```
 
@@ -251,20 +251,21 @@ function getJoyIdSigners(
   client: ccc.Client,
   name: string,
   icon: string,
-  preferredNetworks?: ccc.NetworkPreference[],
 ): ccc.SignerInfo[]
 ```
+
+The factory returns Mainnet and Testnet variants for each BTC address mode.
 
 **Returned Signers (standard browser environment):**
 
 | name | Signer Type |
 |------|------------|
 | `"CKB"` | `CkbSigner` |
-| `"BTC"` | `BitcoinSigner` (auto) |
+| `"BTC"` / `"BTC Testnet"` | `BitcoinSigner` (auto) |
 | `"Nostr"` | `NostrSigner` |
 | `"EVM"` | `EvmSigner` |
-| `"BTC (P2WPKH)"` | `BitcoinSigner` (p2wpkh) |
-| `"BTC (P2TR)"` | `BitcoinSigner` (p2tr) |
+| `"BTC (P2WPKH)"` / `"BTC Testnet (P2WPKH)"` | `BitcoinSigner` (p2wpkh) |
+| `"BTC (P2TR)"` / `"BTC Testnet (P2TR)"` | `BitcoinSigner` (p2tr) |
 
 **WebView / Standalone Browser Fallback:**
 

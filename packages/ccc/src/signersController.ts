@@ -275,10 +275,21 @@ export class SignersController {
         signers: [signerInfo],
       });
     } else {
-      const signers = [...wallet.signers, signerInfo].filter(
+      const allSigners = [...wallet.signers, signerInfo];
+      const signers = allSigners.filter(
         ({ signer }) => !(signer instanceof ccc.SignerDummy),
       );
-      wallet.signers = signers.length !== 0 ? signers : [signerInfo];
+      const nextSigners = signers.length !== 0 ? signers : allSigners;
+      const duplicate = nextSigners.find(
+        ({ name }, index) =>
+          nextSigners.findIndex((entry) => entry.name === name) !== index,
+      );
+      if (duplicate) {
+        throw new Error(
+          `Duplicate signer name "${duplicate.name}" in wallet "${walletName}"`,
+        );
+      }
+      wallet.signers = nextSigners;
     }
 
     onUpdate(wallets);

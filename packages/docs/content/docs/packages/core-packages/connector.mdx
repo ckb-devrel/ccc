@@ -51,6 +51,15 @@ connector.disconnect(); // disconnect the current wallet
 connector.setClient(newClient); // switch networks
 ```
 
+## Select a transaction fee rate
+
+The connected-wallet view includes a **Fee Rate** entry above **Manage**, so
+applications do not need to provide a separate trigger. It opens the selector
+inside the same modal and offers economy, auto, and custom
+rates. Selections apply immediately; use the back button to return to the
+connected-wallet view. For now, the selection is retained by the connector UI
+only.
+
 ## Usage in plain HTML
 
 ```html
@@ -114,6 +123,47 @@ connector.addEventListener("willUpdate", () => {
 
 // Switch to mainnet
 connector.setClient(new ccc.ClientPublicMainnet());
+```
+
+## Styling with CSS custom properties
+
+Set CSS custom properties on `<ccc-connector>` to theme the built-in UI. The
+Web Component consumes the variables listed below; the defaults shown are the
+light theme supplied by `@ckb-ccc/connector-react`.
+
+| Custom property | React default | Controls |
+| --- | --- | --- |
+| `--background` | `#fff` | Dialog and input base background |
+| `--divider` | `#eee` | Dividers and separators |
+| `--btn-primary` | `#f8f8f8` | Primary button background |
+| `--btn-primary-hover` | `#efeeee` | Primary button hover and selected background |
+| `--btn-secondary` | `#ddd` | Secondary pill button background |
+| `--btn-secondary-hover` | `#ccc` | Secondary pill button hover background |
+| `--btn-color` | `color` (`#1e1e1e`) | Button text, SVG icon, and embedded input text |
+| `--btn-color-hover` | `--btn-color` | Button content on hover or when selected |
+| `--icon-primary` | `#1E1E1E` | Primary icons |
+| `--icon-secondary` | `#666666` | Secondary icons |
+| `--tip-color` | `#666` | Supporting and tip text |
+| `--tip-color-hover` | `--tip-color` | Interactive tip text on hover or when selected |
+
+The connector's regular text inherits the standard CSS `color` property.
+When omitted, `--btn-color` also inherits `color`, `--btn-color-hover` falls
+back to `--btn-color`, and `--tip-color-hover` falls back to `--tip-color`.
+
+```html
+<ccc-connector
+  style="
+    color: #e6eef2;
+    --background: #11181c;
+    --divider: #28343a;
+    --btn-primary: #171d21;
+    --btn-primary-hover: #5bcefa;
+    --btn-color: #e6eef2;
+    --btn-color-hover: #070a0c;
+    --tip-color: #76858d;
+    --tip-color-hover: #31515f;
+  "
+></ccc-connector>
 ```
 
 ## Comparison with `@ckb-ccc/connector-react`

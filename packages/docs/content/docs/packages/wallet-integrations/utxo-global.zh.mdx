@@ -79,7 +79,7 @@ graph TB
 
 ### 入口：`getUtxoGlobalSigners`
 
-`getUtxoGlobalSigners(client, preferredNetworks?)` 检查 `window.utxoGlobal` 是否存在，并返回包含三个 Signer 的 `SignerInfo[]` 数组——钱包不可用时返回空数组：
+`getUtxoGlobalSigners(client)` 检查 `window.utxoGlobal` 是否存在，并返回 CKB、四个固定网络 BTC Signer 和两个固定网络 Dogecoin Signer——钱包不可用时返回空数组。
 
 ```mermaid
 graph TD

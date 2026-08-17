@@ -1,5 +1,21 @@
 # @ckb-ccc/did-ckb
 
+## 0.2.9
+
+### Patch Changes
+
+- Updated dependencies [[`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1)]:
+  - @ckb-ccc/core@1.19.1
+  - @ckb-ccc/type-id@0.1.9
+
+## 0.2.8
+
+### Patch Changes
+
+- Updated dependencies [[`2bec687`](https://github.com/ckb-devrel/ccc/commit/2bec687b6ec25449665c2d8e98d1a433b14b9d90)]:
+  - @ckb-ccc/core@1.19.0
+  - @ckb-ccc/type-id@0.1.8
+
 ## 0.3.0-next.0
 ### Minor Changes
 

@@ -35,15 +35,35 @@ export function getJoyIdSigners(
     );
   }
 
+  const btcNetworks = [
+    ["BTC", "btc"],
+    ["BTC Testnet", "btcTestnet"],
+  ].filter(
+    ([, network]) => client.addressPrefix !== "ckb" || network === "btc",
+  );
+  const createBtcSigners = (addressType: "auto" | "p2wpkh" | "p2tr") =>
+    btcNetworks.map(([networkName, network]) => ({
+      name: `${networkName}${
+        addressType === "auto" ? "" : ` (${addressType.toUpperCase()})`
+      }`,
+      signer: new BitcoinSigner(
+        client,
+        name,
+        icon,
+        preferredNetworks,
+        addressType,
+        undefined,
+        undefined,
+        network,
+      ),
+    }));
+
   return [
     {
       name: "CKB",
       signer: new CkbSigner(client, name, icon),
     },
-    {
-      name: "BTC",
-      signer: new BitcoinSigner(client, name, icon, preferredNetworks),
-    },
+    ...createBtcSigners("auto"),
     {
       name: "Nostr",
       signer: new NostrSigner(client, name, icon),
@@ -52,19 +72,7 @@ export function getJoyIdSigners(
       name: "EVM",
       signer: new EvmSigner(client, name, icon),
     },
-    {
-      name: "BTC (P2WPKH)",
-      signer: new BitcoinSigner(
-        client,
-        name,
-        icon,
-        preferredNetworks,
-        "p2wpkh",
-      ),
-    },
-    {
-      name: "BTC (P2TR)",
-      signer: new BitcoinSigner(client, name, icon, preferredNetworks, "p2tr"),
-    },
+    ...createBtcSigners("p2wpkh"),
+    ...createBtcSigners("p2tr"),
   ];
 }

@@ -14,18 +14,8 @@ export class Signer extends ccc.SignerBtc {
   constructor(
     client: ccc.Client,
     public readonly provider: Provider,
-    private readonly preferredNetworks: ccc.NetworkPreference[] = [
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-    ],
+    _preferredNetworks?: ccc.NetworkPreference[],
+    public readonly network = "btc",
   ) {
     super(client);
   }
@@ -37,7 +27,10 @@ export class Signer extends ccc.SignerBtc {
           {
             BITCOIN_MAINNET: "btc",
             BITCOIN_TESTNET: "btcTestnet",
+            BITCOIN_TESTNET4: "btcTestnet4",
+            BITCOIN_SIGNET: "btcSignet",
             FRACTAL_BITCOIN_MAINNET: "fractalBtc",
+            FRACTAL_BITCOIN_TESTNET: "fractalBtcTestnet",
           }[(await this.provider.getChain()).enum] ?? ""
         );
       }
@@ -45,15 +38,11 @@ export class Signer extends ccc.SignerBtc {
         ? "btc"
         : "btcTestnet";
     })();
-    const { network } = this.matchNetworkPreference(
-      this.preferredNetworks,
-      currentNetwork,
-    ) ?? { network: currentNetwork };
-    if (network === currentNetwork) {
+    if (this.network === currentNetwork) {
       return;
     }
 
-    return network;
+    return this.network;
   }
 
   /**
@@ -68,7 +57,10 @@ export class Signer extends ccc.SignerBtc {
       const chain = {
         btc: "BITCOIN_MAINNET",
         btcTestnet: "BITCOIN_TESTNET",
+        btcTestnet4: "BITCOIN_TESTNET4",
+        btcSignet: "BITCOIN_SIGNET",
         fractalBtc: "FRACTAL_BITCOIN_MAINNET",
+        fractalBtcTestnet: "FRACTAL_BITCOIN_TESTNET",
       }[network];
       if (chain) {
         await this.provider.switchChain(chain);
