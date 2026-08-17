@@ -1,5 +1,24 @@
 # @ckb-ccc/ccc
 
+## 1.3.0
+
+### Minor Changes
+
+- [#485](https://github.com/ckb-devrel/ccc/pull/485) [`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): expose selectable wallet networks as separate signers
+
+### Patch Changes
+
+- Updated dependencies [[`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1)]:
+  - @ckb-ccc/joy-id@1.2.0
+  - @ckb-ccc/okx@1.2.0
+  - @ckb-ccc/uni-sat@1.2.0
+  - @ckb-ccc/utxo-global@1.2.0
+  - @ckb-ccc/xverse@1.2.0
+  - @ckb-ccc/eip6963@1.1.9
+  - @ckb-ccc/nip07@1.1.9
+  - @ckb-ccc/rei@1.1.9
+  - @ckb-ccc/shell@1.3.9
+
 ## 1.2.8
 
 ### Patch Changes

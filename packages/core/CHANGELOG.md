@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.19.1
+
+### Patch Changes
+
+- [#485](https://github.com/ckb-devrel/ccc/pull/485) [`9b5e9c6`](https://github.com/ckb-devrel/ccc/commit/9b5e9c6439f0bbb4c24f9e8bd99e94c3c374dff1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): expose selectable wallet networks as separate signers
+
 ## 1.19.0
 
 ### Minor Changes
