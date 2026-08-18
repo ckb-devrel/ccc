@@ -51,6 +51,10 @@ export class TransportWebSocket implements Transport {
         this.ongoing.delete(id);
 
         resolve(res);
+
+        if (this.ongoing.size === 0 && socket.readyState === socket.OPEN) {
+          socket.close();
+        }
       };
       const onClose = () => {
         this.ongoing.forEach(([_, reject, timeout]) => {
