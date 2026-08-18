@@ -4,6 +4,7 @@ import { Nip07 } from "@ckb-ccc/nip07";
 import { Okx } from "@ckb-ccc/okx";
 import { Rei } from "@ckb-ccc/rei";
 import { ccc } from "@ckb-ccc/shell";
+import { SupeRISE } from "@ckb-ccc/superise";
 import { UniSat } from "@ckb-ccc/uni-sat";
 import { UtxoGlobal } from "@ckb-ccc/utxo-global";
 import { Xverse } from "@ckb-ccc/xverse";
@@ -13,6 +14,7 @@ import { METAMASK_SVG } from "./assets/metamask.svg.js";
 import { NOSTR_SVG } from "./assets/nostr.svg.js";
 import { OKX_SVG } from "./assets/okx.svg.js";
 import { REI_SVG } from "./assets/rei.svg.js";
+import { SUPERISE_SVG } from "./assets/superise.svg.js";
 import { UNI_SAT_SVG } from "./assets/uni-sat.svg.js";
 import { UTXO_GLOBAL_SVG } from "./assets/utxo-global.svg.js";
 
@@ -124,6 +126,14 @@ export class SignersController {
 
   async addRealSigners(context: SignersControllerRefreshContext) {
     const { appName, appIcon, client, preferredNetworks } = context;
+
+    await this.addSigners(
+      "SupeRISE",
+      SUPERISE_SVG,
+      SupeRISE.getSupeRISESigners(client, preferredNetworks),
+      context,
+    );
+
     await this.addSigners(
       "UTXO Global Wallet",
       UTXO_GLOBAL_SVG,
