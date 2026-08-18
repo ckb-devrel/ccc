@@ -1,11 +1,11 @@
 import WebSocket from "isomorphic-ws";
-import { JsonRpcPayload, Transport } from "./transport.js";
+import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
 
 export class TransportWebSocket implements Transport {
   private ongoing: Map<
     number,
     [
-      (response: unknown) => unknown,
+      (response: JsonRpcResponse) => unknown,
       (error: unknown) => unknown,
       ReturnType<typeof setTimeout>,
     ]
@@ -18,28 +18,31 @@ export class TransportWebSocket implements Transport {
     private readonly timeout = 30000,
   ) {}
 
-  request(data: JsonRpcPayload) {
-    const socket = (() => {
+  request(data: JsonRpcPayload): Promise<JsonRpcResponse> {
+    const [socketUnsafe, socket] = (() => {
       if (
         this.socket &&
         this.socket.readyState !== this.socket.CLOSING &&
         this.socket.readyState !== this.socket.CLOSED &&
         this.openSocket
       ) {
-        return this.openSocket;
+        return [this.socket, this.openSocket] as const;
       }
       const socket = new WebSocket(this.url);
       const onMessage = ({ data }: WebSocket.MessageEvent) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const res = JSON.parse(data as string);
+        let res: JsonRpcResponse;
+        try {
+          res = JSON.parse(data as string) as JsonRpcResponse;
+        } catch (_) {
+          return;
+        }
         if (
           typeof res !== "object" ||
           res === null ||
           typeof res.id !== "number"
         ) {
-          throw new Error(`Unknown response ${data as string}`);
+          return;
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const id: number = res.id;
 
         const req = this.ongoing.get(id);
@@ -74,12 +77,12 @@ export class TransportWebSocket implements Transport {
           };
         }
       });
-      return this.openSocket;
+      return [socket, this.openSocket] as const;
     })();
 
-    return new Promise((resolve, reject) => {
+    return new Promise<JsonRpcResponse>((resolve, reject) => {
       const req: [
-        (res: unknown) => unknown,
+        (res: JsonRpcResponse) => unknown,
         (err: unknown) => unknown,
         ReturnType<typeof setTimeout>,
       ] = [
@@ -87,9 +90,7 @@ export class TransportWebSocket implements Transport {
         reject,
         setTimeout(() => {
           this.ongoing.delete(data.id);
-          void socket
-            .then((socket) => socket.close())
-            .catch((err) => reject(err));
+          socketUnsafe.close();
           reject(new Error("Request timeout"));
         }, this.timeout),
       ];
@@ -97,6 +98,9 @@ export class TransportWebSocket implements Transport {
 
       void socket
         .then((socket) => {
+          if (!this.ongoing.has(data.id)) {
+            return;
+          }
           if (
             socket.readyState === socket.CLOSED ||
             socket.readyState === socket.CLOSING
@@ -108,7 +112,22 @@ export class TransportWebSocket implements Transport {
             socket.send(JSON.stringify(data));
           }
         })
-        .catch((err) => reject(err));
+        .catch((err) => {
+          clearTimeout(req[2]);
+          this.ongoing.delete(data.id);
+          reject(err);
+        });
+    });
+  }
+
+  async close(): Promise<void> {
+    const socket = this.socket;
+
+    if (!socket || socket.readyState === socket.CLOSED) return;
+
+    await new Promise<void>((resolve) => {
+      socket.addEventListener("close", () => resolve(), { once: true });
+      socket.close();
     });
   }
 }

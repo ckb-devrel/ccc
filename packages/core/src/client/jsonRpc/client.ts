@@ -123,6 +123,10 @@ export abstract class ClientJsonRpc extends Client {
     return this.requestor.url;
   }
 
+  async close(): Promise<void> {
+    await this.requestor.close();
+  }
+
   /**
    * Get fee rate statistics
    *

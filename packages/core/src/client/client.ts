@@ -50,6 +50,9 @@ export abstract class Client {
   abstract get url(): string;
   abstract get addressPrefix(): string;
 
+  /** Releases resources held by the client. */
+  abstract close(): Promise<void>;
+
   /**
    * Get the deployment info for a well-known CKB script.
    * Returns the cell deps and type script info needed to use the script.

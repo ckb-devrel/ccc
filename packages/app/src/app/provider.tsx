@@ -2,21 +2,23 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 
+const clientOptions = [
+  {
+    name: "CKB Testnet",
+    client: new ccc.ClientPublicTestnet(),
+  },
+  {
+    name: "CKB Mainnet",
+    client: new ccc.ClientPublicMainnet(),
+  },
+];
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <ccc.Provider
       name="CCC Precision Toolkit"
       icon="/logo.svg"
-      clientOptions={[
-        {
-          name: "CKB Testnet",
-          client: new ccc.ClientPublicTestnet(),
-        },
-        {
-          name: "CKB Mainnet",
-          client: new ccc.ClientPublicMainnet(),
-        },
-      ]}
+      clientOptions={clientOptions}
       connectorProps={{
         style: {
           "--background":

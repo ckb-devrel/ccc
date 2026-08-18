@@ -1,4 +1,4 @@
-import { JsonRpcPayload, Transport } from "./transport.js";
+import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
 
 export class TransportHttp implements Transport {
   constructor(
@@ -6,23 +6,25 @@ export class TransportHttp implements Transport {
     private readonly timeout = 30000,
   ) {}
 
-  async request(payload: JsonRpcPayload) {
+  async request(payload: JsonRpcPayload): Promise<JsonRpcResponse> {
     const aborter = new AbortController();
     const abortTimer = setTimeout(() => aborter.abort(), this.timeout);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const raw = await (
-      await fetch(this.url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        signal: aborter.signal,
-      })
-    ).json();
-    clearTimeout(abortTimer);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return raw;
+    try {
+      return (await (
+        await fetch(this.url, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: aborter.signal,
+        })
+      ).json()) as JsonRpcResponse;
+    } finally {
+      clearTimeout(abortTimer);
+    }
   }
+
+  async close(): Promise<void> {}
 }

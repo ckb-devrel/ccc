@@ -19,6 +19,10 @@ const CCC_CONTEXT = createContext<
       open: () => unknown;
       close: () => unknown;
       disconnect: () => unknown;
+      /**
+       * Sets the active client and transfers its ownership to the connector.
+       * The connector may close the client when it is replaced or disconnected.
+       */
       setClient: (client: ccc.Client) => unknown;
       client: ccc.Client;
       wallet?: ccc.Wallet;
@@ -76,7 +80,9 @@ export function Provider({
     wallet: ccc.Wallet,
   ) => Promise<boolean>;
   signersController?: ccc.SignersController;
+  /** Transferred to the connector, which may subsequently close it. */
   defaultClient?: ccc.Client;
+  /** Selected clients are transferred to the connector and may be closed. */
   clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
   preferredNetworks?: ccc.NetworkPreference[];
 }) {
@@ -87,10 +93,10 @@ export function Provider({
     SignersControllerWithFilter | undefined
   >(undefined);
 
-  const client = useMemo(
-    () => ref?.client ?? new ccc.ClientPublicTestnet(),
-    [ref?.client],
+  const [initialClient] = useState(
+    () => defaultClient ?? new ccc.ClientPublicTestnet(),
   );
+  const client = ref?.client ?? initialClient;
   const open = useCallback(() => {
     setIsOpen(true);
     ref?.requestUpdate();
@@ -109,10 +115,8 @@ export function Provider({
   );
 
   useEffect(() => {
-    if (defaultClient) {
-      setClient(defaultClient);
-    }
-  }, [setClient]);
+    setClient(initialClient);
+  }, [initialClient, setClient]);
   useEffect(() => {
     if (!defaultSignersController.current) {
       defaultSignersController.current = new SignersControllerWithFilter(
