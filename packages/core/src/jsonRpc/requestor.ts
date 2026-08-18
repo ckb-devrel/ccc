@@ -1,9 +1,10 @@
+import { transportFromUri } from "./transports/factory.js";
 import {
   JsonRpcPayload,
+  JsonRpcResponse,
   Transport,
   TransportFallback,
-  transportFromUri,
-} from "./transports/advanced.js";
+} from "./transports/index.js";
 
 /**
  * Applies a transformation function to a value if the transformer is provided.
@@ -73,6 +74,10 @@ export class RequestorJsonRpc {
     return this.url_;
   }
 
+  async close(): Promise<void> {
+    await this.transport.close();
+  }
+
   /**
    * request a JSON-RPC method.
    *
@@ -129,7 +134,7 @@ export class RequestorJsonRpc {
       await pending;
     }
 
-    const res = (await (async () => {
+    const res: JsonRpcResponse = await (async () => {
       this.concurrent += 1;
       try {
         return await this.transport.request(payload);
@@ -137,11 +142,7 @@ export class RequestorJsonRpc {
         this.concurrent -= 1;
         this.pending.shift()?.();
       }
-    })()) as {
-      id: number;
-      error: unknown;
-      result: unknown;
-    };
+    })();
 
     if (res.id !== payload.id) {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);

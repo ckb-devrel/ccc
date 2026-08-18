@@ -5,14 +5,29 @@ export type JsonRpcPayload = {
   params: unknown[] | Record<string, unknown>;
 };
 
+export type JsonRpcError<Data = unknown> = {
+  code: number;
+  message: string;
+  data?: Data;
+};
+
+export type JsonRpcResponse<Result = unknown, Error = unknown> = {
+  id: number;
+  jsonrpc: "2.0";
+} & (
+  | { result: Result; error?: never }
+  | { result?: never; error: JsonRpcError<Error> }
+);
+
 export interface Transport {
   /**
    * Sends a JSON-RPC request to the server.
    *
    * @param payload - The JSON-RPC payload to send.
-   * @returns The result of the JSON-RPC request.
-   *
-   * @throws Will throw an error if the response ID does not match the request ID, or if the response contains an error.
+   * @returns The JSON-RPC response.
    */
-  request(data: JsonRpcPayload): Promise<unknown>;
+  request(data: JsonRpcPayload): Promise<JsonRpcResponse>;
+
+  /** Releases resources held by the transport. */
+  close(): Promise<void>;
 }

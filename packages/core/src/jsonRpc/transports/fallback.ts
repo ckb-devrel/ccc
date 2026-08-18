@@ -1,4 +1,4 @@
-import { JsonRpcPayload, Transport } from "./transport.js";
+import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
 
 export class TransportFallback implements Transport {
   // Current transport index
@@ -6,7 +6,7 @@ export class TransportFallback implements Transport {
 
   constructor(private readonly transports: Transport[]) {}
 
-  async request(data: JsonRpcPayload): Promise<unknown> {
+  async request(data: JsonRpcPayload): Promise<JsonRpcResponse> {
     const startI = this.i;
     let lastErr: unknown = new Error(
       "TransportFallback requires at least one transport",
@@ -26,5 +26,11 @@ export class TransportFallback implements Transport {
     }
 
     throw lastErr;
+  }
+
+  async close(): Promise<void> {
+    await Promise.all(
+      this.transports.map(async (transport) => transport.close()),
+    );
   }
 }

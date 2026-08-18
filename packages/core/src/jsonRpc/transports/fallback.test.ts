@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TransportFallback } from "./fallback.js";
-import { JsonRpcPayload, Transport } from "./transport.js";
+import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
 
 const payload: JsonRpcPayload = {
   id: 0,
@@ -8,25 +8,61 @@ const payload: JsonRpcPayload = {
   method: "test",
   params: [],
 };
+const response: JsonRpcResponse = {
+  id: payload.id,
+  jsonrpc: "2.0",
+  result: "ok",
+};
 
-function makeTransport(handler: () => Promise<unknown>): Transport {
-  return { request: () => handler() };
+function makeTransport(handler: () => Promise<JsonRpcResponse>): Transport {
+  return { request: () => handler(), async close() {} };
 }
 
 describe("TransportFallback", () => {
+  it("closes every transport", async () => {
+    const closeA = vi.fn();
+    const closeB = vi.fn();
+    const transport = new TransportFallback([
+      { request: async () => response, close: closeA },
+      { request: async () => response, close: closeB },
+    ]);
+
+    await transport.close();
+
+    expect(closeA).toHaveBeenCalledOnce();
+    expect(closeB).toHaveBeenCalledOnce();
+  });
+
+  it("starts closing every transport when one close throws synchronously", async () => {
+    const error = new Error("close failed");
+    const closeA = vi.fn(() => {
+      throw error;
+    });
+    const closeB = vi.fn(async () => {});
+    const transport = new TransportFallback([
+      { request: async () => response, close: closeA },
+      { request: async () => response, close: closeB },
+    ]);
+
+    await expect(transport.close()).rejects.toBe(error);
+
+    expect(closeA).toHaveBeenCalledOnce();
+    expect(closeB).toHaveBeenCalledOnce();
+  });
+
   it("returns result from the first healthy transport", async () => {
     const transport = new TransportFallback([
-      makeTransport(() => Promise.resolve("ok")),
+      makeTransport(() => Promise.resolve(response)),
     ]);
-    expect(await transport.request(payload)).toBe("ok");
+    expect(await transport.request(payload)).toBe(response);
   });
 
   it("falls back to the next transport when the first fails", async () => {
     const transport = new TransportFallback([
       makeTransport(() => Promise.reject(new Error("fail"))),
-      makeTransport(() => Promise.resolve("ok")),
+      makeTransport(() => Promise.resolve(response)),
     ]);
-    expect(await transport.request(payload)).toBe("ok");
+    expect(await transport.request(payload)).toBe(response);
   });
 
   it("throws when all transports fail", async () => {
@@ -42,7 +78,7 @@ describe("TransportFallback", () => {
     // Two concurrent requests should each fall back to B independently.
     const transport = new TransportFallback([
       makeTransport(() => Promise.reject(new Error("A unavailable"))),
-      makeTransport(() => Promise.resolve("ok")),
+      makeTransport(() => Promise.resolve(response)),
     ]);
 
     const results = await Promise.allSettled([
@@ -50,8 +86,14 @@ describe("TransportFallback", () => {
       transport.request(payload),
     ]);
 
-    expect(results[0]).toMatchObject({ status: "fulfilled", value: "ok" });
-    expect(results[1]).toMatchObject({ status: "fulfilled", value: "ok" });
+    expect(results[0]).toMatchObject({
+      status: "fulfilled",
+      value: response,
+    });
+    expect(results[1]).toMatchObject({
+      status: "fulfilled",
+      value: response,
+    });
   });
 
   it("advances the starting transport after failures so future requests skip known-bad transports", async () => {
@@ -65,7 +107,7 @@ describe("TransportFallback", () => {
       }),
       makeTransport(() => {
         callsToB += 1;
-        return Promise.resolve("ok");
+        return Promise.resolve(response);
       }),
     ]);
 

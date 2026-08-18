@@ -21,6 +21,17 @@ import {
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 
+const clientOptions = [
+  {
+    name: "CKB Testnet",
+    client: new ccc.ClientPublicTestnet(),
+  },
+  {
+    name: "CKB Mainnet",
+    client: new ccc.ClientPublicMainnet(),
+  },
+];
+
 function Links(props: React.ComponentPropsWithoutRef<"div">) {
   const { index } = useGetExplorerLink();
 
@@ -258,16 +269,7 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
         // Overrides signerFilter
       hideMark // Hide "Powered by CCC"
     */
-      clientOptions={[
-        {
-          name: "CKB Testnet",
-          client: new ccc.ClientPublicTestnet(),
-        },
-        {
-          name: "CKB Mainnet",
-          client: new ccc.ClientPublicMainnet(),
-        },
-      ]} // Optional, remove this property to disable client selecting
+      clientOptions={clientOptions} // Optional, remove this property to disable client selecting
     >
       <AppProvider>
         <div className="flex h-dvh flex-col">
