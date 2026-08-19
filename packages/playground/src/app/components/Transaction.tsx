@@ -17,12 +17,20 @@ export function Transaction({
   const [inputAmount, setInputAmount] = useState(ccc.Zero);
   const [inputAmountExtra, setInputAmountExtra] = useState(ccc.Zero);
   useEffect(() => {
+    let active = true;
+
     (async () => {
       const amountExtra = await tx?.getInputsCapacityExtra(client);
       const inputAmount = await tx?.getInputsCapacity(client);
-      setInputAmountExtra(amountExtra ?? ccc.Zero);
-      setInputAmount(inputAmount ?? ccc.Zero);
+      if (active) {
+        setInputAmountExtra(amountExtra ?? ccc.Zero);
+        setInputAmount(inputAmount ?? ccc.Zero);
+      }
     })();
+
+    return () => {
+      active = false;
+    };
   }, [tx, client]);
   const outputAmount = useMemo(
     () => tx?.getOutputsCapacity() ?? ccc.Zero,
