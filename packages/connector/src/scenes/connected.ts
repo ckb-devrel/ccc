@@ -44,23 +44,54 @@ export class ConnectedScene extends LitElement {
   private selectingClient = false;
   @state()
   private selectingFeeRate = false;
+  private refreshId = 0;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    if (this.hasUpdated) {
+      this.refreshSignerInfo(this.signer);
+    }
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.refreshId += 1;
+  }
 
   willUpdate(changedProperties: PropertyValues<this>): void {
-    if (
-      (!this.recommendedAddress ||
-        !this.internalAddress ||
-        !this.balance ||
-        changedProperties.has("signer")) &&
-      this.signer
-    ) {
-      void this.signer
-        .getRecommendedAddress()
-        .then((v) => (this.recommendedAddress = v));
-      void this.signer
-        .getInternalAddress()
-        .then((v) => (this.internalAddress = v));
-      void this.signer.getBalance().then((v) => (this.balance = v));
+    if (changedProperties.has("signer")) {
+      this.refreshSignerInfo(this.signer);
     }
+  }
+
+  private refreshSignerInfo(signer: ccc.Signer | undefined): void {
+    const refreshId = ++this.refreshId;
+    this.recommendedAddress = undefined;
+    this.internalAddress = undefined;
+    this.balance = undefined;
+
+    if (!signer) {
+      return;
+    }
+
+    void Promise.allSettled([
+      signer.getRecommendedAddress(),
+      signer.getInternalAddress(),
+      signer.getBalance(),
+    ]).then(([recommendedAddress, internalAddress, balance]) => {
+      if (refreshId !== this.refreshId) {
+        return;
+      }
+      if (recommendedAddress.status === "fulfilled") {
+        this.recommendedAddress = recommendedAddress.value;
+      }
+      if (internalAddress.status === "fulfilled") {
+        this.internalAddress = internalAddress.value;
+      }
+      if (balance.status === "fulfilled") {
+        this.balance = balance.value;
+      }
+    });
   }
 
   render() {

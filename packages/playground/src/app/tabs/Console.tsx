@@ -1,29 +1,41 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { Info, Play, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
-import { useApp } from "../context";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { type Messages, useApp } from "../context";
 import { enhanceDisplay } from "./enhanceDisplay";
 
 export function Console({ onRun }: { onRun?: () => void }) {
   const { messages } = useApp();
   const { client } = ccc.useCcc();
   const [flag, setFlag] = useState(0);
+  const processingMessages = useRef(new WeakSet<Messages[number]>());
 
   useEffect(() => {
     messages.forEach((message) => {
-      if (message[3]) {
+      if (message[3] || processingMessages.current.has(message)) {
         return;
       }
+      processingMessages.current.add(message);
 
       (async () => {
-        message[3] = await Promise.all(
-          message[2].map(async (m, i) => (
-            <React.Fragment key={i}>
-              {await enhanceDisplay(m, client)}
-            </React.Fragment>
-          )),
-        );
-        setFlag((f) => f + 1);
+        try {
+          message[3] = await Promise.all(
+            message[2].map(async (m, i) => (
+              <React.Fragment key={i}>
+                {await enhanceDisplay(m, client)}
+              </React.Fragment>
+            )),
+          );
+        } catch (error) {
+          message[3] = (
+            <div className="whitespace-pre-line text-red-300">
+              Failed to display message: {String(error)}
+            </div>
+          );
+        } finally {
+          processingMessages.current.delete(message);
+          setFlag((f) => f + 1);
+        }
       })();
     });
   }, [messages, client]);

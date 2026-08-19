@@ -65,6 +65,7 @@ export class WebComponentConnector extends LitElement {
   public signer?: ccc.SignerInfo;
   @state()
   private unregisterSignerReplacer?: () => void;
+  private signerUpdateId = 0;
 
   public disconnect() {
     this.onClose(() => {
@@ -101,6 +102,7 @@ export class WebComponentConnector extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.signerUpdateId += 1;
     this.unregisterSignerReplacer?.();
     this.unregisterSignerReplacer = undefined;
     this.closeClient(this.client);
@@ -151,17 +153,25 @@ export class WebComponentConnector extends LitElement {
     wallet: ccc.Wallet | undefined,
     signerInfo: ccc.SignerInfo | undefined,
   ) {
+    const updateId = ++this.signerUpdateId;
+
     if (signerInfo?.signer === this.signer?.signer) {
+      return;
+    }
+
+    const connected = signerInfo
+      ? await signerInfo.signer.isConnected()
+      : false;
+    if (updateId !== this.signerUpdateId) {
       return;
     }
 
     this.unregisterSignerReplacer?.();
     this.unregisterSignerReplacer = undefined;
 
-    if (signerInfo && (await signerInfo.signer.isConnected())) {
+    if (signerInfo && connected) {
       this.wallet = wallet;
       this.signer = signerInfo;
-      (this.unregisterSignerReplacer as unknown as () => void)?.();
       this.unregisterSignerReplacer = signerInfo.signer.onReplaced(() => {
         void this.signersControllerInner.refresh();
       });
