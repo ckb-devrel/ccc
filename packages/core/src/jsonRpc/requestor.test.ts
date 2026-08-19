@@ -3,7 +3,7 @@ import { RequestorJsonRpc } from "./requestor.js";
 import {
   JsonRpcPayload,
   JsonRpcResponse,
-  Transport,
+  JsonRpcTransport,
 } from "./transports/index.js";
 
 function response(payload: JsonRpcPayload, result: unknown): JsonRpcResponse {
@@ -36,7 +36,7 @@ describe("RequestorJsonRpc", () => {
     });
     let active = 0;
     let maxActive = 0;
-    const transport: Transport = {
+    const transport: JsonRpcTransport = {
       async close() {},
       async request(payload) {
         active += 1;
@@ -64,7 +64,7 @@ describe("RequestorJsonRpc", () => {
 
   it("advances the queue after a transport error", async () => {
     let calls = 0;
-    const transport: Transport = {
+    const transport: JsonRpcTransport = {
       async close() {},
       async request(payload) {
         calls += 1;
@@ -91,7 +91,7 @@ describe("RequestorJsonRpc", () => {
 
   it("does not exhaust a larger concurrency limit after transport errors", async () => {
     let calls = 0;
-    const transport: Transport = {
+    const transport: JsonRpcTransport = {
       async close() {},
       async request(payload) {
         calls += 1;

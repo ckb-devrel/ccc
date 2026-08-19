@@ -19,14 +19,14 @@ export type JsonRpcResponse<Result = unknown, Error = unknown> = {
   | { result?: never; error: JsonRpcError<Error> }
 );
 
-export interface Transport {
+export interface JsonRpcTransport {
   /**
    * Sends a JSON-RPC request to the server.
    *
    * @param payload - The JSON-RPC payload to send.
    * @returns The JSON-RPC response.
    */
-  request(data: JsonRpcPayload): Promise<JsonRpcResponse>;
+  request(payload: JsonRpcPayload): Promise<JsonRpcResponse>;
 
   /** Releases resources held by the transport. */
   close(): Promise<void>;
