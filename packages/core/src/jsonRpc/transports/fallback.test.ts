@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { TransportFallback } from "./fallback.js";
-import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
+import { JsonRpcTransportFallback } from "./fallback.js";
+import {
+  JsonRpcPayload,
+  JsonRpcResponse,
+  JsonRpcTransport,
+} from "./transport.js";
 
 const payload: JsonRpcPayload = {
   id: 0,
@@ -14,15 +18,17 @@ const response: JsonRpcResponse = {
   result: "ok",
 };
 
-function makeTransport(handler: () => Promise<JsonRpcResponse>): Transport {
+function makeTransport(
+  handler: () => Promise<JsonRpcResponse>,
+): JsonRpcTransport {
   return { request: () => handler(), async close() {} };
 }
 
-describe("TransportFallback", () => {
+describe("JsonRpcTransportFallback", () => {
   it("closes every transport", async () => {
     const closeA = vi.fn();
     const closeB = vi.fn();
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       { request: async () => response, close: closeA },
       { request: async () => response, close: closeB },
     ]);
@@ -39,7 +45,7 @@ describe("TransportFallback", () => {
       throw error;
     });
     const closeB = vi.fn(async () => {});
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       { request: async () => response, close: closeA },
       { request: async () => response, close: closeB },
     ]);
@@ -51,14 +57,14 @@ describe("TransportFallback", () => {
   });
 
   it("returns result from the first healthy transport", async () => {
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       makeTransport(() => Promise.resolve(response)),
     ]);
     expect(await transport.request(payload)).toBe(response);
   });
 
   it("falls back to the next transport when the first fails", async () => {
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       makeTransport(() => Promise.reject(new Error("fail"))),
       makeTransport(() => Promise.resolve(response)),
     ]);
@@ -66,7 +72,7 @@ describe("TransportFallback", () => {
   });
 
   it("throws when all transports fail", async () => {
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       makeTransport(() => Promise.reject(new Error("fail A"))),
       makeTransport(() => Promise.reject(new Error("fail B"))),
     ]);
@@ -76,7 +82,7 @@ describe("TransportFallback", () => {
   it("concurrent requests both succeed when the first transport is down", async () => {
     // Transport A is always unavailable; transport B always succeeds.
     // Two concurrent requests should each fall back to B independently.
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       makeTransport(() => Promise.reject(new Error("A unavailable"))),
       makeTransport(() => Promise.resolve(response)),
     ]);
@@ -100,7 +106,7 @@ describe("TransportFallback", () => {
     let callsToA = 0;
     let callsToB = 0;
 
-    const transport = new TransportFallback([
+    const transport = new JsonRpcTransportFallback([
       makeTransport(() => {
         callsToA += 1;
         return Promise.reject(new Error("A unavailable"));

@@ -1,7 +1,11 @@
 import WebSocket from "isomorphic-ws";
-import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
+import {
+  JsonRpcPayload,
+  JsonRpcResponse,
+  JsonRpcTransport,
+} from "./transport.js";
 
-export class TransportWebSocket implements Transport {
+export class JsonRpcTransportWebSocket implements JsonRpcTransport {
   private ongoing: Map<
     number,
     [

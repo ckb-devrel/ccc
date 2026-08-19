@@ -71,9 +71,9 @@ vi.mock("isomorphic-ws", () => {
   return { default: WebSocket };
 });
 
-import { TransportWebSocket } from "./webSocket.js";
+import { JsonRpcTransportWebSocket } from "./webSocket.js";
 
-describe("TransportWebSocket", () => {
+describe("JsonRpcTransportWebSocket", () => {
   beforeEach(() => {
     mock.deferOpen = false;
     mock.invalidResponse = false;
@@ -83,7 +83,7 @@ describe("TransportWebSocket", () => {
   });
 
   it("closes its socket", async () => {
-    const transport = new TransportWebSocket("ws://example.com");
+    const transport = new JsonRpcTransportWebSocket("ws://example.com");
     await transport.request({
       id: 0,
       jsonrpc: "2.0",
@@ -101,7 +101,7 @@ describe("TransportWebSocket", () => {
   it("ignores invalid JSON until the request times out", async () => {
     vi.useFakeTimers();
     mock.invalidResponse = true;
-    const transport = new TransportWebSocket("ws://example.com", 100);
+    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
 
     const request = expect(
       transport.request({
@@ -122,7 +122,7 @@ describe("TransportWebSocket", () => {
     vi.useFakeTimers();
     const error = new Error("send failed");
     mock.sendError = error;
-    const transport = new TransportWebSocket("ws://example.com", 100);
+    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
 
     await expect(
       transport.request({
@@ -141,7 +141,7 @@ describe("TransportWebSocket", () => {
   it("closes a connecting socket without sending after timeout", async () => {
     vi.useFakeTimers();
     mock.deferOpen = true;
-    const transport = new TransportWebSocket("ws://example.com", 100);
+    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
 
     const request = expect(
       transport.request({

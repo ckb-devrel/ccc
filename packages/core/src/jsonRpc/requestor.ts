@@ -1,9 +1,9 @@
-import { transportFromUri } from "./transports/factory.js";
+import { jsonRpcTransportFromUri } from "./transports/factory.js";
 import {
   JsonRpcPayload,
   JsonRpcResponse,
-  Transport,
-  TransportFallback,
+  JsonRpcTransport,
+  JsonRpcTransportFallback,
 } from "./transports/index.js";
 
 /**
@@ -30,7 +30,7 @@ export type RequestorJsonRpcConfig = {
   fallbacks?: string[];
   timeout?: number;
   maxConcurrent?: number;
-  transport?: Transport;
+  transport?: JsonRpcTransport;
 };
 
 export class RequestorJsonRpc {
@@ -38,7 +38,7 @@ export class RequestorJsonRpc {
   private concurrent = 0;
   private readonly pending: (() => void)[] = [];
 
-  public readonly transport: Transport;
+  public readonly transport: JsonRpcTransport;
 
   private id = 0;
 
@@ -56,10 +56,10 @@ export class RequestorJsonRpc {
     this.maxConcurrent = config?.maxConcurrent;
     this.transport =
       config?.transport ??
-      new TransportFallback(
+      new JsonRpcTransportFallback(
         Array.from(
           new Set([url_, ...(config?.fallbacks ?? [])]).values(),
-          (url) => transportFromUri(url, config),
+          (url) => jsonRpcTransportFromUri(url, config),
         ),
       );
   }

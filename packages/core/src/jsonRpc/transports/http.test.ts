@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { TransportHttp } from "./http.js";
+import { JsonRpcTransportHttp } from "./http.js";
 import type { JsonRpcPayload, JsonRpcResponse } from "./transport.js";
 
 const payload: JsonRpcPayload = {
@@ -19,7 +19,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("TransportHttp", () => {
+describe("JsonRpcTransportHttp", () => {
   it("clears its timeout after a successful response", async () => {
     vi.useFakeTimers();
     vi.stubGlobal(
@@ -28,7 +28,7 @@ describe("TransportHttp", () => {
     );
 
     await expect(
-      new TransportHttp("https://example.com").request(payload),
+      new JsonRpcTransportHttp("https://example.com").request(payload),
     ).resolves.toEqual(response);
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -41,7 +41,7 @@ describe("TransportHttp", () => {
     );
 
     await expect(
-      new TransportHttp("https://example.com").request(payload),
+      new JsonRpcTransportHttp("https://example.com").request(payload),
     ).rejects.toThrow("unavailable");
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -56,7 +56,7 @@ describe("TransportHttp", () => {
     );
 
     await expect(
-      new TransportHttp("https://example.com").request(payload),
+      new JsonRpcTransportHttp("https://example.com").request(payload),
     ).rejects.toThrow("invalid JSON");
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -75,9 +75,10 @@ describe("TransportHttp", () => {
       ),
     );
 
-    const request = new TransportHttp("https://example.com", 1000).request(
-      payload,
-    );
+    const request = new JsonRpcTransportHttp(
+      "https://example.com",
+      1000,
+    ).request(payload);
     const rejection = expect(request).rejects.toThrow("aborted");
     await vi.advanceTimersByTimeAsync(1000);
 

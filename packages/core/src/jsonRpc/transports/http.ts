@@ -1,6 +1,10 @@
-import { JsonRpcPayload, JsonRpcResponse, Transport } from "./transport.js";
+import {
+  JsonRpcPayload,
+  JsonRpcResponse,
+  JsonRpcTransport,
+} from "./transport.js";
 
-export class TransportHttp implements Transport {
+export class JsonRpcTransportHttp implements JsonRpcTransport {
   constructor(
     private readonly url: string,
     private readonly timeout = 30000,
