@@ -11,7 +11,7 @@
     "format": "prettier --write ./src"
   },
   "dependencies": {
-    "@bitcoinerlab/secp256k1": "^1.2.0",
+    "@bitcoinerlab/secp256k1": "^2.0.0",
     "@ckb-ccc/ccc": "workspace:*",
     "@ckb-ccc/connector-react": "workspace:*",
     "@ckb-ccc/spore": "workspace:*",
