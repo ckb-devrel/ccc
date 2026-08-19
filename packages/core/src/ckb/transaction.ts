@@ -1098,7 +1098,7 @@ export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
  * @public
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
-  const data = bytesFrom(dataLike).slice(0, 16);
+  const data = bytesFrom(dataLike).subarray(0, 16);
   return data.length === 0 ? Zero : numFromBytes(data);
 }
 

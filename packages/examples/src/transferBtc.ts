@@ -85,7 +85,9 @@ if (
   vout.scriptpubkey_type === "v1_p2tr" ||
   vout.scriptpubkey_type === "witness_v1_taproot"
 ) {
-  input.tapInternalKey = ccc.bytesFrom(await signer.getBtcPublicKey()).slice(1);
+  input.tapInternalKey = ccc
+    .bytesFrom(await signer.getBtcPublicKey())
+    .subarray(1);
 }
 
 psbt.addInput(input);

@@ -121,7 +121,7 @@ export function parseDidKey(didKey: string): {
       `Unrecognised did:key multicodec tag: 0x${tag1.toString(16).padStart(2, "0")} 0x${tag2.toString(16).padStart(2, "0")}`,
     );
   }
-  return { curve, compressedPubkey: raw.slice(2) };
+  return { curve, compressedPubkey: raw.subarray(2) };
 }
 
 /**

@@ -193,7 +193,9 @@ export default function IssueXUdtTypeId() {
                 throw new Error("Unexpected disappeared output");
               }
               mintTx.outputs[2].type!.args = ccc.hexFrom(
-                ccc.bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 2)).slice(0, 20),
+                ccc
+                  .bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 2))
+                  .subarray(0, 20),
               );
               await mintTx.completeFeeBy(signer);
               const mintTxHash = await signer.sendTransaction(mintTx);
