@@ -243,7 +243,7 @@ class XudtSusIssuer {
       );
     }
     tx.outputs[1].type.args = ccc.hexFrom(
-      ccc.bytesFrom(ccc.hashTypeId(tx.inputs[0], 1)).slice(0, 20),
+      ccc.bytesFrom(ccc.hashTypeId(tx.inputs[0], 1)).subarray(0, 20),
     );
 
     await tx.completeFeeBy(this.signer);

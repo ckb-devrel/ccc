@@ -163,7 +163,9 @@ export default function IssueXUdtSul() {
                 return;
               }
               mintTx.outputs[1].type!.args = ccc.hexFrom(
-                ccc.bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 1)).slice(0, 20),
+                ccc
+                  .bytesFrom(ccc.hashTypeId(mintTx.inputs[0], 1))
+                  .subarray(0, 20),
               );
               await mintTx.completeFeeBy(signer);
               const mintTxHash = await signer.sendTransaction(mintTx);

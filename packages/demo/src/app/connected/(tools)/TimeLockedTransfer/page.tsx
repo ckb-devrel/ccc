@@ -62,7 +62,7 @@ function ClaimButton({ cell, lock }: { cell: ccc.Cell; lock: ccc.Script }) {
               {
                 previousOutput: cell.outPoint,
                 since: ccc.numFromBytes(
-                  ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40),
+                  ccc.bytesFrom(cell.cellOutput.lock.args).subarray(32, 40),
                 ),
                 cellOutput: cell.cellOutput,
                 outputData: cell.outputData,
@@ -73,7 +73,7 @@ function ClaimButton({ cell, lock }: { cell: ccc.Cell; lock: ccc.Script }) {
           console.log(
             tx.inputs[1].since,
 
-            ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40),
+            ccc.bytesFrom(cell.cellOutput.lock.args).subarray(32, 40),
           );
           await tx.addCellDepsOfKnownScripts(
             signer.client,
