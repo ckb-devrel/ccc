@@ -19,7 +19,7 @@
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@types/jest": "^30.0.0",
-    "@vitest/coverage-v8": "4.1.10",
+    "@vitest/coverage-v8": "4.1.11",
     "jest": "30.4.2",
     "ts-jest": "^29.4.11",
     "typedoc": "0.28.20",
