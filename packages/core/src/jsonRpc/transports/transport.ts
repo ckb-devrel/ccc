@@ -1,5 +1,7 @@
+export type JsonRpcId = string | number;
+
 export type JsonRpcPayload = {
-  id: number;
+  id: JsonRpcId;
   jsonrpc: "2.0";
   method: string;
   params: unknown[] | Record<string, unknown>;
@@ -12,7 +14,7 @@ export type JsonRpcError<Data = unknown> = {
 };
 
 export type JsonRpcResponse<Result = unknown, Error = unknown> = {
-  id: number;
+  id: JsonRpcId;
   jsonrpc: "2.0";
 } & (
   | { result: Result; error?: never }
