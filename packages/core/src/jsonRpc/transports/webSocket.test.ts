@@ -45,7 +45,7 @@ vi.mock("isomorphic-ws", () => {
         throw mock.sendError;
       }
       this.sent.push(data);
-      const request = JSON.parse(data) as { id: number };
+      const request = JSON.parse(data) as { id: string | number };
       queueMicrotask(() =>
         this.onmessage?.({
           data: mock.invalidResponse
@@ -96,6 +96,21 @@ describe("JsonRpcTransportWebSocket", () => {
     await transport.close();
 
     expect(mock.sockets[0].closed).toBe(true);
+  });
+
+  it("correlates responses with string IDs", async () => {
+    const transport = new JsonRpcTransportWebSocket("ws://example.com");
+
+    await expect(
+      transport.request({
+        id: "request-0",
+        jsonrpc: "2.0",
+        method: "test",
+        params: [],
+      }),
+    ).resolves.toMatchObject({ id: "request-0", result: "ok" });
+
+    await transport.close();
   });
 
   it("ignores invalid JSON until the request times out", async () => {

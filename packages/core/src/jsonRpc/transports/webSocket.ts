@@ -1,5 +1,6 @@
 import WebSocket from "isomorphic-ws";
 import {
+  JsonRpcId,
   JsonRpcPayload,
   JsonRpcResponse,
   JsonRpcTransport,
@@ -7,7 +8,7 @@ import {
 
 export class JsonRpcTransportWebSocket implements JsonRpcTransport {
   private ongoing: Map<
-    number,
+    JsonRpcId,
     [
       (response: JsonRpcResponse) => unknown,
       (error: unknown) => unknown,
@@ -43,11 +44,11 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
         if (
           typeof res !== "object" ||
           res === null ||
-          typeof res.id !== "number"
+          (typeof res.id !== "number" && typeof res.id !== "string")
         ) {
           return;
         }
-        const id: number = res.id;
+        const id = res.id;
 
         const req = this.ongoing.get(id);
         if (!req) {
