@@ -90,7 +90,7 @@ async function shareToNostr(
         ...sent
           .map((relay) => {
             console.log(relay);
-            const bytes = ccc.bytesFrom(relay, "ascii");
+            const bytes = ccc.bytesFrom(relay, "utf8");
             return [[1, bytes.length], bytes];
           })
           .flat(),
@@ -129,7 +129,7 @@ async function getFromNEvent(
       eventId = ccc.hexFrom(value).slice(2);
     }
     if (type === 1) {
-      const relay = ccc.bytesTo(value, "ascii");
+      const relay = ccc.bytesTo(value, "utf8");
       if (!relays.includes(relay)) {
         relays.push(relay);
       }

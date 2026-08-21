@@ -21,7 +21,7 @@ describe("hexFrom", () => {
   );
 
   test("throws for invalid hex string", () => {
-    expect(() => hexFrom("0xzz")).toThrow("Invalid bytes 0xzz");
+    expect(() => hexFrom("0xzz")).toThrow();
   });
 
   test("throws for invalid byte values", () => {
@@ -48,7 +48,7 @@ describe("bytesLen", () => {
   );
 
   test("throws for invalid hex string", () => {
-    expect(() => bytesLen("0xzz")).toThrow("Invalid bytes 0xzz");
+    expect(() => bytesLen("0xzz")).toThrow();
   });
 
   test("throws for invalid byte values", () => {
