@@ -25,6 +25,7 @@ const bundleDeps = [
   "bs58check",
   "bs58", // By bs58check
   "base-x", // By bs58 - bs58check
+  "uint8array-extras",
 ] as string[];
 
 export default defineConfig(
