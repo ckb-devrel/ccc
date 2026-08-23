@@ -29,6 +29,4 @@ export class JsonRpcTransportHttp implements JsonRpcTransport {
       clearTimeout(abortTimer);
     }
   }
-
-  async close(): Promise<void> {}
 }

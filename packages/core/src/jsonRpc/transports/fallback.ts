@@ -31,10 +31,4 @@ export class JsonRpcTransportFallback implements JsonRpcTransport {
 
     throw lastErr;
   }
-
-  async close(): Promise<void> {
-    await Promise.all(
-      this.transports.map(async (transport) => transport.close()),
-    );
-  }
 }

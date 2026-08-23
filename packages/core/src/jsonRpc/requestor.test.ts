@@ -15,20 +15,6 @@ function response(payload: JsonRpcPayload, result: unknown): JsonRpcResponse {
 }
 
 describe("RequestorJsonRpc", () => {
-  it("closes its transport", async () => {
-    const close = vi.fn();
-    const requestor = new RequestorJsonRpc("", {
-      transport: {
-        request: async (payload) => response(payload, "ok"),
-        close,
-      },
-    });
-
-    await requestor.close();
-
-    expect(close).toHaveBeenCalledOnce();
-  });
-
   it("advances the queue after a successful request", async () => {
     let releaseFirst: (() => void) | undefined;
     const firstPending = new Promise<void>((resolve) => {
@@ -37,7 +23,6 @@ describe("RequestorJsonRpc", () => {
     let active = 0;
     let maxActive = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         active += 1;
         maxActive = Math.max(maxActive, active);
@@ -65,7 +50,6 @@ describe("RequestorJsonRpc", () => {
   it("advances the queue after a transport error", async () => {
     let calls = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         calls += 1;
         if (calls === 1) {
@@ -92,7 +76,6 @@ describe("RequestorJsonRpc", () => {
   it("does not exhaust a larger concurrency limit after transport errors", async () => {
     let calls = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         calls += 1;
         if (calls <= 2) {

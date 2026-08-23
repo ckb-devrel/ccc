@@ -124,15 +124,4 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
         });
     });
   }
-
-  async close(): Promise<void> {
-    const socket = this.socket;
-
-    if (!socket || socket.readyState === socket.CLOSED) return;
-
-    await new Promise<void>((resolve) => {
-      socket.addEventListener("close", () => resolve(), { once: true });
-      socket.close();
-    });
-  }
 }

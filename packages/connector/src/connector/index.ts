@@ -40,15 +40,9 @@ export class WebComponentConnector extends LitElement {
       return;
     }
 
-    const previous = this.client;
     this._client = new ClientWithFeeRate(client);
-    this.closeClient(previous);
   }
 
-  /**
-   * Sets the active client and transfers its ownership to the connector.
-   * The connector may close the client when it is replaced or disconnected.
-   */
   public setClient(client: ccc.Client) {
     this.client = client;
   }
@@ -105,20 +99,6 @@ export class WebComponentConnector extends LitElement {
     this.signerUpdateId += 1;
     this.unregisterSignerReplacer?.();
     this.unregisterSignerReplacer = undefined;
-    this.closeClient(this.client);
-  }
-
-  private closeClient(client: ccc.Client): void {
-    void client.close().catch((error: unknown) => {
-      this.dispatchEvent(
-        new ErrorEvent("error", {
-          bubbles: true,
-          composed: true,
-          error,
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-    });
   }
 
   willUpdate(changedProperties: PropertyValues): void {

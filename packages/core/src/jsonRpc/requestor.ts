@@ -74,10 +74,6 @@ export class RequestorJsonRpc {
     return this.url_;
   }
 
-  async close(): Promise<void> {
-    await this.transport.close();
-  }
-
   /**
    * request a JSON-RPC method.
    *

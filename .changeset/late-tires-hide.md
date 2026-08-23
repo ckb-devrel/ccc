@@ -1,8 +1,7 @@
 ---
 "@ckb-ccc/core": minor
-"@ckb-ccc/connector": patch
-"@ckb-ccc/connector-react": patch
 ---
 
-feat(core): `Transport/Requestor/Client.close`
-  
+feat(core): improve JSON-RPC transport types and cleanup
+
+Clear HTTP/WebSocket request timers and pending state.

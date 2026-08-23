@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { JsonRpcTransportFallback } from "./fallback.js";
 import {
   JsonRpcPayload,
@@ -21,41 +21,10 @@ const response: JsonRpcResponse = {
 function makeTransport(
   handler: () => Promise<JsonRpcResponse>,
 ): JsonRpcTransport {
-  return { request: () => handler(), async close() {} };
+  return { request: () => handler() };
 }
 
 describe("JsonRpcTransportFallback", () => {
-  it("closes every transport", async () => {
-    const closeA = vi.fn();
-    const closeB = vi.fn();
-    const transport = new JsonRpcTransportFallback([
-      { request: async () => response, close: closeA },
-      { request: async () => response, close: closeB },
-    ]);
-
-    await transport.close();
-
-    expect(closeA).toHaveBeenCalledOnce();
-    expect(closeB).toHaveBeenCalledOnce();
-  });
-
-  it("starts closing every transport when one close throws synchronously", async () => {
-    const error = new Error("close failed");
-    const closeA = vi.fn(() => {
-      throw error;
-    });
-    const closeB = vi.fn(async () => {});
-    const transport = new JsonRpcTransportFallback([
-      { request: async () => response, close: closeA },
-      { request: async () => response, close: closeB },
-    ]);
-
-    await expect(transport.close()).rejects.toBe(error);
-
-    expect(closeA).toHaveBeenCalledOnce();
-    expect(closeB).toHaveBeenCalledOnce();
-  });
-
   it("returns result from the first healthy transport", async () => {
     const transport = new JsonRpcTransportFallback([
       makeTransport(() => Promise.resolve(response)),

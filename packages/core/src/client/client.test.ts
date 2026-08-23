@@ -18,20 +18,6 @@ describe("Client", () => {
     vi.restoreAllMocks();
   });
 
-  it("closes its JSON-RPC transport", async () => {
-    const close = vi.fn();
-    const client = new ClientPublicTestnet({
-      transport: {
-        request: async ({ id }) => ({ jsonrpc: "2.0", id, result: null }),
-        close,
-      },
-    });
-
-    await client.close();
-
-    expect(close).toHaveBeenCalledOnce();
-  });
-
   describe("getCell", () => {
     const outPoint = OutPoint.from({
       txHash: `0x${"0".repeat(64)}`,
@@ -122,7 +108,6 @@ describe("Client", () => {
     ): Promise<ErrorClientVerification | undefined> {
       const c = new ClientPublicTestnet({
         transport: {
-          async close() {},
           async request({ id }) {
             return {
               jsonrpc: "2.0",
