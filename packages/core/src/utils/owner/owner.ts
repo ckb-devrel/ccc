@@ -19,6 +19,8 @@ export class OwnerMoved<T> {
   }
 }
 
+const ownerId = Symbol.for("@ckb-ccc/core.Owner");
+
 /**
  * Owns the lifecycle of a value.
  *
@@ -40,7 +42,17 @@ export class OwnerMoved<T> {
 export abstract class Owner<T> {
   protected abstract readonly value_: T;
 
+  private readonly [ownerId] = true;
   private disposing?: Promise<void>;
+
+  /** Returns whether a value implements CCC Owner semantics. */
+  static is(value: unknown): value is Owner<unknown> {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { [ownerId]?: unknown })[ownerId] === true
+    );
+  }
 
   /**
    * The owned value.

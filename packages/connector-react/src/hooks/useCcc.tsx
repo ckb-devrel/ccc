@@ -16,7 +16,7 @@ import { Connector } from "../components/index.js";
 type ClientInput = ccc.Client | ccc.Owner<ccc.Client>;
 
 function isOwner(resource: ClientInput): resource is ccc.Owner<ccc.Client> {
-  return "dispose" in resource && typeof resource.dispose === "function";
+  return ccc.Owner.is(resource);
 }
 
 interface SetClient {

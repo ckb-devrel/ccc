@@ -1,8 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
-import { OwnerMoved } from "./owner.js";
+import { Owner, OwnerMoved } from "./owner.js";
 import { OwnerUnique } from "./unique.js";
 
 describe("Owner", () => {
+  it("uses a global runtime brand", () => {
+    const owner = new OwnerUnique("value", vi.fn());
+    const crossPackageOwner = {
+      [Symbol.for("@ckb-ccc/core.Owner")]: true,
+    };
+
+    expect(Owner.is(owner)).toBe(true);
+    expect(Owner.is(crossPackageOwner)).toBe(true);
+    expect(Owner.is({ value: "value", map() {}, dispose() {} })).toBe(false);
+  });
+
   it("maps and transfers an ownership claim", async () => {
     const dispose = vi.fn();
     const source = new OwnerUnique("value", dispose);
