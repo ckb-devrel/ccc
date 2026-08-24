@@ -71,6 +71,18 @@ export abstract class Owner<T> {
   }
 
   /**
+   * Maps the owned value while transferring this ownership claim.
+   *
+   * The mapper runs before the claim is moved, so a mapper failure leaves this
+   * Owner active. After a successful mapping, this Owner is invalidated and the
+   * returned Owner retains its release semantics.
+   */
+  map<U>(mapper: (value: T) => U): Owner<U> {
+    const value = mapper(this.value);
+    return new OwnerMapped(value, this.move());
+  }
+
+  /**
    * Moves the ownership claim out of this owner without disposing it.
    *
    * Access is invalidated synchronously and the moved claim retains this
@@ -95,5 +107,18 @@ export abstract class Owner<T> {
    */
   protected static moveFrom<T>(owner: Owner<T>): OwnerMoved<T> {
     return owner.move();
+  }
+}
+
+class OwnerMapped<TValue, TSource> extends Owner<TValue> {
+  constructor(
+    protected readonly value_: TValue,
+    private readonly source: OwnerMoved<TSource>,
+  ) {
+    super();
+  }
+
+  protected release() {
+    return this.source.dispose();
   }
 }

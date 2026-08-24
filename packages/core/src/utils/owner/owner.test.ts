@@ -1,5 +1,38 @@
 import { describe, expect, it, vi } from "vitest";
 import { OwnerMoved } from "./owner.js";
+import { OwnerUnique } from "./unique.js";
+
+describe("Owner", () => {
+  it("maps and transfers an ownership claim", async () => {
+    const dispose = vi.fn();
+    const source = new OwnerUnique("value", dispose);
+
+    const mapped = source.map((value) => ({ value }));
+
+    expect(mapped.value).toEqual({ value: "value" });
+    expect(() => source.value).toThrow(
+      "Cannot access a moved or disposed Owner",
+    );
+    await source.dispose();
+    expect(dispose).not.toHaveBeenCalled();
+
+    await mapped.dispose();
+    expect(dispose).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledWith("value");
+  });
+
+  it("keeps the source active when mapping fails", () => {
+    const source = new OwnerUnique("value", vi.fn());
+    const error = new Error("mapping failed");
+
+    expect(() =>
+      source.map(() => {
+        throw error;
+      }),
+    ).toThrow(error);
+    expect(source.value).toBe("value");
+  });
+});
 
 describe("OwnerMoved", () => {
   it("disposes only once and returns the same result", async () => {
