@@ -33,7 +33,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, payload.id);
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 1,
       transport,
     });
@@ -102,5 +102,16 @@ describe("RequestorJsonRpc", () => {
       { status: "fulfilled", value: 2 },
       { status: "fulfilled", value: 3 },
     ]);
+  });
+
+  it("disposes default transports owned by an opened Requestor", async () => {
+    const owner = RequestorJsonRpc.open({ urls: ["ws://example.com"] });
+    const requestor = owner.value;
+
+    await owner.dispose();
+
+    await expect(
+      requestor.requestPayload(requestor.buildPayload("test", [])),
+    ).rejects.toThrow("Cannot use a disposed JsonRpcTransportWebSocket");
   });
 });

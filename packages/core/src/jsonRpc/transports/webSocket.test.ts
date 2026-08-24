@@ -83,7 +83,8 @@ describe("JsonRpcTransportWebSocket", () => {
   });
 
   it("closes its socket", async () => {
-    const transport = new JsonRpcTransportWebSocket("ws://example.com");
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com");
+    const transport = owner.value;
     await transport.request({
       id: 0,
       jsonrpc: "2.0",
@@ -93,13 +94,34 @@ describe("JsonRpcTransportWebSocket", () => {
     expect(mock.sockets).toHaveLength(1);
     expect(mock.sockets[0].closed).toBe(false);
 
-    await transport.close();
+    await owner.dispose();
 
     expect(mock.sockets[0].closed).toBe(true);
+    expect(() => owner.value).toThrow(
+      "Cannot access a moved or disposed Owner",
+    );
+  });
+
+  it("does not reconnect through a stale borrow after disposal", async () => {
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com");
+    const transport = owner.value;
+
+    await owner.dispose();
+
+    await expect(
+      transport.request({
+        id: 0,
+        jsonrpc: "2.0",
+        method: "test",
+        params: [],
+      }),
+    ).rejects.toThrow("Cannot use a disposed JsonRpcTransportWebSocket");
+    expect(mock.sockets).toHaveLength(0);
   });
 
   it("correlates responses with string IDs", async () => {
-    const transport = new JsonRpcTransportWebSocket("ws://example.com");
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com");
+    const transport = owner.value;
 
     await expect(
       transport.request({
@@ -110,13 +132,14 @@ describe("JsonRpcTransportWebSocket", () => {
       }),
     ).resolves.toMatchObject({ id: "request-0", result: "ok" });
 
-    await transport.close();
+    await owner.dispose();
   });
 
   it("ignores invalid JSON until the request times out", async () => {
     vi.useFakeTimers();
     mock.invalidResponse = true;
-    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com", 100);
+    const transport = owner.value;
 
     const request = expect(
       transport.request({
@@ -131,13 +154,15 @@ describe("JsonRpcTransportWebSocket", () => {
     await request;
 
     expect(mock.sockets[0].closed).toBe(true);
+    await owner.dispose();
   });
 
   it("cleans up the request timeout when send throws", async () => {
     vi.useFakeTimers();
     const error = new Error("send failed");
     mock.sendError = error;
-    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com", 100);
+    const transport = owner.value;
 
     await expect(
       transport.request({
@@ -151,12 +176,14 @@ describe("JsonRpcTransportWebSocket", () => {
     await vi.advanceTimersByTimeAsync(100);
 
     expect(mock.sockets[0].closeCalls).toBe(0);
+    await owner.dispose();
   });
 
   it("closes a connecting socket without sending after timeout", async () => {
     vi.useFakeTimers();
     mock.deferOpen = true;
-    const transport = new JsonRpcTransportWebSocket("ws://example.com", 100);
+    const owner = JsonRpcTransportWebSocket.open("ws://example.com", 100);
+    const transport = owner.value;
 
     const request = expect(
       transport.request({
@@ -176,5 +203,6 @@ describe("JsonRpcTransportWebSocket", () => {
     await Promise.resolve();
 
     expect(mock.sockets[0].sent).toHaveLength(0);
+    await owner.dispose();
   });
 });

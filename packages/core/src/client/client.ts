@@ -34,19 +34,33 @@ import {
   ErrorClientWaitTransactionTimeout,
   OutputsValidator,
   ScriptInfo,
+  type ScriptInfoLike,
 } from "./clientTypes.js";
 import { KnownScript } from "./knownScript.js";
+
+export type ClientConfig = {
+  cache?: ClientCache;
+  scripts?: Partial<Record<KnownScript, ScriptInfoLike>>;
+};
 
 /**
  * @public
  */
 export abstract class Client {
   public cache: ClientCache;
+  public readonly scripts: Partial<Record<KnownScript, ScriptInfoLike>>;
 
-  constructor(config?: { cache?: ClientCache }) {
+  constructor(config?: ClientConfig) {
     this.cache = config?.cache ?? new ClientCacheMemory();
+    this.scripts = config?.scripts ?? {};
   }
 
+  /**
+   * The legacy primary URL associated with this Client.
+   *
+   * @deprecated A Client may use multiple endpoints or a Transport without a
+   * URL, so this value does not reliably identify its connection.
+   */
   abstract get url(): string;
   abstract get addressPrefix(): string;
 
@@ -75,7 +89,15 @@ export abstract class Client {
    * );
    * ```
    */
-  abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
+  async getKnownScript(script: KnownScript): Promise<ScriptInfo> {
+    const found = this.scripts[script];
+    if (!found) {
+      throw new Error(
+        `No script information was found for ${script} on ${this.addressPrefix}`,
+      );
+    }
+    return ScriptInfo.from(found);
+  }
 
   abstract getFeeRateStatistics(
     blockRange?: NumLike,

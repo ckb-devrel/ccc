@@ -1,11 +1,11 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
+import type { Client } from "../client/client.js";
 import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
 import {
   ClientBlockHeader,
   type CellDepInfoLike,
-  type Client,
   type ClientBlockHeaderLike,
-} from "../client/index.js";
+} from "../client/clientTypes.js";
 import { KnownScript } from "../client/knownScript.js";
 import { Codec, Entity, codec } from "../codec/index.js";
 import { Zero, fixedPointFrom } from "../fixedPoint/index.js";

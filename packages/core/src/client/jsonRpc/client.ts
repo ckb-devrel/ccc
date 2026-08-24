@@ -10,8 +10,8 @@ import {
   RequestorJsonRpcConfig,
 } from "../../jsonRpc/requestor.js";
 import { Num, NumLike, numFrom, numToHex } from "../../num/index.js";
-import { apply } from "../../utils/index.js";
-import { ClientCache } from "../cache/index.js";
+import { Owner, apply } from "../../utils/index.js";
+import type { ClientConfig } from "../client.js";
 import { Client } from "../client.js";
 import { DEFAULT_MIN_FEE_RATE } from "../clientTypes.advanced.js";
 import {
@@ -68,10 +68,35 @@ const ERROR_PARSERS: [
   ],
 ];
 
-export type ClientJsonRpcConfig = RequestorJsonRpcConfig & {
-  cache?: ClientCache;
-  requestor?: RequestorJsonRpc;
-};
+function handleJsonRpcError(errAny: unknown): never {
+  if (
+    typeof errAny !== "object" ||
+    errAny === null ||
+    !("data" in errAny) ||
+    typeof errAny.data !== "string"
+  ) {
+    throw errAny;
+  }
+  const err = errAny as ErrorClientBaseLike;
+
+  for (const [regexp, builder] of ERROR_PARSERS) {
+    const match = err.data.match(regexp);
+    if (match) {
+      throw builder(err, match);
+    }
+  }
+
+  throw new ErrorClientBase(err);
+}
+
+export type ClientJsonRpcConfig = RequestorJsonRpcConfig &
+  ClientConfig & {
+    /**
+     * @deprecated Requestor injection is supported only by legacy constructors.
+     * Use a borrowed Transport with `Client.new` or let `Client.open` create one.
+     */
+    requestor?: RequestorJsonRpc;
+  };
 
 /**
  * An abstract class implementing JSON-RPC client functionality for a specific URL and timeout.
@@ -85,42 +110,64 @@ export abstract class ClientJsonRpc extends Client {
    *
    * @param url_ - The URL of the JSON-RPC server.
    * @param timeout - The timeout for requests in milliseconds
+   * @deprecated Use the concrete Client's `new` or `open` method.
    */
 
-  constructor(url_: string, config?: ClientJsonRpcConfig) {
+  constructor(
+    private readonly url_: string,
+    config?: ClientJsonRpcConfig,
+  ) {
     super(config);
 
-    this.requestor =
-      config?.requestor ??
-      new RequestorJsonRpc(url_, config, (errAny) => {
-        if (
-          typeof errAny !== "object" ||
-          errAny === null ||
-          !("data" in errAny) ||
-          typeof errAny.data !== "string"
-        ) {
-          throw errAny;
-        }
-        const err = errAny as ErrorClientBaseLike;
-
-        for (const [regexp, builder] of ERROR_PARSERS) {
-          const match = err.data.match(regexp);
-          if (match) {
-            throw builder(err, match);
-          }
-        }
-
-        throw new ErrorClientBase(err);
+    const requestor = config?.requestor;
+    if (requestor) {
+      this.requestor = requestor;
+    } else if (config?.transport) {
+      this.requestor = RequestorJsonRpc.new({
+        transport: config.transport,
+        maxConcurrent: config.maxConcurrent,
+        onError: handleJsonRpcError,
       });
+    } else {
+      // Legacy constructor intentionally discards ownership.
+      this.requestor = RequestorJsonRpc.open({
+        urls: [url_, ...(config?.fallbacks ?? [])],
+        timeout: config?.timeout,
+        maxConcurrent: config?.maxConcurrent,
+        onError: handleJsonRpcError,
+      }).value;
+    }
+  }
+
+  /** Creates a Requestor that borrows an existing Transport. */
+  protected static newRequestor(
+    config: Omit<Parameters<typeof RequestorJsonRpc.new>[0], "onError">,
+  ): RequestorJsonRpc {
+    return RequestorJsonRpc.new({
+      ...config,
+      onError: handleJsonRpcError,
+    });
+  }
+
+  /** Opens a Requestor with ownership of its default Transport. */
+  protected static openRequestor(
+    config: Omit<Parameters<typeof RequestorJsonRpc.open>[0], "onError">,
+  ): Owner<RequestorJsonRpc> {
+    return RequestorJsonRpc.open({
+      ...config,
+      onError: handleJsonRpcError,
+    });
   }
 
   /**
-   * Returns the URL of the JSON-RPC server.
+   * Returns the legacy primary URL of the JSON-RPC server.
    *
    * @returns The URL of the JSON-RPC server.
+   * @deprecated A Client may use multiple endpoints or a Transport without a
+   * URL, so this value does not reliably identify its connection.
    */
   get url(): string {
-    return this.requestor.url;
+    return this.url_;
   }
 
   /**
