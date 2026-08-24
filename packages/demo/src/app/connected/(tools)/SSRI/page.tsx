@@ -136,7 +136,10 @@ export default function SSRI() {
     setMethodResult(undefined);
     setIconDataURL("");
 
-    const testSSRIExecutor = new ssri.ExecutorJsonRpc(SSRIExecutorURL);
+    const executorOwner = ssri.ExecutorJsonRpc.open({
+      urls: [SSRIExecutorURL],
+    });
+    const testSSRIExecutor = executorOwner.value;
 
     let contract: ssri.Trait | undefined;
     try {
@@ -232,7 +235,11 @@ export default function SSRI() {
       setMethodResult(`Error: ${errorMessage}`);
       error(`Error: ${errorMessage}`);
     } finally {
-      setIsLoading(false);
+      try {
+        await executorOwner.dispose();
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     async function callSSRI(
