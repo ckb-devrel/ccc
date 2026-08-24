@@ -1,19 +1,29 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
+import { useEffect, useState, type ReactNode } from "react";
 
-const clientOptions = [
-  {
-    name: "CKB Testnet",
-    client: new ccc.ClientPublicTestnet(),
-  },
-  {
-    name: "CKB Mainnet",
-    client: new ccc.ClientPublicMainnet(),
-  },
-];
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [clientOptions, setClientOptions] =
+    useState<{ name: string; client: ccc.Client }[]>();
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    const owner = ccc.OwnerAggregated.from([
+      ccc.ClientPublicTestnet.open(),
+      ccc.ClientPublicMainnet.open(),
+    ] as const);
+    const [testnet, mainnet] = owner.value;
+    // The clients must be opened after commit to avoid leaking aborted renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientOptions([
+      { name: "CKB Testnet", client: testnet },
+      { name: "CKB Mainnet", client: mainnet },
+    ]);
+    return () => void owner.dispose().catch(() => {});
+  }, []);
+
+  if (!clientOptions) return null;
+
   return (
     <ccc.Provider
       name="CCC Precision Toolkit"

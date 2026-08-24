@@ -122,7 +122,12 @@ connector.addEventListener("willUpdate", () => {
 });
 
 // Switch to mainnet
-connector.setClient(new ccc.ClientPublicMainnet());
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+connector.setClient(mainnetClientOwner.value); // The Connector borrows it.
+
+// Later, after the Connector has switched away from this Client or has been
+// removed from the document, the caller can release it:
+// await mainnetClientOwner.dispose();
 ```
 
 ## Styling with CSS custom properties

@@ -65,8 +65,8 @@ Use `ClientPublicMainnet` or `ClientPublicTestnet` for zero-config connectivity.
     ```typescript
     import { ccc } from "@ckb-ccc/shell";
 
-    const client = new ccc.ClientPublicMainnet({
-      url: "https://your-ckb-node.example.com/rpc",
+    const clientOwner = ccc.ClientPublicMainnet.open({
+      urls: ["https://your-ckb-node.example.com/rpc"],
     });
     ```
   </Tab>
@@ -196,7 +196,7 @@ Your project is using CommonJS (`require`). Either switch to ESM (`"type": "modu
 The key must be exactly 32 bytes (64 hex characters), without `0x` prefix. Double-check your environment variable.
 
 **`ClientPublicTestnet` connection times out**
-Public nodes may be rate-limited. For production, run your own CKB node and pass its URL to `ClientPublicMainnet({ url: "..." })`.
+Public nodes may be rate-limited. For production, run your own CKB node and pass its endpoint to `ClientPublicMainnet.open({ urls: ["..."] })`.
 
 **I want to use browser-wallet signers (JoyID, MetaMask) on the server**
 Those signers require a browser environment. On the server, use `SignerCkbPrivateKey`. If you need to verify wallet signatures on the server, use `ccc.Signer.verifyMessage()` — see [Sign Messages](/docs/guides/sign-message).

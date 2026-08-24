@@ -139,7 +139,12 @@ const client = new ccc.ClientPublicTestnet();
 const client = new ccc.ClientPublicMainnet();
 
 // Connect to a custom node
-const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["https://my-node.example.com/rpc"],
+});
+const customClient = customClientOwner.value;
+
+// Dispose each Owner when its Client is no longer needed.
 ```
 
 ## Key functions

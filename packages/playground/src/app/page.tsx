@@ -293,8 +293,8 @@ export default function Home() {
             onClick={() =>
               setClient(
                 isTestnet
-                  ? new ccc.ClientPublicMainnet()
-                  : new ccc.ClientPublicTestnet(),
+                  ? ccc.ClientPublicMainnet.open()
+                  : ccc.ClientPublicTestnet.open(),
               )
             }
           >

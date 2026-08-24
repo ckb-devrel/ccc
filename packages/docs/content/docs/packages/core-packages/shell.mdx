@@ -77,7 +77,12 @@ const client = new ccc.ClientPublicTestnet();
 const client = new ccc.ClientPublicMainnet();
 
 // Custom node URL
-const client = new ccc.ClientPublicTestnet("http://localhost:8114");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["http://localhost:8114"],
+});
+const customClient = customClientOwner.value;
+
+// Dispose each Owner when its Client is no longer needed.
 ```
 
 ### Sign transactions with a private key

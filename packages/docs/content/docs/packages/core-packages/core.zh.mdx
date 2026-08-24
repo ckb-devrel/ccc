@@ -138,7 +138,12 @@ const client = new ccc.ClientPublicTestnet();
 const client = new ccc.ClientPublicMainnet();
 
 // 连接自定义节点
-const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["https://my-node.example.com/rpc"],
+});
+const customClient = customClientOwner.value;
+
+// 不再使用各个 Client 时，释放对应的 Owner。
 ```
 
 ## 核心函数

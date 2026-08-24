@@ -1,17 +1,18 @@
 import { ccc } from "@ckb-ccc/core";
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { HDKey } from "@scure/bip32";
 import { mnemonicToSeedSync } from "@scure/bip39";
 
 @Injectable()
-export class TapService {
+export class TapService implements OnModuleDestroy {
   private readonly logger = new Logger(TapService.name);
 
   private readonly rootKey: HDKey;
   private readonly pathPrefix: string;
   private readonly feeRate: number;
-  private readonly client = new ccc.ClientPublicTestnet();
+  private readonly clientOwner: ccc.Owner<ccc.ClientPublicTestnet>;
+  private readonly client: ccc.ClientPublicTestnet;
 
   constructor(configService: ConfigService) {
     const mnemonic = configService.get<string>("server_mnemonic");
@@ -26,6 +27,12 @@ export class TapService {
     this.rootKey = HDKey.fromMasterSeed(mnemonicToSeedSync(mnemonic));
     this.pathPrefix = configService.get<string>("hd_path_prefix") ?? "";
     this.feeRate = feeRate;
+    this.clientOwner = ccc.ClientPublicTestnet.open();
+    this.client = this.clientOwner.value;
+  }
+
+  async onModuleDestroy() {
+    await this.clientOwner.dispose();
   }
 
   async tapCkb(address: string, amount: string) {

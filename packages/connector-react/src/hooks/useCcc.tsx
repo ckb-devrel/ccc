@@ -13,13 +13,26 @@ import React, {
 } from "react";
 import { Connector } from "../components/index.js";
 
+type ClientInput = ccc.Client | ccc.Owner<ccc.Client>;
+
+function isOwner(resource: ClientInput): resource is ccc.Owner<ccc.Client> {
+  return "dispose" in resource && typeof resource.dispose === "function";
+}
+
+interface SetClient {
+  (owner: ccc.Owner<ccc.Client>): void;
+  /** @deprecated Pass an Owner<Client> so the Provider can manage its lifecycle. */
+  (client: ccc.Client): void;
+  (resource: ccc.Client | ccc.Owner<ccc.Client>): void;
+}
+
 const CCC_CONTEXT = createContext<
   | {
       isOpen: boolean;
       open: () => unknown;
       close: () => unknown;
       disconnect: () => unknown;
-      setClient: (client: ccc.Client) => unknown;
+      setClient: SetClient;
       client: ccc.Client;
       wallet?: ccc.Wallet;
       signerInfo?: ccc.SignerInfo;
@@ -86,11 +99,41 @@ export function Provider({
   const defaultSignersController = useRef<
     SignersControllerWithFilter | undefined
   >(undefined);
+  const replacementOwner = useRef<ccc.Owner<ccc.Client> | undefined>(undefined);
+  const providedClient = defaultClient ?? clientOptions?.[0]?.client;
+  const [fallbackClient, setFallbackClient] = useState<ccc.Client>();
 
-  const [initialClient] = useState(
-    () => defaultClient ?? new ccc.ClientPublicTestnet(),
-  );
+  useEffect(() => {
+    if (providedClient) return;
+
+    const owner = ccc.ClientPublicTestnet.open();
+    setFallbackClient(owner.value);
+    return () => void owner.dispose().catch(() => {});
+  }, [providedClient]);
+
+  const initialClient = providedClient ?? fallbackClient;
   const client = ref?.client ?? initialClient;
+  const setClient = useCallback(
+    (resource: ClientInput) => {
+      const owner = isOwner(resource)
+        ? resource.map((value) => value)
+        : new ccc.OwnerUnique(resource, () => {});
+      const previous = replacementOwner.current;
+      replacementOwner.current = owner;
+      if (previous) void previous.dispose().catch(() => {});
+      ref?.setClient(owner.value);
+    },
+    [ref],
+  );
+
+  useEffect(
+    () => () => {
+      void replacementOwner.current?.dispose().catch(() => {});
+      replacementOwner.current = undefined;
+    },
+    [],
+  );
+
   const open = useCallback(() => {
     setIsOpen(true);
     ref?.requestUpdate();
@@ -103,14 +146,6 @@ export function Provider({
     () => ref?.disconnect.bind(ref) ?? (() => {}),
     [ref, ref?.disconnect],
   );
-  const setClient = useMemo(
-    () => ref?.setClient.bind(ref) ?? (() => {}),
-    [ref, ref?.setClient],
-  );
-
-  useEffect(() => {
-    setClient(initialClient);
-  }, [initialClient, setClient]);
   useEffect(() => {
     if (!defaultSignersController.current) {
       defaultSignersController.current = new SignersControllerWithFilter(
@@ -120,6 +155,8 @@ export function Provider({
       defaultSignersController.current.filter = signerFilter;
     }
   }, [signerFilter]);
+
+  if (!client || !initialClient) return null;
 
   return (
     <CCC_CONTEXT.Provider
@@ -136,6 +173,7 @@ export function Provider({
       }}
     >
       <Connector
+        client={initialClient}
         hideMark={hideMark}
         name={name}
         icon={icon}

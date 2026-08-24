@@ -120,7 +120,12 @@ connector.addEventListener("willUpdate", () => {
 });
 
 // 切换至主网
-connector.setClient(new ccc.ClientPublicMainnet());
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+connector.setClient(mainnetClientOwner.value); // Connector 仅借用该 Client。
+
+// 后续确认 Connector 已切换到其它 Client 或已从文档中移除后，
+// 再由调用方释放：
+// await mainnetClientOwner.dispose();
 ```
 
 ## 使用 CSS 自定义属性调整样式

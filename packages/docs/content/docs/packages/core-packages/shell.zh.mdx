@@ -77,7 +77,12 @@ const client = new ccc.ClientPublicTestnet();
 const client = new ccc.ClientPublicMainnet();
 
 // 自定义节点
-const client = new ccc.ClientPublicTestnet("http://localhost:8114");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["http://localhost:8114"],
+});
+const customClient = customClientOwner.value;
+
+// 不再使用各个 Client 时，释放对应的 Owner。
 ```
 
 ### 使用私钥签署交易
