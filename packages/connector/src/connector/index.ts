@@ -27,20 +27,26 @@ export class WebComponentConnector extends LitElement {
   @state()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
 
-  private _client = new ClientWithFeeRate(new ccc.ClientPublicTestnet());
+  private _client?: ccc.Owner<ClientWithFeeRate> = this.openDefaultClient();
 
-  // The connector owns and may switch the active client internally, so it is
-  // state rather than an externally controlled property.
+  // The connector tracks the active Client through an Owner. Externally
+  // supplied Clients are wrapped with a no-op disposer and remain borrowed.
   @state()
   public get client(): ccc.Client {
-    return this._client;
+    if (!this._client) {
+      throw new Error("Connector is not connected");
+    }
+    return this._client.value;
   }
   public set client(client: ccc.Client) {
-    if (client === this._client || client === this._client[ccc.Proxy.inner]) {
+    const current = this._client?.value;
+    if (client === current || client === current?.[ccc.Proxy.inner]) {
       return;
     }
 
-    this._client = new ClientWithFeeRate(client);
+    this.replaceClient(
+      new ccc.OwnerUnique(new ClientWithFeeRate(client), () => {}),
+    );
   }
 
   public setClient(client: ccc.Client) {
@@ -91,14 +97,31 @@ export class WebComponentConnector extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    if (!this._client) {
+      this._client = this.openDefaultClient();
+      this.requestUpdate("client");
+    }
     this.loadConnection();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.replaceClient();
     this.signerUpdateId += 1;
     this.unregisterSignerReplacer?.();
     this.unregisterSignerReplacer = undefined;
+  }
+
+  private openDefaultClient(): ccc.Owner<ClientWithFeeRate> {
+    return ccc.ClientPublicTestnet.open().map(
+      (client) => new ClientWithFeeRate(client),
+    );
+  }
+
+  private replaceClient(client?: ccc.Owner<ClientWithFeeRate>): void {
+    const previous = this._client;
+    this._client = client;
+    void previous?.dispose().catch(() => {});
   }
 
   willUpdate(changedProperties: PropertyValues): void {
@@ -166,6 +189,9 @@ export class WebComponentConnector extends LitElement {
     createRef();
 
   render() {
+    const client = this._client?.value;
+    if (!client) return;
+
     return html`<div
       class="background"
       @click=${(event: Event) => {
@@ -187,11 +213,11 @@ export class WebComponentConnector extends LitElement {
                   ?hideMark=${this.hideMark}
                   .wallet=${this.wallet}
                   .signer=${this.signer.signer}
-                  .feeRate=${this._client.feeRate}
+                  .feeRate=${client.feeRate}
                   .clientOptions=${this.clientOptions}
                   @disconnect=${() => this.disconnect()}
                   @fee-rate-selected=${(event: FeeRateSelectedEvent) => {
-                    this._client.feeRate = event.feeRate;
+                    client.feeRate = event.feeRate;
                     this.requestUpdate();
                   }}
                   @select-client=${(e: SelectClientEvent) =>
