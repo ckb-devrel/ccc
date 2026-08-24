@@ -29,6 +29,30 @@ import { execute } from "./execute";
 import { About } from "./tabs/About";
 import { Console } from "./tabs/Console";
 
+function openWebSocket(url: string): ccc.Owner<WebSocket> {
+  const socket = new WebSocket(url);
+  return new ccc.OwnerUnique(socket, async (socket) => {
+    if (socket.readyState === socket.CLOSED) return;
+
+    await new Promise<void>((resolve) => {
+      const finish = () => {
+        window.clearTimeout(timeout);
+        socket.removeEventListener("close", finish);
+        resolve();
+      };
+      const timeout = window.setTimeout(finish, 1000);
+      socket.addEventListener("close", finish, { once: true });
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.onmessage = null;
+      if (socket.readyState !== socket.CLOSING) {
+        socket.close();
+      }
+    });
+  });
+}
+
 async function shareToNostr(
   client: ccc.Client,
   relays: string[],
@@ -52,26 +76,36 @@ async function shareToNostr(
   const sent = (
     await Promise.all(
       relays.map(async (relay) => {
-        const socket = new WebSocket(relay);
-        const res = await new Promise<string | undefined>((resolve) => {
-          setTimeout(resolve, 5000);
-          socket.onclose = () => {
-            resolve(undefined);
-          };
-          socket.onmessage = (event) => {
-            const data = JSON.parse(event.data as string);
-            if (data[0] === "OK" && data[1] === signedEvent.id && data[2]) {
-              resolve(relay);
-            } else {
+        const socketOwner = openWebSocket(relay);
+        const socket = socketOwner.value;
+        let timeout: number | undefined;
+        try {
+          return await new Promise<string | undefined>((resolve) => {
+            timeout = window.setTimeout(resolve, 5000);
+            socket.onclose = () => {
               resolve(undefined);
-            }
-          };
-          socket.onopen = () => {
-            socket.send(JSON.stringify(["EVENT", signedEvent]));
-          };
-        });
-        socket.close();
-        return res;
+            };
+            socket.onerror = () => resolve(undefined);
+            socket.onmessage = (event) => {
+              try {
+                const data = JSON.parse(event.data as string);
+                if (data[0] === "OK" && data[1] === signedEvent.id && data[2]) {
+                  resolve(relay);
+                } else {
+                  resolve(undefined);
+                }
+              } catch (_err) {
+                resolve(undefined);
+              }
+            };
+            socket.onopen = () => {
+              socket.send(JSON.stringify(["EVENT", signedEvent]));
+            };
+          });
+        } finally {
+          window.clearTimeout(timeout);
+          await socketOwner.dispose();
+        }
       }),
     )
   ).filter((r) => r !== undefined);
@@ -139,34 +173,59 @@ async function getFromNEvent(
     throw new Error("Invalid nevent");
   }
 
-  return Promise.any(relays.map((relay) => getFromNostr(relay, eventId)));
+  const aborter = new AbortController();
+  const requests = relays.map((relay) =>
+    getFromNostr(relay, eventId, aborter.signal),
+  );
+  try {
+    return await Promise.any(requests);
+  } finally {
+    aborter.abort();
+    await Promise.allSettled(requests);
+  }
 }
 
-async function getFromNostr(relayUrl: string, id: string): Promise<string> {
-  const socket = new WebSocket(relayUrl);
-
-  const res = await new Promise<string>((resolve, reject) => {
-    setTimeout(() => reject("Timeout"), 10000);
-    socket.onclose = () => {
-      reject("Connection closed");
-    };
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data as string);
-      if (data[0] === "EVENT" && data[1] === "1") {
-        resolve(data[2].content);
-      } else if (data[0] === "EOSE") {
-        reject("Event not found");
-      } else {
-        reject(JSON.stringify(event.data));
-      }
-    };
-    socket.onopen = () => {
-      socket.send(JSON.stringify(["REQ", "1", { ids: [id] }]));
-    };
-  });
-  socket.close();
-
-  return res;
+async function getFromNostr(
+  relayUrl: string,
+  id: string,
+  signal: AbortSignal,
+): Promise<string> {
+  const socketOwner = openWebSocket(relayUrl);
+  const socket = socketOwner.value;
+  let timeout: number | undefined;
+  let abort: (() => void) | undefined;
+  try {
+    return await new Promise<string>((resolve, reject) => {
+      timeout = window.setTimeout(() => reject(new Error("Timeout")), 10000);
+      abort = () => reject(new Error("Aborted"));
+      signal.addEventListener("abort", abort, { once: true });
+      socket.onclose = () => {
+        reject(new Error("Connection closed"));
+      };
+      socket.onerror = () => reject(new Error("Connection error"));
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data as string);
+          if (data[0] === "EVENT" && data[1] === "1") {
+            resolve(data[2].content);
+          } else if (data[0] === "EOSE") {
+            reject(new Error("Event not found"));
+          } else {
+            reject(new Error(JSON.stringify(event.data)));
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      socket.onopen = () => {
+        socket.send(JSON.stringify(["REQ", "1", { ids: [id] }]));
+      };
+    });
+  } finally {
+    window.clearTimeout(timeout);
+    if (abort) signal.removeEventListener("abort", abort);
+    await socketOwner.dispose();
+  }
 }
 
 const DEFAULT_NOSTR_RELAYS = [

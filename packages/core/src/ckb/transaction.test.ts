@@ -9,7 +9,13 @@ let lock: ccc.Script;
 let type: ccc.Script;
 
 beforeEach(async () => {
-  client = new ccc.ClientPublicTestnet();
+  client = ccc.ClientPublicTestnet.new({
+    transport: {
+      request: async () => {
+        throw new Error("Unexpected request");
+      },
+    },
+  });
   signer = new ccc.SignerCkbPublicKey(
     client,
     "0x026f3255791f578cc5e38783b6f2d87d4709697b797def6bf7b3b9af4120e2bfd9",

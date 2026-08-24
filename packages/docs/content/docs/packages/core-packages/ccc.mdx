@@ -62,7 +62,9 @@ It also adds one package-level export:
 ```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 
 // Discover all wallets available in the current browser environment
 const controller = new ccc.SignersController(client);

@@ -98,7 +98,9 @@ pnpm add @ckb-ccc/shell
 ```typescript title="script.ts"
 import { ccc } from "@ckb-ccc/shell";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 const signer = new ccc.SignerCkbPrivateKey(client, process.env.PRIVATE_KEY!);
 
 const address = await signer.getRecommendedAddress();
@@ -161,7 +163,9 @@ pnpm add @ckb-ccc/ccc
 ```typescript title="custom-ui.ts"
 import { ccc } from "@ckb-ccc/ccc";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 const controller = new ccc.SignersController();
 let wallets: ccc.WalletWithSigners[] | undefined;
 

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { ccc } from "../../index.js";
 
-const client = new ccc.ClientPublicTestnet();
+const client = ccc.ClientPublicTestnet.new({
+  transport: {
+    request: async () => {
+      throw new Error("Unexpected request");
+    },
+  },
+});
 const ZERO_HASH =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 

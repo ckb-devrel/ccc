@@ -58,7 +58,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, "ok");
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 1,
       transport,
     });
@@ -84,7 +84,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, payload.id);
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 2,
       transport,
     });

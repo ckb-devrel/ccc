@@ -60,7 +60,7 @@ function ConnectButton() {
 
 ## Building a Node.js backend script
 
-1. **Import and connect** — Install `@ckb-ccc/shell`. Create client: `new ccc.ClientPublicTestnet()` or `ClientPublicMainnet()`.
+1. **Import and connect** — Install `@ckb-ccc/shell`. Open an owned client with `ccc.ClientPublicTestnet.open()` or `ccc.ClientPublicMainnet.open()`, retain the returned Owner, and dispose it at shutdown.
 2. **Create signer** — `new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!)`. Never hardcode keys. (Validate environment variable exists first—see code example below)
 3. **Check connection** — Some signers require `await signer.connect()`. Check with `await signer.isConnected()` if operations fail unexpectedly.
 4. **Query data** — `await signer.getRecommendedAddress()`, `await signer.getBalance()`, `for await (const cell of client.findCellsByLock(...))`.
@@ -71,7 +71,8 @@ function ConnectButton() {
 import { ccc } from "@ckb-ccc/shell";
 
 // Always load private key from environment — never hardcode
-const client = new ccc.ClientPublicTestnet(); // or ClientPublicMainnet
+const clientOwner = ccc.ClientPublicTestnet.open(); // or ccc.ClientPublicMainnet.open()
+const client = clientOwner.value;
 
 const privateKey = process.env.CKB_PRIVATE_KEY;
 if (!privateKey) throw new Error("CKB_PRIVATE_KEY is required");
@@ -81,6 +82,8 @@ await signer.connect();
 
 const address = await signer.getRecommendedAddress(); // "ckt1q..." or "ckb1q..."
 const balance = await signer.getBalance(); // bigint in Shannon
+
+await clientOwner.dispose();
 ```
 
 **TypeScript config** — `@ckb-ccc/shell` ships ESM only:

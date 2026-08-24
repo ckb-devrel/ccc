@@ -133,10 +133,12 @@ abstract class Signer {
 
 ```typescript
 // Connect to public testnet
-const client = new ccc.ClientPublicTestnet();
+const testnetClientOwner = ccc.ClientPublicTestnet.open();
+const testnetClient = testnetClientOwner.value;
 
 // Connect to public mainnet
-const client = new ccc.ClientPublicMainnet();
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+const mainnetClient = mainnetClientOwner.value;
 
 // Connect to a custom node
 const customClientOwner = ccc.ClientPublicTestnet.open({

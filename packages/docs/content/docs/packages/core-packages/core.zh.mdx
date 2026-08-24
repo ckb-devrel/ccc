@@ -132,10 +132,12 @@ abstract class Signer {
 
 ```typescript
 // 连接公共测试网
-const client = new ccc.ClientPublicTestnet();
+const testnetClientOwner = ccc.ClientPublicTestnet.open();
+const testnetClient = testnetClientOwner.value;
 
 // 连接公共主网
-const client = new ccc.ClientPublicMainnet();
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+const mainnetClient = mainnetClientOwner.value;
 
 // 连接自定义节点
 const customClientOwner = ccc.ClientPublicTestnet.open({

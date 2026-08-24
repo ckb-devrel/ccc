@@ -2,9 +2,15 @@ import { describe, expect, it } from "vitest";
 import { ClientPublicTestnet } from "./clientPublicTestnet.js";
 import { KnownScript } from "./knownScript.js";
 
+const transport = {
+  request: async () => {
+    throw new Error("Unexpected request");
+  },
+};
+
 describe("Client known scripts", () => {
   it("uses the network's default scripts", async () => {
-    const client = new ClientPublicTestnet();
+    const client = ClientPublicTestnet.new({ transport });
 
     const script = await client.getKnownScript(KnownScript.TypeId);
 
@@ -22,7 +28,7 @@ describe("Client known scripts", () => {
         cellDeps: [],
       },
     };
-    const client = new ClientPublicTestnet({ scripts });
+    const client = ClientPublicTestnet.new({ scripts, transport });
 
     const script = await client.getKnownScript(KnownScript.TypeId);
 

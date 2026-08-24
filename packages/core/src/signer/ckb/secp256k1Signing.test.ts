@@ -7,7 +7,13 @@ import {
   verifyMessageSecp256k1,
 } from "./secp256k1Signing.js";
 
-const client = new ccc.ClientPublicTestnet();
+const client = ccc.ClientPublicTestnet.new({
+  transport: {
+    request: async () => {
+      throw new Error("Unexpected request");
+    },
+  },
+});
 const signer = new ccc.SignerCkbPrivateKey(
   client,
   "0x0123456789012345678901234567890123456789012345678901234567890123",

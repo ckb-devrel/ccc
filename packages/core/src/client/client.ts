@@ -75,7 +75,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    *
    * // Get xUDT script deployment info
    * const xudtInfo = await client.getKnownScript(ccc.KnownScript.XUdt);
@@ -114,7 +116,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const feeRate = await client.getFeeRate();
    * console.log(`Current fee rate: ${feeRate} Shannons/KB`);
    * ```
@@ -145,7 +149,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const tipBlockNumber = await client.getTip();
    * console.log(`Current block height: ${tipBlockNumber}`);
    * ```
@@ -162,7 +168,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const header = await client.getTipHeader();
    * console.log(`Block #${header.number}, hash: ${header.hash}`);
    * ```
@@ -282,7 +290,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const cell = await client.getCell({
    *   txHash: "0xTX_HASH...",
    *   index: 0,
@@ -361,7 +371,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const cell = await client.getCellLive(
    *   { txHash: "0xTX_HASH...", index: 0 },
    *   true,  // include data
@@ -410,7 +422,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
    *
    * // Get first page of cells
@@ -475,7 +489,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
    *
    * // Find all cells owned by a lock script
@@ -529,7 +545,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
    *
    * // Find all cells belonging to this address
@@ -581,7 +599,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * // Find all xUDT cells of a specific token
    * const xudtType = await ccc.Script.fromKnownScript(
    *   client, ccc.KnownScript.XUdt, "0xOWNER_LOCK_HASH...",
@@ -634,7 +654,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const xudtInfo = await client.getKnownScript(ccc.KnownScript.XUdt);
    * const cellDeps = await client.getCellDeps(xudtInfo.cellDeps);
    * // cellDeps can be added to a transaction:
@@ -751,7 +773,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const { script: lock } = await ccc.Address.fromString("ckt1q...", client);
    *
    * // List all transactions related to an address (grouped)
@@ -864,7 +888,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const { script: lock } = await ccc.Address.fromString(
    *   "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq...",
    *   client,
@@ -896,7 +922,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
    * await signer.connect();
    *
@@ -927,7 +955,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
    * await signer.connect();
    *
@@ -971,7 +1001,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * const txResponse = await client.getTransaction("0xTX_HASH...");
    * if (txResponse) {
    *   console.log(`Status: ${txResponse.status}`);
@@ -1044,7 +1076,9 @@ export abstract class Client {
    * ```typescript
    * import { ccc } from "@ckb-ccc/core";
    *
-   * const client = new ccc.ClientPublicTestnet();
+   * const clientOwner = ccc.ClientPublicTestnet.open();
+   * const client = clientOwner.value;
+   * // Call `await clientOwner.dispose()` when the client is no longer needed.
    * // Wait for transaction to be committed (0 confirmations)
    * const tx = await client.waitTransaction("0xTX_HASH...");
    * console.log(`Confirmed in block: ${tx?.blockNumber}`);
