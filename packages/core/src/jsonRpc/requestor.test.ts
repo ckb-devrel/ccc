@@ -15,20 +15,6 @@ function response(payload: JsonRpcPayload, result: unknown): JsonRpcResponse {
 }
 
 describe("RequestorJsonRpc", () => {
-  it("closes its transport", async () => {
-    const close = vi.fn();
-    const requestor = new RequestorJsonRpc("", {
-      transport: {
-        request: async (payload) => response(payload, "ok"),
-        close,
-      },
-    });
-
-    await requestor.close();
-
-    expect(close).toHaveBeenCalledOnce();
-  });
-
   it("advances the queue after a successful request", async () => {
     let releaseFirst: (() => void) | undefined;
     const firstPending = new Promise<void>((resolve) => {
@@ -37,7 +23,6 @@ describe("RequestorJsonRpc", () => {
     let active = 0;
     let maxActive = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         active += 1;
         maxActive = Math.max(maxActive, active);
@@ -48,7 +33,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, payload.id);
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 1,
       transport,
     });
@@ -65,7 +50,6 @@ describe("RequestorJsonRpc", () => {
   it("advances the queue after a transport error", async () => {
     let calls = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         calls += 1;
         if (calls === 1) {
@@ -74,7 +58,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, "ok");
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 1,
       transport,
     });
@@ -92,7 +76,6 @@ describe("RequestorJsonRpc", () => {
   it("does not exhaust a larger concurrency limit after transport errors", async () => {
     let calls = 0;
     const transport: JsonRpcTransport = {
-      async close() {},
       async request(payload) {
         calls += 1;
         if (calls <= 2) {
@@ -101,7 +84,7 @@ describe("RequestorJsonRpc", () => {
         return response(payload, payload.id);
       },
     };
-    const requestor = new RequestorJsonRpc("", {
+    const requestor = RequestorJsonRpc.new({
       maxConcurrent: 2,
       transport,
     });
@@ -119,5 +102,16 @@ describe("RequestorJsonRpc", () => {
       { status: "fulfilled", value: 2 },
       { status: "fulfilled", value: 3 },
     ]);
+  });
+
+  it("disposes default transports owned by an opened Requestor", async () => {
+    const owner = RequestorJsonRpc.open({ urls: ["ws://example.com"] });
+    const requestor = owner.value;
+
+    await owner.dispose();
+
+    await expect(
+      requestor.requestPayload(requestor.buildPayload("test", [])),
+    ).rejects.toThrow("Cannot use a disposed JsonRpcTransportWebSocket");
   });
 });

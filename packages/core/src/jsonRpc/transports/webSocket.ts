@@ -1,4 +1,5 @@
 import WebSocket from "isomorphic-ws";
+import { OwnerUnique } from "../../utils/owner/unique.js";
 import {
   JsonRpcId,
   JsonRpcPayload,
@@ -15,15 +16,36 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
       ReturnType<typeof setTimeout>,
     ]
   > = new Map();
+  private disposed = false;
   private socket?: WebSocket;
   private openSocket?: Promise<WebSocket>;
 
+  /**
+   * @deprecated Use {@link JsonRpcTransportWebSocket.open} to make lifecycle
+   * ownership explicit. This constructor will become private in a future
+   * release.
+   */
   constructor(
     private readonly url: string,
     private readonly timeout = 30000,
   ) {}
 
+  /** Opens an owned WebSocket transport. */
+  static open(
+    url: string,
+    timeout = 30000,
+  ): OwnerUnique<JsonRpcTransportWebSocket> {
+    const transport = new JsonRpcTransportWebSocket(url, timeout);
+    return new OwnerUnique(transport, (transport) => transport.dispose());
+  }
+
   request(data: JsonRpcPayload): Promise<JsonRpcResponse> {
+    if (this.disposed) {
+      return Promise.reject(
+        new Error("Cannot use a disposed JsonRpcTransportWebSocket"),
+      );
+    }
+
     const [socketUnsafe, socket] = (() => {
       if (
         this.socket &&
@@ -125,7 +147,8 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
     });
   }
 
-  async close(): Promise<void> {
+  private async dispose(): Promise<void> {
+    this.disposed = true;
     const socket = this.socket;
 
     if (!socket || socket.readyState === socket.CLOSED) return;

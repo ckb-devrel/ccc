@@ -84,19 +84,39 @@ import { PackageBadges } from '@/components/package-badges';
 ## Provider 属性
 
 ```tsx
-<ccc.Provider
-  hideMark={false}
-  name="My App"
-  icon="https://example.com/icon.png"
-  signerFilter={async (signerInfo, wallet) => true}
-  defaultClient={new ccc.ClientPublicTestnet()}
-  clientOptions={[
-    { name: "Testnet", client: new ccc.ClientPublicTestnet() },
-    { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
-  ]}
->
-  {children}
-</ccc.Provider>
+function CccProvider({ children }: { children: React.ReactNode }) {
+  const [clientOptions, setClientOptions] =
+    useState<{ name: string; client: ccc.Client }[]>();
+
+  useEffect(() => {
+    const owner = ccc.OwnerAggregated.from([
+      ccc.ClientPublicTestnet.open(),
+      ccc.ClientPublicMainnet.open(),
+    ] as const);
+    const [testnet, mainnet] = owner.value;
+    // Client 必须在 commit 后打开，避免 aborted render 泄漏资源。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientOptions([
+      { name: "Testnet", client: testnet },
+      { name: "Mainnet", client: mainnet },
+    ]);
+    return () => void owner.dispose().catch(() => {});
+  }, []);
+
+  if (!clientOptions) return null;
+
+  return (
+    <ccc.Provider
+      hideMark={false}
+      name="My App"
+      icon="https://example.com/icon.png"
+      signerFilter={async (signerInfo, wallet) => true}
+      clientOptions={clientOptions}
+    >
+      {children}
+    </ccc.Provider>
+  );
+}
 ```
 
 | 属性名               | 类型                                       | 说明                                               |
@@ -108,8 +128,8 @@ import { PackageBadges } from '@/components/package-badges';
 | `icon`              | `string?`                                  | 显示在钱包选择界面中的应用图标 URL                 |
 | `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | 筛选在界面中显示的钱包与 `signer` 组合             |
 | `signersController` | `ccc.SignersController?`                   | 自定义 Signers Controller（高级用法）              |
-| `defaultClient`     | `ccc.Client?`                              | 初始网络客户端                                     |
-| `clientOptions`     | `{ icon?, client, name }[]?`               | 在连接器中展示的可选网络列表                       |
+| `defaultClient`     | `ccc.Client?`                              | 借用的初始客户端；优先于 `clientOptions[0]`         |
+| `clientOptions`     | `{ icon?, client, name }[]?`               | 借用的网络选项；未传 `defaultClient` 时首项为默认值 |
 
 ## 调整 Connector 样式
 
@@ -146,7 +166,7 @@ const {
   open,        // () => void——打开钱包选择界面
   close,       // () => void——关闭钱包选择界面
   disconnect,  // () => void——断开当前钱包连接
-  setClient,   // (client: ccc.Client) => void——切换网络
+  setClient,   // (owner: ccc.Owner<ccc.Client>) => void——转移所有权并切换客户端
   client,      // ccc.Client——当前网络客户端
   wallet,      // ccc.Wallet | undefined——已连接的钱包
   signerInfo,  // ccc.SignerInfo | undefined——已连接的 signer
@@ -154,6 +174,32 @@ const {
 ```
 
 在 `<ccc.Provider>` 树之外调用此 Hook 会抛出错误。
+
+通过 `defaultClient` 或 `clientOptions` 传入的客户端仍由调用方持有并负责清理。
+调用 `setClient(owner)` 会将所有权转移给 Provider；该 owner 会在下次调用
+`setClient` 或 Provider 卸载时清理。为兼容旧代码，`setClient` 仍可接收裸
+`Client`，但该用法已弃用。
+
+## `useBorrowedOrOwned()` Hook
+
+当资源可能从上层借用、而上层未提供时又需要创建内部 fallback，可以使用此 Hook：
+
+```tsx
+function openTestnetClient() {
+  return ccc.ClientPublicTestnet.open();
+}
+
+function ClientConsumer({ client: borrowed }: { client?: ccc.Client }) {
+  const client = ccc.useBorrowedOrOwned(borrowed, openTestnetClient);
+  if (!client) return null; // fallback 会在组件 commit 后创建。
+
+  return <App client={client} />;
+}
+```
+
+Hook 不会释放借用值。fallback Owner 与借用值相互独立，可以持续复用；只有
+`open` 函数变化时才会重新创建，并在被替换或组件卸载时释放。应保持 `open`
+的引用稳定。
 
 ## 完整示例
 
@@ -165,10 +211,7 @@ import { useState, useEffect } from "react";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <ccc.Provider
-      name="My CKB App"
-      defaultClient={new ccc.ClientPublicTestnet()}
-    >
+    <ccc.Provider name="My CKB App">
       <Header />
       {children}
     </ccc.Provider>

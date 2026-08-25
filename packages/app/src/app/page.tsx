@@ -194,8 +194,8 @@ export default function Home() {
     setTelemetry(undefined);
     setClient(
       nextIsMainnet
-        ? new ccc.ClientPublicMainnet()
-        : new ccc.ClientPublicTestnet(),
+        ? ccc.ClientPublicMainnet.open()
+        : ccc.ClientPublicTestnet.open(),
     );
   };
 

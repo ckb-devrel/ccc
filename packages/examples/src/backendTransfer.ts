@@ -9,9 +9,11 @@ import { ccc } from "@ckb-ccc/ccc";
 import { client, signer as playgroundSigner } from "@ckb-ccc/playground";
 
 // In a real backend, you'd create a signer with a private key:
-//   const client = new ccc.ClientPublicTestnet();
+//   const clientOwner = ccc.ClientPublicTestnet.open();
+//   const client = clientOwner.value;
 //   const signer = new ccc.SignerCkbPrivateKey(client, process.env.CKB_PRIVATE_KEY!);
 //   await signer.connect();
+//   // Call `await clientOwner.dispose()` at shutdown.
 
 // For this playground demo, we use the playground signer
 const signer = playgroundSigner;

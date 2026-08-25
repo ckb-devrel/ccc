@@ -7,7 +7,7 @@ import { DISCONNECT_SVG } from "../assets/diconnect.svg.js";
 import { FEE_SVG } from "../assets/fee.svg.js";
 import { SWAP_SVG } from "../assets/swap.svg.js";
 import { USER_SVG } from "../assets/user.svg.js";
-import { SelectClientEvent } from "../events/index.js";
+import { SelectClientEvent } from "../events/external.js";
 import { signerTypeToIcon } from "./selecting/signers.js";
 
 export function formatString(

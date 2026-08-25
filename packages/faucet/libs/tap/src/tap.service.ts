@@ -11,7 +11,8 @@ export class TapService implements OnModuleDestroy {
   private readonly rootKey: HDKey;
   private readonly pathPrefix: string;
   private readonly feeRate: number;
-  private readonly client = new ccc.ClientPublicTestnet();
+  private readonly clientOwner: ccc.Owner<ccc.ClientPublicTestnet>;
+  private readonly client: ccc.ClientPublicTestnet;
 
   constructor(configService: ConfigService) {
     const mnemonic = configService.get<string>("server_mnemonic");
@@ -26,10 +27,12 @@ export class TapService implements OnModuleDestroy {
     this.rootKey = HDKey.fromMasterSeed(mnemonicToSeedSync(mnemonic));
     this.pathPrefix = configService.get<string>("hd_path_prefix") ?? "";
     this.feeRate = feeRate;
+    this.clientOwner = ccc.ClientPublicTestnet.open();
+    this.client = this.clientOwner.value;
   }
 
-  async onModuleDestroy(): Promise<void> {
-    await this.client.close();
+  async onModuleDestroy() {
+    await this.clientOwner.dispose();
   }
 
   async tapCkb(address: string, amount: string) {

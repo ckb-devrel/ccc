@@ -1,10 +1,24 @@
+import { OwnerAggregated } from "../utils/owner/aggregated.js";
+import { Owner } from "../utils/owner/owner.js";
 import { jsonRpcTransportFromUri } from "./transports/factory.js";
+import { JsonRpcTransportFallback } from "./transports/fallback.js";
 import {
   JsonRpcPayload,
   JsonRpcResponse,
   JsonRpcTransport,
-  JsonRpcTransportFallback,
 } from "./transports/index.js";
+
+function openTransports(
+  urls: readonly [string, ...string[]],
+  config?: { timeout?: number },
+): Owner<JsonRpcTransportFallback> {
+  const transportOwners = Array.from(new Set(urls), (url) =>
+    jsonRpcTransportFromUri(url, config),
+  );
+  return OwnerAggregated.from(transportOwners).map(
+    (transports) => new JsonRpcTransportFallback([...transports]),
+  );
+}
 
 /**
  * Applies a transformation function to a value if the transformer is provided.
@@ -26,6 +40,10 @@ function transform(value: unknown, transformer?: (i: unknown) => unknown) {
   return value;
 }
 
+/**
+ * @deprecated Used only by the legacy positional constructor. Use the static
+ * {@link RequestorJsonRpc.new} or {@link RequestorJsonRpc.open} methods.
+ */
 export type RequestorJsonRpcConfig = {
   fallbacks?: string[];
   timeout?: number;
@@ -43,10 +61,12 @@ export class RequestorJsonRpc {
   private id = 0;
 
   /**
-   * Creates an instance of ClientJsonRpc.
+   * Creates a Requestor using legacy positional arguments.
    *
    * @param url_ - The URL of the JSON-RPC server.
    * @param timeout - The timeout for requests in milliseconds
+   * @deprecated Use {@link RequestorJsonRpc.new} with a borrowed Transport or
+   * {@link RequestorJsonRpc.open} when creating Transports.
    */
   constructor(
     private readonly url_: string,
@@ -54,28 +74,60 @@ export class RequestorJsonRpc {
     private readonly onError?: (err: unknown) => Promise<void> | void,
   ) {
     this.maxConcurrent = config?.maxConcurrent;
-    this.transport =
-      config?.transport ??
-      new JsonRpcTransportFallback(
-        Array.from(
-          new Set([url_, ...(config?.fallbacks ?? [])]).values(),
-          (url) => jsonRpcTransportFromUri(url, config),
-        ),
-      );
+    if (config?.transport) {
+      this.transport = config.transport;
+    } else {
+      this.transport = openTransports(
+        [url_, ...(config?.fallbacks ?? [])],
+        config,
+      ).value;
+    }
+  }
+
+  /** Creates a Requestor that borrows an existing Transport. */
+  static new({
+    transport,
+    maxConcurrent,
+    onError,
+  }: {
+    transport: JsonRpcTransport;
+    maxConcurrent?: number;
+    onError?: (err: unknown) => Promise<void> | void;
+  }): RequestorJsonRpc {
+    return new RequestorJsonRpc("", { transport, maxConcurrent }, onError);
+  }
+
+  /** Opens a Requestor with ownership of its default transports. */
+  static open({
+    urls: [url, ...fallbacks],
+    onError,
+    ...config
+  }: {
+    urls: readonly [string, ...string[]];
+    timeout?: number;
+    maxConcurrent?: number;
+    onError?: (err: unknown) => Promise<void> | void;
+  }): Owner<RequestorJsonRpc> {
+    const transportOwner = openTransports([url, ...fallbacks], config);
+    return transportOwner.map((transport) =>
+      RequestorJsonRpc.new({
+        transport,
+        ...config,
+        onError,
+      }),
+    );
   }
 
   /**
    * Returns the URL of the JSON-RPC server.
    *
    * @returns The URL of the JSON-RPC server.
+   * @deprecated URL belongs to Transport construction and is unavailable for
+   * Requestors created with {@link RequestorJsonRpc.new}.
    */
 
   get url(): string {
     return this.url_;
-  }
-
-  async close(): Promise<void> {
-    await this.transport.close();
   }
 
   /**

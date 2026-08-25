@@ -1,3 +1,4 @@
+import { OwnerUnique } from "../../utils/owner/unique.js";
 import { JsonRpcTransportHttp } from "./http.js";
 import { JsonRpcTransportWebSocket } from "./webSocket.js";
 
@@ -6,8 +7,11 @@ export function jsonRpcTransportFromUri(
   config?: { timeout?: number },
 ) {
   if (uri.startsWith("wss://") || uri.startsWith("ws://")) {
-    return new JsonRpcTransportWebSocket(uri, config?.timeout);
+    return JsonRpcTransportWebSocket.open(uri, config?.timeout);
   }
 
-  return new JsonRpcTransportHttp(uri, config?.timeout);
+  return new OwnerUnique(
+    new JsonRpcTransportHttp(uri, config?.timeout),
+    () => {},
+  );
 }

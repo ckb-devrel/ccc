@@ -12,6 +12,24 @@ import React, {
   useState,
 } from "react";
 import { Connector } from "../components/index.js";
+import { useBorrowedOrOwned } from "./useBorrowedOrOwned.js";
+
+function openDefaultClient(): ccc.Owner<ccc.Client> {
+  return ccc.ClientPublicTestnet.open();
+}
+
+type ClientInput = ccc.Client | ccc.Owner<ccc.Client>;
+
+function isOwner(resource: ClientInput): resource is ccc.Owner<ccc.Client> {
+  return ccc.Owner.is(resource);
+}
+
+interface SetClient {
+  (owner: ccc.Owner<ccc.Client>): void;
+  /** @deprecated Pass an Owner<Client> so the Provider can manage its lifecycle. */
+  (client: ccc.Client): void;
+  (resource: ccc.Client | ccc.Owner<ccc.Client>): void;
+}
 
 const CCC_CONTEXT = createContext<
   | {
@@ -19,11 +37,7 @@ const CCC_CONTEXT = createContext<
       open: () => unknown;
       close: () => unknown;
       disconnect: () => unknown;
-      /**
-       * Sets the active client and transfers its ownership to the connector.
-       * The connector may close the client when it is replaced or disconnected.
-       */
-      setClient: (client: ccc.Client) => unknown;
+      setClient: SetClient;
       client: ccc.Client;
       wallet?: ccc.Wallet;
       signerInfo?: ccc.SignerInfo;
@@ -33,7 +47,7 @@ const CCC_CONTEXT = createContext<
 
 class SignersControllerWithFilter extends ccc.SignersController {
   constructor(
-    public filter?: (
+    public readonly filter?: (
       signerInfo: ccc.SignerInfo,
       wallet: ccc.Wallet,
     ) => Promise<boolean>,
@@ -80,23 +94,51 @@ export function Provider({
     wallet: ccc.Wallet,
   ) => Promise<boolean>;
   signersController?: ccc.SignersController;
-  /** Transferred to the connector, which may subsequently close it. */
   defaultClient?: ccc.Client;
-  /** Selected clients are transferred to the connector and may be closed. */
   clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
   preferredNetworks?: ccc.NetworkPreference[];
 }) {
   const [ref, setRef] = useState<ccc.WebComponentConnector | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [_, setFlag] = useState(0);
-  const defaultSignersController = useRef<
-    SignersControllerWithFilter | undefined
-  >(undefined);
-
-  const [initialClient] = useState(
-    () => defaultClient ?? new ccc.ClientPublicTestnet(),
+  const defaultSignersController = useMemo(
+    () => new SignersControllerWithFilter(signerFilter),
+    [signerFilter],
   );
-  const client = ref?.client ?? initialClient;
+
+  const initialClient = useBorrowedOrOwned(
+    defaultClient ?? clientOptions?.[0]?.client,
+    openDefaultClient,
+  );
+  const [selectedClient, setSelectedClient] = useState<ccc.Client>();
+  const adoptedClientOwner = useRef<ccc.Owner<ccc.Client> | undefined>(
+    undefined,
+  );
+  const client = selectedClient ?? initialClient;
+
+  const setClient = useCallback((resource: ClientInput) => {
+    const owner = isOwner(resource)
+      ? resource.map((value) => value)
+      : new ccc.OwnerUnique(resource, () => {});
+
+    const previous = adoptedClientOwner.current;
+    adoptedClientOwner.current = owner;
+    if (previous) void previous.dispose().catch(() => {});
+    setSelectedClient(owner.value);
+  }, []);
+
+  const onSelectClient = useCallback((event: ccc.SelectClientEvent) => {
+    setSelectedClient(event.client);
+  }, []);
+
+  useEffect(
+    () => () => {
+      void adoptedClientOwner.current?.dispose().catch(() => {});
+      adoptedClientOwner.current = undefined;
+    },
+    [],
+  );
+
   const open = useCallback(() => {
     setIsOpen(true);
     ref?.requestUpdate();
@@ -109,23 +151,7 @@ export function Provider({
     () => ref?.disconnect.bind(ref) ?? (() => {}),
     [ref, ref?.disconnect],
   );
-  const setClient = useMemo(
-    () => ref?.setClient.bind(ref) ?? (() => {}),
-    [ref, ref?.setClient],
-  );
-
-  useEffect(() => {
-    setClient(initialClient);
-  }, [initialClient, setClient]);
-  useEffect(() => {
-    if (!defaultSignersController.current) {
-      defaultSignersController.current = new SignersControllerWithFilter(
-        signerFilter,
-      );
-    } else {
-      defaultSignersController.current.filter = signerFilter;
-    }
-  }, [signerFilter]);
+  if (!client) return null;
 
   return (
     <CCC_CONTEXT.Provider
@@ -142,12 +168,11 @@ export function Provider({
       }}
     >
       <Connector
+        client={client}
         hideMark={hideMark}
         name={name}
         icon={icon}
-        signersController={
-          signersController ?? defaultSignersController.current
-        }
+        signersController={signersController ?? defaultSignersController}
         ref={setRef}
         onWillUpdate={() => setFlag((f) => f + 1)}
         onClose={close}
@@ -176,6 +201,7 @@ export function Provider({
             ...connectorProps?.style,
           },
         }}
+        onSelectClient={onSelectClient}
       />
       {children}
     </CCC_CONTEXT.Provider>

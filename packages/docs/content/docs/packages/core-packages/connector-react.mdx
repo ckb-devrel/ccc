@@ -87,19 +87,39 @@ import { PackageBadges } from '@/components/package-badges';
 ## Provider props
 
 ```tsx
-<ccc.Provider
-  hideMark={false}
-  name="My App"
-  icon="https://example.com/icon.png"
-  signerFilter={async (signerInfo, wallet) => true}
-  defaultClient={new ccc.ClientPublicTestnet()}
-  clientOptions={[
-    { name: "Testnet", client: new ccc.ClientPublicTestnet() },
-    { name: "Mainnet", client: new ccc.ClientPublicMainnet() },
-  ]}
->
-  {children}
-</ccc.Provider>
+function CccProvider({ children }: { children: React.ReactNode }) {
+  const [clientOptions, setClientOptions] =
+    useState<{ name: string; client: ccc.Client }[]>();
+
+  useEffect(() => {
+    const owner = ccc.OwnerAggregated.from([
+      ccc.ClientPublicTestnet.open(),
+      ccc.ClientPublicMainnet.open(),
+    ] as const);
+    const [testnet, mainnet] = owner.value;
+    // The clients must be opened after commit to avoid leaking aborted renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientOptions([
+      { name: "Testnet", client: testnet },
+      { name: "Mainnet", client: mainnet },
+    ]);
+    return () => void owner.dispose().catch(() => {});
+  }, []);
+
+  if (!clientOptions) return null;
+
+  return (
+    <ccc.Provider
+      hideMark={false}
+      name="My App"
+      icon="https://example.com/icon.png"
+      signerFilter={async (signerInfo, wallet) => true}
+      clientOptions={clientOptions}
+    >
+      {children}
+    </ccc.Provider>
+  );
+}
 ```
 
 | Prop                | Type                                       | Description                                        |
@@ -111,8 +131,8 @@ import { PackageBadges } from '@/components/package-badges';
 | `icon`              | `string?`                                  | App icon URL shown in the wallet picker            |
 | `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | Filter which wallet/signer combinations appear     |
 | `signersController` | `ccc.SignersController?`                   | Custom signers controller (advanced)               |
-| `defaultClient`     | `ccc.Client?`                              | The initial network client                         |
-| `clientOptions`     | `{ icon?, client, name }[]?`               | Network options to display in the connector        |
+| `defaultClient`     | `ccc.Client?`                              | Borrowed initial client; takes precedence over `clientOptions[0]` |
+| `clientOptions`     | `{ icon?, client, name }[]?`               | Borrowed network options; the first is the default when `defaultClient` is omitted |
 
 ## Styling the connector
 
@@ -150,7 +170,7 @@ const {
   open,        // () => void — open the wallet picker
   close,       // () => void — close the wallet picker
   disconnect,  // () => void — disconnect the current wallet
-  setClient,   // (client: ccc.Client) => void — switch network
+  setClient,   // (owner: ccc.Owner<ccc.Client>) => void — transfer and switch client
   client,      // ccc.Client — current network client
   wallet,      // ccc.Wallet | undefined — connected wallet
   signerInfo,  // ccc.SignerInfo | undefined — connected signer
@@ -158,6 +178,34 @@ const {
 ```
 
 The hook throws if called outside a `<ccc.Provider>` tree.
+
+Clients passed through `defaultClient` or `clientOptions` remain owned by the
+caller. `setClient(owner)` transfers ownership to the Provider, which disposes
+the owner on the next `setClient` call or when the Provider unmounts. Passing a bare `Client` to
+`setClient` remains supported for compatibility, but is deprecated.
+
+## `useBorrowedOrOwned()` hook
+
+Use this hook for resources that may be borrowed from a parent but need an
+internally owned fallback when the parent does not provide one:
+
+```tsx
+function openTestnetClient() {
+  return ccc.ClientPublicTestnet.open();
+}
+
+function ClientConsumer({ client: borrowed }: { client?: ccc.Client }) {
+  const client = ccc.useBorrowedOrOwned(borrowed, openTestnetClient);
+  if (!client) return null; // The fallback opens after the component commits.
+
+  return <App client={client} />;
+}
+```
+
+The hook never disposes a borrowed value. Its fallback Owner is independent of
+the borrowed value and remains available for reuse. It is reopened only when
+the `open` function changes and is disposed when replaced or when the component
+unmounts. Keep `open` referentially stable.
 
 ## Full example
 
@@ -169,10 +217,7 @@ import { useState, useEffect } from "react";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <ccc.Provider
-      name="My CKB App"
-      defaultClient={new ccc.ClientPublicTestnet()}
-    >
+    <ccc.Provider name="My CKB App">
       <Header />
       {children}
     </ccc.Provider>

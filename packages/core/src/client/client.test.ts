@@ -11,25 +11,18 @@ describe("Client", () => {
   let client: ClientPublicTestnet;
 
   beforeEach(() => {
-    client = new ClientPublicTestnet({ cache: new ClientCacheMemory() });
+    client = ClientPublicTestnet.new({
+      cache: new ClientCacheMemory(),
+      transport: {
+        request: async () => {
+          throw new Error("Unexpected request");
+        },
+      },
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it("closes its JSON-RPC transport", async () => {
-    const close = vi.fn();
-    const client = new ClientPublicTestnet({
-      transport: {
-        request: async ({ id }) => ({ jsonrpc: "2.0", id, result: null }),
-        close,
-      },
-    });
-
-    await client.close();
-
-    expect(close).toHaveBeenCalledOnce();
   });
 
   describe("getCell", () => {
@@ -120,9 +113,8 @@ describe("Client", () => {
     async function getError(
       data: string,
     ): Promise<ErrorClientVerification | undefined> {
-      const c = new ClientPublicTestnet({
+      const c = ClientPublicTestnet.new({
         transport: {
-          async close() {},
           async request({ id }) {
             return {
               jsonrpc: "2.0",

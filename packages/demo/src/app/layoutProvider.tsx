@@ -21,17 +21,6 @@ import {
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 
-const clientOptions = [
-  {
-    name: "CKB Testnet",
-    client: new ccc.ClientPublicTestnet(),
-  },
-  {
-    name: "CKB Mainnet",
-    client: new ccc.ClientPublicMainnet(),
-  },
-];
-
 function Links(props: React.ComponentPropsWithoutRef<"div">) {
   const { index } = useGetExplorerLink();
 
@@ -113,8 +102,8 @@ function ClientSwitcher() {
       onClick={() =>
         setClient(
           isTestnet
-            ? new ccc.ClientPublicMainnet()
-            : new ccc.ClientPublicTestnet(),
+            ? ccc.ClientPublicMainnet.open()
+            : ccc.ClientPublicTestnet.open(),
         )
       }
       className="mr-4 flex gap-2"
@@ -244,9 +233,29 @@ function Addresses() {
 }
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
+  const [clientOptions, setClientOptions] =
+    useState<{ name: string; client: ccc.Client }[]>();
+
+  useEffect(() => {
+    const owner = ccc.OwnerAggregated.from([
+      ccc.ClientPublicTestnet.open(),
+      ccc.ClientPublicMainnet.open(),
+    ] as const);
+    const [testnet, mainnet] = owner.value;
+    // The clients must be opened after commit to avoid leaking aborted renders.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClientOptions([
+      { name: "CKB Testnet", client: testnet },
+      { name: "CKB Mainnet", client: mainnet },
+    ]);
+    return () => void owner.dispose().catch(() => {});
+  }, []);
+
+  if (!clientOptions) return null;
+
   return (
     <ccc.Provider /*
-      defaultClient={new ccc.ClientPublicTestnet()} // Default client used by connector
+      defaultClient={clientOptions[0].client} // Default borrowed client
       connectorProps={{
         style: {
           "--background": "#fff",

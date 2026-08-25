@@ -29,7 +29,4 @@ export interface JsonRpcTransport {
    * @returns The JSON-RPC response.
    */
   request(payload: JsonRpcPayload): Promise<JsonRpcResponse>;
-
-  /** Releases resources held by the transport. */
-  close(): Promise<void>;
 }

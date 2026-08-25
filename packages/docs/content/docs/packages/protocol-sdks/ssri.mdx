@@ -103,8 +103,18 @@ trait.tryRun(call): Promise<ExecutorResponse<T | undefined>>
 Connects to an SSRI server over HTTP JSON-RPC:
 
 ```typescript
-const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com");
+const executorOwner = ssri.ExecutorJsonRpc.open({
+  urls: ["https://your-ssri-server.example.com"],
+});
+const executor = executorOwner.value;
+
+// Release the Executor and its Transport when they are no longer needed.
+await executorOwner.dispose();
 ```
+
+Use `ExecutorJsonRpc.new({ transport })` instead when borrowing an existing
+JSON-RPC Transport. The caller remains responsible for that Transport's
+lifecycle.
 
 ### `ExecutorResponse<T>`
 
@@ -124,20 +134,27 @@ response.map(fn);  // transform the result
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/core";
 
-const executor = new ssri.ExecutorJsonRpc("https://ssri.example.com");
+const executorOwner = ssri.ExecutorJsonRpc.open({
+  urls: ["https://ssri.example.com"],
+});
+const executor = executorOwner.value;
 
 const trait = new ssri.Trait(
   { txHash: "0x...", index: 0 }, // code OutPoint
   executor,
 );
 
-// Check the SSRI version
-const { res: version, cellDeps } = await trait.version();
-console.log("Version:", version);
+try {
+  // Check the SSRI version
+  const { res: version, cellDeps } = await trait.version();
+  console.log("Version:", version);
 
-// List available methods
-const { res: methods } = await trait.getMethods();
-console.log("Methods:", methods);
+  // List available methods
+  const { res: methods } = await trait.getMethods();
+  console.log("Methods:", methods);
+} finally {
+  await executorOwner.dispose();
+}
 ```
 
 ## Execution contexts

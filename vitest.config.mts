@@ -4,6 +4,7 @@ const packages = [
   "packages/core",
   "packages/did-ckb",
   "packages/nip07",
+  "packages/ssri",
   "packages/type-id",
 ];
 

@@ -2,6 +2,7 @@ import { Zero } from "../fixedPoint/index.js";
 import { NumLike, numFrom, numToHex, type Num } from "../num/index.js";
 
 export * from "./constructor.js";
+export * from "./owner/index.js";
 export * from "./proxy.js";
 
 /**
