@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { CloseEvent, ConnectedEvent } from "../../events/index.js";
+import { CloseRequestEvent, ConnectedEvent } from "../../events/internal.js";
 import { generateConnectingScene } from "./connecting.js";
 import { generateSignersScene } from "./signers.js";
 import { generateWalletsScene } from "./wallets.js";
@@ -106,7 +106,7 @@ export class SelectingScene extends LitElement {
       }
 
       this.dispatchEvent(
-        new CloseEvent(() => {
+        new CloseRequestEvent(() => {
           this.dispatchEvent(new ConnectedEvent(wallet.name, signerInfo.name));
         }),
       );

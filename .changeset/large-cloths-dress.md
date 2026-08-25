@@ -1,6 +1,5 @@
 ---
-"@ckb-ccc/connector": patch
+"@ckb-ccc/connector": major
 ---
 
-fix(connector): dispose the internally created default Client with the custom element lifecycle
-  
+refactor(connector): require a controlled borrowed Client, emit bubbling select-client requests for network and fee-rate changes, and remove Client ownership from the Web Component lifecycle

@@ -1,11 +1,5 @@
 import { ccc } from "@ckb-ccc/ccc";
 
-export class SelectClientEvent extends Event {
-  constructor(public client: ccc.Client) {
-    super("select-client");
-  }
-}
-
 export class FeeRateSelectedEvent extends Event {
   constructor(public readonly feeRate?: ccc.Num) {
     super("fee-rate-selected", { bubbles: true, composed: true });
@@ -21,8 +15,8 @@ export class ConnectedEvent extends Event {
   }
 }
 
-export class CloseEvent extends Event {
-  constructor(public callback?: () => void) {
+export class CloseRequestEvent extends Event {
+  constructor(public readonly callback?: () => void) {
     super("close", { bubbles: true, composed: true });
   }
 }

@@ -43,13 +43,22 @@ import { ccc } from "@ckb-ccc/connector";
 // The connector element
 const connector: ccc.WebComponentConnector;
 
-connector.client;       // current ccc.Client
+connector.client;       // required borrowed ccc.Client
 connector.wallet;       // connected ccc.Wallet | undefined
 connector.signer;       // ccc.SignerInfo | undefined
 
 connector.disconnect(); // disconnect the current wallet
-connector.setClient(newClient); // switch networks
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
 ```
+
+The Web Component requires and only borrows its `client`; it never creates or
+disposes one. Assign a client before adding the element to the document, keep
+its owner alive for as long as the element may use it, and dispose the owner
+from your application lifecycle. Network and fee-rate selections emit a
+composed, bubbling `select-client` event; the application decides whether to
+feed its candidate Client back through the `client` property.
 
 ## Select a transaction fee rate
 
@@ -69,7 +78,16 @@ only.
     <script type="module">
       import { ccc } from "https://esm.sh/@ckb-ccc/connector";
 
-      const connector = document.getElementById("ccc-connector");
+      const connector = document.createElement("ccc-connector");
+      const clientOwner = ccc.ClientPublicTestnet.open();
+      connector.client = clientOwner.value;
+      connector.style.cssText = "display: none; z-index: 999;";
+
+      window.addEventListener(
+        "pagehide",
+        () => void clientOwner.dispose(),
+        { once: true },
+      );
 
       document.getElementById("open-btn").addEventListener("click", () => {
         connector.style.display = "";
@@ -79,6 +97,10 @@ only.
         connector.style.display = "none";
       });
 
+      connector.addEventListener("select-client", (event) => {
+        connector.client = event.client;
+      });
+
       connector.addEventListener("willUpdate", () => {
         if (connector.signer) {
           connector.signer.signer.getRecommendedAddress().then((addr) => {
@@ -86,16 +108,15 @@ only.
           });
         }
       });
+
+      // `client` must be assigned before the element is connected.
+      document.body.append(connector);
     </script>
   </head>
   <body>
     <button id="open-btn">Connect Wallet</button>
     <p id="address"></p>
 
-    <ccc-connector
-      id="ccc-connector"
-      style="display: none; z-index: 999;"
-    ></ccc-connector>
   </body>
 </html>
 ```
@@ -106,7 +127,11 @@ only.
 import { ccc } from "@ckb-ccc/connector";
 
 // The custom element is auto-registered when you import the package.
-const connector = document.querySelector("ccc-connector") as ccc.WebComponentConnector;
+const connector = document.createElement(
+  "ccc-connector",
+) as ccc.WebComponentConnector;
+const clientOwner = ccc.ClientPublicTestnet.open();
+connector.client = clientOwner.value; // The Connector borrows it.
 
 // Show the wallet picker
 connector.style.display = "";
@@ -116,18 +141,21 @@ connector.addEventListener("close", () => {
   connector.style.display = "none";
 });
 
+// The Connector requests changes; the application controls the Client.
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
+
 connector.addEventListener("willUpdate", () => {
   console.log("Connected wallet:", connector.wallet?.name);
   console.log("Signer:", connector.signer);
 });
 
-// Switch to mainnet
-const mainnetClientOwner = ccc.ClientPublicMainnet.open();
-connector.setClient(mainnetClientOwner.value); // The Connector borrows it.
+// `client` must be assigned before the element is connected.
+document.body.append(connector);
 
-// Later, after the Connector has switched away from this Client or has been
-// removed from the document, the caller can release it:
-// await mainnetClientOwner.dispose();
+// Once the Connector can no longer use this Client, the caller releases it:
+// await clientOwner.dispose();
 ```
 
 ## Styling with CSS custom properties

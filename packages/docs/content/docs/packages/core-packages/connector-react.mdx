@@ -181,8 +181,31 @@ The hook throws if called outside a `<ccc.Provider>` tree.
 
 Clients passed through `defaultClient` or `clientOptions` remain owned by the
 caller. `setClient(owner)` transfers ownership to the Provider, which disposes
-the owner when it is replaced or unmounted. Passing a bare `Client` to
+the owner on the next `setClient` call or when the Provider unmounts. Passing a bare `Client` to
 `setClient` remains supported for compatibility, but is deprecated.
+
+## `useBorrowedOrOwned()` hook
+
+Use this hook for resources that may be borrowed from a parent but need an
+internally owned fallback when the parent does not provide one:
+
+```tsx
+function openTestnetClient() {
+  return ccc.ClientPublicTestnet.open();
+}
+
+function ClientConsumer({ client: borrowed }: { client?: ccc.Client }) {
+  const client = ccc.useBorrowedOrOwned(borrowed, openTestnetClient);
+  if (!client) return null; // The fallback opens after the component commits.
+
+  return <App client={client} />;
+}
+```
+
+The hook never disposes a borrowed value. Its fallback Owner is independent of
+the borrowed value and remains available for reuse. It is reopened only when
+the `open` function changes and is disposed when replaced or when the component
+unmounts. Keep `open` referentially stable.
 
 ## Full example
 

@@ -1,6 +1,5 @@
 ---
-"@ckb-ccc/connector-react": patch
+"@ckb-ccc/connector-react": minor
 ---
 
-fix(connector-react): manage ownership transferred through setClient while keeping defaultClient and clientOptions borrowed
-  
+feat(connector-react): control Web Component Client requests in the Provider, manage ownership transferred through setClient, and add useBorrowedOrOwned for an internally owned fallback to an optional borrowed value

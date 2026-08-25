@@ -176,8 +176,30 @@ const {
 在 `<ccc.Provider>` 树之外调用此 Hook 会抛出错误。
 
 通过 `defaultClient` 或 `clientOptions` 传入的客户端仍由调用方持有并负责清理。
-调用 `setClient(owner)` 会将所有权转移给 Provider；该 owner 会在被替换或 Provider
-卸载时清理。为兼容旧代码，`setClient` 仍可接收裸 `Client`，但该用法已弃用。
+调用 `setClient(owner)` 会将所有权转移给 Provider；该 owner 会在下次调用
+`setClient` 或 Provider 卸载时清理。为兼容旧代码，`setClient` 仍可接收裸
+`Client`，但该用法已弃用。
+
+## `useBorrowedOrOwned()` Hook
+
+当资源可能从上层借用、而上层未提供时又需要创建内部 fallback，可以使用此 Hook：
+
+```tsx
+function openTestnetClient() {
+  return ccc.ClientPublicTestnet.open();
+}
+
+function ClientConsumer({ client: borrowed }: { client?: ccc.Client }) {
+  const client = ccc.useBorrowedOrOwned(borrowed, openTestnetClient);
+  if (!client) return null; // fallback 会在组件 commit 后创建。
+
+  return <App client={client} />;
+}
+```
+
+Hook 不会释放借用值。fallback Owner 与借用值相互独立，可以持续复用；只有
+`open` 函数变化时才会重新创建，并在被替换或组件卸载时释放。应保持 `open`
+的引用稳定。
 
 ## 完整示例
 

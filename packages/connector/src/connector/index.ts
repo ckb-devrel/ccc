@@ -3,13 +3,25 @@ import { LitElement, PropertyValues, css, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { Ref, createRef, ref } from "lit/directives/ref.js";
 import {
-  CloseEvent,
+  ConnectorCloseEvent,
+  ConnectorWillUpdateEvent,
+  SelectClientEvent,
+} from "../events/external.js";
+import {
+  CloseRequestEvent,
   ConnectedEvent,
   FeeRateSelectedEvent,
-  SelectClientEvent,
-} from "../events/index.js";
+} from "../events/internal.js";
 import { SignersController } from "../signers/index.js";
 import { ClientWithFeeRate } from "./client.js";
+
+const SIGNER_REFRESH_PROPERTIES = [
+  "name",
+  "icon",
+  "client",
+  "signersController",
+  "preferredNetworks",
+] as const satisfies readonly (keyof WebComponentConnector)[];
 
 @customElement("ccc-connector")
 export class WebComponentConnector extends LitElement {
@@ -22,38 +34,14 @@ export class WebComponentConnector extends LitElement {
   /** @deprecated This compatibility property is ignored. */
   @property()
   public preferredNetworks?: ccc.NetworkPreference[];
-  @property()
-  public signersController?: ccc.SignersController;
+  @property({ attribute: false })
+  public signersController = new ccc.SignersController();
   @state()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
 
-  private _client?: ccc.Owner<ClientWithFeeRate> = this.openDefaultClient();
-
-  // The connector tracks the active Client through an Owner. Externally
-  // supplied Clients are wrapped with a no-op disposer and remain borrowed.
-  // TODO(next major): Return `ccc.Client | undefined` from `client` instead of
-  // throwing when the connector is disconnected.
-  @state()
-  public get client(): ccc.Client {
-    if (!this._client) {
-      throw new Error("Connector is not connected");
-    }
-    return this._client.value;
-  }
-  public set client(client: ccc.Client) {
-    const current = this._client?.value;
-    if (client === current || client === current?.[ccc.Proxy.inner]) {
-      return;
-    }
-
-    this.replaceClient(
-      new ccc.OwnerUnique(new ClientWithFeeRate(client), () => {}),
-    );
-  }
-
-  public setClient(client: ccc.Client) {
-    this.client = client;
-  }
+  /** A required borrowed Client supplied by the integration layer. */
+  @property({ attribute: false })
+  public client!: ccc.Client;
 
   private signersControllerInner = new SignersController(this);
 
@@ -99,40 +87,21 @@ export class WebComponentConnector extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    if (!this._client) {
-      this._client = this.openDefaultClient();
-      this.requestUpdate("client");
-    }
     this.loadConnection();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.replaceClient();
     this.signerUpdateId += 1;
     this.unregisterSignerReplacer?.();
     this.unregisterSignerReplacer = undefined;
   }
 
-  private openDefaultClient(): ccc.Owner<ClientWithFeeRate> {
-    return ccc.ClientPublicTestnet.open().map(
-      (client) => new ClientWithFeeRate(client),
-    );
-  }
-
-  private replaceClient(client?: ccc.Owner<ClientWithFeeRate>): void {
-    const previous = this._client;
-    this._client = client;
-    void previous?.dispose().catch(() => {});
-  }
-
   willUpdate(changedProperties: PropertyValues): void {
     if (
-      changedProperties.has("name") ||
-      changedProperties.has("icon") ||
-      changedProperties.has("client") ||
-      changedProperties.has("signerFilter") ||
-      changedProperties.has("preferredNetworks")
+      SIGNER_REFRESH_PROPERTIES.some((property) =>
+        changedProperties.has(property),
+      )
     ) {
       void this.signersControllerInner.refresh();
     }
@@ -143,7 +112,20 @@ export class WebComponentConnector extends LitElement {
       this.refreshSigner();
     }
 
-    this.dispatchEvent(new Event("willUpdate"));
+    this.dispatchEvent(new ConnectorWillUpdateEvent());
+  }
+
+  private requestClientWithFeeRate(event: FeeRateSelectedEvent): void {
+    event.stopPropagation();
+
+    const current = this.client;
+    const client =
+      current instanceof ClientWithFeeRate
+        ? current
+        : new ClientWithFeeRate(current);
+    client.feeRate = event.feeRate;
+    this.requestUpdate();
+    this.dispatchEvent(new SelectClientEvent(client));
   }
 
   refreshSigner() {
@@ -191,8 +173,9 @@ export class WebComponentConnector extends LitElement {
     createRef();
 
   render() {
-    const client = this._client?.value;
-    if (!client) return;
+    const client = this.client;
+    const feeRate =
+      client instanceof ClientWithFeeRate ? client.feeRate : undefined;
 
     return html`<div
       class="background"
@@ -201,7 +184,7 @@ export class WebComponentConnector extends LitElement {
           this.onClose();
         }
       }}
-      @close=${(event: CloseEvent) => {
+      @close=${(event: CloseRequestEvent) => {
         event.stopPropagation();
         this.onClose(event.callback);
       }}
@@ -215,15 +198,11 @@ export class WebComponentConnector extends LitElement {
                   ?hideMark=${this.hideMark}
                   .wallet=${this.wallet}
                   .signer=${this.signer.signer}
-                  .feeRate=${client.feeRate}
+                  .feeRate=${feeRate}
                   .clientOptions=${this.clientOptions}
                   @disconnect=${() => this.disconnect()}
-                  @fee-rate-selected=${(event: FeeRateSelectedEvent) => {
-                    client.feeRate = event.feeRate;
-                    this.requestUpdate();
-                  }}
-                  @select-client=${(e: SelectClientEvent) =>
-                    this.setClient(e.client)}
+                  @fee-rate-selected=${(event: FeeRateSelectedEvent) =>
+                    this.requestClientWithFeeRate(event)}
                   ${ref(this.bodyRef)}
                 ></ccc-connected-scene>
               `
@@ -250,7 +229,7 @@ export class WebComponentConnector extends LitElement {
     }
 
     setTimeout(() => {
-      this.dispatchEvent(new CloseEvent());
+      this.dispatchEvent(new ConnectorCloseEvent());
       this.bodyRef.value?.onClose?.();
       onClosed?.();
     }, 150);

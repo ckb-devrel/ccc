@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { FeeRateSelectedEvent } from "../events/index.js";
+import { FeeRateSelectedEvent } from "../events/internal.js";
 
 type FeeRateOption = {
   description: string;

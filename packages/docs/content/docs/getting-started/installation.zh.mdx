@@ -131,10 +131,21 @@ pnpm add @ckb-ccc/connector
 
 ```typescript title="main.ts"
 import { ccc } from "@ckb-ccc/connector";
+
+const clientOwner = ccc.ClientPublicTestnet.open();
+const connector = document.createElement(
+  "ccc-connector",
+) as ccc.WebComponentConnector;
+connector.client = clientOwner.value;
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
+document.getElementById("app")!.append(connector);
+// 确认 connector 不会再使用该 Client 后，在应用生命周期中释放 clientOwner。
 ```
 
 ```html title="index.html"
-<ccc-connector></ccc-connector>
+<div id="app"></div>
 ```
   </Tab>
 
