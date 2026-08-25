@@ -31,6 +31,8 @@ export class WebComponentConnector extends LitElement {
 
   // The connector tracks the active Client through an Owner. Externally
   // supplied Clients are wrapped with a no-op disposer and remain borrowed.
+  // TODO(next major): Return `ccc.Client | undefined` from `client` instead of
+  // throwing when the connector is disconnected.
   @state()
   public get client(): ccc.Client {
     if (!this._client) {
