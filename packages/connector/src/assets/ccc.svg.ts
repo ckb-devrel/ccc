@@ -1,0 +1,5 @@
+import { encodeSvgToImgSrc } from "./utils.js";
+
+export const CCC_SVG = encodeSvgToImgSrc(
+  '<svg viewBox="0 0 125.671 125.671" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="a" cx="100" cy="100" r="62.836" gradientUnits="userSpaceOnUse" gradientTransform="translate(-20 -20)"><stop stop-color="#5bcefa"/><stop offset=".594" stop-color="#5bcefa"/><stop offset=".773" stop-color="#5bcefa" stop-opacity=".646"/></radialGradient></defs><g transform="translate(-17.164 -17.164)"><circle cx="80" cy="80" r="60.336" fill="#fff"/><circle cx="80" cy="80" r="60.336" fill="url(#a)" stroke="#313244" stroke-width="5"/><circle cx="-80" cy="80.004" r="39.21" fill="none" stroke="#4c4c4c" stroke-width="6.741" stroke-dasharray=".6741 23.2854 .6741 0" transform="rotate(-90)"/><path fill="#1e1e2e" stroke="#1e1e2e" stroke-width="3" d="M80.156 38.919a121.217 121.217 0 0 0-7.573 41.291A121.217 121.217 0 0 0 80 121.081a121.217 121.217 0 0 0 7.417-40.871 121.217 121.217 0 0 0-7.261-41.291Z"/></g></svg>',
+);

@@ -82,10 +82,6 @@ export class Button extends LitElement {
     }
   `;
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
   render() {
     const tag = unsafeStatic(this.as);
     return html`

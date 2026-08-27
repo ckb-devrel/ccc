@@ -20,3 +20,9 @@ export class CloseRequestEvent extends Event {
     super("close", { bubbles: true, composed: true });
   }
 }
+
+export class KhiePairingConnectedEvent extends Event {
+  constructor(public readonly signer: ccc.SignerJsonRpc) {
+    super("khie-pairing-connected", { bubbles: true, composed: true });
+  }
+}

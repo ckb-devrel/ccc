@@ -11,7 +11,9 @@ import {
   CloseRequestEvent,
   ConnectedEvent,
   FeeRateSelectedEvent,
+  KhiePairingConnectedEvent,
 } from "../events/internal.js";
+import { khieWalletFrom } from "../scenes/khie/wallet.js";
 import { SignersController } from "../signers/index.js";
 import { ClientWithFeeRate } from "./client.js";
 
@@ -22,6 +24,14 @@ const SIGNER_REFRESH_PROPERTIES = [
   "signersController",
   "preferredNetworks",
 ] as const satisfies readonly (keyof WebComponentConnector)[];
+
+type KhieConnection = {
+  signer: ccc.SignerJsonRpc;
+  signerInfo: ccc.SignerInfo;
+  wallet: ccc.Wallet;
+};
+
+type ConnectorScene = Element & { close(): void };
 
 @customElement("ccc-connector")
 export class WebComponentConnector extends LitElement {
@@ -53,18 +63,27 @@ export class WebComponentConnector extends LitElement {
   public wallet?: ccc.Wallet;
   @state()
   public signer?: ccc.SignerInfo;
-  @state()
-  private unregisterSignerReplacer?: () => void;
+  private unsubscribeSigner?: () => void;
   private signerUpdateId = 0;
 
-  public disconnect() {
-    this.onClose(() => {
-      this.walletName = undefined;
-      this.signerName = undefined;
-      this.saveConnection();
-      void this.signer?.signer.disconnect();
-    });
+  public disconnect(): void {
+    const signer = this.khieConnection?.signer ?? this.signer?.signer;
+
+    this.clearConnection();
+    void signer?.disconnect().catch(() => {});
   }
+
+  private clearConnection(): void {
+    this.khieConnection = undefined;
+    this.walletName = undefined;
+    this.signerName = undefined;
+    this.saveConnection();
+    this.setSigner(undefined, undefined);
+  }
+
+  @state()
+  private pairingKhie = false;
+  private khieConnection?: KhieConnection;
 
   private loadConnection() {
     const { signerName, walletName } = JSON.parse(
@@ -88,13 +107,15 @@ export class WebComponentConnector extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.loadConnection();
+    this.refreshSigner();
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = undefined;
     this.signerUpdateId += 1;
-    this.unregisterSignerReplacer?.();
-    this.unregisterSignerReplacer = undefined;
+    this.unsubscribeFromSigner();
   }
 
   willUpdate(changedProperties: PropertyValues): void {
@@ -128,7 +149,13 @@ export class WebComponentConnector extends LitElement {
     this.dispatchEvent(new SelectClientEvent(client));
   }
 
-  refreshSigner() {
+  refreshSigner(): void {
+    if (this.khieConnection) {
+      const { signerInfo, wallet } = this.khieConnection;
+      void this.updateSigner(wallet, signerInfo);
+      return;
+    }
+
     const wallet = this.signersControllerInner.wallets.find(
       ({ name }) => name === this.walletName,
     );
@@ -136,13 +163,18 @@ export class WebComponentConnector extends LitElement {
     void this.updateSigner(wallet, signer);
   }
 
-  async updateSigner(
+  private async updateSigner(
     wallet: ccc.Wallet | undefined,
     signerInfo: ccc.SignerInfo | undefined,
   ) {
     const updateId = ++this.signerUpdateId;
 
-    if (signerInfo?.signer === this.signer?.signer) {
+    // A DOM detach removes the replacer subscription but keeps the signer, so
+    // an unchanged signer still needs setup when its subscription is missing.
+    if (
+      signerInfo?.signer === this.signer?.signer &&
+      (!signerInfo || this.unsubscribeSigner)
+    ) {
       return;
     }
 
@@ -153,24 +185,69 @@ export class WebComponentConnector extends LitElement {
       return;
     }
 
-    this.unregisterSignerReplacer?.();
-    this.unregisterSignerReplacer = undefined;
-
     if (signerInfo && connected) {
-      this.wallet = wallet;
-      this.signer = signerInfo;
-      this.unregisterSignerReplacer = signerInfo.signer.onReplaced(() => {
-        void this.signersControllerInner.refresh();
-      });
+      this.setSigner(wallet, signerInfo);
     } else {
-      this.wallet = undefined;
-      this.signer = undefined;
+      this.setSigner(undefined, undefined);
     }
   }
 
+  private setSigner(
+    wallet: ccc.Wallet | undefined,
+    signer: ccc.SignerInfo | undefined,
+  ): void {
+    this.signerUpdateId += 1;
+    this.unsubscribeFromSigner();
+    this.wallet = wallet;
+    this.signer = signer;
+    this.unsubscribeSigner = signer ? this.subscribeSigner(signer) : undefined;
+  }
+
+  private unsubscribeFromSigner(): void {
+    this.unsubscribeSigner?.();
+    this.unsubscribeSigner = undefined;
+  }
+
+  private subscribeSigner(signerInfo: ccc.SignerInfo): () => void {
+    const signer = signerInfo.signer;
+    const khieSigner = this.khieConnection?.signer;
+    if (!khieSigner || signer !== khieSigner) {
+      return signer.onReplaced(() => {
+        void this.signersControllerInner.refresh();
+      });
+    }
+
+    return khieSigner.onReplaced(() => {
+      if (this.khieConnection?.signer === khieSigner) {
+        this.clearConnection();
+      }
+    });
+  }
+
+  private handleKhieConnected = (event: KhiePairingConnectedEvent) => {
+    event.stopPropagation();
+    const { signer } = event;
+    const wallet = khieWalletFrom(signer);
+    const signerInfo = new ccc.SignerInfo(wallet.name, signer);
+    this.khieConnection = { signer, signerInfo, wallet };
+    this.walletName = undefined;
+    this.signerName = undefined;
+    this.pairingKhie = false;
+    this.saveConnection();
+    this.setSigner(wallet, signerInfo);
+  };
+
+  private handleConnected = ({ walletName, signerName }: ConnectedEvent) => {
+    this.khieConnection = undefined;
+    this.walletName = walletName;
+    this.signerName = signerName;
+    this.saveConnection();
+    this.refreshSigner();
+  };
+
   private readonly mainRef: Ref<HTMLDivElement> = createRef();
-  private readonly bodyRef: Ref<HTMLDivElement & { onClose?: () => void }> =
-    createRef();
+  private readonly contentRef: Ref<HTMLDivElement> = createRef();
+  private resizeObserver?: ResizeObserver;
 
   render() {
     const client = this.client;
@@ -181,66 +258,94 @@ export class WebComponentConnector extends LitElement {
       class="background"
       @click=${(event: Event) => {
         if (event.target === event.currentTarget) {
-          this.onClose();
+          this.close();
         }
       }}
       @close=${(event: CloseRequestEvent) => {
         event.stopPropagation();
-        this.onClose(event.callback);
+        this.close(event.callback);
       }}
-      @updated=${() => this.updated()}
     >
       <div class="main" ${ref(this.mainRef)}>
-        ${
-          this.wallet && this.signer
-            ? html`
-                <ccc-connected-scene
-                  ?hideMark=${this.hideMark}
-                  .wallet=${this.wallet}
-                  .signer=${this.signer.signer}
-                  .feeRate=${feeRate}
-                  .clientOptions=${this.clientOptions}
-                  @disconnect=${() => this.disconnect()}
-                  @fee-rate-selected=${(event: FeeRateSelectedEvent) =>
-                    this.requestClientWithFeeRate(event)}
-                  ${ref(this.bodyRef)}
-                ></ccc-connected-scene>
-              `
-            : html`
-                <ccc-selecting-scene
-                  .wallets=${this.signersControllerInner.wallets}
-                  @connected=${({ walletName, signerName }: ConnectedEvent) => {
-                    this.walletName = walletName;
-                    this.signerName = signerName;
-                    this.refreshSigner();
-                    this.saveConnection();
-                  }}
-                  ${ref(this.bodyRef)}
-                ></ccc-selecting-scene>
-              `
-        }
+        <div class="content" ${ref(this.contentRef)}>
+          ${
+            this.wallet && this.signer
+              ? html`
+                  <ccc-connected-scene
+                    ?hideMark=${this.hideMark}
+                    .wallet=${this.wallet}
+                    .signer=${this.signer.signer}
+                    .feeRate=${feeRate}
+                    .clientOptions=${this.clientOptions}
+                    @disconnect=${() =>
+                      this.close(() => {
+                        this.disconnect();
+                      })}
+                    @fee-rate-selected=${(event: FeeRateSelectedEvent) =>
+                      this.requestClientWithFeeRate(event)}
+                  ></ccc-connected-scene>
+                `
+              : this.pairingKhie
+                ? html`
+                    <ccc-khie-connect-scene
+                      .client=${this.client}
+                      @back=${() => (this.pairingKhie = false)}
+                      @khie-pairing-connected=${this.handleKhieConnected}
+                    ></ccc-khie-connect-scene>
+                  `
+                : html`
+                    <ccc-selecting-scene
+                      .wallets=${this.signersControllerInner.wallets}
+                      @select-khie=${() => (this.pairingKhie = true)}
+                      @connected=${this.handleConnected}
+                    ></ccc-selecting-scene>
+                  `
+          }
+        </div>
       </div>
     </div>`;
   }
 
-  onClose(onClosed?: () => void) {
+  close(onClosed?: () => void) {
     if (this.mainRef.value) {
       this.mainRef.value.style.height = "0";
     }
 
     setTimeout(() => {
       this.dispatchEvent(new ConnectorCloseEvent());
-      this.bodyRef.value?.onClose?.();
+      this.backToHome();
       onClosed?.();
     }, 150);
   }
 
+  private backToHome(): void {
+    const scene = this.contentRef.value?.firstElementChild as
+      ConnectorScene | null | undefined;
+    scene?.close();
+    this.pairingKhie = false;
+  }
+
   updated() {
+    this.observeContent();
+    this.syncHeight();
+  }
+
+  private observeContent() {
+    const content = this.contentRef.value;
+    if (!content || this.resizeObserver) {
+      return;
+    }
+
+    this.resizeObserver = new ResizeObserver(() => this.syncHeight());
+    this.resizeObserver.observe(content);
+  }
+
+  private syncHeight() {
     if (!this.mainRef.value) {
       return;
     }
     this.mainRef.value.style.height = `${
-      this.bodyRef.value?.clientHeight ?? 0
+      this.contentRef.value?.clientHeight ?? 0
     }px`;
   }
 
@@ -268,6 +373,10 @@ export class WebComponentConnector extends LitElement {
       border-radius: 1.2rem;
       overflow: hidden;
       transition: height 0.15s ease-out;
+    }
+
+    .content {
+      display: flow-root;
     }
   `;
 }

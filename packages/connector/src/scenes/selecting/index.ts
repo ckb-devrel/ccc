@@ -2,7 +2,7 @@ import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CloseRequestEvent, ConnectedEvent } from "../../events/internal.js";
-import { generateConnectingScene } from "./connecting.js";
+import { errorMessage } from "../error.js";
 import { generateSignersScene } from "./signers.js";
 import { generateWalletsScene } from "./wallets.js";
 
@@ -19,30 +19,7 @@ export class SelectingScene extends LitElement {
   private connectingError?: string;
 
   render() {
-    const [title, body] = (() => {
-      if (!this.selectedWallet) {
-        return generateWalletsScene(
-          this.wallets ?? [],
-          (wallet) => {
-            this.selectedWallet = wallet;
-          },
-          this.signerSelectedHandler,
-        );
-      }
-      if (!this.selectedSigner) {
-        return generateSignersScene(
-          this.selectedWallet,
-          this.signerSelectedHandler,
-        );
-      }
-
-      return generateConnectingScene(
-        this.selectedWallet,
-        this.selectedSigner,
-        this.connectingError,
-        this.signerSelectedHandler,
-      );
-    })();
+    const [title, body] = this.renderContent();
 
     return html`<ccc-dialog
       header=${title}
@@ -62,7 +39,36 @@ export class SelectingScene extends LitElement {
     </ccc-dialog>`;
   }
 
-  public onClose() {
+  private renderContent() {
+    const wallet = this.selectedWallet;
+    if (!wallet) {
+      return generateWalletsScene(
+        this.wallets ?? [],
+        (selectedWallet) => {
+          this.selectedWallet = selectedWallet;
+        },
+        this.signerSelectedHandler,
+      );
+    }
+
+    const signer = this.selectedSigner;
+    if (!signer) {
+      return generateSignersScene(wallet, this.signerSelectedHandler);
+    }
+
+    return [
+      wallet.name,
+      html`<ccc-connecting
+        .name=${wallet.name}
+        .icon=${wallet.icon}
+        .error=${this.connectingError}
+        hint="Confirm connection in the wallet"
+        .onRetry=${() => this.signerSelectedHandler(wallet, signer)}
+      ></ccc-connecting>`,
+    ];
+  }
+
+  public close() {
     this.selectedWallet = undefined;
     this.selectedSigner = undefined;
     this.connectingError = undefined;
@@ -72,92 +78,47 @@ export class SelectingScene extends LitElement {
     wallet: ccc.WalletWithSigners,
     signerInfo: ccc.SignerInfo,
   ) => {
+    void this.connectSigner(wallet, signerInfo);
+  };
+
+  private async connectSigner(
+    wallet: ccc.WalletWithSigners,
+    signerInfo: ccc.SignerInfo,
+  ) {
     this.connectingError = undefined;
     this.selectedWallet = wallet;
     this.selectedSigner = signerInfo;
-    void (async () => {
-      const { signer } = signerInfo;
-      try {
-        await signer.connect();
 
-        if (!(await signer.isConnected())) {
-          this.connectingError = "Unknown connection status";
-          return;
-        }
-      } catch (error) {
-        if (typeof error !== "object" || error === null) {
-          this.connectingError = JSON.stringify(error);
-          return;
-        }
+    const { signer } = signerInfo;
+    try {
+      await signer.connect();
 
-        if (!("message" in error)) {
-          this.connectingError = "Unknown error";
-          return;
-        }
-
-        const message = error.message;
-        if (typeof message === "string") {
-          this.connectingError = message;
-          return;
-        }
-
-        this.connectingError = JSON.stringify(message);
+      if (!(await signer.isConnected())) {
+        this.connectingError = "Unknown connection status";
         return;
       }
+    } catch (cause) {
+      this.connectingError = errorMessage(cause);
+      return;
+    }
 
-      this.dispatchEvent(
-        new CloseRequestEvent(() => {
-          this.dispatchEvent(new ConnectedEvent(wallet.name, signerInfo.name));
-        }),
-      );
-    })();
-  };
+    this.dispatchEvent(
+      new CloseRequestEvent(() => {
+        this.dispatchEvent(new ConnectedEvent(wallet.name, signerInfo.name));
+      }),
+    );
+  }
 
   static styles = css`
-    .primary-icon {
-      color: var(--icon-primary);
-    }
-
     :host {
       display: block;
-    }
-
-    .text-bold {
-      font-weight: bold;
-    }
-
-    .text-tip {
-      color: var(--tip-color);
-      transition: color 0.15s ease-in-out;
-    }
-
-    .text-tip:hover {
-      color: var(--tip-color-hover, var(--tip-color));
     }
 
     .mb-1 {
       margin-bottom: 0.7rem;
     }
-    .mb-2 {
-      margin-bottom: 1rem;
-    }
     .mt-1 {
       margin-top: 0.7rem;
-    }
-    .mt-2 {
-      margin-top: 1rem;
-    }
-    .ml-1 {
-      margin-left: 0.7rem;
-    }
-    .ml-2 {
-      margin-left: 1em;
-    }
-    .mr-1 {
-      margin-right: 0.7rem;
-    }
-    .mr-2 {
-      margin-right: 1rem;
     }
 
     .wallet-icon {
@@ -166,19 +127,5 @@ export class SelectingScene extends LitElement {
       margin-bottom: 0.5rem;
       border-radius: 0.8rem;
     }
-
-    .connecting-wallet-icon {
-      width: 5rem;
-      height: 5rem;
-      border-radius: 1rem;
-    }
-
-    .text-center {
-      text-align: center;
-    }
   `;
-
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
 }

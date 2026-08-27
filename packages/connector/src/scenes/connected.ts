@@ -118,6 +118,7 @@ export class ConnectedScene extends LitElement {
               class="connecting-wallet-icon"
               src=${wallet.icon}
               alt=${wallet.name}
+              referrerpolicy="no-referrer"
             />
             <img
               class="connected-type-icon"
@@ -128,7 +129,7 @@ export class ConnectedScene extends LitElement {
 
           <ccc-copy-button
             value=${recommendedAddress}
-            class="text-bold fs-xl mt-2"
+            class="address-copy text-bold fs-xl mt-2"
           >
             ${formatString(recommendedAddress)}
           </ccc-copy-button>
@@ -137,7 +138,7 @@ export class ConnectedScene extends LitElement {
           </div>
           <ccc-copy-button
             value=${internalAddress}
-            class="text-bold text-tip fs-md"
+            class="address-copy text-bold text-tip fs-md"
             style="margin-top: 0.5rem"
           >
             ${formatString(internalAddress, 11, 9)}
@@ -265,6 +266,18 @@ export class ConnectedScene extends LitElement {
       color: var(--tip-color-hover, var(--tip-color));
     }
 
+    .address-copy {
+      transition: color 0.15s ease-in-out;
+    }
+
+    .address-copy:hover {
+      color: var(--btn-color-hover, var(--btn-color, inherit));
+    }
+
+    .address-copy.text-tip:hover {
+      color: var(--tip-color-hover, var(--tip-color));
+    }
+
     .fee-rate-value {
       margin-left: auto;
       color: var(--tip-color);
@@ -385,11 +398,7 @@ export class ConnectedScene extends LitElement {
     }
   `;
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
-  public onClose() {
+  public close() {
     this.selectingClient = false;
     this.selectingFeeRate = false;
   }

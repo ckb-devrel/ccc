@@ -38,8 +38,19 @@
     "access": "public"
   },
   "dependencies": {
+    "@chainsafe/libp2p-noise": "^17.0.0",
+    "@chainsafe/libp2p-yamux": "^8.0.1",
     "@ckb-ccc/ccc": "workspace:*",
-    "lit": "^3.3.3"
+    "@ckb-ccc/libp2p": "workspace:*",
+    "@libp2p/circuit-relay-v2": "^4.2.12",
+    "@libp2p/identify": "^4.1.13",
+    "@libp2p/interface": "^3.3.0",
+    "@libp2p/webrtc": "^6.0.30",
+    "@libp2p/websockets": "^10.1.20",
+    "@multiformats/multiaddr": "^13.0.3",
+    "libp2p": "^3.3.9",
+    "lit": "^3.3.3",
+    "qr": "^0.6.0"
   },
   "packageManager": "pnpm@11.8.0"
 }

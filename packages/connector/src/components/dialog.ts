@@ -93,7 +93,7 @@ export class Dialog extends LitElement {
     }
 
     .body {
-      padding: 0.3rem 1.3rem 1rem;
+      padding: 1rem 1.3rem;
       min-width: 20rem;
       display: flex;
       flex-direction: column;
