@@ -13,3 +13,5 @@ packages/*/dist*
 .env*
 
 *.DS_Store
+
+.pnpm-store
