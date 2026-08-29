@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/core";
+import { ccc, JsonRpcError } from "@ckb-ccc/core";
 import type { Connection, PeerId, Stream } from "@libp2p/interface";
 import type { Registrar } from "@libp2p/interface-internal";
 import { lpStream } from "@libp2p/utils";
@@ -22,17 +22,6 @@ export type JsonRpcRequest = {
 export type JsonRpcRequestHandler<
   Components extends JsonRpcServiceComponents = JsonRpcServiceComponents,
 > = (this: JsonRpcService<Components>, request: JsonRpcRequest) => unknown;
-
-export class JsonRpcError extends Error {
-  constructor(
-    readonly code: number,
-    message: string,
-    readonly data?: unknown,
-  ) {
-    super(message);
-    this.name = "JsonRpcError";
-  }
-}
 
 export abstract class JsonRpcService<
   Components extends JsonRpcServiceComponents = JsonRpcServiceComponents,
@@ -126,7 +115,10 @@ function toJsonRpcError(cause: unknown) {
     return cause;
   }
 
-  return new JsonRpcError(-32603, asJsonRpcError(cause).message);
+  return new JsonRpcError({
+    code: -32603,
+    message: asJsonRpcError(cause).message,
+  });
 }
 
 function parseJsonRpcRequest(data: string) {

@@ -7,18 +7,30 @@ export type JsonRpcPayload = {
   params: unknown[] | Record<string, unknown>;
 };
 
-export type JsonRpcError<Data = unknown> = {
+export type JsonRpcErrorLike<Data = unknown> = {
   code: number;
   message: string;
   data?: Data;
 };
 
-export type JsonRpcResponse<Result = unknown, Error = unknown> = {
+export class JsonRpcError<Data = unknown> extends Error {
+  readonly code: number;
+  readonly data?: Data;
+
+  constructor(error: JsonRpcErrorLike<Data>) {
+    super(error.message);
+    this.name = "JsonRpcError";
+    this.code = error.code;
+    this.data = error.data;
+  }
+}
+
+export type JsonRpcResponse<Result = unknown, ErrorData = unknown> = {
   id: JsonRpcId;
   jsonrpc: "2.0";
 } & (
   | { result: Result; error?: never }
-  | { result?: never; error: JsonRpcError<Error> }
+  | { result?: never; error: JsonRpcErrorLike<ErrorData> }
 );
 
 export interface JsonRpcTransport {

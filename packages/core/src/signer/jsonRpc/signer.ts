@@ -7,6 +7,7 @@ import {
 } from "../../client/jsonRpc/advanced.js";
 import { RequestorJsonRpc } from "../../jsonRpc/index.js";
 import { Signer } from "../signer/index.js";
+import { signerJsonRpcNetworkIdFromAddressPrefix } from "./network.js";
 import {
   SignerJsonRpcInfo,
   SignerJsonRpcTransformers,
@@ -76,14 +77,14 @@ export class SignerJsonRpc extends Signer {
       return this.connecting;
     }
 
-    const connecting = this.requestConnect(this.client.addressPrefix).catch(
-      (cause: unknown) => {
-        if (this.connecting === connecting) {
-          this.connecting = undefined;
-        }
-        throw cause;
-      },
-    );
+    const connecting = this.requestConnect(
+      signerJsonRpcNetworkIdFromAddressPrefix(this.client.addressPrefix),
+    ).catch((cause: unknown) => {
+      if (this.connecting === connecting) {
+        this.connecting = undefined;
+      }
+      throw cause;
+    });
     this.connecting = connecting;
     return connecting;
   }
@@ -175,6 +176,6 @@ export class SignerJsonRpc extends Signer {
   }
 
   private requestConnect = this.buildSender("connect", []) as (
-    addressPrefix: string,
+    networkId: string,
   ) => Promise<void>;
 }

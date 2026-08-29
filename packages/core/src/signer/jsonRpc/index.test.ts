@@ -61,7 +61,7 @@ describe("SignerJsonRpc", () => {
 
     expect(requests).toEqual([
       ["get_info", []],
-      ["connect", [client.addressPrefix]],
+      ["connect", ["ckb-testnet"]],
     ]);
     await expect(signer.isConnected()).resolves.toBe(true);
   });
