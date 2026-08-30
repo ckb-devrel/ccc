@@ -1,0 +1,962 @@
+.input-action-control {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.endpoint-control {
+  overflow: hidden;
+  border: 1px solid var(--line-dark);
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0;
+  background: rgb(7 10 12 / 72%);
+  transition: border-color 160ms ease;
+}
+
+.endpoint-control:focus-within {
+  border-color: var(--signal);
+}
+
+.endpoint-control input {
+  height: 44px;
+  border: 0;
+  background: transparent;
+}
+
+.endpoint-control .inline-action {
+  height: 44px;
+}
+
+.endpoint-control .inline-action button {
+  height: 44px;
+  border: 0;
+  border-left: 1px solid var(--line-dark);
+}
+
+.endpoint-control .inline-action .connect-button {
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+}
+
+.endpoint-control .inline-action .connect-button:not(:disabled),
+.endpoint-control .inline-action .connect-button:not(:disabled):hover,
+.endpoint-control .inline-action .connect-button:not(:disabled):focus-visible {
+  color: var(--signal);
+  background: transparent;
+}
+
+.endpoint-control .inline-action .connect-button:disabled {
+  color: var(--line-dark);
+  opacity: 1;
+}
+
+.relay-settings-content {
+  width: 100%;
+  min-width: 0;
+  grid-row: 2;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  animation: relay-settings-enter 240ms var(--easing-mechanical) both;
+}
+
+.relay-settings-content :global(.module-actions) {
+  animation: none !important;
+}
+
+.relay-controls {
+  display: flex;
+  z-index: 1;
+  width: 100%;
+  align-self: end;
+  align-items: center;
+  justify-content: space-between;
+  justify-self: stretch;
+  grid-row: 1;
+  grid-column: 3;
+  gap: 12px;
+}
+
+.relay-retry,
+.relay-settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.1em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.relay-retry {
+  color: var(--signal);
+}
+
+.relay-retry:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.relay-settings-toggle {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.settings-chevron {
+  color: var(--line-dark);
+  transition: transform 160ms ease;
+}
+
+.relay-settings-toggle[aria-expanded="true"] .settings-chevron {
+  transform: rotate(180deg);
+}
+
+@keyframes relay-settings-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.paired-panel {
+  width: 100%;
+  gap: 12px;
+}
+
+.request-title {
+  margin: 0;
+  color: var(--signal);
+  font:
+    700 15px/1.4 "Courier New",
+    monospace;
+  overflow-wrap: anywhere;
+}
+
+.session-action:global(.module-actions) {
+  display: flex;
+  width: fit-content;
+  flex: 0 0 auto;
+  grid-template-columns: none;
+  justify-self: end;
+}
+
+.session-action button {
+  min-height: 34px;
+  padding-inline: 12px;
+}
+
+.request-area {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  gap: 12px;
+}
+
+.request-idle {
+  margin: 0;
+  padding: 14px 0;
+  color: var(--muted);
+  font:
+    11px/1.5 "Courier New",
+    monospace;
+  text-align: center;
+}
+
+.request-card {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.request-description {
+  max-height: 112px;
+  overflow: auto;
+  margin: 0;
+  color: var(--ink);
+  font:
+    12px/1.55 "Courier New",
+    monospace;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.transaction-details {
+  display: grid;
+  max-height: min(52vh, 430px);
+  min-width: 0;
+  padding-right: 4px;
+  overflow: auto;
+  gap: 14px;
+  scrollbar-color: var(--line-dark) transparent;
+  scrollbar-width: thin;
+}
+
+.transaction-summary {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.transaction-hash {
+  overflow: hidden;
+  min-width: 0;
+  color: inherit;
+  font:
+    10px/1.4 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+.transaction-hash-copy,
+.transaction-hash-copy:hover,
+.transaction-hash-copy:focus-visible {
+  display: grid;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  color: var(--muted);
+  background: transparent;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  text-align: left;
+  text-transform: none;
+  transition: color 160ms ease;
+}
+
+.transaction-hash-copy:hover,
+.transaction-hash-copy:focus-visible,
+.transaction-hash-copy[data-copied="true"] {
+  color: var(--signal);
+}
+
+.transaction-hash-copy :global(.copyable-text-icon) {
+  display: grid;
+  color: inherit;
+  place-items: center;
+  transition: color 160ms ease;
+}
+
+.transaction-fee {
+  color: var(--ink);
+  font:
+    9px/1.4 "Courier New",
+    monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.transaction-cell-group,
+.transaction-cell-list {
+  display: grid;
+  min-width: 0;
+}
+
+.transaction-cell-group {
+  gap: 7px;
+}
+
+.transaction-cell-list {
+  gap: 6px;
+}
+
+.transaction-cell-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font:
+    700 10px/1.3 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.transaction-cell-heading span {
+  color: var(--line-dark);
+}
+
+.transaction-cell {
+  --capacity-share: 0%;
+
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+
+.transaction-cell summary::before {
+  position: absolute;
+  z-index: 0;
+  width: var(--capacity-share);
+  inset: 0 auto 0 0;
+  background: rgb(91 206 250 / 11%);
+  content: "";
+  pointer-events: none;
+}
+
+.transaction-cell summary {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  padding: 10px 11px;
+  align-items: center;
+  cursor: pointer;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  list-style: none;
+}
+
+.transaction-cell summary > * {
+  position: relative;
+  z-index: 1;
+}
+
+.transaction-cell summary::-webkit-details-marker {
+  display: none;
+}
+
+.transaction-cell summary > svg {
+  color: var(--muted);
+  transition: transform 160ms ease;
+}
+
+.transaction-cell[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.transaction-cell-summary {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.transaction-cell-summary-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.transaction-cell-identity {
+  display: flex;
+  overflow: hidden;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.transaction-cell-summary small {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font:
+    700 9px/1.2 "Courier New",
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.transaction-cell-summary strong {
+  color: var(--ink);
+  font:
+    700 12px/1.25 "Courier New",
+    monospace;
+  white-space: nowrap;
+}
+
+.transaction-cell-summary > code {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--ink);
+  font:
+    10px/1.35 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-cell-expanded {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  padding: 10px 11px 12px;
+  border-top: 1px solid var(--line);
+  gap: 9px;
+  background: rgb(7 10 12 / 72%);
+}
+
+.transaction-script {
+  display: grid;
+  min-width: 0;
+  padding-left: 9px;
+  border-left: 1px solid var(--line-dark);
+  gap: 7px;
+}
+
+.transaction-script > span,
+.transaction-cell-field > span {
+  color: var(--muted);
+  font:
+    700 9px/1.25 "Courier New",
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.transaction-cell-field {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.transaction-cell-field code {
+  overflow: auto hidden;
+  min-width: 0;
+  color: var(--ink);
+  font:
+    10px/1.4 "Courier New",
+    monospace;
+  white-space: nowrap;
+}
+
+.transaction-cell-field[data-multiline="true"] code {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.transaction-cell-status,
+.transaction-cell-unavailable {
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font:
+    10px/1.4 "Courier New",
+    monospace;
+}
+
+.transaction-cell-unavailable {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.transaction-cell-unavailable strong {
+  color: var(--ink);
+}
+
+.approval-actions {
+  flex-wrap: nowrap;
+}
+
+.approval-actions button,
+.approval-actions button:global(.is-primary) {
+  min-width: 96px;
+}
+
+.peer-loading {
+  margin: 0;
+  color: var(--muted);
+  font:
+    11px/1.5 "Courier New",
+    monospace;
+}
+
+.peer-details {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+}
+
+.peer-overview {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.peer-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 6px;
+}
+
+.peer-primary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.peer-agent {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--muted);
+  font:
+    10px/1.35 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peer-path {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font:
+    700 12px/1 "Courier New",
+    monospace;
+}
+
+.peer-path::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+  content: "";
+}
+
+.peer-path[data-direct="true"]::before {
+  background: var(--signal);
+}
+
+.peer-id {
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink);
+  font:
+    700 14px/1.35 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.peer-time > span {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font:
+    700 9px/1.2 "Courier New",
+    monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.peer-times {
+  display: flex;
+  min-width: 0;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+
+.peer-time {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.peer-time time,
+.peer-time strong {
+  overflow: hidden;
+  color: var(--ink);
+  font:
+    10px/1.4 "Courier New",
+    monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pairing-overlay {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  inset: 0;
+  place-items: center;
+}
+
+.pairing-dialog:global(.module-actions) {
+  display: flex;
+  width: 100%;
+  min-height: 104px;
+  padding: 26px 28px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--paper);
+}
+
+.connecting-message {
+  margin: 0;
+  color: var(--signal);
+  font:
+    700 14px/1.4 "Courier New",
+    monospace;
+  text-align: center;
+}
+
+.pairing-dialog .connecting-cancel {
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+
+.inline-action {
+  display: flex;
+  height: 46px;
+  flex-wrap: nowrap;
+}
+
+.inline-action button {
+  height: 46px;
+  min-width: 142px;
+  min-height: 0;
+  white-space: nowrap;
+}
+
+.pairing-group {
+  grid-row: 1;
+  grid-column: 1;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 14px;
+}
+
+.pairing-columns {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.pairing-columns .inline-action button {
+  min-width: 100px;
+}
+
+.remote-column {
+  align-self: stretch;
+  grid-row: 1;
+  grid-column: 3;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.remote-actions {
+  display: grid;
+  align-content: center;
+  gap: 7px;
+}
+
+.scan-action {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.scan-action .scan-button {
+  display: grid;
+  width: 100%;
+  height: 64px;
+  max-width: none;
+  min-height: 64px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-color: var(--signal);
+  color: var(--recess);
+  grid-template-columns: 38px minmax(0, 1fr) 18px;
+  grid-column: 1 / -1;
+  gap: 11px;
+  background: var(--signal);
+  text-align: left;
+}
+
+.scan-action .scan-button:not(:disabled):hover,
+.scan-action .scan-button:not(:disabled):focus-visible {
+  border-color: var(--signal);
+  color: var(--recess);
+  background: var(--signal-hover);
+  transform: translateX(4px);
+}
+
+.scan-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  border: 1px solid currentColor;
+  place-items: center;
+}
+
+.scan-copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.scan-copy strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.scan-arrow {
+  justify-self: end;
+  transition: transform 180ms ease;
+}
+
+.scan-button:hover .scan-arrow,
+.scan-button:focus-visible .scan-arrow {
+  transform: translateX(3px);
+}
+
+.endpoint-pair {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 12px;
+}
+
+.divider {
+  position: relative;
+  display: grid;
+  align-self: stretch;
+  width: 34px;
+  min-height: 100%;
+  grid-row: 1;
+  grid-column: 2;
+  color: var(--muted);
+  font:
+    700 9px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  place-items: center;
+  text-transform: uppercase;
+}
+
+.divider::before {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--line-dark);
+  content: "";
+}
+
+.divider span {
+  z-index: 1;
+  padding: 8px 4px;
+  background: var(--panel);
+}
+
+.scanner {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
+}
+
+.scanner-actions:global(.module-actions) {
+  display: flex;
+  width: fit-content;
+  grid-template-columns: none;
+  justify-content: center;
+  justify-self: center;
+}
+
+.scanner-actions:global(.module-actions) button {
+  padding-inline: 18px;
+}
+
+.scanner-video {
+  display: block;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  justify-self: center;
+  object-fit: cover;
+  object-position: center;
+  background: rgb(0 0 0 / 72%);
+}
+
+.endpoint-list {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+
+.endpoint-qr {
+  --qr-code-size: min(220px, calc(100vw - 96px));
+
+  justify-self: center;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.endpoint-copy {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 0;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  font:
+    12px/1.55 "Courier New",
+    monospace;
+  text-align: left;
+  transition: color 160ms ease;
+}
+
+.endpoint-pending {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  padding: 12px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font:
+    12px/1.55 "Courier New",
+    monospace;
+}
+
+.endpoint-copy > span:not(:global(.copyable-text-icon)) {
+  flex: 1 1 auto;
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.endpoint-copy :global(.copyable-text-icon) {
+  display: grid;
+  flex: 0 0 auto;
+  color: var(--muted);
+  place-items: center;
+  transition: color 160ms ease;
+}
+
+.endpoint-copy:hover,
+.endpoint-copy:focus-visible,
+.endpoint-copy[data-copied="true"] {
+  color: var(--signal);
+  outline: none;
+}
+
+.endpoint-copy:hover :global(.copyable-text-icon),
+.endpoint-copy:focus-visible :global(.copyable-text-icon),
+.endpoint-copy[data-copied="true"] :global(.copyable-text-icon) {
+  color: var(--signal);
+}
+
+@media (max-width: 680px) {
+  .pairing-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .divider {
+    height: 17px;
+    width: 100%;
+    min-height: 1px;
+    grid-row: 2;
+    grid-column: 1;
+  }
+
+  .divider::before {
+    top: 50%;
+    right: 0;
+    bottom: auto;
+    left: 0;
+    width: auto;
+    height: 1px;
+    transform: none;
+  }
+
+  .divider span {
+    padding: 4px 8px;
+  }
+
+  .relay-settings-content {
+    grid-row: 5;
+    grid-column: 1;
+  }
+
+  .relay-controls {
+    grid-row: 4;
+    grid-column: 1;
+  }
+
+  .pairing-group {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .remote-column {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .input-action-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inline-action,
+  .inline-action button {
+    width: 100%;
+  }
+
+  .pairing-columns .input-action-control {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pairing-columns .inline-action {
+    display: flex;
+    width: auto;
+  }
+
+  .pairing-columns .inline-action button {
+    width: auto;
+    min-width: 100px;
+  }
+
+  .approval-actions button {
+    width: auto;
+    flex: 1 1 0;
+  }
+}

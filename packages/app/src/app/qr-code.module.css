@@ -55,11 +55,7 @@
   opacity: 0.52;
 }
 
-.image path:first-of-type {
-  display: none;
-}
-
-.image path:last-of-type {
+.image path {
   fill: var(--muted) !important;
 }
 

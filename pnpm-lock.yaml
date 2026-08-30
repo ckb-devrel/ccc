@@ -50,9 +50,18 @@ importers:
 
   packages/app:
     dependencies:
+      '@chainsafe/libp2p-noise':
+        specifier: ^17.0.0
+        version: 17.0.0
+      '@chainsafe/libp2p-yamux':
+        specifier: ^8.0.1
+        version: 8.0.1
       '@ckb-ccc/connector-react':
         specifier: workspace:*
         version: link:../connector-react
+      '@ckb-ccc/libp2p':
+        specifier: workspace:*
+        version: link:../libp2p
       '@ckb-ccc/lumos-patches':
         specifier: workspace:*
         version: link:../lumos-patches
@@ -74,21 +83,42 @@ importers:
       '@ckb-lumos/helpers':
         specifier: 0.24.0-next.2
         version: 0.24.0-next.2
+      '@libp2p/circuit-relay-v2':
+        specifier: ^4.2.11
+        version: 4.2.12
+      '@libp2p/identify':
+        specifier: ^4.1.12
+        version: 4.1.13
+      '@libp2p/interface':
+        specifier: ^3.2.5
+        version: 3.3.0
+      '@libp2p/webrtc':
+        specifier: ^6.0.29
+        version: 6.0.30(react-native@0.87.0(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.8))
+      '@libp2p/websockets':
+        specifier: ^10.1.19
+        version: 10.1.20
+      '@multiformats/multiaddr':
+        specifier: ^13.0.3
+        version: 13.0.3
       '@scure/bip32':
         specifier: ^2.0.0
         version: 2.3.0
       '@scure/bip39':
         specifier: ^2.0.0
         version: 2.3.0
+      libp2p:
+        specifier: ^3.3.8
+        version: 3.3.9
       lucide-react:
         specifier: ^1.21.0
         version: 1.32.0(react@19.2.8)
       next:
         specifier: 16.3.1
         version: 16.3.1(@babel/core@7.29.7)(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      qrcode.react:
-        specifier: ^4.2.0
-        version: 4.2.0(react@19.2.8)
+      qr:
+        specifier: ^0.6.0
+        version: 0.6.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -9149,11 +9179,6 @@ packages:
   qr@0.6.0:
     resolution: {integrity: sha512-P23VoX7SipHALdiIYG+D+LT/6n22dNKwV92FAb3d+Nlki/5WisSsfLt0UDFz2XEBtuwrECTznvu+chKKFCSYhA==}
     engines: {node: '>= 20.19.0'}
-
-  qrcode.react@4.2.0:
-    resolution: {integrity: sha512-QpgqWi8rD9DsS9EP3z7BT+5lY5SFhsqGjpgW5DY/i3mK4M9DTBNz3ErMi8BWYEfI3L0d8GIbGmcdFAS1uIRGjA==}
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   qs@6.15.3:
     resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
@@ -19544,10 +19569,6 @@ snapshots:
   pvutils@1.2.0: {}
 
   qr@0.6.0: {}
-
-  qrcode.react@4.2.0(react@19.2.8):
-    dependencies:
-      react: 19.2.8
 
   qs@6.15.3:
     dependencies:

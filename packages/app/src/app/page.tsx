@@ -332,7 +332,9 @@ export default function Home() {
             client={client}
             log={log}
             module={stagedModule}
+            setClient={setClient}
             signer={signer}
+            wallet={usingPrivateKey ? undefined : wallet}
           />
 
           <div className="machine-heading access-heading">
@@ -524,6 +526,10 @@ export default function Home() {
                             className="connected-wallet-icon"
                             src={wallet.icon}
                             alt={wallet.name}
+                            referrerPolicy="no-referrer"
+                            onError={(event) => {
+                              event.currentTarget.hidden = true;
+                            }}
                           />
                         ) : (
                           <ShieldCheck size={25} />

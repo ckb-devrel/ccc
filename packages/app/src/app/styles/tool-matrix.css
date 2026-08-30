@@ -319,7 +319,7 @@
 }
 
 .dock-eject small {
-  color: var(--muted);
+  color: inherit;
   font-family: "Courier New", monospace;
   font-size: 6px;
   font-weight: 700;

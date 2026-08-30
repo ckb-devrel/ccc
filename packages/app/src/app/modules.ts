@@ -13,6 +13,7 @@ import {
   Network,
   PackagePlus,
   PiggyBank,
+  Radio,
   Rocket,
   Signature,
   Sparkles,
@@ -32,6 +33,7 @@ import {
   IssueXUdtTypeIdModule,
 } from "./modules/issue-xudt-module";
 import { KeystoreModule } from "./modules/keystore-module";
+import { KhieModule } from "./modules/khie/khie-module";
 import { MintSporeModule } from "./modules/mint-spore-module";
 import { MnemonicModule } from "./modules/mnemonic-module";
 import { NervosDaoModule } from "./modules/nervos-dao-module";
@@ -57,8 +59,10 @@ export type SubmitTransaction = (
 export type ModuleRuntimeProps = {
   client: ccc.Client;
   log: (message: string, level?: DemoLogLevel) => void;
+  setClient: (client: ccc.Client) => unknown;
   show: ShowModuleReadout;
   signer?: ccc.Signer;
+  wallet?: ccc.Wallet;
   submitTransaction: SubmitTransaction;
 };
 
@@ -116,6 +120,14 @@ function defineModules(definitions: readonly DemoModuleDefinition[]) {
 }
 
 export const demoModules: readonly DemoModule[] = defineModules([
+  {
+    name: "Khie",
+    description: "Connect another CCC app to the current signer over Khie.",
+    group: "Development",
+    icon: Radio,
+    access: "signer",
+    component: KhieModule,
+  },
   {
     name: "Hash",
     description:

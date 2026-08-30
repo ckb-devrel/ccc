@@ -13,13 +13,17 @@ export const ModuleWorkspace = memo(function ModuleWorkspace({
   client,
   log,
   module,
+  setClient,
   signer,
+  wallet,
 }: {
   active: boolean;
   client: ccc.Client;
   log: DemoLogger;
   module?: DemoModule;
+  setClient: (client: ccc.Client) => unknown;
   signer?: ccc.Signer;
+  wallet?: ccc.Wallet;
 }) {
   const Module = module?.component;
   const slotRef = useRef<HTMLDivElement>(null);
@@ -56,7 +60,9 @@ export const ModuleWorkspace = memo(function ModuleWorkspace({
             client={client}
             log={log}
             module={module}
+            setClient={setClient}
             signer={signer}
+            wallet={wallet}
             workspaceRef={workspaceRef}
           />
         </div>
@@ -69,13 +75,17 @@ function MountedModuleWorkspace({
   client,
   log,
   module,
+  setClient,
   signer,
+  wallet,
   workspaceRef,
 }: {
   client: ccc.Client;
   log: DemoLogger;
   module: DemoModule;
+  setClient: (client: ccc.Client) => unknown;
   signer?: ccc.Signer;
+  wallet?: ccc.Wallet;
   workspaceRef: React.RefObject<HTMLElement | null>;
 }) {
   const Module = module.component;
@@ -140,7 +150,9 @@ function MountedModuleWorkspace({
 
       <header className="workspace-header">
         <span className="workspace-header-glyph-viewport" aria-hidden="true">
-          <span className="workspace-header-glyph">啟</span>
+          <span className="workspace-header-glyph">
+            {module.id === "khie" ? "契" : "啟"}
+          </span>
         </span>
         <div className="workspace-title">
           <span className="section-index">
@@ -179,9 +191,11 @@ function MountedModuleWorkspace({
         <Module
           client={client}
           log={moduleLog}
+          setClient={setClient}
           show={show}
           signer={signer}
           submitTransaction={submitTransaction}
+          wallet={wallet}
         />
         <ModuleReadout
           label={readout.label}

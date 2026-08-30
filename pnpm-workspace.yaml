@@ -7,6 +7,7 @@ allowBuilds:
   core-js: true
   core-js-pure: true
   esbuild: true
+  node-datachannel: true
   secp256k1: true
   sharp: true
   unrs-resolver: true

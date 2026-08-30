@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ["192.168.*.*"],
+  allowedDevOrigins: ["192.168.*.*", "*.trycloudflare.com"],
+  serverExternalPackages: ["node-datachannel"],
   experimental: {
     // Work around Next.js 16.3's incompatibility with TypeScript 7's dual-version aliases.
     // https://github.com/vercel/next.js/issues/96589
