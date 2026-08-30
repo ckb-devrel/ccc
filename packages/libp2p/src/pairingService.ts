@@ -108,10 +108,20 @@ export abstract class PairingService<
     options: AbortOptions = {},
   ): Promise<PeerId> {
     let stream: Stream | undefined;
+    let addedPeer: PeerId | undefined;
 
     try {
       const opened = await this.openStream(target.addresses, options);
       stream = opened.stream;
+
+      if (!opened.connection) {
+        throw new Error("Could not determine remote peer");
+      }
+
+      if (this.addPairedPeer(opened.connection.remotePeer)) {
+        addedPeer = opened.connection.remotePeer;
+      }
+
       const response = await exchange(
         stream,
         {
@@ -127,13 +137,14 @@ export abstract class PairingService<
         throw new Error(response.error);
       }
 
-      if (!opened.connection) {
-        throw new Error("Could not determine remote peer");
+      if (addedPeer) {
+        this.notifyPairedPeer(addedPeer);
       }
-
-      this.addPairedPeer(opened.connection.remotePeer);
       return opened.connection.remotePeer;
     } catch (cause) {
+      if (addedPeer) {
+        this.removePairedPeer(addedPeer, false);
+      }
       throw this.handleError(cause, stream);
     }
   }
@@ -164,6 +175,8 @@ export abstract class PairingService<
   }
 
   private async handleProtocol(stream: Stream, connection: Connection) {
+    let addedPeer: PeerId | undefined;
+
     try {
       const pairingStream = lpStream(stream, {
         maxDataLength: MAX_PAIRING_MESSAGE_LENGTH,
@@ -189,9 +202,17 @@ export abstract class PairingService<
         return;
       }
 
-      this.addPairedPeer(connection.remotePeer);
+      if (this.addPairedPeer(connection.remotePeer)) {
+        addedPeer = connection.remotePeer;
+      }
       await writeResponse(pairingStream, stream, { ok: true });
+      if (addedPeer) {
+        this.notifyPairedPeer(addedPeer);
+      }
     } catch (cause) {
+      if (addedPeer) {
+        this.removePairedPeer(addedPeer, false);
+      }
       this.handleError(cause, stream);
     }
   }
@@ -204,13 +225,14 @@ export abstract class PairingService<
     }
 
     this.pairingTimeouts.set(key, this.createPeerTimeout(peerId));
-
-    if (timeout === undefined) {
-      this.pairedListeners.forEach((listener) => listener(peerId));
-    }
+    return timeout === undefined;
   }
 
-  private removePairedPeer(peerId: PeerId) {
+  private notifyPairedPeer(peerId: PeerId) {
+    this.pairedListeners.forEach((listener) => listener(peerId));
+  }
+
+  private removePairedPeer(peerId: PeerId, notify = true) {
     const key = peerId.toString();
     const timeout = this.pairingTimeouts.get(key);
     if (timeout === undefined) {
@@ -220,7 +242,9 @@ export abstract class PairingService<
     clearTimeout(timeout);
     this.pairingTimeouts.delete(key);
 
-    this.unpairedListeners.forEach((listener) => listener(peerId));
+    if (notify) {
+      this.unpairedListeners.forEach((listener) => listener(peerId));
+    }
     return true;
   }
 

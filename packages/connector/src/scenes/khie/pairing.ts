@@ -558,6 +558,10 @@ export class KhiePairing extends LitElement {
         width: min(28rem, calc(100vw - 4rem));
       }
 
+      .qr-code {
+        width: min(22rem, calc(100% - 1.5rem));
+      }
+
       .pairing-layout {
         grid-template-columns: minmax(0, 1fr);
       }
