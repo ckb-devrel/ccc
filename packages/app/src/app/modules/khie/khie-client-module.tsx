@@ -22,17 +22,21 @@ import {
 } from "./khie-signer-session";
 
 type SignerWaiter = {
+  abort: () => void;
   networkId: string;
   reject: (cause: Error) => void;
   resolve: (signer: ccc.Signer) => void;
-  timeout: ReturnType<typeof setTimeout>;
+  signal: AbortSignal;
 };
 type ApprovalPrompt = ccc.SignerJsonRpcConfirmation & {
+  abort: () => void;
   resolve: (approved: boolean) => void;
+  signal: AbortSignal;
 };
 type RelayState = "connected" | "connecting" | "failed" | "idle";
 
 const ENDPOINT_URL = "https://app.ckbccc.com/#khie";
+const JSON_RPC_REQUEST_TIMEOUT_MS = 120_000;
 
 export function KhieClientModule({
   client,
@@ -58,6 +62,7 @@ export function KhieClientModule({
   const [scanning, setScanning] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [approval, setApproval] = useState<ApprovalPrompt>();
+  const [queuedApprovalCount, setQueuedApprovalCount] = useState(0);
   const [remotePeer, setRemotePeer] = useState<KhieRemotePeer>();
 
   const signerRef = useRef(signer);
@@ -78,54 +83,100 @@ export function KhieClientModule({
     name: signerName,
     icon: signerIcon,
   }));
-  const connectSigner = useEffectEvent<
-    ccc.SignerJsonRpcHandlerConfig["connect"]
-  >(async (networkId) => {
-    const current = signerRef.current;
-    if (
-      current &&
-      networkIdFromAddressPrefix(current.client.addressPrefix) === networkId
-    ) {
-      return current;
-    }
+  const connectSigner = useEffectEvent(
+    async (networkId: string, signal: AbortSignal) => {
+      signal.throwIfAborted();
+      const current = signerRef.current;
+      if (
+        current &&
+        networkIdFromAddressPrefix(current.client.addressPrefix) === networkId
+      ) {
+        return current;
+      }
 
-    setClient(clientForNetworkId(networkId, client));
+      setClient(clientForNetworkId(networkId, client));
 
-    return new Promise<ccc.Signer>((resolve, reject) => {
-      const waiter: SignerWaiter = {
-        networkId,
-        reject,
-        resolve,
-        timeout: setTimeout(() => {
-          signerWaiters.current.delete(waiter);
-          reject(new Error("Timed out waiting for the requested signer"));
-        }, 15000),
-      };
-      signerWaiters.current.add(waiter);
-      resolveSignerWaiters(signerRef.current, signerWaiters.current);
-    });
-  });
-  const confirmKhieRequest = useEffectEvent<
-    ccc.SignerJsonRpcHandlerConfig["confirmRequest"]
-  >(
-    (request) =>
-      new Promise<boolean>((resolve) => {
-        const prompt = { ...request, resolve };
-        if (approvalRef.current) {
-          approvalQueue.current.push(prompt);
+      return new Promise<ccc.Signer>((resolve, reject) => {
+        const waiter: SignerWaiter = {
+          abort: () => {
+            if (!signerWaiters.current.delete(waiter)) {
+              return;
+            }
+            signal.removeEventListener("abort", waiter.abort);
+            reject(abortReason(signal));
+          },
+          networkId,
+          reject,
+          resolve,
+          signal,
+        };
+        signerWaiters.current.add(waiter);
+        signal.addEventListener("abort", waiter.abort, { once: true });
+        if (signal.aborted) {
+          waiter.abort();
           return;
         }
+        resolveSignerWaiters(signerRef.current, signerWaiters.current);
+      });
+    },
+  );
+  const settleApproval = useCallback(
+    (prompt: ApprovalPrompt, approved: boolean) => {
+      if (approvalRef.current === prompt) {
+        const next = approvalQueue.current.shift();
+        approvalRef.current = next;
+        setApproval(next);
+      } else {
+        const index = approvalQueue.current.indexOf(prompt);
+        if (index === -1) {
+          return false;
+        }
+        approvalQueue.current.splice(index, 1);
+      }
+      setQueuedApprovalCount(approvalQueue.current.length);
 
-        approvalRef.current = prompt;
-        setApproval(prompt);
+      prompt.signal.removeEventListener("abort", prompt.abort);
+      prompt.resolve(approved);
+      return true;
+    },
+    [],
+  );
+  const confirmKhieRequest = useEffectEvent(
+    (request: ccc.SignerJsonRpcConfirmation, signal: AbortSignal) =>
+      new Promise<boolean>((resolve) => {
+        const prompt: ApprovalPrompt = {
+          ...request,
+          abort: () => void settleApproval(prompt, false),
+          resolve,
+          signal,
+        };
+        signal.addEventListener("abort", prompt.abort, { once: true });
+
+        if (approvalRef.current) {
+          approvalQueue.current.push(prompt);
+          setQueuedApprovalCount(approvalQueue.current.length);
+        } else {
+          approvalRef.current = prompt;
+          setApproval(prompt);
+        }
+
+        if (signal.aborted) {
+          prompt.abort();
+        }
       }),
   );
   const rejectPendingApprovals = useEffectEvent(() => {
-    approvalRef.current?.resolve(false);
-    approvalQueue.current.forEach(({ resolve }) => resolve(false));
+    const prompts = [approvalRef.current, ...approvalQueue.current].filter(
+      (prompt): prompt is ApprovalPrompt => prompt !== undefined,
+    );
     approvalRef.current = undefined;
     approvalQueue.current = [];
     setApproval(undefined);
+    setQueuedApprovalCount(0);
+    prompts.forEach((prompt) => {
+      prompt.signal.removeEventListener("abort", prompt.abort);
+      prompt.resolve(false);
+    });
   });
   const connectDefaultRelay = useEffectEvent(
     async (currentSession: KhieSignerSession) => {
@@ -146,10 +197,19 @@ export function KhieClientModule({
       return;
     }
 
-    current.resolve(approved);
-    const next = approvalQueue.current.shift();
-    approvalRef.current = next;
-    setApproval(next);
+    if (!settleApproval(current, approved)) {
+      return;
+    }
+
+    if (approved) {
+      const title = formatApprovalTitle(current);
+      show({
+        label: "REQUEST APPROVED",
+        tone: "success",
+        content: <strong>{title} request approved</strong>,
+      });
+      log(`${title} request approved`, "success");
+    }
   };
 
   useEffect(() => {
@@ -197,12 +257,55 @@ export function KhieClientModule({
 
     const owner = KhieSignerSession.open({
       endpointUrl: ENDPOINT_URL,
-      handler: ccc.buildSignerJsonRpcHandler({
-        connect: connectSigner,
-        confirmRequest: confirmKhieRequest,
-        getSigner: () => signerRef.current,
-        getSignerMetadata,
-      }),
+      handler: async (payload) => {
+        const controller = new AbortController();
+        const { signal } = controller;
+        const reportTimeout = () => {
+          if (!isTimeoutError(signal.reason)) {
+            return;
+          }
+
+          const title = formatRequestTitle(payload.method);
+          showCurrent({
+            label: "REQUEST TIMED OUT",
+            tone: "error",
+            content: <strong>{title} request timed out</strong>,
+          });
+          logCurrent(`${title} request timed out`, "error");
+        };
+        signal.addEventListener("abort", reportTimeout, { once: true });
+        const timeout = setTimeout(
+          () => controller.abort(requestTimeoutError()),
+          JSON_RPC_REQUEST_TIMEOUT_MS,
+        );
+
+        try {
+          const handleRequest = ccc.buildSignerJsonRpcHandler({
+            connect: (networkId) => connectSigner(networkId, signal),
+            confirmRequest: (request) => confirmKhieRequest(request, signal),
+            getSigner: () => signerRef.current,
+            getSignerMetadata,
+          });
+          const result = await handleRequest(payload);
+          signal.throwIfAborted();
+          const completed = formatRequestCompletion(payload.method);
+          if (completed) {
+            showCurrent({
+              label: "REQUEST COMPLETED",
+              tone: "success",
+              content: <strong>{completed}</strong>,
+            });
+            logCurrent(completed, "success");
+          }
+          return result;
+        } catch (cause) {
+          signal.throwIfAborted();
+          throw cause;
+        } finally {
+          clearTimeout(timeout);
+          signal.removeEventListener("abort", reportTimeout);
+        }
+      },
       onEndpointChange: setPairingEndpoint,
       onError: reportCurrentError,
       onPaired: () => {
@@ -286,7 +389,12 @@ export function KhieClientModule({
           {approval ? (
             <>
               <h3 className={styles["request-title"]}>
-                {formatApprovalTitle(approval)}
+                <span>{formatApprovalTitle(approval)}</span>
+                {queuedApprovalCount > 0 ? (
+                  <span className={styles["request-queue"]}>
+                    +{queuedApprovalCount} queued
+                  </span>
+                ) : null}
               </h3>
               <div className={styles["request-card"]}>
                 {approval.method === "sign_transaction" ? (
@@ -834,25 +942,35 @@ function TransactionCellItem({
     <details className={styles["transaction-cell"]} style={style}>
       <summary>
         <span className={styles["transaction-cell-summary"]}>
-          <span className={styles["transaction-cell-summary-line"]}>
-            <span className={styles["transaction-cell-identity"]}>
-              <small>{cell.label}</small>
-            </span>
-            <strong>
-              {cell.extraCapacity && cell.extraCapacity > ccc.Zero
-                ? `${ccc.fixedPointToString(cellOutput.capacity)} + ${ccc.fixedPointToString(cell.extraCapacity)} CKB`
-                : `${ccc.fixedPointToString(cellOutput.capacity)} CKB`}
-            </strong>
+          <span className={styles["transaction-cell-identity"]}>
+            <small>{cell.label}</small>
+            <code title={lockAddress}>{lockAddress}</code>
           </span>
-          <code title={lockAddress}>{lockAddress}</code>
+          <strong className={styles["transaction-cell-capacity"]}>
+            {cell.extraCapacity && cell.extraCapacity > ccc.Zero
+              ? `${ccc.fixedPointToString(cellOutput.capacity)} + ${ccc.fixedPointToString(cell.extraCapacity)} CKB`
+              : `${ccc.fixedPointToString(cellOutput.capacity)} CKB`}
+          </strong>
         </span>
         <ChevronDown aria-hidden="true" size={15} />
       </summary>
       <div className={styles["transaction-cell-expanded"]}>
         {cell.reference ? (
-          <TransactionCellField label="Out point" value={cell.reference} />
+          <TransactionCellField
+            copyable
+            label="Outpoint"
+            value={cell.reference}
+          />
         ) : null}
-        <TransactionScriptDetails script={cellOutput.type} />
+        <TransactionScriptDetails
+          address={lockAddress}
+          label="Lock script"
+          script={cellOutput.lock}
+        />
+        <TransactionScriptDetails
+          label="Type script"
+          script={cellOutput.type}
+        />
         <TransactionCellField
           label="Data"
           multiline
@@ -863,26 +981,52 @@ function TransactionCellItem({
   );
 }
 
-function TransactionScriptDetails({ script }: { script?: ccc.Script }) {
+function TransactionScriptDetails({
+  address,
+  label,
+  script,
+}: {
+  address?: string;
+  label: string;
+  script?: ccc.Script;
+}) {
   if (!script) {
-    return <TransactionCellField label="Type script" value="None" />;
+    return <TransactionCellField label={label} value="None" />;
   }
 
   return (
     <div className={styles["transaction-script"]}>
-      <span>Type script</span>
-      <TransactionCellField label="Code hash" value={script.codeHash} />
+      <div className={styles["transaction-script-heading"]}>
+        <span>{label}</span>
+        {address ? (
+          <CopyableText
+            ariaLabel="Copy lock address"
+            className={styles["transaction-script-address"]}
+            iconSize={9}
+            value={address}
+          >
+            <code>{address}</code>
+          </CopyableText>
+        ) : null}
+      </div>
+      <TransactionCellField
+        copyable
+        label="Code hash"
+        value={script.codeHash}
+      />
       <TransactionCellField label="Hash type" value={script.hashType} />
-      <TransactionCellField label="Args" value={script.args} />
+      <TransactionCellField copyable label="Args" value={script.args} />
     </div>
   );
 }
 
 function TransactionCellField({
+  copyable = false,
   label,
   multiline = false,
   value,
 }: {
+  copyable?: boolean;
   label: string;
   multiline?: boolean;
   value: string;
@@ -893,7 +1037,18 @@ function TransactionCellField({
       data-multiline={multiline || undefined}
     >
       <span>{label}</span>
-      <code title={value}>{value}</code>
+      {copyable ? (
+        <CopyableText
+          ariaLabel={`Copy ${label}`}
+          className={styles["transaction-cell-copy"]}
+          iconSize={10}
+          value={value}
+        >
+          <code>{value}</code>
+        </CopyableText>
+      ) : (
+        <code title={value}>{value}</code>
+      )}
     </div>
   );
 }
@@ -962,13 +1117,30 @@ function formatApprovalDescription(approval: ccc.SignerJsonRpcConfirmation) {
 }
 
 function formatApprovalTitle(approval: ccc.SignerJsonRpcConfirmation) {
-  switch (approval.method) {
+  return formatRequestTitle(approval.method);
+}
+
+function formatRequestTitle(method: string) {
+  switch (method) {
     case "connect":
       return "Connect";
     case "sign_message":
       return "Sign Message";
     case "sign_transaction":
       return "Sign Transaction";
+    default:
+      return method;
+  }
+}
+
+function formatRequestCompletion(method: string) {
+  switch (method) {
+    case "connect":
+      return "Signer connected";
+    case "sign_message":
+      return "Message signed";
+    case "sign_transaction":
+      return "Transaction signed";
   }
 }
 
@@ -1004,18 +1176,38 @@ function resolveSignerWaiters(
       return;
     }
 
-    clearTimeout(waiter.timeout);
     waiters.delete(waiter);
+    waiter.signal.removeEventListener("abort", waiter.abort);
     waiter.resolve(signer);
   });
 }
 
 function rejectSignerWaiters(waiters: Set<SignerWaiter>, cause: Error) {
   waiters.forEach((waiter) => {
-    clearTimeout(waiter.timeout);
+    waiter.signal.removeEventListener("abort", waiter.abort);
     waiter.reject(cause);
   });
   waiters.clear();
+}
+
+function abortReason(signal: AbortSignal) {
+  if (signal.reason instanceof Error) {
+    return signal.reason;
+  }
+
+  const error = new Error("JSON-RPC request canceled");
+  error.name = "AbortError";
+  return error;
+}
+
+function requestTimeoutError() {
+  const error = new Error("JSON-RPC request timed out");
+  error.name = "TimeoutError";
+  return error;
+}
+
+function isTimeoutError(cause: unknown): cause is Error {
+  return cause instanceof Error && cause.name === "TimeoutError";
 }
 
 function reportError(

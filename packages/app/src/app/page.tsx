@@ -82,6 +82,7 @@ export default function Home() {
   const connected = signer !== undefined;
   const usingPrivateKey = privateKeySigner !== undefined;
   const needsAccess = selectedModule?.access === "signer";
+  const displayedModule = selectedModule ?? stagedModule;
   const workspaceReady =
     selectedModule !== undefined && (!needsAccess || connected);
 
@@ -365,12 +366,14 @@ export default function Home() {
                   ) : (
                     <Link2 size={14} />
                   )}
-                  {privateKeyMode ? "Private key" : "Module mounted"}
+                  {privateKeyMode ? "Private key" : "Connect to continue"}
                 </span>
                 <h2>
-                  {privateKeyMode ? "Enter your private key" : "Who are you?"}
+                  {privateKeyMode
+                    ? "Enter your private key"
+                    : (displayedModule?.name ?? "Who are you?")}
                 </h2>
-                <p>
+                <p className={privateKeyMode ? undefined : "module-summary"}>
                   {privateKeyMode ? (
                     <>
                       <span className="private-key-warning">
@@ -380,12 +383,10 @@ export default function Home() {
                       be read by browser extensions. This key stays only on this
                       page and is cleared when you leave or reload.
                     </>
+                  ) : displayedModule ? (
+                    displayedModule.description
                   ) : (
-                    <>
-                      Link required for this module.
-                      <br />
-                      Choose one of the link options to continue.
-                    </>
+                    "Choose one of the link options to continue."
                   )}
                 </p>
               </div>

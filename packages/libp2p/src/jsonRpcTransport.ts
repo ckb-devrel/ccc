@@ -3,7 +3,7 @@ import type { Libp2p, PeerId, Stream } from "@libp2p/interface";
 import { lpStream } from "@libp2p/utils";
 
 const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
-const DEFAULT_TIMEOUT = 30_000;
+const DEFAULT_TIMEOUT = 120_000;
 
 export type JsonRpcTransportLibp2pConfig = {
   protocol: string;

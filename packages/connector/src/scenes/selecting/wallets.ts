@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { html } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import { CCC_SVG } from "../../assets/ccc.svg.js";
+import { KHIE_SVG } from "../../assets/khie.svg.js";
 
 export function generateWalletsScene(
   wallets: ccc.WalletWithSigners[],
@@ -21,7 +21,7 @@ export function generateWalletsScene(
           );
         }}
       >
-        <img src=${CCC_SVG} alt="Khie" />
+        <img src=${KHIE_SVG} alt="Khie" />
         Khie
       </ccc-button>
       ${repeat(

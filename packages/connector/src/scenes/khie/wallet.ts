@@ -1,11 +1,11 @@
 import { ccc } from "@ckb-ccc/ccc";
-import { CCC_SVG } from "../../assets/ccc.svg.js";
+import { KHIE_SVG } from "../../assets/khie.svg.js";
 
 export const KHIE_WALLET_NAME = "Khie";
 
 export function khieSignerIcon(icon: string | undefined): string {
   if (!icon) {
-    return CCC_SVG;
+    return KHIE_SVG;
   }
 
   try {
@@ -20,7 +20,7 @@ export function khieSignerIcon(icon: string | undefined): string {
     // Fall through to the default Khie icon.
   }
 
-  return CCC_SVG;
+  return KHIE_SVG;
 }
 
 export function khieWalletFrom(signer: ccc.SignerJsonRpc): ccc.Wallet {

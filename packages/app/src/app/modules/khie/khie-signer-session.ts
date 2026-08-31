@@ -18,6 +18,7 @@ type KhieSignerServices = {
   pairing: Libp2p.PairingService;
 };
 type KhieSignerNode = Awaited<ReturnType<typeof createKhieSignerNode>>;
+type KhieSignerJsonRpcHandler = (payload: ccc.JsonRpcPayload) => unknown;
 
 type KhieSignerSessionResources = {
   abortController: AbortController;
@@ -31,7 +32,7 @@ type KhieSignerSessionResources = {
 
 export type KhieSignerSessionConfig = {
   endpointUrl: string;
-  handler: ccc.SignerJsonRpcHandler;
+  handler: KhieSignerJsonRpcHandler;
   onEndpointChange?: (endpoint: string) => void;
   onError?: (error: Error) => void;
   onPaired?: () => void;
@@ -326,7 +327,7 @@ export class KhieSignerSession {
 
 async function createKhieSignerNode(
   canPair: Libp2p.PairingGuard,
-  handler: ccc.SignerJsonRpcHandler,
+  handler: KhieSignerJsonRpcHandler,
   onRequest: (peerId: PeerId) => void,
   pairedPeerTimeoutMs: number,
   signal: AbortSignal,

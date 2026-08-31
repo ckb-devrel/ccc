@@ -122,6 +122,10 @@
   line-height: 1.55;
 }
 
+.connection-copy .module-summary {
+  white-space: pre-line;
+}
+
 .panel-kicker {
   gap: 7px;
   color: var(--muted);

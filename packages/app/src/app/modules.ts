@@ -13,7 +13,6 @@ import {
   Network,
   PackagePlus,
   PiggyBank,
-  Radio,
   Rocket,
   Signature,
   Sparkles,
@@ -33,6 +32,7 @@ import {
   IssueXUdtTypeIdModule,
 } from "./modules/issue-xudt-module";
 import { KeystoreModule } from "./modules/keystore-module";
+import { KhieIcon } from "./modules/khie/khie-icon";
 import { KhieModule } from "./modules/khie/khie-module";
 import { MintSporeModule } from "./modules/mint-spore-module";
 import { MnemonicModule } from "./modules/mnemonic-module";
@@ -122,9 +122,10 @@ function defineModules(definitions: readonly DemoModuleDefinition[]) {
 export const demoModules: readonly DemoModule[] = defineModules([
   {
     name: "Khie",
-    description: "Connect another CCC app to the current signer over Khie.",
-    group: "Development",
-    icon: Radio,
+    description:
+      "Khie (契, /kʰje/) is Hakka for bond, agreement, or connection. By scanning the other side, Khie connects applications with wallets peer-to-peer.\nThis module makes any wallet connected through CCC automatically available over Khie.",
+    group: "Wallet",
+    icon: KhieIcon,
     access: "signer",
     component: KhieModule,
   },

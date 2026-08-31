@@ -3,7 +3,7 @@ import type { Connection, PeerId, Stream } from "@libp2p/interface";
 import type { Registrar } from "@libp2p/interface-internal";
 import { lpStream } from "@libp2p/utils";
 
-const defaultMaxMessageLength = 1024 * 1024;
+const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
 
 export type JsonRpcServiceComponents = {
   registrar: Registrar;
@@ -33,7 +33,8 @@ export abstract class JsonRpcService<
     readonly components: Components,
     readonly config: JsonRpcServiceConfig,
   ) {
-    const maxMessageLength = config.maxMessageLength ?? defaultMaxMessageLength;
+    const maxMessageLength =
+      config.maxMessageLength ?? DEFAULT_MAX_MESSAGE_LENGTH;
     if (!Number.isSafeInteger(maxMessageLength) || maxMessageLength <= 0) {
       throw new Error(
         "Maximum JSON-RPC message length must be a positive integer",
@@ -63,6 +64,8 @@ export abstract class JsonRpcService<
   }
 
   private async handleProtocol(stream: Stream, connection: Connection) {
+    let requestAborted = false;
+
     try {
       const rpcStream = lpStream(stream, {
         maxDataLength: this.maxMessageLength,
@@ -82,6 +85,7 @@ export abstract class JsonRpcService<
           }),
         };
       } catch (cause) {
+        requestAborted = isAbortError(cause);
         const error = toJsonRpcError(cause);
         response = {
           jsonrpc: "2.0",
@@ -97,6 +101,9 @@ export abstract class JsonRpcService<
       await rpcStream.write(ccc.bytesFrom(JSON.stringify(response), "utf8"));
       await stream.close();
     } catch (cause) {
+      if (requestAborted) {
+        return;
+      }
       this.handleError(cause, stream);
     }
   }
@@ -136,6 +143,13 @@ function parseJsonRpcRequest(data: string) {
 
 function asJsonRpcError(cause: unknown) {
   return cause instanceof Error ? cause : new Error("JSON-RPC request failed");
+}
+
+function isAbortError(cause: unknown) {
+  return (
+    cause instanceof Error &&
+    (cause.name === "AbortError" || cause.name === "TimeoutError")
+  );
 }
 
 export function jsonRpcService<
