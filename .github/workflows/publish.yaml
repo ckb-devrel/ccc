@@ -30,7 +30,7 @@ jobs:
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
           commit: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
