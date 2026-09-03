@@ -43,6 +43,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26
+          registry-url: https://registry.npmjs.org
       - uses: pnpm/action-setup@v6
 
       - name: Install dependencies
@@ -59,11 +60,12 @@ jobs:
         id: changesets
         uses: changesets/action@v2
         with:
-          publish: pnpm dlx @changesets/cli@3.0.0 publish --tag canary
-          createGithubReleases: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          publish-script: pnpm dlx @changesets/cli@3.0.0 publish --tag canary
+          create-github-releases: false
+          push-git-tags: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Comment on PR with Success
         if: github.event_name == 'issue_comment' && steps.changesets.outputs.published == 'true'
@@ -74,7 +76,7 @@ jobs:
             const issue_number = context.issue.number;
             const workflow_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            const publishedPackages = JSON.parse(${{ toJSON(steps.changesets.outputs.publishedPackages) }});
+            const publishedPackages = JSON.parse(${{ toJSON(steps.changesets.outputs['published-packages']) }});
 
             let body = `🚀 Canary version published successfully! [View workflow run](${workflow_url})\n\n`;
             body += "The following packages have been published to npm:\n";
