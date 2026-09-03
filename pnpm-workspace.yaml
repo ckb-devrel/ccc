@@ -3,6 +3,7 @@ packages:
 minimumReleaseAge: 1440
 allowBuilds:
   '@nestjs/core': true
+  '@parcel/watcher': true
   '@tailwindcss/oxide': true
   core-js: true
   core-js-pure: true
