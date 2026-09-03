@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26
+          registry-url: https://registry.npmjs.org
       - uses: pnpm/action-setup@v6
 
       - name: Install dependencies
@@ -32,10 +33,10 @@ jobs:
         id: changesets
         uses: changesets/action@v2
         with:
-          title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
-          commit: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
-          version: pnpm dlx @changesets/cli@3.0.0 version
-          publish: pnpm dlx @changesets/cli@3.0.0 publish
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
+          commit-message: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
+          version-script: pnpm dlx @changesets/cli@3.0.0 version
+          publish-script: pnpm dlx @changesets/cli@3.0.0 publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
