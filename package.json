@@ -20,7 +20,7 @@
     "@changesets/cli": "^3.0.0",
     "@types/jest": "^30.0.0",
     "@vitest/coverage-v8": "4.1.11",
-    "jest": "30.4.2",
+    "jest": "30.5.1",
     "ts-jest": "^29.4.11",
     "typedoc": "0.28.20",
     "typedoc-material-theme": "^1.4.1",
