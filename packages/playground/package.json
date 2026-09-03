@@ -43,7 +43,7 @@
     "@types/webpack-env": "^1.18.8",
     "@typescript/native": "npm:typescript@^7.0.2",
     "eslint": "^10.6.0",
-    "eslint-config-next": "16.3.2",
+    "eslint-config-next": "16.3.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "postcss": "^8.5.23",
