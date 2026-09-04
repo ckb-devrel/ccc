@@ -30,6 +30,37 @@ beforeEach(async () => {
 });
 
 describe("Transaction", () => {
+  describe("calcDaoClaimEpoch", () => {
+    it("does not add a cycle when deposit and withdrawal fractions are equal", () => {
+      const zero32 = `0x${"00".repeat(32)}`;
+      const header = (epoch: ccc.EpochLike): ccc.ClientBlockHeaderLike => ({
+        version: 0n,
+        compactTarget: 0n,
+        timestamp: 0n,
+        number: 0n,
+        epoch,
+        parentHash: zero32,
+        transactionsRoot: zero32,
+        proposalsHash: zero32,
+        extraHash: zero32,
+        dao: { c: 0n, ar: 0n, s: 0n, u: 0n },
+        nonce: 0n,
+        hash: zero32,
+      });
+
+      const result = ccc.calcDaoClaimEpoch(
+        header([5n, 900n, 1800n]),
+        header([185n, 900n, 1800n]),
+      );
+
+      expect([result.integer, result.numerator, result.denominator]).toEqual([
+        185n,
+        900n,
+        1800n,
+      ]);
+    });
+  });
+
   describe("indexed setters", () => {
     const input = (suffix: string, index = 0): ccc.CellInputLike => ({
       previousOutput: {

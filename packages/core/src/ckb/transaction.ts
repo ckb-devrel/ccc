@@ -2795,9 +2795,9 @@ export function calcDaoClaimEpoch(
   if (
     partialCycle !== Zero ||
     //  deposit.numerator        withdraw.numerator
-    // --------------------- <= ----------------------
+    // --------------------- < -----------------------
     //  deposit.denominator      withdraw.denominator
-    deposit.numerator * withdraw.denominator <=
+    deposit.numerator * withdraw.denominator <
       withdraw.numerator * deposit.denominator
   ) {
     // Need to wait for the next cycle
