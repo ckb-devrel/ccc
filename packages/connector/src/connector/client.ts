@@ -5,6 +5,12 @@ import { DEFAULT_MAX_FEE_RATE } from "@ckb-ccc/ccc/advancedBarrel";
 export class ClientWithFeeRate extends ccc.Proxy.Base(ccc.Client) {
   static readonly [ccc.Proxy.localKeys] = ["feeRate"];
 
+  static from(client: ccc.Client): ClientWithFeeRate {
+    return client instanceof ClientWithFeeRate
+      ? client
+      : new ClientWithFeeRate(client);
+  }
+
   public feeRate?: ccc.Num;
 
   async getFeeRate(

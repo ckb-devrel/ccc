@@ -1,6 +1,7 @@
 import { defineConfig, coverageConfigDefaults } from "vitest/config";
 
 const packages = [
+  "packages/connector",
   "packages/core",
   "packages/did-ckb",
   "packages/libp2p",

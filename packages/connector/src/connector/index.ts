@@ -120,6 +120,12 @@ export class WebComponentConnector extends LitElement {
 
   willUpdate(changedProperties: PropertyValues): void {
     if (
+      changedProperties.has("client") &&
+      !(this.client instanceof ClientWithFeeRate)
+    ) {
+      this.requestClientWithFeeRate();
+    }
+    if (
       SIGNER_REFRESH_PROPERTIES.some((property) =>
         changedProperties.has(property),
       )
@@ -136,15 +142,13 @@ export class WebComponentConnector extends LitElement {
     this.dispatchEvent(new ConnectorWillUpdateEvent());
   }
 
-  private requestClientWithFeeRate(event: FeeRateSelectedEvent): void {
-    event.stopPropagation();
+  private requestClientWithFeeRate(event?: FeeRateSelectedEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
 
-    const current = this.client;
-    const client =
-      current instanceof ClientWithFeeRate
-        ? current
-        : new ClientWithFeeRate(current);
-    client.feeRate = event.feeRate;
+    const client = ClientWithFeeRate.from(this.client);
+    client.feeRate = event?.feeRate;
     this.requestUpdate();
     this.dispatchEvent(new SelectClientEvent(client));
   }
