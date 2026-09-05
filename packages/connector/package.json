@@ -11,6 +11,9 @@
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
   "type": "module",
+  "browser": {
+    "./dist/scenes/khie/webrtc.js": "./dist/scenes/khie/webrtc.browser.js"
+  },
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",

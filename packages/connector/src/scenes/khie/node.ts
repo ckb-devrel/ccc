@@ -27,7 +27,7 @@ async function createNode(canPair: Libp2p.PairingGuard, signal: AbortSignal) {
     import("@chainsafe/libp2p-yamux"),
     import("@libp2p/circuit-relay-v2"),
     import("@libp2p/identify"),
-    import("@libp2p/webrtc"),
+    import("./webrtc.js"),
     import("@libp2p/websockets"),
     import("libp2p"),
   ]);

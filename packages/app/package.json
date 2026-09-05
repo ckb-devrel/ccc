@@ -10,8 +10,8 @@
     "url": "git://github.com/ckb-devrel/ccc.git"
   },
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build --webpack",
+    "dev": "next dev",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint ./src",
     "format": "prettier --write ./src"
