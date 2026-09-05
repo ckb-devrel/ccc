@@ -36,6 +36,7 @@
     "@multiformats/multiaddr": "^13.0.3",
     "@scure/bip32": "^2.0.0",
     "@scure/bip39": "^2.0.0",
+    "core-js": "^3.50.0",
     "libp2p": "^3.3.8",
     "lucide-react": "^1.21.0",
     "next": "16.3.1",

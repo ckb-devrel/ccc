@@ -115,7 +115,7 @@ export class KhieSignerSession {
 
     const pairingController = new AbortController();
     resources.pairingController = pairingController;
-    const signal = AbortSignal.any([
+    const signal = ccc.abortSignalAny([
       resources.abortController.signal,
       pairingController.signal,
     ]);

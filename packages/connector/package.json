@@ -48,6 +48,7 @@
     "@libp2p/webrtc": "^6.0.30",
     "@libp2p/websockets": "^10.1.20",
     "@multiformats/multiaddr": "^13.0.3",
+    "core-js": "^3.50.0",
     "libp2p": "^3.3.9",
     "lit": "^3.3.3",
     "qr": "^0.6.0"

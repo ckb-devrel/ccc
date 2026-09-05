@@ -43,7 +43,7 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
   async request(payload: ccc.JsonRpcPayload): Promise<ccc.JsonRpcResponse> {
     const timeoutSignal = AbortSignal.timeout(this.timeout);
     const signal = this.config.signal
-      ? AbortSignal.any([this.config.signal, timeoutSignal])
+      ? ccc.abortSignalAny([this.config.signal, timeoutSignal])
       : timeoutSignal;
 
     let stream: Stream | undefined;

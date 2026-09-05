@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { Libp2p } from "@ckb-ccc/libp2p";
+import { ensurePromiseWithResolvers } from "./promiseWithResolvers.js";
 
 export const JSON_RPC_PROTOCOL = "/nervos-ckb/khie/json-rpc/0.0.1";
 export const DEFAULT_RELAY_ADDRESS = "/dns4/relay.ckbccc.com/tcp/443/wss";
@@ -9,6 +10,8 @@ const PAIRING_PROTOCOL = "/nervos-ckb/khie/pairing/0.0.1";
 const PAIRED_PEER_TIMEOUT_MS = 30 * 60 * 1000;
 
 async function createNode(canPair: Libp2p.PairingGuard, signal: AbortSignal) {
+  signal.throwIfAborted();
+  await ensurePromiseWithResolvers();
   signal.throwIfAborted();
 
   const [

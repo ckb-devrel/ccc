@@ -107,6 +107,9 @@ importers:
       '@scure/bip39':
         specifier: ^2.0.0
         version: 2.3.0
+      core-js:
+        specifier: ^3.50.0
+        version: 3.50.0
       libp2p:
         specifier: ^3.3.8
         version: 3.3.9
@@ -305,6 +308,9 @@ importers:
       '@multiformats/multiaddr':
         specifier: ^13.0.3
         version: 13.0.3
+      core-js:
+        specifier: ^3.50.0
+        version: 3.50.0
       libp2p:
         specifier: ^3.3.9
         version: 3.3.9
@@ -6073,6 +6079,9 @@ packages:
   copyfiles@2.4.1:
     resolution: {integrity: sha512-fereAvAvxDrQDOXybk3Qu3dPbOoKoysFMWtkY3mv5BsL8//OSZVL5DCLYqgRfY5cWirgRzlC+WSrxp6Bo3eNZg==}
     hasBin: true
+
+  core-js@3.50.0:
+    resolution: {integrity: sha512-BRWgOLKkFeCgRudR6zrs8p9XJZcE14grzKMMssoYrk6krtuEZ7MTKPIY5RzOnqsEKIR9kst7wNzphttraT+Yqw==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -15447,6 +15456,8 @@ snapshots:
       through2: 2.0.5
       untildify: 4.0.0
       yargs: 16.2.0
+
+  core-js@3.50.0: {}
 
   core-util-is@1.0.3: {}
 
