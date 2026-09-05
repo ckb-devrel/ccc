@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/core",
-  "version": "1.19.1",
+  "version": "1.20.0",
   "description": "Core of CCC - CKBer's Codebase",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -71,11 +71,11 @@
   "packageManager": "pnpm@11.8.0",
   "types": "./dist.commonjs/index.d.ts",
   "inlinedDependencies": {
-    "@noble/ciphers": "2.3.0",
-    "@noble/curves": "2.3.0",
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
     "@noble/hashes": [
       "1.8.0",
-      "2.3.0"
+      "2.4.0"
     ],
     "base-x": "5.0.1",
     "bs58": "6.0.0",

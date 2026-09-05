@@ -1,5 +1,17 @@
 # @ckb-ccc/connector
 
+## 2.0.0
+
+### Major Changes
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`230cf6c`](https://github.com/ckb-devrel/ccc/commit/230cf6c870680faeb560628aa989d92ba66ddf10) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(connector): require a controlled borrowed Client, emit bubbling select-client requests for network and fee-rate changes, and remove Client ownership from the Web Component lifecycle
+
+### Patch Changes
+
+- [#490](https://github.com/ckb-devrel/ccc/pull/490) [`251232a`](https://github.com/ckb-devrel/ccc/commit/251232abcae0320eb9b991b5f8a05b655f45d426) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(connector): prevent stale wallet and signer requests from overwriting the latest connection state
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.3.1
+
 ## 1.3.0
 
 ### Minor Changes

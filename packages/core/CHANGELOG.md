@@ -1,5 +1,41 @@
 # @ckb-ccc/core
 
+## 1.20.0
+
+### Minor Changes
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`6cfe9e1`](https://github.com/ckb-devrel/ccc/commit/6cfe9e1db55e520cf4347b45b704df90f7dfe331) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `Owner.map` and `OwnerAggregated`
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`88c8df6`](https://github.com/ckb-devrel/ccc/commit/88c8df68d75b36d7adf0cfb8598091056ac0c798) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add ownership-aware `open` APIs for JSON-RPC clients and transports
+
+- [#496](https://github.com/ckb-devrel/ccc/pull/496) [`095fb8f`](https://github.com/ckb-devrel/ccc/commit/095fb8fc754ba54e89aec8c3e58b88b6c373ec2a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): json rpc id can be string
+
+- [#487](https://github.com/ckb-devrel/ccc/pull/487) [`5f2a6ab`](https://github.com/ckb-devrel/ccc/commit/5f2a6ab0a41b9b0c819c7fc62d6eb0b22a8288e6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): improve JSON-RPC transport types and cleanup
+  
+  Clear HTTP/WebSocket request timers and pending state.
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`4fabb6a`](https://github.com/ckb-devrel/ccc/commit/4fabb6afbd58aee7d4bfb792660f82fe673ffbb9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `OwnerRefCount` for shared resource ownership
+
+- [#497](https://github.com/ckb-devrel/ccc/pull/497) [`235cd97`](https://github.com/ckb-devrel/ccc/commit/235cd9788543e300e4dceef20ad664a4666feba2) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: replace `Buffer`-based byte encoding with `uint8array-extras`
+  
+  - Remove the legacy `ascii`, `binary`, `latin1`, `ucs2`, and `utf16le` encodings
+  - Use consistent strict validation for implicit and explicit hex input
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`463846d`](https://github.com/ckb-devrel/ccc/commit/463846d99e7123846286b3c6a9811b75e5a58437) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `Owner` and `OwnerUnique` for explicit resource ownership
+
+- [#494](https://github.com/ckb-devrel/ccc/pull/494) [`f6aafb2`](https://github.com/ckb-devrel/ccc/commit/f6aafb2886ad747fed24e218f9b9b54e15071ee9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(core): rename JSON-RPC transport APIs with the `JsonRpcTransport` prefix
+  
+  - `Transport` is now `JsonRpcTransport`
+  - `TransportHttp` is now `JsonRpcTransportHttp`
+  - `TransportWebSocket` is now `JsonRpcTransportWebSocket`
+  - `TransportFallback` is now `JsonRpcTransportFallback`
+
+### Patch Changes
+
+- [#516](https://github.com/ckb-devrel/ccc/pull/516) [`1c74033`](https://github.com/ckb-devrel/ccc/commit/1c74033df94fc11b61296c6fc00e9955ff602c72) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Fix DAO claim epoch calculation when the deposit and withdrawal epoch fractions are equal.
+
+- [#489](https://github.com/ckb-devrel/ccc/pull/489) [`cdc5b1a`](https://github.com/ckb-devrel/ccc/commit/cdc5b1ac13ce73fa60d79b90cb0400f860f93f27) Thanks [@github-actions](https://github.com/apps/github-actions)! - perf([#495](https://github.com/ckb-devrel/ccc/issues/495)): replace `Uint8Array.slice` with `subarray`
+
 ## 1.19.1
 
 ### Patch Changes

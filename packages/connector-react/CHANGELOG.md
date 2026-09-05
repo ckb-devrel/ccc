@@ -1,5 +1,16 @@
 # @ckb-ccc/connector-react
 
+## 1.2.0
+
+### Minor Changes
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`c75b49e`](https://github.com/ckb-devrel/ccc/commit/c75b49e282991949e2240779608a4c5b2277a34e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector-react): control Web Component Client requests in the Provider, manage ownership transferred through setClient, and add useBorrowedOrOwned for an internally owned fallback to an optional borrowed value
+
+### Patch Changes
+
+- Updated dependencies [[`230cf6c`](https://github.com/ckb-devrel/ccc/commit/230cf6c870680faeb560628aa989d92ba66ddf10), [`251232a`](https://github.com/ckb-devrel/ccc/commit/251232abcae0320eb9b991b5f8a05b655f45d426)]:
+  - @ckb-ccc/connector@2.0.0
+
 ## 1.1.9
 
 ### Patch Changes
