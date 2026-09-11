@@ -509,6 +509,64 @@ describe("Transaction", () => {
       const inputBalance = await tx.getInputsUdtBalance(client, type);
       expect(inputBalance).toBe(ccc.numFrom(100));
     });
+
+    it("should not collect a prefix-matching UDT with different args", async () => {
+      const foreignCell = ccc.Cell.from({
+        outPoint: {
+          txHash: `0x${"f".repeat(64)}`,
+          index: 0,
+        },
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(142),
+          lock,
+          type: {
+            codeHash: type.codeHash,
+            hashType: type.hashType,
+            args: `${type.args}00`,
+          },
+        },
+        outputData: ccc.numLeToBytes(900, 16),
+      });
+      let receivedFilter: Parameters<typeof signer.findCells>[0] | undefined;
+      vi.spyOn(signer, "findCells").mockImplementation(
+        async function* (filter) {
+          receivedFilter = filter;
+          yield mockUdtCells[0];
+          const [lower, upper] = filter.scriptLenRange!;
+          const foreignScriptSize = ccc.numFrom(
+            foreignCell.cellOutput.type!.occupiedSize,
+          );
+          if (
+            ccc.numFrom(lower) <= foreignScriptSize &&
+            foreignScriptSize < ccc.numFrom(upper)
+          ) {
+            yield foreignCell;
+          }
+        },
+      );
+
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock, type }],
+        outputsData: [ccc.numLeToBytes(50, 16)],
+      });
+
+      const addedCount = await tx.completeInputsByUdt(signer, type);
+
+      expect(receivedFilter?.scriptLenRange).toEqual([
+        type.occupiedSize,
+        type.occupiedSize + 1,
+      ]);
+      expect(addedCount).toBe(1);
+      expect(tx.inputs).toHaveLength(1);
+      expect(tx.inputs[0].previousOutput.eq(mockUdtCells[0].outPoint)).toBe(
+        true,
+      );
+      expect(
+        tx.inputs.some((input) =>
+          input.previousOutput.eq(foreignCell.outPoint),
+        ),
+      ).toBe(false);
+    });
   });
 
   describe("completeFee", () => {

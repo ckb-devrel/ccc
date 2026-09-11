@@ -2272,6 +2272,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     type: ScriptLike,
     balanceTweak?: NumLike,
   ): Promise<number> {
+    const scriptSize = Script.from(type).occupiedSize;
     const expectedBalance =
       this.getOutputsUdtBalance(type) + numFrom(balanceTweak ?? 0);
     if (expectedBalance === Zero) {
@@ -2302,6 +2303,7 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       from,
       {
         script: type,
+        scriptLenRange: [scriptSize, scriptSize + 1],
         outputDataLenRange: [16, numFrom("0xffffffff")],
       },
       (acc, { outputData }, _i, collected) => {
