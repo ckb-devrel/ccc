@@ -68,11 +68,15 @@ async function callSsri(
   if (!scriptCell) throw new Error("SSRI contract cell not found");
   const args = splitLines(argsText).map((value) => ccc.hexFrom(value));
   const context = parseContext(contextLevel, contextText);
-  const executor = new ssri.ExecutorJsonRpc(executorUrl);
-  const contract = new ssri.Trait(scriptCell.outPoint, executor);
-  return contract
-    .assertExecutor()
-    .runScript(contract.code, method, args, context);
+  const executorOwner = ssri.ExecutorJsonRpc.open({ urls: [executorUrl] });
+  try {
+    const contract = new ssri.Trait(scriptCell.outPoint, executorOwner.value);
+    return await contract
+      .assertExecutor()
+      .runScript(contract.code, method, args, context);
+  } finally {
+    await executorOwner.dispose();
+  }
 }
 
 // -----------------------------------------------------------------------------

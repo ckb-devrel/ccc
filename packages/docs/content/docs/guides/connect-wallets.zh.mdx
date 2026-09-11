@@ -149,7 +149,7 @@ icon: Wallet
 | `open`       | `() => void`                   | 打开连接器弹窗                                         |
 | `close`      | `() => void`                   | 关闭连接器弹窗                                         |
 | `disconnect` | `() => void`                   | 断开当前钱包                                           |
-| `setClient`  | `(client: ccc.Client) => void` | 切换 CKB Client（主网/测试网/自定义 RPC）                |
+| `setClient`  | `(owner: ccc.Owner<ccc.Client>) => void` | 转移并切换 CKB Client                                  |
 | `client`     | `ccc.Client`                   | 当前 CKB Client（默认为 `ClientPublicTestnet`）        |
 | `wallet`     | `ccc.Wallet \| undefined`      | 当前已连接的钱包（含 `name`、`icon`）                    |
 | `signerInfo` | `ccc.SignerInfo \| undefined`  | 当前 Signer 信息（含 `name`、`signer`）                |

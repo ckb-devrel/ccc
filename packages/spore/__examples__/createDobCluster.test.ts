@@ -1,7 +1,10 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { createSporeCluster, dob } from "../index.js";
+
+const clientOwner = ccc.ClientPublicTestnet.open();
+afterAll(() => clientOwner.dispose());
 
 function generateClusterDescriptionUnderDobProtocol(
   client: ccc.Client,
@@ -143,7 +146,7 @@ describe("createCluster [testnet]", () => {
   expect(process.env.PRIVATE_KEY).toBeDefined();
 
   it("should create a Cluster cell under DOB protocol", async () => {
-    const client = new ccc.ClientPublicTestnet();
+    const client = clientOwner.value;
     const signer = new ccc.SignerCkbPrivateKey(
       client,
       process.env.PRIVATE_KEY!,

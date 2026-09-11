@@ -1,0 +1,6 @@
+{
+  "title": "Migration",
+  "icon": "RefreshCw",
+  "defaultOpen": true,
+  "pages": ["connector-v2"]
+}

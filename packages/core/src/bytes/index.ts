@@ -1,5 +1,12 @@
-import { Buffer } from "buffer/index.js";
-import { BytesFromEncoding } from "./advanced.js";
+import {
+  base64ToUint8Array,
+  hexToUint8Array,
+  stringToUint8Array,
+  uint8ArrayToBase64,
+  uint8ArrayToHex,
+  uint8ArrayToString,
+} from "uint8array-extras";
+import type { BytesFromEncoding } from "./advanced.js";
 
 /**
  * @public
@@ -91,7 +98,18 @@ export function bytesConcat(...args: BytesLike[]): Bytes {
  */
 
 export function bytesTo(val: BytesLike, encoding: BytesFromEncoding): string {
-  return Buffer.from(bytesFrom(val)).toString(encoding);
+  const bytes = bytesFrom(val);
+
+  switch (encoding) {
+    case "utf8":
+      return uint8ArrayToString(bytes);
+    case "base64":
+      return uint8ArrayToBase64(bytes);
+    case "base64url":
+      return uint8ArrayToBase64(bytes, { urlSafe: true });
+    case "hex":
+      return uint8ArrayToHex(bytes);
+  }
 }
 
 /**
@@ -133,17 +151,13 @@ export function bytesFrom(
   }
 
   if (typeof bytes === "string") {
-    if (encoding !== undefined) {
-      return Buffer.from(bytes, encoding);
+    if (encoding !== undefined && encoding !== "hex") {
+      return bytesFromString(bytes, encoding);
     }
 
     const str = bytes.startsWith("0x") ? bytes.slice(2) : bytes;
     const paddedStr = str.length % 2 === 0 ? str : `0${str}`;
-    const data = Buffer.from(paddedStr, "hex");
-    if (data.length * 2 !== paddedStr.length) {
-      throw new Error(`Invalid bytes ${bytes}`);
-    }
-    return data;
+    return hexToUint8Array(paddedStr);
   }
 
   const bytesArr = Array.from(bytes);
@@ -151,6 +165,19 @@ export function bytesFrom(
     throw new Error(`Invalid bytes ${JSON.stringify(bytes)}`);
   }
   return new Uint8Array(bytes);
+}
+
+function bytesFromString(
+  value: string,
+  encoding: Exclude<BytesFromEncoding, "hex">,
+): Bytes {
+  switch (encoding) {
+    case "utf8":
+      return stringToUint8Array(value);
+    case "base64":
+    case "base64url":
+      return base64ToUint8Array(value);
+  }
 }
 
 /**

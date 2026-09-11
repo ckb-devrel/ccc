@@ -6,6 +6,13 @@ import { NostrAccountChangedError, Signer } from "./signer.js";
 
 const PUBLIC_KEY_A = "11".repeat(32);
 const PUBLIC_KEY_B = "22".repeat(32);
+const CLIENT = ccc.ClientPublicTestnet.new({
+  transport: {
+    request: async () => {
+      throw new Error("Unexpected request");
+    },
+  },
+});
 
 class ConnectionsRepoMemory implements ConnectionsRepo {
   constructor(public connection?: Connection) {}
@@ -53,7 +60,7 @@ describe("NIP-07 Signer connection persistence", () => {
   it("refreshes the persisted connection on every connect", async () => {
     const { getPublicKey, provider } = createProvider();
     const repo = new ConnectionsRepoMemory();
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     await signer.connect();
     getPublicKey.mockResolvedValueOnce(PUBLIC_KEY_B);
@@ -66,11 +73,11 @@ describe("NIP-07 Signer connection persistence", () => {
   it("restores the persisted connection in a recreated signer", async () => {
     const { getPublicKey, provider } = createProvider();
     const repo = new ConnectionsRepoMemory();
-    const signerA = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signerA = new Signer(CLIENT, provider, repo);
 
     await signerA.connect();
 
-    const signerB = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signerB = new Signer(CLIENT, provider, repo);
 
     expect(await signerB.isConnected()).toBe(true);
     expect(getPublicKey).toHaveBeenCalledTimes(1);
@@ -83,7 +90,7 @@ describe("NIP-07 Signer connection persistence", () => {
       publicKey: `0x${PUBLIC_KEY_A}`,
     });
     const { getPublicKey, provider } = createProvider();
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     expect(await signer.isConnected()).toBe(true);
     expect(await signer.getNostrPublicKey()).toBe(`0x${PUBLIC_KEY_A}`);
@@ -93,7 +100,7 @@ describe("NIP-07 Signer connection persistence", () => {
   it("removes the persisted connection on disconnect", async () => {
     const repo = new ConnectionsRepoMemory();
     const { provider } = createProvider();
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     await signer.connect();
     await signer.disconnect();
@@ -108,7 +115,7 @@ describe("NIP-07 Signer connection persistence", () => {
     getPublicKey
       .mockRejectedValueOnce(new Error("Rejected"))
       .mockResolvedValueOnce(PUBLIC_KEY_A);
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     await expect(signer.connect()).rejects.toThrow("Rejected");
     expect(repo.connection).toBeUndefined();
@@ -124,7 +131,7 @@ describe("NIP-07 Signer connection persistence", () => {
     });
     const { getPublicKey, provider } = createProvider();
     getPublicKey.mockRejectedValueOnce(new Error("Rejected"));
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     expect(await signer.isConnected()).toBe(true);
     await expect(signer.connect()).rejects.toThrow("Rejected");
@@ -138,7 +145,7 @@ describe("NIP-07 Signer connection persistence", () => {
       publicKey: `0x${PUBLIC_KEY_A}`,
     });
     const { provider, signEvent } = createProvider();
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     await signer.signNostrEvent(createEvent());
 
@@ -153,7 +160,7 @@ describe("NIP-07 Signer connection persistence", () => {
       publicKey: `0x${PUBLIC_KEY_A}`,
     });
     const { provider } = createProvider(PUBLIC_KEY_B);
-    const signer = new Signer(new ccc.ClientPublicTestnet(), provider, repo);
+    const signer = new Signer(CLIENT, provider, repo);
 
     await expect(signer.signNostrEvent(createEvent())).rejects.toBeInstanceOf(
       NostrAccountChangedError,

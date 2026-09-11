@@ -53,10 +53,6 @@ export class ButtonPill extends LitElement {
     }
   `;
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
   render() {
     return html`<button><slot></slot></button>`;
   }

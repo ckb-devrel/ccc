@@ -21,7 +21,7 @@ function buildTimeLockArgs(
 
 function timeLockSince(cell: ccc.Cell) {
   return ccc.Since.from(
-    ccc.numFromBytes(ccc.bytesFrom(cell.cellOutput.lock.args).slice(32, 40)),
+    ccc.numFromBytes(ccc.bytesFrom(cell.cellOutput.lock.args).subarray(32, 40)),
   );
 }
 

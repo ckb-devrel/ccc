@@ -151,7 +151,7 @@ Returns the full wallet state and control functions. Use it when you need to con
 | `open`       | `() => void`                   | Open the connector modal                               |
 | `close`      | `() => void`                   | Close the connector modal                              |
 | `disconnect` | `() => void`                   | Disconnect the current wallet                          |
-| `setClient`  | `(client: ccc.Client) => void` | Switch to a different CKB client (mainnet/testnet/RPC) |
+| `setClient`  | `(owner: ccc.Owner<ccc.Client>) => void` | Transfer and switch to a different CKB client |
 | `client`     | `ccc.Client`                   | Current CKB client (defaults to `ClientPublicTestnet`) |
 | `wallet`     | `ccc.Wallet \| undefined`      | Currently connected wallet (`name`, `icon`)            |
 | `signerInfo` | `ccc.SignerInfo \| undefined`  | Current signer info (`name`, `signer`)                 |

@@ -355,7 +355,9 @@ export default function App({ children }) {
 import { ccc } from "@ckb-ccc/core";
 import { getJoyIdSigners } from "@ckb-ccc/joy-id";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// 不再使用时调用 `await clientOwner.dispose()`。
 
 const signers = getJoyIdSigners(
   client,
@@ -378,7 +380,9 @@ console.log("CKB Address:", address);
 import { ccc } from "@ckb-ccc/core";
 import { CkbSigner } from "@ckb-ccc/joy-id";
 
-const client = new ccc.ClientPublicMainnet();
+const clientOwner = ccc.ClientPublicMainnet.open();
+const client = clientOwner.value;
+// 不再使用时调用 `await clientOwner.dispose()`。
 const signer = new CkbSigner(client, "My DApp", "https://my-dapp.com/icon.png");
 
 await signer.connect();

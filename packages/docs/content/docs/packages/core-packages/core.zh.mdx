@@ -132,13 +132,20 @@ abstract class Signer {
 
 ```typescript
 // 连接公共测试网
-const client = new ccc.ClientPublicTestnet();
+const testnetClientOwner = ccc.ClientPublicTestnet.open();
+const testnetClient = testnetClientOwner.value;
 
 // 连接公共主网
-const client = new ccc.ClientPublicMainnet();
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+const mainnetClient = mainnetClientOwner.value;
 
 // 连接自定义节点
-const client = new ccc.ClientPublicTestnet("https://my-node.example.com/rpc");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["https://my-node.example.com/rpc"],
+});
+const customClient = customClientOwner.value;
+
+// 不再使用各个 Client 时，释放对应的 Owner。
 ```
 
 ## 核心函数

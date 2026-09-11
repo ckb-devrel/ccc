@@ -32,6 +32,8 @@ import {
   IssueXUdtTypeIdModule,
 } from "./modules/issue-xudt-module";
 import { KeystoreModule } from "./modules/keystore-module";
+import { KhieIcon } from "./modules/khie/khie-icon";
+import { KhieModule } from "./modules/khie/khie-module";
 import { MintSporeModule } from "./modules/mint-spore-module";
 import { MnemonicModule } from "./modules/mnemonic-module";
 import { NervosDaoModule } from "./modules/nervos-dao-module";
@@ -57,8 +59,10 @@ export type SubmitTransaction = (
 export type ModuleRuntimeProps = {
   client: ccc.Client;
   log: (message: string, level?: DemoLogLevel) => void;
+  setClient: (owner: ccc.Owner<ccc.Client>) => unknown;
   show: ShowModuleReadout;
   signer?: ccc.Signer;
+  wallet?: ccc.Wallet;
   submitTransaction: SubmitTransaction;
 };
 
@@ -116,6 +120,15 @@ function defineModules(definitions: readonly DemoModuleDefinition[]) {
 }
 
 export const demoModules: readonly DemoModule[] = defineModules([
+  {
+    name: "Khie",
+    description:
+      "Khie is a peer-to-peer protocol that connects wallets and applications. To connect, select Khie in the application's connector, then either use the connector to scan the wallet's pairing code or use the wallet to scan the connector's pairing code. For wallets without native Khie support, this module lets them connect to remote applications through Khie.\n\nKhie (契, /kʰje/) is Hakka for bond, agreement, or connection.",
+    group: "Wallet",
+    icon: KhieIcon,
+    access: "signer",
+    component: KhieModule,
+  },
   {
     name: "Hash",
     description:

@@ -103,8 +103,17 @@ trait.tryRun(call): Promise<ExecutorResponse<T | undefined>>
 通过 HTTP JSON-RPC 连接 SSRI 服务器：
 
 ```typescript
-const executor = new ssri.ExecutorJsonRpc("https://your-ssri-server.example.com");
+const executorOwner = ssri.ExecutorJsonRpc.open({
+  urls: ["https://your-ssri-server.example.com"],
+});
+const executor = executorOwner.value;
+
+// 不再使用时释放 Executor 及其 Transport。
+await executorOwner.dispose();
 ```
+
+如果需要借用已有的 JSON-RPC Transport，请改用
+`ExecutorJsonRpc.new({ transport })`。Transport 的生命周期仍由调用方负责。
 
 ### `ExecutorResponse<T>`
 
@@ -124,20 +133,27 @@ response.map(fn);  // 转换结果
 import { ssri } from "@ckb-ccc/ssri";
 import { ccc } from "@ckb-ccc/core";
 
-const executor = new ssri.ExecutorJsonRpc("https://ssri.example.com");
+const executorOwner = ssri.ExecutorJsonRpc.open({
+  urls: ["https://ssri.example.com"],
+});
+const executor = executorOwner.value;
 
 const trait = new ssri.Trait(
   { txHash: "0x...", index: 0 }, // 代码 OutPoint
   executor,
 );
 
-// 查询 SSRI 版本
-const { res: version, cellDeps } = await trait.version();
-console.log("Version:", version);
+try {
+  // 查询 SSRI 版本
+  const { res: version, cellDeps } = await trait.version();
+  console.log("Version:", version);
 
-// 列出可用方法
-const { res: methods } = await trait.getMethods();
-console.log("Methods:", methods);
+  // 列出可用方法
+  const { res: methods } = await trait.getMethods();
+  console.log("Methods:", methods);
+} finally {
+  await executorOwner.dispose();
+}
 ```
 
 ## 执行上下文

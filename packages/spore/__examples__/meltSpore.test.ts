@@ -1,13 +1,16 @@
 import { ccc } from "@ckb-ccc/core";
 import { JsonRpcTransformers } from "@ckb-ccc/core/advanced";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { meltSpore } from "..";
+
+const clientOwner = ccc.ClientPublicTestnet.open();
+afterAll(() => clientOwner.dispose());
 
 describe("meltSpore [testnet]", () => {
   expect(process.env.PRIVATE_KEY).toBeDefined();
 
   it("should melt a Spore cell by sporeId", async () => {
-    const client = new ccc.ClientPublicTestnet();
+    const client = clientOwner.value;
     const signer = new ccc.SignerCkbPrivateKey(
       client,
       process.env.PRIVATE_KEY!,

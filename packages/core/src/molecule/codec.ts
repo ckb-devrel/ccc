@@ -86,7 +86,7 @@ export function fixedItemVec<Encodable, Decoded>(
           `fixedItemVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
         );
       }
-      const itemCount = uint32From(value.slice(0, 4));
+      const itemCount = uint32From(value.subarray(0, 4));
       const byteLength = 4 + itemCount * itemByteLength;
       if (value.byteLength !== byteLength) {
         throw new Error(
@@ -99,7 +99,7 @@ export function fixedItemVec<Encodable, Decoded>(
         for (let offset = 4; offset < byteLength; offset += itemByteLength) {
           decodedArray.push(
             itemCodec.decode(
-              value.slice(offset, offset + itemByteLength),
+              value.subarray(offset, offset + itemByteLength),
               config,
             ),
           );
@@ -155,7 +155,7 @@ export function dynItemVec<Encodable, Decoded>(
           `dynItemVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
         );
       }
-      const byteLength = uint32From(value.slice(0, 4));
+      const byteLength = uint32From(value.subarray(0, 4));
       if (byteLength !== value.byteLength) {
         throw new Error(
           `dynItemVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
@@ -166,10 +166,10 @@ export function dynItemVec<Encodable, Decoded>(
         return [];
       }
 
-      const offset = uint32From(value.slice(4, 8));
+      const offset = uint32From(value.subarray(4, 8));
       const itemCount = (offset - 4) / 4;
       const offsets = Array.from(new Array(itemCount), (_, index) =>
-        uint32From(value.slice(4 + index * 4, 8 + index * 4)),
+        uint32From(value.subarray(4 + index * 4, 8 + index * 4)),
       );
       offsets.push(byteLength);
       try {
@@ -177,7 +177,7 @@ export function dynItemVec<Encodable, Decoded>(
         for (let index = 0; index < offsets.length - 1; index++) {
           const start = offsets[index];
           const end = offsets[index + 1];
-          const itemBuffer = value.slice(start, end);
+          const itemBuffer = value.subarray(start, end);
           decodedArray.push(itemCodec.decode(itemBuffer, config));
         }
         return decodedArray;
@@ -281,14 +281,14 @@ export function byteVec<Encodable, Decoded>(
           `byteVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
         );
       }
-      const byteLength = uint32From(value.slice(0, 4));
+      const byteLength = uint32From(value.subarray(0, 4));
       if (byteLength !== value.byteLength - 4) {
         throw new Error(
           `byteVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
       try {
-        return codec.decode(value.slice(4), config);
+        return codec.decode(value.subarray(4), config);
       } catch (e: unknown) {
         throw new Error(`byteVec - ${getMessage(e)}`, { cause: e });
       }
@@ -375,8 +375,8 @@ export function table<
           `table: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
         );
       }
-      const byteLength = uint32From(value.slice(0, 4));
-      const headerLength = uint32From(value.slice(4, 8));
+      const byteLength = uint32From(value.subarray(0, 4));
+      const headerLength = uint32From(value.subarray(4, 8));
       const actualFieldCount = (headerLength - 4) / 4;
 
       if (byteLength !== value.byteLength) {
@@ -397,12 +397,12 @@ export function table<
         );
       }
       const offsets = keys.map((_, index) =>
-        uint32From(value.slice(4 + index * 4, 8 + index * 4)),
+        uint32From(value.subarray(4 + index * 4, 8 + index * 4)),
       );
       // If there are extra fields, add the last offset to the offsets array
       if (actualFieldCount > keys.length) {
         offsets.push(
-          uint32From(value.slice(4 + keys.length * 4, 8 + keys.length * 4)),
+          uint32From(value.subarray(4 + keys.length * 4, 8 + keys.length * 4)),
         );
       } else {
         // If there are no extra fields, add the byte length to the offsets array
@@ -414,7 +414,7 @@ export function table<
         const end = offsets[i + 1];
         const field = keys[i];
         const codec = codecLayout[field];
-        const payload = value.slice(start, end);
+        const payload = value.subarray(start, end);
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [field]: codec.decode(payload, config) });
@@ -563,7 +563,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
     },
     decode(buffer, config) {
       const value = bytesFrom(buffer);
-      const fieldIndex = uint32From(value.slice(0, 4));
+      const fieldIndex = uint32From(value.subarray(0, 4));
       const keys = Object.keys(codecLayout);
 
       const field = (() => {
@@ -591,7 +591,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
       return {
         type: field,
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        value: codecLayout[field].decode(value.slice(4), config),
+        value: codecLayout[field].decode(value.subarray(4), config),
       } as UnionDecoded<T>;
     },
     from(encodable) {
@@ -660,7 +660,7 @@ export function struct<
       const object = {};
       let offset = 0;
       Object.entries(codecLayout).forEach(([key, codec]) => {
-        const payload = value.slice(offset, offset + codec.byteLength!);
+        const payload = value.subarray(offset, offset + codec.byteLength!);
         try {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           Object.assign(object, { [key]: codec.decode(payload, config) });
@@ -728,7 +728,10 @@ export function array<Encodable, Decoded>(
         const result: Array<Decoded> = [];
         for (let i = 0; i < value.byteLength; i += itemCodec.byteLength!) {
           result.push(
-            itemCodec.decode(value.slice(i, i + itemCodec.byteLength!), config),
+            itemCodec.decode(
+              value.subarray(i, i + itemCodec.byteLength!),
+              config,
+            ),
           );
         }
         return result;

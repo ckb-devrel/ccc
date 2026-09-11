@@ -88,7 +88,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const signer = cccSigner?.signer ?? privateKeySigner;
 
   useEffect(() => {
-    signer?.getInternalAddress().then((a) => setAddress(a));
+    let active = true;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAddress("");
+    signer.getInternalAddress().then((a) => {
+      if (active) {
+        setAddress(a);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
   }, [signer]);
 
   const [messages, setMessages] = useState<Messages>([]);
@@ -152,7 +164,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         openAction: cccSigner ? (
           <>
             {wallet && <WalletIcon wallet={wallet} className="mr-2" />}
-            {formatString(address, 5, 4)}
+            {address === "" ? "Loading..." : formatString(address, 5, 4)}
           </>
         ) : (
           <>

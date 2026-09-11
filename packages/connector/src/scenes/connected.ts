@@ -7,7 +7,7 @@ import { DISCONNECT_SVG } from "../assets/diconnect.svg.js";
 import { FEE_SVG } from "../assets/fee.svg.js";
 import { SWAP_SVG } from "../assets/swap.svg.js";
 import { USER_SVG } from "../assets/user.svg.js";
-import { SelectClientEvent } from "../events/index.js";
+import { SelectClientEvent } from "../events/external.js";
 import { signerTypeToIcon } from "./selecting/signers.js";
 
 export function formatString(
@@ -44,23 +44,54 @@ export class ConnectedScene extends LitElement {
   private selectingClient = false;
   @state()
   private selectingFeeRate = false;
+  private refreshId = 0;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    if (this.hasUpdated) {
+      this.refreshSignerInfo(this.signer);
+    }
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.refreshId += 1;
+  }
 
   willUpdate(changedProperties: PropertyValues<this>): void {
-    if (
-      (!this.recommendedAddress ||
-        !this.internalAddress ||
-        !this.balance ||
-        changedProperties.has("signer")) &&
-      this.signer
-    ) {
-      void this.signer
-        .getRecommendedAddress()
-        .then((v) => (this.recommendedAddress = v));
-      void this.signer
-        .getInternalAddress()
-        .then((v) => (this.internalAddress = v));
-      void this.signer.getBalance().then((v) => (this.balance = v));
+    if (changedProperties.has("signer")) {
+      this.refreshSignerInfo(this.signer);
     }
+  }
+
+  private refreshSignerInfo(signer: ccc.Signer | undefined): void {
+    const refreshId = ++this.refreshId;
+    this.recommendedAddress = undefined;
+    this.internalAddress = undefined;
+    this.balance = undefined;
+
+    if (!signer) {
+      return;
+    }
+
+    void Promise.allSettled([
+      signer.getRecommendedAddress(),
+      signer.getInternalAddress(),
+      signer.getBalance(),
+    ]).then(([recommendedAddress, internalAddress, balance]) => {
+      if (refreshId !== this.refreshId) {
+        return;
+      }
+      if (recommendedAddress.status === "fulfilled") {
+        this.recommendedAddress = recommendedAddress.value;
+      }
+      if (internalAddress.status === "fulfilled") {
+        this.internalAddress = internalAddress.value;
+      }
+      if (balance.status === "fulfilled") {
+        this.balance = balance.value;
+      }
+    });
   }
 
   render() {
@@ -87,6 +118,7 @@ export class ConnectedScene extends LitElement {
               class="connecting-wallet-icon"
               src=${wallet.icon}
               alt=${wallet.name}
+              referrerpolicy="no-referrer"
             />
             <img
               class="connected-type-icon"
@@ -97,7 +129,7 @@ export class ConnectedScene extends LitElement {
 
           <ccc-copy-button
             value=${recommendedAddress}
-            class="text-bold fs-xl mt-2"
+            class="address-copy text-bold fs-xl mt-2"
           >
             ${formatString(recommendedAddress)}
           </ccc-copy-button>
@@ -106,7 +138,7 @@ export class ConnectedScene extends LitElement {
           </div>
           <ccc-copy-button
             value=${internalAddress}
-            class="text-bold text-tip fs-md"
+            class="address-copy text-bold text-tip fs-md"
             style="margin-top: 0.5rem"
           >
             ${formatString(internalAddress, 11, 9)}
@@ -234,6 +266,18 @@ export class ConnectedScene extends LitElement {
       color: var(--tip-color-hover, var(--tip-color));
     }
 
+    .address-copy {
+      transition: color 0.15s ease-in-out;
+    }
+
+    .address-copy:hover {
+      color: var(--btn-color-hover, var(--btn-color, inherit));
+    }
+
+    .address-copy.text-tip:hover {
+      color: var(--tip-color-hover, var(--tip-color));
+    }
+
     .fee-rate-value {
       margin-left: auto;
       color: var(--tip-color);
@@ -354,11 +398,7 @@ export class ConnectedScene extends LitElement {
     }
   `;
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
-  public onClose() {
+  public close() {
     this.selectingClient = false;
     this.selectingFeeRate = false;
   }

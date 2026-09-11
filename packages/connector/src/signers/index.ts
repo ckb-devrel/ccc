@@ -3,33 +3,29 @@ import { ReactiveControllerHost } from "lit";
 
 export class SignersController {
   public wallets: ccc.WalletWithSigners[] = [];
-  private readonly defaultController = new ccc.SignersController();
-
-  get controller() {
-    return this.host.signersController ?? this.defaultController;
-  }
+  private refreshId = 0;
+  private refreshTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private readonly host: ReactiveControllerHost & {
       client: ccc.Client;
-      signerFilter?: (
-        signerInfo: ccc.SignerInfo,
-        wallet: ccc.Wallet,
-      ) => Promise<boolean>;
-      preferredNetworks?: ccc.NetworkPreference[];
       name?: string;
       icon?: string;
       refreshSigner: () => void;
-      signersController?: ccc.SignersController;
+      signersController: ccc.SignersController;
     },
   ) {
     host.addController(this);
   }
 
   refresh() {
-    return this.controller.refresh(
+    const refreshId = ++this.refreshId;
+    return this.host.signersController.refresh(
       this.host.client,
       (wallets) => {
+        if (refreshId !== this.refreshId) {
+          return;
+        }
         this.wallets = [...wallets];
         this.update();
       },
@@ -43,12 +39,17 @@ export class SignersController {
   }
 
   hostConnected(): void {
-    void this.refresh();
     // Wait for plugins to be loaded
-    setTimeout(() => this.refresh(), 500);
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = undefined;
+      void this.refresh();
+    }, 500);
   }
 
   hostDisconnected(): void {
-    this.controller.disconnect();
+    clearTimeout(this.refreshTimer);
+    this.refreshTimer = undefined;
+    this.refreshId += 1;
+    this.host.signersController.disconnect();
   }
 }

@@ -212,10 +212,10 @@ export class JsonRpcTransformers {
     return {
       compactTarget: numFrom(header.compact_target),
       dao: {
-        c: numLeFromBytes(dao.slice(0, 8)),
-        ar: numLeFromBytes(dao.slice(8, 16)),
-        s: numLeFromBytes(dao.slice(16, 24)),
-        u: numLeFromBytes(dao.slice(24, 32)),
+        c: numLeFromBytes(dao.subarray(0, 8)),
+        ar: numLeFromBytes(dao.subarray(8, 16)),
+        s: numLeFromBytes(dao.subarray(16, 24)),
+        u: numLeFromBytes(dao.subarray(24, 32)),
       },
       epoch: Epoch.fromNum(header.epoch),
       extraHash: header.extra_hash,

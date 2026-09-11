@@ -78,7 +78,7 @@ export function btcP2pkhAddressFromPublicKey(
  * @public
  */
 export function btcPublicKeyFromP2pkhAddress(address: string): Hex {
-  return hexFrom(bs58check.decode(address).slice(1));
+  return hexFrom(bs58check.decode(address).subarray(1));
 }
 
 /**
@@ -92,7 +92,7 @@ export function verifyMessageBtcEcdsa(
   const challenge =
     typeof message === "string" ? message : hexFrom(message).slice(2);
 
-  const rawSign = bytesFrom(signature, "base64").slice(1);
+  const rawSign = bytesFrom(signature, "base64").subarray(1);
 
   return secp256k1.verify(
     bytesFrom(rawSign),

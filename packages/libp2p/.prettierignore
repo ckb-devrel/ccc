@@ -1,0 +1,15 @@
+node_modules/
+
+dist/
+dist.commonjs/
+
+.npmignore
+.prettierrc
+tsconfig.json
+eslint.config.mjs
+prettier.config.*
+
+tsconfig.tsbuildinfo
+.github/
+
+CHANGELOG.md

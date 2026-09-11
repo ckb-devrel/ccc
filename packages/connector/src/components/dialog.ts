@@ -2,7 +2,7 @@ import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { CLOSE_SVG } from "../assets/close.svg.js";
 import { LEFT_SVG } from "../assets/left.svg.js";
-import { CloseEvent } from "../events/index.js";
+import { CloseRequestEvent } from "../events/internal.js";
 
 @customElement("ccc-dialog")
 export class Dialog extends LitElement {
@@ -28,7 +28,7 @@ export class Dialog extends LitElement {
         <span
           class="close active"
           @click=${() => {
-            this.dispatchEvent(new CloseEvent());
+            this.dispatchEvent(new CloseRequestEvent());
           }}
         >
           ${CLOSE_SVG}
@@ -93,7 +93,7 @@ export class Dialog extends LitElement {
     }
 
     .body {
-      padding: 0.3rem 1.3rem 1rem;
+      padding: 1rem 1.3rem;
       min-width: 20rem;
       display: flex;
       flex-direction: column;

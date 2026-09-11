@@ -1,5 +1,6 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { CHECK_SVG } from "../assets/check.svg.js";
 
 @customElement("ccc-copy-button")
 export class CopyButton extends LitElement {
@@ -8,6 +9,16 @@ export class CopyButton extends LitElement {
 
   @state()
   private isCopied = false;
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this.hasAttribute("role")) {
+      this.setAttribute("role", "button");
+    }
+    if (!this.hasAttribute("tabindex")) {
+      this.tabIndex = 0;
+    }
+  }
 
   static styles = css`
     :host {
@@ -21,26 +32,39 @@ export class CopyButton extends LitElement {
       fill: currentColor;
     }
     .check {
+      display: flex;
       width: 0.7em;
       height: 0.7em;
       margin-left: 0.15em;
-      fill: currentColor;
+      --check-stroke-width: 4;
+    }
+    .check svg {
+      width: 100%;
+      height: 100%;
     }
   `;
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
-  onclick = () => {
+  onclick = async () => {
     if (!this.value) {
       return;
     }
 
-    this.isCopied = true;
-    setTimeout(() => (this.isCopied = false), 3000);
+    try {
+      await window.navigator.clipboard.writeText(this.value);
+      this.isCopied = true;
+      setTimeout(() => (this.isCopied = false), 3000);
+    } catch (error) {
+      this.dispatchEvent(new ErrorEvent("error", { error }));
+    }
+  };
 
-    return window.navigator.clipboard.writeText(this.value);
+  onkeydown = (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    this.click();
   };
 
   render() {
@@ -48,13 +72,9 @@ export class CopyButton extends LitElement {
       <slot></slot>
       ${
         this.isCopied
-          ? html`
-              <svg class="check" viewBox="0 0 17.837 17.837" alt="copied">
-                <path
-                  d="M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27c-0.272-0.274-0.715-0.274-0.989,0L0.204,8.019c-0.272,0.271-0.272,0.717,0,0.99l6.217,6.258c0.272,0.271,0.715,0.271,0.99,0L17.63,5.047c0.276-0.273,0.276-0.72,0-0.994L16.145,2.571z"
-                />
-              </svg>
-            `
+          ? html`<span class="check" role="img" aria-label="Copied"
+              >${CHECK_SVG}</span
+            >`
           : html`
               <svg class="copy" viewBox="0 0 24 24" alt="copy">
                 <path

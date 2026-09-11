@@ -68,14 +68,23 @@ export function CellInfo({
   const { explorerTransaction } = useGetExplorerLink();
 
   const { outPoint } = cell;
-  const [cellOutput, setCellOutput] = useState(cell.cellOutput);
-  const [outputData, setOutputData] = useState(cell.outputData);
-  const [daoProfit, setDaoProfit] = useState(ccc.Zero);
+  const [{ cellOutput, outputData, daoProfit }, setCellState] = useState({
+    cellOutput: cell.cellOutput,
+    outputData: cell.outputData,
+    daoProfit: ccc.Zero,
+  });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCellState({
+      cellOutput: cell.cellOutput,
+      outputData: cell.outputData,
+      daoProfit: ccc.Zero,
+    });
     if (!outPoint) {
       return;
     }
+    let active = true;
 
     const input = ccc.CellInput.from({
       ...cell,
@@ -87,13 +96,21 @@ export function CellInfo({
         const { cellOutput, outputData } = await input.getCell(client);
         const extraCapacity = await input.getExtraCapacity(client);
 
-        setCellOutput(cellOutput);
-        setOutputData(outputData);
-        setDaoProfit(extraCapacity);
+        if (active) {
+          setCellState({
+            cellOutput,
+            outputData,
+            daoProfit: extraCapacity,
+          });
+        }
       } catch (_err) {
         return;
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, [cell, outPoint, cell.cellOutput, cell.outputData, client]);
 
   return (
@@ -143,14 +160,23 @@ export function Cell({
   const { sendMessage } = useApp();
 
   const { previousOutput } = cell;
-  const [cellOutput, setCellOutput] = useState(cell.cellOutput);
-  const [outputData, setOutputData] = useState(cell.outputData);
-  const [daoProfit, setDaoProfit] = useState(ccc.Zero);
+  const [{ cellOutput, outputData, daoProfit }, setCellState] = useState({
+    cellOutput: cell.cellOutput,
+    outputData: cell.outputData,
+    daoProfit: ccc.Zero,
+  });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCellState({
+      cellOutput: cell.cellOutput,
+      outputData: cell.outputData,
+      daoProfit: ccc.Zero,
+    });
     if (!previousOutput) {
       return;
     }
+    let active = true;
 
     const input = ccc.CellInput.from({
       ...cell,
@@ -162,13 +188,21 @@ export function Cell({
         const { cellOutput, outputData } = await input.getCell(client);
         const extraCapacity = await input.getExtraCapacity(client);
 
-        setCellOutput(cellOutput);
-        setOutputData(outputData);
-        setDaoProfit(extraCapacity);
+        if (active) {
+          setCellState({
+            cellOutput,
+            outputData,
+            daoProfit: extraCapacity,
+          });
+        }
       } catch (_err) {
         return;
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, [cell, previousOutput, cell.cellOutput, cell.outputData, client]);
 
   const freePercentage = useMemo(() => {

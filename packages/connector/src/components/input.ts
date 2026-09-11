@@ -4,11 +4,17 @@ import { ifDefined } from "lit/directives/if-defined.js";
 
 @customElement("ccc-input")
 export class Input extends LitElement {
+  @property({ attribute: "aria-label" })
+  public inputAriaLabel?: string;
+
   @property()
   public inputmode?: string;
 
   @property()
   public placeholder?: string;
+
+  @property({ attribute: "spellcheck" })
+  public inputSpellcheck?: "true" | "false";
 
   @property()
   public type = "text";
@@ -19,8 +25,11 @@ export class Input extends LitElement {
   render() {
     return html`
       <input
+        part="input"
+        aria-label=${ifDefined(this.inputAriaLabel)}
         inputmode=${ifDefined(this.inputmode)}
         placeholder=${ifDefined(this.placeholder)}
+        spellcheck=${ifDefined(this.inputSpellcheck)}
         type=${this.type}
         .value=${this.value}
         @input=${(event: InputEvent) => {
@@ -44,7 +53,7 @@ export class Input extends LitElement {
       background: transparent;
       color: inherit;
       font: inherit;
-      text-align: right;
+      text-align: left;
       outline: none;
       cursor: text;
     }

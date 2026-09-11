@@ -71,13 +71,20 @@ import { ccc } from "@ckb-ccc/shell";
 import { ccc } from "@ckb-ccc/shell";
 
 // Public testnet RPC
-const client = new ccc.ClientPublicTestnet();
+const testnetClientOwner = ccc.ClientPublicTestnet.open();
+const testnetClient = testnetClientOwner.value;
 
 // Public mainnet RPC
-const client = new ccc.ClientPublicMainnet();
+const mainnetClientOwner = ccc.ClientPublicMainnet.open();
+const mainnetClient = mainnetClientOwner.value;
 
 // Custom node URL
-const client = new ccc.ClientPublicTestnet("http://localhost:8114");
+const customClientOwner = ccc.ClientPublicTestnet.open({
+  urls: ["http://localhost:8114"],
+});
+const customClient = customClientOwner.value;
+
+// Dispose each Owner when its Client is no longer needed.
 ```
 
 ### Sign transactions with a private key
@@ -85,7 +92,9 @@ const client = new ccc.ClientPublicTestnet("http://localhost:8114");
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 const signer = new ccc.SignerCkbPrivateKey(
   client,
   "0xYOUR_PRIVATE_KEY_HEX",
@@ -100,7 +109,9 @@ console.log("Address:", myAddress);
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 const signer = new ccc.SignerCkbPrivateKey(client, "0x...");
 
 const { script: toLock } = await ccc.Address.fromString(
@@ -124,7 +135,9 @@ console.log("Sent:", txHash);
 ```typescript
 import { ccc } from "@ckb-ccc/shell";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// Call `await clientOwner.dispose()` when it is no longer needed.
 
 for await (const cell of client.findCells({
   script: { codeHash: "0x...", hashType: "type", args: "0x" },

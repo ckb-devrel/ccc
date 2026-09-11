@@ -82,12 +82,15 @@ export default function Home() {
   const connected = signer !== undefined;
   const usingPrivateKey = privateKeySigner !== undefined;
   const needsAccess = selectedModule?.access === "signer";
+  const displayedModule = selectedModule ?? stagedModule;
   const workspaceReady =
     selectedModule !== undefined && (!needsAccess || connected);
 
   useEffect(() => {
     const selectModuleFromAnchor = () => {
-      const id = window.location.hash.slice(1);
+      const fragment = window.location.hash.slice(1);
+      const separator = fragment.indexOf("?");
+      const id = separator === -1 ? fragment : fragment.slice(0, separator);
       setSelectedModule(demoModules.find((module) => module.id === id));
     };
 
@@ -194,8 +197,8 @@ export default function Home() {
     setTelemetry(undefined);
     setClient(
       nextIsMainnet
-        ? new ccc.ClientPublicMainnet()
-        : new ccc.ClientPublicTestnet(),
+        ? ccc.ClientPublicMainnet.open()
+        : ccc.ClientPublicTestnet.open(),
     );
   };
 
@@ -332,7 +335,9 @@ export default function Home() {
             client={client}
             log={log}
             module={stagedModule}
+            setClient={setClient}
             signer={signer}
+            wallet={usingPrivateKey ? undefined : wallet}
           />
 
           <div className="machine-heading access-heading">
@@ -363,12 +368,14 @@ export default function Home() {
                   ) : (
                     <Link2 size={14} />
                   )}
-                  {privateKeyMode ? "Private key" : "Module mounted"}
+                  {privateKeyMode ? "Private key" : "Connect to continue"}
                 </span>
                 <h2>
-                  {privateKeyMode ? "Enter your private key" : "Who are you?"}
+                  {privateKeyMode
+                    ? "Enter your private key"
+                    : (displayedModule?.name ?? "Who are you?")}
                 </h2>
-                <p>
+                <p className={privateKeyMode ? undefined : "module-summary"}>
                   {privateKeyMode ? (
                     <>
                       <span className="private-key-warning">
@@ -378,12 +385,10 @@ export default function Home() {
                       be read by browser extensions. This key stays only on this
                       page and is cleared when you leave or reload.
                     </>
+                  ) : displayedModule ? (
+                    displayedModule.description
                   ) : (
-                    <>
-                      Link required for this module.
-                      <br />
-                      Choose one of the link options to continue.
-                    </>
+                    "Choose one of the link options to continue."
                   )}
                 </p>
               </div>
@@ -524,6 +529,10 @@ export default function Home() {
                             className="connected-wallet-icon"
                             src={wallet.icon}
                             alt={wallet.name}
+                            referrerPolicy="no-referrer"
+                            onError={(event) => {
+                              event.currentTarget.hidden = true;
+                            }}
                           />
                         ) : (
                           <ShieldCheck size={25} />

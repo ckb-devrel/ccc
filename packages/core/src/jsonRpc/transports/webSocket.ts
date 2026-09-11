@@ -1,46 +1,76 @@
 import WebSocket from "isomorphic-ws";
-import { JsonRpcPayload, Transport } from "./transport.js";
+import { OwnerUnique } from "../../utils/owner/unique.js";
+import {
+  JsonRpcId,
+  JsonRpcPayload,
+  JsonRpcResponse,
+  JsonRpcTransport,
+} from "./transport.js";
 
-export class TransportWebSocket implements Transport {
+export class JsonRpcTransportWebSocket implements JsonRpcTransport {
   private ongoing: Map<
-    number,
+    JsonRpcId,
     [
-      (response: unknown) => unknown,
+      (response: JsonRpcResponse) => unknown,
       (error: unknown) => unknown,
       ReturnType<typeof setTimeout>,
     ]
   > = new Map();
+  private disposed = false;
   private socket?: WebSocket;
   private openSocket?: Promise<WebSocket>;
 
+  /**
+   * @deprecated Use {@link JsonRpcTransportWebSocket.open} to make lifecycle
+   * ownership explicit. This constructor will become private in a future
+   * release.
+   */
   constructor(
     private readonly url: string,
     private readonly timeout = 30000,
   ) {}
 
-  request(data: JsonRpcPayload) {
-    const socket = (() => {
+  /** Opens an owned WebSocket transport. */
+  static open(
+    url: string,
+    timeout = 30000,
+  ): OwnerUnique<JsonRpcTransportWebSocket> {
+    const transport = new JsonRpcTransportWebSocket(url, timeout);
+    return new OwnerUnique(transport, (transport) => transport.dispose());
+  }
+
+  request(data: JsonRpcPayload): Promise<JsonRpcResponse> {
+    if (this.disposed) {
+      return Promise.reject(
+        new Error("Cannot use a disposed JsonRpcTransportWebSocket"),
+      );
+    }
+
+    const [socketUnsafe, socket] = (() => {
       if (
         this.socket &&
         this.socket.readyState !== this.socket.CLOSING &&
         this.socket.readyState !== this.socket.CLOSED &&
         this.openSocket
       ) {
-        return this.openSocket;
+        return [this.socket, this.openSocket] as const;
       }
       const socket = new WebSocket(this.url);
       const onMessage = ({ data }: WebSocket.MessageEvent) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const res = JSON.parse(data as string);
+        let res: JsonRpcResponse;
+        try {
+          res = JSON.parse(data as string) as JsonRpcResponse;
+        } catch (_) {
+          return;
+        }
         if (
           typeof res !== "object" ||
           res === null ||
-          typeof res.id !== "number"
+          (typeof res.id !== "number" && typeof res.id !== "string")
         ) {
-          throw new Error(`Unknown response ${data as string}`);
+          return;
         }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const id: number = res.id;
+        const id = res.id;
 
         const req = this.ongoing.get(id);
         if (!req) {
@@ -74,12 +104,12 @@ export class TransportWebSocket implements Transport {
           };
         }
       });
-      return this.openSocket;
+      return [socket, this.openSocket] as const;
     })();
 
-    return new Promise((resolve, reject) => {
+    return new Promise<JsonRpcResponse>((resolve, reject) => {
       const req: [
-        (res: unknown) => unknown,
+        (res: JsonRpcResponse) => unknown,
         (err: unknown) => unknown,
         ReturnType<typeof setTimeout>,
       ] = [
@@ -87,9 +117,7 @@ export class TransportWebSocket implements Transport {
         reject,
         setTimeout(() => {
           this.ongoing.delete(data.id);
-          void socket
-            .then((socket) => socket.close())
-            .catch((err) => reject(err));
+          socketUnsafe.close();
           reject(new Error("Request timeout"));
         }, this.timeout),
       ];
@@ -97,6 +125,9 @@ export class TransportWebSocket implements Transport {
 
       void socket
         .then((socket) => {
+          if (!this.ongoing.has(data.id)) {
+            return;
+          }
           if (
             socket.readyState === socket.CLOSED ||
             socket.readyState === socket.CLOSING
@@ -108,7 +139,23 @@ export class TransportWebSocket implements Transport {
             socket.send(JSON.stringify(data));
           }
         })
-        .catch((err) => reject(err));
+        .catch((err) => {
+          clearTimeout(req[2]);
+          this.ongoing.delete(data.id);
+          reject(err);
+        });
+    });
+  }
+
+  private async dispose(): Promise<void> {
+    this.disposed = true;
+    const socket = this.socket;
+
+    if (!socket || socket.readyState === socket.CLOSED) return;
+
+    await new Promise<void>((resolve) => {
+      socket.addEventListener("close", () => resolve(), { once: true });
+      socket.close();
     });
   }
 }

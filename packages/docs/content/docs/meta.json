@@ -19,6 +19,8 @@
     "guides/udt-tokens",
     "guides/spore-protocol",
     "guides/node-js-backend",
+    "---Migration---",
+    "migration/connector-v2",
     "---Examples---",
     "code-examples",
     "---AI Resources---",

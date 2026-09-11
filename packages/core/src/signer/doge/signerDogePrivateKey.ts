@@ -93,7 +93,7 @@ export class SignerDogePrivateKey extends SignerDoge {
       },
     );
     return bytesTo(
-      bytesConcat([31 + Number(signature[0])], signature.slice(1)),
+      bytesConcat([31 + Number(signature[0])], signature.subarray(1)),
       "base64",
     );
   }

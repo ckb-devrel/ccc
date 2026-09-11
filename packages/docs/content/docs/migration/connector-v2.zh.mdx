@@ -1,0 +1,94 @@
+---
+title: 迁移到 Connector 2.0
+description: 将 Connector 和 Connector React 迁移到显式资源所有权语义。
+icon: RefreshCw
+---
+
+只需阅读与你的集成方式相关的章节。仅使用 `ccc.Provider` 的 React 应用通常
+只需处理第 1、5 节；直接使用 Web Component 的应用还需处理第 2–4 节。
+
+## 1. 向 `setClient` 传入 Owner
+
+将所有传给 `useCcc().setClient` 的裸 Client 改为 `Owner<Client>`。
+
+**原因：** 裸 Client 无法表达由谁释放资源，`setClient(new Client())` 这类临时
+实例因此可能泄漏。
+
+```diff
+-setClient(new ccc.ClientPublicMainnet());
++setClient(ccc.ClientPublicMainnet.open());
+```
+
+Provider 会消费该 Owner，并在替换 Client 或卸载时释放它。传入后不要继续复用
+或释放该 Owner。如果 Client 必须继续由调用方持有，请改为通过 `defaultClient`
+或 `clientOptions` 传入裸 Client。
+
+## 2. 在 Connector 外持有 Web Component Client
+
+在应用中创建 Client Owner，并在挂载元素前将借用值赋给
+`connector.client`。
+
+**原因：** Web Component 可能因 DOM 移动而暂时脱离文档，其生命周期不能作为
+可靠的最终释放边界。
+
+```ts
+const clientOwner = ccc.ClientPublicTestnet.open();
+connector.client = clientOwner.value;
+document.body.append(connector);
+
+// 应用最终清理时：
+await clientOwner.dispose();
+```
+
+## 3. 应用 `select-client` 请求
+
+监听 `select-client`，并决定是否更新受控的 `connector.client`。
+
+**原因：** 网络和费率变化是一项请求；是否应用它，应由持有 Client 的应用决定。
+
+```ts
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
+```
+
+## 4. 用带所有权的连接事件替代 `willUpdate`
+
+删除 `ConnectorWillUpdateEvent` 和 React `onWillUpdate` 监听。直接使用 Web
+Component 时，将每个 `ConnectorConnectionEvent.connectionOwner` 移入应用
+状态。连接替换或清空时释放上一个 Owner，并在应用最终清理时释放最后一个
+Owner。
+
+**原因：** `willUpdate` 只能表示渲染生命周期发生变化，既不能转移 signer
+所有权，也无法区分连接、替换和清空。
+
+```ts
+let connectionOwner: ccc.Owner<ccc.ConnectorConnection> | undefined;
+
+connector.addEventListener("connection", (event) => {
+  event.stopPropagation();
+  const next = (event as ccc.ConnectorConnectionEvent).connectionOwner?.map(
+    (connection) => connection,
+  );
+  const previous = connectionOwner;
+  connectionOwner = next;
+  void previous?.dispose();
+});
+```
+
+Owner 为空表示清空连接。`connector.disconnect()` 也使用这条路径，因此释放上一
+个 Owner 才会关闭 signer。`ccc.Provider` 已自动完成以上处理。
+
+## 5. 删除无效属性
+
+从 `<ccc-connector>` 和 `<ccc.Provider>` 中删除 `preferredNetworks`。
+
+**原因：** 该兼容属性此前已经被忽略，不需要替代配置。
+
+## 6. 检查 Client 切换行为
+
+验证连接、替换、断开、切换 Client 和最终卸载。
+
+**原因：** 带 wallet 与 signer 查找名称的选择可以由 signers controller 重新
+发现。Khie 这类没有查找名称的直接连接无法通过该方式刷新，会在 Client 变化时
+被清空，需要在新 Client 上重新连接。

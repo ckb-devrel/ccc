@@ -28,5 +28,3 @@ Then open <http://localhost:3000>.
 
 - Package name: `@ckb-ccc/app`
 - Source: `packages/app`
-- The legacy implementation remains available in `packages/demo` while the
-  application is being validated.

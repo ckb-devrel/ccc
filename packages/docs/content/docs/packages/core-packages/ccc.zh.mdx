@@ -62,7 +62,9 @@ import { PackageBadges } from '@/components/package-badges';
 ```typescript
 import { ccc } from "@ckb-ccc/ccc";
 
-const client = new ccc.ClientPublicTestnet();
+const clientOwner = ccc.ClientPublicTestnet.open();
+const client = clientOwner.value;
+// 不再使用时调用 `await clientOwner.dispose()`。
 
 // 自动发现当前浏览器环境中的所有钱包
 const controller = new ccc.SignersController(client);

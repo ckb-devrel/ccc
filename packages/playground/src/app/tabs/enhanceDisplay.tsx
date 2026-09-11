@@ -56,16 +56,17 @@ export async function enhanceDisplay(
     typeof msg === "string" &&
     (msg.startsWith("ckb") || msg.startsWith("ckt"))
   ) {
+    const owner = msg.startsWith("ckb")
+      ? ccc.ClientPublicMainnet.open()
+      : ccc.ClientPublicTestnet.open();
     try {
       return (
-        <Address
-          address={await ccc.Address.fromString(msg, {
-            ckb: new ccc.ClientPublicMainnet(),
-            ckt: new ccc.ClientPublicTestnet(),
-          })}
-        />
+        <Address address={await ccc.Address.fromString(msg, owner.value)} />
       );
-    } catch (_err) {}
+    } catch (_err) {
+    } finally {
+      await owner.dispose();
+    }
   }
 
   if (msg instanceof ccc.Signer) {

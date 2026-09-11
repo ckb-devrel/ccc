@@ -1,0 +1,103 @@
+---
+title: Migrate to Connector 2.0
+description: Migrate Connector and Connector React to explicit resource ownership.
+icon: RefreshCw
+---
+
+Follow the sections that match your integration. React applications using only
+`ccc.Provider` usually need sections 1 and 5; direct Web Component integrations
+also need sections 2–4.
+
+## 1. Pass an Owner to `setClient`
+
+Pass an `Owner<Client>` instead of a bare Client to every
+`useCcc().setClient` call.
+
+**Why:** a bare Client does not say who must release its resources. A temporary
+`setClient(new Client())` could therefore leak them.
+
+```diff
+-setClient(new ccc.ClientPublicMainnet());
++setClient(ccc.ClientPublicMainnet.open());
+```
+
+The Provider consumes this Owner and disposes it on replacement or unmount. Do
+not reuse or dispose the Owner after passing it in. If the Client must remain
+caller-owned, pass the bare Client through `defaultClient` or `clientOptions`
+instead.
+
+## 2. Own the Web Component Client outside the Connector
+
+Create the Client Owner in your application and assign its borrowed value to
+`connector.client` before attaching the element.
+
+**Why:** a Web Component can be temporarily detached during a DOM move, so its
+lifecycle is not a reliable final disposal boundary.
+
+```ts
+const clientOwner = ccc.ClientPublicTestnet.open();
+connector.client = clientOwner.value;
+document.body.append(connector);
+
+// Final application cleanup:
+await clientOwner.dispose();
+```
+
+## 3. Apply `select-client` requests
+
+Listen for `select-client` and decide whether to update the controlled
+`connector.client`.
+
+**Why:** network and fee-rate changes are requests; the application that owns
+the Client controls whether they are applied.
+
+```ts
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
+```
+
+## 4. Replace `willUpdate` with owned connection events
+
+Remove `ConnectorWillUpdateEvent` and React `onWillUpdate` listeners. For a
+direct Web Component integration, move each
+`ConnectorConnectionEvent.connectionOwner` into application state. Dispose the
+previous Owner on replacement or clear, and dispose the final Owner during
+application cleanup.
+
+**Why:** `willUpdate` only reported a render lifecycle change. It could not
+transfer signer ownership or distinguish connect, replace, and clear.
+
+```ts
+let connectionOwner: ccc.Owner<ccc.ConnectorConnection> | undefined;
+
+connector.addEventListener("connection", (event) => {
+  event.stopPropagation();
+  const next = (event as ccc.ConnectorConnectionEvent).connectionOwner?.map(
+    (connection) => connection,
+  );
+  const previous = connectionOwner;
+  connectionOwner = next;
+  void previous?.dispose();
+});
+```
+
+An absent Owner means clear. `connector.disconnect()` uses this path, so
+disposing the previous Owner is what closes the signer. `ccc.Provider` performs
+all of this automatically.
+
+## 5. Remove obsolete props
+
+Remove `preferredNetworks` from `<ccc-connector>` and `<ccc.Provider>`.
+
+**Why:** the compatibility property was already ignored. No replacement is
+required.
+
+## 6. Check Client switching behavior
+
+Verify connect, replace, disconnect, Client switch, and final unmount.
+
+**Why:** named wallet selections can be rediscovered by the signers controller.
+A direct connection without wallet and signer lookup names, such as Khie,
+cannot be refreshed that way and is cleared when the Client changes. Reconnect
+it on the new Client.

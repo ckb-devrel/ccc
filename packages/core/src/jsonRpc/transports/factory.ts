@@ -1,10 +1,17 @@
-import { TransportHttp } from "./http.js";
-import { TransportWebSocket } from "./webSocket.js";
+import { OwnerUnique } from "../../utils/owner/unique.js";
+import { JsonRpcTransportHttp } from "./http.js";
+import { JsonRpcTransportWebSocket } from "./webSocket.js";
 
-export function transportFromUri(uri: string, config?: { timeout?: number }) {
+export function jsonRpcTransportFromUri(
+  uri: string,
+  config?: { timeout?: number },
+) {
   if (uri.startsWith("wss://") || uri.startsWith("ws://")) {
-    return new TransportWebSocket(uri, config?.timeout);
+    return JsonRpcTransportWebSocket.open(uri, config?.timeout);
   }
 
-  return new TransportHttp(uri, config?.timeout);
+  return new OwnerUnique(
+    new JsonRpcTransportHttp(uri, config?.timeout),
+    () => {},
+  );
 }

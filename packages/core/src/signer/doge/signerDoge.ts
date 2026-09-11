@@ -53,7 +53,7 @@ export abstract class SignerDoge extends Signer {
    * @returns A promise that resolves to an array of Address objects.
    */
   async getAddressObjs(): Promise<Address[]> {
-    const hash = bs58check.decode(await this.getDogeAddress()).slice(1);
+    const hash = bs58check.decode(await this.getDogeAddress()).subarray(1);
 
     return [
       await Address.fromKnownScript(

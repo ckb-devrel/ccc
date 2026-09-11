@@ -124,7 +124,7 @@ import { cccA } from "@ckb-ccc/<package-name>/advanced";
   </a>
 </p>
 
-The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer. 
+The CCC App is a mini-toolset for CKB, showcasing some basic scenarios. You can still [try the CCC App here](https://app.ckbccc.com) even if you are not a developer.
 
 To learn more examples, visit [the documentation](https://docs.ckbccc.com/en/docs/code-examples).
 
@@ -154,7 +154,7 @@ Additional examples can be found in [the documentation](https://docs.ckbccc.com/
 
 ## Build and Run
 
-Run the demo of CCC in two steps:
+Run the CCC App in two steps:
 
 1. Install packages and build the project
 
@@ -164,11 +164,11 @@ pnpm install
 pnpm build
 ```
 
-2. Run the demo in development mode
+2. Run the app in development mode
 
 ```shell
-# Go to the demo directory and start the development server:
-cd packages/demo
+# Go to the app directory and start the development server:
+cd packages/app
 pnpm run dev
 ```
 

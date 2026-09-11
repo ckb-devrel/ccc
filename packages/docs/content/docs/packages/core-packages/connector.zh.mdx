@@ -43,13 +43,20 @@ import { ccc } from "@ckb-ccc/connector";
 // connector 元素
 const connector: ccc.WebComponentConnector;
 
-connector.client;       // 当前 ccc.Client
+connector.client;       // 必填、借用的 ccc.Client
 connector.wallet;       // 已连接的 ccc.Wallet | undefined
 connector.signer;       // ccc.SignerInfo | undefined
 
 connector.disconnect(); // 断开当前钱包连接
-connector.setClient(newClient); // 切换网络
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
+});
 ```
+
+Web Component 要求传入 `client` 且只借用它，不会创建或释放 Client。必须在元素
+加入文档前完成赋值；只要元素仍可能使用该 Client，就应保持其 owner 存活，并由
+应用生命周期负责释放 owner。网络和 fee-rate 选择都会抛出可穿透 Shadow DOM、
+可冒泡的 `select-client` 事件；应用决定是否将候选 Client 写回 `client` 属性。
 
 ## 选择交易费率
 
@@ -67,7 +74,20 @@ connector.setClient(newClient); // 切换网络
     <script type="module">
       import { ccc } from "https://esm.sh/@ckb-ccc/connector";
 
-      const connector = document.getElementById("ccc-connector");
+      const connector = document.createElement("ccc-connector");
+      const clientOwner = ccc.ClientPublicTestnet.open();
+      connector.client = clientOwner.value;
+      connector.style.cssText = "display: none; z-index: 999;";
+      let connectionOwner;
+
+      window.addEventListener(
+        "pagehide",
+        () => {
+          void connectionOwner?.dispose();
+          void clientOwner.dispose();
+        },
+        { once: true },
+      );
 
       document.getElementById("open-btn").addEventListener("click", () => {
         connector.style.display = "";
@@ -77,23 +97,32 @@ connector.setClient(newClient); // 切换网络
         connector.style.display = "none";
       });
 
-      connector.addEventListener("willUpdate", () => {
-        if (connector.signer) {
-          connector.signer.signer.getRecommendedAddress().then((addr) => {
+      connector.addEventListener("select-client", (event) => {
+        connector.client = event.client;
+      });
+
+      connector.addEventListener("connection", (event) => {
+        event.stopPropagation();
+        const owner = event.connectionOwner?.map((connection) => connection);
+        const previous = connectionOwner;
+        connectionOwner = owner;
+        void previous?.dispose();
+
+        if (owner) {
+          owner.value.signerInfo.signer.getRecommendedAddress().then((addr) => {
             document.getElementById("address").textContent = addr;
           });
         }
       });
+
+      // `client` 必须在元素连接到文档前赋值。
+      document.body.append(connector);
     </script>
   </head>
   <body>
     <button id="open-btn">连接钱包</button>
     <p id="address"></p>
 
-    <ccc-connector
-      id="ccc-connector"
-      style="display: none; z-index: 999;"
-    ></ccc-connector>
   </body>
 </html>
 ```
@@ -104,7 +133,11 @@ connector.setClient(newClient); // 切换网络
 import { ccc } from "@ckb-ccc/connector";
 
 // 导入本包后，自定义元素会自动注册。
-const connector = document.querySelector("ccc-connector") as ccc.WebComponentConnector;
+const connector = document.createElement(
+  "ccc-connector",
+) as ccc.WebComponentConnector;
+const clientOwner = ccc.ClientPublicTestnet.open();
+connector.client = clientOwner.value; // Connector 仅借用该 Client。
 
 // 显示钱包选择界面
 connector.style.display = "";
@@ -114,13 +147,31 @@ connector.addEventListener("close", () => {
   connector.style.display = "none";
 });
 
-connector.addEventListener("willUpdate", () => {
-  console.log("已连接钱包：", connector.wallet?.name);
-  console.log("Signer：", connector.signer);
+// Connector 只请求变更；Client 由应用控制。
+connector.addEventListener("select-client", (event) => {
+  connector.client = (event as ccc.SelectClientEvent).client;
 });
 
-// 切换至主网
-connector.setClient(new ccc.ClientPublicMainnet());
+let connectionOwner: ccc.Owner<ccc.ConnectorConnection> | undefined;
+connector.addEventListener("connection", (event) => {
+  event.stopPropagation();
+  const owner = (event as ccc.ConnectorConnectionEvent).connectionOwner?.map(
+    (connection) => connection,
+  );
+  const previous = connectionOwner;
+  connectionOwner = owner;
+  void previous?.dispose();
+
+  console.log("已连接钱包：", owner?.value.wallet.name);
+  console.log("Signer：", owner?.value.signerInfo);
+});
+
+// `client` 必须在元素连接到文档前赋值。
+document.body.append(connector);
+
+// 确认不再使用这些资源后，由调用方释放：
+// await connectionOwner?.dispose();
+// await clientOwner.dispose();
 ```
 
 ## 使用 CSS 自定义属性调整样式

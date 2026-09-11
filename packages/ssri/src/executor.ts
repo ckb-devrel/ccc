@@ -38,6 +38,29 @@ export class ExecutorErrorDecode extends Error {
   }
 }
 
+function handleJsonRpcError(errAny: unknown): never {
+  if (
+    typeof errAny !== "object" ||
+    errAny === null ||
+    !("code" in errAny) ||
+    typeof errAny.code !== "number"
+  ) {
+    throw new ExecutorErrorUnknown(JSON.stringify(errAny));
+  }
+
+  if (errAny.code === 1003 || errAny.code === 1004) {
+    if ("message" in errAny && typeof errAny.message === "string") {
+      throw new ExecutorErrorExecutionFailed(errAny.message);
+    }
+    throw new ExecutorErrorExecutionFailed();
+  }
+
+  if ("message" in errAny && typeof errAny.message === "string") {
+    throw new ExecutorErrorUnknown(errAny.message);
+  }
+  throw new ExecutorErrorUnknown();
+}
+
 export type ContextCode =
   | undefined
   | {
@@ -93,47 +116,79 @@ export abstract class Executor {
   }
 }
 
+export type ExecutorJsonRpcConfig = ccc.RequestorJsonRpcConfig & {
+  /**
+   * @deprecated Requestor injection is supported only by the legacy
+   * constructor. Use a borrowed Transport with `ExecutorJsonRpc.new` or let
+   * `ExecutorJsonRpc.open` create one.
+   */
+  requestor?: ccc.RequestorJsonRpc;
+};
+
 export class ExecutorJsonRpc extends Executor {
   public readonly requestor: ccc.RequestorJsonRpc;
 
   /**
+   * The external server URL passed to the legacy constructor.
+   * @deprecated Use a borrowed Transport with {@link ExecutorJsonRpc.new} or
+   * let {@link ExecutorJsonRpc.open} create Transports.
+   */
+  public get url(): string {
+    return this.url_;
+  }
+
+  /**
    * Creates an instance of SSRI executor through Json RPC.
-   * @param {string} [url] - The external server URL.
+   * @param url_ - The external server URL.
+   * @param config - JSON-RPC request configuration.
+   * @deprecated Use {@link ExecutorJsonRpc.new} with a borrowed Transport or
+   * {@link ExecutorJsonRpc.open} when creating Transports.
    */
   constructor(
-    url: string,
-    config?: ccc.RequestorJsonRpcConfig & { requestor?: ccc.RequestorJsonRpc },
+    private readonly url_: string,
+    config?: ExecutorJsonRpcConfig,
   ) {
     super();
 
-    this.requestor =
-      config?.requestor ??
-      new ccc.RequestorJsonRpc(url, config, (errAny) => {
-        if (
-          typeof errAny !== "object" ||
-          errAny === null ||
-          !("code" in errAny) ||
-          typeof errAny.code !== "number"
-        ) {
-          throw new ExecutorErrorUnknown(JSON.stringify(errAny));
-        }
-
-        if (errAny.code === 1003 || errAny.code === 1004) {
-          if ("message" in errAny && typeof errAny.message === "string") {
-            throw new ExecutorErrorExecutionFailed(errAny.message);
-          }
-          throw new ExecutorErrorExecutionFailed();
-        }
-
-        if ("message" in errAny && typeof errAny.message === "string") {
-          throw new ExecutorErrorUnknown(errAny.message);
-        }
-        throw new ExecutorErrorUnknown();
+    const requestor = config?.requestor;
+    if (requestor) {
+      this.requestor = requestor;
+    } else if (config?.transport) {
+      this.requestor = ccc.RequestorJsonRpc.new({
+        transport: config.transport,
+        maxConcurrent: config.maxConcurrent,
+        onError: handleJsonRpcError,
       });
+    } else {
+      // Legacy constructor intentionally discards ownership.
+      this.requestor = ccc.RequestorJsonRpc.open({
+        urls: [this.url_, ...(config?.fallbacks ?? [])],
+        timeout: config?.timeout,
+        maxConcurrent: config?.maxConcurrent,
+        onError: handleJsonRpcError,
+      }).value;
+    }
   }
 
-  get url() {
-    return this.requestor.url;
+  /** Creates an Executor that borrows an existing Transport. */
+  static new(
+    config: Omit<Parameters<typeof ccc.RequestorJsonRpc.new>[0], "onError">,
+  ): ExecutorJsonRpc {
+    const requestor = ccc.RequestorJsonRpc.new({
+      ...config,
+      onError: handleJsonRpcError,
+    });
+    return new ExecutorJsonRpc("", { requestor });
+  }
+
+  /** Opens an Executor with ownership of its default Transports. */
+  static open(
+    config: Omit<Parameters<typeof ccc.RequestorJsonRpc.open>[0], "onError">,
+  ): ccc.Owner<ExecutorJsonRpc> {
+    return ccc.RequestorJsonRpc.open({
+      ...config,
+      onError: handleJsonRpcError,
+    }).map((requestor) => new ExecutorJsonRpc("", { requestor }));
   }
 
   /* Calls a method on the SSRI executor through SSRI Server.

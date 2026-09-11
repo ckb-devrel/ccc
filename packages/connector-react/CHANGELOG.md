@@ -1,5 +1,24 @@
 # @ckb-ccc/connector-react
 
+## 2.0.0
+
+### Major Changes
+
+- [#503](https://github.com/ckb-devrel/ccc/pull/503) [`2001c3b`](https://github.com/ckb-devrel/ccc/commit/2001c3b47c1eca82485621e3541c393b5ccf6a3e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(connector): emit owned wallet and signer connections, remove deprecated compatibility APIs, require setClient callers to transfer Client ownership, and release connections from the React Provider.
+  
+  See the [Connector 2.0 migration guide](https://docs.ckbccc.com/en/docs/migration/connector-v2)
+  for the required `setClient`, connection event, Client ownership, and removed
+  property changes.
+
+### Minor Changes
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`c75b49e`](https://github.com/ckb-devrel/ccc/commit/c75b49e282991949e2240779608a4c5b2277a34e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector-react): control Web Component Client requests in the Provider, manage ownership transferred through setClient, and add useBorrowedOrOwned for an internally owned fallback to an optional borrowed value
+
+### Patch Changes
+
+- Updated dependencies [[`2001c3b`](https://github.com/ckb-devrel/ccc/commit/2001c3b47c1eca82485621e3541c393b5ccf6a3e), [`230cf6c`](https://github.com/ckb-devrel/ccc/commit/230cf6c870680faeb560628aa989d92ba66ddf10), [`251232a`](https://github.com/ckb-devrel/ccc/commit/251232abcae0320eb9b991b5f8a05b655f45d426), [`7e38c51`](https://github.com/ckb-devrel/ccc/commit/7e38c51a38d45e92b96639bdce575880ba88ee9b)]:
+  - @ckb-ccc/connector@2.0.0
+
 ## 1.1.9
 
 ### Patch Changes

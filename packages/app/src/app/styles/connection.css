@@ -17,13 +17,12 @@
   margin: 0 auto;
   overflow: hidden;
   opacity: 0;
-  transition:
-    height 650ms var(--easing-mechanical),
-    opacity 260ms ease 120ms;
+  transition: opacity 260ms ease 120ms;
 }
 
 .machine.needs-access .panel-viewport {
-  height: 286px;
+  height: auto;
+  min-height: 286px;
   opacity: 1;
 }
 
@@ -31,6 +30,7 @@
   position: absolute;
   inset: 0;
   display: grid;
+  min-height: 286px;
   align-items: center;
   grid-template-columns: minmax(0, 1fr) minmax(310px, 0.88fr);
   gap: 36px;
@@ -55,6 +55,8 @@
 }
 
 .connection-panel {
+  position: relative;
+  inset: auto;
   background: rgb(17 24 28 / 50%);
   transform: translateX(0);
 }
@@ -64,12 +66,16 @@
 }
 
 .machine.is-connected .connection-panel {
+  position: absolute;
+  inset: 0;
   opacity: 0;
   transform: translateX(-112%);
   pointer-events: none;
 }
 
 .machine.is-connected .account-panel {
+  position: relative;
+  inset: auto;
   transform: translateX(0);
 }
 
@@ -120,6 +126,10 @@
   color: var(--muted);
   font-size: 14px;
   line-height: 1.55;
+}
+
+.connection-copy .module-summary {
+  white-space: pre-line;
 }
 
 .panel-kicker {
@@ -357,17 +367,12 @@
 }
 
 @media (max-width: 680px) {
-  .panel-viewport {
-    height: 0;
-    transition: height 650ms var(--easing-mechanical);
-  }
-
   .machine.needs-access .panel-viewport {
-    height: 430px;
+    min-height: 430px;
   }
 
   .machine.needs-access.is-connected .panel-viewport {
-    height: 326px;
+    min-height: 326px;
   }
 
   .machine-panel {
@@ -375,6 +380,14 @@
     grid-template-columns: 1fr;
     gap: 24px;
     padding: 42px 24px 28px;
+  }
+
+  .connection-panel {
+    min-height: 430px;
+  }
+
+  .account-panel {
+    min-height: 326px;
   }
 
   .connection-copy h2 {

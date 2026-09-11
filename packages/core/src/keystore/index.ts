@@ -14,7 +14,7 @@ const DEFAULT_SCRYPT_PARAM_N = 262144;
 
 function mac(derivedKey: Bytes, cipherText: Bytes) {
   return hexFrom(
-    keccak_256(bytesConcat(derivedKey.slice(16, 32), cipherText)),
+    keccak_256(bytesConcat(derivedKey.subarray(16, 32), cipherText)),
   ).slice(2);
 }
 
@@ -60,7 +60,7 @@ export async function keystoreEncrypt(
     dkLen: kdfparams.dklen,
   });
   const cipher = ctr(
-    derivedKey.slice(0, 16),
+    derivedKey.subarray(0, 16),
     iv.map((v) => v),
   );
   const ciphertext = cipher.encrypt(
@@ -151,7 +151,7 @@ export async function keystoreDecrypt(
     throw Error("Invalid password");
   }
   const cipher = ctr(
-    derivedKey.slice(0, 16),
+    derivedKey.subarray(0, 16),
     bytesFrom(crypto.cipherparams.iv),
   );
   const result = cipher.decrypt(ciphertext);

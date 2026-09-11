@@ -21,7 +21,7 @@ export function signMessageSecp256k1(
     format: "recovered",
     prehash: false,
   });
-  return hexFrom(bytesConcat(signature.slice(1), signature.slice(0, 1)));
+  return hexFrom(bytesConcat(signature.subarray(1), signature.subarray(0, 1)));
 }
 
 /**
@@ -40,7 +40,7 @@ export function verifyMessageSecp256k1(
 ): boolean {
   const signatureBytes = bytesFrom(signature);
   return secp256k1.verify(
-    bytesConcat(signatureBytes.slice(64), signatureBytes.slice(0, 64)),
+    bytesConcat(signatureBytes.subarray(64), signatureBytes.subarray(0, 64)),
     bytesFrom(message),
     bytesFrom(publicKey),
     { format: "recovered", prehash: false },
@@ -62,7 +62,7 @@ export function recoverMessageSecp256k1(
   const signatureBytes = bytesFrom(signature);
   return hexFrom(
     secp256k1.recoverPublicKey(
-      bytesConcat(signatureBytes.slice(64), signatureBytes.slice(0, 64)),
+      bytesConcat(signatureBytes.subarray(64), signatureBytes.subarray(0, 64)),
       bytesFrom(message),
       { prehash: false },
     ),

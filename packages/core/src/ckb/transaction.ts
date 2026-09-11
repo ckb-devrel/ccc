@@ -1,11 +1,11 @@
 import { Bytes, BytesLike, bytesFrom } from "../bytes/index.js";
+import type { Client } from "../client/client.js";
 import type { ClientCollectableSearchKeyFilterLike } from "../client/clientTypes.advanced.js";
 import {
   ClientBlockHeader,
   type CellDepInfoLike,
-  type Client,
   type ClientBlockHeaderLike,
-} from "../client/index.js";
+} from "../client/clientTypes.js";
 import { KnownScript } from "../client/knownScript.js";
 import {
   Codec,
@@ -1063,7 +1063,7 @@ export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
  * @public
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
-  const data = bytesFrom(dataLike).slice(0, 16);
+  const data = bytesFrom(dataLike).subarray(0, 16);
   return data.length === 0 ? Zero : numFromBytes(data);
 }
 
@@ -2792,9 +2792,9 @@ export function calcDaoClaimEpoch(
   if (
     partialCycle !== Zero ||
     //  deposit.numerator        withdraw.numerator
-    // --------------------- <= ----------------------
+    // --------------------- < -----------------------
     //  deposit.denominator      withdraw.denominator
-    deposit.numerator * withdraw.denominator <=
+    deposit.numerator * withdraw.denominator <
       withdraw.numerator * deposit.denominator
   ) {
     // Need to wait for the next cycle

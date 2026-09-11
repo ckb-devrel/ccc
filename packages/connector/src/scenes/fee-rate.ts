@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { FeeRateSelectedEvent } from "../events/index.js";
+import { FeeRateSelectedEvent } from "../events/internal.js";
 
 type FeeRateOption = {
   description: string;
@@ -183,10 +183,6 @@ export class FeeRateScene extends LitElement {
     `;
   }
 
-  updated() {
-    this.dispatchEvent(new Event("updated", { bubbles: true, composed: true }));
-  }
-
   static styles = css`
     :host {
       width: 100%;
@@ -243,6 +239,10 @@ export class FeeRateScene extends LitElement {
     .fee-rate-input {
       width: 9rem;
       margin-left: auto;
+    }
+
+    .fee-rate-input::part(input) {
+      text-align: right;
     }
   `;
 }

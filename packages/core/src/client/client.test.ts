@@ -11,7 +11,14 @@ describe("Client", () => {
   let client: ClientPublicTestnet;
 
   beforeEach(() => {
-    client = new ClientPublicTestnet({ cache: new ClientCacheMemory() });
+    client = ClientPublicTestnet.new({
+      cache: new ClientCacheMemory(),
+      transport: {
+        request: async () => {
+          throw new Error("Unexpected request");
+        },
+      },
+    });
   });
 
   afterEach(() => {
@@ -106,10 +113,14 @@ describe("Client", () => {
     async function getError(
       data: string,
     ): Promise<ErrorClientVerification | undefined> {
-      const c = new ClientPublicTestnet({
+      const c = ClientPublicTestnet.new({
         transport: {
           async request({ id }) {
-            return { id, error: { code: -302, message: "failed", data } };
+            return {
+              jsonrpc: "2.0",
+              id,
+              error: { code: -302, message: "failed", data },
+            };
           },
         },
       });

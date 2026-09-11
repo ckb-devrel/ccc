@@ -30,7 +30,7 @@ export function generateSignersScene(
     "Select a Chain",
 
     html`
-      <img class="wallet-icon mt-1" src=${wallet.icon} alt=${wallet.name} />
+      <img class="wallet-icon" src=${wallet.icon} alt=${wallet.name} />
       <span class="mb-1">${wallet.name}</span>
       ${repeat(
         wallet.signers,
@@ -38,7 +38,7 @@ export function generateSignersScene(
         (signer) => html`
           <ccc-button
             class="mt-1"
-            @click=${async () => {
+            @click=${() => {
               onSignerSelected(wallet, signer);
             }}
           >
