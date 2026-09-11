@@ -24,6 +24,9 @@ export type SignerJsonRpcConfig = Omit<
 export class SignerJsonRpc extends Signer {
   private connecting?: Promise<void>;
   private disconnecting?: Promise<void>;
+  private scriptsPromise?: Promise<Script[]>;
+  private internalAddressPromise?: Promise<string>;
+  private identityPromise?: Promise<string>;
   private readonly replacedListeners = new Set<() => void>();
 
   private constructor(
@@ -90,6 +93,7 @@ export class SignerJsonRpc extends Signer {
   }
 
   disconnect(): Promise<void> {
+    this.clearReadCache();
     if (this.disconnecting) {
       return this.disconnecting;
     }
@@ -114,6 +118,7 @@ export class SignerJsonRpc extends Signer {
 
   replace() {
     this.connecting = undefined;
+    this.clearReadCache();
     const listeners = [...this.replacedListeners];
     this.replacedListeners.clear();
     listeners.forEach((listener) => listener());
@@ -128,9 +133,24 @@ export class SignerJsonRpc extends Signer {
     );
   }
 
-  getScripts = this.buildSender("get_scripts", [], (scripts: JsonRpcScript[]) =>
-    scripts.map((script) => JsonRpcTransformers.scriptTo(script)),
-  ) as () => Promise<Script[]>;
+  getScripts(): Promise<Script[]> {
+    if (this.scriptsPromise) {
+      return this.scriptsPromise.then((scripts) => [...scripts]);
+    }
+
+    const pending = this.requestor
+      .request("get_scripts", [], [], (scripts: JsonRpcScript[]) =>
+        scripts.map((script) => JsonRpcTransformers.scriptTo(script)),
+      )
+      .catch((cause: unknown) => {
+        if (this.scriptsPromise === pending) {
+          this.scriptsPromise = undefined;
+        }
+        throw cause;
+      }) as Promise<Script[]>;
+    this.scriptsPromise = pending;
+    return pending.then((scripts) => [...scripts]);
+  }
 
   async getAddressObjs() {
     return (await this.getScripts()).map((script) =>
@@ -138,12 +158,39 @@ export class SignerJsonRpc extends Signer {
     );
   }
 
-  getInternalAddress = this.buildSender(
-    "get_native_address",
-    [],
-  ) as Signer["getInternalAddress"];
+  getInternalAddress(): Promise<string> {
+    if (this.internalAddressPromise) {
+      return this.internalAddressPromise;
+    }
 
-  getIdentity = this.buildSender("get_identity", []) as Signer["getIdentity"];
+    const pending = this.requestor
+      .request("get_native_address", [], [])
+      .catch((cause: unknown) => {
+        if (this.internalAddressPromise === pending) {
+          this.internalAddressPromise = undefined;
+        }
+        throw cause;
+      }) as Promise<string>;
+    this.internalAddressPromise = pending;
+    return pending;
+  }
+
+  getIdentity(): Promise<string> {
+    if (this.identityPromise) {
+      return this.identityPromise;
+    }
+
+    const pending = this.requestor
+      .request("get_identity", [], [])
+      .catch((cause: unknown) => {
+        if (this.identityPromise === pending) {
+          this.identityPromise = undefined;
+        }
+        throw cause;
+      }) as Promise<string>;
+    this.identityPromise = pending;
+    return pending;
+  }
 
   signMessageRaw = this.buildSender("sign_message", [
     SignerJsonRpcTransformers.messageFrom,
@@ -173,6 +220,12 @@ export class SignerJsonRpc extends Signer {
         inTransformers,
         outTransformer,
       );
+  }
+
+  private clearReadCache() {
+    this.scriptsPromise = undefined;
+    this.internalAddressPromise = undefined;
+    this.identityPromise = undefined;
   }
 
   private requestConnect = this.buildSender("connect", []) as (

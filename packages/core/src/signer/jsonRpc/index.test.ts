@@ -133,6 +133,106 @@ describe("SignerJsonRpc", () => {
     expect(methods).toEqual(["get_info", "get_scripts"]);
   });
 
+  it("caches successful read-only requests until replacement", async () => {
+    const requests = new Map<string, number>();
+    let resolveScripts = () => {};
+    const scriptsPending = new Promise<void>((resolve) => {
+      resolveScripts = resolve;
+    });
+    const transport: JsonRpcTransport = {
+      async request(payload) {
+        requests.set(payload.method, (requests.get(payload.method) ?? 0) + 1);
+        if (payload.method === "get_info") {
+          return response(payload, {
+            type: SignerType.CKB,
+            sign_type: SignerSignType.CkbSecp256k1,
+          });
+        }
+        if (payload.method === "get_scripts") {
+          await scriptsPending;
+          return response(payload, [
+            {
+              code_hash: `0x${"00".repeat(32)}`,
+              hash_type: "type",
+              args: "0x",
+            },
+          ]);
+        }
+        if (payload.method === "get_native_address") {
+          return response(payload, "native-address");
+        }
+        if (payload.method === "get_identity") {
+          return response(payload, "identity");
+        }
+        return response(payload, null);
+      },
+    };
+    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      transport,
+    });
+
+    const addresses = Promise.all([
+      signer.getAddressObjs(),
+      signer.getAddresses(),
+    ]);
+    await vi.waitFor(() => expect(requests.get("get_scripts")).toBe(1));
+    resolveScripts();
+    await addresses;
+    const scripts = await signer.getScripts();
+    scripts.pop();
+    expect(await signer.getScripts()).toHaveLength(1);
+    await signer.getRecommendedAddress();
+    await Promise.all([
+      signer.getInternalAddress(),
+      signer.getInternalAddress(),
+      signer.getIdentity(),
+      signer.getIdentity(),
+    ]);
+
+    expect(requests.get("get_scripts")).toBe(1);
+    expect(requests.get("get_native_address")).toBe(1);
+    expect(requests.get("get_identity")).toBe(1);
+
+    signer.replace();
+    await Promise.all([
+      signer.getAddressObjs(),
+      signer.getInternalAddress(),
+      signer.getIdentity(),
+    ]);
+
+    expect(requests.get("get_scripts")).toBe(2);
+    expect(requests.get("get_native_address")).toBe(2);
+    expect(requests.get("get_identity")).toBe(2);
+  });
+
+  it("retries failed read-only requests", async () => {
+    let identityRequests = 0;
+    const transport: JsonRpcTransport = {
+      async request(payload) {
+        if (payload.method === "get_info") {
+          return response(payload, {
+            type: SignerType.CKB,
+            sign_type: SignerSignType.CkbSecp256k1,
+          });
+        }
+
+        identityRequests += 1;
+        if (identityRequests === 1) {
+          throw new Error("Temporary failure");
+        }
+        return response(payload, "identity");
+      },
+    };
+    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      transport,
+    });
+
+    await expect(signer.getIdentity()).rejects.toThrow("Temporary failure");
+    await expect(signer.getIdentity()).resolves.toBe("identity");
+    await expect(signer.getIdentity()).resolves.toBe("identity");
+    expect(identityRequests).toBe(2);
+  });
+
   it("runs disconnect cleanup before notifying replacement", async () => {
     const close = vi.fn(async () => {});
     const order: string[] = [];

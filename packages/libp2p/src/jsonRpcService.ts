@@ -15,6 +15,7 @@ export type JsonRpcServiceConfig = {
 };
 
 export type JsonRpcRequest = {
+  connection: Connection;
   peerId: PeerId;
   payload: ccc.JsonRpcPayload;
 };
@@ -80,6 +81,7 @@ export abstract class JsonRpcService<
           jsonrpc: "2.0",
           id: payload.id,
           result: await this.handleRequest({
+            connection,
             peerId: connection.remotePeer,
             payload,
           }),
