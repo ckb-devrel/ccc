@@ -1,5 +1,20 @@
 # @ckb-ccc/libp2p
 
+## 0.1.0
+
+### Minor Changes
+
+- [#525](https://github.com/ckb-devrel/ccc/pull/525) [`f8c79a5`](https://github.com/ckb-devrel/ccc/commit/f8c79a5dc6f60a52b286b5caa744f00ad2d0ffb4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie connection fallback and path selection. Allow configuring the
+  default Relay and add the `hide-mark` Connector attribute.
+
+- [#523](https://github.com/ckb-devrel/ccc/pull/523) [`58b3b4d`](https://github.com/ckb-devrel/ccc/commit/58b3b4d307f5eb65f5f710127cb3bd5bf3191d22) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Expose the actual stream connection on incoming JSON-RPC requests so consumers
+  can report the transport path used by each request.
+
+### Patch Changes
+
+- Updated dependencies [[`58b3b4d`](https://github.com/ckb-devrel/ccc/commit/58b3b4d307f5eb65f5f710127cb3bd5bf3191d22), [`fc937f0`](https://github.com/ckb-devrel/ccc/commit/fc937f08f9e33c852697831dc5b17a9423fd9e3f)]:
+  - @ckb-ccc/core@1.20.1
+
 ## 0.0.2
 
 ### Patch Changes
