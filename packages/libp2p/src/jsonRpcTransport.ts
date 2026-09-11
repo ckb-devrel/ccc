@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import type { Libp2p, PeerId, Stream } from "@libp2p/interface";
+import type { Connection, Libp2p, PeerId, Stream } from "@libp2p/interface";
 import { lpStream } from "@libp2p/utils";
 
 const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
@@ -49,11 +49,7 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
     let stream: Stream | undefined;
     let response: ccc.JsonRpcResponse;
     try {
-      // dialProtocol handles the signal, so no separate entry check is needed.
-      stream = await this.node.dialProtocol(this.peerId, this.config.protocol, {
-        runOnLimitedConnection: true,
-        signal,
-      });
+      stream = await this.openStream(signal);
 
       const rpcStream = lpStream(stream, {
         maxDataLength: this.maxMessageLength,
@@ -78,6 +74,41 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
     this.config.onResponse?.(response);
     return response;
   }
+
+  private async openStream(signal: AbortSignal) {
+    for (const connection of this.connections()) {
+      try {
+        return await connection.newStream(this.config.protocol, {
+          runOnLimitedConnection: true,
+          signal,
+        });
+      } catch {
+        signal.throwIfAborted();
+      }
+    }
+
+    return this.node.dialProtocol(this.peerId, this.config.protocol, {
+      runOnLimitedConnection: true,
+      signal,
+    });
+  }
+
+  private connections() {
+    return this.node
+      .getConnections(this.peerId)
+      .filter(({ status }) => status === "open")
+      .sort(compareConnections);
+  }
+}
+
+function compareConnections(a: Connection, b: Connection) {
+  if (a.direct !== b.direct) {
+    return a.direct ? -1 : 1;
+  }
+  if (a.rtt === undefined) {
+    return b.rtt === undefined ? 0 : 1;
+  }
+  return b.rtt === undefined ? -1 : a.rtt - b.rtt;
 }
 
 function asJsonRpcError(cause: unknown) {
