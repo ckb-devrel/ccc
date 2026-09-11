@@ -113,6 +113,7 @@ function CccProvider({ children }: { children: React.ReactNode }) {
       hideMark={false}
       name="My App"
       icon="https://example.com/icon.png"
+      khieRelayAddress="/dns4/relay.example/tcp/443/wss"
       signerFilter={async (signerInfo, wallet) => true}
       clientOptions={clientOptions}
     >
@@ -129,6 +130,7 @@ function CccProvider({ children }: { children: React.ReactNode }) {
 | `hideMark`          | `boolean?`                                 | Hide the "Powered by CCC" mark in the connector UI |
 | `name`              | `string?`                                  | App name shown in the wallet picker                |
 | `icon`              | `string?`                                  | App icon URL shown in the wallet picker            |
+| `khieRelayAddress`  | `string?`                                  | Default Relay multiaddr used by Khie                |
 | `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | Filter which wallet/signer combinations appear     |
 | `signersController` | `ccc.SignersController?`                   | Custom signers controller (advanced)               |
 | `defaultClient`     | `ccc.Client?`                              | Borrowed initial client; takes precedence over `clientOptions[0]` |

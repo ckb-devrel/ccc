@@ -44,6 +44,7 @@ import { ccc } from "@ckb-ccc/connector";
 const connector: ccc.WebComponentConnector;
 
 connector.client;       // required borrowed ccc.Client
+connector.khieRelayAddress; // optional default Relay multiaddr for Khie
 connector.wallet;       // connected ccc.Wallet | undefined
 connector.signer;       // ccc.SignerInfo | undefined
 
@@ -142,6 +143,7 @@ const connector = document.createElement(
 ) as ccc.WebComponentConnector;
 const clientOwner = ccc.ClientPublicTestnet.open();
 connector.client = clientOwner.value; // The Connector borrows it.
+connector.khieRelayAddress = "/dns4/relay.example/tcp/443/wss";
 
 // Show the wallet picker
 connector.style.display = "";

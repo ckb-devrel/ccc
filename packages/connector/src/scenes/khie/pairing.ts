@@ -21,8 +21,11 @@ export class KhiePairing extends LitElement {
   @property({ attribute: false })
   public client!: ccc.Client;
 
+  @property({ attribute: false })
+  public defaultRelayAddress?: string;
+
   @state()
-  private relayAddress = DEFAULT_RELAY_ADDRESS;
+  private relayAddressOverride?: string;
   @state()
   private isAdvancedSettingsOpen = false;
   @state()
@@ -34,9 +37,18 @@ export class KhiePairing extends LitElement {
 
   private session!: KhiePairingSession;
 
+  private get relayAddress() {
+    return (
+      this.relayAddressOverride ??
+      this.defaultRelayAddress ??
+      DEFAULT_RELAY_ADDRESS
+    );
+  }
+
   connectedCallback() {
     super.connectedCallback();
     this.localError = undefined;
+    this.relayAddressOverride = undefined;
 
     this.session = new KhiePairingSession({
       name: this.appName,
@@ -258,7 +270,7 @@ export class KhiePairing extends LitElement {
                     placeholder="/dns4/relay.example/tcp/443/wss"
                     spellcheck="false"
                     @input=${(event: InputEvent) => {
-                      this.relayAddress = (
+                      this.relayAddressOverride = (
                         event.currentTarget as HTMLElement & { value: string }
                       ).value;
                     }}

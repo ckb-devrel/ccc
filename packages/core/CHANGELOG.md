@@ -1,5 +1,15 @@
 # @ckb-ccc/core
 
+## 1.20.1
+
+### Patch Changes
+
+- [#523](https://github.com/ckb-devrel/ccc/pull/523) [`58b3b4d`](https://github.com/ckb-devrel/ccc/commit/58b3b4d307f5eb65f5f710127cb3bd5bf3191d22) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Cache successful read-only JSON-RPC signer requests for the lifetime of the
+  signer, while retrying failures and invalidating cached data on replacement.
+
+- [#526](https://github.com/ckb-devrel/ccc/pull/526) [`fc937f0`](https://github.com/ckb-devrel/ccc/commit/fc937f08f9e33c852697831dc5b17a9423fd9e3f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Prevent UDT input selection from collecting a different type script whose args
+  only prefix-match the requested UDT.
+
 ## 1.20.0
 
 ### Minor Changes

@@ -132,6 +132,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
 | `hideMark`          | `boolean`                                                              | Hide the CCC watermark                           |
 | `name`              | `string`                                                               | Your app name displayed in the connector         |
 | `icon`              | `string`                                                               | Your app icon URL displayed in the connector     |
+| `khieRelayAddress`  | `string`                                                               | Default Relay multiaddr used by Khie             |
 | `signerFilter`      | `(signerInfo: ccc.SignerInfo, wallet: ccc.Wallet) => Promise<boolean>` | Filter which wallets/signers are shown           |
 | `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
 | `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |

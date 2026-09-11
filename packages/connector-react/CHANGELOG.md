@@ -1,5 +1,17 @@
 # @ckb-ccc/connector-react
 
+## 2.1.0
+
+### Minor Changes
+
+- [#525](https://github.com/ckb-devrel/ccc/pull/525) [`f8c79a5`](https://github.com/ckb-devrel/ccc/commit/f8c79a5dc6f60a52b286b5caa744f00ad2d0ffb4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie connection fallback and path selection. Allow configuring the
+  default Relay and add the `hide-mark` Connector attribute.
+
+### Patch Changes
+
+- Updated dependencies [[`f8c79a5`](https://github.com/ckb-devrel/ccc/commit/f8c79a5dc6f60a52b286b5caa744f00ad2d0ffb4)]:
+  - @ckb-ccc/connector@2.1.0
+
 ## 2.0.0
 
 ### Major Changes

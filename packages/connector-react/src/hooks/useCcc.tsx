@@ -65,6 +65,7 @@ export function Provider({
   hideMark,
   name,
   icon,
+  khieRelayAddress,
   signerFilter,
   signersController,
   defaultClient,
@@ -75,6 +76,7 @@ export function Provider({
   hideMark?: boolean;
   name?: string;
   icon?: string;
+  khieRelayAddress?: string;
   signerFilter?: (
     signerInfo: ccc.SignerInfo,
     wallet: ccc.Wallet,
@@ -184,6 +186,7 @@ export function Provider({
         hideMark={hideMark}
         name={name}
         icon={icon}
+        khieRelayAddress={khieRelayAddress}
         signersController={signersController ?? defaultSignersController}
         ref={setRef}
         onClose={close}

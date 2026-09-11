@@ -5,14 +5,19 @@ import type {
   PeerId,
   Stream,
 } from "@libp2p/interface";
-import type { ConnectionManager, Registrar } from "@libp2p/interface-internal";
+import type {
+  AddressManager,
+  ConnectionManager,
+  Registrar,
+} from "@libp2p/interface-internal";
 import { lpStream } from "@libp2p/utils";
-import type { Multiaddr } from "@multiformats/multiaddr";
+import { CODE_P2P, multiaddr, type Multiaddr } from "@multiformats/multiaddr";
 
 const MAX_PAIRING_MESSAGE_LENGTH = 1024;
 const UNPAIR_TIMEOUT_MS = 10_000;
 
 export type PairingServiceComponents = {
+  addressManager?: Pick<AddressManager, "getAddresses">;
   connectionManager: ConnectionManager;
   registrar: Registrar;
 };
@@ -34,7 +39,8 @@ export type PairingGuard<
 > = (this: PairingService<Components>, peerId: PeerId) => boolean;
 
 type PairingRequest =
-  { type: "pair"; secret: string; name?: string } | { type: "unpair" };
+  | { type: "pair"; secret: string; name?: string; addresses?: string[] }
+  | { type: "unpair" };
 
 type PairingResponse =
   { ok: true; name?: string } | { ok: false; error: string };
@@ -141,11 +147,7 @@ export abstract class PairingService<
 
       const response = await exchange(
         stream,
-        {
-          type: "pair",
-          secret: target.secret,
-          name: this.config.name,
-        },
+        createPairRequest(target.secret, this.config.name, this.addresses()),
         options,
       );
       options.signal?.throwIfAborted();
@@ -221,6 +223,11 @@ export abstract class PairingService<
         return;
       }
 
+      const addresses = parseAddresses(
+        request.addresses,
+        connection.remotePeer,
+      );
+
       // Consume the credential before the next asynchronous boundary so two
       // concurrent requests cannot both pair with the same endpoint.
       this.rotateSecret();
@@ -234,6 +241,7 @@ export abstract class PairingService<
       });
       if (addedPeer) {
         this.notifyPairedPeer(addedPeer, request.name);
+        void this.openFallbackConnection(addresses);
       }
     } catch (cause) {
       if (addedPeer) {
@@ -256,6 +264,22 @@ export abstract class PairingService<
 
   private notifyPairedPeer(peerId: PeerId, name?: string) {
     this.pairedListeners.forEach((listener) => listener(peerId, name));
+  }
+
+  private addresses() {
+    return this.components.addressManager?.getAddresses() ?? [];
+  }
+
+  private async openFallbackConnection(addresses: Multiaddr[]) {
+    if (addresses.length === 0) {
+      return;
+    }
+
+    try {
+      await this.components.connectionManager.openConnection(addresses);
+    } catch {
+      // The original pairing connection remains usable when the fallback fails.
+    }
   }
 
   private rotateSecret() {
@@ -353,6 +377,41 @@ async function exchange(
   return response;
 }
 
+function createPairRequest(
+  secret: string,
+  name: string | undefined,
+  addresses: Multiaddr[],
+): PairingRequest {
+  const addressStrings = addresses.map((address) => address.toString());
+  const request: PairingRequest = {
+    type: "pair",
+    secret,
+    name,
+    addresses: addressStrings,
+  };
+  while (addressStrings.length > 0 && !pairingRequestFits(request)) {
+    addressStrings.pop();
+  }
+
+  if (!pairingRequestFits(request)) {
+    delete request.addresses;
+  }
+  if (!pairingRequestFits(request)) {
+    delete request.name;
+  }
+  if (!pairingRequestFits(request)) {
+    throw new Error("Pairing request is too large");
+  }
+  return request;
+}
+
+function pairingRequestFits(request: PairingRequest) {
+  return (
+    ccc.bytesFrom(JSON.stringify(request), "utf8").byteLength <=
+    MAX_PAIRING_MESSAGE_LENGTH
+  );
+}
+
 async function writeResponse(
   pairingStream: ReturnType<typeof lpStream>,
   stream: Stream,
@@ -375,6 +434,7 @@ function parsePairingRequest(data: Uint8Array): PairingRequest {
       type: "pair",
       secret: request.secret,
       name: typeof request.name === "string" ? request.name : undefined,
+      addresses: parseAddressStrings(request.addresses),
     };
   }
 
@@ -383,6 +443,31 @@ function parsePairingRequest(data: Uint8Array): PairingRequest {
   }
 
   throw new Error("Invalid pairing request");
+}
+
+function parseAddressStrings(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  return value.filter(
+    (address): address is string =>
+      typeof address === "string" && address.length > 0,
+  );
+}
+
+function parseAddresses(values: string[] | undefined, peerId: PeerId) {
+  return (values ?? []).flatMap((value) => {
+    try {
+      const address = multiaddr(value);
+      const peer = address
+        .getComponents()
+        .filter(({ code }) => code === CODE_P2P)
+        .at(-1)?.value;
+      return peer === peerId.toString() ? [address] : [];
+    } catch {
+      return [];
+    }
+  });
 }
 
 function parsePairingResponse(data: Uint8Array): PairingResponse {

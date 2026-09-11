@@ -48,19 +48,23 @@ export function KhieClientModule({
   signer,
   signerIcon,
   signerName,
+  khieRelayAddress,
   show,
 }: Pick<ModuleRuntimeProps, "client" | "log" | "setClient" | "show"> & {
   signer?: ccc.Signer;
   signerIcon?: string;
   signerName?: string;
+  khieRelayAddress?: string;
 }) {
+  const defaultRelayAddress = khieRelayAddress ?? DEFAULT_KHIE_RELAY_ADDRESS;
   const [session, setSession] = useState<KhieSignerSession>();
   const [nodeReady, setNodeReady] = useState(false);
   const [pairingEndpoint, setPairingEndpoint] = useState("");
   const [paired, setPaired] = useState(false);
   const [pairing, setPairing] = useState(false);
   const [relayState, setRelayState] = useState<RelayState>("idle");
-  const [relayAddress, setRelayAddress] = useState(DEFAULT_KHIE_RELAY_ADDRESS);
+  const [relayAddressOverride, setRelayAddressOverride] = useState<string>();
+  const relayAddress = relayAddressOverride ?? defaultRelayAddress;
   const [khieEndpoint, setKhieEndpoint] = useState("");
   const [scanning, setScanning] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
@@ -198,14 +202,19 @@ export function KhieClientModule({
   });
   const connectDefaultRelay = useEffectEvent(
     async (currentSession: KhieSignerSession) => {
+      const address = relayAddress.trim();
+      if (!address) {
+        return;
+      }
+
       setRelayState("connecting");
-      if (!(await currentSession.connectRelay(DEFAULT_KHIE_RELAY_ADDRESS))) {
+      if (!(await currentSession.connectRelay(address))) {
         setRelayState("failed");
         return;
       }
 
       setRelayState("connected");
-      logCurrent(`Relay connected: ${DEFAULT_KHIE_RELAY_ADDRESS}`, "success");
+      logCurrent(`Relay connected: ${address}`, "success");
     },
   );
 
@@ -640,7 +649,7 @@ export function KhieClientModule({
                   placeholder="/ip4/127.0.0.1/tcp/.../ws/p2p/..."
                   spellCheck={false}
                   onChange={(event) =>
-                    setRelayAddress(event.currentTarget.value)
+                    setRelayAddressOverride(event.currentTarget.value)
                   }
                 />
                 <div className={`module-actions ${styles["inline-action"]}`}>

@@ -35,12 +35,15 @@ export class WebComponentConnector extends LitElement {
     );
   }
 
-  @property()
+  @property({ attribute: "hide-mark" })
   public hideMark: unknown;
   @property()
   public name?: string;
   @property()
   public icon?: string;
+  /** Default Relay multiaddr shown and used by the Khie connection flow. */
+  @property({ attribute: "khie-relay-address" })
+  public khieRelayAddress?: string;
   @property({ attribute: false })
   public signersController = new ccc.SignersController();
   @state()
@@ -314,6 +317,7 @@ export class WebComponentConnector extends LitElement {
                     <ccc-khie-connect-scene
                       .appName=${this.appName}
                       .client=${this.client}
+                      .defaultRelayAddress=${this.khieRelayAddress}
                       @back=${() => (this.pairingKhie = false)}
                       @connection=${this.handleKhieConnected}
                     ></ccc-khie-connect-scene>
