@@ -1,5 +1,29 @@
 # @ckb-ccc/connector
 
+## 2.0.0
+
+### Major Changes
+
+- [#498](https://github.com/ckb-devrel/ccc/pull/498) [`230cf6c`](https://github.com/ckb-devrel/ccc/commit/230cf6c870680faeb560628aa989d92ba66ddf10) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(connector): require a controlled borrowed Client, emit bubbling select-client requests for network and fee-rate changes, and remove Client ownership from the Web Component lifecycle
+
+### Minor Changes
+
+- [#503](https://github.com/ckb-devrel/ccc/pull/503) [`7e38c51`](https://github.com/ckb-devrel/ccc/commit/7e38c51a38d45e92b96639bdce575880ba88ee9b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(connector): add Khie peer-to-peer wallet connections, supporting pairing
+  codes from either the wallet or the connector.
+
+### Patch Changes
+
+- [#503](https://github.com/ckb-devrel/ccc/pull/503) [`2001c3b`](https://github.com/ckb-devrel/ccc/commit/2001c3b47c1eca82485621e3541c393b5ccf6a3e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(connector): emit owned wallet and signer connections, remove deprecated compatibility APIs, require setClient callers to transfer Client ownership, and release connections from the React Provider.
+  
+  See the [Connector 2.0 migration guide](https://docs.ckbccc.com/en/docs/migration/connector-v2)
+  for the required `setClient`, connection event, Client ownership, and removed
+  property changes.
+
+- [#490](https://github.com/ckb-devrel/ccc/pull/490) [`251232a`](https://github.com/ckb-devrel/ccc/commit/251232abcae0320eb9b991b5f8a05b655f45d426) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(connector): prevent stale wallet and signer requests from overwriting the latest connection state
+- Updated dependencies [[`d32d14e`](https://github.com/ckb-devrel/ccc/commit/d32d14e8c06e3673828ab2bf2a4d6495d045e541)]:
+  - @ckb-ccc/libp2p@0.0.2
+  - @ckb-ccc/ccc@1.3.1
+
 ## 1.3.0
 
 ### Minor Changes
