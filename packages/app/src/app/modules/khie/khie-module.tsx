@@ -19,7 +19,8 @@ export function KhieModule({
   show,
   signer,
   wallet,
-}: ModuleRuntimeProps) {
+  khieRelayAddress,
+}: ModuleRuntimeProps & { khieRelayAddress?: string }) {
   if (!signer) {
     return null;
   }
@@ -32,6 +33,7 @@ export function KhieModule({
       signer={signer}
       signerIcon={wallet?.icon}
       signerName={wallet?.name}
+      khieRelayAddress={khieRelayAddress}
       show={show}
     />
   );

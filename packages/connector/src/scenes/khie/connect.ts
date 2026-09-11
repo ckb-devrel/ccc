@@ -15,6 +15,9 @@ export class KhieConnectScene extends LitElement {
   @property({ attribute: false })
   public client!: ccc.Client;
 
+  @property({ attribute: false })
+  public defaultRelayAddress?: string;
+
   @state()
   private status: KhieLoadStatus = "loading";
   @state()
@@ -50,6 +53,7 @@ export class KhieConnectScene extends LitElement {
       return html`<ccc-khie-pairing
         .appName=${this.appName}
         .client=${this.client}
+        .defaultRelayAddress=${this.defaultRelayAddress}
       ></ccc-khie-pairing>`;
     }
 

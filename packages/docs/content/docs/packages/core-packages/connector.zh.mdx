@@ -44,6 +44,7 @@ import { ccc } from "@ckb-ccc/connector";
 const connector: ccc.WebComponentConnector;
 
 connector.client;       // 必填、借用的 ccc.Client
+connector.khieRelayAddress; // 可选的 Khie 默认 Relay multiaddr
 connector.wallet;       // 已连接的 ccc.Wallet | undefined
 connector.signer;       // ccc.SignerInfo | undefined
 
@@ -138,6 +139,7 @@ const connector = document.createElement(
 ) as ccc.WebComponentConnector;
 const clientOwner = ccc.ClientPublicTestnet.open();
 connector.client = clientOwner.value; // Connector 仅借用该 Client。
+connector.khieRelayAddress = "/dns4/relay.example/tcp/443/wss";
 
 // 显示钱包选择界面
 connector.style.display = "";

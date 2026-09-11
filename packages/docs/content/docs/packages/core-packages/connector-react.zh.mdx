@@ -110,6 +110,7 @@ function CccProvider({ children }: { children: React.ReactNode }) {
       hideMark={false}
       name="My App"
       icon="https://example.com/icon.png"
+      khieRelayAddress="/dns4/relay.example/tcp/443/wss"
       signerFilter={async (signerInfo, wallet) => true}
       clientOptions={clientOptions}
     >
@@ -126,6 +127,7 @@ function CccProvider({ children }: { children: React.ReactNode }) {
 | `hideMark`          | `boolean?`                                 | 隐藏连接器界面中的"Powered by CCC"标识             |
 | `name`              | `string?`                                  | 显示在钱包选择界面中的应用名称                     |
 | `icon`              | `string?`                                  | 显示在钱包选择界面中的应用图标 URL                 |
+| `khieRelayAddress`  | `string?`                                  | Khie 使用的默认 Relay multiaddr                    |
 | `signerFilter`      | `(signerInfo, wallet) => Promise<boolean>` | 筛选在界面中显示的钱包与 `signer` 组合             |
 | `signersController` | `ccc.SignersController?`                   | 自定义 Signers Controller（高级用法）              |
 | `defaultClient`     | `ccc.Client?`                              | 借用的初始客户端；优先于 `clientOptions[0]`         |

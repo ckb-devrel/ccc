@@ -130,6 +130,7 @@ icon: Wallet
 | `hideMark`          | `boolean`                                                              | 隐藏 CCC 水印                               |
 | `name`              | `string`                                                               | 应用名称，显示在连接器中                       |
 | `icon`              | `string`                                                               | 应用图标 URL，显示在连接器中                   |
+| `khieRelayAddress`  | `string`                                                               | Khie 使用的默认 Relay multiaddr                |
 | `signerFilter`      | `(signerInfo: ccc.SignerInfo, wallet: ccc.Wallet) => Promise<boolean>` | 过滤展示的钱包和 Signer                      |
 | `signersController` | `ccc.SignersController`                                                | 自定义 `SignersController` 实例             |
 | `defaultClient`     | `ccc.Client`                                                           | 默认 CKB Client（测试网或主网）               |
