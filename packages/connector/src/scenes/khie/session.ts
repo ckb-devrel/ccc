@@ -4,6 +4,7 @@ import type { Connection, PeerId } from "@libp2p/interface";
 import { multiaddr } from "@multiformats/multiaddr";
 import type { ConnectorConnection } from "../../events/external.js";
 import { errorMessage } from "../error.js";
+import { KhieConnectionController } from "./connection.js";
 import {
   CONNECTOR_ENDPOINT_URL,
   createKhieNode,
@@ -345,7 +346,8 @@ export class KhiePairingSession {
     const resources = this.resources;
     const pendingSigner = resources?.pendingSigner;
     const nodeOwner = resources?.nodeOwner;
-    if (!resources || !pendingSigner || !nodeOwner) {
+    const peerId = resources?.selectedPeer;
+    if (!resources || !pendingSigner || !nodeOwner || !peerId) {
       return;
     }
 
@@ -363,10 +365,15 @@ export class KhiePairingSession {
       removeNodeSubscriptions(resources);
       const abortController = resources.abortController;
       const nodeOwnership = nodeOwner.map((node) => node);
+      const connectionController = new KhieConnectionController(
+        nodeOwnership.value,
+        peerId,
+      );
       const connectedOwner = new ccc.OwnerUnique(
         nodeOwnership.value,
         async () => {
           abortController.abort();
+          connectionController.stop();
           try {
             await cleanup();
           } finally {

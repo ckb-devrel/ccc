@@ -1,7 +1,7 @@
 import { ccc } from "@ckb-ccc/core";
 import type { Connection, Libp2p, PeerId, Stream } from "@libp2p/interface";
 import { lpStream } from "@libp2p/utils";
-import type { Multiaddr } from "@multiformats/multiaddr";
+import { dialKnownAddresses } from "./dial.js";
 
 const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
 const DEFAULT_TIMEOUT = 120_000;
@@ -77,7 +77,9 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
   }
 
   private async openStream(signal: AbortSignal) {
-    void this.dialKnownAddresses();
+    void dialKnownAddresses(this.node, this.peerId).catch(() => {
+      // This is opportunistic; the current stream can still use relay/fallbacks.
+    });
 
     for (const connection of this.connections()) {
       try {
@@ -96,46 +98,12 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
     });
   }
 
-  private async dialKnownAddresses() {
-    let target: Multiaddr[] = [];
-
-    try {
-      const peer = await this.node.peerStore.get(this.peerId);
-      target = peer.addresses.flatMap(({ multiaddr }) => {
-        const address = addressForPeer(multiaddr, this.peerId);
-        return address ? [address] : [];
-      });
-    } catch {
-      // A later dialProtocol call can still resolve the peer through routing.
-    }
-
-    if (target.length === 0) {
-      return;
-    }
-
-    try {
-      // PeerStore may omit the target peer id. Restore it so libp2p can
-      // attempt a direct upgrade without force-dialing.
-      await this.node.dial(target);
-    } catch {
-      // This is opportunistic; the current stream can still use relay/fallbacks.
-    }
-  }
-
   private connections() {
     return this.node
       .getConnections(this.peerId)
       .filter(({ status }) => status === "open")
       .sort(compareConnections);
   }
-}
-
-function addressForPeer(address: Multiaddr, peerId: PeerId) {
-  const last = address.getComponents().at(-1);
-  if (last?.name !== "p2p") {
-    return address.encapsulate(`/p2p/${peerId.toString()}`);
-  }
-  return last.value === peerId.toString() ? address : undefined;
 }
 
 function compareConnections(a: Connection, b: Connection) {

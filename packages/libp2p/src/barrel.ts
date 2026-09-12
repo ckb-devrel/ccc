@@ -1,3 +1,4 @@
+export * from "./dial.js";
 export * from "./jsonRpcService.js";
 export * from "./jsonRpcTransport.js";
 export * from "./pairingEndpoint.js";

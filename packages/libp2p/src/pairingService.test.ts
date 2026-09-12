@@ -12,10 +12,13 @@ const PROTOCOL = "/pairing/test/1.0.0";
 type OpenStream = PairingServiceComponents["connectionManager"]["openStream"];
 type OpenConnection =
   PairingServiceComponents["connectionManager"]["openConnection"];
+type GetConnections =
+  PairingServiceComponents["connectionManager"]["getConnections"];
 
 type TestNode = {
   components: PairingServiceComponents;
   handler?: StreamHandler;
+  getConnections: Mock<GetConnections>;
   openConnection: Mock<OpenConnection>;
   openStream: Mock<OpenStream>;
   peerId: PeerId;
@@ -33,11 +36,13 @@ function createTestNode(id: string, addresses: Multiaddr[] = []): TestNode {
   const node = {} as TestNode;
   const openConnection = vi.fn<OpenConnection>();
   const openStream = vi.fn<OpenStream>();
+  const getConnections = vi.fn<GetConnections>(() => []);
   const components = {
     addressManager: {
       getAddresses: () => addresses,
     },
     connectionManager: {
+      getConnections,
       openConnection,
       openStream,
     },
@@ -50,6 +55,7 @@ function createTestNode(id: string, addresses: Multiaddr[] = []): TestNode {
   } as unknown as PairingServiceComponents;
 
   node.components = components;
+  node.getConnections = getConnections;
   node.openConnection = openConnection;
   node.openStream = openStream;
   node.peerId = testPeerId(id);
@@ -246,6 +252,42 @@ describe("PairingService address exchange", () => {
       ).toBeLessThanOrEqual(1024);
     } finally {
       await Promise.all([initiator.service.stop(), provider.service.stop()]);
+    }
+  });
+});
+
+describe("PairingService timeout", () => {
+  it("keeps a connected peer paired and starts a full timeout when refreshed offline", async () => {
+    vi.useFakeTimers();
+    const initiator = createTestNode("initiator");
+    const provider = createTestNode("provider");
+    await Promise.all([initiator.service.start(), provider.service.start()]);
+    connect(initiator, provider);
+
+    try {
+      await initiator.service.pair({
+        addresses: [],
+        secret: provider.service.secret,
+      });
+      initiator.getConnections.mockReturnValue([
+        {
+          remotePeer: provider.peerId,
+          status: "open",
+        } as Connection,
+      ]);
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(initiator.service.isPaired(provider.peerId)).toBe(true);
+
+      initiator.getConnections.mockReturnValue([]);
+      initiator.service.refresh(provider.peerId);
+      await vi.advanceTimersByTimeAsync(59_999);
+      expect(initiator.service.isPaired(provider.peerId)).toBe(true);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(initiator.service.isPaired(provider.peerId)).toBe(false);
+    } finally {
+      await Promise.all([initiator.service.stop(), provider.service.stop()]);
+      vi.useRealTimers();
     }
   });
 });

@@ -307,6 +307,18 @@ export abstract class PairingService<
 
   private createPeerTimeout(peerId: PeerId) {
     return setTimeout(() => {
+      if (
+        this.components.connectionManager
+          .getConnections(peerId)
+          .some(({ status }) => status === "open")
+      ) {
+        this.pairingTimeouts.set(
+          peerId.toString(),
+          this.createPeerTimeout(peerId),
+        );
+        return;
+      }
+
       this.removePairedPeer(peerId);
     }, this.config.pairedPeerTimeoutMs);
   }

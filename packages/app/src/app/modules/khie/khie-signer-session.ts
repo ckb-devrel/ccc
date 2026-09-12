@@ -249,12 +249,23 @@ export class KhieSignerSession {
 
       void this.syncRemotePeer(node, peerId, event.detail);
     };
+    const refreshPairedPeer = (event: CustomEvent<PeerId>) => {
+      if (!this.resources.pairedPeer?.equals(event.detail)) {
+        return;
+      }
+
+      node.services.pairing.refresh(event.detail);
+    };
 
     node.addEventListener("self:peer:update", syncEndpoint);
     node.addEventListener("peer:identify", syncIdentifiedPeer);
+    node.addEventListener("peer:connect", refreshPairedPeer);
+    node.addEventListener("peer:disconnect", refreshPairedPeer);
     this.resources.nodeSubscriptions.push(
       () => node.removeEventListener("self:peer:update", syncEndpoint),
       () => node.removeEventListener("peer:identify", syncIdentifiedPeer),
+      () => node.removeEventListener("peer:connect", refreshPairedPeer),
+      () => node.removeEventListener("peer:disconnect", refreshPairedPeer),
       node.services.pairing.onSecretChanged(syncEndpoint),
       node.services.pairing.onError((error) => {
         const signal = this.resources.pairingController?.signal;
