@@ -226,6 +226,30 @@ export function KhieClientModule({
       logCurrent(`Relay connected: ${address}`, "success");
     },
   );
+  const pairLocationEndpoint = useEffectEvent(
+    async (currentSession: KhieSignerSession) => {
+      const endpoint = window.location.href;
+      try {
+        // Pairing parameters live in the URL fragment. Decode without a role
+        // constraint so normal module anchors and malformed links are ignored,
+        // while session.pair can surface a valid endpoint's role mismatch.
+        await Libp2p.decodePairingEndpoint(endpoint);
+      } catch {
+        return;
+      }
+
+      setIncompatiblePeerError(undefined);
+      setKhieEndpoint(endpoint);
+      setPairing(true);
+      try {
+        if (await currentSession.pair(endpoint)) {
+          setKhieEndpoint("");
+        }
+      } finally {
+        setPairing(false);
+      }
+    },
+  );
 
   const resolveApproval = (approved: boolean) => {
     if (!approvalEnabledRef.current) {
@@ -423,6 +447,7 @@ export function KhieClientModule({
         });
         logCurrent("Signer node is ready", "success");
         void connectDefaultRelay(session);
+        void pairLocationEndpoint(session);
       },
       onUnpaired: () => {
         connectedNetworkIdRef.current = undefined;
