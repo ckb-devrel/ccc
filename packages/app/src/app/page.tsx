@@ -2,6 +2,7 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import {
+  AlertTriangle,
   ArrowRight,
   ChevronRight,
   Database,
@@ -80,6 +81,17 @@ export default function Home() {
     return new ccc.SignerCkbPrivateKey(client, privateKeySigner.privateKey);
   }, [client, privateKeySigner, signerInfo]);
   const connected = signer !== undefined;
+  const [connectionStatus, setConnectionStatus] = useState({
+    connected,
+    disconnected: false,
+  });
+  if (connectionStatus.connected !== connected) {
+    setConnectionStatus({
+      connected,
+      disconnected: connectionStatus.connected && !connected,
+    });
+  }
+  const connectionDisconnected = connectionStatus.disconnected;
   const usingPrivateKey = privateKeySigner !== undefined;
   const needsAccess = selectedModule?.access === "signer";
   const displayedModule = selectedModule ?? stagedModule;
@@ -461,6 +473,16 @@ export default function Home() {
                 </form>
               ) : (
                 <div className="connection-options">
+                  {connectionDisconnected ? (
+                    <p
+                      className="signer-disconnected-notice"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <AlertTriangle size={16} aria-hidden="true" />
+                      <span>Signer disconnected. Please reconnect.</span>
+                    </p>
+                  ) : null}
                   <button
                     type="button"
                     className="connection-option option-primary"

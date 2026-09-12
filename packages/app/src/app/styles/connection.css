@@ -143,6 +143,25 @@
   gap: 10px;
 }
 
+.signer-disconnected-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--error) 55%, transparent);
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 7%, transparent);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.signer-disconnected-notice svg {
+  flex: 0 0 auto;
+}
+
 .connection-option {
   display: grid;
   min-height: 76px;
