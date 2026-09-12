@@ -185,7 +185,7 @@ export function DeployerModule({
     type: ccc.Script;
   }>();
   const [immutable, setImmutable] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"burn" | "deploy">();
   const [refreshNonce, setRefreshNonce] = useState(0);
   const {
     hasMore: hasMoreTypeIdCells,
@@ -270,7 +270,7 @@ export function DeployerModule({
 
   const submit = async (mode: "burn" | "deploy") => {
     if (!signer) return;
-    setBusy(true);
+    setBusyAction(mode);
     const action =
       mode === "burn"
         ? "burn"
@@ -313,7 +313,7 @@ export function DeployerModule({
     } catch (cause) {
       reportModuleError(cause, show, log, `Cell ${action} failed`);
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   };
 
@@ -514,26 +514,26 @@ export function DeployerModule({
           type="button"
           disabled={
             !signer ||
-            busy ||
+            busyAction !== undefined ||
             typeIdSelection === "new" ||
             !isCompleteTypeId(typeId)
           }
           onClick={() => submit("burn")}
         >
-          Burn
+          {busyAction === "burn" ? "Burning…" : "Burn"}
         </button>
         <button
           type="button"
           className="is-primary"
           disabled={
             !signer ||
-            busy ||
+            busyAction !== undefined ||
             !file ||
             (typeIdSelection === "manual" && !isCompleteTypeId(typeId))
           }
           onClick={() => submit("deploy")}
         >
-          {busy
+          {busyAction === "deploy"
             ? "Deploying…"
             : typeIdSelection === "new"
               ? "Deploy file"
