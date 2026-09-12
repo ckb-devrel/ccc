@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { Libp2p } from "@ckb-ccc/libp2p";
-import type { Identify } from "@libp2p/identify";
+import type { Identify, IdentifyPush } from "@libp2p/identify";
 import type {
   Connection,
   IdentifyResult,
@@ -14,6 +14,7 @@ type BrowserJsonRpcComponents = Libp2p.JsonRpcServiceComponents & {
 };
 type KhieSignerServices = {
   identify: Identify;
+  identifyPush: IdentifyPush;
   jsonRpc: Libp2p.JsonRpcService<BrowserJsonRpcComponents>;
   pairing: Libp2p.PairingService;
 };
@@ -402,7 +403,7 @@ async function createKhieSignerNode(
     { noise },
     { yamux },
     { circuitRelayTransport },
-    { identify },
+    { identify, identifyPush },
     { webRTC },
     { webSockets },
     { createLibp2p },
@@ -422,11 +423,16 @@ async function createKhieSignerNode(
   try {
     node = await createLibp2p<KhieSignerServices>({
       addresses: { listen: ["/p2p-circuit", "/webrtc"] },
+      peerStore: {
+        // Khie nodes are session-scoped; retain learned addresses for reconnects.
+        maxAddressAge: Infinity,
+      },
       transports: [webSockets(), webRTC(), circuitRelayTransport()],
       connectionEncrypters: [noise()],
       streamMuxers: [yamux()],
       services: {
         identify: identify(),
+        identifyPush: identifyPush(),
         pairing: Libp2p.pairingService(
           { protocol: KHIE_PAIRING_PROTOCOL, pairedPeerTimeoutMs },
           canPair,
