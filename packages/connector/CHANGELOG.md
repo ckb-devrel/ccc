@@ -1,5 +1,13 @@
 # @ckb-ccc/connector
 
+## 2.1.1
+
+### Patch Changes
+
+- [#529](https://github.com/ckb-devrel/ccc/pull/529) [`aa56eb0`](https://github.com/ckb-devrel/ccc/commit/aa56eb011ece822549bd6a5af73f5159014297d9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie QR code scan reliability with a standards-compliant quiet zone and high-contrast rendering.
+
+- [#527](https://github.com/ckb-devrel/ccc/pull/527) [`0cc00e8`](https://github.com/ckb-devrel/ccc/commit/0cc00e83f75f10954cc428c794de2a4d82046957) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Render connected signer addresses independently from balance lookup failures or delays.
+
 ## 2.1.0
 
 ### Minor Changes
