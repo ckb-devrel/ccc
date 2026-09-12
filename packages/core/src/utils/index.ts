@@ -174,8 +174,27 @@ export async function reduceAsync<T, V>(
   );
 }
 
-export function sleep(ms: NumLike) {
-  return new Promise((resolve) => setTimeout(resolve, Number(numFrom(ms))));
+/**
+ * Waits for the given duration, rejecting with the abort reason if cancelled.
+ * @public
+ */
+export function sleep(ms: NumLike, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+
+    const onAbort = () => {
+      clearTimeout(timeout);
+      reject(signal?.reason);
+    };
+    const timeout = setTimeout(
+      () => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      },
+      Number(numFrom(ms)),
+    );
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**
