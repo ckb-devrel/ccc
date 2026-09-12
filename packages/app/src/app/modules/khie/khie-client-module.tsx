@@ -793,26 +793,18 @@ function RemotePeerDetails({
   onUnpair: () => void;
   peer?: KhieRemotePeer;
 }) {
-  const [now, setNow] = useState(peer?.lastRequestAt ?? 0);
+  const [now, setNow] = useState(peer?.lastSeenAt ?? 0);
 
   useEffect(() => {
-    if (peer?.lastRequestAt === undefined) {
+    if (peer?.active !== false || peer.lastSeenAt === undefined) {
       return;
     }
 
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [peer?.lastRequestAt]);
+  }, [peer?.active, peer?.lastSeenAt]);
 
-  const path =
-    peer?.direct === undefined
-      ? "Unknown path"
-      : peer.direct
-        ? "Direct"
-        : "Relayed";
-  const connectedAt = peer?.connectedAt
-    ? new Date(peer.connectedAt)
-    : undefined;
+  const path = !peer?.active ? "Inactive" : peer.direct ? "Direct" : "Relayed";
   const name = displayPeerName(peer?.name);
 
   return (
@@ -851,21 +843,13 @@ function RemotePeerDetails({
             </code>
           </div>
           <div className={styles["peer-time"]}>
-            <span>Connected</span>
-            {connectedAt ? (
-              <time dateTime={connectedAt.toISOString()}>
-                {connectedAt.toLocaleString()}
-              </time>
-            ) : (
-              <strong>Not available</strong>
-            )}
-          </div>
-          <div className={styles["peer-time"]}>
-            <span>Last request</span>
+            <span>Last seen</span>
             <strong>
-              {peer.lastRequestAt === undefined
-                ? "No requests yet"
-                : formatElapsedDuration(peer.lastRequestAt, now)}
+              {peer.active
+                ? "Active"
+                : peer.lastSeenAt === undefined
+                  ? "Not available"
+                  : formatElapsedDuration(peer.lastSeenAt, now)}
             </strong>
           </div>
         </div>
