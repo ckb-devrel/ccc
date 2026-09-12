@@ -80,6 +80,7 @@ export function KhieClientModule({
   const approvalRef = useRef<ApprovalPrompt>(undefined);
   const approvalEnabledRef = useRef(false);
   const approvalQueue = useRef<ApprovalPrompt[]>([]);
+  const connectedNetworkIdRef = useRef<string>(undefined);
   const sessionOwnerRef = useRef<ccc.Owner<KhieSignerSession>>(undefined);
 
   const connectingRelay = relayState === "connecting";
@@ -101,11 +102,15 @@ export function KhieClientModule({
   const connectSigner = useEffectEvent(
     async (networkId: string, signal: AbortSignal) => {
       signal.throwIfAborted();
+      // A connect request is allowed to move the provider to its requested
+      // network. Stop enforcing the previous connection while that happens.
+      connectedNetworkIdRef.current = undefined;
       const current = signerRef.current;
       if (
         current &&
         networkIdFromAddressPrefix(current.client.addressPrefix) === networkId
       ) {
+        connectedNetworkIdRef.current = networkId;
         return current;
       }
 
@@ -114,7 +119,7 @@ export function KhieClientModule({
         setClient(clientOwner);
       }
 
-      return new Promise<ccc.Signer>((resolve, reject) => {
+      const connected = await new Promise<ccc.Signer>((resolve, reject) => {
         const waiter: SignerWaiter = {
           abort: () => {
             if (!signerWaiters.current.delete(waiter)) {
@@ -136,6 +141,8 @@ export function KhieClientModule({
         }
         resolveSignerWaiters(signerRef.current, signerWaiters.current);
       });
+      connectedNetworkIdRef.current = networkId;
+      return connected;
     },
   );
   const settleApproval = useCallback(
@@ -253,13 +260,28 @@ export function KhieClientModule({
   }, [signer]);
 
   useEffect(() => {
-    // A Client change can briefly clear the signer while Connector discovers
-    // its replacement. Preserve the pairing during that handoff, but unpair
-    // when the signer remains absent long enough to indicate a real disconnect.
-    if (signer || !session || !paired) {
+    if (!session || !paired) {
       return;
     }
 
+    if (signer) {
+      // The remote Client chooses the network during connect. If the provider
+      // later moves elsewhere on its own, invalidate the pairing instead of
+      // serving requests against a network the remote did not select.
+      const connectedNetworkId = connectedNetworkIdRef.current;
+      if (
+        connectedNetworkId &&
+        networkIdFromAddressPrefix(signer.client.addressPrefix) !==
+          connectedNetworkId
+      ) {
+        void session.unpair();
+      }
+      return;
+    }
+
+    // A Client change can briefly clear the signer while Connector discovers
+    // its replacement. Preserve the pairing during that handoff, but unpair
+    // when the signer remains absent long enough to indicate a real disconnect.
     const timeout = window.setTimeout(() => {
       void session.unpair();
     }, SIGNER_REPLACEMENT_GRACE_MS);
@@ -403,6 +425,7 @@ export function KhieClientModule({
         void connectDefaultRelay(session);
       },
       onUnpaired: () => {
+        connectedNetworkIdRef.current = undefined;
         setPaired(false);
         setRemotePeer(undefined);
         rejectSignerWaiters(
