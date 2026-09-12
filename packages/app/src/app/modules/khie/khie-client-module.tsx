@@ -40,6 +40,7 @@ type RelayState = "connected" | "connecting" | "failed" | "idle";
 const PROVIDER_ENDPOINT_URL = "https://app.ckbccc.com/#khie";
 const JSON_RPC_REQUEST_TIMEOUT_MS = 120_000;
 const APPROVAL_ENABLE_DELAY_MS = 1_000;
+const SIGNER_REPLACEMENT_GRACE_MS = 1_000;
 
 export function KhieClientModule({
   client,
@@ -79,6 +80,7 @@ export function KhieClientModule({
   const approvalRef = useRef<ApprovalPrompt>(undefined);
   const approvalEnabledRef = useRef(false);
   const approvalQueue = useRef<ApprovalPrompt[]>([]);
+  const sessionOwnerRef = useRef<ccc.Owner<KhieSignerSession>>(undefined);
 
   const connectingRelay = relayState === "connecting";
   const relayConnected = relayState === "connected";
@@ -251,6 +253,20 @@ export function KhieClientModule({
   }, [signer]);
 
   useEffect(() => {
+    // A Client change can briefly clear the signer while Connector discovers
+    // its replacement. Preserve the pairing during that handoff, but unpair
+    // when the signer remains absent long enough to indicate a real disconnect.
+    if (signer || !session || !paired) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void session.unpair();
+    }, SIGNER_REPLACEMENT_GRACE_MS);
+    return () => window.clearTimeout(timeout);
+  }, [paired, session, signer]);
+
+  useEffect(() => {
     if (!approval) {
       return;
     }
@@ -297,6 +313,12 @@ export function KhieClientModule({
   );
 
   useEffect(() => {
+    // Start lazily, then keep the session owned by the module across signer
+    // replacement or temporary signer absence.
+    if (!signer || sessionOwnerRef.current) {
+      return;
+    }
+
     showCurrent({
       label: "STARTING LIBP2P",
       tone: "idle",
@@ -396,13 +418,19 @@ export function KhieClientModule({
         logCurrent("Khie peer unpaired");
       },
     });
+    sessionOwnerRef.current = owner;
     const nextSession = owner.value;
     setSession(nextSession);
+  }, [signer]);
 
-    return () => {
-      void owner.dispose();
-    };
-  }, []);
+  useEffect(
+    () => () => {
+      const owner = sessionOwnerRef.current;
+      sessionOwnerRef.current = undefined;
+      void owner?.dispose();
+    },
+    [],
+  );
 
   const connectRelay = async () => {
     const address = relayAddress.trim();
