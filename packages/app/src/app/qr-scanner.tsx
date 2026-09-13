@@ -1,14 +1,9 @@
 "use client";
 
-import type { QRCanvas } from "qr/dom.js";
+import type { QRCamera, QRCanvas } from "qr/dom.js";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 const SCAN_INTERVAL_MS = 100;
-
-interface QrCamera {
-  readFrame(canvas: QRCanvas, fullSize?: boolean): string | undefined;
-  stop(): void;
-}
 
 export type QrScannerProps = {
   ariaLabel?: string;
@@ -34,7 +29,7 @@ export function QrScanner({
     }
 
     let stopped = false;
-    let camera: QrCamera | undefined;
+    let camera: QRCamera | undefined;
     let stopScanLoop = () => {};
     const stop = () => {
       if (stopped) {
@@ -50,12 +45,12 @@ export function QrScanner({
     const start = async () => {
       try {
         assertCameraAvailable();
-        const { QRCanvas, frontalCamera } = await import("qr/dom.js");
+        const { QRCanvas, rearCamera } = await import("qr/dom.js");
         if (stopped) {
           return;
         }
 
-        camera = await frontalCamera(video);
+        camera = await rearCamera(video);
         if (stopped) {
           camera.stop();
           video.srcObject = null;
@@ -115,32 +110,50 @@ function assertCameraAvailable() {
 
 function startScanning(
   video: HTMLVideoElement,
-  camera: QrCamera,
+  camera: QRCamera,
   canvas: QRCanvas,
   onScan: (value: string) => void,
   onError: (error: unknown) => void,
 ) {
   let timeout: ReturnType<typeof setTimeout>;
-  const scan = () => {
+  let stopped = false;
+
+  const scheduleScan = () => {
+    timeout = setTimeout(() => void scan(), SCAN_INTERVAL_MS);
+  };
+
+  async function scan() {
+    if (stopped) {
+      return;
+    }
+
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      timeout = setTimeout(scan, SCAN_INTERVAL_MS);
+      scheduleScan();
       return;
     }
 
     try {
-      const value = camera.readFrame(canvas, true);
-      if (value) {
+      const value = await camera.readFrame(canvas, true);
+      if (stopped) {
+        return;
+      }
+      if (typeof value === "string") {
         onScan(value);
         return;
       }
     } catch (error) {
-      onError(error);
+      if (!stopped) {
+        onError(error);
+      }
       return;
     }
 
-    timeout = setTimeout(scan, SCAN_INTERVAL_MS);
-  };
+    scheduleScan();
+  }
 
-  timeout = setTimeout(scan, SCAN_INTERVAL_MS);
-  return () => clearTimeout(timeout);
+  scheduleScan();
+  return () => {
+    stopped = true;
+    clearTimeout(timeout);
+  };
 }

@@ -45,10 +45,10 @@ Start here, then read the linked pages in order for the task at hand:
 The "Wallet Integrations" section lists one page per supported wallet — read only the one(s) your app targets; they all share the same unified \`Signer\` interface.
 `;
 
-export function GET() {
-  const index = llms(source)
+export async function GET() {
+  const index = (await llms(source)
     // English only — Chinese pages are linked via the note in the preamble
-    .index('en')
+    .index('en'))
     // Make relative links absolute so agents can fetch them directly
     .replace(/\]\(\//g, `](${siteUrl}/`)
     // Drop the generic top-level heading; the preamble provides one

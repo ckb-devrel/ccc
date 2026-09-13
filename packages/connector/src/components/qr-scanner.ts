@@ -1,13 +1,8 @@
 import { css, html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators.js";
-import type { QRCanvas } from "qr/dom.js";
+import type { QRCamera, QRCanvas } from "qr/dom.js";
 
 const SCAN_INTERVAL_MS = 100;
-
-interface QrCamera {
-  readFrame(canvas: QRCanvas, fullSize?: boolean): string | undefined;
-  stop(): void;
-}
 
 function assertCameraAvailable() {
   if (!window.isSecureContext) {
@@ -20,38 +15,55 @@ function assertCameraAvailable() {
 
 function startScanLoop(
   video: HTMLVideoElement,
-  camera: QrCamera,
+  camera: QRCamera,
   canvas: QRCanvas,
   onScanned: (value: string) => void,
   onError: (error: unknown) => void,
 ) {
   let timeout: ReturnType<typeof setTimeout>;
+  let stopped = false;
 
-  const scanFrame = () => {
+  const scheduleScan = () => {
+    timeout = setTimeout(() => void scanFrame(), SCAN_INTERVAL_MS);
+  };
+
+  async function scanFrame() {
+    if (stopped) {
+      return;
+    }
+
     // Wait until the video has a frame that can be decoded.
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      timeout = setTimeout(scanFrame, SCAN_INTERVAL_MS);
+      scheduleScan();
       return;
     }
 
     try {
       // Decode the full camera frame so QR codes near the preview edge still work.
-      const value = camera.readFrame(canvas, true);
-      if (value) {
+      const value = await camera.readFrame(canvas, true);
+      if (stopped) {
+        return;
+      }
+      if (typeof value === "string") {
         onScanned(value);
         return;
       }
     } catch (error) {
-      onError(error);
+      if (!stopped) {
+        onError(error);
+      }
       return;
     }
 
-    timeout = setTimeout(scanFrame, SCAN_INTERVAL_MS);
-  };
+    scheduleScan();
+  }
 
-  timeout = setTimeout(scanFrame, SCAN_INTERVAL_MS);
+  scheduleScan();
   // The caller owns the loop lifetime together with the camera session.
-  return () => clearTimeout(timeout);
+  return () => {
+    stopped = true;
+    clearTimeout(timeout);
+  };
 }
 
 export class QrScannedEvent extends Event {
@@ -89,7 +101,7 @@ export class QrScanner extends LitElement {
       return;
     }
 
-    let camera: QrCamera | undefined;
+    let camera: QRCamera | undefined;
     let stopScanLoop = () => {};
     const cleanup = () => {
       stopScanLoop();
@@ -102,12 +114,12 @@ export class QrScanner extends LitElement {
     try {
       assertCameraAvailable();
 
-      const { QRCanvas, frontalCamera } = await import("qr/dom.js");
+      const { QRCanvas, rearCamera } = await import("qr/dom.js");
       if (!isCurrent()) {
         return;
       }
 
-      camera = await frontalCamera(video);
+      camera = await rearCamera(video);
       // Camera permission may resolve after the scanner is removed.
       if (!isCurrent()) {
         camera.stop();
