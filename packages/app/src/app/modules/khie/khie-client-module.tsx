@@ -1404,7 +1404,7 @@ function reportError(
 
 function isIncompatiblePeerError(cause: unknown): cause is Error {
   return (
-    cause instanceof Libp2p.PairingEndpointRoleError ||
+    cause instanceof Libp2p.PairingEndpointError ||
     (cause instanceof Error && cause.name === "UnsupportedProtocolError")
   );
 }

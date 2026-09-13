@@ -7,7 +7,14 @@ const MAX_DECOMPRESSED_ADDRESSES_LENGTH = 16 * 1024;
 const MAX_ADDRESSES = 16;
 const PAIRING_PARAMETER_NAMES = ["addresses", "role", "secret"] as const;
 
-export class PairingEndpointRoleError extends Error {
+export class PairingEndpointError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "PairingEndpointError";
+  }
+}
+
+export class PairingEndpointRoleError extends PairingEndpointError {
   constructor(
     readonly expectedRole: string,
     readonly actualRole: string | undefined,
@@ -66,7 +73,14 @@ export async function decodePairingEndpoint(
   endpoint: string,
   expectedRole?: string,
 ): Promise<PairingTarget> {
-  const url = new URL(endpoint.trim());
+  let url: URL;
+  try {
+    url = new URL(endpoint.trim());
+  } catch (cause) {
+    throw new PairingEndpointError("Pairing endpoint is not a valid URL", {
+      cause,
+    });
+  }
   const { params } = fragmentParameters(url);
   if (expectedRole) {
     const actualRole = params.get("role")?.trim() || undefined;
@@ -78,7 +92,7 @@ export async function decodePairingEndpoint(
   const secret = params.get("secret")?.trim();
 
   if (!compressedAddresses || !secret) {
-    throw new Error("Pairing endpoint is incomplete");
+    throw new PairingEndpointError("Pairing endpoint is incomplete");
   }
 
   const addresses = await decodeCompressedAddresses(compressedAddresses);
@@ -128,9 +142,10 @@ async function decodeCompressedAddresses(value: string): Promise<Multiaddr[]> {
     }
     return addresses;
   } catch (cause) {
-    throw new Error("Pairing endpoint contains invalid compressed addresses", {
-      cause,
-    });
+    throw new PairingEndpointError(
+      "Pairing endpoint contains invalid compressed addresses",
+      { cause },
+    );
   }
 }
 
