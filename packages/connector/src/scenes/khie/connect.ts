@@ -40,7 +40,7 @@ export class KhieConnectScene extends LitElement {
 
   render() {
     return html`<ccc-dialog
-      header="Connect Khie"
+      header="Connect a Wallet via Khie"
       ?canBack=${true}
       @back=${this.back}
     >
