@@ -1,5 +1,14 @@
 # @ckb-ccc/okx
 
+## 1.2.3
+
+### Patch Changes
+
+- Updated dependencies [[`182b880`](https://github.com/ckb-devrel/ccc/commit/182b880bd6343b7ecdc1f5732c1f72cd5a22a44d)]:
+  - @ckb-ccc/core@1.21.0
+  - @ckb-ccc/nip07@1.1.12
+  - @ckb-ccc/uni-sat@1.2.3
+
 ## 1.2.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/libp2p",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "CCC support for libp2p",
   "author": "Hanssen0 <0@hanssen0.com>",
   "license": "MIT",

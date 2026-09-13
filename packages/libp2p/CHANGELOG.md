@@ -1,5 +1,21 @@
 # @ckb-ccc/libp2p
 
+## 0.2.0
+
+### Minor Changes
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`47bd5cb`](https://github.com/ckb-devrel/ccc/commit/47bd5cb4fb23949ab01a7300ce1de2dc7ea61e40) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve long-lived Khie connections by redialing known addresses for every
+  JSON-RPC stream, sharing address updates with Identify Push, and retaining
+  learned addresses for the session.
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`3fddda3`](https://github.com/ckb-devrel/ccc/commit/3fddda3d1ec1b6d2c693b77431c04c2d0167b781) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie reconnection across disconnects and page suspension, preserving
+  active pairings and restoring direct connections when possible.
+
+### Patch Changes
+
+- Updated dependencies [[`182b880`](https://github.com/ckb-devrel/ccc/commit/182b880bd6343b7ecdc1f5732c1f72cd5a22a44d)]:
+  - @ckb-ccc/core@1.21.0
+
 ## 0.1.0
 
 ### Minor Changes

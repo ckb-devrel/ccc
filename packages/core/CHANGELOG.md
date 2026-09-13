@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.21.0
+
+### Minor Changes
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`182b880`](https://github.com/ckb-devrel/ccc/commit/182b880bd6343b7ecdc1f5732c1f72cd5a22a44d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add optional AbortSignal support to `sleep`.
+
 ## 1.20.1
 
 ### Patch Changes
