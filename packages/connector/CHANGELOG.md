@@ -1,5 +1,14 @@
 # @ckb-ccc/connector
 
+## 2.2.2
+
+### Patch Changes
+
+- [#538](https://github.com/ckb-devrel/ccc/pull/538) [`272dd4e`](https://github.com/ckb-devrel/ccc/commit/272dd4e1c4cbd4e2027d78379b92cb25df9f111d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Show the Khie pairing guidance for every invalid endpoint input instead of
+  exposing low-level parsing errors.
+- Updated dependencies [[`272dd4e`](https://github.com/ckb-devrel/ccc/commit/272dd4e1c4cbd4e2027d78379b92cb25df9f111d)]:
+  - @ckb-ccc/libp2p@0.2.1
+
 ## 2.2.1
 
 ### Patch Changes
