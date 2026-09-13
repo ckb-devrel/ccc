@@ -1,5 +1,11 @@
 # @ckb-ccc/connector
 
+## 2.2.1
+
+### Patch Changes
+
+- [#535](https://github.com/ckb-devrel/ccc/pull/535) [`0544688`](https://github.com/ckb-devrel/ccc/commit/054468841296d39cf4a510b576dbeec06dbcfae5) Thanks [@dependabot](https://github.com/apps/dependabot)! - Update the QR scanner dependency.
+
 ## 2.2.0
 
 ### Minor Changes

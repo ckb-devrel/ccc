@@ -1,5 +1,12 @@
 # @ckb-ccc/connector-react
 
+## 2.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`0544688`](https://github.com/ckb-devrel/ccc/commit/054468841296d39cf4a510b576dbeec06dbcfae5)]:
+  - @ckb-ccc/connector@2.2.1
+
 ## 2.1.2
 
 ### Patch Changes
