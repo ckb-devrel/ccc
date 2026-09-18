@@ -1,5 +1,19 @@
 # @ckb-ccc/connector
 
+## 2.2.3
+
+### Patch Changes
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`a8be9c4`](https://github.com/ckb-devrel/ccc/commit/a8be9c4e8a4df2e7ef3a685bc3bb185620d341a3) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Prefer the browser's native `BarcodeDetector` for QR scanning when available,
+  while retaining the existing decoder as a fallback.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`8b0a8b5`](https://github.com/ckb-devrel/ccc/commit/8b0a8b50dff0b5ddd8b21c15d5ce1cb8ac4842f0) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add a relay connection controller that selects an available relay and keeps it
+  connected with availability-aware retries. Khie now restores relay and paired
+  peer connectivity after network changes.
+- Updated dependencies [[`7d5781b`](https://github.com/ckb-devrel/ccc/commit/7d5781be9dc48dc0439d173f6aa45f2281c3ac8c), [`8b0a8b5`](https://github.com/ckb-devrel/ccc/commit/8b0a8b50dff0b5ddd8b21c15d5ce1cb8ac4842f0)]:
+  - @ckb-ccc/libp2p@0.3.0
+  - @ckb-ccc/ccc@1.3.4
+
 ## 2.2.2
 
 ### Patch Changes

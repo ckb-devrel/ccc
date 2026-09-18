@@ -1,5 +1,26 @@
 # @ckb-ccc/okx
 
+## 1.2.4
+
+### Patch Changes
+
+- [#541](https://github.com/ckb-devrel/ccc/pull/541) [`7680821`](https://github.com/ckb-devrel/ccc/commit/7680821e0c113a790f00e0fe53e0d69f92588ce4) Thanks [@fghdotio](https://github.com/fghdotio)! - Apply the documented `signPsbt` defaults consistently across BTC wallets.
+  
+  - UniSat and OKX now translate `SignPsbtOptions` into the wallet's own
+    `{ autoFinalized, toSignInputs }` shape instead of forwarding the CCC
+    options as-is, so `autoFinalized` defaults to `true` and `inputsToSign` is
+    no longer silently ignored. `UniSatA.Provider.signPsbt` is now typed with
+    the wallet's actual option shape, exposed as `UniSatA.SignPsbtOptions`.
+  - JoyID now sends `inputsToSign` as the `toSignInputs` field it expects,
+    instead of silently dropping it.
+  - Xverse now finalizes the requested inputs locally when `autoFinalized` is
+    enabled, since its `signPsbt` RPC returns unfinalized PSBTs and has no
+    finalize option.
+- Updated dependencies [[`3ef932a`](https://github.com/ckb-devrel/ccc/commit/3ef932a471f72704502a708241a960ee44d00377), [`0d5cd4b`](https://github.com/ckb-devrel/ccc/commit/0d5cd4bc7113686675dfa5c94a1abacfb9b3e073), [`26f9c4d`](https://github.com/ckb-devrel/ccc/commit/26f9c4d0d77d35bfba0d74483458a24a2077fac9), [`7d5781b`](https://github.com/ckb-devrel/ccc/commit/7d5781be9dc48dc0439d173f6aa45f2281c3ac8c), [`7680821`](https://github.com/ckb-devrel/ccc/commit/7680821e0c113a790f00e0fe53e0d69f92588ce4), [`72309f6`](https://github.com/ckb-devrel/ccc/commit/72309f666471720d4e808c39916a630aa21891f7), [`4cddf9b`](https://github.com/ckb-devrel/ccc/commit/4cddf9bfad50036672dfa3d29c89baea6af1e237), [`7d98b67`](https://github.com/ckb-devrel/ccc/commit/7d98b67137927b39577fa5429f1fa18a7242f88b)]:
+  - @ckb-ccc/core@1.22.0
+  - @ckb-ccc/uni-sat@1.2.4
+  - @ckb-ccc/nip07@1.1.13
+
 ## 1.2.3
 
 ### Patch Changes
