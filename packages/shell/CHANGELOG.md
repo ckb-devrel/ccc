@@ -1,5 +1,23 @@
 # @ckb-ccc/shell
 
+## 2.0.0-next.1
+
+### Minor Changes
+
+- feat(coin): new coin package
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+  - @ckb-ccc/coin@0.1.0-next.1
+  - @ckb-ccc/co-build@0.1.0-next.1
+  - @ckb-ccc/did-ckb@0.3.0-next.1
+  - @ckb-ccc/spore@1.6.14-next.0
+  - @ckb-ccc/ssri@0.5.0-next.1
+  - @ckb-ccc/type-id@0.1.14-next.0
+  - @ckb-ccc/udt@0.2.14-next.0
+
 ## 1.3.13
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ckb-ccc/xverse
 
+## 1.2.5-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 1.2.4
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ckb-ccc/udt
 
+## 0.2.14-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+  - @ckb-ccc/ssri@0.5.0-next.1
+
 ## 0.2.13
 
 ### Patch Changes

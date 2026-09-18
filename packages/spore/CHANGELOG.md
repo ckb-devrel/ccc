@@ -1,5 +1,12 @@
 # @ckb-ccc/spore
 
+## 1.6.14-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 1.6.13
 
 ### Patch Changes

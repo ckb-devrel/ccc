@@ -1,5 +1,16 @@
 # @ckb-ccc/joy-id
 
+## 1.3.0-next.0
+
+### Minor Changes
+
+- feat(joy-id): address info in identity
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 1.2.4
 
 ### Patch Changes

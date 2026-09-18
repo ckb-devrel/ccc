@@ -1,5 +1,17 @@
 # @ckb-ccc/coin
 
+## 0.1.0-next.1
+
+### Minor Changes
+
+- feat(coin): new coin package
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+  - @ckb-ccc/co-build@0.1.0-next.1
+
 ## 0.1.0-next.0
 ### Minor Changes
 

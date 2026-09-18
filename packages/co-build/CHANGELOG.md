@@ -1,5 +1,18 @@
 # @ckb-ccc/co-build
 
+## 0.1.0-next.1
+
+### Minor Changes
+
+- refactor(co-build)!: make transaction parameters optional and create a new transaction when omitted
+
+- feat(co-build): new CoBuild package
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 0.1.0-next.0
 ### Minor Changes
 

@@ -1,5 +1,31 @@
 # @ckb-ccc/core
 
+## 2.0.0-next.1
+
+### Major Changes
+
+- feat(core)!: Codec.from
+
+- feat(joy-id): address info in identity
+
+- feat(core)!: @codec implements a default from
+
+- fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
+
+- feat(core): `reduce` and `reduceAsync` for `Iterable`
+
+### Minor Changes
+
+- feat(core): `Signer.fromSignature`
+
+- feat(core): reduce(Async) accept single value
+
+### Patch Changes
+
+- fix(core): occupy witness while adding output
+
+- fix(core): enforce minimum cell capacity after output data mutations
+
 ## 1.22.0
 
 ### Minor Changes

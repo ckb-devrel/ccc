@@ -1,5 +1,12 @@
 # @ckb-ccc/ssri
 
+## 0.5.0-next.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 0.4.3
 
 ### Patch Changes

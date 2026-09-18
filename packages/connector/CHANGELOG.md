@@ -1,5 +1,13 @@
 # @ckb-ccc/connector
 
+## 2.2.4-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/libp2p@0.3.1-next.0
+  - @ckb-ccc/ccc@2.0.0-next.1
+
 ## 2.2.3
 
 ### Patch Changes

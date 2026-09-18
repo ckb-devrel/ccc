@@ -1,5 +1,12 @@
 # @ckb-ccc/libp2p
 
+## 0.3.1-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+
 ## 0.3.0
 
 ### Minor Changes

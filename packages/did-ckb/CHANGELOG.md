@@ -1,5 +1,17 @@
 # @ckb-ccc/did-ckb
 
+## 0.3.0-next.1
+
+### Minor Changes
+
+- refactor(did-ckb)!: migrate DidCkbData to new union data type
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/core@2.0.0-next.1
+  - @ckb-ccc/type-id@0.1.14-next.0
+
 ## 0.2.13
 
 ### Patch Changes
