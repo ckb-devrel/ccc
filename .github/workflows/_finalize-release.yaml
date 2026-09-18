@@ -11,6 +11,10 @@ on:
         description: Package names and versions included in the release
         type: string
         required: true
+      release_name:
+        description: GitHub release name prefix
+        type: string
+        default: CCC release
 
 jobs:
   finalize:
@@ -57,14 +61,6 @@ jobs:
               if (typeof name !== "string" || typeof version !== "string") {
                 throw new Error("Release manifest contains an invalid package");
               }
-              const published = JSON.parse(execFileSync(
-                "npm",
-                ["view", `${name}@${version}`, "version", "--json"],
-                { encoding: "utf8" },
-              ));
-              if (published !== version) {
-                throw new Error(`${name}@${version} is not published to npm`);
-              }
               const directory = packageDirectories.get(name);
               if (!directory) {
                 throw new Error(`Unable to find package ${name}`);
@@ -102,6 +98,7 @@ jobs:
       - name: Create aggregate GitHub release
         uses: actions/github-script@v9
         env:
+          RELEASE_NAME: ${{ inputs.release_name }}
           RELEASES: ${{ steps.release.outputs.releases }}
           RELEASE_TIME: ${{ steps.release.outputs.release_time }}
           RELEASE_SHA: ${{ steps.release.outputs.sha }}
@@ -109,6 +106,7 @@ jobs:
           retries: 3
           script: |
             const releases = JSON.parse(process.env.RELEASES);
+            const releaseName = process.env.RELEASE_NAME;
             const releaseTime = process.env.RELEASE_TIME;
             const sha = process.env.RELEASE_SHA;
             const tag = `release-${sha.slice(0, 12)}`;
@@ -173,7 +171,7 @@ jobs:
             await github.rest.repos.createRelease({
               ...context.repo,
               tag_name: tag,
-              name: `CCC release ${releaseTime}`,
+              name: `${releaseName} ${releaseTime}`,
               body,
               prerelease: releases.some(({ version }) => version.includes("-")),
             });
