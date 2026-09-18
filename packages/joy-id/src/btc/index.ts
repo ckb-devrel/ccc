@@ -8,6 +8,31 @@ import {
 } from "../connectionsStorage/index.js";
 
 /**
+ * Converts CCC-level sign PSBT options into the shape expected by JoyID,
+ * which follows UniSat's `{ autoFinalized, toSignInputs }` convention.
+ *
+ * Empty `inputsToSign` is translated into an omitted `toSignInputs` so JoyID
+ * keeps its default of signing every input it can sign.
+ */
+function toJoyIdSignPsbtOptions(options: ccc.SignPsbtOptions) {
+  const toSignInputs = options.inputsToSign.map(
+    ({ index, address, publicKey, sighashTypes, disableTweakSigner }) => ({
+      index,
+      address,
+      publicKey:
+        publicKey !== undefined ? ccc.hexFrom(publicKey).slice(2) : undefined,
+      sighashTypes,
+      disableTweakSigner,
+    }),
+  );
+
+  return {
+    autoFinalized: options.autoFinalized,
+    ...(toSignInputs.length > 0 ? { toSignInputs } : {}),
+  };
+}
+
+/**
  * Class representing a Bitcoin signer that extends SignerBtc
  * @public
  */
@@ -198,7 +223,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: ccc.hexFrom(psbtHex).slice(2),
-          options: formattedOptions,
+          options: toJoyIdSignPsbtOptions(formattedOptions),
           signerAddress: address,
           autoFinalized: formattedOptions.autoFinalized,
         },
@@ -232,7 +257,12 @@ export class BitcoinSigner extends ccc.SignerBtc {
     options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
-    const formattedOptions = ccc.SignPsbtOptions.from(options);
+    // Broadcasting requires a finalized transaction, so autoFinalized is
+    // forced on regardless of what the caller passed.
+    const formattedOptions = new ccc.SignPsbtOptions(
+      true,
+      ccc.SignPsbtOptions.from(options).inputsToSign,
+    );
 
     const config = this.getConfig();
     // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
@@ -241,9 +271,9 @@ export class BitcoinSigner extends ccc.SignerBtc {
         {
           ...config,
           tx: ccc.hexFrom(psbtHex).slice(2),
-          options: formattedOptions,
+          options: toJoyIdSignPsbtOptions(formattedOptions),
           signerAddress: address,
-          autoFinalized: true, // sendPsbt always finalizes
+          autoFinalized: formattedOptions.autoFinalized,
           isSend: true,
         },
         "popup",

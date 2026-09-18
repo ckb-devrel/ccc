@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/connector",
-  "version": "2.1.0",
+  "version": "2.2.3",
   "description": "CCC - CKBer's Codebase. Common Chains Connector UI",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -54,7 +54,7 @@
     "core-js": "^3.50.0",
     "libp2p": "^3.3.9",
     "lit": "^3.3.3",
-    "qr": "^0.6.0"
+    "qr": "^0.7.0"
   },
   "packageManager": "pnpm@11.8.0"
 }

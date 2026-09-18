@@ -2,6 +2,7 @@ import {
   JsonRpcPayload,
   JsonRpcResponse,
   JsonRpcTransport,
+  JsonRpcTransportRequestOptions,
 } from "./transport.js";
 
 export class JsonRpcTransportFallback implements JsonRpcTransport {
@@ -10,7 +11,10 @@ export class JsonRpcTransportFallback implements JsonRpcTransport {
 
   constructor(private readonly transports: JsonRpcTransport[]) {}
 
-  async request(data: JsonRpcPayload): Promise<JsonRpcResponse> {
+  async request(
+    data: JsonRpcPayload,
+    options?: JsonRpcTransportRequestOptions,
+  ): Promise<JsonRpcResponse> {
     const startI = this.i;
     let lastErr: unknown = new Error(
       "JsonRpcTransportFallback requires at least one transport",
@@ -20,7 +24,7 @@ export class JsonRpcTransportFallback implements JsonRpcTransport {
       const i = (startI + tried) % this.transports.length;
 
       try {
-        const res = await this.transports[i].request(data);
+        const res = await this.transports[i].request(data, options);
 
         this.i = i;
         return res;

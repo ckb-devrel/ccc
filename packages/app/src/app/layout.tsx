@@ -7,19 +7,19 @@ export const metadata: Metadata = {
   title: "CCC App",
   description: "An app based on the CCC library",
   icons:
-    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
+    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/logo.svg",
   openGraph: {
     title: "CCC App",
     description: "An app based on the CCC library",
     images:
-      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
+      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/opengraph.png",
   },
   twitter: {
     card: "summary_large_image",
     title: "CCC App",
     description: "An app based on the CCC library",
     images:
-      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
+      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/opengraph.png",
   },
 };
 

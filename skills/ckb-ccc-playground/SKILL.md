@@ -109,7 +109,7 @@ to `docs.ckbccc.com`'s example gallery:
 3. Import the SDK from `@ckb-ccc/ccc` and `render`/`signer` from
    `@ckb-ccc/playground`; call `await render(tx)` at key steps.
 4. Paste the script into the Playground and verify it runs on Testnet.
-5. Open a PR against `master` describing the example's purpose.
+5. Open a PR against `dev` describing the example's purpose.
 
 ---
 

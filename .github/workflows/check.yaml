@@ -2,6 +2,8 @@ name: Build, lint and test
 
 on: [pull_request, push]
 
+cache-mode: ${{ github.event_name == 'pull_request' && 'read' || 'write' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,6 +14,8 @@ jobs:
         with:
           node-version: 26
       - uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
       - name: Install dependencies
         run: pnpm install

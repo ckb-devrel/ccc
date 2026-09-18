@@ -201,8 +201,8 @@ export class Signer extends ccc.SignerBtc {
   private buildDefaultinputsToSign(
     psbtHex: ccc.Hex,
     address: string,
-  ): ccc.InputToSignLike[] {
-    const inputsToSign: ccc.InputToSignLike[] = [];
+  ): ccc.InputToSign[] {
+    const inputsToSign: ccc.InputToSign[] = [];
 
     try {
       // Collect all unsigned inputs
@@ -216,7 +216,7 @@ export class Signer extends ccc.SignerBtc {
           (input.tapScriptSig && input.tapScriptSig.length > 0);
 
         if (!isSigned) {
-          inputsToSign.push({ index, address });
+          inputsToSign.push(ccc.InputToSign.from({ index, address }));
         }
       });
 
@@ -236,14 +236,14 @@ export class Signer extends ccc.SignerBtc {
 
   private async prepareSignPsbtParams(
     psbtHex: ccc.Hex,
-    options?: ccc.SignPsbtOptionsLike,
+    options: ccc.SignPsbtOptions,
   ): Promise<{
     psbtBase64: string;
     signInputs: Record<string, number[]>;
   }> {
-    let inputsToSign = options?.inputsToSign;
+    let inputsToSign = options.inputsToSign;
 
-    if (!inputsToSign || !inputsToSign.length) {
+    if (!inputsToSign.length) {
       const address = await this.getBtcAccount();
       inputsToSign = this.buildDefaultinputsToSign(psbtHex, address);
     }
@@ -271,6 +271,36 @@ export class Signer extends ccc.SignerBtc {
   }
 
   /**
+   * Finalize the inputs Xverse was asked to sign.
+   *
+   * Xverse returns the signed PSBT without finalizing it, so this is done
+   * locally to honor `autoFinalized`. Only the requested inputs are touched,
+   * leaving inputs owned by other signers untouched.
+   */
+  private finalizeSignedInputs(
+    psbt: Psbt,
+    signInputs: Record<string, number[]>,
+  ): void {
+    const indexes = new Set(Object.values(signInputs).flat());
+
+    try {
+      for (const index of indexes) {
+        const input = psbt.data.inputs[index];
+        if (input?.finalScriptSig || input?.finalScriptWitness) {
+          continue;
+        }
+        psbt.finalizeInput(index);
+      }
+    } catch (error) {
+      throw new Error(
+        "Failed to finalize the PSBT signed by Xverse. " +
+          "Use { autoFinalized: false } for partial or multisig signing.",
+        { cause: error },
+      );
+    }
+  }
+
+  /**
    * Signs a PSBT using Xverse wallet.
    *
    * @param psbtHex - The hex string of PSBT to sign.
@@ -285,7 +315,12 @@ export class Signer extends ccc.SignerBtc {
    *   - values are the indexes of the inputs to sign with each address
    *
    * Xverse returns:
-   * - psbt: The base64 encoded signed PSBT
+   * - psbt: The base64 encoded signed PSBT, which is not finalized
+   *
+   * Xverse has no equivalent of `autoFinalized`, so when it is enabled the
+   * requested inputs are finalized locally after signing. `sighashTypes` and
+   * `disableTweakSigner` in `inputsToSign` are not supported by Xverse and
+   * are ignored.
    *
    * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
    */
@@ -293,9 +328,10 @@ export class Signer extends ccc.SignerBtc {
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
+    const normalized = ccc.SignPsbtOptions.from(options);
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
       ccc.hexFrom(psbtHex),
-      options,
+      normalized,
     );
 
     const signedPsbtBase64 = (
@@ -308,7 +344,13 @@ export class Signer extends ccc.SignerBtc {
       )
     ).psbt;
 
-    return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
+    if (!normalized.autoFinalized) {
+      return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
+    }
+
+    const signedPsbt = Psbt.fromBase64(signedPsbtBase64);
+    this.finalizeSignedInputs(signedPsbt, signInputs);
+    return ccc.hexFrom(signedPsbt.toBuffer());
   }
 
   /**
@@ -331,10 +373,11 @@ export class Signer extends ccc.SignerBtc {
     psbtHex: ccc.HexLike,
     options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
-    // ccc.hexFrom adds 0x prefix, but BTC expects non-0x
+    // Xverse finalizes and broadcasts on its own side, so autoFinalized is
+    // not needed here.
     const { psbtBase64, signInputs } = await this.prepareSignPsbtParams(
       ccc.hexFrom(psbtHex),
-      options,
+      ccc.SignPsbtOptions.from(options),
     );
 
     const result = await checkResponse(

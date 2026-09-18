@@ -1,0 +1,68 @@
+name: Publish Packages
+
+on:
+  workflow_call:
+    inputs:
+      canary:
+        description: Publish a canary snapshot
+        type: boolean
+        default: false
+      ref:
+        description: Git ref to publish
+        type: string
+        default: ""
+    outputs:
+      published:
+        description: Whether packages were published
+        value: ${{ jobs.publish.outputs.published }}
+      published_packages:
+        description: Published package names and versions
+        value: ${{ jobs.publish.outputs.published_packages }}
+
+jobs:
+  publish:
+    name: Publish to npm
+    environment: npm-publish
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      published_packages: ${{ steps.changesets.outputs['published-packages'] }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          pnpm --filter . install --frozen-lockfile
+          pnpm build:prepare --frozen-lockfile
+      - name: Build
+        run: pnpm build
+
+      - name: Version canary
+        if: inputs.canary
+        run: |
+          pnpm exec changeset pre exit || true
+          pnpm exec changeset version --snapshot canary --snapshot-prerelease-template '{tag}-{commit}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to npm
+        id: changesets
+        uses: changesets/action/publish@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: ${{ inputs.canary && 'pnpm exec changeset publish --tag canary' || 'pnpm exec changeset publish' }}
+          create-github-releases: false
+          push-git-tags: false
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,51 @@
 # @ckb-ccc/core
 
+## 1.22.0
+
+### Minor Changes
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`3ef932a`](https://github.com/ckb-devrel/ccc/commit/3ef932a471f72704502a708241a960ee44d00377) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add `abortSignalToPromise` for converting an abort signal into a rejecting promise.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`0d5cd4b`](https://github.com/ckb-devrel/ccc/commit/0d5cd4bc7113686675dfa5c94a1abacfb9b3e073) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add `waitForAvailability` for waiting until the browser page is visible and
+  online, while resolving immediately in non-browser environments.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`7d5781b`](https://github.com/ckb-devrel/ccc/commit/7d5781be9dc48dc0439d173f6aa45f2281c3ac8c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add per-request cancellation and timeout options to JSON-RPC transports.
+  WebSocket and libp2p transports now cancel individual operations without
+  interrupting unrelated requests, and JSON-RPC errors are exposed as
+  `JsonRpcError` instances.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`72309f6`](https://github.com/ckb-devrel/ccc/commit/72309f666471720d4e808c39916a630aa21891f7) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add a cancellable retry utility with finite and repeating delay schedules.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`4cddf9b`](https://github.com/ckb-devrel/ccc/commit/4cddf9bfad50036672dfa3d29c89baea6af1e237) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add provider sessions and recover lost signer JSON-RPC responses with request
+  retries and rate-limited `get_result` polling.
+
+### Patch Changes
+
+- [#549](https://github.com/ckb-devrel/ccc/pull/549) [`26f9c4d`](https://github.com/ckb-devrel/ccc/commit/26f9c4d0d77d35bfba0d74483458a24a2077fac9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Avoid caching cell results requested without output data.
+
+- [#541](https://github.com/ckb-devrel/ccc/pull/541) [`7680821`](https://github.com/ckb-devrel/ccc/commit/7680821e0c113a790f00e0fe53e0d69f92588ce4) Thanks [@fghdotio](https://github.com/fghdotio)! - Apply the documented `signPsbt` defaults consistently across BTC wallets.
+  
+  - UniSat and OKX now translate `SignPsbtOptions` into the wallet's own
+    `{ autoFinalized, toSignInputs }` shape instead of forwarding the CCC
+    options as-is, so `autoFinalized` defaults to `true` and `inputsToSign` is
+    no longer silently ignored. `UniSatA.Provider.signPsbt` is now typed with
+    the wallet's actual option shape, exposed as `UniSatA.SignPsbtOptions`.
+  - JoyID now sends `inputsToSign` as the `toSignInputs` field it expects,
+    instead of silently dropping it.
+  - Xverse now finalizes the requested inputs locally when `autoFinalized` is
+    enabled, since its `signPsbt` RPC returns unfinalized PSBTs and has no
+    finalize option.
+
+- [#540](https://github.com/ckb-devrel/ccc/pull/540) [`7d98b67`](https://github.com/ckb-devrel/ccc/commit/7d98b67137927b39577fa5429f1fa18a7242f88b) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - Document that `getCellDeps` resolves a cell dep with a type script on-chain, so a spent
+  outpoint in the known-script tables is expected rather than a bug, and that a dep
+  without a type script is used as written.
+
+## 1.21.0
+
+### Minor Changes
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`182b880`](https://github.com/ckb-devrel/ccc/commit/182b880bd6343b7ecdc1f5732c1f72cd5a22a44d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add optional AbortSignal support to `sleep`.
+
 ## 1.20.1
 
 ### Patch Changes

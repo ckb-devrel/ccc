@@ -5,7 +5,7 @@ import { Hex, HexLike, hexFrom } from "../../hex/index.js";
  */
 export type SignPsbtOptionsLike = {
   /**
-   * Whether to finalize the PSBT after signing.
+   * Whether to attempt to finalize the signed inputs after signing.
    * Default is true.
    */
   autoFinalized?: boolean;
@@ -21,7 +21,9 @@ export class SignPsbtOptions {
     public inputsToSign: InputToSign[],
   ) {}
 
-  static from(options?: SignPsbtOptionsLike): SignPsbtOptions {
+  static from(
+    options?: SignPsbtOptionsLike | SignPsbtOptions,
+  ): SignPsbtOptions {
     if (options instanceof SignPsbtOptions) {
       return options;
     }

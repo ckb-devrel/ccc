@@ -30,7 +30,7 @@ export interface CiteProps {
   start?: string | number;
   /** Last line number (inclusive). Defaults to `start` for single lines. */
   end?: string | number;
-  /** Branch / tag / commit-ish. Defaults to `master`. */
+  /** Branch / tag / commit-ish. Defaults to `dev`. */
   branch?: string;
   /** Optional override of the visible file label. */
   label?: string;

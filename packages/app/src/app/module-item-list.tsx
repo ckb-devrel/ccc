@@ -5,6 +5,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
   type UIEvent,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -36,36 +37,82 @@ export function ModuleItemList({
   const empty = Children.count(children) === 0;
   const list = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const indicatorFrame = useRef(0);
+  const lastIndicatorTop = useRef<number | undefined>(undefined);
+  const lastListHeight = useRef<number | undefined>(undefined);
   const [listHeight, setListHeight] = useState<number>();
   const [indicatorTop, setIndicatorTop] = useState<number>();
 
-  const updateIndicator = (element: HTMLDivElement) => {
-    const maximum = element.scrollHeight - element.clientHeight;
-    if (maximum <= 1) {
-      setIndicatorTop(undefined);
+  const updateHeight = useCallback(
+    (element: HTMLDivElement, contentElement: HTMLDivElement) => {
+      const maximum = Number.parseFloat(getComputedStyle(element).maxHeight);
+      const contentHeight = Math.ceil(
+        contentElement.getBoundingClientRect().height,
+      );
+      const nextHeight = Number.isFinite(maximum)
+        ? Math.min(contentHeight, maximum)
+        : contentHeight;
+      if (nextHeight === lastListHeight.current) {
+        return;
+      }
+
+      lastListHeight.current = nextHeight;
+      setListHeight(nextHeight);
+    },
+    [],
+  );
+
+  const updateIndicator = useCallback((element: HTMLDivElement) => {
+    if (indicatorFrame.current !== 0) {
       return;
     }
 
-    const trackInset = 7;
-    const travel = Math.max(0, element.clientHeight - trackInset * 2);
-    setIndicatorTop(trackInset + (element.scrollTop / maximum) * travel);
-  };
+    indicatorFrame.current = requestAnimationFrame(() => {
+      indicatorFrame.current = 0;
+      const maximum = element.scrollHeight - element.clientHeight;
+      let nextTop: number | undefined;
+      if (maximum > 1) {
+        const trackInset = 7;
+        const travel = Math.max(0, element.clientHeight - trackInset * 2);
+        nextTop = trackInset + (element.scrollTop / maximum) * travel;
+      }
+
+      if (nextTop === lastIndicatorTop.current) {
+        return;
+      }
+
+      lastIndicatorTop.current = nextTop;
+      setIndicatorTop(nextTop);
+    });
+  }, []);
 
   useEffect(() => {
     const element = list.current;
     const contentElement = content.current;
     if (!element || !contentElement) return;
 
-    const observer = new ResizeObserver(() => {
-      updateHeight(element, contentElement, setListHeight);
+    const contentObserver = new ResizeObserver(() => {
+      updateHeight(element, contentElement);
       updateIndicator(element);
     });
-    updateHeight(element, contentElement, setListHeight);
+    const listObserver = new ResizeObserver(() => updateIndicator(element));
+    const handleResize = () => {
+      updateHeight(element, contentElement);
+      updateIndicator(element);
+    };
+    updateHeight(element, contentElement);
     updateIndicator(element);
-    observer.observe(element);
-    observer.observe(contentElement);
-    return () => observer.disconnect();
-  }, []);
+    contentObserver.observe(contentElement);
+    listObserver.observe(element);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      contentObserver.disconnect();
+      listObserver.disconnect();
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(indicatorFrame.current);
+      indicatorFrame.current = 0;
+    };
+  }, [updateHeight, updateIndicator]);
 
   const handleScroll = (event: UIEvent<HTMLDivElement>) => {
     updateIndicator(event.currentTarget);
@@ -119,18 +166,6 @@ export function ModuleItemList({
         )}
       </div>
     </div>
-  );
-}
-
-function updateHeight(
-  element: HTMLDivElement,
-  content: HTMLDivElement,
-  setHeight: (height: number) => void,
-) {
-  const maximum = Number.parseFloat(getComputedStyle(element).maxHeight);
-  const contentHeight = Math.ceil(content.getBoundingClientRect().height);
-  setHeight(
-    Number.isFinite(maximum) ? Math.min(contentHeight, maximum) : contentHeight,
   );
 }
 

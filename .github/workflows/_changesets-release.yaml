@@ -1,0 +1,88 @@
+name: Changesets Release
+
+on:
+  workflow_call:
+
+jobs:
+  select-mode:
+    name: Select mode
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.changesets.outputs.mode }}
+      release_manifest: ${{ steps.release.outputs.manifest }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm --filter . install --frozen-lockfile
+
+      - name: Select Changesets mode
+        id: changesets
+        uses: changesets/action/select-mode@v2
+
+      # Keep the full plan in this successful prerequisite when a partial publish is retried.
+      - name: Collect release manifest
+        id: release
+        if: steps.changesets.outputs.mode == 'publish'
+        run: |
+          plan="$RUNNER_TEMP/publish-plan.json"
+          pnpm exec changeset publish-plan --output "$plan"
+          node -e '
+            const fs = require("node:fs");
+            const { plan } = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const manifest = plan.flat()
+              .filter(({ kind }) => kind === "publish")
+              .map(({ name, version }) => ({ name, version }));
+            if (manifest.length === 0) {
+              throw new Error("No packages are waiting to be published");
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `manifest=${JSON.stringify(manifest)}\n`);
+          ' "$plan"
+
+  version:
+    name: Update release pull request
+    if: needs.select-mode.outputs.mode == 'version'
+    needs: select-mode
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm --filter . install --frozen-lockfile
+
+      - name: Create or update release pull request
+        uses: changesets/action/version@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
+          commit-message: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
+
+  publish:
+    name: Publish to npm
+    if: needs.select-mode.outputs.mode == 'publish'
+    needs: select-mode
+    uses: ./.github/workflows/_publish-packages.yaml
+
+  finalize:
+    name: Finalize release
+    needs: [select-mode, publish]
+    uses: ./.github/workflows/_finalize-release.yaml
+    with:
+      manifest: ${{ needs.select-mode.outputs.release_manifest }}

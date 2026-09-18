@@ -3,7 +3,7 @@
 This directory holds the [Agent Skills](https://agentskills.io/specification) that teach AI coding assistants how to build on CKB with the CCC SDK: one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (`ckb-ccc-signer-setup`, `ckb-ccc-transactions`, `ckb-ccc-udt`, `ckb-ccc-spore`, `ckb-ccc-playground`, `ckb-ccc-examples-finder`).
 
 They're consumed two ways:
-- Directly from this repo via [`npx skills add ckb-devrel/ccc`](https://github.com/vercel-labs/skills), which tracks installs in the consumer's `skills-lock.json` and can later `npx skills check` / `npx skills update` against whatever's on `master`.
+- Directly from this repo via [`npx skills add ckb-devrel/ccc`](https://github.com/vercel-labs/skills), which tracks installs in the consumer's `skills-lock.json` and can later `npx skills check` / `npx skills update` against whatever's on `dev`.
 - As raw `SKILL.md` URLs, listed at [docs.ckbccc.com/skill.md](https://docs.ckbccc.com/skill.md), for agents that can only fetch URLs.
 
 Both paths mean **anyone with an existing install only sees your changes after they explicitly re-check/update** — there's no push notification. The one signal they have is the `metadata.version` field in each skill's frontmatter, so it has to be kept honest.

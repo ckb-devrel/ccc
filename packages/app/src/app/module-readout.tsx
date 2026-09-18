@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type AnimationEvent, type ReactNode, useState } from "react";
 
 export type ModuleReadoutTone = "error" | "idle" | "pending" | "success";
 
@@ -25,21 +25,54 @@ export function ModuleReadout({
 }) {
   return (
     <div className={`module-readout is-${tone}`} aria-live="polite">
+      <ModuleReadoutPresentation
+        key={revision}
+        label={label}
+        previous={previous}
+        tone={tone}
+      >
+        {children}
+      </ModuleReadoutPresentation>
+    </div>
+  );
+}
+
+function ModuleReadoutPresentation({
+  children,
+  label,
+  previous,
+  tone,
+}: {
+  children: ReactNode;
+  label: ReactNode;
+  previous?: ModuleReadoutState;
+  tone: ModuleReadoutTone;
+}) {
+  const [settled, setSettled] = useState(previous === undefined);
+  const transitioning = previous !== undefined && !settled;
+  const settle = (event: AnimationEvent<HTMLDivElement>) => {
+    if (
+      event.target === event.currentTarget &&
+      event.animationName === "module-readout-slot-in"
+    ) {
+      setSettled(true);
+    }
+  };
+
+  return (
+    <>
       <span className="module-readout-rail" aria-hidden="true">
-        {previous ? (
+        {transitioning ? (
           <span
-            key={`previous-rail-${revision}`}
             className={`module-readout-rail-segment is-${previous.tone ?? "idle"} is-leaving`}
           />
         ) : null}
         <span
-          key={`current-rail-${revision}`}
-          className={`module-readout-rail-segment is-${tone} ${previous ? "is-entering" : ""}`}
+          className={`module-readout-rail-segment is-${tone} ${transitioning ? "is-entering" : ""}`}
         />
       </span>
-      {previous ? (
+      {transitioning ? (
         <div
-          key={`previous-${revision}`}
           className="module-readout-line is-leaving"
           aria-hidden="true"
           inert
@@ -49,12 +82,12 @@ export function ModuleReadout({
         </div>
       ) : null}
       <div
-        key={`current-${revision}`}
-        className={`module-readout-line ${previous ? "is-entering" : ""}`}
+        className={`module-readout-line ${transitioning ? "is-entering" : ""}`}
+        onAnimationEnd={settle}
       >
         <span className="module-readout-label">{label}</span>
         {children}
       </div>
-    </div>
+    </>
   );
 }

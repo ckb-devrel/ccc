@@ -1,6 +1,15 @@
 import { ScriptInfoLike } from "./clientTypes.js";
 import { KnownScript } from "./knownScript.js";
 
+/**
+ * The known scripts, with a cell dep outpoint recorded for each.
+ *
+ * An outpoint here is a starting point. A dep with a `type` is resolved on-chain by
+ * {@link Client.getCellDeps} before use, so its outpoint keeps working after the code
+ * cell moves and may look spent when checked directly. Only a dep without a `type`
+ * needs updating when its cell moves. See #531.
+ */
+
 export const TESTNET_SCRIPTS: Record<KnownScript, ScriptInfoLike> =
   Object.freeze({
     [KnownScript.NervosDao]: {

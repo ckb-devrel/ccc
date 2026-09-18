@@ -27,7 +27,7 @@ export function QrCode({
       return;
     }
 
-    const matrix = encodeQR(value, "raw", { border: 2, ecc: "medium" });
+    const matrix = encodeQR(value, "raw", { border: 4, ecc: "medium" });
     return {
       path: matrix
         .flatMap((row, y) =>

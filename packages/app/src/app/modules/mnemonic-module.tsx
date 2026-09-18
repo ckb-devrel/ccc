@@ -22,6 +22,8 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   const [count, setCount] = useState("10");
   const [accounts, setAccounts] = useState<DerivedAccount[]>([]);
   const [deriving, setDeriving] = useState(false);
+  const [encrypting, setEncrypting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const derivationRevision = useRef(0);
   const derivationInFlight = useRef(false);
   const valid = useMemo(
@@ -102,12 +104,24 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   };
 
   const makeKeystore = async () => {
+    setEncrypting(true);
     try {
       const keystore = await encryptMnemonicKeystore(mnemonic, password);
       showKeystore(keystore);
       log(keystore, "success");
     } catch (cause) {
       showFailure(cause, show, log);
+    } finally {
+      setEncrypting(false);
+    }
+  };
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      await replaceMnemonic(bip39.generateMnemonic(wordlist));
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -150,20 +164,25 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
       <div className="module-actions">
         <button
           type="button"
-          onClick={() => void replaceMnemonic(bip39.generateMnemonic(wordlist))}
+          disabled={deriving || encrypting || generating}
+          onClick={generate}
         >
-          Random
+          {generating ? "Generating…" : "Random"}
         </button>
         <button
           className="is-primary"
           type="button"
-          disabled={!valid || deriving}
+          disabled={!valid || deriving || encrypting || generating}
           onClick={derive}
         >
           {deriving ? "Deriving…" : "Derive"}
         </button>
-        <button type="button" disabled={!valid} onClick={makeKeystore}>
-          To keystore
+        <button
+          type="button"
+          disabled={!valid || deriving || encrypting || generating}
+          onClick={makeKeystore}
+        >
+          {encrypting ? "Encrypting…" : "To keystore"}
         </button>
       </div>
     </div>

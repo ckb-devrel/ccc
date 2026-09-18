@@ -21,10 +21,6 @@ export function KhieModule({
   wallet,
   khieRelayAddress,
 }: ModuleRuntimeProps & { khieRelayAddress?: string }) {
-  if (!signer) {
-    return null;
-  }
-
   return (
     <KhieClientModule
       client={client}

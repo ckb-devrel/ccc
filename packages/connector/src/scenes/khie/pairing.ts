@@ -9,7 +9,7 @@ import type { QrScannedEvent } from "../../components/qr-scanner.js";
 import { ConnectorConnectionEvent } from "../../events/external.js";
 import { CloseRequestEvent } from "../../events/internal.js";
 import { errorMessage } from "../error.js";
-import { DEFAULT_RELAY_ADDRESS } from "./node.js";
+import { CONNECTOR_ENDPOINT_URL, DEFAULT_RELAY_ADDRESS } from "./node.js";
 import { KhiePairingSession } from "./session.js";
 import { KHIE_WALLET_NAME, khieSignerIcon } from "./wallet.js";
 
@@ -240,6 +240,17 @@ export class KhiePairing extends LitElement {
                 ${CHECK_SVG}
               </button>
             </div>
+            <p class="khie-help">
+              Khie is a peer-to-peer protocol that connects wallets and
+              applications.
+              <a
+                href=${ownEndpoint || CONNECTOR_ENDPOINT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                >Learn more about Khie here</a
+              >, where you can also connect a local wallet from the device where
+              it is available.
+            </p>
           </div>
 
           <button
@@ -443,6 +454,23 @@ export class KhiePairing extends LitElement {
       justify-content: center;
       color: var(--tip-color);
       font-size: 0.8rem;
+    }
+
+    .khie-help {
+      margin: 0.25rem 0 0;
+      color: var(--tip-color);
+      font-size: 0.72rem;
+      line-height: 1.4;
+    }
+
+    .khie-help a {
+      color: inherit;
+      text-underline-offset: 0.15em;
+      transition: color 0.15s ease-in-out;
+    }
+
+    .khie-help a:hover {
+      color: var(--btn-color-hover, var(--btn-color, inherit));
     }
 
     .divider {

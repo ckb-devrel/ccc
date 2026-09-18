@@ -2,6 +2,7 @@
 
 import { AlertTriangle, ChevronUp, Terminal, Trash2 } from "lucide-react";
 import {
+  type AnimationEvent,
   type ReactNode,
   useEffect,
   useLayoutEffect,
@@ -107,6 +108,7 @@ export function ActivityConsole({
   const listRef = useRef<HTMLDivElement>(null);
   const previewMeasureRef = useRef<HTMLSpanElement>(null);
   const previewWidthInitialized = useRef(false);
+  const previewWidthRef = useRef<number | undefined>(undefined);
   const [previewWidth, setPreviewWidth] = useState<number>();
   const errorCount = useMemo(
     () => entries.filter(({ level }) => level === "error").length,
@@ -121,14 +123,24 @@ export function ActivityConsole({
     const measure = previewMeasureRef.current;
     if (!measure) return;
     const nextWidth = Math.ceil(measure.getBoundingClientRect().width) + 1;
+    if (nextWidth === previewWidthRef.current) {
+      return;
+    }
 
     if (!previewWidthInitialized.current) {
       previewWidthInitialized.current = true;
+      previewWidthRef.current = nextWidth;
       setPreviewWidth(nextWidth);
       return;
     }
 
-    const frame = requestAnimationFrame(() => setPreviewWidth(nextWidth));
+    const frame = requestAnimationFrame(() => {
+      if (nextWidth === previewWidthRef.current) {
+        return;
+      }
+      previewWidthRef.current = nextWidth;
+      setPreviewWidth(nextWidth);
+    });
     return () => cancelAnimationFrame(frame);
   }, [latest?.id]);
 
@@ -210,26 +222,54 @@ export function ActivityConsole({
               }
               aria-live="polite"
             >
-              {previousLatest ? (
-                <span
-                  key={`previous-${latest?.id}`}
-                  className="activity-console-preview-line is-leaving"
-                  aria-hidden="true"
-                >
-                  {previousLatest}
-                </span>
-              ) : null}
-              <span
-                key={`current-${latest?.id ?? "empty"}`}
-                className={`activity-console-preview-line ${previousLatest ? "is-entering" : ""}`}
-              >
-                {latest?.message ?? "ACTIVITY LOG"}
-              </span>
+              <ActivityPreview
+                key={latest?.id ?? "empty"}
+                current={latest?.message ?? "ACTIVITY LOG"}
+                previous={previousLatest}
+              />
             </span>
             <ChevronUp size={13} />
           </button>
         </footer>
       </div>
+    </>
+  );
+}
+
+function ActivityPreview({
+  current,
+  previous,
+}: {
+  current: string;
+  previous?: string;
+}) {
+  const [settled, setSettled] = useState(previous === undefined);
+  const transitioning = previous !== undefined && !settled;
+  const settle = (event: AnimationEvent<HTMLSpanElement>) => {
+    if (
+      event.target === event.currentTarget &&
+      event.animationName === "activity-preview-slot-in"
+    ) {
+      setSettled(true);
+    }
+  };
+
+  return (
+    <>
+      {transitioning ? (
+        <span
+          className="activity-console-preview-line is-leaving"
+          aria-hidden="true"
+        >
+          {previous}
+        </span>
+      ) : null}
+      <span
+        className={`activity-console-preview-line ${transitioning ? "is-entering" : ""}`}
+        onAnimationEnd={settle}
+      >
+        {current}
+      </span>
     </>
   );
 }

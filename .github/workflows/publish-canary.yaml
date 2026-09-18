@@ -12,14 +12,16 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.event_name == 'issue_comment' && github.event.issue.number || github.ref }}
 
 jobs:
-  release:
-    name: Release
+  resolve:
+    name: Resolve release
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.issue.pull_request &&
       contains(fromJSON('["MEMBER", "OWNER", "COLLABORATOR"]'), github.event.comment.author_association) &&
       startsWith(github.event.comment.body, '/canary'))
     runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.get_pr_head_sha.outputs.sha }}
     steps:
       - name: Get PR head SHA for comment trigger
         if: github.event_name == 'issue_comment'
@@ -35,40 +37,22 @@ jobs:
             });
             core.setOutput('sha', pr.head.sha);
 
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event_name == 'issue_comment' && steps.get_pr_head_sha.outputs.sha || github.ref }}
+  release:
+    name: Release
+    needs: resolve
+    cache-mode: read
+    uses: ./.github/workflows/_publish-packages.yaml
+    with:
+      canary: true
+      ref: ${{ needs.resolve.outputs.ref }}
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 26
-          registry-url: https://registry.npmjs.org
-      - uses: pnpm/action-setup@v6
-
-      - name: Install dependencies
-        run: pnpm build:prepare
-      - name: Build
-        run: pnpm build
-
-      - name: Version changesets
-        run: pnpm dlx @changesets/cli@3.0.0 pre exit ; pnpm dlx @changesets/cli@3.0.0 version --snapshot canary
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to npm canary
-        id: changesets
-        uses: changesets/action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          publish-script: pnpm dlx @changesets/cli@3.0.0 publish --tag canary
-          create-github-releases: false
-          push-git-tags: false
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
+  comment-success:
+    name: Comment on success
+    if: github.event_name == 'issue_comment' && needs.release.outputs.published == 'true'
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
       - name: Comment on PR with Success
-        if: github.event_name == 'issue_comment' && steps.changesets.outputs.published == 'true'
         uses: actions/github-script@v9
         with:
           script: |
@@ -76,7 +60,7 @@ jobs:
             const issue_number = context.issue.number;
             const workflow_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            const publishedPackages = JSON.parse(${{ toJSON(steps.changesets.outputs['published-packages']) }});
+            const publishedPackages = JSON.parse(${{ toJSON(needs.release.outputs.published_packages) }});
 
             let body = `🚀 Canary version published successfully! [View workflow run](${workflow_url})\n\n`;
             body += "The following packages have been published to npm:\n";
@@ -86,8 +70,15 @@ jobs:
 
             await github.rest.issues.createComment({ owner, repo, issue_number, body });
 
+  comment-failure:
+    name: Comment on failure
+    if: >
+      always() && github.event_name == 'issue_comment' &&
+      (needs.resolve.result == 'failure' || needs.release.result == 'failure')
+    needs: [resolve, release]
+    runs-on: ubuntu-latest
+    steps:
       - name: Comment on PR on Failure
-        if: failure() && github.event_name == 'issue_comment'
         uses: actions/github-script@v9
         with:
           script: |

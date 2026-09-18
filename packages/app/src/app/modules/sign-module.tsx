@@ -19,9 +19,11 @@ async function verifyMessage(message: string, signature: string) {
 export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
   const [message, setMessage] = useState("");
   const [signature, setSignature] = useState("");
+  const [busyAction, setBusyAction] = useState<"sign" | "verify">();
 
   const sign = async () => {
-    if (!signer) return;
+    if (!signer || busyAction) return;
+    setBusyAction("sign");
     try {
       const nextSignature = await signMessage(signer, message);
       setSignature(nextSignature);
@@ -38,10 +40,14 @@ export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
       log("Message signed", "success");
     } catch (cause) {
       reportError(cause, show, log);
+    } finally {
+      setBusyAction(undefined);
     }
   };
 
   const verify = async () => {
+    if (busyAction) return;
+    setBusyAction("verify");
     try {
       const valid = await verifyMessage(message, signature);
       show({
@@ -57,6 +63,8 @@ export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
       );
     } catch (cause) {
       reportError(cause, show, log);
+    } finally {
+      setBusyAction(undefined);
     }
   };
 
@@ -84,13 +92,17 @@ export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
         <button
           className="is-primary"
           type="button"
-          disabled={!signer}
+          disabled={!signer || busyAction !== undefined}
           onClick={sign}
         >
-          Sign
+          {busyAction === "sign" ? "Signing…" : "Sign"}
         </button>
-        <button type="button" disabled={!signature} onClick={verify}>
-          Verify
+        <button
+          type="button"
+          disabled={!signature || busyAction !== undefined}
+          onClick={verify}
+        >
+          {busyAction === "verify" ? "Verifying…" : "Verify"}
         </button>
       </div>
     </div>

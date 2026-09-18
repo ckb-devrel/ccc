@@ -74,24 +74,40 @@ export class ConnectedScene extends LitElement {
       return;
     }
 
-    void Promise.allSettled([
-      signer.getRecommendedAddress(),
-      signer.getInternalAddress(),
-      signer.getBalance(),
-    ]).then(([recommendedAddress, internalAddress, balance]) => {
-      if (refreshId !== this.refreshId) {
-        return;
-      }
-      if (recommendedAddress.status === "fulfilled") {
-        this.recommendedAddress = recommendedAddress.value;
-      }
-      if (internalAddress.status === "fulfilled") {
-        this.internalAddress = internalAddress.value;
-      }
-      if (balance.status === "fulfilled") {
-        this.balance = balance.value;
-      }
-    });
+    const updateWhenResolved = <T>(
+      request: () => Promise<T>,
+      update: (value: T) => void,
+    ) => {
+      void Promise.resolve()
+        .then(request)
+        .then(
+          (value) => {
+            if (refreshId === this.refreshId) {
+              update(value);
+            }
+          },
+          () => {},
+        );
+    };
+
+    updateWhenResolved(
+      () => signer.getRecommendedAddress(),
+      (address) => {
+        this.recommendedAddress = address;
+      },
+    );
+    updateWhenResolved(
+      () => signer.getInternalAddress(),
+      (address) => {
+        this.internalAddress = address;
+      },
+    );
+    updateWhenResolved(
+      () => signer.getBalance(),
+      (balance) => {
+        this.balance = balance;
+      },
+    );
   }
 
   render() {

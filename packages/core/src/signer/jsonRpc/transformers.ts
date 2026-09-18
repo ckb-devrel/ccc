@@ -3,6 +3,7 @@ import { Hex, hexFrom } from "../../hex/index.js";
 import { SignerSignType, SignerType } from "../signer/index.js";
 
 export type SignerJsonRpcInfo = {
+  sessionId: string;
   type: SignerType;
   signType: SignerSignType;
   name?: string;
@@ -10,6 +11,7 @@ export type SignerJsonRpcInfo = {
 };
 
 export type SignerJsonRpcInfoPayload = {
+  session_id: string;
   type: SignerType;
   sign_type: SignerSignType;
   name?: string;
@@ -22,6 +24,7 @@ export type SignerJsonRpcMessageToSign =
 export class SignerJsonRpcTransformers {
   static infoFrom(info: SignerJsonRpcInfo): SignerJsonRpcInfoPayload {
     return {
+      session_id: info.sessionId,
       type: info.type,
       sign_type: info.signType,
       name: info.name,
@@ -31,6 +34,7 @@ export class SignerJsonRpcTransformers {
 
   static infoTo(info: SignerJsonRpcInfoPayload): SignerJsonRpcInfo {
     return {
+      sessionId: info.session_id,
       type: info.type,
       signType: info.sign_type,
       name: info.name,

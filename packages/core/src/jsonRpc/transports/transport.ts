@@ -33,6 +33,13 @@ export type JsonRpcResponse<Result = unknown, ErrorData = unknown> = {
   | { result?: never; error: JsonRpcErrorLike<ErrorData> }
 );
 
+export type JsonRpcTransportRequestOptions = {
+  /** Cancels this individual request without disposing the transport. */
+  signal?: AbortSignal;
+  /** Overrides the transport's default timeout for this request. */
+  timeout?: number;
+};
+
 export interface JsonRpcTransport {
   /**
    * Sends a JSON-RPC request to the server.
@@ -40,5 +47,8 @@ export interface JsonRpcTransport {
    * @param payload - The JSON-RPC payload to send.
    * @returns The JSON-RPC response.
    */
-  request(payload: JsonRpcPayload): Promise<JsonRpcResponse>;
+  request(
+    payload: JsonRpcPayload,
+    options?: JsonRpcTransportRequestOptions,
+  ): Promise<JsonRpcResponse>;
 }

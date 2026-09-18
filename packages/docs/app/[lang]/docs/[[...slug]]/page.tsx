@@ -140,7 +140,7 @@ export async function generateMetadata(
       //images: getPageImage(page).url,
       images: [
         {
-          url: 'https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png',
+          url: 'https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/opengraph.png',
           width: 740,
           height: 370,
           alt: page.data.title,

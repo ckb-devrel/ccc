@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
+    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
   </a>
 </p>
 
@@ -13,8 +13,8 @@
     alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Feip6963"
   /></a>
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/dev" />
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/dev" />
   <a href="https://live.ckbccc.com/"><img
     alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
   /></a>

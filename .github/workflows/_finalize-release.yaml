@@ -1,0 +1,179 @@
+name: Finalize Release
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref containing the published package versions
+        type: string
+        default: ""
+      manifest:
+        description: Package names and versions included in the release
+        type: string
+        required: true
+
+jobs:
+  finalize:
+    name: Finalize GitHub release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+
+      - name: Collect release metadata
+        id: release
+        env:
+          RELEASE_MANIFEST: ${{ inputs.manifest }}
+        run: |
+          node -e '
+            const { execFileSync } = require("node:child_process");
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const manifest = JSON.parse(process.env.RELEASE_MANIFEST);
+            if (!Array.isArray(manifest) || manifest.length === 0) {
+              throw new Error("Release manifest is empty");
+            }
+            const packageDirectories = new Map();
+            for (const entry of fs.readdirSync("packages", { withFileTypes: true })) {
+              if (!entry.isDirectory()) {
+                continue;
+              }
+              const directory = path.join("packages", entry.name);
+              const packageJsonPath = path.join(directory, "package.json");
+              if (!fs.existsSync(packageJsonPath)) {
+                continue;
+              }
+              const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+              packageDirectories.set(packageJson.name, directory);
+            }
+            const releases = [];
+            for (const { name, version } of manifest) {
+              if (typeof name !== "string" || typeof version !== "string") {
+                throw new Error("Release manifest contains an invalid package");
+              }
+              const published = JSON.parse(execFileSync(
+                "npm",
+                ["view", `${name}@${version}`, "version", "--json"],
+                { encoding: "utf8" },
+              ));
+              if (published !== version) {
+                throw new Error(`${name}@${version} is not published to npm`);
+              }
+              const directory = packageDirectories.get(name);
+              if (!directory) {
+                throw new Error(`Unable to find package ${name}`);
+              }
+              const changelogPath = path.join(directory, "CHANGELOG.md");
+              const lines = fs.readFileSync(changelogPath, "utf8").split("\n");
+              const start = lines.findIndex((line) => line.trim() === `## ${version}`);
+              if (start === -1) {
+                throw new Error(`Unable to find ${name}@${version} in ${changelogPath}`);
+              }
+              let end = start + 1;
+              while (end < lines.length && !lines[end].startsWith("## ")) {
+                end++;
+              }
+              const changelog = lines.slice(start + 1, end).join("\n").trim();
+              if (!changelog) {
+                throw new Error(`Changelog for ${name}@${version} is empty`);
+              }
+              releases.push({ name, version, changelog });
+            }
+            releases.sort((a, b) => a.name.localeCompare(b.name));
+            const sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+            const committedAt = execFileSync(
+              "git",
+              ["show", "-s", "--format=%cI", "HEAD"],
+              { encoding: "utf8" },
+            ).trim();
+            const releaseTime = `${new Date(committedAt).toISOString().slice(0, 16).replace("T", " - ")} UTC`;
+            fs.appendFileSync(
+              process.env.GITHUB_OUTPUT,
+              `sha=${sha}\nrelease_time=${releaseTime}\nreleases=${JSON.stringify(releases)}\n`,
+            );
+          '
+
+      - name: Create aggregate GitHub release
+        uses: actions/github-script@v9
+        env:
+          RELEASES: ${{ steps.release.outputs.releases }}
+          RELEASE_TIME: ${{ steps.release.outputs.release_time }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+        with:
+          retries: 3
+          script: |
+            const releases = JSON.parse(process.env.RELEASES);
+            const releaseTime = process.env.RELEASE_TIME;
+            const sha = process.env.RELEASE_SHA;
+            const tag = `release-${sha.slice(0, 12)}`;
+
+            for (const { name, version } of releases) {
+              const packageTag = `${name}@${version}`;
+              try {
+                await github.rest.git.getRef({
+                  ...context.repo,
+                  ref: `tags/${packageTag}`,
+                });
+              } catch (error) {
+                if (error.status !== 404) {
+                  throw error;
+                }
+                await github.rest.git.createRef({
+                  ...context.repo,
+                  ref: `refs/tags/${packageTag}`,
+                  sha,
+                });
+              }
+            }
+
+            try {
+              await github.rest.git.getRef({
+                ...context.repo,
+                ref: `tags/${tag}`,
+              });
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+              await github.rest.git.createRef({
+                ...context.repo,
+                ref: `refs/tags/${tag}`,
+                sha,
+              });
+            }
+
+            try {
+              await github.rest.repos.getReleaseByTag({
+                ...context.repo,
+                tag,
+              });
+              return;
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error;
+              }
+            }
+
+            const body = releases
+              .flatMap(({ name, version, changelog }) => [
+                `## \`${name}@${version}\``,
+                "",
+                changelog,
+                "",
+              ])
+              .join("\n")
+              .trim();
+
+            await github.rest.repos.createRelease({
+              ...context.repo,
+              tag_name: tag,
+              name: `CCC release ${releaseTime}`,
+              body,
+              prerelease: releases.some(({ version }) => version.includes("-")),
+            });

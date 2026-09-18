@@ -1,8 +1,18 @@
 "use client";
 
 import { Activity, Check, ChevronRight, Eject } from "lucide-react";
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { demoModules, type DemoModule } from "./modules";
+import { useDecorativeAnimationVisibility } from "./use-decorative-animation-visibility";
+
+const TOOL_GRID_COLLAPSE_FALLBACK_MS = 700;
 
 export const ToolBay = memo(function ToolBay({
   connected,
@@ -17,6 +27,23 @@ export const ToolBay = memo(function ToolBay({
 }) {
   const gridRef = useRef<HTMLDivElement>(null);
   const gridViewportRef = useRef<HTMLDivElement>(null);
+  const toolBayRef = useRef<HTMLElement>(null);
+  const [gridCollapseSettled, setGridCollapseSettled] = useState(false);
+  useDecorativeAnimationVisibility(toolBayRef);
+
+  useEffect(() => {
+    if (!selectedModule) {
+      setGridCollapseSettled(false);
+      return;
+    }
+
+    // Preserve the clipped height transition, then stop painting its hidden cards.
+    const timer = setTimeout(
+      () => setGridCollapseSettled(true),
+      TOOL_GRID_COLLAPSE_FALLBACK_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [selectedModule]);
 
   useLayoutEffect(() => {
     const grid = gridRef.current;
@@ -25,11 +52,15 @@ export const ToolBay = memo(function ToolBay({
       return;
     }
 
+    let previousHeight: number | undefined;
     const syncHeight = () => {
-      viewport.style.setProperty(
-        "--tool-grid-height",
-        `${grid.scrollHeight}px`,
-      );
+      const height = grid.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+
+      previousHeight = height;
+      viewport.style.setProperty("--tool-grid-height", `${height}px`);
     };
     const observer = new ResizeObserver(syncHeight);
     syncHeight();
@@ -41,7 +72,7 @@ export const ToolBay = memo(function ToolBay({
   const MountedIcon = selectedModule?.icon;
 
   return (
-    <section className="tool-bay">
+    <section ref={toolBayRef} className="tool-bay">
       <div className="bay-rail bay-rail-left" aria-hidden="true" />
       <div className="bay-rail bay-rail-right" aria-hidden="true" />
 
@@ -69,8 +100,17 @@ export const ToolBay = memo(function ToolBay({
       <div className="tool-matrix-stack">
         <div
           ref={gridViewportRef}
-          className="tool-grid-viewport"
+          className={`tool-grid-viewport ${selectedModule && gridCollapseSettled ? "is-collapse-settled" : ""}`}
           aria-hidden={selectedModule !== undefined}
+          onTransitionEnd={(event) => {
+            if (
+              selectedModule &&
+              event.target === event.currentTarget &&
+              event.propertyName === "height"
+            ) {
+              setGridCollapseSettled(true);
+            }
+          }}
         >
           <div ref={gridRef} className="tool-grid">
             {demoModules.map((module, index) => {

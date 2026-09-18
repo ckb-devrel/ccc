@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { abortSignalAny } from "./abortSignal.js";
+import { abortSignalAny, abortSignalToPromise } from "./abortSignal.js";
 
 describe("abortSignalAny", () => {
   it("combines abort signals when AbortSignal.any is unavailable", () => {
@@ -28,5 +28,24 @@ describe("abortSignalAny", () => {
         Reflect.deleteProperty(AbortSignal, "any");
       }
     }
+  });
+});
+
+describe("abortSignalToPromise", () => {
+  it("rejects with the abort reason", async () => {
+    const controller = new AbortController();
+    const promise = abortSignalToPromise(controller.signal);
+    const reason = new Error("aborted");
+
+    controller.abort(reason);
+
+    await expect(promise).rejects.toBe(reason);
+  });
+
+  it("rejects when the signal is already aborted", async () => {
+    const reason = new Error("already aborted");
+    const signal = AbortSignal.abort(reason);
+
+    await expect(abortSignalToPromise(signal)).rejects.toBe(reason);
   });
 });

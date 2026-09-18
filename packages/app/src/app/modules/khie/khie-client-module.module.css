@@ -61,7 +61,7 @@
   grid-row: 2;
   grid-column: 1 / -1;
   justify-self: stretch;
-  animation: relay-settings-enter 240ms var(--easing-mechanical) both;
+  animation: relay-settings-enter 240ms var(--easing-mechanical) backwards;
 }
 
 .relay-settings-content :global(.module-actions) {
@@ -224,7 +224,6 @@
     monospace;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: color 160ms ease;
 }
 
 .transaction-hash-copy,
@@ -256,7 +255,6 @@
   display: grid;
   color: inherit;
   place-items: center;
-  transition: color 160ms ease;
 }
 
 .transaction-fee {
@@ -919,6 +917,7 @@
 .endpoint-copy {
   display: flex;
   width: 100%;
+  min-height: 46px;
   min-width: 0;
   padding: 12px;
   border: 0;

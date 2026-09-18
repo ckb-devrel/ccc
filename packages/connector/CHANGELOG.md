@@ -1,5 +1,62 @@
 # @ckb-ccc/connector
 
+## 2.2.3
+
+### Patch Changes
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`a8be9c4`](https://github.com/ckb-devrel/ccc/commit/a8be9c4e8a4df2e7ef3a685bc3bb185620d341a3) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Prefer the browser's native `BarcodeDetector` for QR scanning when available,
+  while retaining the existing decoder as a fallback.
+
+- [#547](https://github.com/ckb-devrel/ccc/pull/547) [`8b0a8b5`](https://github.com/ckb-devrel/ccc/commit/8b0a8b50dff0b5ddd8b21c15d5ce1cb8ac4842f0) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add a relay connection controller that selects an available relay and keeps it
+  connected with availability-aware retries. Khie now restores relay and paired
+  peer connectivity after network changes.
+- Updated dependencies [[`7d5781b`](https://github.com/ckb-devrel/ccc/commit/7d5781be9dc48dc0439d173f6aa45f2281c3ac8c), [`8b0a8b5`](https://github.com/ckb-devrel/ccc/commit/8b0a8b50dff0b5ddd8b21c15d5ce1cb8ac4842f0)]:
+  - @ckb-ccc/libp2p@0.3.0
+  - @ckb-ccc/ccc@1.3.4
+
+## 2.2.2
+
+### Patch Changes
+
+- [#538](https://github.com/ckb-devrel/ccc/pull/538) [`272dd4e`](https://github.com/ckb-devrel/ccc/commit/272dd4e1c4cbd4e2027d78379b92cb25df9f111d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Show the Khie pairing guidance for every invalid endpoint input instead of
+  exposing low-level parsing errors.
+- Updated dependencies [[`272dd4e`](https://github.com/ckb-devrel/ccc/commit/272dd4e1c4cbd4e2027d78379b92cb25df9f111d)]:
+  - @ckb-ccc/libp2p@0.2.1
+
+## 2.2.1
+
+### Patch Changes
+
+- [#535](https://github.com/ckb-devrel/ccc/pull/535) [`0544688`](https://github.com/ckb-devrel/ccc/commit/054468841296d39cf4a510b576dbeec06dbcfae5) Thanks [@dependabot](https://github.com/apps/dependabot)! - Update the QR scanner dependency.
+
+## 2.2.0
+
+### Minor Changes
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`47bd5cb`](https://github.com/ckb-devrel/ccc/commit/47bd5cb4fb23949ab01a7300ce1de2dc7ea61e40) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve long-lived Khie connections by redialing known addresses for every
+  JSON-RPC stream, sharing address updates with Identify Push, and retaining
+  learned addresses for the session.
+
+- [#534](https://github.com/ckb-devrel/ccc/pull/534) [`5564e08`](https://github.com/ckb-devrel/ccc/commit/5564e089c02750c36c65d8a67a71394d36821e08) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Clarify the Khie connection flow and link to the active Khie endpoint for
+  learning more or using a local wallet.
+
+- [#532](https://github.com/ckb-devrel/ccc/pull/532) [`3fddda3`](https://github.com/ckb-devrel/ccc/commit/3fddda3d1ec1b6d2c693b77431c04c2d0167b781) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie reconnection across disconnects and page suspension, preserving
+  active pairings and restoring direct connections when possible.
+
+### Patch Changes
+
+- Updated dependencies [[`47bd5cb`](https://github.com/ckb-devrel/ccc/commit/47bd5cb4fb23949ab01a7300ce1de2dc7ea61e40), [`3fddda3`](https://github.com/ckb-devrel/ccc/commit/3fddda3d1ec1b6d2c693b77431c04c2d0167b781)]:
+  - @ckb-ccc/libp2p@0.2.0
+  - @ckb-ccc/ccc@1.3.3
+
+## 2.1.1
+
+### Patch Changes
+
+- [#529](https://github.com/ckb-devrel/ccc/pull/529) [`aa56eb0`](https://github.com/ckb-devrel/ccc/commit/aa56eb011ece822549bd6a5af73f5159014297d9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Improve Khie QR code scan reliability with a standards-compliant quiet zone and high-contrast rendering.
+
+- [#527](https://github.com/ckb-devrel/ccc/pull/527) [`0cc00e8`](https://github.com/ckb-devrel/ccc/commit/0cc00e83f75f10954cc428c794de2a4d82046957) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Render connected signer addresses independently from balance lookup failures or delays.
+
 ## 2.1.0
 
 ### Minor Changes

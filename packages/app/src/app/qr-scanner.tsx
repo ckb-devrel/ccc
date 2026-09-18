@@ -1,13 +1,37 @@
 "use client";
 
-import type { QRCanvas } from "qr/dom.js";
+import type { QRCamera, QRCanvas } from "qr/dom.js";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 const SCAN_INTERVAL_MS = 100;
 
-interface QrCamera {
-  readFrame(canvas: QRCanvas, fullSize?: boolean): string | undefined;
-  stop(): void;
+type BarcodeDetectorLike = {
+  detect(source: CanvasImageSource): Promise<readonly { rawValue: string }[]>;
+};
+
+type BarcodeDetectorConstructor = {
+  new (options: { formats: string[] }): BarcodeDetectorLike;
+  getSupportedFormats?: () => Promise<string[]>;
+};
+
+async function createBarcodeDetector(): Promise<
+  BarcodeDetectorLike | undefined
+> {
+  const BarcodeDetector = Reflect.get(globalThis, "BarcodeDetector") as
+    BarcodeDetectorConstructor | undefined;
+  if (typeof BarcodeDetector !== "function") {
+    return;
+  }
+
+  try {
+    const formats = await BarcodeDetector.getSupportedFormats?.();
+    if (formats && !formats.includes("qr_code")) {
+      return;
+    }
+    return new BarcodeDetector({ formats: ["qr_code"] });
+  } catch {
+    return;
+  }
 }
 
 export type QrScannerProps = {
@@ -34,7 +58,7 @@ export function QrScanner({
     }
 
     let stopped = false;
-    let camera: QrCamera | undefined;
+    let camera: QRCamera | undefined;
     let stopScanLoop = () => {};
     const stop = () => {
       if (stopped) {
@@ -50,12 +74,15 @@ export function QrScanner({
     const start = async () => {
       try {
         assertCameraAvailable();
-        const { QRCanvas, frontalCamera } = await import("qr/dom.js");
+        const [{ QRCanvas, rearCamera }, barcodeDetector] = await Promise.all([
+          import("qr/dom.js"),
+          createBarcodeDetector(),
+        ]);
         if (stopped) {
           return;
         }
 
-        camera = await frontalCamera(video);
+        camera = await rearCamera(video);
         if (stopped) {
           camera.stop();
           video.srcObject = null;
@@ -70,7 +97,8 @@ export function QrScanner({
         stopScanLoop = startScanning(
           video,
           camera,
-          new QRCanvas(),
+          () => new QRCanvas(),
+          barcodeDetector,
           (value) => {
             stop();
             onScanCurrent(value);
@@ -115,32 +143,66 @@ function assertCameraAvailable() {
 
 function startScanning(
   video: HTMLVideoElement,
-  camera: QrCamera,
-  canvas: QRCanvas,
+  camera: QRCamera,
+  createCanvas: () => QRCanvas,
+  barcodeDetector: BarcodeDetectorLike | undefined,
   onScan: (value: string) => void,
   onError: (error: unknown) => void,
 ) {
   let timeout: ReturnType<typeof setTimeout>;
-  const scan = () => {
+  let stopped = false;
+  let canvas: QRCanvas | undefined;
+
+  const scheduleScan = () => {
+    timeout = setTimeout(() => void scan(), SCAN_INTERVAL_MS);
+  };
+
+  async function scan() {
+    if (stopped) {
+      return;
+    }
+
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      timeout = setTimeout(scan, SCAN_INTERVAL_MS);
+      scheduleScan();
       return;
     }
 
     try {
-      const value = camera.readFrame(canvas, true);
-      if (value) {
+      let value: unknown;
+      if (barcodeDetector) {
+        try {
+          value = (await barcodeDetector.detect(video))[0]?.rawValue;
+        } catch {
+          if (stopped) {
+            return;
+          }
+          // Fall back if the browser exposes an unusable native implementation.
+          barcodeDetector = undefined;
+        }
+      }
+      if (!barcodeDetector) {
+        value = await camera.readFrame((canvas ??= createCanvas()), true);
+      }
+      if (stopped) {
+        return;
+      }
+      if (typeof value === "string") {
         onScan(value);
         return;
       }
     } catch (error) {
-      onError(error);
+      if (!stopped) {
+        onError(error);
+      }
       return;
     }
 
-    timeout = setTimeout(scan, SCAN_INTERVAL_MS);
-  };
+    scheduleScan();
+  }
 
-  timeout = setTimeout(scan, SCAN_INTERVAL_MS);
-  return () => clearTimeout(timeout);
+  scheduleScan();
+  return () => {
+    stopped = true;
+    clearTimeout(timeout);
+  };
 }

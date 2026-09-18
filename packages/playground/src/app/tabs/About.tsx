@@ -16,7 +16,7 @@ export function About(props: React.ComponentPropsWithoutRef<"div">) {
       <div className="flex flex-col gap-4 *:flex *:gap-3 *:border-b *:px-8 *:pt-3 *:pb-4 *:whitespace-nowrap">
         <Link href="https://ckbccc.com/" target="_blank">
           <img
-            src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logo.svg"
+            src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/logo.svg"
             alt="CCC"
             className="h-6 w-6"
           />
@@ -24,7 +24,7 @@ export function About(props: React.ComponentPropsWithoutRef<"div">) {
         </Link>
         <Link href="https://docs.ckbccc.com/" target="_blank">
           <img
-            src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logo.svg"
+            src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/logo.svg"
             alt="CCC"
             className="h-6 w-6"
           />

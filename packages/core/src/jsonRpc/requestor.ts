@@ -1,11 +1,14 @@
+import { abortSignalToPromise } from "../utils/abortSignal.js";
 import { OwnerAggregated } from "../utils/owner/aggregated.js";
 import { Owner } from "../utils/owner/owner.js";
 import { jsonRpcTransportFromUri } from "./transports/factory.js";
 import { JsonRpcTransportFallback } from "./transports/fallback.js";
 import {
+  JsonRpcError,
   JsonRpcPayload,
   JsonRpcResponse,
   JsonRpcTransport,
+  JsonRpcTransportRequestOptions,
 } from "./transports/index.js";
 
 function openTransports(
@@ -146,6 +149,7 @@ export class RequestorJsonRpc {
     inTransformers?: (((_: any) => unknown) | undefined)[],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     outTransformer?: (_: any) => unknown,
+    options?: JsonRpcTransportRequestOptions,
   ): Promise<unknown> {
     const payload = this.buildPayload(
       rpcMethod,
@@ -164,7 +168,7 @@ export class RequestorJsonRpc {
 
     try {
       return await transform(
-        await this.requestPayload(payload),
+        await this.requestPayload(payload, options),
         outTransformer,
       );
     } catch (err: unknown) {
@@ -175,21 +179,41 @@ export class RequestorJsonRpc {
     }
   }
 
-  async requestPayload(payload: JsonRpcPayload): Promise<unknown> {
+  async requestPayload(
+    payload: JsonRpcPayload,
+    options?: JsonRpcTransportRequestOptions,
+  ): Promise<unknown> {
     if (
       this.maxConcurrent !== undefined &&
       this.concurrent >= this.maxConcurrent
     ) {
-      const pending = new Promise<void>((resolve) =>
-        this.pending.push(resolve),
-      );
-      await pending;
+      options?.signal?.throwIfAborted();
+      let resolvePending: (() => void) | undefined;
+      const pending = new Promise<void>((resolve) => {
+        resolvePending = resolve;
+        this.pending.push(resolve);
+      });
+      try {
+        await (options?.signal
+          ? Promise.race([pending, abortSignalToPromise(options.signal)])
+          : pending);
+      } catch (cause) {
+        const index = resolvePending
+          ? this.pending.indexOf(resolvePending)
+          : -1;
+        if (index !== -1) {
+          this.pending.splice(index, 1);
+        } else {
+          this.pending.shift()?.();
+        }
+        throw cause;
+      }
     }
 
     const res: JsonRpcResponse = await (async () => {
       this.concurrent += 1;
       try {
-        return await this.transport.request(payload);
+        return await this.transport.request(payload, options);
       } finally {
         this.concurrent -= 1;
         this.pending.shift()?.();
@@ -200,7 +224,7 @@ export class RequestorJsonRpc {
       throw new Error(`Id mismatched, got ${res.id}, expected ${payload.id}`);
     }
     if (res.error != null) {
-      throw res.error as unknown;
+      throw new JsonRpcError(res.error);
     }
     return res.result;
   }

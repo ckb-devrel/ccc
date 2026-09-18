@@ -256,8 +256,175 @@ export async function reduceAsync<T, V>(
   return acc;
 }
 
-export function sleep(ms: NumLike) {
-  return new Promise((resolve) => setTimeout(resolve, Number(numFrom(ms))));
+/**
+ * Waits for the given duration, rejecting with the abort reason if cancelled.
+ * @public
+ */
+export function sleep(ms: NumLike, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    signal?.throwIfAborted();
+
+    const onAbort = () => {
+      clearTimeout(timeout);
+      reject(signal?.reason);
+    };
+    const timeout = setTimeout(
+      () => {
+        signal?.removeEventListener("abort", onAbort);
+        resolve();
+      },
+      Number(numFrom(ms)),
+    );
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+export type RetryOptions = {
+  /** Repeats indefinitely with this delay after the delay iterable is exhausted. */
+  repeat?: NumLike;
+  /** Cancels waiting between attempts. */
+  signal?: AbortSignal;
+};
+
+/** A result returned by a retry operation. @public */
+export type RetryResult<T> =
+  | { status: "resolved"; value: T }
+  | { status: "rejected"; error: unknown }
+  | { status: "retry"; value?: never };
+
+/** Values available to each retry attempt. @public */
+export type RetryOperationOptions<T> = {
+  /** Zero-based attempt index. */
+  index: number;
+  resolve: (value: T) => RetryResult<T>;
+  reject: (error: unknown) => RetryResult<T>;
+  next: () => RetryResult<never>;
+};
+
+function retryResolve<T>(value: T): RetryResult<T> {
+  return { status: "resolved", value };
+}
+
+function retryReject(error: unknown): RetryResult<never> {
+  return { status: "rejected", error };
+}
+
+function retryAgain(): RetryResult<never> {
+  return { status: "retry" };
+}
+
+/**
+ * Retries an asynchronous operation when it throws. The iterable supplies one
+ * delay per retry and stops retrying when it is exhausted unless `repeat` is
+ * configured. Returning `resolve(value)` or `reject(error)` settles
+ * immediately. Returning `next()` consumes the next delay without throwing
+ * an error.
+ * @public
+ */
+export async function retry<T>(
+  delays: Iterable<NumLike>,
+  operation: (
+    options: RetryOperationOptions<T>,
+  ) => PromiseLike<RetryResult<T>> | RetryResult<T>,
+  options?: RetryOptions,
+): Promise<T> {
+  const iterator = delays[Symbol.iterator]();
+  let index = 0;
+
+  while (true) {
+    options?.signal?.throwIfAborted();
+
+    let result: RetryResult<T>;
+    try {
+      result = await operation({
+        index,
+        resolve: retryResolve,
+        reject: retryReject,
+        next: retryAgain,
+      });
+      if (result.status === "retry") {
+        throw new Error("Retry limit exhausted");
+      }
+    } catch (cause) {
+      const next = iterator.next();
+      const delay = next.done ? options?.repeat : next.value;
+      if (delay === undefined) {
+        throw cause;
+      }
+      await sleep(delay, options?.signal);
+      index += 1;
+      continue;
+    }
+
+    if (result.status === "rejected") {
+      throw result.error;
+    }
+
+    return result.value;
+  }
+}
+
+/**
+ * Waits until the current browser page is visible and the browser reports it
+ * is online. This does not guarantee that a remote endpoint is reachable.
+ * Resolves immediately outside a browser and rejects with the abort reason
+ * when the optional signal is aborted.
+ * @public
+ */
+export async function waitForAvailability(signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+
+  if (
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    typeof navigator === "undefined"
+  ) {
+    return;
+  }
+
+  const isAvailable = () =>
+    document.visibilityState === "visible" && navigator.onLine;
+  if (isAvailable()) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+
+    function cleanup() {
+      document.removeEventListener("visibilitychange", onAvailabilityChange);
+      window.removeEventListener("online", onAvailabilityChange);
+      signal?.removeEventListener("abort", onAbort);
+    }
+
+    function onAvailabilityChange() {
+      if (settled || !isAvailable()) {
+        return;
+      }
+
+      settled = true;
+      cleanup();
+      resolve();
+    }
+
+    function onAbort() {
+      if (settled) return;
+
+      settled = true;
+      cleanup();
+      reject(signal?.reason);
+    }
+
+    document.addEventListener("visibilitychange", onAvailabilityChange);
+    window.addEventListener("online", onAvailabilityChange);
+    signal?.addEventListener("abort", onAbort, { once: true });
+
+    if (signal?.aborted) {
+      onAbort();
+    } else {
+      onAvailabilityChange();
+    }
+  });
 }
 
 /**

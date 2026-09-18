@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: RouteContext<'/[lang]/mdx/[
   const processed = await page.data.getText('processed');
   const content = `# ${page.data.title}
 URL: ${siteUrl}${page.url}
-Source: https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/packages/docs/content/docs/${page.path}
+Source: https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/packages/docs/content/docs/${page.path}
 > ${page.data.description ?? ''}
 ${processed}`;
  

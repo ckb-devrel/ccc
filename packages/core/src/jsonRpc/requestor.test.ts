@@ -104,6 +104,83 @@ describe("RequestorJsonRpc", () => {
     ]);
   });
 
+  it("cancels a queued request without blocking later requests", async () => {
+    let releaseFirst: (() => void) | undefined;
+    const firstPending = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const calls: JsonRpcPayload[] = [];
+    const transport: JsonRpcTransport = {
+      async request(payload) {
+        calls.push(payload);
+        if (payload.id === 0) {
+          await firstPending;
+        }
+        return response(payload, payload.id);
+      },
+    };
+    const requestor = RequestorJsonRpc.new({
+      maxConcurrent: 1,
+      transport,
+    });
+    const controller = new AbortController();
+    const reason = new Error("cancelled while queued");
+
+    const first = requestor.requestPayload(requestor.buildPayload("test", []));
+    const second = requestor.requestPayload(
+      requestor.buildPayload("test", []),
+      { signal: controller.signal },
+    );
+    const third = requestor.requestPayload(requestor.buildPayload("test", []));
+    const secondRejected = expect(second).rejects.toBe(reason);
+
+    controller.abort(reason);
+    await secondRejected;
+    expect(calls.map(({ id }) => id)).toEqual([0]);
+
+    releaseFirst?.();
+    await expect(Promise.all([first, third])).resolves.toEqual([0, 2]);
+    expect(calls.map(({ id }) => id)).toEqual([0, 2]);
+  });
+
+  it("forwards a released slot when its queued request is cancelled", async () => {
+    let resolveFirst: (response: JsonRpcResponse) => void = () => {};
+    const firstPending = new Promise<JsonRpcResponse>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const calls: JsonRpcPayload[] = [];
+    const transport: JsonRpcTransport = {
+      request(payload) {
+        calls.push(payload);
+        return payload.id === 0
+          ? firstPending
+          : Promise.resolve(response(payload, payload.id));
+      },
+    };
+    const requestor = RequestorJsonRpc.new({
+      maxConcurrent: 1,
+      transport,
+    });
+    const controller = new AbortController();
+    const reason = new Error("cancelled while receiving a slot");
+    const firstPayload = requestor.buildPayload("test", []);
+
+    const first = requestor.requestPayload(firstPayload);
+    const second = requestor.requestPayload(
+      requestor.buildPayload("test", []),
+      { signal: controller.signal },
+    );
+    const third = requestor.requestPayload(requestor.buildPayload("test", []));
+    const secondRejected = expect(second).rejects.toBe(reason);
+
+    resolveFirst(response(firstPayload, firstPayload.id));
+    controller.abort(reason);
+
+    await secondRejected;
+    await vi.waitFor(() => expect(calls.map(({ id }) => id)).toEqual([0, 2]));
+    await expect(Promise.all([first, third])).resolves.toEqual([0, 2]);
+  });
+
   it("disposes default transports owned by an opened Requestor", async () => {
     const owner = RequestorJsonRpc.open({ urls: ["ws://example.com"] });
     const requestor = owner.value;

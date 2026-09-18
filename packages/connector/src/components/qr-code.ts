@@ -29,11 +29,7 @@ export class QrCode extends LitElement {
 
     try {
       const { default: encodeQR } = await import("qr");
-      const foreground = getComputedStyle(this).color;
-      const svg = encodeQR(value, "svg", { border: 1 }).replace(
-        "<svg ",
-        `<svg fill="${foreground}" `,
-      );
+      const svg = encodeQR(value, "svg", { border: 4 });
       if (generation === this.generation) {
         this.src = `data:image/svg+xml,${encodeURIComponent(svg)}`;
       }
@@ -57,7 +53,6 @@ export class QrCode extends LitElement {
       display: grid;
       overflow: hidden;
       aspect-ratio: 1;
-      border-radius: 0.5rem;
       place-items: center;
     }
 
@@ -66,11 +61,11 @@ export class QrCode extends LitElement {
       display: block;
       width: 100%;
       height: 100%;
-      border-radius: inherit;
     }
 
     img {
       object-fit: contain;
+      background: #fff;
     }
 
     span {

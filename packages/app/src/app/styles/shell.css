@@ -76,7 +76,7 @@
   margin-top: 34px;
   margin-bottom: 18px;
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 .section-index {

@@ -49,9 +49,7 @@
   font:
     13px/1.5 "Courier New",
     monospace;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease;
+  transition: border-color 160ms ease;
 }
 
 .module-field input {
@@ -279,9 +277,7 @@
   color: var(--ink);
   background: transparent;
   text-align: left;
-  transition:
-    border-color 160ms ease,
-    color 160ms ease;
+  transition: border-color 160ms ease;
 }
 
 .module-item:not(:disabled):hover,
@@ -393,7 +389,6 @@
     border-color 160ms ease,
     color 160ms ease,
     background 160ms ease,
-    box-shadow 160ms ease,
     transform 160ms ease;
 }
 
@@ -481,7 +476,7 @@
 }
 
 .module-readout-rail-segment.is-entering {
-  animation: module-readout-rail-in 460ms var(--easing-mechanical) both;
+  animation: module-readout-rail-in 460ms var(--easing-mechanical) backwards;
 }
 
 @keyframes module-readout-rail-out {
@@ -512,7 +507,8 @@
 }
 
 .module-readout-line.is-entering {
-  animation: module-readout-slot-in 460ms var(--easing-mechanical) 55ms both;
+  animation: module-readout-slot-in 460ms var(--easing-mechanical) 55ms
+    backwards;
 }
 
 @keyframes module-readout-slot-out {

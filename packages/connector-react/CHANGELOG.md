@@ -1,5 +1,40 @@
 # @ckb-ccc/connector-react
 
+## 2.1.5
+
+### Patch Changes
+
+- Updated dependencies [[`a8be9c4`](https://github.com/ckb-devrel/ccc/commit/a8be9c4e8a4df2e7ef3a685bc3bb185620d341a3), [`8b0a8b5`](https://github.com/ckb-devrel/ccc/commit/8b0a8b50dff0b5ddd8b21c15d5ce1cb8ac4842f0)]:
+  - @ckb-ccc/connector@2.2.3
+
+## 2.1.4
+
+### Patch Changes
+
+- Updated dependencies [[`272dd4e`](https://github.com/ckb-devrel/ccc/commit/272dd4e1c4cbd4e2027d78379b92cb25df9f111d)]:
+  - @ckb-ccc/connector@2.2.2
+
+## 2.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`0544688`](https://github.com/ckb-devrel/ccc/commit/054468841296d39cf4a510b576dbeec06dbcfae5)]:
+  - @ckb-ccc/connector@2.2.1
+
+## 2.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`47bd5cb`](https://github.com/ckb-devrel/ccc/commit/47bd5cb4fb23949ab01a7300ce1de2dc7ea61e40), [`5564e08`](https://github.com/ckb-devrel/ccc/commit/5564e089c02750c36c65d8a67a71394d36821e08), [`3fddda3`](https://github.com/ckb-devrel/ccc/commit/3fddda3d1ec1b6d2c693b77431c04c2d0167b781)]:
+  - @ckb-ccc/connector@2.2.0
+
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [[`aa56eb0`](https://github.com/ckb-devrel/ccc/commit/aa56eb011ece822549bd6a5af73f5159014297d9), [`0cc00e8`](https://github.com/ckb-devrel/ccc/commit/0cc00e83f75f10954cc428c794de2a4d82046957)]:
+  - @ckb-ccc/connector@2.1.1
+
 ## 2.1.0
 
 ### Minor Changes

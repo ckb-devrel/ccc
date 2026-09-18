@@ -54,7 +54,6 @@
 
 .dao-position-action strong {
   color: var(--ink);
-  transition: color 160ms ease;
 }
 
 @media (max-width: 680px) {

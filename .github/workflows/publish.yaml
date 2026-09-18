@@ -14,29 +14,4 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 26
-          registry-url: https://registry.npmjs.org
-      - uses: pnpm/action-setup@v6
-
-      - name: Install dependencies
-        run: pnpm build:prepare
-      - name: Build
-        run: pnpm build
-
-      - name: Create Release Pull Request or Publish to npm
-        id: changesets
-        uses: changesets/action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          pr-title: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
-          commit-message: ${{ format('chore({0}){1} bump packages version', github.ref_name, ':') }}
-          version-script: pnpm dlx @changesets/cli@3.0.0 version
-          publish-script: pnpm dlx @changesets/cli@3.0.0 publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    uses: ./.github/workflows/_changesets-release.yaml

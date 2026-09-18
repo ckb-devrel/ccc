@@ -19,12 +19,12 @@ export const metadata: Metadata = {
   title: "CCC Playground",
   description: "Start exploring CKB from here!",
   icons:
-    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/logo.svg",
+    "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/logo.svg",
   openGraph: {
     title: "CCC Playground",
     description: "Start exploring CKB from here!",
     images:
-      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/master/assets/opengraph.png",
+      "https://raw.githubusercontent.com/ckb-devrel/ccc/refs/heads/dev/assets/opengraph.png",
   },
 };
 

@@ -22,7 +22,7 @@ async function createNode(
     { noise },
     { yamux },
     { circuitRelayTransport },
-    { identify },
+    { identify, identifyPush },
     { webRTC },
     { webSockets },
     { createLibp2p },
@@ -41,11 +41,16 @@ async function createNode(
     addresses: {
       listen: ["/p2p-circuit", "/webrtc"],
     },
+    peerStore: {
+      // Khie nodes are session-scoped; retain learned addresses for reconnects.
+      maxAddressAge: Infinity,
+    },
     transports: [webSockets(), webRTC(), circuitRelayTransport()],
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
       identify: identify(),
+      identifyPush: identifyPush(),
       pairing: Libp2p.pairingService(
         {
           name,

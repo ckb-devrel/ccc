@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://app.ckbccc.com/">
-    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
+    <img alt="Logo" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/logoAndText.svg" style="height: 8rem; max-width: 90%; padding: 0.5rem 0;" />
   </a>
 </p>
 
@@ -13,8 +13,8 @@
     alt="NPM Version" src="https://img.shields.io/npm/v/%40ckb-ccc%2Fccc"
   /></a>
   <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/ckb-devrel/ccc" />
-  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/master" />
-  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/master" />
+  <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/ckb-devrel/ccc/dev" />
+  <img alt="GitHub branch check runs" src="https://img.shields.io/github/check-runs/ckb-devrel/ccc/dev" />
   <a href="https://live.ckbccc.com/"><img
     alt="Playground" src="https://img.shields.io/website?url=https%3A%2F%2Flive.ckbccc.com%2F&label=Playground"
   /></a>
@@ -52,7 +52,7 @@ Read our [documents](https://docs.ckbccc.com) or [API reference](https://api.ckb
 
 ## AI Coding Assistants (Agent Skills)
 
-CKB's Cell model rarely appears in the Ethereum-heavy data most LLMs are trained on, so an unguided assistant will confidently write wrong CCC code (wrong tx ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions). To fix this, CCC ships a set of machine-readable [Agent Skills](https://docs.ckbccc.com/skill.md) under [`skills/`](https://github.com/ckb-devrel/ccc/tree/master/skills) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples).
+CKB's Cell model rarely appears in the Ethereum-heavy data most LLMs are trained on, so an unguided assistant will confidently write wrong CCC code (wrong tx ordering, invented methods, `number` where CKB needs `bigint`, EVM-style assumptions). To fix this, CCC ships a set of machine-readable [Agent Skills](https://docs.ckbccc.com/skill.md) under [`skills/`](https://github.com/ckb-devrel/ccc/tree/dev/skills) — one hub skill (`ckb-ccc-fundamentals`) plus a spoke skill per task area (signer setup, transactions, UDT, Spore, playground, examples).
 
 Install them into Cursor, Claude Code, GitHub Copilot, Windsurf, Codex, and 60+ other tools with one command, using the open-source [`skills`](https://github.com/vercel-labs/skills) CLI:
 
@@ -66,7 +66,7 @@ See [AI Resources](https://docs.ckbccc.com/en/docs/ai-resources) for full setup 
 
 <p align="center">
   <a href="https://live.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/preview.png" width="70%" />
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/preview.png" width="70%" />
   </a>
 </p>
 
@@ -120,7 +120,7 @@ import { cccA } from "@ckb-ccc/<package-name>/advanced";
 
 <p align="center">
   <a href="https://app.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/appPreview.png" width="50%" />
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/appPreview.png" width="50%" />
   </a>
 </p>
 
@@ -174,13 +174,13 @@ pnpm run dev
 
 ## Who uses CCC?
 
-| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/nervdao.svg" />](https://nervdao.com/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/utxoglobal.svg" />](https://utxo.global/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/omiga.svg" />](https://omiga.io/) |
+| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/nervdao.svg" />](https://nervdao.com/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/utxoglobal.svg" />](https://utxo.global/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/omiga.svg" />](https://omiga.io/) |
 | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 
-| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/nervape.svg" />](https://www.nervape.com/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/utxoswap.svg" />](https://utxoswap.xyz/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/did.svg" />](https://d.id/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/boolnetwork.svg" />](https://bool.network/) |
+| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/nervape.svg" />](https://www.nervape.com/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/utxoswap.svg" />](https://utxoswap.xyz/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/did.svg" />](https://d.id/) | [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/boolnetwork.svg" />](https://bool.network/) |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 
-| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/master/assets/projects/world3.svg" />](https://world3.ai/) |
+| [<img style="height: 50px" src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/projects/world3.svg" />](https://world3.ai/) |
 | ------------------------------------------------------------------------------------------------------------------------------------------- |
 
 ## FAQs
@@ -222,7 +222,7 @@ registerCustomLockScriptInfos(generateDefaultScriptInfos());
 
 ## Links
 
-- [CCC Playground](https://live.ckbccc.com/) and its [source code](https://github.com/ckb-devrel/ccc/tree/master/packages/playground) help you experiment with CCC instantly in browsers.
+- [CCC Playground](https://live.ckbccc.com/) and its [source code](https://github.com/ckb-devrel/ccc/tree/dev/packages/playground) help you experiment with CCC instantly in browsers.
 - [Nervos CKB Docs](https://docs.nervos.org/) is the documentation website of Nervos CKB.
 - [Lumos](https://github.com/ckb-js/lumos) and its [Docs](https://lumos-website.vercel.app/): Legacy SDK for CKB transaction composition. **Note: Lumos is no longer actively maintained.** For new projects, CCC is the recommended alternative.
 - [RGB++ SDK](https://github.com/RGBPlusPlus/rgbpp-sdk) and its [Design](https://github.com/RGBPlusPlus/RGBPlusPlus-design): RGB++ is a protocol for issuing assets with Turing-completed VM on BTC L1.

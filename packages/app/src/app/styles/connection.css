@@ -51,32 +51,44 @@
   );
   transition:
     transform 720ms var(--easing-mechanical),
-    opacity 300ms ease;
+    opacity 300ms ease,
+    visibility 0s linear;
+}
+
+.machine-panel[aria-hidden="true"] {
+  pointer-events: none;
 }
 
 .connection-panel {
   position: relative;
   inset: auto;
+  visibility: visible;
   background: rgb(17 24 28 / 50%);
-  transform: translateX(0);
+  transform: none;
+  transition-delay: 0s, 0s, 0s;
 }
 
 .account-panel {
+  visibility: hidden;
   transform: translateX(112%);
+  transition-delay: 0s, 0s, 720ms;
 }
 
 .machine.is-connected .connection-panel {
   position: absolute;
   inset: 0;
+  visibility: hidden;
   opacity: 0;
   transform: translateX(-112%);
-  pointer-events: none;
+  transition-delay: 0s, 0s, 720ms;
 }
 
 .machine.is-connected .account-panel {
   position: relative;
   inset: auto;
-  transform: translateX(0);
+  visibility: visible;
+  transform: none;
+  transition-delay: 0s, 0s, 0s;
 }
 
 .panel-hardware {
@@ -141,6 +153,25 @@
 .connection-options {
   display: grid;
   gap: 10px;
+}
+
+.signer-disconnected-notice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--error) 55%, transparent);
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 7%, transparent);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.signer-disconnected-notice svg {
+  flex: 0 0 auto;
 }
 
 .connection-option {
@@ -224,7 +255,7 @@
 .private-key-form {
   display: grid;
   gap: 9px;
-  animation: private-key-form-enter 280ms var(--easing-mechanical) both;
+  animation: private-key-form-enter 280ms var(--easing-mechanical) backwards;
 }
 
 .private-key-field {
@@ -326,7 +357,11 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: 160ms ease;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease,
+    opacity 160ms ease;
 }
 
 .private-key-actions button:hover {
@@ -363,6 +398,12 @@
   .machine-panel {
     grid-template-columns: 1fr 300px;
     padding: 38px 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .machine-panel {
+    transition-delay: 0s;
   }
 }
 

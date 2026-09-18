@@ -1,9 +1,10 @@
 import { ccc } from "@ckb-ccc/core";
 import type { Connection, Libp2p, PeerId, Stream } from "@libp2p/interface";
 import { lpStream } from "@libp2p/utils";
+import { dialKnownAddresses } from "./dial.js";
 
 const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
-const DEFAULT_TIMEOUT = 120_000;
+const DEFAULT_TIMEOUT = 30_000;
 
 export type JsonRpcTransportLibp2pConfig = {
   protocol: string;
@@ -40,11 +41,15 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
     this.timeout = timeout;
   }
 
-  async request(payload: ccc.JsonRpcPayload): Promise<ccc.JsonRpcResponse> {
-    const timeoutSignal = AbortSignal.timeout(this.timeout);
-    const signal = this.config.signal
-      ? ccc.abortSignalAny([this.config.signal, timeoutSignal])
-      : timeoutSignal;
+  async request(
+    payload: ccc.JsonRpcPayload,
+    options?: ccc.JsonRpcTransportRequestOptions,
+  ): Promise<ccc.JsonRpcResponse> {
+    const timeoutSignal = AbortSignal.timeout(options?.timeout ?? this.timeout);
+    const signals = [this.config.signal, options?.signal, timeoutSignal].filter(
+      (signal): signal is AbortSignal => signal !== undefined,
+    );
+    const signal = ccc.abortSignalAny(signals);
 
     let stream: Stream | undefined;
     let response: ccc.JsonRpcResponse;
@@ -76,6 +81,10 @@ export class JsonRpcTransportLibp2p implements ccc.JsonRpcTransport {
   }
 
   private async openStream(signal: AbortSignal) {
+    void dialKnownAddresses(this.node, this.peerId).catch(() => {
+      // This is opportunistic; the current stream can still use relay/fallbacks.
+    });
+
     for (const connection of this.connections()) {
       try {
         return await connection.newStream(this.config.protocol, {

@@ -69,7 +69,7 @@ export function TransferSporeModule({
 }: ModuleRuntimeProps) {
   const [address, setAddress] = useState("");
   const [sporeId, setSporeId] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"melt" | "transfer">();
   const {
     hasMore,
     items: spores,
@@ -88,7 +88,7 @@ export function TransferSporeModule({
 
   const submit = async (mode: "melt" | "transfer") => {
     if (!signer || !activeSporeId) return;
-    setBusy(true);
+    setBusyAction(mode);
     try {
       await submitTransaction(
         mode === "transfer" ? "Transfer Spore" : "Melt Spore",
@@ -100,7 +100,7 @@ export function TransferSporeModule({
     } catch (cause) {
       reportModuleError(cause, show, log, `Spore ${mode} failed`);
     } finally {
-      setBusy(false);
+      setBusyAction(undefined);
     }
   };
 
@@ -149,18 +149,18 @@ export function TransferSporeModule({
       <div className="module-actions">
         <button
           type="button"
-          disabled={busy || !activeSporeId}
+          disabled={busyAction !== undefined || !activeSporeId}
           onClick={() => submit("melt")}
         >
-          Melt
+          {busyAction === "melt" ? "Melting…" : "Melt"}
         </button>
         <button
           type="button"
           className="is-primary"
-          disabled={busy || !activeSporeId || !address}
+          disabled={busyAction !== undefined || !activeSporeId || !address}
           onClick={() => submit("transfer")}
         >
-          Transfer
+          {busyAction === "transfer" ? "Transmitting…" : "Transfer"}
         </button>
       </div>
     </div>

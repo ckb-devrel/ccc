@@ -450,7 +450,9 @@ export abstract class Client {
     after?: string,
   ): Promise<ClientFindCellsResponse> {
     const res = await this.findCellsPagedNoCache(key, order, limit, after);
-    await this.cache.recordCells(res.cells);
+    if (key.withData !== false) {
+      await this.cache.recordCells(res.cells);
+    }
     return res;
   }
 
@@ -645,7 +647,11 @@ export abstract class Client {
 
   /**
    * Resolve cell dependency info into concrete CellDep objects.
-   * If a CellDepInfo specifies a type script, the actual deployed cell is located on-chain.
+   *
+   * If a CellDepInfo specifies a type script, the live cell carrying it is looked up
+   * on-chain and, when found, its outpoint is used instead of the configured one. When
+   * the lookup finds nothing, the configured outpoint is used as written. A CellDepInfo
+   * without a type script is always used as written.
    *
    * @param cellDepsInfoLike - One or more CellDepInfo or arrays of CellDepInfo.
    * @returns Resolved CellDep array ready to be added to a transaction.

@@ -1,5 +1,19 @@
 # ckb-ccc
 
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.3.4
+
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/ccc@1.3.3
+
 ## 1.1.11
 
 ### Patch Changes

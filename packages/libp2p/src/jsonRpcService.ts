@@ -4,6 +4,7 @@ import type { Registrar } from "@libp2p/interface-internal";
 import { lpStream } from "@libp2p/utils";
 
 const DEFAULT_MAX_MESSAGE_LENGTH = 1024 * 1024;
+const DEFAULT_TIMEOUT = 30_000;
 
 export type JsonRpcServiceComponents = {
   registrar: Registrar;
@@ -12,12 +13,15 @@ export type JsonRpcServiceComponents = {
 export type JsonRpcServiceConfig = {
   protocol: string;
   maxMessageLength?: number;
+  timeout?: number;
 };
 
 export type JsonRpcRequest = {
   connection: Connection;
   peerId: PeerId;
   payload: ccc.JsonRpcPayload;
+  /** Aborts if the service times out or the request stream closes. */
+  signal: AbortSignal;
 };
 
 export type JsonRpcRequestHandler<
@@ -29,6 +33,7 @@ export abstract class JsonRpcService<
 > {
   private readonly errorListeners = new Set<(error: Error) => void>();
   readonly maxMessageLength: number;
+  readonly timeout: number;
 
   constructor(
     readonly components: Components,
@@ -43,6 +48,13 @@ export abstract class JsonRpcService<
     }
 
     this.maxMessageLength = maxMessageLength;
+
+    const timeout = config.timeout ?? DEFAULT_TIMEOUT;
+    if (!Number.isSafeInteger(timeout) || timeout <= 0) {
+      throw new Error("JSON-RPC request timeout must be a positive integer");
+    }
+
+    this.timeout = timeout;
   }
 
   protected abstract handleRequest(request: JsonRpcRequest): unknown;
@@ -66,28 +78,57 @@ export abstract class JsonRpcService<
 
   private async handleProtocol(stream: Stream, connection: Connection) {
     let requestAborted = false;
+    const controller = new AbortController();
+    const timeoutSignal = AbortSignal.timeout(this.timeout);
+    const abortRequest = (event: { error?: Error }) => {
+      requestAborted = true;
+      const error = new Error(event.error?.message ?? "JSON-RPC stream closed");
+      error.name = "AbortError";
+      controller.abort(error);
+    };
+    const abortTimeout = () => {
+      requestAborted = true;
+      const error = abortReason(timeoutSignal, "JSON-RPC request timed out");
+      controller.abort(error);
+      stream.abort(error);
+    };
+    stream.addEventListener("close", abortRequest, { once: true });
+    timeoutSignal.addEventListener("abort", abortTimeout, { once: true });
+    if (stream.status !== "open") {
+      abortRequest({});
+    }
 
     try {
       const rpcStream = lpStream(stream, {
         maxDataLength: this.maxMessageLength,
       });
       const payload = parseJsonRpcRequest(
-        ccc.bytesTo((await rpcStream.read()).subarray(), "utf8"),
+        ccc.bytesTo(
+          (await rpcStream.read({ signal: controller.signal })).subarray(),
+          "utf8",
+        ),
       );
 
       let response: ccc.JsonRpcResponse;
       try {
+        controller.signal.throwIfAborted();
         response = {
           jsonrpc: "2.0",
           id: payload.id,
-          result: await this.handleRequest({
-            connection,
-            peerId: connection.remotePeer,
-            payload,
-          }),
+          result: await Promise.race([
+            Promise.resolve(
+              this.handleRequest({
+                connection,
+                peerId: connection.remotePeer,
+                payload,
+                signal: controller.signal,
+              }),
+            ),
+            ccc.abortSignalToPromise(controller.signal),
+          ]),
         };
       } catch (cause) {
-        requestAborted = isAbortError(cause);
+        requestAborted ||= isAbortError(cause);
         const error = toJsonRpcError(cause);
         response = {
           jsonrpc: "2.0",
@@ -100,13 +141,19 @@ export abstract class JsonRpcService<
         };
       }
 
-      await rpcStream.write(ccc.bytesFrom(JSON.stringify(response), "utf8"));
-      await stream.close();
+      await rpcStream.write(ccc.bytesFrom(JSON.stringify(response), "utf8"), {
+        signal: controller.signal,
+      });
+      stream.removeEventListener("close", abortRequest);
+      await stream.close({ signal: controller.signal });
     } catch (cause) {
       if (requestAborted) {
         return;
       }
       this.handleError(cause, stream);
+    } finally {
+      stream.removeEventListener("close", abortRequest);
+      timeoutSignal.removeEventListener("abort", abortTimeout);
     }
   }
 
@@ -145,6 +192,10 @@ function parseJsonRpcRequest(data: string) {
 
 function asJsonRpcError(cause: unknown) {
   return cause instanceof Error ? cause : new Error("JSON-RPC request failed");
+}
+
+function abortReason(signal: AbortSignal, fallback: string) {
+  return signal.reason instanceof Error ? signal.reason : new Error(fallback);
 }
 
 function isAbortError(cause: unknown) {

@@ -1,82 +1,34 @@
 import { ccc } from "@ckb-ccc/connector-react";
 import { Libp2p } from "@ckb-ccc/libp2p";
-import type { Identify } from "@libp2p/identify";
+import type { Identify, IdentifyPush } from "@libp2p/identify";
 import type {
   Connection,
   IdentifyResult,
   Peer,
   PeerId,
 } from "@libp2p/interface";
-import { multiaddr } from "@multiformats/multiaddr";
 
 type BrowserJsonRpcComponents = Libp2p.JsonRpcServiceComponents & {
   pairing: Libp2p.PairingService;
 };
 type KhieSignerServices = {
   identify: Identify;
+  identifyPush: IdentifyPush;
   jsonRpc: Libp2p.JsonRpcService<BrowserJsonRpcComponents>;
   pairing: Libp2p.PairingService;
 };
 type KhieSignerNode = Awaited<ReturnType<typeof createKhieSignerNode>>;
 type KhieSignerJsonRpcHandler = (payload: ccc.JsonRpcPayload) => unknown;
 
-class KhieConnectionAuthorizer {
-  private readonly connections = new Map<
-    string,
-    { status: "connected" } | { status: "connecting" }
-  >();
-
-  async handle(
-    peerId: PeerId,
-    payload: ccc.JsonRpcPayload,
-    handler: KhieSignerJsonRpcHandler,
-  ) {
-    const peer = peerId.toString();
-    // SignerJsonRpc reads metadata before it sends the connect request.
-    if (payload.method === "get_info") {
-      return handler(payload);
-    }
-
-    if (payload.method !== "connect") {
-      if (this.connections.get(peer)?.status !== "connected") {
-        throw new ccc.JsonRpcError({
-          code: -32001,
-          message: "Connect must be approved before this request",
-        });
-      }
-      return handler(payload);
-    }
-
-    const connecting = { status: "connecting" } as const;
-    this.connections.set(peer, connecting);
-    try {
-      const result = await handler(payload);
-      // A later connect attempt or unpair invalidates this completion.
-      if (this.connections.get(peer) === connecting) {
-        this.connections.set(peer, { status: "connected" });
-      }
-      return result;
-    } finally {
-      if (this.connections.get(peer) === connecting) {
-        this.connections.delete(peer);
-      }
-    }
-  }
-
-  unpair(peerId: PeerId) {
-    this.connections.delete(peerId.toString());
-  }
-}
-
 type KhieSignerSessionResources = {
   abortController: AbortController;
-  lastRequest?: { at: number; connection: Connection };
+  disconnectedAt?: number;
   node?: KhieSignerNode;
   nodeSubscriptions: Array<() => void>;
   pairingController?: AbortController;
   pairedPeer?: PeerId;
   pairedPeerName?: string;
-  relayConnection?: Connection;
+  relayController?: Libp2p.RelayConnectionController;
 };
 
 export type KhieSignerSessionConfig = {
@@ -87,16 +39,17 @@ export type KhieSignerSessionConfig = {
   onPaired?: () => void;
   onRemotePeerChange?: (peer: KhieRemotePeer) => void;
   onReady?: (session: KhieSignerSession) => void;
+  onRelayConnectionChange?: (connected: boolean) => void;
   onUnpaired?: () => void;
   pairedPeerTimeoutMs?: number;
 };
 
 export type KhieRemotePeer = {
+  active: boolean;
   agentVersion?: string;
-  connectedAt?: number;
   direct?: boolean;
   id: string;
-  lastRequestAt?: number;
+  lastSeenAt?: number;
   name?: string;
 };
 
@@ -113,6 +66,7 @@ export class KhieSignerSession {
   };
   private events?: KhieSignerSessionConfig;
   private endpointUpdateId = 0;
+  private remotePeerUpdateId = 0;
 
   private constructor(private readonly config: KhieSignerSessionConfig) {
     this.events = config;
@@ -127,25 +81,32 @@ export class KhieSignerSession {
   async connectRelay(relayAddress: string) {
     const address = relayAddress.trim();
     const node = this.resources.node;
-    if (!node || !address) {
+    if (!node || !address || this.resources.abortController.signal.aborted) {
       return false;
     }
 
-    const previous = this.resources.relayConnection;
-    this.resources.relayConnection = undefined;
-
-    let connection: Connection | undefined;
+    const previous = this.resources.relayController;
+    let controller: Libp2p.RelayConnectionController | undefined;
     try {
-      await previous?.close();
-      connection = await node.dial(multiaddr(address), {
-        signal: this.resources.abortController.signal,
+      controller = new Libp2p.RelayConnectionController(node, [address], {
+        onConnectionChange: (connection) => {
+          if (this.resources.relayController !== controller) {
+            return;
+          }
+          this.events?.onRelayConnectionChange?.(connection !== undefined);
+        },
       });
-      this.resources.abortController.signal.throwIfAborted();
-
-      this.resources.relayConnection = connection;
+      this.resources.relayController = controller;
+      await previous?.stop();
+      await controller.connect();
       return true;
     } catch (cause) {
-      await connection?.close();
+      if (
+        (controller && this.resources.relayController !== controller) ||
+        this.resources.abortController.signal.aborted
+      ) {
+        return false;
+      }
       this.events?.onError?.(asError(cause));
       return false;
     }
@@ -222,7 +183,6 @@ export class KhieSignerSession {
         () => !abortController.signal.aborted && !this.resources.pairedPeer,
         (peerId) => this.resources.pairedPeer?.equals(peerId) === true,
         this.config.handler,
-        (connection) => this.recordRequest(connection),
         this.config.pairedPeerTimeoutMs ?? DEFAULT_PAIRED_PEER_TIMEOUT_MS,
         abortController.signal,
       );
@@ -248,12 +208,41 @@ export class KhieSignerSession {
 
       void this.syncRemotePeer(node, peerId, event.detail);
     };
+    const refreshPairedPeer = (event: CustomEvent<PeerId>) => {
+      if (!this.resources.pairedPeer?.equals(event.detail)) {
+        return;
+      }
+
+      node.services.pairing.refresh(event.detail);
+      if (event.type === "peer:connect") {
+        this.resources.disconnectedAt = undefined;
+      } else {
+        this.resources.disconnectedAt = Date.now();
+      }
+      void this.syncRemotePeer(node, event.detail);
+    };
+    const syncPeerConnections = (event: CustomEvent<Connection>) => {
+      const peerId = this.resources.pairedPeer;
+      if (!peerId?.equals(event.detail.remotePeer)) {
+        return;
+      }
+
+      void this.syncRemotePeer(node, peerId);
+    };
 
     node.addEventListener("self:peer:update", syncEndpoint);
     node.addEventListener("peer:identify", syncIdentifiedPeer);
+    node.addEventListener("peer:connect", refreshPairedPeer);
+    node.addEventListener("peer:disconnect", refreshPairedPeer);
+    node.addEventListener("connection:open", syncPeerConnections);
+    node.addEventListener("connection:close", syncPeerConnections);
     this.resources.nodeSubscriptions.push(
       () => node.removeEventListener("self:peer:update", syncEndpoint),
       () => node.removeEventListener("peer:identify", syncIdentifiedPeer),
+      () => node.removeEventListener("peer:connect", refreshPairedPeer),
+      () => node.removeEventListener("peer:disconnect", refreshPairedPeer),
+      () => node.removeEventListener("connection:open", syncPeerConnections),
+      () => node.removeEventListener("connection:close", syncPeerConnections),
       node.services.pairing.onSecretChanged(syncEndpoint),
       node.services.pairing.onError((error) => {
         const signal = this.resources.pairingController?.signal;
@@ -273,6 +262,7 @@ export class KhieSignerSession {
 
         this.resources.pairedPeer = peerId;
         this.resources.pairedPeerName = name;
+        this.resources.disconnectedAt = undefined;
         this.events?.onPaired?.();
         void this.syncRemotePeer(node, peerId);
       }),
@@ -283,24 +273,12 @@ export class KhieSignerSession {
 
         this.resources.pairedPeer = undefined;
         this.resources.pairedPeerName = undefined;
+        this.resources.disconnectedAt = undefined;
+        this.remotePeerUpdateId += 1;
         this.events?.onUnpaired?.();
       }),
     );
     syncEndpoint();
-  }
-
-  private recordRequest(connection: Connection) {
-    const peerId = connection.remotePeer;
-    const pairedPeer = this.resources.pairedPeer;
-    if (pairedPeer && !pairedPeer.equals(peerId)) {
-      return;
-    }
-
-    this.resources.lastRequest = { at: Date.now(), connection };
-    const node = this.resources.node;
-    if (node && pairedPeer) {
-      void this.syncRemotePeer(node, peerId);
-    }
   }
 
   private async syncRemotePeer(
@@ -308,6 +286,7 @@ export class KhieSignerSession {
     peerId: PeerId,
     identified?: IdentifyResult,
   ) {
+    const updateId = ++this.remotePeerUpdateId;
     let peer: Peer | undefined;
     try {
       peer = await node.peerStore.get(peerId);
@@ -315,19 +294,22 @@ export class KhieSignerSession {
       // A connection is still useful before identify has populated the peer store.
     }
 
-    if (!this.resources.pairedPeer?.equals(peerId)) {
+    if (
+      updateId !== this.remotePeerUpdateId ||
+      !this.resources.pairedPeer?.equals(peerId)
+    ) {
       return;
     }
 
-    const lastRequest = this.resources.lastRequest;
-    const requestConnection = lastRequest?.connection.remotePeer.equals(peerId)
-      ? lastRequest.connection
-      : undefined;
-    const connection =
-      requestConnection ??
-      identified?.connection ??
-      node.getConnections(peerId).find(({ status }) => status === "open") ??
-      node.getConnections(peerId)[0];
+    const connections = node
+      .getConnections(peerId)
+      .filter(({ status }) => status === "open");
+    const active = connections.length > 0;
+    if (active) {
+      this.resources.disconnectedAt = undefined;
+    } else {
+      this.resources.disconnectedAt ??= Date.now();
+    }
 
     const metadataText = (key: string) => {
       const value = peer?.metadata.get(key);
@@ -335,11 +317,11 @@ export class KhieSignerSession {
     };
 
     this.events?.onRemotePeerChange?.({
+      active,
       agentVersion: identified?.agentVersion ?? metadataText("AgentVersion"),
-      connectedAt: connection?.timeline.open,
-      direct: connection?.direct,
+      direct: active ? connections.some(({ direct }) => direct) : undefined,
       id: peerId.toString(),
-      lastRequestAt: requestConnection ? lastRequest?.at : undefined,
+      lastSeenAt: active ? undefined : this.resources.disconnectedAt,
       name: this.resources.pairedPeerName,
     });
   }
@@ -368,7 +350,7 @@ export class KhieSignerSession {
   }
 
   private async releaseResources() {
-    const { abortController, node, nodeSubscriptions, relayConnection } =
+    const { abortController, node, nodeSubscriptions, relayController } =
       this.resources;
     abortController.abort();
     nodeSubscriptions.splice(0).forEach((unsubscribe) => unsubscribe());
@@ -379,7 +361,7 @@ export class KhieSignerSession {
       }
     } finally {
       try {
-        await relayConnection?.close();
+        await relayController?.stop();
       } finally {
         await node?.stop();
       }
@@ -391,18 +373,15 @@ async function createKhieSignerNode(
   canPair: Libp2p.PairingGuard,
   isSelectedPeer: (peerId: PeerId) => boolean,
   handler: KhieSignerJsonRpcHandler,
-  onRequest: (connection: Connection) => void,
   pairedPeerTimeoutMs: number,
   signal: AbortSignal,
 ) {
   signal.throwIfAborted();
-  const connectionAuthorizer = new KhieConnectionAuthorizer();
-
   const [
     { noise },
     { yamux },
     { circuitRelayTransport },
-    { identify },
+    { identify, identifyPush },
     { webRTC },
     { webSockets },
     { createLibp2p },
@@ -427,6 +406,7 @@ async function createKhieSignerNode(
       streamMuxers: [yamux()],
       services: {
         identify: identify(),
+        identifyPush: identifyPush(),
         pairing: Libp2p.pairingService(
           { protocol: KHIE_PAIRING_PROTOCOL, pairedPeerTimeoutMs },
           canPair,
@@ -440,24 +420,16 @@ async function createKhieSignerNode(
               !isSelectedPeer(request.peerId)
             ) {
               throw new ccc.JsonRpcError({
-                code: -32000,
+                code: ccc.SignerJsonRpcErrorCode.ServerError,
                 message: "Peer is not paired for Khie access",
               });
             }
 
             pairing.refresh(request.peerId);
-            onRequest(request.connection);
-            return connectionAuthorizer.handle(
-              request.peerId,
-              request.payload,
-              handler,
-            );
+            return handler(request.payload);
           },
         ),
       },
-    });
-    node.services.pairing.onUnpaired((peerId) => {
-      connectionAuthorizer.unpair(peerId);
     });
     signal.throwIfAborted();
     return node;

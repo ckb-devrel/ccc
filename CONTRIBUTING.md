@@ -93,7 +93,7 @@ Here are a few examples of good commit messages:
 
 ### Push to your fork and submit a pull request
 
-After pushing your changes to your fork, please submit a pull request to the `master` branch of the `ckb-devrel/ccc` repository.
+After pushing your changes to your fork, please submit a pull request to the `dev` branch of the `ckb-devrel/ccc` repository.
 
 After submitting the pull request, our team will review it. We may suggest some changes or improvements or alternatives.
 

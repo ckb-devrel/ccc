@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { UniSatA } from "@ckb-ccc/uni-sat/advanced";
 import { BitcoinProvider } from "../advancedBarrel.js";
 
 /**
@@ -172,7 +173,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
     options?: ccc.SignPsbtOptionsLike,
   ): Promise<ccc.Hex> {
     return ccc.hexFrom(
-      await this.provider.signPsbt(ccc.hexFrom(psbtHex).slice(2), options),
+      await this.provider.signPsbt(
+        ccc.hexFrom(psbtHex).slice(2),
+        UniSatA.toUniSatSignPsbtOptions(options),
+      ),
     );
   }
 

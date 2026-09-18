@@ -203,6 +203,7 @@ export function NervosDaoModule({
   const maximum = async () => {
     setMaximumFeeRate(undefined);
     if (!signer) return;
+    setBusyAction("maximum");
     try {
       const result = await calculateMaximumDaoDeposit(signer);
       const value = ccc.fixedPointToString(result.capacity);
@@ -225,6 +226,8 @@ export function NervosDaoModule({
       log(`Maximum DAO deposit: ${value} CKB`, "success");
     } catch (cause) {
       reportModuleError(cause, show, log, "Unable to calculate DAO maximum");
+    } finally {
+      setBusyAction(undefined);
     }
   };
 
@@ -280,7 +283,7 @@ export function NervosDaoModule({
             disabled={!signer || busyAction !== undefined}
             onClick={maximum}
           >
-            Max
+            {busyAction === "maximum" ? "Calculating…" : "Max"}
           </button>
           <button
             type="button"

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   decodePairingEndpoint,
   encodePairingEndpoint,
+  PairingEndpointError,
   PairingEndpointRoleError,
 } from "./pairingEndpoint.js";
 
@@ -45,6 +46,22 @@ function fragmentParams(url: URL) {
 }
 
 describe("pairing endpoint", () => {
+  it("identifies invalid endpoint input", async () => {
+    await expect(decodePairingEndpoint("not a URL")).rejects.toBeInstanceOf(
+      PairingEndpointError,
+    );
+
+    await expect(
+      decodePairingEndpoint("https://app.ckbccc.com/#signer"),
+    ).rejects.toBeInstanceOf(PairingEndpointError);
+
+    await expect(
+      decodePairingEndpoint(
+        "https://app.ckbccc.com/#signer?addresses=invalid&secret=pairing-secret",
+      ),
+    ).rejects.toBeInstanceOf(PairingEndpointError);
+  });
+
   it("encodes pairing parameters in the URL fragment", async () => {
     const endpoint = await encodePairingEndpoint(
       "https://app.ckbccc.com/?theme=dark&secret=old#signer?source=qr",

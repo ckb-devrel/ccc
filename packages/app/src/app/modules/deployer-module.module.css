@@ -134,7 +134,6 @@
     monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: color 160ms ease;
 }
 
 .deploy-lock-copy small {

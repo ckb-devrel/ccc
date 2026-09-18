@@ -40,3 +40,17 @@ export function abortSignalAny(signals: readonly AbortSignal[]): AbortSignal {
 
   return controller.signal;
 }
+
+/**
+ * Returns a promise that rejects with the abort reason when the signal aborts.
+ *
+ * @public
+ */
+export function abortSignalToPromise(signal: AbortSignal): Promise<never> {
+  return new Promise<never>((_resolve, reject) => {
+    signal.throwIfAborted();
+    signal.addEventListener("abort", () => reject(signal.reason), {
+      once: true,
+    });
+  });
+}

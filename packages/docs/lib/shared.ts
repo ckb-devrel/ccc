@@ -19,7 +19,7 @@ export const docsContentRoute = '/llms.mdx/docs';
 export const gitConfig = {
   user: 'ckb-devrel',
   repo: 'ccc',
-  branch: 'master',
+  branch: 'dev',
 };
 
 export const externalLinks = {
@@ -43,4 +43,4 @@ export const appSlogan = 'Build trust for developer';
 export const defaultCiteRepo = 'ckb-devrel/ccc';
 
 /** Default branch used by <Cite /> when none is specified. */
-export const defaultCiteBranch = 'master';
+export const defaultCiteBranch = 'dev';
