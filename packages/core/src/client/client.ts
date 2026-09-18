@@ -450,7 +450,9 @@ export abstract class Client {
     after?: string,
   ): Promise<ClientFindCellsResponse> {
     const res = await this.findCellsPagedNoCache(key, order, limit, after);
-    await this.cache.recordCells(res.cells);
+    if (key.withData !== false) {
+      await this.cache.recordCells(res.cells);
+    }
     return res;
   }
 

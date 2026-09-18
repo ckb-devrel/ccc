@@ -105,6 +105,52 @@ describe("Client", () => {
     });
   });
 
+  describe("findCellsPaged", () => {
+    const cell = Cell.from({
+      outPoint: {
+        txHash: `0x${"0".repeat(64)}`,
+        index: 0,
+      },
+      cellOutput: {
+        capacity: 100,
+        lock: {
+          codeHash: `0x${"0".repeat(64)}`,
+          hashType: "type",
+          args: "0x",
+        },
+      },
+    });
+    const key = {
+      script: cell.cellOutput.lock,
+      scriptType: "lock" as const,
+      scriptSearchMode: "exact" as const,
+    };
+
+    it("should not cache cells returned without output data", async () => {
+      vi.spyOn(client, "findCellsPagedNoCache").mockResolvedValue({
+        cells: [cell],
+        lastCursor: "0x",
+      });
+      const recordCellsSpy = vi.spyOn(client.cache, "recordCells");
+
+      await client.findCellsPaged({ ...key, withData: false });
+
+      expect(recordCellsSpy).not.toHaveBeenCalled();
+    });
+
+    it("should cache cells returned with output data", async () => {
+      vi.spyOn(client, "findCellsPagedNoCache").mockResolvedValue({
+        cells: [cell],
+        lastCursor: "0x",
+      });
+      const recordCellsSpy = vi.spyOn(client.cache, "recordCells");
+
+      await client.findCellsPaged({ ...key, withData: true });
+
+      expect(recordCellsSpy).toHaveBeenCalledWith([cell]);
+    });
+  });
+
   describe("ErrorClientVerification errorCode parsing", () => {
     function makeVerificationData(errorCode: number | string): string {
       return `Verification(Error { kind: Script, inner: TransactionScriptError { source: Inputs[0].Lock, cause: ValidationFailure: see error code ${errorCode} on page https://nervosnetwork.github.io/ckb-script-error-codes/by-type-hash/0x${"0".repeat(64)}.html`;
