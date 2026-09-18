@@ -2,13 +2,13 @@ name: Build, lint and test
 
 on: [pull_request, push]
 
-cache-mode: ${{ github.event_name == 'pull_request' && 'read' || 'write' }}
-
 jobs:
   build:
+    if: github.event_name == 'pull_request'
+    cache-mode: read
     runs-on: ubuntu-latest
 
-    steps:
+    steps: &check-steps
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -25,3 +25,9 @@ jobs:
         run: pnpm lint
       - name: Test
         run: pnpm test:ci
+
+  build-push:
+    if: github.event_name == 'push'
+    cache-mode: write
+    runs-on: ubuntu-latest
+    steps: *check-steps

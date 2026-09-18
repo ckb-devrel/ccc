@@ -79,6 +79,7 @@ jobs:
     if: needs.select-mode.outputs.mode == 'publish'
     needs: select-mode
     uses: ./.github/workflows/_publish-packages.yaml
+    secrets: inherit
 
   finalize:
     name: Finalize release

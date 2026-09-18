@@ -15,3 +15,4 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     uses: ./.github/workflows/_changesets-release.yaml
+    secrets: inherit

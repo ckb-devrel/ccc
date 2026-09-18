@@ -42,6 +42,7 @@ jobs:
     needs: resolve
     cache-mode: read
     uses: ./.github/workflows/_publish-packages.yaml
+    secrets: inherit
     with:
       canary: true
       ref: ${{ needs.resolve.outputs.ref }}
