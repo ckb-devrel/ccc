@@ -41,6 +41,7 @@ export type KhiePairingSessionConfig = {
 
 type KhiePairingSessionResources = {
   abortController: AbortController;
+  connectionController?: KhieConnectionController;
   nodeOwner?: ccc.Owner<KhieNode>;
   relayController?: Libp2p.RelayConnectionController;
   nodeSubscriptions: Array<() => void>;
@@ -59,6 +60,7 @@ function removeNodeSubscriptions(resources: KhiePairingSessionResources) {
 
 async function releaseResources(resources: KhiePairingSessionResources) {
   removeNodeSubscriptions(resources);
+  resources.connectionController?.stop();
 
   try {
     if (resources.pendingSigner) {
@@ -293,9 +295,15 @@ export class KhiePairingSession {
 
     let signer: ccc.SignerJsonRpc;
     try {
+      resources.connectionController = new KhieConnectionController(
+        node,
+        peerId,
+      );
       signer = await ccc.SignerJsonRpc.new(this.client, { transport });
       signal.throwIfAborted();
     } catch (cause) {
+      resources.connectionController?.stop();
+      resources.connectionController = undefined;
       resources.selectedPeer = undefined;
       this.updateError(cause, { phase: "idle" });
       await node.services.pairing.unpair(peerId);
@@ -365,15 +373,12 @@ export class KhiePairingSession {
       const abortController = resources.abortController;
       const relayController = resources.relayController;
       const nodeOwnership = nodeOwner.map((node) => node);
-      const connectionController = new KhieConnectionController(
-        nodeOwnership.value,
-        peerId,
-      );
+      const connectionController = resources.connectionController;
       const connectedOwner = new ccc.OwnerUnique(
         nodeOwnership.value,
         async () => {
           abortController.abort();
-          connectionController.stop();
+          connectionController?.stop();
           try {
             await cleanup();
           } finally {
