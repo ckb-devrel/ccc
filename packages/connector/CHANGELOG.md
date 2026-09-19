@@ -1,5 +1,13 @@
 # @ckb-ccc/connector
 
+## 2.2.4
+
+### Patch Changes
+
+- [#550](https://github.com/ckb-devrel/ccc/pull/550) [`087c24a`](https://github.com/ckb-devrel/ccc/commit/087c24a0336bf923a3bdadb1ed1769daf0bdd0bd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add an Open pill beside the connector pairing endpoint with a launch-attempt hint.
+
+- [#550](https://github.com/ckb-devrel/ccc/pull/550) [`cd3d8b7`](https://github.com/ckb-devrel/ccc/commit/cd3d8b7db0a4662851fe4907902f7fb69fce3da6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Maintain the paired Khie peer connection while fetching signer info and awaiting connect approval.
+
 ## 2.2.3
 
 ### Patch Changes
