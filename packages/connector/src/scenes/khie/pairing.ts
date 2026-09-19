@@ -33,6 +33,8 @@ export class KhiePairing extends LitElement {
   @state()
   private isScanning = false;
   @state()
+  private hasAttemptedToOpenApp = false;
+  @state()
   private localError?: string;
 
   private session!: KhiePairingSession;
@@ -49,6 +51,7 @@ export class KhiePairing extends LitElement {
     super.connectedCallback();
     this.localError = undefined;
     this.relayAddressOverride = undefined;
+    this.hasAttemptedToOpenApp = false;
 
     this.session = new KhiePairingSession({
       name: this.appName,
@@ -70,6 +73,7 @@ export class KhiePairing extends LitElement {
       onStateChange: () => {
         if (this.session.state.phase !== "idle") {
           this.localError = undefined;
+          this.hasAttemptedToOpenApp = false;
         }
         this.requestUpdate();
       },
@@ -130,6 +134,7 @@ export class KhiePairing extends LitElement {
 
   render() {
     const {
+      appEndpoint,
       canPair,
       error: sessionError,
       errorKind,
@@ -186,17 +191,41 @@ export class KhiePairing extends LitElement {
                     ${RETRY_SVG} Try again
                   </ccc-button-pill>`
                 : ownEndpoint
-                  ? html`<ccc-copy-button
-                      .value=${ownEndpoint}
-                      class="endpoint-copy"
-                      title="Copy pairing code"
-                      aria-label="Copy connector pairing code"
-                      @error=${(event: ErrorEvent) => {
-                        this.localError = errorMessage(event.error);
-                      }}
-                    >
-                      <span>${ownEndpoint}</span>
-                    </ccc-copy-button>`
+                  ? html`<div class="endpoint-details">
+                      <div class="endpoint-actions">
+                        <ccc-copy-button
+                          .value=${ownEndpoint}
+                          class="endpoint-copy"
+                          title="Copy pairing code"
+                          aria-label="Copy connector pairing code"
+                          @error=${(event: ErrorEvent) => {
+                            this.localError = errorMessage(event.error);
+                          }}
+                        >
+                          <span>${ownEndpoint}</span>
+                        </ccc-copy-button>
+                        ${
+                          appEndpoint
+                            ? html`<a
+                                class="open-app-pill"
+                                href=${appEndpoint}
+                                @click=${() => {
+                                  this.hasAttemptedToOpenApp = true;
+                                }}
+                                >Open</a
+                              >`
+                            : undefined
+                        }
+                      </div>
+                      ${
+                        this.hasAttemptedToOpenApp && appEndpoint
+                          ? html`<span class="open-app-status" role="status"
+                              >If the wallet app doesn't open, install a wallet
+                              that supports Khie or pair manually.</span
+                            >`
+                          : undefined
+                      }
+                    </div>`
                   : html`<span class="endpoint-pending"
                       >Connecting relay…</span
                     >`
@@ -415,6 +444,46 @@ export class KhiePairing extends LitElement {
       width: min(13rem, 100%);
     }
 
+    .endpoint-details {
+      display: grid;
+      width: 100%;
+      min-width: 0;
+      gap: 0.25rem;
+    }
+
+    .endpoint-actions {
+      display: flex;
+      width: 100%;
+      min-width: 0;
+      align-items: center;
+    }
+
+    .open-app-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 1rem;
+      border-radius: 9999px;
+      color: var(--btn-color, inherit);
+      background: var(--btn-secondary);
+      font-size: 0.72rem;
+      text-decoration: none;
+      transition:
+        background 0.15s ease-in-out,
+        color 0.15s ease-in-out;
+      white-space: nowrap;
+    }
+
+    .open-app-pill:hover {
+      color: var(--btn-color-hover, var(--btn-color, inherit));
+      background: var(--btn-secondary-hover);
+    }
+
+    .open-app-status {
+      color: var(--tip-color);
+      font-size: 0.72rem;
+      text-align: center;
+    }
+
     .endpoint-copy,
     .endpoint-pending {
       box-sizing: border-box;
@@ -424,6 +493,7 @@ export class KhiePairing extends LitElement {
 
     .endpoint-copy {
       display: grid;
+      flex: 1;
       min-width: 0;
       padding: 0.65rem 0.85rem;
       align-items: center;

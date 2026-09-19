@@ -8,6 +8,7 @@ import {
   CONNECTOR_ENDPOINT_URL,
   createKhieNode,
   JSON_RPC_PROTOCOL,
+  KHIE_APP_CONNECT_URL,
   type KhieNode,
 } from "./node.js";
 import { khieWalletFrom } from "./wallet.js";
@@ -16,6 +17,7 @@ export type KhiePairingPhase = "connecting" | "idle" | "pairing";
 export type KhieRelayState = "connected" | "connecting" | "failed" | "idle";
 
 export type KhiePairingSessionState = Readonly<{
+  appEndpoint: string;
   canPair: boolean;
   error?: string;
   errorKind?: "incompatible-peer";
@@ -26,6 +28,7 @@ export type KhiePairingSessionState = Readonly<{
 }>;
 
 export const KHIE_PAIRING_SESSION_INITIAL_STATE: KhiePairingSessionState = {
+  appEndpoint: "",
   canPair: false,
   ownEndpoint: "",
   phase: "idle",
@@ -175,21 +178,30 @@ export class KhiePairingSession {
       const updateId = ++endpointUpdateId;
       const addresses = node.getMultiaddrs();
       if (addresses.length === 0) {
-        this.update({ ownEndpoint: "" });
+        this.update({ appEndpoint: "", ownEndpoint: "" });
         return;
       }
 
-      void Libp2p.encodePairingEndpoint(
-        CONNECTOR_ENDPOINT_URL,
-        addresses,
-        node.services.pairing.secret,
-        "connector",
-      )
-        .then((ownEndpoint) => {
+      const secret = node.services.pairing.secret;
+      void Promise.all([
+        Libp2p.encodePairingEndpoint(
+          CONNECTOR_ENDPOINT_URL,
+          addresses,
+          secret,
+          "connector",
+        ),
+        Libp2p.encodePairingEndpoint(
+          KHIE_APP_CONNECT_URL,
+          addresses,
+          secret,
+          "connector",
+        ),
+      ])
+        .then(([ownEndpoint, appEndpoint]) => {
           if (updateId !== endpointUpdateId) {
             return;
           }
-          this.update({ ownEndpoint });
+          this.update({ appEndpoint, ownEndpoint });
         })
         .catch((cause: unknown) => {
           if (updateId !== endpointUpdateId) {
