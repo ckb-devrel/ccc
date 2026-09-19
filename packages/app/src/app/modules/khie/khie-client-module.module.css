@@ -696,6 +696,68 @@
   place-items: center;
 }
 
+.location-choice-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100vh - 32px);
+  margin: auto;
+  padding: 26px 28px;
+  overflow-y: auto;
+  border: 1px solid var(--line-dark);
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 45%);
+}
+
+.location-choice-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+.location-choice-title {
+  margin: 0;
+  color: var(--signal);
+  font:
+    700 16px/1.4 "Courier New",
+    monospace;
+}
+
+.location-choice-description {
+  margin: 12px 0 0;
+  color: var(--ink);
+  font:
+    12px/1.6 "Courier New",
+    monospace;
+}
+
+.location-choice-actions:global(.module-actions) {
+  display: flex;
+  width: 100%;
+  margin-top: 20px;
+  flex-wrap: nowrap;
+}
+
+.location-choice-actions:global(.module-actions) > :is(a, button) {
+  min-width: 0;
+  flex: 1 1 0;
+  padding-inline: 8px;
+  text-align: center;
+}
+
+.location-choice-actions:global(.module-actions) > :global(.is-primary) {
+  min-width: 0;
+  border-color: var(--signal);
+  color: var(--recess);
+  background: var(--signal);
+}
+
+.location-choice-actions:global(.module-actions) > :global(.is-primary):hover {
+  color: var(--recess);
+  background: var(--signal-hover);
+}
+
 .pairing-dialog:global(.module-actions) {
   display: flex;
   width: 100%;

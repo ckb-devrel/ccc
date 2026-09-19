@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { CopyableText } from "../../copyable-text";
 import type { ModuleRuntimeProps } from "../../modules";
 import { QrCode } from "../../qr-code";
@@ -36,6 +37,10 @@ type ApprovalPrompt = ccc.SignerJsonRpcConfirmation & {
   signal: AbortSignal;
 };
 type RelayState = "connected" | "connecting" | "failed" | "idle";
+type LocationPairing =
+  | { appEndpoint: string; endpoint: string; kind: "connector"; stay: boolean }
+  | { endpoint: string; kind: "provider" }
+  | { endpoint: string; kind: "browser" };
 type SignerJsonRpcProviderInfo = {
   icon?: string;
   name?: string;
@@ -44,6 +49,7 @@ type SignerJsonRpcProviderInfo = {
 };
 
 const PROVIDER_ENDPOINT_URL = "https://app.ckbccc.com/#khie";
+const KHIE_APP_CONNECT_URL = "khie-wallet://app/connect";
 const APPROVAL_ENABLE_DELAY_MS = 1_000;
 const SIGNER_REPLACEMENT_GRACE_MS = 1_000;
 
@@ -79,7 +85,10 @@ export function KhieClientModule({
   const [queuedApprovalCount, setQueuedApprovalCount] = useState(0);
   const [remotePeer, setRemotePeer] = useState<KhieRemotePeer>();
   const [incompatiblePeerError, setIncompatiblePeerError] = useState<string>();
+  const [locationPairing, setLocationPairing] = useState<LocationPairing>();
 
+  const locationDialogRef = useRef<HTMLDialogElement>(null);
+  const pairedLocationEndpointRef = useRef<string>(undefined);
   const signerRef = useRef(signer);
   const signerWaiters = useRef(new Set<SignerWaiter>());
   const approvalRef = useRef<ApprovalPrompt>(undefined);
@@ -261,30 +270,88 @@ export function KhieClientModule({
       logCurrent(`Relay connected: ${address}`, "success");
     },
   );
-  const pairLocationEndpoint = useEffectEvent(
-    async (currentSession: KhieSignerSession) => {
+  useEffect(() => {
+    let revision = 0;
+    const readLocationEndpoint = async () => {
+      const currentRevision = ++revision;
       const endpoint = window.location.href;
-      try {
-        // Pairing parameters live in the URL fragment. Decode without a role
-        // constraint so normal module anchors and malformed links are ignored,
-        // while session.pair can surface a valid endpoint's role mismatch.
-        await Libp2p.decodePairingEndpoint(endpoint);
-      } catch {
+      const url = new URL(endpoint);
+      if (!url.hash.startsWith("#khie?")) {
+        setLocationPairing(undefined);
         return;
       }
 
-      setIncompatiblePeerError(undefined);
-      setKhieEndpoint(endpoint);
-      setPairing(true);
       try {
-        if (await currentSession.pair(endpoint)) {
-          setKhieEndpoint("");
+        const target = await Libp2p.decodePairingEndpoint(endpoint);
+        const role = new URLSearchParams(url.hash.slice("#khie?".length))
+          .get("role")
+          ?.trim();
+        if (role === "provider") {
+          if (currentRevision === revision) {
+            setLocationPairing({ endpoint, kind: "provider" });
+          }
+          return;
         }
-      } finally {
-        setPairing(false);
+        if (role === "connector") {
+          try {
+            const appEndpoint = await Libp2p.encodePairingEndpoint(
+              KHIE_APP_CONNECT_URL,
+              target.addresses,
+              target.secret,
+              "connector",
+            );
+            if (currentRevision === revision) {
+              setLocationPairing({
+                appEndpoint,
+                endpoint,
+                kind: "connector",
+                stay: false,
+              });
+            }
+            return;
+          } catch {
+            // Keep browser pairing available if the app link cannot be built.
+          }
+        }
+        if (currentRevision === revision) {
+          setLocationPairing({ endpoint, kind: "browser" });
+        }
+      } catch {
+        if (currentRevision === revision) {
+          setLocationPairing(undefined);
+        }
       }
-    },
+    };
+
+    void readLocationEndpoint();
+    window.addEventListener("hashchange", readLocationEndpoint);
+    window.addEventListener("popstate", readLocationEndpoint);
+    return () => {
+      ++revision;
+      window.removeEventListener("hashchange", readLocationEndpoint);
+      window.removeEventListener("popstate", readLocationEndpoint);
+    };
+  }, []);
+
+  const showLocationDialog = Boolean(
+    !paired &&
+    (locationPairing?.kind === "provider" ||
+      (locationPairing?.kind === "connector" && !locationPairing.stay)),
   );
+  useEffect(() => {
+    const dialog = locationDialogRef.current;
+    if (!showLocationDialog || !dialog) {
+      return;
+    }
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+  }, [showLocationDialog, locationPairing?.endpoint]);
 
   const resolveApproval = (approved: boolean) => {
     if (!approvalEnabledRef.current) {
@@ -412,6 +479,25 @@ export function KhieClientModule({
   );
 
   useEffect(() => {
+    const endpoint = locationPairing?.endpoint;
+    if (
+      (locationPairing?.kind !== "browser" &&
+        !(locationPairing?.kind === "connector" && locationPairing.stay)) ||
+      !endpoint ||
+      !nodeReady ||
+      !session ||
+      !signer ||
+      pairedLocationEndpointRef.current === endpoint
+    ) {
+      return;
+    }
+
+    pairedLocationEndpointRef.current = endpoint;
+    setKhieEndpoint(endpoint);
+    void pairEndpoint(endpoint);
+  }, [locationPairing, nodeReady, pairEndpoint, session, signer]);
+
+  useEffect(() => {
     // Start lazily, then keep the session owned by the module across signer
     // replacement or temporary signer absence.
     if (!signer || sessionOwnerRef.current) {
@@ -473,7 +559,6 @@ export function KhieClientModule({
         });
         logCurrent("Signer node is ready", "success");
         void connectDefaultRelay(session);
-        void pairLocationEndpoint(session);
       },
       onUnpaired: () => {
         replaceSignerJsonRpcProviderSession();
@@ -532,6 +617,11 @@ export function KhieClientModule({
   };
 
   const unpair = () => session?.unpair();
+  const stayInBrowser = () => {
+    setLocationPairing((current) =>
+      current?.kind === "connector" ? { ...current, stay: true } : current,
+    );
+  };
   const showingPairingOverlay = pairing;
   const approvalDescription = approval
     ? formatApprovalDescription(approval)
@@ -620,6 +710,76 @@ export function KhieClientModule({
 
   return (
     <div className="module-console">
+      {showLocationDialog &&
+      locationPairing?.kind !== "browser" &&
+      locationPairing
+        ? createPortal(
+            <dialog
+              ref={locationDialogRef}
+              className={styles["location-choice-dialog"]}
+              aria-labelledby="khie-location-choice-title"
+              onCancel={(event) => {
+                if (locationPairing.kind === "provider") {
+                  event.preventDefault();
+                } else {
+                  stayInBrowser();
+                }
+              }}
+            >
+              <h2
+                className={styles["location-choice-title"]}
+                id="khie-location-choice-title"
+              >
+                {locationPairing.kind === "connector"
+                  ? "Connect with Khie"
+                  : "About Khie"}
+              </h2>
+              <p className={styles["location-choice-description"]}>
+                Khie is a peer-to-peer wallet connection protocol.
+              </p>
+              {locationPairing.kind === "connector" ? (
+                <p className={styles["location-choice-description"]}>
+                  You opened a link from a Khie app. If you already have a
+                  wallet that supports Khie, you can use it to connect directly.
+                  Otherwise, stay in the browser and connect an existing wallet
+                  to use it with Khie.
+                </p>
+              ) : (
+                <p className={styles["location-choice-description"]}>
+                  You opened a Khie wallet connection link. This wallet can be
+                  used with any app that supports Khie. This page lets you try
+                  connecting to an app through Khie.
+                </p>
+              )}
+              <div
+                className={`module-actions ${styles["location-choice-actions"]}`}
+              >
+                {locationPairing.kind === "connector" ? (
+                  <>
+                    <a
+                      className="is-primary"
+                      href={locationPairing.appEndpoint}
+                    >
+                      Open wallet app
+                    </a>
+                    <button type="button" onClick={stayInBrowser}>
+                      Stay in browser
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="is-primary"
+                    type="button"
+                    onClick={() => window.location.replace("/")}
+                  >
+                    Got it
+                  </button>
+                )}
+              </div>
+            </dialog>,
+            document.body,
+          )
+        : null}
       <div
         className="module-fields"
         aria-hidden={showingPairingOverlay}
