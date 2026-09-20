@@ -37,6 +37,9 @@ export class WebComponentConnector extends LitElement {
 
   @property({ attribute: "hide-mark" })
   public hideMark: unknown;
+  /** Hides the Khie wallet connection entry. */
+  @property({ attribute: "hide-khie", type: Boolean })
+  public hideKhie = false;
   @property()
   public name?: string;
   @property()
@@ -312,7 +315,7 @@ export class WebComponentConnector extends LitElement {
                       this.requestClientWithFeeRate(event)}
                   ></ccc-connected-scene>
                 `
-              : this.pairingKhie
+              : this.pairingKhie && !this.hideKhie
                 ? html`
                     <ccc-khie-connect-scene
                       .appName=${this.appName}
@@ -324,6 +327,7 @@ export class WebComponentConnector extends LitElement {
                   `
                 : html`
                     <ccc-selecting-scene
+                      .hideKhie=${this.hideKhie}
                       .wallets=${this.signersControllerInner.wallets}
                       @select-khie=${() => (this.pairingKhie = true)}
                       @connected=${this.handleConnected}

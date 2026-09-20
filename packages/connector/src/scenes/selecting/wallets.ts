@@ -5,6 +5,7 @@ import { KHIE_SVG } from "../../assets/khie.svg.js";
 
 export function generateWalletsScene(
   wallets: ccc.WalletWithSigners[],
+  hideKhie: boolean,
   onWalletSelected: (wallet: ccc.WalletWithSigners) => unknown,
   onSignerSelected: (
     wallet: ccc.WalletWithSigners,
@@ -14,16 +15,20 @@ export function generateWalletsScene(
   return [
     "Connect Wallet",
     html`
-      <ccc-button
-        @click=${(event: Event) => {
-          event.currentTarget?.dispatchEvent(
-            new Event("select-khie", { bubbles: true, composed: true }),
-          );
-        }}
-      >
-        <img src=${KHIE_SVG} alt="Khie" />
-        Khie
-      </ccc-button>
+      ${
+        hideKhie
+          ? undefined
+          : html`<ccc-button
+              @click=${(event: Event) => {
+                event.currentTarget?.dispatchEvent(
+                  new Event("select-khie", { bubbles: true, composed: true }),
+                );
+              }}
+            >
+              <img src=${KHIE_SVG} alt="Khie" />
+              Khie
+            </ccc-button>`
+      }
       ${repeat(
         wallets,
         (wallet) => wallet.name,

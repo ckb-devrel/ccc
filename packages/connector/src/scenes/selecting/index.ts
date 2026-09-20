@@ -8,6 +8,9 @@ import { generateWalletsScene } from "./wallets.js";
 
 @customElement("ccc-selecting-scene")
 export class SelectingScene extends LitElement {
+  @property({ type: Boolean })
+  public hideKhie = false;
+
   @property()
   public wallets?: ccc.WalletWithSigners[];
 
@@ -44,6 +47,7 @@ export class SelectingScene extends LitElement {
     if (!wallet) {
       return generateWalletsScene(
         this.wallets ?? [],
+        this.hideKhie,
         (selectedWallet) => {
           this.selectedWallet = selectedWallet;
         },
