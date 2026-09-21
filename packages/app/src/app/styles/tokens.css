@@ -13,4 +13,5 @@
   --steel: #36434a;
   --recess: #070a0c;
   --easing-mechanical: cubic-bezier(0.22, 1, 0.36, 1);
+  --easing-mechanical-in: cubic-bezier(0.64, 0, 0.78, 0);
 }

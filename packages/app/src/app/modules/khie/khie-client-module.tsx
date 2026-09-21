@@ -2,12 +2,21 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import { Libp2p } from "@ckb-ccc/libp2p";
-import { ArrowRight, Check, ChevronDown, ScanLine, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Info,
+  ScanLine,
+  X,
+} from "lucide-react";
 import {
   type CSSProperties,
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -24,6 +33,7 @@ import {
   KhieSignerSession,
 } from "./khie-signer-session";
 import { displayPeerName } from "./peer-name";
+import { summarizeTransfer } from "./transaction-summary";
 
 type SignerWaiter = {
   abort: () => void;
@@ -34,6 +44,7 @@ type SignerWaiter = {
 };
 type ApprovalPrompt = ccc.SignerJsonRpcConfirmation & {
   abort: () => void;
+  id: number;
   resolve: (approved: boolean) => void;
   signal: AbortSignal;
 };
@@ -94,12 +105,14 @@ export function KhieClientModule({
   const [scanning, setScanning] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [approval, setApproval] = useState<ApprovalPrompt>();
+  const [isClosingApproval, setIsClosingApproval] = useState(false);
   const [approvalEnabled, setApprovalEnabled] = useState(false);
   const [queuedApprovalCount, setQueuedApprovalCount] = useState(0);
   const [remotePeer, setRemotePeer] = useState<KhieRemotePeer>();
   const [incompatiblePeerError, setIncompatiblePeerError] = useState<string>();
   const [locationPairing, setLocationPairing] = useState<LocationPairing>();
 
+  const nextApprovalIdRef = useRef(1);
   const locationDialogRef = useRef<HTMLDialogElement>(null);
   const pairedLocationEndpointRef = useRef<string>(undefined);
   const signerRef = useRef(signer);
@@ -181,16 +194,31 @@ export function KhieClientModule({
       if (approvalRef.current === prompt) {
         approvalEnabledRef.current = false;
         setApprovalEnabled(false);
-        const next = approvalQueue.current.shift();
-        approvalRef.current = next;
-        setApproval(next);
-      } else {
-        const index = approvalQueue.current.indexOf(prompt);
-        if (index === -1) {
-          return false;
+
+        prompt.signal.removeEventListener("abort", prompt.abort);
+        prompt.resolve(approved);
+
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          const next = approvalQueue.current.shift();
+          approvalRef.current = next;
+          setApproval(next);
+          setIsClosingApproval(false);
+          setQueuedApprovalCount(approvalQueue.current.length);
+          return true;
         }
-        approvalQueue.current.splice(index, 1);
+
+        setIsClosingApproval(true);
+        return true;
       }
+
+      const index = approvalQueue.current.indexOf(prompt);
+      if (index === -1) {
+        return false;
+      }
+      approvalQueue.current.splice(index, 1);
       setQueuedApprovalCount(approvalQueue.current.length);
 
       prompt.signal.removeEventListener("abort", prompt.abort);
@@ -199,12 +227,20 @@ export function KhieClientModule({
     },
     [],
   );
+  const onApprovalCloseComplete = useCallback(() => {
+    setIsClosingApproval(false);
+    const next = approvalQueue.current.shift();
+    approvalRef.current = next;
+    setApproval(next);
+    setQueuedApprovalCount(approvalQueue.current.length);
+  }, []);
   const confirmKhieRequest = useEffectEvent(
     (request: ccc.SignerJsonRpcConfirmation, signal: AbortSignal) =>
       new Promise<boolean>((resolve) => {
         const prompt: ApprovalPrompt = {
           ...request,
           abort: () => void settleApproval(prompt, false),
+          id: nextApprovalIdRef.current++,
           resolve,
           signal,
         };
@@ -233,6 +269,7 @@ export function KhieClientModule({
     approvalEnabledRef.current = false;
     approvalQueue.current = [];
     setApproval(undefined);
+    setIsClosingApproval(false);
     setApprovalEnabled(false);
     setQueuedApprovalCount(0);
     prompts.forEach((prompt) => {
@@ -651,8 +688,17 @@ export function KhieClientModule({
       <div className={`module-console ${styles["paired-panel"]}`}>
         <RemotePeerDetails peer={remotePeer} onUnpair={unpair} />
         <section className={styles["request-area"]}>
+          <p aria-hidden={Boolean(approval)} className={styles["request-idle"]}>
+            Connected to an app, waiting for requests…
+            <br />
+            Return to the app to continue.
+          </p>
           {approval ? (
-            <div className={styles["request-card"]}>
+            <RequestCardReveal
+              key={approval.id}
+              isClosing={isClosingApproval}
+              onCloseComplete={onApprovalCloseComplete}
+            >
               <h3 className={styles["request-title"]}>
                 <KhieIcon size={18} className={styles["request-khie-icon"]} />
                 <span>{formatApprovalTitle(approval)}</span>
@@ -665,6 +711,7 @@ export function KhieClientModule({
               {approval.method === "sign_transaction" ? (
                 <TransactionApprovalDetails
                   client={signer?.client ?? client}
+                  signer={signer}
                   transaction={approval.transaction}
                 />
               ) : approvalDescription ? (
@@ -674,7 +721,7 @@ export function KhieClientModule({
               ) : null}
               <div className={`module-actions ${styles["approval-actions"]}`}>
                 <button
-                  disabled={!approvalEnabled}
+                  disabled={!approvalEnabled || isClosingApproval}
                   type="button"
                   onClick={() => resolveApproval(false)}
                 >
@@ -682,21 +729,15 @@ export function KhieClientModule({
                 </button>
                 <button
                   className="is-primary"
-                  disabled={!approvalEnabled}
+                  disabled={!approvalEnabled || isClosingApproval}
                   type="button"
                   onClick={() => resolveApproval(true)}
                 >
                   Approve
                 </button>
               </div>
-            </div>
-          ) : (
-            <p className={styles["request-idle"]}>
-              Connected to an app, waiting for requests…
-              <br />
-              Return to the app to continue.
-            </p>
-          )}
+            </RequestCardReveal>
+          ) : null}
         </section>
       </div>
     );
@@ -1115,13 +1156,215 @@ type TransactionCellView = {
   reference?: string;
 };
 
+function RequestCardReveal({
+  children,
+  isClosing = false,
+  onCloseComplete,
+}: {
+  children: React.ReactNode;
+  isClosing?: boolean;
+  onCloseComplete?: () => void;
+}) {
+  const clipRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const handleCloseComplete = useEffectEvent(() => onCloseComplete?.());
+
+  const [isOpen, setIsOpen] = useState(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return true;
+    }
+    return false;
+  });
+  const [isTransitioning, setIsTransitioning] = useState(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const inner = innerRef.current;
+    if (!clip || !inner) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = inner.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      clip.style.setProperty("--card-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(inner);
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return () => {
+        observer.disconnect();
+        if (rafFrame !== undefined) {
+          cancelAnimationFrame(rafFrame);
+        }
+      };
+    }
+
+    const openFrame = requestAnimationFrame(() => {
+      setIsOpen(true);
+    });
+
+    const fallbackTimeout = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 750);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(openFrame);
+      clearTimeout(fallbackTimeout);
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isClosing) {
+      return;
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      handleCloseComplete();
+      return;
+    }
+
+    closeTimeoutRef.current = setTimeout(() => {
+      handleCloseComplete();
+    }, 750);
+
+    return () => {
+      clearTimeout(closeTimeoutRef.current);
+    };
+  }, [isClosing]);
+
+  const activeTransition = isTransitioning || isClosing;
+  const activeOpen = isOpen && !isClosing;
+
+  return (
+    <div className={styles["request-card-holder"]}>
+      <div
+        ref={clipRef}
+        className={`${styles["request-card"]} ${
+          activeOpen ? styles["is-open"] : ""
+        } ${activeTransition ? styles["is-transitioning"] : ""} ${
+          isClosing ? styles["is-closing"] : ""
+        }`}
+        onTransitionEnd={(e) => {
+          if (e.propertyName === "height" && e.target === e.currentTarget) {
+            if (isClosing) {
+              clearTimeout(closeTimeoutRef.current);
+              onCloseComplete?.();
+            } else {
+              setIsTransitioning(false);
+            }
+          }
+        }}
+      >
+        <div ref={innerRef} className={styles["request-card-content"]}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TransactionApprovalDetails({
   client,
+  signer,
   transaction,
 }: {
   client: ccc.Client;
+  signer?: ccc.Signer;
   transaction: ccc.Transaction;
 }) {
+  const [ownLocksResolution, setOwnLocksResolution] = useState<{
+    locks: ccc.Script[];
+    signer?: ccc.Signer;
+  }>();
+  const [
+    technicalDetailsOpenForTransaction,
+    setTechnicalDetailsOpenForTransaction,
+  ] = useState<ccc.Transaction>();
+  const technicalDetailsAutoExpandedForTransaction =
+    useRef<ccc.Transaction>(undefined);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const inner = innerRef.current;
+    if (!wrapper || !inner) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = inner.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      wrapper.style.setProperty("--td-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(inner);
+    return () => {
+      observer.disconnect();
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
+
+  const ownLocks =
+    signer !== undefined && ownLocksResolution?.signer === signer
+      ? ownLocksResolution.locks
+      : undefined;
+
   const [inputResolution, setInputResolution] = useState<{
     cells: TransactionCellView[];
     client: ccc.Client;
@@ -1142,6 +1385,31 @@ function TransactionApprovalDetails({
     feeResolution.transaction === transaction
       ? feeResolution.value
       : undefined;
+
+  useEffect(() => {
+    let active = true;
+    if (!signer) {
+      return;
+    }
+    void signer
+      .getAddressObjs()
+      .then((addresses) => {
+        if (active) {
+          setOwnLocksResolution({
+            locks: addresses.map(({ script }) => script),
+            signer,
+          });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setOwnLocksResolution(undefined);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [signer]);
 
   useEffect(() => {
     let active = true;
@@ -1214,39 +1482,213 @@ function TransactionApprovalDetails({
   }));
   const transactionHash = transaction.hash();
 
+  const summary =
+    inputs && ownLocks
+      ? summarizeTransfer(
+          inputs,
+          transaction.outputs,
+          ownLocks,
+          transaction.outputsData,
+        )
+      : undefined;
+  const technicalDetailsOpen =
+    technicalDetailsOpenForTransaction === transaction;
+
+  useEffect(() => {
+    if (
+      !summary?.involvesSpecialData ||
+      technicalDetailsAutoExpandedForTransaction.current === transaction
+    ) {
+      return;
+    }
+    technicalDetailsAutoExpandedForTransaction.current = transaction;
+    setTechnicalDetailsOpenForTransaction(transaction);
+  }, [summary?.involvesSpecialData, transaction]);
+
   return (
     <div className={styles["transaction-details"]}>
-      <div className={styles["transaction-summary"]}>
-        <CopyableText
-          ariaLabel="Copy transaction hash"
-          className={styles["transaction-hash-copy"]}
-          iconSize={10}
-          value={transactionHash}
+      {summary ? (
+        <div className={styles["summary-container"]}>
+          {summary.otherParticipantsInputCapacity > ccc.Zero ? (
+            <div className={styles["summary-notice"]}>
+              <AlertCircle size={14} />
+              <span>
+                This transaction uses{" "}
+                <strong>
+                  {ccc.fixedPointToString(
+                    summary.otherParticipantsInputCapacity,
+                  )}{" "}
+                  CKB
+                </strong>{" "}
+                provided by other participants. Review transaction details
+                before approving.
+              </span>
+            </div>
+          ) : null}
+
+          {summary.outgoing.length === 0 ? (
+            <p className={styles["summary-no-outgoing"]}>
+              No CKB is sent to other addresses
+            </p>
+          ) : (
+            <div className={styles["summary-recipients-group"]}>
+              <div className={styles["summary-section-heading"]}>
+                <span>To</span>
+                <span>{summary.outgoing.length}</span>
+              </div>
+              <div className={styles["summary-recipients-list"]}>
+                {summary.outgoing.map(({ lock, capacity }) => {
+                  const address = ccc.Address.fromScript(
+                    lock,
+                    client,
+                  ).toString();
+                  return (
+                    <div
+                      key={lock.hash()}
+                      className={styles["summary-recipient-row"]}
+                    >
+                      <code
+                        className={styles["summary-recipient-address"]}
+                        title={address}
+                      >
+                        {address}
+                      </code>
+                      <span className={styles["summary-recipient-amount"]}>
+                        {ccc.fixedPointToString(capacity)} CKB
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className={styles["summary-row"]}>
+            <span className={styles["summary-row-label"]}>Fee</span>
+            <span className={styles["summary-row-value"]}>
+              {fee === undefined
+                ? "Parsing…"
+                : fee === null
+                  ? "Unavailable"
+                  : `${ccc.fixedPointToString(fee)} CKB`}
+            </span>
+          </div>
+
+          {summary.netChange !== undefined ? (
+            <div
+              className={`${styles["summary-row"]} ${styles["summary-balance-row"]}`}
+            >
+              <span className={styles["summary-row-label"]}>
+                Balance change
+              </span>
+              <strong className={styles["summary-balance-value"]}>
+                {summary.netChange > ccc.Zero
+                  ? `+${ccc.fixedPointToString(summary.netChange)} CKB`
+                  : summary.netChange < ccc.Zero
+                    ? `-${ccc.fixedPointToString(-summary.netChange)} CKB`
+                    : "0 CKB"}
+              </strong>
+            </div>
+          ) : null}
+
+          {summary.involvesSpecialData ? (
+            <div className={styles["summary-notice"]}>
+              <Info size={14} />
+              <span>
+                This transaction involves tokens or contract data not reflected
+                in the amounts above. Review transaction details before
+                approving.
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className={styles["summary-loading"]}>
+          Loading transaction summary…
+        </p>
+      )}
+
+      <div className={styles["technical-details-section"]}>
+        <button
+          type="button"
+          className={styles["technical-details-toggle"]}
+          aria-expanded={technicalDetailsOpen}
+          onClick={() => {
+            if (
+              typeof window !== "undefined" &&
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ) {
+              setTechnicalDetailsOpenForTransaction((open) =>
+                open === transaction ? undefined : transaction,
+              );
+              return;
+            }
+            setIsTransitioning(true);
+            setTechnicalDetailsOpenForTransaction((open) =>
+              open === transaction ? undefined : transaction,
+            );
+          }}
         >
-          <code className={styles["transaction-hash"]} title={transactionHash}>
-            {transactionHash}
-          </code>
-        </CopyableText>
-        <span className={styles["transaction-fee"]}>
-          {fee === undefined
-            ? "Fee …"
-            : fee === null
-              ? "Fee unavailable"
-              : `Fee ${ccc.fixedPointToString(fee)} CKB · ${transactionFeeRate(transaction, fee)} shannons/KB`}
-        </span>
+          <span>Transaction details</span>
+          <ChevronDown
+            className={styles["technical-details-chevron"]}
+            size={13}
+          />
+        </button>
+
+        <div
+          ref={wrapperRef}
+          className={`${styles["technical-details-wrapper"]} ${
+            technicalDetailsOpen ? styles["is-open"] : ""
+          } ${isTransitioning ? styles["is-transitioning"] : ""}`}
+          aria-hidden={!technicalDetailsOpen}
+          inert={!technicalDetailsOpen ? true : undefined}
+          onTransitionEnd={(e) => {
+            if (e.propertyName === "height" && e.target === e.currentTarget) {
+              setIsTransitioning(false);
+            }
+          }}
+        >
+          <div ref={innerRef}>
+            <div className={styles["technical-details-content"]}>
+              <div className={styles["transaction-summary"]}>
+                <CopyableText
+                  ariaLabel="Copy transaction hash"
+                  className={styles["transaction-hash-copy"]}
+                  iconSize={10}
+                  value={transactionHash}
+                >
+                  <code
+                    className={styles["transaction-hash"]}
+                    title={transactionHash}
+                  >
+                    {transactionHash}
+                  </code>
+                </CopyableText>
+                <span className={styles["transaction-fee"]}>
+                  {fee === undefined
+                    ? "Fee …"
+                    : fee === null
+                      ? "Fee unavailable"
+                      : `${transactionFeeRate(transaction, fee)} shannons/KB`}
+                </span>
+              </div>
+              <TransactionCellGroup
+                cells={inputs}
+                client={client}
+                empty="No inputs"
+                title="Inputs"
+              />
+              <TransactionCellGroup
+                cells={outputs}
+                client={client}
+                empty="No outputs"
+                title="Outputs"
+              />
+            </div>
+          </div>
+        </div>
       </div>
-      <TransactionCellGroup
-        cells={inputs}
-        client={client}
-        empty="No inputs"
-        title="Inputs"
-      />
-      <TransactionCellGroup
-        cells={outputs}
-        client={client}
-        empty="No outputs"
-        title="Outputs"
-      />
     </div>
   );
 }
@@ -1313,6 +1755,46 @@ function TransactionCellItem({
     "--capacity-share": `${capacityShare}%`,
   } as CSSProperties;
 
+  const [isOpen, setIsOpen] = useState(false);
+  const clipRef = useRef<HTMLDivElement>(null);
+  const expandedRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const expanded = expandedRef.current;
+    if (!clip || !expanded) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = expanded.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      clip.style.setProperty("--cell-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(expanded);
+    return () => {
+      observer.disconnect();
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
+
   if (!cellOutput) {
     return (
       <div className={styles["transaction-cell-unavailable"]}>
@@ -1328,8 +1810,16 @@ function TransactionCellItem({
   ).toString();
 
   return (
-    <details className={styles["transaction-cell"]} style={style}>
-      <summary>
+    <div
+      className={`${styles["transaction-cell"]} ${isOpen ? styles["is-open"] : ""}`}
+      style={style}
+    >
+      <button
+        type="button"
+        className={styles["transaction-cell-header"]}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((v) => !v)}
+      >
         <span className={styles["transaction-cell-summary"]}>
           <span className={styles["transaction-cell-identity"]}>
             <small>{cell.label}</small>
@@ -1342,31 +1832,38 @@ function TransactionCellItem({
           </strong>
         </span>
         <ChevronDown aria-hidden="true" size={15} />
-      </summary>
-      <div className={styles["transaction-cell-expanded"]}>
-        {cell.reference ? (
-          <TransactionCellField
-            copyable
-            label="Outpoint"
-            value={cell.reference}
+      </button>
+      <div
+        ref={clipRef}
+        className={`${styles["transaction-cell-expanded-clip"]} ${isOpen ? styles["is-open"] : ""}`}
+        aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
+      >
+        <div ref={expandedRef} className={styles["transaction-cell-expanded"]}>
+          {cell.reference ? (
+            <TransactionCellField
+              copyable
+              label="Outpoint"
+              value={cell.reference}
+            />
+          ) : null}
+          <TransactionScriptDetails
+            address={lockAddress}
+            label="Lock script"
+            script={cellOutput.lock}
           />
-        ) : null}
-        <TransactionScriptDetails
-          address={lockAddress}
-          label="Lock script"
-          script={cellOutput.lock}
-        />
-        <TransactionScriptDetails
-          label="Type script"
-          script={cellOutput.type}
-        />
-        <TransactionCellField
-          label="Data"
-          multiline
-          value={cell.outputData ?? "0x"}
-        />
+          <TransactionScriptDetails
+            label="Type script"
+            script={cellOutput.type}
+          />
+          <TransactionCellField
+            label="Data"
+            multiline
+            value={cell.outputData ?? "0x"}
+          />
+        </div>
       </div>
-    </details>
+    </div>
   );
 }
 
