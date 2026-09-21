@@ -716,12 +716,44 @@
   background: rgb(0 0 0 / 65%);
 }
 
+.location-choice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .location-choice-title {
   margin: 0;
   color: var(--signal);
   font:
     700 16px/1.4 "Courier New",
     monospace;
+}
+
+.location-choice-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.location-choice-close:hover,
+.location-choice-close:focus-visible {
+  border-color: var(--line-dark);
+  color: var(--ink);
+  background: rgb(255 255 255 / 4%);
 }
 
 .location-choice-description {

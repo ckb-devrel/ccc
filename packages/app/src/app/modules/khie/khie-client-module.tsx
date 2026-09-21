@@ -53,6 +53,18 @@ const KHIE_APP_CONNECT_URL = "khie-wallet://app/connect";
 const APPROVAL_ENABLE_DELAY_MS = 1_000;
 const SIGNER_REPLACEMENT_GRACE_MS = 1_000;
 
+function cleanPairingHash() {
+  if (
+    typeof window === "undefined" ||
+    !window.location.hash.startsWith("#khie?")
+  ) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.hash = "khie";
+  window.history.replaceState(window.history.state, "", url);
+}
+
 export function KhieClientModule({
   client,
   log,
@@ -535,6 +547,7 @@ export function KhieClientModule({
       onEndpointChange: setPairingEndpoint,
       onError: reportCurrentError,
       onPaired: () => {
+        cleanPairingHash();
         setIncompatiblePeerError(undefined);
         setPaired(true);
         setPairing(false);
@@ -617,10 +630,15 @@ export function KhieClientModule({
   };
 
   const unpair = () => session?.unpair();
+  const dismissLocationDialog = () => {
+    cleanPairingHash();
+    setLocationPairing(undefined);
+  };
   const stayInBrowser = () => {
     setLocationPairing((current) =>
       current?.kind === "connector" ? { ...current, stay: true } : current,
     );
+    cleanPairingHash();
   };
   const showingPairingOverlay = pairing;
   const approvalDescription = approval
@@ -722,22 +740,44 @@ export function KhieClientModule({
               ref={locationDialogRef}
               className={styles["location-choice-dialog"]}
               aria-labelledby="khie-location-choice-title"
-              onCancel={(event) => {
-                if (locationPairing.kind === "provider") {
-                  event.preventDefault();
-                } else {
-                  stayInBrowser();
+              onMouseDown={(event) => {
+                const dialog = locationDialogRef.current;
+                if (event.target !== dialog || !dialog) {
+                  return;
+                }
+                const rect = dialog.getBoundingClientRect();
+                if (
+                  event.clientX < rect.left ||
+                  event.clientX > rect.right ||
+                  event.clientY < rect.top ||
+                  event.clientY > rect.bottom
+                ) {
+                  dismissLocationDialog();
                 }
               }}
+              onCancel={(event) => {
+                event.preventDefault();
+                dismissLocationDialog();
+              }}
             >
-              <h2
-                className={styles["location-choice-title"]}
-                id="khie-location-choice-title"
-              >
-                {locationPairing.kind === "connector"
-                  ? "Connect with Khie"
-                  : "About Khie"}
-              </h2>
+              <div className={styles["location-choice-header"]}>
+                <h2
+                  className={styles["location-choice-title"]}
+                  id="khie-location-choice-title"
+                >
+                  {locationPairing.kind === "connector"
+                    ? "Connect with Khie"
+                    : "About Khie"}
+                </h2>
+                <button
+                  type="button"
+                  className={styles["location-choice-close"]}
+                  onClick={dismissLocationDialog}
+                  aria-label="Close"
+                >
+                  <X aria-hidden="true" size={14} />
+                </button>
+              </div>
               <p className={styles["location-choice-description"]}>
                 Khie is a peer-to-peer wallet connection protocol.
               </p>
@@ -763,6 +803,9 @@ export function KhieClientModule({
                     <a
                       className="is-primary"
                       href={locationPairing.appEndpoint}
+                      onClick={() => {
+                        dismissLocationDialog();
+                      }}
                     >
                       Open wallet app
                     </a>
@@ -774,7 +817,10 @@ export function KhieClientModule({
                   <button
                     className="is-primary"
                     type="button"
-                    onClick={() => window.location.replace("/")}
+                    onClick={() => {
+                      dismissLocationDialog();
+                      window.location.replace("/");
+                    }}
                   >
                     Got it
                   </button>
