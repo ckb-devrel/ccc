@@ -17,6 +17,7 @@ import type { ModuleRuntimeProps } from "../../modules";
 import { QrCode } from "../../qr-code";
 import { QrScanner } from "../../qr-scanner";
 import styles from "./khie-client-module.module.css";
+import { KhieIcon } from "./khie-icon";
 import {
   DEFAULT_KHIE_RELAY_ADDRESS,
   type KhieRemotePeer,
@@ -651,8 +652,9 @@ export function KhieClientModule({
         <RemotePeerDetails peer={remotePeer} onUnpair={unpair} />
         <section className={styles["request-area"]}>
           {approval ? (
-            <>
+            <div className={styles["request-card"]}>
               <h3 className={styles["request-title"]}>
+                <KhieIcon size={18} className={styles["request-khie-icon"]} />
                 <span>{formatApprovalTitle(approval)}</span>
                 {queuedApprovalCount > 0 ? (
                   <span className={styles["request-queue"]}>
@@ -660,36 +662,34 @@ export function KhieClientModule({
                   </span>
                 ) : null}
               </h3>
-              <div className={styles["request-card"]}>
-                {approval.method === "sign_transaction" ? (
-                  <TransactionApprovalDetails
-                    client={signer?.client ?? client}
-                    transaction={approval.transaction}
-                  />
-                ) : approvalDescription ? (
-                  <p className={styles["request-description"]}>
-                    {approvalDescription}
-                  </p>
-                ) : null}
-                <div className={`module-actions ${styles["approval-actions"]}`}>
-                  <button
-                    disabled={!approvalEnabled}
-                    type="button"
-                    onClick={() => resolveApproval(false)}
-                  >
-                    Reject
-                  </button>
-                  <button
-                    className="is-primary"
-                    disabled={!approvalEnabled}
-                    type="button"
-                    onClick={() => resolveApproval(true)}
-                  >
-                    Approve
-                  </button>
-                </div>
+              {approval.method === "sign_transaction" ? (
+                <TransactionApprovalDetails
+                  client={signer?.client ?? client}
+                  transaction={approval.transaction}
+                />
+              ) : approvalDescription ? (
+                <p className={styles["request-description"]}>
+                  {approvalDescription}
+                </p>
+              ) : null}
+              <div className={`module-actions ${styles["approval-actions"]}`}>
+                <button
+                  disabled={!approvalEnabled}
+                  type="button"
+                  onClick={() => resolveApproval(false)}
+                >
+                  Reject
+                </button>
+                <button
+                  className="is-primary"
+                  disabled={!approvalEnabled}
+                  type="button"
+                  onClick={() => resolveApproval(true)}
+                >
+                  Approve
+                </button>
               </div>
-            </>
+            </div>
           ) : (
             <p className={styles["request-idle"]}>
               Connected to an app, waiting for requests…
