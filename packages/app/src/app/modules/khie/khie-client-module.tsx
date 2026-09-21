@@ -890,11 +890,12 @@ export function KhieClientModule({
                   <CopyableText
                     className={styles["endpoint-copy"]}
                     value={pairingEndpoint}
+                    title="Tap to copy pairing code"
                     ariaLabel="Copy wallet pairing code"
                     iconSize={15}
                     onError={(cause) => reportError(cause, show, log)}
                   >
-                    <span>{pairingEndpoint}</span>
+                    <span>Tap to copy pairing code</span>
                   </CopyableText>
                 </div>
               ) : (

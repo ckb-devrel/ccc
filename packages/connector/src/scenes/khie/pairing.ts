@@ -196,13 +196,13 @@ export class KhiePairing extends LitElement {
                         <ccc-copy-button
                           .value=${ownEndpoint}
                           class="endpoint-copy"
-                          title="Copy pairing code"
+                          title="Tap to copy pairing code"
                           aria-label="Copy connector pairing code"
                           @error=${(event: ErrorEvent) => {
                             this.localError = errorMessage(event.error);
                           }}
                         >
-                          <span>${ownEndpoint}</span>
+                          <span>Tap to copy pairing code</span>
                         </ccc-copy-button>
                         ${
                           appEndpoint
@@ -212,7 +212,7 @@ export class KhiePairing extends LitElement {
                                 @click=${() => {
                                   this.hasAttemptedToOpenApp = true;
                                 }}
-                                >Open</a
+                                >Open Wallet</a
                               >`
                             : undefined
                         }
@@ -453,9 +453,12 @@ export class KhiePairing extends LitElement {
 
     .endpoint-actions {
       display: flex;
+      flex-wrap: wrap;
       width: 100%;
       min-width: 0;
       align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
     }
 
     .open-app-pill {
@@ -484,7 +487,6 @@ export class KhiePairing extends LitElement {
       text-align: center;
     }
 
-    .endpoint-copy,
     .endpoint-pending {
       box-sizing: border-box;
       width: 100%;
@@ -492,15 +494,15 @@ export class KhiePairing extends LitElement {
     }
 
     .endpoint-copy {
-      display: grid;
-      flex: 1;
+      box-sizing: border-box;
+      display: flex;
+      width: fit-content;
+      max-width: 100%;
       min-width: 0;
-      padding: 0.65rem 0.85rem;
       align-items: center;
+      gap: 0.7rem;
       color: var(--btn-color, inherit);
       cursor: pointer;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 0.7rem;
       text-align: left;
       transition: color 0.15s ease-in-out;
     }
