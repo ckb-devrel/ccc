@@ -1,5 +1,15 @@
 # @ckb-ccc/connector
 
+## 2.3.0
+
+### Minor Changes
+
+- [#552](https://github.com/ckb-devrel/ccc/pull/552) [`ab98c7a`](https://github.com/ckb-devrel/ccc/commit/ab98c7a772226cef78e865f6b37e83e7e2f57d66) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add a `hideKhie` option to hide the Khie wallet connection entry.
+
+### Patch Changes
+
+- [#554](https://github.com/ckb-devrel/ccc/pull/554) [`c544a91`](https://github.com/ckb-devrel/ccc/commit/c544a9102098771cd54cf8708b91c1ac9afc6cde) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Refine the Khie pairing code presentation by displaying "Tap to copy pairing code" and "Open Wallet", and centering them below the QR code.
+
 ## 2.2.4
 
 ### Patch Changes
