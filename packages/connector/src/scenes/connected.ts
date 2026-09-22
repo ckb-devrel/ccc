@@ -8,6 +8,7 @@ import { FEE_SVG } from "../assets/fee.svg.js";
 import { SWAP_SVG } from "../assets/swap.svg.js";
 import { USER_SVG } from "../assets/user.svg.js";
 import { SelectClientEvent } from "../events/external.js";
+import { I18n } from "../i18n/index.js";
 import { signerTypeToIcon } from "./selecting/signers.js";
 
 export function formatString(
@@ -33,6 +34,8 @@ export class ConnectedScene extends LitElement {
   public feeRate?: ccc.Num;
   @property()
   public clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
+  @property({ attribute: false })
+  public i18n = new I18n();
 
   @state()
   private recommendedAddress?: string;
@@ -116,6 +119,7 @@ export class ConnectedScene extends LitElement {
     if (!wallet || !signer) {
       return html`<div></div>`;
     }
+    const t: I18n["t"] = (key, vars) => this.i18n.t(key, vars);
 
     const body = (() => {
       if (this.selectingFeeRate) {
@@ -123,6 +127,7 @@ export class ConnectedScene extends LitElement {
           <ccc-fee-rate-scene
             .client=${signer.client}
             .feeRate=${this.feeRate}
+            .i18n=${this.i18n}
           ></ccc-fee-rate-scene>
         `;
       }
@@ -145,6 +150,8 @@ export class ConnectedScene extends LitElement {
 
           <ccc-copy-button
             value=${recommendedAddress}
+            copyLabel=${t("copy")}
+            copiedLabel=${t("copied")}
             class="address-copy text-bold fs-xl mt-2"
           >
             ${formatString(recommendedAddress)}
@@ -154,6 +161,8 @@ export class ConnectedScene extends LitElement {
           </div>
           <ccc-copy-button
             value=${internalAddress}
+            copyLabel=${t("copy")}
+            copiedLabel=${t("copied")}
             class="address-copy text-bold text-tip fs-md"
             style="margin-top: 0.5rem"
           >
@@ -165,12 +174,12 @@ export class ConnectedScene extends LitElement {
             @click=${() => (this.selectingFeeRate = true)}
           >
             ${FEE_SVG}
-            <span>Fee Rate</span>
+            <span>${t("feeRate")}</span>
             <span class="fee-rate-value">
               ${
                 this.feeRate == null
-                  ? "Auto"
-                  : `${this.feeRate.toString()} shannons/KB`
+                  ? t("feeRateAuto")
+                  : `${this.feeRate.toString()} ${t("feeRateUnit")}`
               }
             </span>
           </ccc-button>
@@ -179,20 +188,20 @@ export class ConnectedScene extends LitElement {
             class="mt-1"
             @click=${() => window.open("https://nervdao.com/", "_blank")}
           >
-            ${USER_SVG} Manage
+            ${USER_SVG} ${t("manage")}
           </ccc-button>
 
           <ccc-button
             class="mt-1"
             @click=${() => this.dispatchEvent(new Event("disconnect"))}
           >
-            ${DISCONNECT_SVG} Disconnect
+            ${DISCONNECT_SVG} ${t("disconnect")}
           </ccc-button>
 
           ${
             this.hideMark == null
               ? html`<a href="https://github.com/ckb-devrel/ccc" class="mark"
-                  >Powered by CCC</a
+                  >${t("poweredBy")}</a
                 >`
               : ""
           }
@@ -206,7 +215,11 @@ export class ConnectedScene extends LitElement {
             <div class="switch-line"></div>
             <div class="switch-content ml-2 mr-2 fs-sm">
               <img class="sm-chain-logo" src=${CKB_SVG} alt="Nervos Network" />
-              ${signer.client.addressPrefix === "ckb" ? "Mainnet" : "Testnet"}
+              ${
+                signer.client.addressPrefix === "ckb"
+                  ? t("mainnet")
+                  : t("testnet")
+              }
               ${
                 ["ckb", "ckt"].includes(signer.client.addressPrefix)
                   ? ""
@@ -238,11 +251,13 @@ export class ConnectedScene extends LitElement {
       <ccc-dialog
         header=${
           this.selectingFeeRate
-            ? "Select Fee Rate"
+            ? t("selectFeeRate")
             : this.selectingClient
-              ? "Select Network"
+              ? t("selectNetwork")
               : undefined
         }
+        backLabel=${t("back")}
+        closeLabel=${t("close")}
         ?canBack=${this.selectingFeeRate || this.selectingClient}
         @back=${() => {
           this.selectingFeeRate = false;

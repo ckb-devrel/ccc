@@ -8,7 +8,8 @@ import { SCAN_SVG } from "../../assets/scan.svg.js";
 import type { QrScannedEvent } from "../../components/qr-scanner.js";
 import { ConnectorConnectionEvent } from "../../events/external.js";
 import { CloseRequestEvent } from "../../events/internal.js";
-import { errorMessage } from "../error.js";
+import { I18n } from "../../i18n/index.js";
+import { ConnectorError, displayError, errorMessage } from "../error.js";
 import { CONNECTOR_ENDPOINT_URL, DEFAULT_RELAY_ADDRESS } from "./node.js";
 import { KhiePairingSession } from "./session.js";
 import { KHIE_WALLET_NAME, khieSignerIcon } from "./wallet.js";
@@ -24,6 +25,9 @@ export class KhiePairing extends LitElement {
   @property({ attribute: false })
   public defaultRelayAddress?: string;
 
+  @property({ attribute: false })
+  public i18n = new I18n();
+
   @state()
   private relayAddressOverride?: string;
   @state()
@@ -35,7 +39,7 @@ export class KhiePairing extends LitElement {
   @state()
   private hasAttemptedToOpenApp = false;
   @state()
-  private localError?: string;
+  private localError?: { cause: unknown };
 
   private session!: KhiePairingSession;
 
@@ -128,8 +132,18 @@ export class KhiePairing extends LitElement {
   };
 
   private scannerError = (event: ErrorEvent) => {
-    this.localError = `Unable to scan pairing code: ${errorMessage(event.error)}`;
+    this.localError = {
+      cause: new ConnectorError(
+        "scan-failed",
+        `Unable to scan pairing code: ${errorMessage(event.error)}`,
+        { cause: event.error },
+      ),
+    };
     this.isScanning = false;
+  };
+
+  private setLocalError = (event: ErrorEvent) => {
+    this.localError = { cause: event.error };
   };
 
   render() {
@@ -143,7 +157,15 @@ export class KhiePairing extends LitElement {
       relayState,
       signer,
     } = this.session.state;
-    const error = this.localError ?? sessionError;
+    const t: I18n["t"] = (key, vars) => this.i18n.t(key, vars);
+    const hasError =
+      this.localError !== undefined || sessionError !== undefined;
+    const error = hasError
+      ? displayError(
+          this.localError ? this.localError.cause : sessionError,
+          this.i18n,
+        )
+      : undefined;
 
     if (phase === "pairing" || phase === "connecting") {
       return html`<ccc-connecting
@@ -151,10 +173,9 @@ export class KhiePairing extends LitElement {
         .icon=${khieSignerIcon(signer?.icon)}
         .error=${error}
         .hint=${
-          signer
-            ? "Approve the connection in Khie to continue"
-            : "Establishing secure connection…"
+          signer ? t("khieApproveInWallet") : t("khieEstablishingConnection")
         }
+        .i18n=${this.i18n}
         .onRetry=${
           signer
             ? () => {
@@ -175,20 +196,18 @@ export class KhiePairing extends LitElement {
     return html`
       <div class="pairing-layout">
         <section class="field pairing-side own-side">
-          <label>Let a wallet scan this</label>
+          <label>${t("khieLetWalletScan")}</label>
           <div class="endpoint-pair">
             <ccc-qr-code
               class="qr-code"
               .value=${ownEndpoint}
-              alt="Connector pairing code"
-              @error=${(event: ErrorEvent) => {
-                this.localError = errorMessage(event.error);
-              }}
+              alt=${t("khieConnectorPairingCode")}
+              @error=${this.setLocalError}
             ></ccc-qr-code>
             ${
               relayState === "failed"
                 ? html`<ccc-button-pill @click=${() => this.connectRelay()}>
-                    ${RETRY_SVG} Try again
+                    ${RETRY_SVG} ${t("tryAgain")}
                   </ccc-button-pill>`
                 : ownEndpoint
                   ? html`<div class="endpoint-details">
@@ -196,13 +215,11 @@ export class KhiePairing extends LitElement {
                         <ccc-copy-button
                           .value=${ownEndpoint}
                           class="endpoint-copy"
-                          title="Tap to copy pairing code"
-                          aria-label="Copy connector pairing code"
-                          @error=${(event: ErrorEvent) => {
-                            this.localError = errorMessage(event.error);
-                          }}
+                          title=${t("khieCopyPairingCode")}
+                          aria-label=${t("khieCopyConnectorPairingCode")}
+                          @error=${this.setLocalError}
                         >
-                          <span>Tap to copy pairing code</span>
+                          <span>${t("khieCopyPairingCode")}</span>
                         </ccc-copy-button>
                         ${
                           appEndpoint
@@ -212,7 +229,7 @@ export class KhiePairing extends LitElement {
                                 @click=${() => {
                                   this.hasAttemptedToOpenApp = true;
                                 }}
-                                >Open Wallet</a
+                                >${t("khieOpenWallet")}</a
                               >`
                             : undefined
                         }
@@ -220,33 +237,34 @@ export class KhiePairing extends LitElement {
                       ${
                         this.hasAttemptedToOpenApp && appEndpoint
                           ? html`<span class="open-app-status" role="status"
-                              >If the wallet app doesn't open, install a wallet
-                              that supports Khie or pair manually.</span
+                              >${t("khieOpenWalletHint")}</span
                             >`
                           : undefined
                       }
                     </div>`
                   : html`<span class="endpoint-pending"
-                      >Connecting relay…</span
+                      >${t("khieConnectingRelay")}</span
                     >`
             }
           </div>
         </section>
 
-        <div class="divider" aria-hidden="true"><span>or</span></div>
+        <div class="divider" aria-hidden="true">
+          <span>${t("or")}</span>
+        </div>
 
         <section class="field pairing-side remote-side">
-          <label>Scan wallet code</label>
+          <label>${t("khieScanWalletCode")}</label>
           <div class="remote-actions">
             <ccc-button @click=${() => this.startScanner()}>
-              ${SCAN_SVG} Scan wallet code
+              ${SCAN_SVG} ${t("khieScanWalletCode")}
             </ccc-button>
             <div class="endpoint-control">
               <ccc-input
                 class="endpoint-input"
                 .value=${this.khieEndpoint}
-                aria-label="Wallet pairing code"
-                placeholder="Or paste pairing code"
+                aria-label=${t("khieWalletPairingCode")}
+                placeholder=${t("khiePastePairingCode")}
                 spellcheck="false"
                 @input=${(event: InputEvent) => {
                   this.khieEndpoint = (
@@ -261,8 +279,8 @@ export class KhiePairing extends LitElement {
               ></ccc-input>
               <button
                 class="endpoint-submit"
-                aria-label="Connect"
-                title="Connect"
+                aria-label=${t("connect")}
+                title=${t("connect")}
                 ?disabled=${!canPair || !this.khieEndpoint.trim()}
                 @click=${() => this.pair()}
               >
@@ -270,15 +288,12 @@ export class KhiePairing extends LitElement {
               </button>
             </div>
             <p class="khie-help">
-              Khie is a peer-to-peer protocol that connects wallets and
-              applications.
-              <a
+              ${t("khieHelpIntro")}<a
                 href=${ownEndpoint || CONNECTOR_ENDPOINT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                >Learn more about Khie here</a
-              >, where you can also connect a local wallet from the device where
-              it is available.
+                >${t("khieHelpLink")}</a
+              >${t("khieHelpOutro")}
             </p>
           </div>
 
@@ -290,7 +305,7 @@ export class KhiePairing extends LitElement {
               this.isAdvancedSettingsOpen = !this.isAdvancedSettingsOpen;
             }}
           >
-            <span>Advanced settings</span>
+            <span>${t("advancedSettings")}</span>
             <span class="settings-chevron">${LEFT_SVG}</span>
           </button>
         </section>
@@ -301,12 +316,12 @@ export class KhiePairing extends LitElement {
                 class="field advanced-settings"
                 id="khie-advanced-settings"
               >
-                <label>Relay multiaddr</label>
+                <label>${t("khieRelayMultiaddr")}</label>
                 <div class="relay-control">
                   <ccc-input
                     class="relay-input"
                     .value=${this.relayAddress}
-                    aria-label="Relay multiaddr"
+                    aria-label=${t("khieRelayMultiaddr")}
                     placeholder="/dns4/relay.example/tcp/443/wss"
                     spellcheck="false"
                     @input=${(event: InputEvent) => {
@@ -325,10 +340,10 @@ export class KhiePairing extends LitElement {
                   >
                     ${
                       relayState === "connecting"
-                        ? "Connecting…"
+                        ? t("connecting")
                         : relayState === "connected"
-                          ? "Reconnect"
-                          : "Connect relay"
+                          ? t("reconnect")
+                          : t("khieConnectRelay")
                     }
                   </button>
                 </div>
@@ -339,16 +354,16 @@ export class KhiePairing extends LitElement {
       ${
         error && !this.localError && errorKind === "incompatible-peer"
           ? html`<div class="compatibility-help" role="alert">
-              <strong>This is not a compatible Khie pairing code</strong>
+              <strong>${t("khieIncompatiblePairingCode")}</strong>
               <span>
-                Scan a pairing code from a wallet.
+                ${t("khieIncompatiblePairingCodeHint")}
                 ${
                   this.khieEndpoint
                     ? html`<a
                         href=${this.khieEndpoint}
                         target="_blank"
                         rel="noopener noreferrer"
-                        >Go here to learn more.</a
+                        >${t("khieLearnMore")}</a
                       >`
                     : undefined
                 }

@@ -13,6 +13,7 @@ import {
   ConnectedEvent,
   FeeRateSelectedEvent,
 } from "../events/internal.js";
+import { ConnectorLocale, I18n } from "../i18n/index.js";
 import { SignersController } from "../signers/index.js";
 import { ClientWithFeeRate } from "./client.js";
 
@@ -47,6 +48,11 @@ export class WebComponentConnector extends LitElement {
   /** Default Relay multiaddr shown and used by the Khie connection flow. */
   @property({ attribute: "khie-relay-address" })
   public khieRelayAddress?: string;
+  /** BCP 47 language tag of the UI, e.g. `"zh-CN"`. Defaults to English. */
+  @property()
+  public locale?: ConnectorLocale;
+  @state()
+  private i18n = new I18n();
   @property({ attribute: false })
   public signersController = new ccc.SignersController();
   @state()
@@ -124,6 +130,9 @@ export class WebComponentConnector extends LitElement {
   }
 
   willUpdate(changedProperties: PropertyValues): void {
+    if (changedProperties.has("locale")) {
+      this.i18n = new I18n(this.locale ?? "en");
+    }
     // Named selections are rebuilt by the controller refresh below. Direct
     // connections have no lookup key, so changing Client invalidates them.
     if (
@@ -307,6 +316,7 @@ export class WebComponentConnector extends LitElement {
                     .signer=${this.signer.signer}
                     .feeRate=${feeRate}
                     .clientOptions=${this.clientOptions}
+                    .i18n=${this.i18n}
                     @disconnect=${() =>
                       this.close(() => {
                         this.disconnect();
@@ -321,6 +331,7 @@ export class WebComponentConnector extends LitElement {
                       .appName=${this.appName}
                       .client=${this.client}
                       .defaultRelayAddress=${this.khieRelayAddress}
+                      .i18n=${this.i18n}
                       @back=${() => (this.pairingKhie = false)}
                       @connection=${this.handleKhieConnected}
                     ></ccc-khie-connect-scene>
@@ -329,6 +340,7 @@ export class WebComponentConnector extends LitElement {
                     <ccc-selecting-scene
                       .hideKhie=${this.hideKhie}
                       .wallets=${this.signersControllerInner.wallets}
+                      .i18n=${this.i18n}
                       @select-khie=${() => (this.pairingKhie = true)}
                       @connected=${this.handleConnected}
                     ></ccc-selecting-scene>

@@ -135,6 +135,7 @@ icon: Wallet
 | `signersController` | `ccc.SignersController`                                                | 自定义 `SignersController` 实例             |
 | `defaultClient`     | `ccc.Client`                                                           | 默认 CKB Client（测试网或主网）               |
 | `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | 连接器中展示的网络切换选项                     |
+| `locale`            | `ccc.ConnectorLocale`                                                  | 界面语言（BCP 47 标签，如 `"zh-CN"`），默认 `"en"` |
 
 ## Hooks 参考
 
@@ -154,6 +155,7 @@ icon: Wallet
 | `client`     | `ccc.Client`                   | 当前 CKB Client（默认为 `ClientPublicTestnet`）        |
 | `wallet`     | `ccc.Wallet \| undefined`      | 当前已连接的钱包（含 `name`、`icon`）                    |
 | `signerInfo` | `ccc.SignerInfo \| undefined`  | 当前 Signer 信息（含 `name`、`signer`）                |
+| `locale`     | `ccc.ConnectorLocale`          | 连接器当前使用的界面语言                                |
 
 ### `ccc.useSigner()`
 
@@ -182,6 +184,28 @@ const address = await signer?.getRecommendedAddress();
 ```
 
 `ccc.SignerType` 可选值：`CKB`、`EVM`、`BTC`、`Nostr`、`Doge`。
+
+## 多语言
+
+**适用场景：** 你的应用是多语言的，希望连接器弹窗跟随应用语言。
+
+连接器界面默认英文。传入 `locale` 即可切换语言；重新渲染 `Provider` 并传入新值，弹窗立即跟随。
+
+```tsx
+<ccc.Provider locale="zh-CN">{children}</ccc.Provider>
+```
+
+内置语言：`en`、`zh-CN`。未知标签会回退到同语言中最接近的已注册语言（`zh-HK` → `zh-CN`），再回退到英文，因此直接传 `navigator.language` 也是安全的。钱包与链名（`MetaMask`、`JoyID`、`BTC` 等）是品牌名，不做翻译。
+
+直接使用 Web Component 时用法相同：
+
+```html
+<ccc-connector locale="zh-CN"></ccc-connector>
+```
+
+翻译内置于连接器中，不支持应用层覆盖。这样无论连接器界面如何迭代，应用升级 CCC 后都能保证展示正确。如果发现翻译有误，请[提交 issue](https://github.com/ckb-devrel/ccc/issues/new)；如需新增语言，请参考[贡献指南](https://github.com/ckb-devrel/ccc/blob/master/CONTRIBUTING.md#contributing-a-connector-language)。
+
+连接器不会自动检测浏览器语言。如果需要，请自行传入 `locale={navigator.language}`。
 
 ## 选择钱包网络
 

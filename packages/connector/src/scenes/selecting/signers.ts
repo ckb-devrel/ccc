@@ -8,6 +8,7 @@ import {
   ETH_SVG,
   NOSTR_SVG,
 } from "../../assets/chains/index.js";
+import type { I18n } from "../../i18n/index.js";
 
 export function signerTypeToIcon(type: ccc.SignerType): string {
   return {
@@ -25,9 +26,10 @@ export function generateSignersScene(
     wallet: ccc.WalletWithSigners,
     signer: ccc.SignerInfo,
   ) => unknown,
+  i18n: I18n,
 ) {
   return [
-    "Select a Chain",
+    i18n.t("selectChain"),
 
     html`
       <img class="wallet-icon" src=${wallet.icon} alt=${wallet.name} />
