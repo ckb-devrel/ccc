@@ -146,11 +146,13 @@ export function Dropdown<T extends string>({
       <button
         type="button"
         className={styles.trigger}
+        role="combobox"
         title={label}
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={`${id}-listbox`}
+        aria-activedescendant={open ? `${id}-option-${active}` : undefined}
         onClick={() => (open ? close() : openMenu())}
       >
         {icon}
@@ -162,7 +164,7 @@ export function Dropdown<T extends string>({
         id={`${id}-listbox`}
         role="listbox"
         aria-label={label}
-        aria-activedescendant={open ? `${id}-option-${active}` : undefined}
+        aria-hidden={!open}
         className={`${styles.menu} ${align === "start" ? styles.alignStart : ""}`}
       >
         {options.map((option, index) => {
