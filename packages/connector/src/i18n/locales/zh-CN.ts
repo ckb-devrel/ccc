@@ -8,8 +8,6 @@ export const zhCN: ConnectorMessages = {
   reconnect: "重新连接",
   tryAgain: "重试",
   manage: "管理",
-  back: "返回",
-  close: "关闭",
   copy: "复制",
   copied: "已复制",
   or: "或",

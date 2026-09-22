@@ -27,10 +27,6 @@ export interface ConnectorMessages {
   tryAgain: string;
   /** → "Manage" */
   manage: string;
-  /** → "Back" (screen-reader only) */
-  back: string;
-  /** → "Close" (screen-reader only) */
-  close: string;
   /** → "Copy" (screen-reader only) */
   copy: string;
   /** → "Copied" (screen-reader only) */

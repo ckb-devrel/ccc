@@ -256,8 +256,6 @@ export class ConnectedScene extends LitElement {
               ? t("selectNetwork")
               : undefined
         }
-        backLabel=${t("back")}
-        closeLabel=${t("close")}
         ?canBack=${this.selectingFeeRate || this.selectingClient}
         @back=${() => {
           this.selectingFeeRate = false;

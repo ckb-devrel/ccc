@@ -45,8 +45,6 @@ export class KhieConnectScene extends LitElement {
   render() {
     return html`<ccc-dialog
       header=${this.i18n.t("khieConnectWallet")}
-      backLabel=${this.i18n.t("back")}
-      closeLabel=${this.i18n.t("close")}
       ?canBack=${true}
       @back=${this.back}
     >

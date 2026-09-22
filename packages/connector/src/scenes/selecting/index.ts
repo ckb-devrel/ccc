@@ -30,8 +30,6 @@ export class SelectingScene extends LitElement {
 
     return html`<ccc-dialog
       header=${title}
-      backLabel=${this.i18n.t("back")}
-      closeLabel=${this.i18n.t("close")}
       ?canBack=${this.selectedSigner || this.selectedWallet}
       @back=${() => {
         if (

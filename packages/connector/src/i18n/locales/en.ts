@@ -9,8 +9,6 @@ export const en: ConnectorMessages = {
   reconnect: "Reconnect",
   tryAgain: "Try again",
   manage: "Manage",
-  back: "Back",
-  close: "Close",
   copy: "Copy",
   copied: "Copied",
   or: "or",
