@@ -10,12 +10,6 @@ export class Dialog extends LitElement {
   public canBack: unknown;
   @property()
   public header?: string;
-  /** `aria-label` of the back button. */
-  @property()
-  public backLabel = "Back";
-  /** `aria-label` of the close button. */
-  @property()
-  public closeLabel = "Close";
 
   render() {
     return html`
@@ -24,9 +18,6 @@ export class Dialog extends LitElement {
       >
         <div
           class="back ${this.canBack != null ? "active" : ""}"
-          role="button"
-          aria-label=${this.backLabel}
-          aria-hidden=${this.canBack == null}
           @click=${() => {
             this.dispatchEvent(new Event("back"));
           }}
@@ -36,8 +27,6 @@ export class Dialog extends LitElement {
         ${this.header}
         <span
           class="close active"
-          role="button"
-          aria-label=${this.closeLabel}
           @click=${() => {
             this.dispatchEvent(new CloseRequestEvent());
           }}
