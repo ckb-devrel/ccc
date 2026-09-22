@@ -19,7 +19,7 @@ function languageOf(locale: string): string {
  */
 export function resolveLocale(locale: ConnectorLocale): ConnectorMessages {
   const registered = locales as Record<string, ConnectorMessages>;
-  if (locale in registered) {
+  if (Object.hasOwn(registered, locale)) {
     return registered[locale];
   }
   const keys = Object.keys(registered);
