@@ -42,9 +42,7 @@ export const zhCN: ConnectorMessages = {
   khieEstablishingConnection: "正在建立安全连接...",
   khieApproveInWallet: "请在 Khie 中确认连接",
   khieLetWalletScan: "让钱包扫描此码",
-  khieConnectorPairingCode: "连接器配对码",
   khieCopyPairingCode: "点击复制配对码",
-  khieCopyConnectorPairingCode: "复制连接器配对码",
   khieOpenWallet: "打开钱包",
   khieOpenWalletHint:
     "如果钱包应用没有打开，请安装支持 Khie 的钱包，或手动配对。",

@@ -43,9 +43,7 @@ export const en: ConnectorMessages = {
   khieEstablishingConnection: "Establishing secure connection...",
   khieApproveInWallet: "Approve the connection in Khie to continue",
   khieLetWalletScan: "Let a wallet scan this",
-  khieConnectorPairingCode: "Connector pairing code",
   khieCopyPairingCode: "Tap to copy pairing code",
-  khieCopyConnectorPairingCode: "Copy connector pairing code",
   khieOpenWallet: "Open Wallet",
   khieOpenWalletHint:
     "If the wallet app doesn't open, install a wallet that supports Khie or pair manually.",

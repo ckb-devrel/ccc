@@ -149,9 +149,9 @@ export class ConnectedScene extends LitElement {
           </div>
 
           <ccc-copy-button
-            value=${recommendedAddress}
-            copyLabel=${t("copy")}
-            copiedLabel=${t("copied")}
+            .value=${recommendedAddress}
+            .copyLabel=${t("copy")}
+            .copiedLabel=${t("copied")}
             class="address-copy text-bold fs-xl mt-2"
           >
             ${formatString(recommendedAddress)}
@@ -160,9 +160,9 @@ export class ConnectedScene extends LitElement {
             ${ccc.fixedPointToString(balance ?? ccc.Zero)} CKB
           </div>
           <ccc-copy-button
-            value=${internalAddress}
-            copyLabel=${t("copy")}
-            copiedLabel=${t("copied")}
+            .value=${internalAddress}
+            .copyLabel=${t("copy")}
+            .copiedLabel=${t("copied")}
             class="address-copy text-bold text-tip fs-md"
             style="margin-top: 0.5rem"
           >

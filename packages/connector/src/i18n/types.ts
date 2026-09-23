@@ -89,12 +89,8 @@ export interface ConnectorMessages {
   khieApproveInWallet: string;
   /** → "Let a wallet scan this" */
   khieLetWalletScan: string;
-  /** → "Connector pairing code" */
-  khieConnectorPairingCode: string;
   /** → "Copy pairing code" */
   khieCopyPairingCode: string;
-  /** → "Copy connector pairing code" */
-  khieCopyConnectorPairingCode: string;
   /** → "Open Wallet" */
   khieOpenWallet: string;
   /** → "If the wallet app doesn't open, install a wallet that supports Khie or pair manually." */

@@ -201,7 +201,7 @@ export class KhiePairing extends LitElement {
             <ccc-qr-code
               class="qr-code"
               .value=${ownEndpoint}
-              alt=${t("khieConnectorPairingCode")}
+              alt="khie-pairing-code"
               @error=${this.setLocalError}
             ></ccc-qr-code>
             ${
@@ -214,9 +214,10 @@ export class KhiePairing extends LitElement {
                       <div class="endpoint-actions">
                         <ccc-copy-button
                           .value=${ownEndpoint}
+                          .copyLabel=${t("copy")}
+                          .copiedLabel=${t("copied")}
                           class="endpoint-copy"
-                          title=${t("khieCopyPairingCode")}
-                          aria-label=${t("khieCopyConnectorPairingCode")}
+                          aria-label=${t("khieCopyPairingCode")}
                           @error=${this.setLocalError}
                         >
                           <span>${t("khieCopyPairingCode")}</span>
