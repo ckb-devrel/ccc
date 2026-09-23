@@ -9,4 +9,4 @@ feat(connector): add localization support
 - `useCcc()` now exposes the active `locale`.
 - Fee rate options are selected by a stable id instead of their display label.
 - Errors raised by the connector itself (camera access, Khie pairing) are translated at render time via `ConnectorError`.
-- Dialog back/close and copy buttons gained `aria-label`s.
+
