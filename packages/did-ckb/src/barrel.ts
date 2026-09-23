@@ -1,3 +1,7 @@
+export * from "./claims/codec.js";
+export * from "./claims/read.js";
+export * from "./claims/types.js";
+export * from "./claims/write.js";
 export * from "./codec.js";
 export * from "./didCkb.js";
 export * from "./history.js";
