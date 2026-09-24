@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Cell, OutPoint, Transaction } from "../ckb";
+import { JsonRpcTransportHttp } from "../jsonRpc/transports/http";
 import { ClientCacheMemory } from "./cache/memory";
 import { ClientPublicTestnet } from "./clientPublicTestnet";
 import {
@@ -208,6 +209,136 @@ describe("Client", () => {
     it("should parse i8 upper boundary 127", async () => {
       const error = await getError(makeVerificationData(127));
       expect(error?.errorCode).toBe(127);
+    });
+  });
+
+  describe("getFeeRateStatistics and getFeeRate JSON-RPC payload serialization", () => {
+    let capturedBody: string | undefined;
+    let stringifiedObjects: unknown[] = [];
+    let httpClient: ClientPublicTestnet;
+
+    beforeEach(() => {
+      capturedBody = undefined;
+      stringifiedObjects = [];
+
+      const originalStringify = JSON.stringify;
+      vi.spyOn(JSON, "stringify").mockImplementation(function (
+        this: unknown,
+        value: unknown,
+        ...args: unknown[]
+      ) {
+        stringifiedObjects.push(value);
+        // @ts-expect-error spread args to original
+        return originalStringify.call(this, value, ...args);
+      });
+
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (_url: string, init?: RequestInit) => {
+          capturedBody = init?.body as string;
+          return {
+            json: async () => ({
+              id: 0,
+              jsonrpc: "2.0",
+              result: { mean: "0x400", median: "0x800" },
+            }),
+          };
+        }),
+      );
+
+      httpClient = ClientPublicTestnet.new({
+        transport: new JsonRpcTransportHttp("https://example.com"),
+      });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    function assertNoBigInt(value: unknown): void {
+      if (typeof value === "bigint") {
+        throw new Error("Found bigint passed to JSON.stringify");
+      }
+      if (typeof value === "object" && value !== null) {
+        for (const v of Object.values(value)) {
+          assertNoBigInt(v);
+        }
+      }
+    }
+
+    function parsePayload(): { method: string; params: unknown[] } {
+      expect(capturedBody).toBeDefined();
+      return JSON.parse(capturedBody!) as {
+        method: string;
+        params: unknown[];
+      };
+    }
+
+    it("should serialize getFeeRateStatistics(10) to hex without BigInt serialization error", async () => {
+      const res = await httpClient.getFeeRateStatistics(10);
+      expect(res).toEqual({ mean: 1024n, median: 2048n });
+
+      expect(stringifiedObjects.length).toBeGreaterThan(0);
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual(["0xa"]);
+    });
+
+    it("should serialize getFeeRateStatistics(10n) to hex without BigInt serialization error", async () => {
+      const res = await httpClient.getFeeRateStatistics(10n);
+      expect(res).toEqual({ mean: 1024n, median: 2048n });
+
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual(["0xa"]);
+    });
+
+    it("should serialize getFeeRateStatistics('0xa') to hex", async () => {
+      const res = await httpClient.getFeeRateStatistics("0xa");
+      expect(res).toEqual({ mean: 1024n, median: 2048n });
+
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual(["0xa"]);
+    });
+
+    it("should preserve omitted block range behavior", async () => {
+      const res = await httpClient.getFeeRateStatistics();
+      expect(res).toEqual({ mean: 1024n, median: 2048n });
+
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual([null]);
+    });
+
+    it("should preserve explicit undefined block range behavior", async () => {
+      const res = await httpClient.getFeeRateStatistics(undefined);
+      expect(res).toEqual({ mean: 1024n, median: 2048n });
+
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual([null]);
+    });
+
+    it("should serialize getFeeRate(10) to hex and calculate fee rate", async () => {
+      const res = await httpClient.getFeeRate(10);
+      expect(res).toBe(2048n);
+
+      stringifiedObjects.forEach(assertNoBigInt);
+
+      const parsed = parsePayload();
+      expect(parsed.method).toBe("get_fee_rate_statistics");
+      expect(parsed.params).toEqual(["0xa"]);
     });
   });
 });
