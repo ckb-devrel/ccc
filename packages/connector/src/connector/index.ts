@@ -13,7 +13,7 @@ import {
   ConnectedEvent,
   FeeRateSelectedEvent,
 } from "../events/internal.js";
-import { ConnectorLocale, I18n } from "../i18n/index.js";
+import { type ConnectorLocaleLike, I18n } from "../i18n/index.js";
 import { SignersController } from "../signers/index.js";
 import { ClientWithFeeRate } from "./client.js";
 
@@ -48,9 +48,9 @@ export class WebComponentConnector extends LitElement {
   /** Default Relay multiaddr shown and used by the Khie connection flow. */
   @property({ attribute: "khie-relay-address" })
   public khieRelayAddress?: string;
-  /** BCP 47 language tag of the UI, e.g. `"zh-CN"`. Defaults to English. */
+  /** BCP 47 language tag of the UI, e.g. `"zh-CN"`. Defaults to `"en"`. */
   @property()
-  public locale?: ConnectorLocale;
+  public locale?: ConnectorLocaleLike;
   @state()
   private i18n = new I18n();
   @property({ attribute: false })
@@ -131,7 +131,7 @@ export class WebComponentConnector extends LitElement {
 
   willUpdate(changedProperties: PropertyValues): void {
     if (changedProperties.has("locale")) {
-      this.i18n = new I18n(this.locale ?? "en");
+      this.i18n = new I18n(this.locale);
     }
     // Named selections are rebuilt by the controller refresh below. Direct
     // connections have no lookup key, so changing Client invalidates them.

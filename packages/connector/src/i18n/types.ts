@@ -89,6 +89,8 @@ export interface ConnectorMessages {
   khieApproveInWallet: string;
   /** → "Let a wallet scan this" */
   khieLetWalletScan: string;
+  /** → "Pairing QR code" */
+  khiePairingCode: string;
   /** → "Copy pairing code" */
   khieCopyPairingCode: string;
   /** → "Open Wallet" */
@@ -104,17 +106,13 @@ export interface ConnectorMessages {
   /** → "Or paste pairing code" */
   khiePastePairingCode: string;
   /**
-   * Text before the help link; keep the trailing space.
-   * → "Khie is a peer-to-peer protocol that connects wallets and applications. "
+   * Help sentence. `{link}` is replaced by the link text (`khieHelpLink`);
+   * keep exactly one `{link}` and move it wherever the target language needs.
+   * → "Khie is a peer-to-peer protocol that connects wallets and applications. {link}, where you can also connect a local wallet from the device where it is available."
    */
-  khieHelpIntro: string;
-  /** Help link text. → "Learn more about Khie here" */
+  khieHelp: string;
+  /** Text of the link inside `khieHelp`. → "Learn more about Khie here" */
   khieHelpLink: string;
-  /**
-   * Text after the help link; keep the leading punctuation.
-   * → ", where you can also connect a local wallet from the device where it is available."
-   */
-  khieHelpOutro: string;
   /** → "Relay multiaddr" */
   khieRelayMultiaddr: string;
   /** → "Connect relay" */
@@ -146,12 +144,3 @@ export interface ConnectorMessages {
 }
 
 export type MessageKey = keyof ConnectorMessages;
-
-export type BuiltInConnectorLocale = "en" | "zh-CN";
-
-/**
- * A BCP 47 language tag. Built-in locales get completion; any other tag falls
- * back to the closest registered language (`zh-HK` → `zh-CN`), then English.
- */
-export type ConnectorLocale =
-  BuiltInConnectorLocale | (string & Record<never, never>);

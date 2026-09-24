@@ -1,6 +1,6 @@
 import type { ConnectorMessages } from "../types.js";
 
-export const zhCN: ConnectorMessages = {
+export const zhHans: ConnectorMessages = {
   // Common actions / states
   connect: "连接",
   disconnect: "断开连接",
@@ -42,6 +42,7 @@ export const zhCN: ConnectorMessages = {
   khieEstablishingConnection: "正在建立安全连接...",
   khieApproveInWallet: "请在 Khie 中确认连接",
   khieLetWalletScan: "让钱包扫描此码",
+  khiePairingCode: "配对码",
   khieCopyPairingCode: "点击复制配对码",
   khieOpenWallet: "打开钱包",
   khieOpenWalletHint:
@@ -50,9 +51,9 @@ export const zhCN: ConnectorMessages = {
   khieScanWalletCode: "扫描钱包配对码",
   khieWalletPairingCode: "钱包配对码",
   khiePastePairingCode: "或粘贴配对码",
-  khieHelpIntro: "Khie 是一个连接钱包与应用的点对点协议。",
+  khieHelp:
+    "Khie 是一个连接钱包与应用的点对点协议。{link}，你也可以在钱包所在的设备上直接连接本地钱包。",
   khieHelpLink: "点击此处了解更多",
-  khieHelpOutro: "，你也可以在钱包所在的设备上直接连接本地钱包。",
   khieRelayMultiaddr: "中继地址（Multiaddr 格式）",
   khieConnectRelay: "连接中继",
   khieIncompatiblePairingCode: "这不是兼容的 Khie 配对码",

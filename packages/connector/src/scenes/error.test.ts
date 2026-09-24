@@ -22,7 +22,7 @@ describe("ConnectorError", () => {
       locales.en.errorKhieWalletUnpaired,
     );
     expect(displayError(error, new I18n("zh-CN"))).toBe(
-      locales["zh-CN"].errorKhieWalletUnpaired,
+      locales["zh-Hans"].errorKhieWalletUnpaired,
     );
   });
 
@@ -69,7 +69,7 @@ describe("displayError", () => {
   it("translates the unknown-error fallback", () => {
     expect(displayError({}, new I18n())).toBe("Unknown browser error");
     expect(displayError({}, new I18n("zh-CN"))).toBe(
-      locales["zh-CN"].errorUnknownBrowser,
+      locales["zh-Hans"].errorUnknownBrowser,
     );
   });
 });

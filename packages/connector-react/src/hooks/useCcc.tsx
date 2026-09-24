@@ -29,7 +29,7 @@ const CCC_CONTEXT = createContext<
       wallet?: ccc.Wallet;
       signerInfo?: ccc.SignerInfo;
       /** Active UI locale of the connector (read-only). */
-      locale: ccc.ConnectorLocale;
+      locale: ccc.ConnectorLocaleLike;
     }
   | undefined
 >(undefined);
@@ -90,7 +90,7 @@ export function Provider({
   defaultClient?: ccc.Client;
   clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
   /** BCP 47 language tag of the connector UI, e.g. `"zh-CN"`. Defaults to `"en"`. */
-  locale?: ccc.ConnectorLocale;
+  locale?: ccc.ConnectorLocaleLike;
 }) {
   const [ref, setRef] = useState<ccc.WebComponentConnector | null>(null);
   const connectionOwner = useRef<

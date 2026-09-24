@@ -43,6 +43,7 @@ export const en: ConnectorMessages = {
   khieEstablishingConnection: "Establishing secure connection...",
   khieApproveInWallet: "Approve the connection in Khie to continue",
   khieLetWalletScan: "Let a wallet scan this",
+  khiePairingCode: "Pairing QR code",
   khieCopyPairingCode: "Tap to copy pairing code",
   khieOpenWallet: "Open Wallet",
   khieOpenWalletHint:
@@ -51,11 +52,9 @@ export const en: ConnectorMessages = {
   khieScanWalletCode: "Scan wallet code",
   khieWalletPairingCode: "Wallet pairing code",
   khiePastePairingCode: "Or paste pairing code",
-  khieHelpIntro:
-    "Khie is a peer-to-peer protocol that connects wallets and applications. ",
+  khieHelp:
+    "Khie is a peer-to-peer protocol that connects wallets and applications. {link}, where you can also connect a local wallet from the device where it is available.",
   khieHelpLink: "Learn more about Khie here",
-  khieHelpOutro:
-    ", where you can also connect a local wallet from the device where it is available.",
   khieRelayMultiaddr: "Relay multiaddr",
   khieConnectRelay: "Connect relay",
   khieIncompatiblePairingCode: "This is not a compatible Khie pairing code",

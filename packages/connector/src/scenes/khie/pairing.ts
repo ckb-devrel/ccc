@@ -158,6 +158,7 @@ export class KhiePairing extends LitElement {
       signer,
     } = this.session.state;
     const t: I18n["t"] = (key, vars) => this.i18n.t(key, vars);
+    const [khieHelpBefore, khieHelpAfter = ""] = t("khieHelp").split("{link}");
     const hasError =
       this.localError !== undefined || sessionError !== undefined;
     const error = hasError
@@ -201,7 +202,7 @@ export class KhiePairing extends LitElement {
             <ccc-qr-code
               class="qr-code"
               .value=${ownEndpoint}
-              alt="khie-pairing-code"
+              alt=${t("khiePairingCode")}
               @error=${this.setLocalError}
             ></ccc-qr-code>
             ${
@@ -289,12 +290,12 @@ export class KhiePairing extends LitElement {
               </button>
             </div>
             <p class="khie-help">
-              ${t("khieHelpIntro")}<a
+              ${khieHelpBefore}<a
                 href=${ownEndpoint || CONNECTOR_ENDPOINT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 >${t("khieHelpLink")}</a
-              >${t("khieHelpOutro")}
+              >${khieHelpAfter}
             </p>
           </div>
 

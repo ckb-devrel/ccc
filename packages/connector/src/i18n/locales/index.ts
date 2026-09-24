@@ -1,9 +1,13 @@
-import type { BuiltInConnectorLocale, ConnectorMessages } from "../types.js";
+import type { ConnectorMessages } from "../types.js";
 import { en } from "./en.js";
-import { zhCN } from "./zh-CN.js";
+import { zhHans } from "./zh-Hans.js";
 
-/** Built-in locales. Copy `en` to add a new one and register it here. */
+/**
+ * Built-in locales, keyed by BCP 47 tag. To add one, copy `en.ts`, then
+ * register it here: `ConnectorLocale` updates automatically. When several
+ * locales share a language, register the preferred fallback first.
+ */
 export const locales = {
   en,
-  "zh-CN": zhCN,
-} satisfies Record<BuiltInConnectorLocale, ConnectorMessages>;
+  "zh-Hans": zhHans,
+} satisfies Record<string, ConnectorMessages>;

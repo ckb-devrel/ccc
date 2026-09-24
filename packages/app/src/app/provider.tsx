@@ -9,16 +9,31 @@ import {
   type ReactNode,
 } from "react";
 
-/** Connector languages offered by the header dropdown. */
-export const CONNECTOR_LOCALES = [
-  { value: "en", label: "English" },
-  { value: "zh-CN", label: "简体中文" },
-] as const satisfies readonly {
-  value: ccc.BuiltInConnectorLocale;
-  label: string;
-}[];
+/** Native name of a language tag, e.g. `"zh-Hans"` → `"简体中文"`. */
+function localeDisplayName(locale: ccc.ConnectorLocale): string {
+  try {
+    return (
+      new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale
+    );
+  } catch {
+    return locale;
+  }
+}
 
-export type AppConnectorLocale = (typeof CONNECTOR_LOCALES)[number]["value"];
+/**
+ * Connector languages offered by the header dropdown, read straight from the
+ * connector's built-in locale registry. Contributing a new connector
+ * language (see CONTRIBUTING.md) makes it show up here automatically.
+ */
+export const CONNECTOR_LOCALES: readonly {
+  value: ccc.ConnectorLocale;
+  label: string;
+}[] = (Object.keys(ccc.locales) as ccc.ConnectorLocale[]).map((value) => ({
+  value,
+  label: localeDisplayName(value),
+}));
+
+export type AppConnectorLocale = ccc.ConnectorLocale;
 
 const LocaleContext = createContext<{
   locale: AppConnectorLocale;

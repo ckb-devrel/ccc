@@ -137,7 +137,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
 | `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
 | `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |
 | `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | Network switching options shown in the connector |
-| `locale`            | `ccc.ConnectorLocale`                                                  | UI language (BCP 47 tag, e.g. `"zh-CN"`), default `"en"` |
+| `locale`            | `ccc.ConnectorLocaleLike`                                              | UI language (BCP 47 tag, e.g. `"zh-CN"`), default `"en"` |
 
 ## Hooks reference
 
@@ -157,7 +157,7 @@ Returns the full wallet state and control functions. Use it when you need to con
 | `client`     | `ccc.Client`                   | Current CKB client (defaults to `ClientPublicTestnet`) |
 | `wallet`     | `ccc.Wallet \| undefined`      | Currently connected wallet (`name`, `icon`)            |
 | `signerInfo` | `ccc.SignerInfo \| undefined`  | Current signer info (`name`, `signer`)                 |
-| `locale`     | `ccc.ConnectorLocale`          | Active UI language of the connector                    |
+| `locale`     | `ccc.ConnectorLocaleLike`      | Active UI language of the connector                    |
 
 ### `ccc.useSigner()`
 
@@ -197,7 +197,7 @@ The connector UI is English by default. Pass a `locale` to switch languages; re-
 <ccc.Provider locale="zh-CN">{children}</ccc.Provider>
 ```
 
-Built-in locales: `en`, `zh-CN`. Unknown tags fall back to the closest registered language (`zh-HK` → `zh-CN`), then to English, so passing `navigator.language` is safe. Wallet and chain names (`MetaMask`, `JoyID`, `BTC`, …) are brand names and are never translated.
+Built-in locales: `en`, `zh-Hans`. Any BCP 47 tag is accepted and resolved to the closest built-in locale — same language and script first, then same language (`zh-CN` and `zh-HK` both → `zh-Hans`), then English — so passing `navigator.language` is safe. Wallet and chain names (`MetaMask`, `JoyID`, `BTC`, …) are brand names and are never translated.
 
 Plain Web Component usage works the same way:
 

@@ -135,7 +135,7 @@ icon: Wallet
 | `signersController` | `ccc.SignersController`                                                | 自定义 `SignersController` 实例             |
 | `defaultClient`     | `ccc.Client`                                                           | 默认 CKB Client（测试网或主网）               |
 | `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | 连接器中展示的网络切换选项                     |
-| `locale`            | `ccc.ConnectorLocale`                                                  | 界面语言（BCP 47 标签，如 `"zh-CN"`），默认 `"en"` |
+| `locale`            | `ccc.ConnectorLocaleLike`                                              | 界面语言（BCP 47 标签，如 `"zh-CN"`），默认 `"en"` |
 
 ## Hooks 参考
 
@@ -155,7 +155,7 @@ icon: Wallet
 | `client`     | `ccc.Client`                   | 当前 CKB Client（默认为 `ClientPublicTestnet`）        |
 | `wallet`     | `ccc.Wallet \| undefined`      | 当前已连接的钱包（含 `name`、`icon`）                    |
 | `signerInfo` | `ccc.SignerInfo \| undefined`  | 当前 Signer 信息（含 `name`、`signer`）                |
-| `locale`     | `ccc.ConnectorLocale`          | 连接器当前使用的界面语言                                |
+| `locale`     | `ccc.ConnectorLocaleLike`      | 连接器当前使用的界面语言                                |
 
 ### `ccc.useSigner()`
 
@@ -195,7 +195,7 @@ const address = await signer?.getRecommendedAddress();
 <ccc.Provider locale="zh-CN">{children}</ccc.Provider>
 ```
 
-内置语言：`en`、`zh-CN`。未知标签会回退到同语言中最接近的已注册语言（`zh-HK` → `zh-CN`），再回退到英文，因此直接传 `navigator.language` 也是安全的。钱包与链名（`MetaMask`、`JoyID`、`BTC` 等）是品牌名，不做翻译。
+内置语言：`en`、`zh-Hans`。支持传入任意 BCP 47 标签，会自动解析到最接近的内置语言——优先同语言同文字，其次同语言（`zh-CN` 和 `zh-HK` 都会解析到 `zh-Hans`），最后回退到英文，因此直接传 `navigator.language` 也是安全的。钱包与链名（`MetaMask`、`JoyID`、`BTC` 等）是品牌名，不做翻译。
 
 直接使用 Web Component 时用法相同：
 
