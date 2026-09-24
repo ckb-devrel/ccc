@@ -1,5 +1,15 @@
 # @ckb-ccc/core
 
+## 1.22.1
+
+### Patch Changes
+
+- [#565](https://github.com/ckb-devrel/ccc/pull/565) [`90891c1`](https://github.com/ckb-devrel/ccc/commit/90891c15049cba439e041acb93868d0d9865d848) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): ensure fee-completion convergence and prevent sub-occupied outputs
+
+- [#567](https://github.com/ckb-devrel/ccc/pull/567) [`5be7663`](https://github.com/ckb-devrel/ccc/commit/5be7663ce5857f75c349d111fd6983396365f308) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Serialize `getFeeRateStatistics` block range parameter to hex to avoid BigInt serialization error.
+
+- [#563](https://github.com/ckb-devrel/ccc/pull/563) [`99c24ee`](https://github.com/ckb-devrel/ccc/commit/99c24ee6b93ed909aa601c3b4580732d320c14ec) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Fix `fixedPointFrom` and `fixedPointToString` handling of negative fractional values.
+
 ## 1.22.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @ckb-ccc/lumos-patches
 
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [[`90891c1`](https://github.com/ckb-devrel/ccc/commit/90891c15049cba439e041acb93868d0d9865d848), [`5be7663`](https://github.com/ckb-devrel/ccc/commit/5be7663ce5857f75c349d111fd6983396365f308), [`99c24ee`](https://github.com/ckb-devrel/ccc/commit/99c24ee6b93ed909aa601c3b4580732d320c14ec)]:
+  - @ckb-ccc/core@1.22.1
+
 ## 1.1.13
 
 ### Patch Changes
