@@ -178,7 +178,7 @@ export abstract class ClientJsonRpc extends Client {
 
   getFeeRateStatistics = this.buildSender(
     "get_fee_rate_statistics",
-    [(n: NumLike) => apply(numFrom, n)],
+    [(n?: NumLike) => apply(numToHex, n)],
     // TODO: This is a temporary workaround for the fact that the node may return null for fee rate statistics.
     // We should change the method signature to return null instead of falling back to the default value,
     // but this would be a breaking change.
