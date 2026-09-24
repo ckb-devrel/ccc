@@ -134,9 +134,10 @@ To help your pull request get accepted, please consider the following:
 The connector UI (`@ckb-ccc/connector`) ships its translations in `packages/connector/src/i18n/locales/` as a flat key-value map. `en.ts` is the source of truth and `types.ts` documents the naming rules. To add a language:
 
 1. Copy `en.ts` to `<bcp47-tag>.ts` (for example `ja-JP.ts`) and translate every value. Keep `{name}`-style placeholders and leave wallet / chain brand names untranslated.
-2. Register it in `locales/index.ts` and add the tag to `BuiltInConnectorLocale` in `types.ts`. Compilation fails if any key is missing or extra.
+2. Register it in `locales/index.ts`; `ConnectorLocale` (`keyof typeof locales`) picks it up automatically. Compilation fails if any key is missing or extra.
 3. Run `pnpm test` in `packages/connector`; the locale test verifies the key set and placeholders match `en`.
-4. Switch the language in `packages/app` (the language dropdown in the header) and walk through the connect, connected, fee rate and Khie pairing dialogs to check for overflow.
+4. Run `pnpm build` and `pnpm lint` in `packages/connector` to make sure it compiles and lints cleanly.
+5. Verify in the app: run `pnpm dev` in `packages/app`, open the dev server in a browser, and check the language dropdown in the header — the new language shows up automatically because the list is built from the connector's `locales` registry. Then select it and walk through the connect, connected, fee rate and Khie pairing dialogs to check for overflow.
 
 To fix a wrong translation, edit the value in the locale file directly; never reuse a key for a different meaning — add a new key instead.
 
