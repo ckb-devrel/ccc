@@ -30,7 +30,11 @@ export type FixedPointLike = bigint | string | number;
  */
 
 export function fixedPointToString(val: FixedPointLike, decimals = 8): string {
-  const str = fixedPointFrom(val).toString();
+  const fp = fixedPointFrom(val, decimals);
+  if (fp < 0n) {
+    return `-${fixedPointToString(-fp, decimals)}`;
+  }
+  const str = fp.toString();
   if (decimals === 0) {
     return str;
   }
@@ -65,15 +69,20 @@ export function fixedPointFrom(val: FixedPointLike, decimals = 8): FixedPoint {
     return val;
   }
 
-  const [l, r] = (
-    typeof val === "number" ? val.toFixed(decimals) : val.toString()
-  ).split(".");
-  const lVal = BigInt(l.padEnd(l.length + decimals, "0"));
-  if (r === undefined) {
-    return lVal;
+  let str = typeof val === "number" ? val.toFixed(decimals) : val.toString();
+  const isNegative = str.startsWith("-");
+  if (isNegative || str.startsWith("+")) {
+    str = str.slice(1);
   }
 
-  return lVal + BigInt(r.slice(0, decimals).padEnd(decimals, "0"));
+  const [l, r] = str.split(".");
+  const lVal = l === "" ? 0n : BigInt(l.padEnd(l.length + decimals, "0"));
+  if (r === undefined || decimals === 0) {
+    return isNegative ? -lVal : lVal;
+  }
+
+  const unsignedVal = lVal + BigInt(r.slice(0, decimals).padEnd(decimals, "0"));
+  return isNegative ? -unsignedVal : unsignedVal;
 }
 
 /**

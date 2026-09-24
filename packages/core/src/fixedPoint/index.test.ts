@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { fixedPointFrom, fixedPointToString } from "./index.js";
+import { FixedPointLike, fixedPointFrom, fixedPointToString } from "./index.js";
 
 describe("fixedPointToString", () => {
-  const cases: [bigint, string, number?][] = [
+  const cases: [FixedPointLike, string, number?][] = [
     [0n, "0"],
     [1n, "0.00000001"],
     [100000000n, "1"],
@@ -12,6 +12,19 @@ describe("fixedPointToString", () => {
     [0n, "0", 1],
     [1n, "1", 0],
     [0n, "0", 0],
+    [-1n, "-0.00000001"],
+    [-50000000n, "-0.5"],
+    [-100000000n, "-1"],
+    [-1000000000n, "-10"],
+    [-1010100000n, "-10.101"],
+    [-11n, "-1.1", 1],
+    [-1n, "-1", 0],
+    ["-0.5", "-0.5"],
+    ["-1.5", "-1.5"],
+    [-0.5, "-0.5"],
+    [-1.5, "-1.5"],
+    ["1.1", "1.1", 1],
+    ["-1.1", "-1.1", 1],
   ];
 
   cases.forEach(([i, o, decimals]) =>
@@ -32,6 +45,21 @@ describe("fixedPointFrom string", () => {
     ["0", 0n, 1],
     ["1", 1n, 0],
     ["0", 0n, 0],
+    ["-0", 0n],
+    ["-0.0", 0n],
+    ["-0.5", -50000000n],
+    ["-1.5", -150000000n],
+    ["-0.00000001", -1n],
+    ["-1", -100000000n],
+    ["-10", -1000000000n],
+    ["-10.101", -1010100000n],
+    ["-1.1", -11n, 1],
+    ["-1", -1n, 0],
+    ["-0", 0n, 0],
+    ["+0.5", 50000000n],
+    ["+1.5", 150000000n],
+    ["-.5", -50000000n],
+    [".5", 50000000n],
   ];
 
   cases.forEach(([i, o, decimals]) =>
@@ -46,6 +74,12 @@ describe("fixedPointFrom number", () => {
     [0.00000001, 1n],
     [10.101, 1010100000n],
     [1.1, 11n, 1],
+    [-0, 0n],
+    [-0.5, -50000000n],
+    [-1.5, -150000000n],
+    [-0.00000001, -1n],
+    [-10.101, -1010100000n],
+    [-1.1, -11n, 1],
   ];
 
   cases.forEach(([i, o, decimals]) =>
