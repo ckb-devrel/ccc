@@ -2497,13 +2497,22 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       const needed = numFrom(
         await Promise.resolve(change(changedTx, fee - leastFee)),
       );
+
       if (needed > Zero) {
         // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
 
-      if ((await changedTx.getFee(from.client)) !== leastFee) {
+      const changedActualFee = await changedTx.getFee(from.client);
+      if (changedActualFee < leastFee && fee < leastFee) {
+        // Fee is not fully paid yet because the initial transaction had insufficient inputs.
+        // Collect inputs again to pay leastFee.
+        leastExtraCapacity = Zero;
+        continue;
+      }
+
+      if (changedActualFee !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
@@ -2671,14 +2680,21 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const change = Number(numFrom(index));
-    if (!this.outputs[change]) {
+    const change = transactionIndexFrom(index);
+    if (change === undefined || !this.outputs[change]) {
       throw new Error("Non-existed output to change");
     }
     return this.completeFee(
       from,
       (tx, capacity) => {
-        tx.outputs[change].capacity += capacity;
+        tx.setOutput(
+          change,
+          {
+            ...tx.outputs[change],
+            capacity: tx.outputs[change].capacity + capacity,
+          },
+          tx.outputsData[change],
+        );
         return 0;
       },
       feeRate,

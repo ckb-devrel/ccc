@@ -964,6 +964,38 @@ describe("Transaction", () => {
       ).rejects.toThrow("doesn't use all available capacity");
     });
 
+    it("should throw error when change function over-allocates capacity leaving fee below leastFee", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+          },
+        ],
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(30),
+            lock,
+          },
+        ],
+      });
+
+      await expect(
+        tx.completeFee(
+          signer,
+          (changedTx, capacity) => {
+            changedTx.addOutput({
+              capacity: capacity + ccc.fixedPointFrom(1),
+              lock,
+            });
+            return 0;
+          },
+          1000n,
+        ),
+      ).rejects.toThrow(
+        "The change function doesn't use all available capacity",
+      );
+    });
+
     it("should handle fee rate from client when not provided", async () => {
       const tx = ccc.Transaction.from({
         inputs: [
@@ -1024,6 +1056,236 @@ describe("Transaction", () => {
       expect(client.getFeeRate).toHaveBeenCalledWith(
         options.feeRateBlockRange,
         options,
+      );
+    });
+  });
+
+  describe("completeFeeChangeToOutput", () => {
+    let mockCapacityCells: ccc.Cell[];
+    const cellCapacity = ccc.fixedPointFrom(100);
+
+    beforeEach(() => {
+      mockCapacityCells = Array.from({ length: 10 }, (_, i) =>
+        ccc.Cell.from({
+          outPoint: {
+            txHash: `0x${"1".repeat(63)}${i.toString(16)}`,
+            index: 0,
+          },
+          cellOutput: {
+            capacity: cellCapacity,
+            lock,
+          },
+          outputData: "0x",
+        }),
+      );
+
+      vi.spyOn(signer, "findCells").mockImplementation(
+        async function* (filter) {
+          if (!filter.script || filter.scriptLenRange) {
+            for (const cell of mockCapacityCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
+      vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
+        return mockCapacityCells.find((c) => c.outPoint.eq(outPoint));
+      });
+
+      vi.spyOn(client, "getFeeRate").mockResolvedValue(ccc.numFrom(1000));
+      vi.spyOn(signer, "prepareTransaction").mockImplementation(async (tx) =>
+        ccc.Transaction.from(tx),
+      );
+      vi.spyOn(signer, "getRecommendedAddressObj").mockResolvedValue({
+        script: lock,
+        prefix: "ckt",
+      });
+    });
+
+    it("should reject when output is at minimum occupied capacity and cannot pay fee without inputs (#557)", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: ccc.fixedPointFrom(61), lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      vi.spyOn(signer, "findCells").mockImplementation(async function* () {});
+
+      await expect(
+        tx.completeFeeChangeToOutput(signer, 0, 1000n),
+      ).rejects.toThrow(ccc.ErrorTransactionInsufficientCapacity);
+    });
+
+    it("should reject with exact fee shortage when output is at minimum capacity and shouldAddInputs is false (#557)", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: ccc.fixedPointFrom(61), lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      const err: unknown = await tx
+        .completeFeeChangeToOutput(signer, 0, 1000n, undefined, {
+          shouldAddInputs: false,
+        })
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ccc.ErrorTransactionInsufficientCapacity);
+      if (!(err instanceof ccc.ErrorTransactionInsufficientCapacity)) {
+        return;
+      }
+      expect(err.isForChange).toBe(false);
+      expect(err.amount).toBe(tx.estimateFee(1000n));
+    });
+
+    it("should succeed normally by deducting fee when target output has enough free capacity", async () => {
+      const initialCapacity = ccc.fixedPointFrom(100);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+            cellOutput: { capacity: initialCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: initialCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBe(0);
+      expect(hasChange).toBe(true);
+      expect(tx.inputs).toHaveLength(1);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(tx.outputs[0].capacity).toBe(initialCapacity - estimatedFee);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+    });
+
+    it("should collect inputs when target output has no free capacity and signer has funds", async () => {
+      const minCapacity = ccc.fixedPointFrom(61);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: minCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: minCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBeGreaterThan(0);
+      expect(hasChange).toBe(true);
+      expect(tx.inputs.length).toBe(1 + addedInputs);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+      expect(tx.outputs[0].capacity).toBeGreaterThan(minCapacity);
+    });
+
+    it("should collect inputs when target output has partial free capacity but not enough for fee", async () => {
+      const minCapacity = ccc.fixedPointFrom(61);
+      // Leave only 50 shannons free, fee is ~355 shannons
+      const partialCapacity = minCapacity + 50n;
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: partialCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: partialCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBeGreaterThan(0);
+      expect(hasChange).toBe(true);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+      expect(tx.outputs[0].capacity).toBeGreaterThan(minCapacity);
+    });
+
+    it("should converge when prepareTransaction changes transaction size and balance", async () => {
+      const cellDep = {
+        outPoint: { txHash: `0x${"4".repeat(64)}`, index: 0 },
+        depType: "code" as const,
+      };
+      const dummyWitness = `0x${"00".repeat(100)}`;
+      vi.mocked(signer.prepareTransaction).mockImplementation(
+        async (txLike) => {
+          const prepared = ccc.Transaction.from(txLike);
+          if (prepared.cellDeps.length === 0) {
+            prepared.addCellDeps(cellDep);
+            prepared.setWitnessArgs(0, { lock: dummyWitness });
+          }
+          return prepared;
+        },
+      );
+
+      const minCapacity = ccc.fixedPointFrom(61);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+            cellOutput: { capacity: minCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: minCapacity, lock }],
+      });
+
+      const [_addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(hasChange).toBe(true);
+      expect(tx.cellDeps).toHaveLength(1);
+      const estimatedFee = tx.estimateFee(1000n);
+      const actualFee = await tx.getFee(client);
+      expect(actualFee).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+    });
+
+    it("should throw error for non-existed output index", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      expect(() => tx.completeFeeChangeToOutput(signer, 1, 1000n)).toThrow(
+        "Non-existed output to change",
+      );
+      expect(() => tx.completeFeeChangeToOutput(signer, -1, 1000n)).toThrow(
+        "Non-existed output to change",
       );
     });
   });
