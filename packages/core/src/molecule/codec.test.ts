@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 import { describe, expect, test } from "vitest";
-import { bytesFrom } from "../bytes/index.js";
+import { bytesFrom, bytesTo } from "../bytes/index.js";
 import { mol } from "./index.js";
 
 describe("molecule codec error messages", () => {
@@ -199,6 +199,137 @@ describe("Fix empty Table decoding", () => {
     const raw = bytesFrom("04000000", "hex");
     expect(() => NonEmptyTable.decode(raw)).toThrow(
       "table: invalid field count, expected 1, but got 0",
+    );
+  });
+});
+
+describe("Reject truncated Union tags", () => {
+  const U = mol.union({
+    a: mol.option(mol.Uint8),
+  });
+
+  test("should reject union inputs shorter than 4 bytes", () => {
+    expect(() => U.decode(bytesFrom("", "hex"))).toThrow(
+      "union: too short buffer, expected at least 4 bytes for union tag, but got 0",
+    );
+    expect(() => U.decode(bytesFrom("00", "hex"))).toThrow(
+      "union: too short buffer, expected at least 4 bytes for union tag, but got 1",
+    );
+    expect(() => U.decode(bytesFrom("0000", "hex"))).toThrow(
+      "union: too short buffer, expected at least 4 bytes for union tag, but got 2",
+    );
+    expect(() => U.decode(bytesFrom("000000", "hex"))).toThrow(
+      "union: too short buffer, expected at least 4 bytes for union tag, but got 3",
+    );
+  });
+
+  test("should accept 4-byte union tag with empty payload", () => {
+    const EmptyOptionUnion = mol.union({
+      opt: mol.option(mol.Uint8),
+    });
+    expect(EmptyOptionUnion.decode(bytesFrom("00000000", "hex"))).toEqual({
+      type: "opt",
+      value: undefined,
+    });
+  });
+});
+
+describe("Union schema and custom ID mapping validation", () => {
+  test("union rejects empty layout", () => {
+    expect(() => mol.union({})).toThrow(
+      "union: must have at least one variant",
+    );
+  });
+
+  test("should reject duplicate custom field ids", () => {
+    expect(() =>
+      mol.union(
+        {
+          a: mol.Uint8,
+          b: mol.Uint8,
+        },
+        {
+          a: 0,
+          b: 0,
+        },
+      ),
+    ).toThrow("union: duplicate field id 0 for keys 'a' and 'b'");
+  });
+
+  test("should reject negative or out-of-range custom field ids", () => {
+    expect(() =>
+      mol.union(
+        {
+          a: mol.Uint8,
+        },
+        {
+          a: -1,
+        },
+      ),
+    ).toThrow("union: invalid field id -1 for key 'a'");
+
+    expect(() =>
+      mol.union(
+        {
+          a: mol.Uint8,
+        },
+        {
+          a: 0x100000000,
+        },
+      ),
+    ).toThrow("union: invalid field id 4294967296 for key 'a'");
+  });
+
+  test("should reject missing custom field ids", () => {
+    expect(() =>
+      mol.union(
+        {
+          a: mol.Uint8,
+          b: mol.Uint8,
+        },
+        {
+          a: 0,
+        } as any,
+      ),
+    ).toThrow("union: missing field id for key 'b'");
+  });
+
+  test("union rejects non-enumerable custom field IDs", () => {
+    const ids = { a: 0, b: 0 };
+    Object.defineProperty(ids, "b", { enumerable: false });
+    expect(() => mol.union({ a: mol.Uint8, b: mol.Uint8 }, ids)).toThrow(
+      "union: missing field id for key 'b'",
+    );
+  });
+
+  test("union rejects prototype-inherited custom field IDs", () => {
+    const protoIds = Object.create({ a: 0 }) as Record<string, number>;
+    expect(() => mol.union({ a: mol.Uint8 }, protoIds)).toThrow(
+      "union: missing field id for key 'a'",
+    );
+  });
+
+  test("should reject unexpected extra keys in fields mapping", () => {
+    expect(() =>
+      mol.union({ a: mol.Uint8 }, { a: 0, extra: 1 } as any),
+    ).toThrow("union: unexpected field id for unknown key 'extra'");
+  });
+
+  test("should support valid non-consecutive custom IDs", () => {
+    const U = mol.union({ a: mol.Uint8, b: mol.Uint16 }, { a: 10, b: 20 });
+    const encA = U.encode({ type: "a", value: 0x42 });
+    expect(bytesTo(encA, "hex")).toBe("0a00000042");
+    expect(U.decode(encA)).toEqual({ type: "a", value: 0x42 });
+
+    const encB = U.encode({ type: "b", value: 0x1234 });
+    expect(bytesTo(encB, "hex")).toBe("140000003412");
+    expect(U.decode(encB)).toEqual({ type: "b", value: 0x1234 });
+  });
+
+  test("should produce controlled errors for unknown IDs on decode", () => {
+    const U = mol.union({ a: mol.Uint8 }, { a: 10 });
+    expect(() => U.decode(bytesFrom("6300000042", "hex"))).toThrow(
+      "union: unknown union field index 99, only a are allowed",
     );
   });
 });
