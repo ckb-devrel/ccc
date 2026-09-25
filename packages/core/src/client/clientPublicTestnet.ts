@@ -52,9 +52,9 @@ export class ClientPublicTestnet extends ClientJsonRpc {
     config: Omit<Parameters<typeof RequestorJsonRpc.new>[0], "onError"> &
       ClientConfig,
   ): ClientPublicTestnet {
-    const { cache, scripts, ...requestorConfig } = config;
+    const { cache, scripts, nameResolver, ...requestorConfig } = config;
     const requestor = this.newRequestor(requestorConfig);
-    return new ClientPublicTestnet({ cache, scripts, requestor });
+    return new ClientPublicTestnet({ cache, scripts, nameResolver, requestor });
   }
 
   /** Opens a Client with explicit ownership of its default dependencies. */
@@ -70,6 +70,7 @@ export class ClientPublicTestnet extends ClientJsonRpc {
     const {
       cache,
       scripts,
+      nameResolver,
       urls = this.defaultUrls(),
       ...requestorConfig
     } = config ?? {};
@@ -81,6 +82,7 @@ export class ClientPublicTestnet extends ClientJsonRpc {
         new ClientPublicTestnet({
           cache,
           scripts,
+          nameResolver,
           requestor,
           url: urls[0],
           fallbacks: [...urls.slice(1)],

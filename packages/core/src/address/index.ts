@@ -52,7 +52,8 @@ export class Address {
   /**
    * Creates an Address instance from an address string.
    *
-   * @param address - The address string to parse.
+   * @param address - The address string to parse, or a name the client's
+   * `nameResolver` claims. Names are resolved only with a single Client.
    * @param clients - A Client instance or a record of Client instances keyed by prefix.
    * @returns A promise that resolves to an Address instance.
    *
@@ -63,7 +64,21 @@ export class Address {
     address: string,
     clients: Client | Record<string, Client>,
   ): Promise<Address> {
-    const { prefix, format, payload } = addressPayloadFromString(address);
+    let parsed: ReturnType<typeof addressPayloadFromString>;
+    try {
+      parsed = addressPayloadFromString(address);
+    } catch (error) {
+      // A name has no prefix to pick a client from a record with.
+      const resolved =
+        clients instanceof Client
+          ? await clients.resolveName(address)
+          : undefined;
+      if (resolved === undefined) {
+        throw error;
+      }
+      parsed = addressPayloadFromString(resolved);
+    }
+    const { prefix, format, payload } = parsed;
 
     const client = (clients as Record<string, Client>)[prefix] ?? clients;
     if (!client) {
