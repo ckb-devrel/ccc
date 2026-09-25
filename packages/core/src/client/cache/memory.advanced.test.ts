@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MapLru } from "./memory.advanced.js";
+import {
+  MapLru,
+  filterCell,
+  filterData,
+  filterScript,
+} from "./memory.advanced.js";
 
 describe("MapLru", () => {
   it("should throw an error for invalid capacity", () => {
@@ -109,5 +114,148 @@ describe("MapLru", () => {
       expect(cache.size).toBe(3);
       expect(Array.from(cache.keys())).toEqual(["b", "c", "d"]);
     });
+  });
+});
+
+describe("filterData", () => {
+  it("should match exact hex data", () => {
+    expect(filterData("0xaabbccdd", "0xaabbccdd", "exact")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xaabb", "exact")).toBe(false);
+    expect(filterData("0x", "0x", "exact")).toBe(true);
+    expect(filterData("0xaabb", "0x", "exact")).toBe(false);
+    expect(filterData("0x", "0xaabb", "exact")).toBe(false);
+    expect(filterData("0xaabbccdd", undefined, "exact")).toBe(true);
+  });
+
+  it("should match prefix hex data", () => {
+    expect(filterData("0xaabbccdd", "0xaabb", "prefix")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xbbcc", "prefix")).toBe(false);
+    expect(filterData("0xaabbccdd", "0x", "prefix")).toBe(true);
+    expect(filterData("0x", "0x", "prefix")).toBe(true);
+    expect(filterData("0x", "0xaabb", "prefix")).toBe(false);
+    expect(filterData("0xaabbccdd", undefined, "prefix")).toBe(true);
+  });
+
+  it("should match partial hex data at byte boundaries", () => {
+    // Interior byte sequence matching (issue #572)
+    expect(filterData("0xaabbccdd", "0xbbcc", "partial")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xaabb", "partial")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xccdd", "partial")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xaabbccdd", "partial")).toBe(true);
+    expect(filterData("0xaabbccdd", "0xeeff", "partial")).toBe(false);
+    expect(filterData("0xaabbccdd", "0x", "partial")).toBe(true);
+    expect(filterData("0x", "0x", "partial")).toBe(true);
+    expect(filterData("0x", "0xaabb", "partial")).toBe(false);
+    expect(filterData("0xaabbccdd", undefined, "partial")).toBe(true);
+
+    // Byte alignment checks: nibble-unaligned sequences must not match
+    expect(filterData("0x012345", "0x12", "partial")).toBe(false);
+    expect(filterData("0x012123", "0x12", "partial")).toBe(false);
+    // Unaligned match followed by aligned match
+    expect(filterData("0x012312", "0x12", "partial")).toBe(true);
+  });
+});
+
+describe("filterScript", () => {
+  const SCRIPT_A = {
+    codeHash: "0x" + "1".repeat(64),
+    hashType: "type" as const,
+    args: "0x01020304",
+  };
+
+  it("should filter scripts with partial matching on args", () => {
+    expect(
+      filterScript(
+        SCRIPT_A,
+        {
+          codeHash: "0x" + "1".repeat(64),
+          hashType: "type",
+          args: "0x0203",
+        },
+        "partial",
+      ),
+    ).toBe(true);
+
+    expect(
+      filterScript(
+        SCRIPT_A,
+        {
+          codeHash: "0x" + "1".repeat(64),
+          hashType: "type",
+          args: "0x05",
+        },
+        "partial",
+      ),
+    ).toBe(false);
+
+    expect(
+      filterScript(
+        SCRIPT_A,
+        {
+          codeHash: "0x" + "2".repeat(64),
+          hashType: "type",
+          args: "0x0203",
+        },
+        "partial",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("filterCell", () => {
+  it("should match cell with partial outputData filter", () => {
+    const cell = {
+      cellOutput: {
+        capacity: 1000n,
+        lock: {
+          codeHash: "0x" + "0".repeat(64),
+          hashType: "type" as const,
+          args: "0x112233",
+        },
+      },
+      outputData: "0xaabbccdd",
+      outPoint: {
+        txHash: "0x" + "0".repeat(64),
+        index: 0,
+      },
+    };
+
+    expect(
+      filterCell(
+        {
+          script: {
+            codeHash: "0x" + "0".repeat(64),
+            hashType: "type",
+            args: "0x",
+          },
+          scriptType: "lock",
+          scriptSearchMode: "prefix",
+          filter: {
+            outputData: "0xbbcc",
+            outputDataSearchMode: "partial",
+          },
+        },
+        cell,
+      ),
+    ).toBe(true);
+
+    expect(
+      filterCell(
+        {
+          script: {
+            codeHash: "0x" + "0".repeat(64),
+            hashType: "type",
+            args: "0x",
+          },
+          scriptType: "lock",
+          scriptSearchMode: "prefix",
+          filter: {
+            outputData: "0xeeff",
+            outputDataSearchMode: "partial",
+          },
+        },
+        cell,
+      ),
+    ).toBe(false);
   });
 });
