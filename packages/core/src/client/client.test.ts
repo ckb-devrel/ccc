@@ -30,19 +30,20 @@ describe("Client", () => {
       txHash: `0x${"0".repeat(64)}`,
       index: 0,
     });
-    const cell = Cell.from({
-      outPoint,
-      cellOutput: {
-        capacity: 100,
-        lock: {
-          codeHash: `0x${"0".repeat(64)}`,
-          hashType: "type",
-          args: "0x",
-        },
-      },
-    });
     const transaction = Transaction.from({
-      outputs: [cell.cellOutput],
+      outputs: [
+        {
+          lock: {
+            codeHash: `0x${"0".repeat(64)}`,
+            hashType: "type",
+            args: "0x",
+          },
+        },
+      ],
+    });
+    const cell = Cell.from({
+      ...transaction.getOutput(0)!,
+      outPoint,
     });
     const txResponse = ClientTransactionResponse.from({
       transaction,
