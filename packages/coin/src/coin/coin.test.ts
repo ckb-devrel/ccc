@@ -23,6 +23,17 @@ let lock: ccc.Script;
 let type: ccc.Script;
 let coin: Coin;
 
+function mockCoinCells(cells: ccc.Cell[]): void {
+  vi.spyOn(client, "findCells").mockImplementation(async function* (searchKey) {
+    if (
+      searchKey.filter?.script &&
+      ccc.Script.from(searchKey.filter.script).eq(type)
+    ) {
+      yield* cells;
+    }
+  });
+}
+
 beforeEach(async () => {
   client = new ccc.ClientPublicTestnet();
   signer = new ccc.SignerCkbPublicKey(
@@ -95,15 +106,7 @@ describe("Coin", () => {
 
     beforeEach(() => {
       // Mock the findCells method to return our mock Coins
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       // Mock client.getCell to return the cell data for inputs
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
@@ -355,15 +358,7 @@ describe("Coin", () => {
 
     beforeEach(() => {
       // Mock the findCells method to return our mock Coins
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       // Mock client.getCell to return the cell data for inputs
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
@@ -540,9 +535,7 @@ describe("Coin", () => {
 
     it("should handle empty cell collection gracefully", async () => {
       // Mock findCells to return no cells
-      vi.spyOn(signer, "findCells").mockImplementation(async function* () {
-        // Return no Coins
-      });
+      mockCoinCells([]);
 
       const tx = ccc.Transaction.from({
         outputs: [{ lock, type }],
@@ -669,15 +662,7 @@ describe("Coin", () => {
         }),
       );
 
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         return mockCoins.find((c) => c.outPoint.eq(outPoint));
@@ -855,15 +840,7 @@ describe("Coin", () => {
         }),
       );
 
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         return mockCoins.find((c) => c.outPoint.eq(outPoint));
@@ -908,15 +885,7 @@ describe("Coin", () => {
         }),
       ];
 
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         return mockCoins.find((c) => c.outPoint.eq(outPoint));
@@ -1084,9 +1053,7 @@ describe("Coin", () => {
         cellOutput: { capacity: ccc.fixedPointFrom(200), lock, type },
         outputData: ccc.numLeToBytes(100, 16),
       });
-      vi.spyOn(signer, "findCells").mockImplementationOnce(async function* () {
-        yield highCapCoin;
-      });
+      mockCoinCells([highCapCoin]);
       vi.spyOn(client, "getCell").mockImplementationOnce(
         async () => highCapCoin,
       );
@@ -1624,15 +1591,7 @@ describe("Coin", () => {
         }),
       );
 
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         return mockCoins.find((c) => c.outPoint.eq(outPoint));
@@ -1987,15 +1946,7 @@ describe("Coin", () => {
         }),
       );
 
-      vi.spyOn(signer, "findCells").mockImplementation(
-        async function* (filter) {
-          if (filter.script && ccc.Script.from(filter.script).eq(type)) {
-            for (const cell of mockCoins) {
-              yield cell;
-            }
-          }
-        },
-      );
+      mockCoinCells(mockCoins);
 
       vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
         const cell = mockCoins.find((c) => c.outPoint.eq(outPoint));
