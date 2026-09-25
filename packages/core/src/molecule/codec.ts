@@ -509,33 +509,87 @@ function extractUnionEncodable<T extends Record<string, CodecLike<any, any>>>(
   return encodable.inner;
 }
 
-function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
+function createUnionCodec<T extends Record<string, CodecLike<any, any>>>(
   prefix: string,
   codecLayout: T,
   fields: Record<keyof T, number | undefined | null> | undefined,
-  fieldIndex: number,
-): string {
+  payloadByteLength?: number,
+): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
   const keys = Object.keys(codecLayout);
-  const field = (() => {
-    if (!fields) {
-      return keys[fieldIndex];
-    }
-    const entry = Object.entries(fields).find(([, id]) => id === fieldIndex);
-    return entry?.[0];
-  })();
-
-  if (!field || !(field in codecLayout)) {
-    if (!fields) {
-      throw new Error(
-        `${prefix}: unknown union field index ${fieldIndex}, only ${keys.toString()} are allowed`,
-      );
-    }
-    const fieldKeys = Object.keys(fields);
-    throw new Error(
-      `${prefix}: unknown union field index ${fieldIndex}, only ${fieldKeys.toString()} are allowed`,
-    );
+  const fieldIds = new Map<string, number>();
+  const fieldsById = new Map<number, string>();
+  for (const [index, key] of keys.entries()) {
+    const fieldId = fields ? (fields[key] as number) : index;
+    fieldIds.set(key, fieldId);
+    fieldsById.set(fieldId, key);
   }
-  return field;
+  const byteLength =
+    payloadByteLength === undefined ? undefined : payloadByteLength + 4;
+
+  return Codec.from<
+    UnionEncodable<T> | { inner: UnionEncodable<T> },
+    UnionDecoded<T>
+  >({
+    byteLength,
+    encode(encodable) {
+      const { type, value } = extractUnionEncodable(encodable);
+      const typeStr = type.toString();
+      const codec = codecLayout[typeStr];
+      if (!codec) {
+        throw new Error(
+          `${prefix}: invalid type, expected ${keys.toString()}, but got ${typeStr}`,
+        );
+      }
+      const fieldId = fieldIds.get(typeStr);
+      if (fieldId === undefined) {
+        throw new Error(`${prefix}: invalid field id -1 of ${typeStr}`);
+      }
+      const header = uint32To(fieldId);
+      try {
+        const body = codec.encode(value);
+        if (
+          payloadByteLength !== undefined &&
+          body.byteLength !== payloadByteLength
+        ) {
+          throw new Error(
+            `${prefix}: variant '${typeStr}' encoded ${body.byteLength} bytes, expected ${payloadByteLength}`,
+          );
+        }
+        return bytesConcat(header, body);
+      } catch (e: unknown) {
+        throw new Error(`${prefix}.(${typeStr}) - ${getMessage(e)}`, {
+          cause: e,
+        });
+      }
+    },
+    decode(buffer, config) {
+      const value = bytesFrom(buffer);
+      if (byteLength === undefined && value.byteLength < 4) {
+        throw new Error(
+          `${prefix}: too short buffer, expected at least 4 bytes for union tag, but got ${value.byteLength}`,
+        );
+      }
+      const fieldIndex = uint32From(value.subarray(0, 4));
+      const field = fieldsById.get(fieldIndex);
+      if (!field) {
+        throw new Error(
+          `${prefix}: unknown union field index ${fieldIndex}, only ${keys.toString()} are allowed`,
+        );
+      }
+
+      try {
+        return {
+          type: field,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          value: codecLayout[field].decode(value.subarray(4), config),
+        } as UnionDecoded<T>;
+      } catch (e: unknown) {
+        throw new Error(`${prefix}.(${field}) - ${getMessage(e)}`, {
+          cause: e,
+        });
+      }
+    },
+  });
 }
 
 /**
@@ -543,6 +597,9 @@ function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
  *
  * In accordance with the Molecule specification, `union` is always a dynamic-size type,
  * regardless of whether its variants have identical fixed lengths.
+ *
+ * If you need a fixed-size union type compatible with fixed containers like `struct`,
+ * `array`, or `vector` (as FixVec), use {@link fixedUnion} instead.
  *
  * Serialization format:
  * 1. 4-byte little-endian unsigned integer for the variant ItemId (tag).
@@ -562,59 +619,79 @@ function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
  *
  * // Union with custom numeric IDs
  * union({ cafe: Uint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee });
+ *
+ * // Fixed-size union (explicit extension):
+ * fixedUnion({ cafe: Uint16, bee: Uint16 });
  */
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
-  const entries = Object.entries(codecLayout);
-  if (entries.length === 0) {
+  if (Object.keys(codecLayout).length === 0) {
     throw new Error("union: must have at least one variant");
   }
 
   validateUnionFields("union", codecLayout, fields);
+  return createUnionCodec("union", codecLayout, fields);
+}
 
-  return Codec.from({
-    encode(encodable) {
-      const { type, value } = extractUnionEncodable(encodable);
-      const typeStr = type.toString();
-      const codec = codecLayout[typeStr];
-      if (!codec) {
-        throw new Error(
-          `union: invalid type, expected ${entries.map((e) => e[0]).toString()}, but got ${typeStr}`,
-        );
-      }
-      const fieldId = fields
-        ? (fields[typeStr] ?? -1)
-        : entries.findIndex((e) => e[0] === typeStr);
-      if (fieldId < 0) {
-        throw new Error(`union: invalid field id ${fieldId} of ${typeStr}`);
-      }
-      const header = uint32To(fieldId);
-      try {
-        const body = codec.encode(value);
-        return bytesConcat(header, body);
-      } catch (e: unknown) {
-        throw new Error(`union.(${typeStr}) - ${getMessage(e)}`, { cause: e });
-      }
-    },
-    decode(buffer, config) {
-      const value = bytesFrom(buffer);
-      if (value.byteLength < 4) {
-        throw new Error(
-          `union: too short buffer, expected at least 4 bytes for union tag, but got ${value.byteLength}`,
-        );
-      }
-      const fieldIndex = uint32From(value.subarray(0, 4));
-      const field = resolveUnionField("union", codecLayout, fields, fieldIndex);
+/**
+ * FixedUnion is a fixed-size union type where all variants must be fixed-size types of identical byte length.
+ * The total byteLength is `payloadByteLength + 4` (4-byte uint32 ItemId tag).
+ *
+ * Compatibility note:
+ * `fixedUnion` is a CCC extension for scenarios requiring fixed memory layouts (such as embedding
+ * inside `mol.struct`, `mol.array`, or `mol.vector` as FixVec). While the standalone wire format
+ * (4-byte tag + variant payload) is binary-compatible with a union encoding, composing it into
+ * `struct`, `array`, or FixVec is not part of the standard upstream Molecule union schema specification.
+ *
+ * Migration guide:
+ * ```typescript
+ * // Preserve legacy equal-length union fixed container layout (FixVec):
+ * const Legacy = mol.vector(mol.fixedUnion(layout));
+ *
+ * // Use canonical Molecule union vector (DynVec):
+ * const Canonical = mol.vector(mol.union(layout));
+ * ```
+ *
+ * @param codecLayout an object mapping variant names to fixed-size codecs of identical byteLength
+ * @param fields optional mapping from variant names to custom numeric IDs
+ */
+export function fixedUnion<T extends Record<string, CodecLike<any, any>>>(
+  codecLayout: T,
+  fields?: Record<keyof T, number | undefined | null>,
+): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
+  const entries = Object.entries(codecLayout);
+  if (entries.length === 0) {
+    throw new Error("fixedUnion: must have at least one variant");
+  }
 
-      return {
-        type: field,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        value: codecLayout[field].decode(value.subarray(4), config),
-      } as UnionDecoded<T>;
-    },
-  });
+  let payloadByteLength: number | undefined;
+  for (const [key, codec] of entries) {
+    if (codec.byteLength === undefined) {
+      throw new Error(`fixedUnion: variant '${key}' must be a fixed-size type`);
+    }
+    if (!isPositiveSafeInteger(codec.byteLength)) {
+      throw new Error(
+        `fixedUnion: variant '${key}' byteLength must be a positive safe integer, but got ${String(codec.byteLength)}`,
+      );
+    }
+    if (payloadByteLength === undefined) {
+      payloadByteLength = codec.byteLength;
+    } else if (codec.byteLength !== payloadByteLength) {
+      throw new Error(
+        `fixedUnion: all variants must have the same byteLength (${payloadByteLength}), but variant '${key}' has ${codec.byteLength}`,
+      );
+    }
+  }
+
+  validateUnionFields("fixedUnion", codecLayout, fields);
+
+  if (payloadByteLength! > Number.MAX_SAFE_INTEGER - 4) {
+    throw new Error("fixedUnion: total byteLength exceeds safe integer limit");
+  }
+
+  return createUnionCodec("fixedUnion", codecLayout, fields, payloadByteLength);
 }
 
 /**
@@ -733,7 +810,6 @@ export function array<Encodable, Decoded>(
           `array: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
-
       try {
         const result: Array<Decoded> = [];
         for (let i = 0; i < value.byteLength; i += itemCodec.byteLength!) {
