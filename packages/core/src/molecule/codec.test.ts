@@ -333,3 +333,80 @@ describe("Union schema and custom ID mapping validation", () => {
     );
   });
 });
+
+describe("Molecule type classification for Union", () => {
+  const U = mol.union({
+    a: mol.Uint8,
+    b: mol.Uint8,
+  });
+
+  test("union should have byteLength undefined", () => {
+    expect(U.byteLength).toBeUndefined();
+  });
+
+  test("vector(union) must use DynVec representation matching upstream Molecule reference", () => {
+    const VecU = mol.vector(U);
+    const encoded = VecU.encode([
+      { type: "a", value: 1 },
+      { type: "b", value: 2 },
+    ]);
+
+    // DynVec format:
+    // full_byte_size (4 bytes) = 22 (0x16, 0x00, 0x00, 0x00)
+    // offset_0 (4 bytes) = 12 (0x0c, 0x00, 0x00, 0x00)
+    // offset_1 (4 bytes) = 17 (0x11, 0x00, 0x00, 0x00)
+    // item_0 (5 bytes) = 00 00 00 00 01
+    // item_1 (5 bytes) = 01 00 00 00 02
+    // Total size = 4 + 4 + 4 + 5 + 5 = 22 bytes.
+    const expected = bytesFrom(
+      "160000000c0000001100000000000000010100000002",
+      "hex",
+    );
+    expect(encoded).toEqual(expected);
+
+    const decoded = VecU.decode(encoded);
+    expect(decoded).toEqual([
+      { type: "a", value: 1 },
+      { type: "b", value: 2 },
+    ]);
+  });
+
+  test("vector(union) canonical reference DynVec golden wire format", () => {
+    const layout = { a: mol.Uint8, b: mol.Uint16 };
+    const Canonical = mol.vector(mol.union(layout));
+    const items = [
+      { type: "a" as const, value: 0x42 },
+      { type: "b" as const, value: 0x1234 },
+    ];
+    const encoded = Canonical.encode(items);
+    // DynVec format:
+    // full_byte_size (4 bytes) = 23 (0x17, 0x00, 0x00, 0x00)
+    // offset_0 (4 bytes) = 12 (0x0c, 0x00, 0x00, 0x00)
+    // offset_1 (4 bytes) = 17 (0x11, 0x00, 0x00, 0x00)
+    // item_0 (union 'a', 5 bytes): tag=0 (0x00, 0x00, 0x00, 0x00) + value=0x42
+    // item_1 (union 'b', 6 bytes): tag=1 (0x01, 0x00, 0x00, 0x00) + value=0x3412
+    const expectedHex = "170000000c000000110000000000000042010000003412";
+    expect(bytesTo(encoded, "hex")).toBe(expectedHex);
+    expect(Canonical.decode(encoded)).toEqual(items);
+  });
+
+  test("struct must reject union fields even when variants have equal length", () => {
+    expect(() =>
+      mol.struct({
+        u: U,
+      }),
+    ).toThrow("struct: all fields must be fixed-size");
+  });
+
+  test("array must reject union items even when variants have equal length", () => {
+    expect(() => mol.array(U, 2)).toThrow(
+      "array: itemCodec requires a byte length",
+    );
+  });
+
+  test("fixedItemVec must reject union items even when variants have equal length", () => {
+    expect(() => mol.fixedItemVec(U)).toThrow(
+      "fixedItemVec: itemCodec requires a byte length",
+    );
+  });
+});

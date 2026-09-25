@@ -532,11 +532,11 @@ function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
 /**
  * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
  *
- * If all variants have the same fixed size, the resulting union codec is fixed-size (header + payload).
- * Otherwise, it falls back to a dynamic-size codec.
+ * In accordance with the Molecule specification, `union` is always a dynamic-size type,
+ * regardless of whether its variants have identical fixed lengths.
  *
  * Serialization format:
- * 1. 4-byte little-endian unsigned integer for the variant index.
+ * 1. 4-byte little-endian unsigned integer for the variant ItemId (tag).
  * 2. Encoded bytes of the selected variant.
  *
  * @typeParam T
@@ -547,20 +547,12 @@ function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
  *   Optional mapping from variant names to custom numeric IDs. If omitted, the index
  *   of each variant in `codecLayout` is used as its ID.
  *
- *
  * @example
- * // Dynamic union without custom numeric IDs
- * union({ cafe: Uint8, bee: Uint16 })
+ * // Union without custom numeric IDs
+ * union({ cafe: Uint8, bee: Uint16 });
  *
- * // Dynamic union with custom numeric IDs
- * union({ cafe: Uint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee })
- *
- * // Fixed-size union without custom numeric IDs
- * const PaddedUint8 = struct({ data : u8, padding : u8 })
- * union({ cafe: PaddedUint8, bee: Uint16 });
- *
- * // Fixed-size union with custom numeric IDs
- * union({ cafe: PaddedUint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee })
+ * // Union with custom numeric IDs
+ * union({ cafe: Uint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee });
  */
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayout: T,
@@ -573,21 +565,7 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
 
   validateUnionFields("union", codecLayout, fields);
 
-  // Determine if all variants have a fixed and equal byteLength.
-  let byteLength: number | undefined;
-  if (entries.length > 0) {
-    const firstLen = entries[0][1].byteLength;
-    if (
-      firstLen !== undefined &&
-      entries.every(([, { byteLength: len }]) => len === firstLen)
-    ) {
-      // Add 4 bytes for the type header
-      byteLength = firstLen + 4;
-    }
-  }
-
   return Codec.from({
-    byteLength,
     encode(encodable) {
       const { type, value } = extractUnionEncodable(encodable);
       const typeStr = type.toString();
