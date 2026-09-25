@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+  Bytes,
   bytesConcat,
   bytesConcatTo,
   bytesFrom,
@@ -51,6 +52,93 @@ function uint32From(bytesLike: BytesLike) {
 
 function getMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
+}
+
+/**
+ * Verifies a table or dynvec header and returns item boundaries.
+ * For N items/fields, returns an array of length N + 1:
+ * [offset_0, offset_1, ..., offset_{N-1}, totalSize].
+ */
+function verifyAndExtractOffsets(
+  value: Bytes,
+  prefix: string,
+  fieldCountConstraint?: {
+    expected: number;
+    allowExtra: boolean;
+  },
+): number[] {
+  if (value.byteLength < 4) {
+    throw new Error(
+      `${prefix}: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
+    );
+  }
+  const totalSize = uint32From(value.subarray(0, 4));
+  if (totalSize !== value.byteLength) {
+    throw new Error(
+      `${prefix}: invalid buffer size, expected ${totalSize}, but got ${value.byteLength}`,
+    );
+  }
+
+  if (totalSize !== 4 && totalSize < 8) {
+    throw new Error(
+      `${prefix}: invalid header, buffer too short for first offset, got ${totalSize} bytes`,
+    );
+  }
+
+  const firstOffset = totalSize === 4 ? 4 : uint32From(value.subarray(4, 8));
+  if (totalSize !== 4) {
+    if (firstOffset < 8) {
+      throw new Error(
+        `${prefix}: invalid first offset, expected at least 8, but got ${firstOffset}`,
+      );
+    }
+    if (firstOffset % 4 !== 0) {
+      throw new Error(
+        `${prefix}: invalid first offset alignment, expected multiple of 4, but got ${firstOffset}`,
+      );
+    }
+    if (firstOffset > totalSize) {
+      throw new Error(
+        `${prefix}: invalid first offset, offset ${firstOffset} exceeds total size ${totalSize}`,
+      );
+    }
+  }
+
+  const fieldCount = (firstOffset - 4) / 4;
+  if (
+    fieldCountConstraint &&
+    (fieldCount < fieldCountConstraint.expected ||
+      (fieldCount > fieldCountConstraint.expected &&
+        !fieldCountConstraint.allowExtra))
+  ) {
+    throw new Error(
+      `${prefix}: invalid field count, expected ${fieldCountConstraint.expected}, but got ${fieldCount}`,
+    );
+  }
+  if (fieldCount === 0) {
+    return [totalSize];
+  }
+
+  const offsets = [firstOffset];
+  let previous = firstOffset;
+  for (let i = 1; i < fieldCount; i++) {
+    const current = uint32From(value.subarray(4 + i * 4, 8 + i * 4));
+    if (current > totalSize) {
+      throw new Error(
+        `${prefix}: invalid offset, offset[${i}] = ${current} exceeds total size ${totalSize}`,
+      );
+    }
+    if (current < previous) {
+      throw new Error(
+        `${prefix}: invalid offset order, offset[${i}] (${current}) is less than offset[${i - 1}] (${previous})`,
+      );
+    }
+    offsets.push(current);
+    previous = current;
+  }
+
+  offsets.push(totalSize);
+  return offsets;
 }
 
 /**
@@ -140,28 +228,8 @@ export function dynItemVec<Encodable, Decoded>(
     },
     decode(buffer, config) {
       const value = bytesFrom(buffer);
-      if (value.byteLength < 4) {
-        throw new Error(
-          `dynItemVec: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
-        );
-      }
-      const byteLength = uint32From(value.subarray(0, 4));
-      if (byteLength !== value.byteLength) {
-        throw new Error(
-          `dynItemVec: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
-        );
-      }
+      const offsets = verifyAndExtractOffsets(value, "dynItemVec");
 
-      if (byteLength === 4) {
-        return [];
-      }
-
-      const offset = uint32From(value.subarray(4, 8));
-      const itemCount = (offset - 4) / 4;
-      const offsets = Array.from(new Array(itemCount), (_, index) =>
-        uint32From(value.subarray(4 + index * 4, 8 + index * 4)),
-      );
-      offsets.push(byteLength);
       try {
         const decodedArray: Array<Decoded> = [];
         for (let index = 0; index < offsets.length - 1; index++) {
@@ -326,59 +394,26 @@ export function table<
     },
     decode(buffer, config) {
       const value = bytesFrom(buffer);
-      if (value.byteLength < 4) {
-        throw new Error(
-          `table: too short buffer, expected at least 4 bytes, but got ${value.byteLength}`,
-        );
-      }
-      const byteLength = uint32From(value.subarray(0, 4));
-      const headerLength = uint32From(value.subarray(4, 8));
-      const actualFieldCount = (headerLength - 4) / 4;
+      const schemaKeyCount = keys.length;
+      const offsets = verifyAndExtractOffsets(value, "table", {
+        expected: schemaKeyCount,
+        allowExtra: config?.isExtraFieldIgnored === true,
+      });
+      const result: Record<string, unknown> = {};
 
-      if (byteLength !== value.byteLength) {
-        throw new Error(
-          `table: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
-        );
-      }
-
-      if (actualFieldCount < keys.length) {
-        throw new Error(
-          `table: invalid field count, expected ${keys.length}, but got ${actualFieldCount}`,
-        );
-      }
-
-      if (actualFieldCount > keys.length && !config?.isExtraFieldIgnored) {
-        throw new Error(
-          `table: invalid field count, expected ${keys.length}, but got ${actualFieldCount}, and extra fields are not allowed in the current configuration. If you want to ignore extra fields, set isExtraFieldIgnored to true.`,
-        );
-      }
-      const offsets = keys.map((_, index) =>
-        uint32From(value.subarray(4 + index * 4, 8 + index * 4)),
-      );
-      // If there are extra fields, add the last offset to the offsets array
-      if (actualFieldCount > keys.length) {
-        offsets.push(
-          uint32From(value.subarray(4 + keys.length * 4, 8 + keys.length * 4)),
-        );
-      } else {
-        // If there are no extra fields, add the byte length to the offsets array
-        offsets.push(byteLength);
-      }
-      const object = {};
-      for (let i = 0; i < offsets.length - 1; i++) {
+      for (let i = 0; i < schemaKeyCount; i++) {
+        const key = keys[i];
         const start = offsets[i];
         const end = offsets[i + 1];
-        const field = keys[i];
-        const codec = codecLayout[field];
-        const payload = value.subarray(start, end);
+        const itemBuffer = value.subarray(start, end);
         try {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          Object.assign(object, { [field]: codec.decode(payload, config) });
+          result[key] = codecLayout[key].decode(itemBuffer, config);
         } catch (e: unknown) {
-          throw new Error(`table.${field} - ${getMessage(e)}`, { cause: e });
+          throw new Error(`table.${key} - ${getMessage(e)}`, { cause: e });
         }
       }
-      return object as Decoded;
+
+      return result as Decoded;
     },
   });
 }
