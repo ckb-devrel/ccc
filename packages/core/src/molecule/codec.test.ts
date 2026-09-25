@@ -77,7 +77,7 @@ describe("molecule codec error messages", () => {
 
     expect(error).toBeDefined();
     expect(error?.message).toContain(
-      "dynItemVec - table.optByteUnion - option - byteVec - fixedItemVec: invalid buffer size",
+      "dynItemVec - table.optByteUnion - option - byteVec - union.(y) - fixedItemVec: invalid buffer size",
     );
     expect(error?.cause).toBeDefined();
   });
@@ -576,5 +576,314 @@ describe("Molecule valid zero-length values", () => {
     // offset0 = 12, offset1 = 12
     expect(bytesTo(enc, "hex")).toBe("0c0000000c0000000c000000");
     expect(VecOpt.decode(enc)).toEqual([undefined, undefined]);
+  });
+});
+
+describe("Union child decode errors", () => {
+  const childError = new Error("child decode failed");
+  const childCodec = Codec.from({
+    byteLength: 1,
+    encode: () => bytesFrom([0]),
+    decode: () => {
+      throw childError;
+    },
+  });
+  const encoded = bytesFrom("0000000000", "hex");
+
+  test("union wraps the child error and preserves its cause", () => {
+    const U = mol.union({ a: childCodec });
+
+    let thrown: unknown;
+    try {
+      U.decode(encoded);
+    } catch (e: unknown) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe("union.(a) - child decode failed");
+    expect((thrown as Error).cause).toBe(childError);
+  });
+
+  test("fixedUnion wraps the child error and preserves its cause", () => {
+    const U = mol.fixedUnion({ a: childCodec });
+
+    let thrown: unknown;
+    try {
+      U.decode(encoded);
+    } catch (e: unknown) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe(
+      "fixedUnion.(a) - child decode failed",
+    );
+    expect((thrown as Error).cause).toBe(childError);
+  });
+});
+
+describe("fixedUnion", () => {
+  test("preserves the legacy FixVec golden wire format", () => {
+    const layout = { a: mol.Uint16, b: mol.Uint16 };
+    const Legacy = mol.vector(mol.fixedUnion(layout));
+    const items = [
+      { type: "a" as const, value: 0x1234 },
+      { type: "b" as const, value: 0x5678 },
+    ];
+    const encoded = Legacy.encode(items);
+    // FixVec format:
+    // item_count (4 bytes) = 2 (0x02, 0x00, 0x00, 0x00)
+    // item_0 (fixedUnion 'a', 6 bytes): tag=0 (0x00, 0x00, 0x00, 0x00) + value=0x3412
+    // item_1 (fixedUnion 'b', 6 bytes): tag=1 (0x01, 0x00, 0x00, 0x00) + value=0x7856
+    // Total = 4 + 6 + 6 = 16 bytes
+    const expectedHex = "02000000000000003412010000007856";
+    expect(bytesTo(encoded, "hex")).toBe(expectedHex);
+    expect(Legacy.decode(encoded)).toEqual(items);
+  });
+
+  test("rejects empty variants", () => {
+    expect(() => mol.fixedUnion({})).toThrow(
+      "fixedUnion: must have at least one variant",
+    );
+  });
+
+  test("rejects dynamic-size variants", () => {
+    expect(() =>
+      mol.fixedUnion({
+        a: mol.Uint8,
+        b: mol.dynItemVec(mol.Uint8),
+      }),
+    ).toThrow("fixedUnion: variant 'b' must be a fixed-size type");
+  });
+
+  test("rejects 0-byte variants", () => {
+    const zeroByteCodec = Codec.from({
+      byteLength: 0,
+      encode: () => bytesFrom([]),
+      decode: () => ({}),
+    });
+    expect(() =>
+      mol.fixedUnion({
+        a: zeroByteCodec,
+      }),
+    ).toThrow(
+      "fixedUnion: variant 'a' byteLength must be a positive safe integer, but got 0",
+    );
+  });
+
+  test("rejects mismatched variant lengths", () => {
+    expect(() =>
+      mol.fixedUnion({
+        a: mol.Uint8,
+        b: mol.Uint16,
+      }),
+    ).toThrow(
+      "fixedUnion: all variants must have the same byteLength (1), but variant 'b' has 2",
+    );
+  });
+
+  test("rejects invalid or duplicate custom field IDs", () => {
+    expect(() =>
+      mol.fixedUnion({ a: mol.Uint16, b: mol.Uint16 }, { a: 1, b: 1 }),
+    ).toThrow("fixedUnion: duplicate field id 1 for keys 'a' and 'b'");
+
+    expect(() =>
+      mol.fixedUnion({ a: mol.Uint16, b: mol.Uint16 }, { a: -1, b: 1 }),
+    ).toThrow("fixedUnion: invalid field id -1 for key 'a'");
+  });
+
+  test("rejects unexpected extra keys in fields mapping", () => {
+    expect(() =>
+      mol.fixedUnion({ a: mol.Uint8 }, { a: 0, extra: 1 } as any),
+    ).toThrow("fixedUnion: unexpected field id for unknown key 'extra'");
+  });
+
+  test("rejects missing keys in fields mapping", () => {
+    expect(() =>
+      mol.fixedUnion({ a: mol.Uint8, b: mol.Uint8 }, { a: 0 } as any),
+    ).toThrow("fixedUnion: missing field id for key 'b'");
+  });
+
+  test("fixedUnion rejects non-enumerable custom field IDs", () => {
+    const ids = { a: 0, b: 0 };
+    Object.defineProperty(ids, "b", { enumerable: false });
+    expect(() => mol.fixedUnion({ a: mol.Uint8, b: mol.Uint8 }, ids)).toThrow(
+      "fixedUnion: missing field id for key 'b'",
+    );
+  });
+
+  test("fixedUnion rejects prototype-inherited custom field IDs", () => {
+    const protoIds = Object.create({ a: 0 }) as Record<string, number>;
+    expect(() => mol.fixedUnion({ a: mol.Uint8 }, protoIds)).toThrow(
+      "fixedUnion: missing field id for key 'a'",
+    );
+  });
+
+  test("validates variant byteLength strictly and checks total length overflow", () => {
+    const dummyEncode = () => bytesFrom([]);
+    const dummyDecode = () => ({});
+    for (const invalidLen of [
+      0,
+      -1,
+      1.5,
+      NaN,
+      Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      const badCodec = Codec.from({
+        byteLength: invalidLen,
+        encode: dummyEncode,
+        decode: dummyDecode,
+      });
+      expect(() => mol.fixedUnion({ a: badCodec })).toThrow(
+        `fixedUnion: variant 'a' byteLength must be a positive safe integer, but got ${String(invalidLen)}`,
+      );
+    }
+
+    const hugeCodec = Codec.from({
+      byteLength: Number.MAX_SAFE_INTEGER,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    expect(() => mol.fixedUnion({ a: hugeCodec })).toThrow(
+      "fixedUnion: total byteLength exceeds safe integer limit",
+    );
+  });
+
+  test("sets byteLength to payloadByteLength + 4", () => {
+    const FU = mol.fixedUnion({
+      a: mol.Uint16,
+      b: mol.Uint16,
+    });
+    expect(FU.byteLength).toBe(6);
+  });
+
+  test("rejects child encode output that does not match its declared payload length", () => {
+    const malformedCodec = {
+      byteLength: 1,
+      encode: () => bytesFrom([0, 0]),
+      decode: () => 0,
+    };
+    const FU = mol.fixedUnion({ a: malformedCodec });
+
+    expect(() => FU.encode({ type: "a", value: undefined })).toThrow(
+      "fixedUnion.(a) - fixedUnion: variant 'a' encoded 2 bytes, expected 1",
+    );
+  });
+
+  test("encodes and decodes variants correctly with default IDs", () => {
+    const FU = mol.fixedUnion({
+      first: mol.Uint16,
+      second: mol.Uint16,
+    });
+
+    const encFirst = FU.encode({ type: "first", value: 0x1234 });
+    expect(bytesTo(encFirst, "hex")).toBe("000000003412");
+    expect(FU.decode(encFirst)).toEqual({ type: "first", value: 0x1234 });
+
+    const encSecond = FU.encode({ type: "second", value: 0x5678 });
+    expect(bytesTo(encSecond, "hex")).toBe("010000007856");
+    expect(FU.decode(encSecond)).toEqual({ type: "second", value: 0x5678 });
+
+    // Inner wrapper support
+    const encInner = FU.encode({ inner: { type: "first", value: 0x1234 } });
+    expect(bytesTo(encInner, "hex")).toBe("000000003412");
+  });
+
+  test("encodes and decodes variants correctly with custom IDs", () => {
+    const FU = mol.fixedUnion(
+      {
+        alpha: mol.Uint16,
+        beta: mol.Uint16,
+      },
+      {
+        alpha: 0x10,
+        beta: 0x20,
+      },
+    );
+
+    const encAlpha = FU.encode({ type: "alpha", value: 0x1234 });
+    expect(bytesTo(encAlpha, "hex")).toBe("100000003412");
+    expect(FU.decode(encAlpha)).toEqual({ type: "alpha", value: 0x1234 });
+
+    const encBeta = FU.encode({ type: "beta", value: 0x5678 });
+    expect(bytesTo(encBeta, "hex")).toBe("200000007856");
+    expect(FU.decode(encBeta)).toEqual({ type: "beta", value: 0x5678 });
+  });
+
+  test("decode rejects buffer size mismatch", () => {
+    const FU = mol.fixedUnion({
+      a: mol.Uint16,
+      b: mol.Uint16,
+    });
+
+    expect(() => FU.decode(bytesFrom("0000000034", "hex"))).toThrow(
+      "Codec.decode: expected byte length 6, got 5",
+    );
+    expect(() => FU.decode(bytesFrom("00000000341200", "hex"))).toThrow(
+      "Codec.decode: expected byte length 6, got 7",
+    );
+  });
+
+  test("decode rejects unknown field ID", () => {
+    const FU = mol.fixedUnion({
+      a: mol.Uint16,
+    });
+    expect(() => FU.decode(bytesFrom("050000003412", "hex"))).toThrow(
+      "fixedUnion: unknown union field index 5, only a are allowed",
+    );
+
+    const FUWithCustomId = mol.fixedUnion({ a: mol.Uint8 }, { a: 10 });
+    expect(() => FUWithCustomId.decode(bytesFrom("6300000042", "hex"))).toThrow(
+      "fixedUnion: unknown union field index 99, only a are allowed",
+    );
+  });
+
+  test("composes correctly into struct, array, and vector (FixVec)", () => {
+    const FU = mol.fixedUnion({
+      a: mol.Uint16,
+      b: mol.Uint16,
+    });
+
+    // 1. Struct composition
+    const S = mol.struct({
+      tag: mol.Uint8,
+      payload: FU,
+    });
+    expect(S.byteLength).toBe(1 + 6);
+    const sEnc = S.encode({
+      tag: 0xff,
+      payload: { type: "b", value: 0x4321 },
+    });
+    expect(bytesTo(sEnc, "hex")).toBe("ff010000002143");
+    expect(S.decode(sEnc)).toEqual({
+      tag: 0xff,
+      payload: { type: "b", value: 0x4321 },
+    });
+
+    // 2. Array composition
+    const Arr = mol.array(FU, 2);
+    expect(Arr.byteLength).toBe(12);
+    const arrEnc = Arr.encode([
+      { type: "a", value: 0x1111 },
+      { type: "b", value: 0x2222 },
+    ]);
+    expect(bytesTo(arrEnc, "hex")).toBe("000000001111010000002222");
+    expect(Arr.decode(arrEnc)).toEqual([
+      { type: "a", value: 0x1111 },
+      { type: "b", value: 0x2222 },
+    ]);
+
+    // 3. Vector (FixVec) composition
+    const Vec = mol.vector(FU);
+    const vecEnc = Vec.encode([
+      { type: "a", value: 0x1111 },
+      { type: "b", value: 0x2222 },
+    ]);
+    // FixVec: 4-byte count (2) + item 0 (6 bytes) + item 1 (6 bytes) = 16 bytes
+    expect(bytesTo(vecEnc, "hex")).toBe("02000000000000001111010000002222");
+    expect(Vec.decode(vecEnc)).toEqual([
+      { type: "a", value: 0x1111 },
+      { type: "b", value: 0x2222 },
+    ]);
   });
 });
