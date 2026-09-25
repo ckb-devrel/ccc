@@ -161,7 +161,7 @@ export abstract class Client {
   /**
    * Get the header of the latest block.
    *
-   * @param verbosity - Verbosity level (0 for hex, 1 for object).
+   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns The tip block header.
    *
    * @example
@@ -175,28 +175,45 @@ export abstract class Client {
    * console.log(`Block #${header.number}, hash: ${header.hash}`);
    * ```
    */
-  abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
+  abstract getTipHeader(
+    /** @deprecated This parameter has no effect and will be removed. */
+    verbosity?: number | null,
+  ): Promise<ClientBlockHeader>;
   abstract getBlockByNumberNoCache(
     blockNumber: NumLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
+    /**
+     * @deprecated This parameter has no effect and will be removed.
+     */
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
   abstract getBlockByHashNoCache(
     blockHash: HexLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
+    /**
+     * @deprecated This parameter has no effect and will be removed.
+     */
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
   abstract getHeaderByNumberNoCache(
     blockNumber: NumLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
   abstract getHeaderByHashNoCache(
     blockHash: HexLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
   async getBlockByNumber(
     blockNumber: NumLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
+    /**
+     * @deprecated This parameter has no effect and will be removed.
+     */
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined> {
     const block = await this.cache.getBlockByNumber(blockNumber);
@@ -216,7 +233,11 @@ export abstract class Client {
   }
   async getBlockByHash(
     blockHash: HexLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
+    /**
+     * @deprecated This parameter has no effect and will be removed.
+     */
     withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined> {
     const block = await this.cache.getBlockByHash(blockHash);
@@ -236,6 +257,7 @@ export abstract class Client {
   }
   async getHeaderByNumber(
     blockNumber: NumLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined> {
     const header = await this.cache.getHeaderByNumber(blockNumber);
@@ -251,6 +273,7 @@ export abstract class Client {
   }
   async getHeaderByHash(
     blockHash: HexLike,
+    /** @deprecated This parameter has no effect and will be removed. */
     verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined> {
     const header = await this.cache.getHeaderByHash(blockHash);

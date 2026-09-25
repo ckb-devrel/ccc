@@ -203,7 +203,7 @@ export abstract class ClientJsonRpc extends Client {
   /**
    * Get tip block header
    *
-   * @param verbosity - result format which allows 0 and 1. (Optional, the default is 1.)
+   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getTipHeader = this.buildSender(
@@ -216,8 +216,8 @@ export abstract class ClientJsonRpc extends Client {
    * Get block by block number
    *
    * @param blockNumber - The block number.
-   * @param verbosity - result format which allows 0 and 2. (Optional, the default is 2.)
-   * @param withCycles - whether the return cycles of block transactions. (Optional, default false.)
+   * @param verbosity - Deprecated; this parameter has no effect.
+   * @param withCycles - Deprecated; this parameter has no effect.
    * @returns Block
    */
   getBlockByNumberNoCache = this.buildSender(
@@ -230,8 +230,8 @@ export abstract class ClientJsonRpc extends Client {
    * Get block by block hash
    *
    * @param blockHash - The block hash.
-   * @param verbosity - result format which allows 0 and 2. (Optional, the default is 2.)
-   * @param withCycles - whether the return cycles of block transactions. (Optional, default false.)
+   * @param verbosity - Deprecated; this parameter has no effect.
+   * @param withCycles - Deprecated; this parameter has no effect.
    * @returns Block
    */
   getBlockByHashNoCache = this.buildSender(
@@ -244,7 +244,7 @@ export abstract class ClientJsonRpc extends Client {
    * Get header by block number
    *
    * @param blockNumber - The block number.
-   * @param verbosity - result format which allows 0 and 1. (Optional, the default is 1.)
+   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getHeaderByNumberNoCache = this.buildSender(
@@ -257,7 +257,7 @@ export abstract class ClientJsonRpc extends Client {
    * Get header by block hash
    *
    * @param blockHash - The block hash.
-   * @param verbosity - result format which allows 0 and 1. (Optional, the default is 1.)
+   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getHeaderByHashNoCache = this.buildSender(
