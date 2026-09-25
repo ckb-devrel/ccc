@@ -446,6 +446,89 @@ export type UnionMatchHandlers<
   ) => Result;
 };
 
+function validateUnionFields<T extends Record<string, CodecLike<any, any>>>(
+  prefix: string,
+  codecLayout: T,
+  fields?: Record<keyof T, number | undefined | null>,
+): void {
+  if (!fields) {
+    return;
+  }
+  const layoutKeys = new Set(Object.keys(codecLayout));
+  const fieldKeys = new Set(Object.keys(fields));
+  for (const key of fieldKeys) {
+    if (!layoutKeys.has(key)) {
+      throw new Error(
+        `${prefix}: unexpected field id for unknown key '${key}'`,
+      );
+    }
+  }
+  const seenIds = new Map<number, string>();
+  for (const [key, id] of Object.entries(fields)) {
+    if (id === undefined || id === null) {
+      throw new Error(`${prefix}: field id for '${key}' is required`);
+    }
+    if (
+      typeof id !== "number" ||
+      !Number.isInteger(id) ||
+      id < 0 ||
+      id > 0xffffffff
+    ) {
+      throw new Error(`${prefix}: invalid field id ${id} for key '${key}'`);
+    }
+    if (seenIds.has(id)) {
+      throw new Error(
+        `${prefix}: duplicate field id ${id} for keys '${seenIds.get(id)}' and '${key}'`,
+      );
+    }
+    seenIds.set(id, key);
+  }
+  for (const key of layoutKeys) {
+    if (!fieldKeys.has(key)) {
+      throw new Error(`${prefix}: missing field id for key '${key}'`);
+    }
+  }
+}
+
+function extractUnionEncodable<T extends Record<string, CodecLike<any, any>>>(
+  encodable: UnionEncodable<T> | { inner: UnionEncodable<T> },
+): UnionEncodable<T> {
+  if ("type" in encodable && "value" in encodable) {
+    return encodable;
+  }
+
+  return encodable.inner;
+}
+
+function resolveUnionField<T extends Record<string, CodecLike<any, any>>>(
+  prefix: string,
+  codecLayout: T,
+  fields: Record<keyof T, number | undefined | null> | undefined,
+  fieldIndex: number,
+): string {
+  const keys = Object.keys(codecLayout);
+  const field = (() => {
+    if (!fields) {
+      return keys[fieldIndex];
+    }
+    const entry = Object.entries(fields).find(([, id]) => id === fieldIndex);
+    return entry?.[0];
+  })();
+
+  if (!field || !(field in codecLayout)) {
+    if (!fields) {
+      throw new Error(
+        `${prefix}: unknown union field index ${fieldIndex}, only ${keys.toString()} are allowed`,
+      );
+    }
+    const fieldKeys = Object.keys(fields);
+    throw new Error(
+      `${prefix}: unknown union field index ${fieldIndex}, only ${fieldKeys.toString()} are allowed`,
+    );
+  }
+  return field;
+}
+
 /**
  * Constructs a union codec that can serialize and deserialize values tagged with a type identifier.
  *
@@ -479,12 +562,16 @@ export type UnionMatchHandlers<
  * // Fixed-size union with custom numeric IDs
  * union({ cafe: PaddedUint8, bee: Uint16 }, { cafe: 0xcafe, bee: 0xbee })
  */
-
 export function union<T extends Record<string, CodecLike<any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
 ): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
   const entries = Object.entries(codecLayout);
+  if (entries.length === 0) {
+    throw new Error("union: must have at least one variant");
+  }
+
+  validateUnionFields("union", codecLayout, fields);
 
   // Determine if all variants have a fixed and equal byteLength.
   let byteLength: number | undefined;
@@ -499,20 +586,10 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
     }
   }
 
-  function extract(
-    encodable: UnionEncodable<T> | { inner: UnionEncodable<T> },
-  ): UnionEncodable<T> {
-    if ("type" in encodable && "value" in encodable) {
-      return encodable;
-    }
-
-    return encodable.inner;
-  }
-
   return Codec.from({
     byteLength,
     encode(encodable) {
-      const { type, value } = extract(encodable);
+      const { type, value } = extractUnionEncodable(encodable);
       const typeStr = type.toString();
       const codec = codecLayout[typeStr];
       if (!codec) {
@@ -536,30 +613,13 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
     },
     decode(buffer, config) {
       const value = bytesFrom(buffer);
-      const fieldIndex = uint32From(value.subarray(0, 4));
-      const keys = Object.keys(codecLayout);
-
-      const field = (() => {
-        if (!fields) {
-          return keys[fieldIndex];
-        }
-        const entry = Object.entries(fields).find(
-          ([, id]) => id === fieldIndex,
-        );
-        return entry?.[0];
-      })();
-
-      if (!field) {
-        if (!fields) {
-          throw new Error(
-            `union: unknown union field index ${fieldIndex}, only ${keys.toString()} are allowed`,
-          );
-        }
-        const fieldKeys = Object.keys(fields);
+      if (value.byteLength < 4) {
         throw new Error(
-          `union: unknown union field index ${fieldIndex}, only ${fieldKeys.toString()} and ${keys.toString()} are allowed`,
+          `union: too short buffer, expected at least 4 bytes for union tag, but got ${value.byteLength}`,
         );
       }
+      const fieldIndex = uint32From(value.subarray(0, 4));
+      const field = resolveUnionField("union", codecLayout, fields, fieldIndex);
 
       return {
         type: field,
