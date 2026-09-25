@@ -1,12 +1,12 @@
 import { Cell, CellLike, OutPoint, OutPointLike } from "../../ckb/index.js";
 import { hexFrom, HexLike } from "../../hex/index.js";
 import { Num, numFrom, NumLike } from "../../num/index.js";
-import { ClientCollectableSearchKeyLike } from "../clientTypes.advanced.js";
 import {
   ClientBlock,
   ClientBlockHeader,
   ClientBlockHeaderLike,
   ClientBlockLike,
+  ClientCollectableSearchKeyLike,
   ClientTransactionResponse,
   ClientTransactionResponseLike,
 } from "../clientTypes.js";

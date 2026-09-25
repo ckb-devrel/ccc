@@ -7,12 +7,12 @@ import {
 } from "../../ckb/index.js";
 import { HexLike } from "../../hex/index.js";
 import { numFrom, NumLike } from "../../num/index.js";
-import { ClientCollectableSearchKeyLike } from "../clientTypes.advanced.js";
 import {
   ClientBlock,
   ClientBlockHeader,
   ClientBlockHeaderLike,
   ClientBlockLike,
+  ClientCollectableSearchKeyLike,
   ClientTransactionResponse,
   ClientTransactionResponseLike,
 } from "../clientTypes.js";

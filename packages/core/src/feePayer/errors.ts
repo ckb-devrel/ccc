@@ -1,14 +1,26 @@
 import { fixedPointToString } from "../fixedPoint/index.js";
 import { Num, numFrom, NumLike } from "../num/index.js";
-import { Script, ScriptLike } from "./script.js";
 
 /**
- * @deprecated Use `ErrorFeePayerInsufficientCapacity` in `feePayer` instead.
+ * Error thrown when a fee payer has insufficient capacity to complete a transaction.
+ * @public
  */
-export class ErrorTransactionInsufficientCapacity extends Error {
+export class ErrorFeePayerInsufficientCapacity extends Error {
+  /**
+   * The amount of extra capacity needed.
+   */
   public readonly amount: Num;
+  /**
+   * Whether the extra capacity is needed for a change cell.
+   */
   public readonly isForChange: boolean;
 
+  /**
+   * Creates an instance of ErrorFeePayerInsufficientCapacity.
+   * @param amountLike - The amount of extra capacity needed.
+   * @param reason - Optional reason object.
+   * @param reason.isForChange - Whether the extra capacity is needed for a change cell.
+   */
   constructor(
     amountLike: NumLike,
     reason?: {
@@ -22,18 +34,5 @@ export class ErrorTransactionInsufficientCapacity extends Error {
     );
     this.amount = amount;
     this.isForChange = isForChange;
-  }
-}
-
-export class ErrorTransactionInsufficientCoin extends Error {
-  public readonly amount: Num;
-  public readonly type: Script;
-
-  constructor(amountLike: NumLike, typeLike: ScriptLike) {
-    const amount = numFrom(amountLike);
-    const type = Script.from(typeLike);
-    super(`Insufficient coin, need ${amount} extra coin`);
-    this.amount = amount;
-    this.type = type;
   }
 }
