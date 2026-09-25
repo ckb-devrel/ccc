@@ -54,6 +54,10 @@ function getMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+function isPositiveSafeInteger(val: unknown): val is number {
+  return typeof val === "number" && Number.isSafeInteger(val) && val > 0;
+}
+
 /**
  * Verifies a table or dynvec header and returns item boundaries.
  * For N items/fields, returns an array of length N + 1:
@@ -151,6 +155,11 @@ export function fixedItemVec<Encodable, Decoded>(
   const itemByteLength = itemCodec.byteLength;
   if (itemByteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
+  }
+  if (!isPositiveSafeInteger(itemByteLength)) {
+    throw new Error(
+      `fixedItemVec: itemCodec byteLength must be a positive safe integer, but got ${String(itemByteLength)}`,
+    );
   }
 
   return Codec.from({
@@ -618,16 +627,29 @@ export function struct<
   Encodable extends EncodableRecord<T>,
   Decoded extends DecodedRecord<T>,
 >(codecLayout: T): Codec<Encodable, Decoded> {
-  const codecArray = Object.values(codecLayout);
   const keys = Object.keys(codecLayout);
+  if (keys.length === 0) {
+    throw new Error("struct: must have at least one field");
+  }
+
+  let byteLength = 0;
+  for (const [key, codec] of Object.entries(codecLayout)) {
+    if (codec.byteLength === undefined) {
+      throw new Error(`struct: field '${key}' must be fixed-size`);
+    }
+    if (!isPositiveSafeInteger(codec.byteLength)) {
+      throw new Error(
+        `struct: field '${key}' byteLength must be a positive safe integer, but got ${String(codec.byteLength)}`,
+      );
+    }
+    byteLength += codec.byteLength;
+    if (!Number.isSafeInteger(byteLength)) {
+      throw new Error("struct: total byteLength exceeds safe integer limit");
+    }
+  }
 
   return Codec.from({
-    byteLength: codecArray.reduce((acc, codec) => {
-      if (codec.byteLength === undefined) {
-        throw new Error("struct: all fields must be fixed-size");
-      }
-      return acc + codec.byteLength;
-    }, 0),
+    byteLength,
     encode(object) {
       const bytes: number[] = [];
       for (const key of keys) {
@@ -673,7 +695,22 @@ export function array<Encodable, Decoded>(
   if (itemCodec.byteLength === undefined) {
     throw new Error("array: itemCodec requires a byte length");
   }
+  if (!isPositiveSafeInteger(itemCodec.byteLength)) {
+    throw new Error(
+      `array: itemCodec byteLength must be a positive safe integer, but got ${String(itemCodec.byteLength)}`,
+    );
+  }
+  if (!isPositiveSafeInteger(itemCount)) {
+    throw new Error(
+      `array: itemCount must be a positive safe integer, but got ${String(itemCount)}`,
+    );
+  }
   const byteLength = itemCodec.byteLength * itemCount;
+  if (!Number.isSafeInteger(byteLength)) {
+    throw new Error(
+      `array: total byteLength exceeds safe integer limit, got ${String(byteLength)}`,
+    );
+  }
 
   return Codec.from({
     byteLength,
@@ -691,11 +728,12 @@ export function array<Encodable, Decoded>(
     },
     decode(buffer, config) {
       const value = bytesFrom(buffer);
-      if (value.byteLength != byteLength) {
+      if (value.byteLength !== byteLength) {
         throw new Error(
           `array: invalid buffer size, expected ${byteLength}, but got ${value.byteLength}`,
         );
       }
+
       try {
         const result: Array<Decoded> = [];
         for (let i = 0; i < value.byteLength; i += itemCodec.byteLength!) {

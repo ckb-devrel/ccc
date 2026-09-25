@@ -3,6 +3,7 @@
 
 import { describe, expect, test } from "vitest";
 import { bytesFrom, bytesTo } from "../bytes/index.js";
+import { Codec } from "../codec/index.js";
 import { mol } from "./index.js";
 
 describe("molecule codec error messages", () => {
@@ -395,7 +396,7 @@ describe("Molecule type classification for Union", () => {
       mol.struct({
         u: U,
       }),
-    ).toThrow("struct: all fields must be fixed-size");
+    ).toThrow("struct: field 'u' must be fixed-size");
   });
 
   test("array must reject union items even when variants have equal length", () => {
@@ -408,5 +409,172 @@ describe("Molecule type classification for Union", () => {
     expect(() => mol.fixedItemVec(U)).toThrow(
       "fixedItemVec: itemCodec requires a byte length",
     );
+  });
+});
+
+describe("Molecule fixed-size constructor validation", () => {
+  const dummyEncode = () => bytesFrom([]);
+  const dummyDecode = () => ({});
+
+  test("generic zero-length Codec can still be created and used", () => {
+    const zeroCodec = Codec.from({
+      byteLength: 0,
+      encode: () => bytesFrom([]),
+      decode: () => "zero",
+    });
+    expect(zeroCodec.byteLength).toBe(0);
+    expect(bytesTo(zeroCodec.encode({}), "hex")).toBe("");
+    expect(zeroCodec.decode(bytesFrom([]))).toBe("zero");
+  });
+
+  test("struct rejects empty layouts", () => {
+    expect(() => mol.struct({})).toThrow(
+      "struct: must have at least one field",
+    );
+  });
+
+  test("array validates itemCount strictly", () => {
+    for (const invalidCount of [
+      0,
+      -1,
+      -5,
+      0.5,
+      1.5,
+      NaN,
+      Infinity,
+      -Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      expect(() => mol.array(mol.Uint8, invalidCount)).toThrow(
+        `array: itemCount must be a positive safe integer, but got ${String(invalidCount)}`,
+      );
+    }
+  });
+
+  test("array validates itemCodec byteLength strictly", () => {
+    for (const invalidLen of [
+      0,
+      -1,
+      1.5,
+      NaN,
+      Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      const badCodec = Codec.from({
+        byteLength: invalidLen,
+        encode: dummyEncode,
+        decode: dummyDecode,
+      });
+      expect(() => mol.array(badCodec, 2)).toThrow(
+        `array: itemCodec byteLength must be a positive safe integer, but got ${String(invalidLen)}`,
+      );
+    }
+  });
+
+  test("array rejects total byteLength exceeding safe integer limit", () => {
+    const hugeCodec = Codec.from({
+      byteLength: Number.MAX_SAFE_INTEGER,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    expect(() => mol.array(hugeCodec, 2)).toThrow(
+      "array: total byteLength exceeds safe integer limit",
+    );
+  });
+
+  test("fixedItemVec validates itemCodec byteLength strictly", () => {
+    for (const invalidLen of [
+      0,
+      -1,
+      -10,
+      0.5,
+      2.5,
+      NaN,
+      Infinity,
+      Number.MAX_SAFE_INTEGER + 1,
+    ]) {
+      const badCodec = Codec.from({
+        byteLength: invalidLen,
+        encode: dummyEncode,
+        decode: dummyDecode,
+      });
+      expect(() => mol.fixedItemVec(badCodec)).toThrow(
+        `fixedItemVec: itemCodec byteLength must be a positive safe integer, but got ${String(invalidLen)}`,
+      );
+    }
+  });
+
+  test("vector dispatches zero-size codec to fixedItemVec and rejects it at construction", () => {
+    const zeroCodec = Codec.from({
+      byteLength: 0,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    expect(() => mol.vector(zeroCodec)).toThrow(
+      "fixedItemVec: itemCodec byteLength must be a positive safe integer, but got 0",
+    );
+  });
+
+  test("struct validates each field's byteLength individually", () => {
+    const zeroCodec = Codec.from({
+      byteLength: 0,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    // struct with a 0-byte field inside positive length struct
+    expect(() =>
+      mol.struct({
+        zero: zeroCodec,
+        value: mol.Uint8,
+      }),
+    ).toThrow(
+      "struct: field 'zero' byteLength must be a positive safe integer, but got 0",
+    );
+
+    // float byte length on a field
+    const floatCodec = Codec.from({
+      byteLength: 1.5,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    expect(() =>
+      mol.struct({
+        f: floatCodec,
+      }),
+    ).toThrow(
+      "struct: field 'f' byteLength must be a positive safe integer, but got 1.5",
+    );
+  });
+
+  test("struct rejects total byteLength exceeding safe integer limit", () => {
+    const hugeCodec = Codec.from({
+      byteLength: Number.MAX_SAFE_INTEGER,
+      encode: dummyEncode,
+      decode: dummyDecode,
+    });
+    expect(() =>
+      mol.struct({
+        a: hugeCodec,
+        b: mol.Uint8,
+      }),
+    ).toThrow("struct: total byteLength exceeds safe integer limit");
+  });
+});
+
+describe("Molecule valid zero-length values", () => {
+  test("empty option encodes to zero bytes and decodes to undefined", () => {
+    const Opt = mol.option(mol.Uint8);
+    const enc = Opt.encode(null);
+    expect(bytesTo(enc, "hex")).toBe("");
+    expect(Opt.decode(bytesFrom([]))).toBeUndefined();
+  });
+
+  test("dynItemVec supports multiple consecutive empty items with equal adjacent offsets", () => {
+    const VecOpt = mol.dynItemVec(mol.option(mol.Uint8));
+    const enc = VecOpt.encode([null, null]);
+    // 2 items: fullSize(4) + offset0(4) + offset1(4) = 12 bytes (0x0c)
+    // offset0 = 12, offset1 = 12
+    expect(bytesTo(enc, "hex")).toBe("0c0000000c0000000c000000");
+    expect(VecOpt.decode(enc)).toEqual([undefined, undefined]);
   });
 });
