@@ -1,5 +1,66 @@
 # @ckb-ccc/core
 
+## 1.23.0
+
+### Minor Changes
+
+- [#575](https://github.com/ckb-devrel/ccc/pull/575) [`bb6cbf4`](https://github.com/ckb-devrel/ccc/commit/bb6cbf4ad68438c84faed61d8516530c643f3f4e) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - Add `AddressResolver` and `ClientConfig.addressResolver`, so `Address.fromString` can resolve representations it cannot parse, such as names, with a single Client. Passing a prefix-keyed record of Clients to `Address.fromString` is now deprecated; callers supporting multiple prefixes should try each Client themselves.
+
+- [#578](https://github.com/ckb-devrel/ccc/pull/578) [`21bf250`](https://github.com/ckb-devrel/ccc/commit/21bf2505cd9992a000da7a0c6a18b78aac67b34a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Generalize codec decode configuration into composable decode contexts.
+  
+  - Add a backward-compatible `Context` parameter to `Codec` and `CodecLike`.
+  - Infer decoder contexts in `Codec.from` and preserve them through mapping APIs.
+  - Propagate and combine child contexts across Molecule codec combinators.
+  - Forward optional decode contexts through `Entity.decode` and `Entity.fromBytes`.
+  - Keep `isExtraFieldIgnored` as Table-specific behavior while supporting deeply nested compatible decoding.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`8b650f0`](https://github.com/ckb-devrel/ccc/commit/8b650f0f06853923a6fa8cf9202f2854d215cf33) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add fixedUnion for fixed-size molecule union compositions
+  
+  - Introduce `mol.fixedUnion` to support fixed-size Molecule union extensions.
+  - Require all variants to have the same positive safe integer `byteLength`.
+  - Produce fixed-size codec (`byteLength = variantByteLength + 4`) that can be embedded into `mol.struct`, `mol.array`, and produces FixVec binary format in `mol.vector`.
+  - Support custom tag ID mappings with strict schema validation.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`de94e2c`](https://github.com/ckb-devrel/ccc/commit/de94e2c06778af3bcc413dd10f755806874afe45) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core)!: treat molecule union as dynamic-size type
+  
+  **BREAKING CHANGE**: In compliance with the Molecule specification (RFC 0008), standard `mol.union` is now strictly treated as a dynamic-size type (`byteLength` is `undefined`), regardless of whether all variants share identical byte lengths.
+  
+  Impact & Migration:
+  - When composed inside `mol.vector`, `mol.vector(mol.union(...))` now produces the canonical Molecule dynamic vector (DynVec) binary layout (`[full_size: uint32][offset_0]...[item_0]...`) instead of fixed vector (FixVec).
+  - Standalone encoding/decoding of a union item (`[item_id: uint32][payload]`) is unchanged.
+  - Standard `mol.union` can no longer be nested directly inside fixed-size containers (`mol.struct`, `mol.array`, `mol.fixedItemVec`).
+  - If you require fixed-size union layout for equal-length variants (FixVec in vector, or embedding in struct/array), use `mol.fixedUnion` (available via `@ckb-ccc/core`).
+
+### Patch Changes
+
+- [#577](https://github.com/ckb-devrel/ccc/pull/577) [`b21b27d`](https://github.com/ckb-devrel/ccc/commit/b21b27d4d29484b255d95105f6079ebb688b0e5c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Deprecate the ineffective `verbosity` and `withCycles` parameters on Client methods.
+
+- [#574](https://github.com/ckb-devrel/ccc/pull/574) [`a7bcb6d`](https://github.com/ckb-devrel/ccc/commit/a7bcb6d4db3e5255d9178a654a872050f86523ce) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Fix in-memory cache partial matching to support interior byte sequences.
+
+- [#571](https://github.com/ckb-devrel/ccc/pull/571) [`6946dd1`](https://github.com/ckb-devrel/ccc/commit/6946dd123400954a21eccfa71a0fb5b4af271051) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid mutating existing transaction entities during capacity normalization
+  
+  Invalid existing `CellOutput`, `Cell`, `CellAny`, and `Transaction` instances are now reconstructed instead of being repaired in place.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`3506c09`](https://github.com/ckb-devrel/ccc/commit/3506c09a5d16f4ec33ed379b73951b47434e2370) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Reject zero-size and non-safe-integer parameters in Molecule fixed-size types.
+  
+  - Validate constructor arguments for `mol.fixedItemVec`, `mol.array`, and `mol.struct` with `Number.isSafeInteger(val) && val > 0`.
+  - Reject zero-item or non-safe-integer count in `mol.array(itemCodec, 0)`.
+  - Reject empty-field structs `mol.struct({})` and structs containing zero-length fields.
+  - Validate that cumulative struct byte length and array byte length remain within the JavaScript safe integer range.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`665931f`](https://github.com/ckb-devrel/ccc/commit/665931f2e040cc19503f4924453cf9d8d8bec5e8) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Validate Molecule Table and DynVec headers and offsets strictly.
+  
+  - Validate header total size matches buffer byte length.
+  - Validate field offsets count, 4-byte alignment, non-decreasing order, and offsets within payload bounds.
+  - Validate offsets for all fields in the Table header, including trailing fields omitted by the schema for forward compatibility.
+  - Disallow non-empty Table schemas from matching empty byte buffers, while properly supporting empty Table schemas.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`2c91baa`](https://github.com/ckb-devrel/ccc/commit/2c91baaeb7090442264c2067defaa2c34d1d067f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Validate tag length, schema, and custom field IDs in Molecule Union.
+  
+  - Reject inputs with fewer than 4 bytes during Union decoding.
+  - Strictly validate custom variant ID mappings: require unique valid uint32 IDs with an exact key match to the union layout, and reject non-enumerable or prototype-inherited properties.
+  - Throw structured and descriptive errors (`unknown union field index ...`) when decoding an unrecognized tag ID.
+
 ## 1.22.1
 
 ### Patch Changes
