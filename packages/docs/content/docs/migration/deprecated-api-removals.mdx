@@ -1,0 +1,234 @@
+---
+title: Migrate Removed Deprecated APIs
+description: Update applications for deprecated APIs removed in the next major CCC release.
+icon: RefreshCw
+---
+
+The next major CCC release removes compatibility APIs that had direct
+replacements or no runtime effect. Most migrations are mechanical. The Client,
+Requestor, Transport, and SSRI changes additionally make resource ownership
+explicit.
+
+## Migration checklist
+
+| Removed API | Replacement |
+| --- | --- |
+| `epochFrom(value)` | `Epoch.from(value)` |
+| `epochFromHex(value)` | `Epoch.fromNum(value)` |
+| `epochToHex(value)` | `Epoch.from(value).toPackedHex()` |
+| `epoch[0]`, `epoch[1]`, `epoch[2]` | `epoch.integer`, `.numerator`, `.denominator` |
+| Transaction methods ending in `At` | The same method name without `At` |
+| `transaction.stringify()` | `ccc.stringify(transaction)` |
+| `Address.fromString(value, clientsByPrefix)` | Pass one Client and try multiple Clients explicitly |
+| Legacy `mol` aliases | Their top-level `ccc` equivalents |
+| Client `verbosity` and `withCycles` arguments | Remove the arguments |
+| `NetworkPreference` and `preferredNetworks` | Select a fixed-network signer directly |
+| Address recommendation `preference` | Remove the argument |
+| Public JSON-RPC constructors | `.new({ transport })` or `.open({ urls })` |
+| `Client.url`, `RequestorJsonRpc.url`, `ExecutorJsonRpc.url` | Retain endpoint configuration in the application |
+
+## Epoch values
+
+Use the `Epoch` class directly:
+
+```diff
+-const epoch = ccc.epochFrom(value);
+-const decoded = ccc.epochFromHex(packed);
+-const packed = ccc.epochToHex(epoch);
++const epoch = ccc.Epoch.from(value);
++const decoded = ccc.Epoch.fromNum(packed);
++const packed = ccc.Epoch.from(epoch).toPackedHex();
+```
+
+Replace array-style access with named properties:
+
+```diff
+-console.log(epoch[0], epoch[1], epoch[2]);
++console.log(epoch.integer, epoch.numerator, epoch.denominator);
+```
+
+## Transaction helpers
+
+Remove the `At` suffix from the compatibility methods:
+
+```diff
+-tx.setOutputDataAt(index, data);
+-tx.getWitnessArgsAt(index);
+-tx.getWitnessArgsAtUnsafe(index);
+-tx.setWitnessArgsAt(index, witnessArgs);
+-tx.setWitnessAt(index, witness);
++tx.setOutputData(index, data);
++tx.getWitnessArgs(index);
++tx.getWitnessArgsUnsafe(index);
++tx.setWitnessArgs(index, witnessArgs);
++tx.setWitness(index, witness);
+```
+
+Use the top-level serializer for JSON containing `bigint` values:
+
+```diff
+-const json = tx.stringify();
++const json = ccc.stringify(tx);
+```
+
+## Address parsing
+
+`Address.fromString` now accepts exactly one Client. Applications supporting
+more than one CKB network must choose or try Clients explicitly:
+
+```diff
+-const address = await ccc.Address.fromString(value, {
+-  ckb: mainnetClient,
+-  ckt: testnetClient,
+-});
++let address: ccc.Address;
++try {
++  address = await ccc.Address.fromString(value, mainnetClient);
++} catch {
++  address = await ccc.Address.fromString(value, testnetClient);
++}
+```
+
+## Molecule aliases
+
+Move deprecated names out of the `mol` namespace. Molecule schema builders and
+predefined codecs such as `mol.table`, `mol.vector`, and `mol.Uint32` remain in
+that namespace.
+
+| Before | After |
+| --- | --- |
+| `mol.Entity` | `ccc.Entity` |
+| `mol.codec` | `ccc.codec` |
+| `mol.Codec` | `ccc.Codec` |
+| `mol.uint` | `ccc.codecUint` |
+| `mol.uintNumber` | `ccc.codecUintNumber` |
+| `mol.CodecLike` | `ccc.CodecLike` |
+| `mol.DecodedType` | `ccc.DecodedType` |
+| `mol.EncodableType` | `ccc.EncodableType` |
+
+## Client block and header methods
+
+The `verbosity` and `withCycles` arguments never affected requests. Remove
+them from calls and custom Client implementations:
+
+```diff
+-await client.getTipHeader(verbosity);
+-await client.getBlockByNumber(number, verbosity, withCycles);
+-await client.getBlockByHash(hash, verbosity, withCycles);
+-await client.getHeaderByNumber(number, verbosity);
+-await client.getHeaderByHash(hash, verbosity);
++await client.getTipHeader();
++await client.getBlockByNumber(number);
++await client.getBlockByHash(hash);
++await client.getHeaderByNumber(number);
++await client.getHeaderByHash(hash);
+```
+
+The corresponding `NoCache` methods use the same reduced signatures.
+
+## Wallet network selection
+
+Wallet integrations now return one signer for each selectable network.
+`NetworkPreference`, `preferredNetworks`, and
+`Signer.matchNetworkPreference()` have been removed. Remove the preference
+configuration and select the desired returned signer instead.
+
+```diff
+-await controller.refresh(client, onUpdate, {
+-  preferredNetworks: [{ addressPrefix: "ckt", signerType, network }],
+-});
++await controller.refresh(client, onUpdate);
+```
+
+The optional arguments on `getRecommendedAddress(preference)` and
+`getRecommendedAddressObj(preference)` were also ignored:
+
+```diff
+-await signer.getRecommendedAddress(preference);
+-await signer.getRecommendedAddressObj(preference);
++await signer.getRecommendedAddress();
++await signer.getRecommendedAddressObj();
+```
+
+For Connector ownership and component changes, also follow the
+[Connector 2.0 migration guide](./connector-v2).
+
+## JSON-RPC resource ownership
+
+Use `.new()` when borrowing a Transport that another component owns. Use
+`.open()` when CCC should create the Transport, retain the returned Owner, and
+dispose it during final cleanup.
+
+### Public Clients
+
+```diff
+-const client = new ccc.ClientPublicTestnet();
++const clientOwner = ccc.ClientPublicTestnet.open();
++const client = clientOwner.value;
++// Final cleanup:
++await clientOwner.dispose();
+```
+
+Borrow an existing Transport without transferring ownership:
+
+```ts
+const client = ccc.ClientPublicTestnet.new({ transport });
+```
+
+### WebSocket Transport
+
+```diff
+-const transport = new ccc.JsonRpcTransportWebSocket(url, timeout);
++const transportOwner = ccc.JsonRpcTransportWebSocket.open(url, timeout);
++const transport = transportOwner.value;
++// Final cleanup:
++await transportOwner.dispose();
+```
+
+### Requestor
+
+```diff
+-const requestor = new ccc.RequestorJsonRpc(url, { fallbacks, timeout });
++const requestorOwner = ccc.RequestorJsonRpc.open({
++  urls: [url, ...fallbacks],
++  timeout,
++});
++const requestor = requestorOwner.value;
++// Final cleanup:
++await requestorOwner.dispose();
+```
+
+Use `RequestorJsonRpc.new({ transport })` when borrowing a Transport.
+
+### SSRI Executor
+
+```diff
+-const executor = new ssri.ExecutorJsonRpc(url, { fallbacks, timeout });
++const executorOwner = ssri.ExecutorJsonRpc.open({
++  urls: [url, ...fallbacks],
++  timeout,
++});
++const executor = executorOwner.value;
++// Final cleanup:
++await executorOwner.dispose();
+```
+
+Use `ExecutorJsonRpc.new({ transport })` when borrowing a Transport.
+
+## Endpoint configuration
+
+`Client.url`, `RequestorJsonRpc.url`, and `ExecutorJsonRpc.url` have been
+removed because a Transport may have no URL or may use multiple fallback
+endpoints. Keep endpoint configuration separately when another library needs
+it:
+
+```ts
+const ckbUrls = ["https://testnet.ckb.dev/"] as const;
+const clientOwner = ccc.ClientPublicTestnet.open({ urls: ckbUrls });
+
+// Pass the explicitly retained endpoint to other libraries.
+const indexer = new Indexer(ckbUrls[0]);
+```
+
+Dispose every Owner exactly once, after all borrowers have stopped using its
+value.
