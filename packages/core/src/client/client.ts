@@ -44,14 +44,11 @@ import { KnownScript } from "./knownScript.js";
  *
  * @public
  */
-export abstract class AddressResolver {
+export interface AddressResolver {
   /** Whether this resolver handles the representation. */
-  abstract shouldResolve(address: string): boolean;
+  shouldResolve(address: string): boolean;
   /** The script it points to, or `undefined` if it is not found. */
-  abstract resolve(
-    address: string,
-    client: Client,
-  ): Promise<ScriptLike | undefined>;
+  resolve(address: string, client: Client): Promise<ScriptLike | undefined>;
 }
 
 export type ClientConfig = {
