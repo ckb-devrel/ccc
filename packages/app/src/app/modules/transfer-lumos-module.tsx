@@ -77,7 +77,9 @@ export function TransferLumosModule({
   const [busy, setBusy] = useState(false);
 
   const transfer = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusy(true);
     show({
       label: "LUMOS",

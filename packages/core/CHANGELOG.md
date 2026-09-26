@@ -1,5 +1,76 @@
 # @ckb-ccc/core
 
+## 1.23.0
+
+### Minor Changes
+
+- [#575](https://github.com/ckb-devrel/ccc/pull/575) [`bb6cbf4`](https://github.com/ckb-devrel/ccc/commit/bb6cbf4ad68438c84faed61d8516530c643f3f4e) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - Add `AddressResolver` and `ClientConfig.addressResolver`, so `Address.fromString` can resolve representations it cannot parse, such as names, with a single Client. Passing a prefix-keyed record of Clients to `Address.fromString` is now deprecated; callers supporting multiple prefixes should try each Client themselves.
+
+- [#578](https://github.com/ckb-devrel/ccc/pull/578) [`21bf250`](https://github.com/ckb-devrel/ccc/commit/21bf2505cd9992a000da7a0c6a18b78aac67b34a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Generalize codec decode configuration into composable decode contexts.
+
+  - Add a backward-compatible `Context` parameter to `Codec` and `CodecLike`.
+  - Infer decoder contexts in `Codec.from` and preserve them through mapping APIs.
+  - Propagate and combine child contexts across Molecule codec combinators.
+  - Forward optional decode contexts through `Entity.decode` and `Entity.fromBytes`.
+  - Keep `isExtraFieldIgnored` as Table-specific behavior while supporting deeply nested compatible decoding.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`8b650f0`](https://github.com/ckb-devrel/ccc/commit/8b650f0f06853923a6fa8cf9202f2854d215cf33) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add fixedUnion for fixed-size molecule union compositions
+
+  - Introduce `mol.fixedUnion` to support fixed-size Molecule union extensions.
+  - Require all variants to have the same positive safe integer `byteLength`.
+  - Produce fixed-size codec (`byteLength = variantByteLength + 4`) that can be embedded into `mol.struct`, `mol.array`, and produces FixVec binary format in `mol.vector`.
+  - Support custom tag ID mappings with strict schema validation.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`de94e2c`](https://github.com/ckb-devrel/ccc/commit/de94e2c06778af3bcc413dd10f755806874afe45) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core)!: treat molecule union as dynamic-size type
+
+  **BREAKING CHANGE**: In compliance with the Molecule specification (RFC 0008), standard `mol.union` is now strictly treated as a dynamic-size type (`byteLength` is `undefined`), regardless of whether all variants share identical byte lengths.
+
+  Impact & Migration:
+  - When composed inside `mol.vector`, `mol.vector(mol.union(...))` now produces the canonical Molecule dynamic vector (DynVec) binary layout (`[full_size: uint32][offset_0]...[item_0]...`) instead of fixed vector (FixVec).
+  - Standalone encoding/decoding of a union item (`[item_id: uint32][payload]`) is unchanged.
+  - Standard `mol.union` can no longer be nested directly inside fixed-size containers (`mol.struct`, `mol.array`, `mol.fixedItemVec`).
+  - If you require fixed-size union layout for equal-length variants (FixVec in vector, or embedding in struct/array), use `mol.fixedUnion` (available via `@ckb-ccc/core`).
+
+### Patch Changes
+
+- [#577](https://github.com/ckb-devrel/ccc/pull/577) [`b21b27d`](https://github.com/ckb-devrel/ccc/commit/b21b27d4d29484b255d95105f6079ebb688b0e5c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Deprecate the ineffective `verbosity` and `withCycles` parameters on Client methods.
+
+- [#574](https://github.com/ckb-devrel/ccc/pull/574) [`a7bcb6d`](https://github.com/ckb-devrel/ccc/commit/a7bcb6d4db3e5255d9178a654a872050f86523ce) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Fix in-memory cache partial matching to support interior byte sequences.
+
+- [#571](https://github.com/ckb-devrel/ccc/pull/571) [`6946dd1`](https://github.com/ckb-devrel/ccc/commit/6946dd123400954a21eccfa71a0fb5b4af271051) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid mutating existing transaction entities during capacity normalization
+
+  Invalid existing `CellOutput`, `Cell`, `CellAny`, and `Transaction` instances are now reconstructed instead of being repaired in place.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`3506c09`](https://github.com/ckb-devrel/ccc/commit/3506c09a5d16f4ec33ed379b73951b47434e2370) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Reject zero-size and non-safe-integer parameters in Molecule fixed-size types.
+
+  - Validate constructor arguments for `mol.fixedItemVec`, `mol.array`, and `mol.struct` with `Number.isSafeInteger(val) && val > 0`.
+  - Reject zero-item or non-safe-integer count in `mol.array(itemCodec, 0)`.
+  - Reject empty-field structs `mol.struct({})` and structs containing zero-length fields.
+  - Validate that cumulative struct byte length and array byte length remain within the JavaScript safe integer range.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`665931f`](https://github.com/ckb-devrel/ccc/commit/665931f2e040cc19503f4924453cf9d8d8bec5e8) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Validate Molecule Table and DynVec headers and offsets strictly.
+
+  - Validate header total size matches buffer byte length.
+  - Validate field offsets count, 4-byte alignment, non-decreasing order, and offsets within payload bounds.
+  - Validate offsets for all fields in the Table header, including trailing fields omitted by the schema for forward compatibility.
+  - Disallow non-empty Table schemas from matching empty byte buffers, while properly supporting empty Table schemas.
+
+- [#573](https://github.com/ckb-devrel/ccc/pull/573) [`2c91baa`](https://github.com/ckb-devrel/ccc/commit/2c91baaeb7090442264c2067defaa2c34d1d067f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Validate tag length, schema, and custom field IDs in Molecule Union.
+
+  - Reject inputs with fewer than 4 bytes during Union decoding.
+  - Strictly validate custom variant ID mappings: require unique valid uint32 IDs with an exact key match to the union layout, and reject non-enumerable or prototype-inherited properties.
+  - Throw structured and descriptive errors (`unknown union field index ...`) when decoding an unrecognized tag ID.
+
+## 1.22.1
+
+### Patch Changes
+
+- [#565](https://github.com/ckb-devrel/ccc/pull/565) [`90891c1`](https://github.com/ckb-devrel/ccc/commit/90891c15049cba439e041acb93868d0d9865d848) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): ensure fee-completion convergence and prevent sub-occupied outputs
+
+- [#567](https://github.com/ckb-devrel/ccc/pull/567) [`5be7663`](https://github.com/ckb-devrel/ccc/commit/5be7663ce5857f75c349d111fd6983396365f308) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Serialize `getFeeRateStatistics` block range parameter to hex to avoid BigInt serialization error.
+
+- [#563](https://github.com/ckb-devrel/ccc/pull/563) [`99c24ee`](https://github.com/ckb-devrel/ccc/commit/99c24ee6b93ed909aa601c3b4580732d320c14ec) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Fix `fixedPointFrom` and `fixedPointToString` handling of negative fractional values.
+
 ## 2.0.0-next.1
 
 ### Major Changes
@@ -50,7 +121,7 @@
 - [#549](https://github.com/ckb-devrel/ccc/pull/549) [`26f9c4d`](https://github.com/ckb-devrel/ccc/commit/26f9c4d0d77d35bfba0d74483458a24a2077fac9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Avoid caching cell results requested without output data.
 
 - [#541](https://github.com/ckb-devrel/ccc/pull/541) [`7680821`](https://github.com/ckb-devrel/ccc/commit/7680821e0c113a790f00e0fe53e0d69f92588ce4) Thanks [@fghdotio](https://github.com/fghdotio)! - Apply the documented `signPsbt` defaults consistently across BTC wallets.
-  
+
   - UniSat and OKX now translate `SignPsbtOptions` into the wallet's own
     `{ autoFinalized, toSignInputs }` shape instead of forwarding the CCC
     options as-is, so `autoFinalized` defaults to `true` and `inputsToSign` is
@@ -96,20 +167,20 @@
   signers, plus an `AbortSignal.any` compatibility helper.
 
 - [#487](https://github.com/ckb-devrel/ccc/pull/487) [`5f2a6ab`](https://github.com/ckb-devrel/ccc/commit/5f2a6ab0a41b9b0c819c7fc62d6eb0b22a8288e6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): improve JSON-RPC transport types and cleanup
-  
+
   Clear HTTP/WebSocket request timers and pending state.
 
 - [#498](https://github.com/ckb-devrel/ccc/pull/498) [`4fabb6a`](https://github.com/ckb-devrel/ccc/commit/4fabb6afbd58aee7d4bfb792660f82fe673ffbb9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `OwnerRefCount` for shared resource ownership
 
 - [#497](https://github.com/ckb-devrel/ccc/pull/497) [`235cd97`](https://github.com/ckb-devrel/ccc/commit/235cd9788543e300e4dceef20ad664a4666feba2) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: replace `Buffer`-based byte encoding with `uint8array-extras`
-  
+
   - Remove the legacy `ascii`, `binary`, `latin1`, `ucs2`, and `utf16le` encodings
   - Use consistent strict validation for implicit and explicit hex input
 
 - [#498](https://github.com/ckb-devrel/ccc/pull/498) [`463846d`](https://github.com/ckb-devrel/ccc/commit/463846d99e7123846286b3c6a9811b75e5a58437) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `Owner` and `OwnerUnique` for explicit resource ownership
 
 - [#494](https://github.com/ckb-devrel/ccc/pull/494) [`f6aafb2`](https://github.com/ckb-devrel/ccc/commit/f6aafb2886ad747fed24e218f9b9b54e15071ee9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor(core): rename JSON-RPC transport APIs with the `JsonRpcTransport` prefix
-  
+
   - `Transport` is now `JsonRpcTransport`
   - `TransportHttp` is now `JsonRpcTransportHttp`
   - `TransportWebSocket` is now `JsonRpcTransportWebSocket`
@@ -134,40 +205,27 @@
 - [#478](https://github.com/ckb-devrel/ccc/pull/478) [`2bec687`](https://github.com/ckb-devrel/ccc/commit/2bec687b6ec25449665c2d8e98d1a433b14b9d90) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Add `Proxy.Base` for creating wrappers that forward inherited members to an inner object
 
 ## 2.0.0-next.0
+
 ### Major Changes
-
-
 
 - [#425](https://github.com/ckb-devrel/ccc/pull/425) [`584a1eb`](https://github.com/ckb-devrel/ccc/commit/584a1ebeeb083904e5c2851208bc8491914b3d34) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: Codec.from
 
-
-
 - [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5ebe6b6`](https://github.com/ckb-devrel/ccc/commit/5ebe6b61e2823cbb6fdbf776bdb16ef4ab83b2f6) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(joy-id): address info in identity
-
-
 
 - [#429](https://github.com/ckb-devrel/ccc/pull/429) [`ec643ac`](https://github.com/ckb-devrel/ccc/commit/ec643ac6bbfeacd3e444ccf5970ea070a30fce8f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core)!: @codec implements a default from
 
-
-
 - [#424](https://github.com/ckb-devrel/ccc/pull/424) [`23110d2`](https://github.com/ckb-devrel/ccc/commit/23110d2f0c90ccaf334bd4736c3e374d07913d72) Thanks [@github-actions](https://github.com/apps/github-actions)! - fix(core)!: `getFeeRateStatistics` may returns `null` on devnet
-
-
 
 - [#424](https://github.com/ckb-devrel/ccc/pull/424) [`5e1f8d2`](https://github.com/ckb-devrel/ccc/commit/5e1f8d2d3e6ee26002e323ff0bcd1fcf54240f0b) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `reduce` and `reduceAsync` for `Iterable`
 
-
 ### Minor Changes
 
-
-
 - [#424](https://github.com/ckb-devrel/ccc/pull/424) [`3dd2aea`](https://github.com/ckb-devrel/ccc/commit/3dd2aea90ce235fdcc1b0b3d1e4282391ea944fe) Thanks [@github-actions](https://github.com/apps/github-actions)! - feat(core): `Signer.fromSignature`
-
-
 
 - [#433](https://github.com/ckb-devrel/ccc/pull/433) [`2a8f542`](https://github.com/ckb-devrel/ccc/commit/2a8f542ac2aa1f117991d5737a64da90ef3b138a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): reduce(Async) accept single value
 
 ## 1.18.2
+
 ### Patch Changes
 
 - [#419](https://github.com/ckb-devrel/ccc/pull/419) [`81ca371`](https://github.com/ckb-devrel/ccc/commit/81ca3713edd3c74968e391e48e9a36978435c45f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): occupy witness while adding output
@@ -175,354 +233,246 @@
 - [#459](https://github.com/ckb-devrel/ccc/pull/459) [`efb7b77`](https://github.com/ckb-devrel/ccc/commit/efb7b7780fa793226cf4dd792c5bc11acbcde969) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): enforce minimum cell capacity after output data mutations
 
 ## 1.18.1
+
 ### Patch Changes
-
-
 
 - [#454](https://github.com/ckb-devrel/ccc/pull/454) [`2afb50a`](https://github.com/ckb-devrel/ccc/commit/2afb50ab2059e04c9b2f0475f658a51ee02bc424) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - fix(core): Fix parsing of multi-digit CKB script error code
 
 ## 1.18.0
+
 ### Minor Changes
-
-
 
 - [#449](https://github.com/ckb-devrel/ccc/pull/449) [`09042bb`](https://github.com/ckb-devrel/ccc/commit/09042bb3a8e4058e3ce78368284c8b0c06acf35f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `SignerCkbAlwaysSuccess`
 
-
 ### Patch Changes
-
-
 
 - [#448](https://github.com/ckb-devrel/ccc/pull/448) [`8c148af`](https://github.com/ckb-devrel/ccc/commit/8c148af2e2290630b0fe32464df62faae3f989cd) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - fix(core): Fix concurrent client requests skipping healthy RPC fallback
 
-
-
 - [#446](https://github.com/ckb-devrel/ccc/pull/446) [`2bf3eeb`](https://github.com/ckb-devrel/ccc/commit/2bf3eeba9d903f98c538ad552c9aafb0003ad3f6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): respect `Signer.prepareTransaction` return value in `Transaction.completeFee`
-  
-  Fix underestimated fees when `Signer.prepareTransaction` returns a new transaction, including when the transaction and signer come from different `@ckb-ccc/core` instances.
 
+  Fix underestimated fees when `Signer.prepareTransaction` returns a new transaction, including when the transaction and signer come from different `@ckb-ccc/core` instances.
 
 - [#452](https://github.com/ckb-devrel/ccc/pull/452) [`fd8ed22`](https://github.com/ckb-devrel/ccc/commit/fd8ed2228041a773d9baa7326dd391d312a965fa) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): release JSON-RPC concurrency slots after transport errors
 
 ## 1.17.0
+
 ### Minor Changes
-
-
 
 - [#430](https://github.com/ckb-devrel/ccc/pull/430) [`eb806a1`](https://github.com/ckb-devrel/ccc/commit/eb806a171356a35200fccb46667da5574b350609) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): UnionMatchHandlers
 
-
-
 - [#432](https://github.com/ckb-devrel/ccc/pull/432) [`235676f`](https://github.com/ckb-devrel/ccc/commit/235676f5a7edb0ed95a0909bf530767e35952ffa) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): union codec accepts BaseUnion
-
-
 
 - [#438](https://github.com/ckb-devrel/ccc/pull/438) [`a85cb75`](https://github.com/ckb-devrel/ccc/commit/a85cb75134bbb81af0587aa78e1105f890f3b203) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add indexed transaction accessors
 
-
-
 - [#438](https://github.com/ckb-devrel/ccc/pull/438) [`4c96c9a`](https://github.com/ckb-devrel/ccc/commit/4c96c9ada3a2a626fdd976caff55356c58aa59de) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): deprecate transaction At methods
-
 
 ### Patch Changes
 
-
-
 - [#437](https://github.com/ckb-devrel/ccc/pull/437) [`4cd2517`](https://github.com/ckb-devrel/ccc/commit/4cd25172b3ce89c219a0536393a62667df7edf9d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `getFeeRateStatistics` throws when the response is `null`
-
-
 
 - [#438](https://github.com/ckb-devrel/ccc/pull/438) [`a80ca8d`](https://github.com/ckb-devrel/ccc/commit/a80ca8dee79a97b034ff430d148eb3db896690eb) Thanks [@Hanssen0](https://github.com/Hanssen0)! - refactor: migrate deprecated transaction methods
 
 ## 1.16.1
+
 ### Patch Changes
-
-
 
 - [#427](https://github.com/ckb-devrel/ccc/pull/427) [`48fbea0`](https://github.com/ckb-devrel/ccc/commit/48fbea094a64587fa2bd265d5c4e0a61d5a5e28b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): molecule codec recursive error message
 
 ## 1.16.0
+
 ### Minor Changes
-
-
 
 - [#423](https://github.com/ckb-devrel/ccc/pull/423) [`209f332`](https://github.com/ckb-devrel/ccc/commit/209f3322ffc22860b1ad43f31cbf51322493b3d9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Args type parameter in `Constructor` type
 
-
-
 - [#418](https://github.com/ckb-devrel/ccc/pull/418) [`ac8dba2`](https://github.com/ckb-devrel/ccc/commit/ac8dba21ab899b707e46236aa40b9e12566f9c8a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): Entity.Base extends Entity now
-
-
 
 - [#416](https://github.com/ckb-devrel/ccc/pull/416) [`52309a4`](https://github.com/ckb-devrel/ccc/commit/52309a442a48f1c376fa65813ba56bcceb405b90) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `KnownScript.SUdt`
 
 ## 1.15.0
+
 ### Minor Changes
-
-
 
 - [#392](https://github.com/ckb-devrel/ccc/pull/392) [`98597b5`](https://github.com/ckb-devrel/ccc/commit/98597b56eb6eeb029b72ea963649155dfe1f4215) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add `bytesLen` and `bytesLenUnsafe` utilities
 
-
-
 - [#387](https://github.com/ckb-devrel/ccc/pull/387) [`bef9d0a`](https://github.com/ckb-devrel/ccc/commit/bef9d0a037fba045eab24d7ad55400fa26fbbffd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): relax `@ccc.codec`'s type restriction
-
-
 
 - [#349](https://github.com/ckb-devrel/ccc/pull/349) [`8067a08`](https://github.com/ckb-devrel/ccc/commit/8067a08de041ffd7a624adea0b594eb283e2634e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): multisig Signers
 
-
-
 - [#385](https://github.com/ckb-devrel/ccc/pull/385) [`7019a1a`](https://github.com/ckb-devrel/ccc/commit/7019a1a7f765dfa7940cdfe51474bcd347f18ec6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Transaction.getWitnessArgsAtUnsafe`
-
-
 
 - [#390](https://github.com/ckb-devrel/ccc/pull/390) [`9beee4d`](https://github.com/ckb-devrel/ccc/commit/9beee4d7f39e4b4b19919c5feb86e1c8be0e089d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `signMessageSecp256k1`
 
-
-
 - [#389](https://github.com/ckb-devrel/ccc/pull/389) [`0eb8435`](https://github.com/ckb-devrel/ccc/commit/0eb8435d9694602fce3b7e6a95f04f793452a88d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `hashCkbShort`
 
-
 ### Patch Changes
-
-
 
 - [#391](https://github.com/ckb-devrel/ccc/pull/391) [`2d4e701`](https://github.com/ckb-devrel/ccc/commit/2d4e701e54e9bf5247c2363490009acc5606c0ea) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: `hexFrom` passes through normalized hex; `numToHex` now throws on negative values
 
 ## 1.14.0
+
 ### Minor Changes
-
-
 
 - [#381](https://github.com/ckb-devrel/ccc/pull/381) [`46cc045`](https://github.com/ckb-devrel/ccc/commit/46cc045a3eefe9ba6625482dc7f740a0c59c99d4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump packages
 
 ## 1.13.0
+
 ### Minor Changes
-
-
 
 - [#337](https://github.com/ckb-devrel/ccc/pull/337) [`1148a5c`](https://github.com/ckb-devrel/ccc/commit/1148a5c403cde985fb4ba713ccfa0c163d287174) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): extract a universal `Codec` from `mol.Codec`
 
-
-
 - [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(Epoch): transform `Epoch` into a class and add utilities
 
-
-
 - [#346](https://github.com/ckb-devrel/ccc/pull/346) [`a803d5f`](https://github.com/ckb-devrel/ccc/commit/a803d5fba8d0e082c6aba14db156856025402e72) Thanks [@fghdotio](https://github.com/fghdotio)! - feat(core): add BTC PSBT signing support
-  
+
   - Add `SignerBtc.signPsbt()`, `signAndBroadcastPsbt()`, and `broadcastPsbt()` for signing and broadcasting PSBTs
   - Add `SignPsbtOptions` and `InputToSign` for configuring PSBT signing
 
-
 - [#314](https://github.com/ckb-devrel/ccc/pull/314) [`bf0f8d8`](https://github.com/ckb-devrel/ccc/commit/bf0f8d8ca011e627821445a10bc38519510e5b9d) Thanks [@phroi](https://github.com/phroi)! - feat(core): `mol.padding` for padding codec
-
-
 
 - [#359](https://github.com/ckb-devrel/ccc/pull/359) [`6727ffe`](https://github.com/ckb-devrel/ccc/commit/6727ffe05f60e6bfb2060a565c19acb0fd0f375e) Thanks [@phroi](https://github.com/phroi)! - feat(core): add isDaoOutputLimitExceeded utility for NervosDAO 64-output guard
 
-
-
 - [#337](https://github.com/ckb-devrel/ccc/pull/337) [`a526890`](https://github.com/ckb-devrel/ccc/commit/a5268909ea9d61c4e2f5187a43e2318327b27cae) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add known script did ckb
-
-
 
 - [#380](https://github.com/ckb-devrel/ccc/pull/380) [`4bb3d9d`](https://github.com/ckb-devrel/ccc/commit/4bb3d9d2ef36b3ee8820036625abd9befb1980c4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: bump @noble packages
 
-
-
 - [#337](https://github.com/ckb-devrel/ccc/pull/337) [`9f7ecb6`](https://github.com/ckb-devrel/ccc/commit/9f7ecb6ab8db9c6866dad029f2888e1e5cfcbe7d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto complete cell capacity if it's not enough
 
-
 ### Patch Changes
-
-
 
 - [#379](https://github.com/ckb-devrel/ccc/pull/379) [`f01a05b`](https://github.com/ckb-devrel/ccc/commit/f01a05bab332d9f4e0cf7f84aecfd688f8e9f346) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore: bump pnpm to v11.8.0
 
 ## 1.12.5
+
 ### Patch Changes
-
-
 
 - [#354](https://github.com/ckb-devrel/ccc/pull/354) [`a96dec6`](https://github.com/ckb-devrel/ccc/commit/a96dec6d0517113391b0edc510f1af821a45d5a8) Thanks [@RetricSu](https://github.com/RetricSu)! - chore(core): bump nostr-lock mainnet cell deps
 
 ## 1.12.4
+
 ### Patch Changes
-
-
 
 - [#350](https://github.com/ckb-devrel/ccc/pull/350) [`b4aa99f`](https://github.com/ckb-devrel/ccc/commit/b4aa99f1b87c1d14117a15fa1fcac6f9e60b43c1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): circular dependency due to btc.verify
 
 ## 1.12.3
+
 ### Patch Changes
-
-
 
 - [#344](https://github.com/ckb-devrel/ccc/pull/344) [`6a3be47`](https://github.com/ckb-devrel/ccc/commit/6a3be477b40870dc40d491ce51e667f61f70965e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix: wrong capacity completion while deserializing transaction
 
 ## 1.12.2
+
 ### Patch Changes
-
-
 
 - [`b371b07`](https://github.com/ckb-devrel/ccc/commit/b371b07e67f295129defc36190741ab4d783dd96) Thanks [@gpBlockchain](https://github.com/gpBlockchain)! - fix(core): udt mint outputData length not eq 16
 
 ## 1.12.1
+
 ### Patch Changes
-
-
 
 - [#318](https://github.com/ckb-devrel/ccc/pull/318) [`6cb6bfc`](https://github.com/ckb-devrel/ccc/commit/6cb6bfcc24af00b460ab7d112986088a9a526ecd) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `CellAny.outPoint` overrides existed `outPoint`
 
 ## 1.12.0
+
 ### Minor Changes
 
-
-
 - [`12c1e6b`](https://github.com/ckb-devrel/ccc/commit/12c1e6b751de220898ed94998027c7cf07c7a7dc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `messageHashBtcEcdsa`
-  
+
   Removed dependency on outdated `bitcoinjs-message`.
 
-
 - [`50b5537`](https://github.com/ckb-devrel/ccc/commit/50b553715f150ca7c68a661c7cbf8696ec674846) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): add `CellAny`
-  
+
   It's definitely a mistake to name `CellOnChain` `Cell`, but there is nothing we can do with that right now. To avoid more duplicate code, `CellAny` was added to represent a cell that's on-chain or off-chain.
 
 ### Patch Changes
 
-
-
 - [#290](https://github.com/ckb-devrel/ccc/pull/290) [`1b9b197`](https://github.com/ckb-devrel/ccc/commit/1b9b19754002461bbd37677a7a44a15c31fd537f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(deps): bump dependency version with `--latest`
-
-
 
 - [`d382469`](https://github.com/ckb-devrel/ccc/commit/d382469ffca7934f19d0156af6939d7794808265) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): default `Signer.prepareTransaction`
 
 ## 1.11.5
+
 ### Patch Changes
-
-
 
 - [#306](https://github.com/ckb-devrel/ccc/pull/306) [`cec9b39`](https://github.com/ckb-devrel/ccc/commit/cec9b39345fc37a6ae72c0774059b2e31efc9e89) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): nostr signature verification
 
-
-
 - [#304](https://github.com/ckb-devrel/ccc/pull/304) [`c95913f`](https://github.com/ckb-devrel/ccc/commit/c95913f58c889c9d8c0b164014f9917501c11dbc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `ccc.mol.codec` decorator
-  
-  * The runtime will invoke the decorator with 2 arguments, but the decorator expects 1.
-  * Decorator function return type '...' is not assignable to type '...'
+
+  - The runtime will invoke the decorator with 2 arguments, but the decorator expects 1.
+  - Decorator function return type '...' is not assignable to type '...'
 
 ## 1.11.4
+
 ### Patch Changes
-
-
 
 - [#295](https://github.com/ckb-devrel/ccc/pull/295) [`1eb030f`](https://github.com/ckb-devrel/ccc/commit/1eb030fde95c545561a092a4025747e6d14fc8de) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `ClientCacheMemory.findCells` never stops
 
 ## 1.11.3
+
 ### Patch Changes
-
-
 
 - [#282](https://github.com/ckb-devrel/ccc/pull/282) [`d4fb021`](https://github.com/ckb-devrel/ccc/commit/d4fb021472a83b7871fd44824e9bb786cc412252) Thanks [@dependabot](https://github.com/apps/dependabot)! - chore(deps): bump dependency version
 
 ## 1.11.2
+
 ### Patch Changes
-
-
 
 - [#287](https://github.com/ckb-devrel/ccc/pull/287) [`00e6d56`](https://github.com/ckb-devrel/ccc/commit/00e6d56fa027cbe0cfeea20aa72abba7b14dc606) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): update joy id info
 
 ## 1.11.1
+
 ### Patch Changes
-
-
 
 - [#279](https://github.com/ckb-devrel/ccc/pull/279) [`e37468c`](https://github.com/ckb-devrel/ccc/commit/e37468c1527498cbd9097ebff24a13d53d747b22) Thanks [@Hanssen0](https://github.com/Hanssen0)! - chore(core): update JoyId celldeps
 
 ## 1.11.0
+
 ### Minor Changes
-
-
 
 - [`0e7cd8f`](https://github.com/ckb-devrel/ccc/commit/0e7cd8f6ca191186852c84e44db2fc0e1bb26d9b) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): `Signer.findCellsOnChain`
 
-
-
 - [`0008150`](https://github.com/ckb-devrel/ccc/commit/00081509e54e52af999e48feec11c90d2c649ab9) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): optional `shouldAddInputs` for `Transaction.completeFee`
-
-
 
 - [`5061511`](https://github.com/ckb-devrel/ccc/commit/506151120fcd1a80b6d38e074b7944164047e76f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): auto capacity completion
 
-
-
 - [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(core): make `CONFIRMED_BLOCK_TIME` configurable
-
-
 
 - [`82f5a45`](https://github.com/ckb-devrel/ccc/commit/82f5a45fd35968673be93f09bdd59ca79a7afb6e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): multiple scripts for `SignerCkbScriptReadonly`
 
-
 ### Patch Changes
-
-
 
 - [`07fc9fe`](https://github.com/ckb-devrel/ccc/commit/07fc9fe196115bf4b341e7b657927987956a6d7c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): avoid circular dependency
 
-
-
 - [`91f6027`](https://github.com/ckb-devrel/ccc/commit/91f60277c75773fad509f945eef8397ef1061cd1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - perf(core): optimize Transaction.completeFee
-
-
 
 - [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - feat(mol): add support for fixed-size Union
 
-
-
 - [`40fcd50`](https://github.com/ckb-devrel/ccc/commit/40fcd50639ce32bee1fc54497b22f4871807e98a) Thanks [@phroi](https://github.com/phroi)! - Simplify MapLru, while improving Complexity
 
-
-
 - [`82531c9`](https://github.com/ckb-devrel/ccc/commit/82531c9357bf29ebe1c222eb000d1fd03d0a96e6) Thanks [@phroi](https://github.com/phroi)! - perf(core): imporve performance of `Script` & `OutPoint` `eq`
-
-
 
 - [`46c61d4`](https://github.com/ckb-devrel/ccc/commit/46c61d48d5289a76385463bc7783b7cbfb05ed99) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): `Transaction.clone` should clone inputs' cache
 
 ## 1.9.1
+
 ### Patch Changes
-
-
 
 - [`a4d1a08`](https://github.com/ckb-devrel/ccc/commit/a4d1a08700cb861e49fbd961e8e6d6b26c06dfb6) Thanks [@ashuralyk](https://github.com/ashuralyk)! - Update JoyId celldep information on testnet
 
 ## 1.9.0
+
 ### Minor Changes
-
-
 
 - [#209](https://github.com/ckb-devrel/ccc/pull/209) [`77865cd`](https://github.com/ckb-devrel/ccc/commit/77865cd2953e5e01d6dc610823ad3eb13e128902) Thanks [@Alive24](https://github.com/Alive24)! - feat: compatible mode for molecule decode
 
-
-
 - [#216](https://github.com/ckb-devrel/ccc/pull/216) [`46f1760`](https://github.com/ckb-devrel/ccc/commit/46f1760cdd5d6cf3d843e9fe8682f9cd4f31930d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): try to avoid extra udt occupation
 
-
-
 - [#197](https://github.com/ckb-devrel/ccc/pull/197) [`2da4dc5`](https://github.com/ckb-devrel/ccc/commit/2da4dc5b5637b307c8010ccc22ef3f79c7dcca83) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat: add support for multisig script v2
-  
+
   Add support for the updated CKB system scripts, specifically the multisig script v2 that enhances handling for optional since value (PR nervosnetwork/ckb-system-scripts#99). This update addresses functional defects that caused transaction validation failures.
 
 ### Patch Changes
 
-
-
 - [#195](https://github.com/ckb-devrel/ccc/pull/195) [`0f3aa3f`](https://github.com/ckb-devrel/ccc/commit/0f3aa3fe7798826e57fb8092a679320fb4dfc140) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): keep molecule entity class name
-
-
 
 - [#188](https://github.com/ckb-devrel/ccc/pull/188) [`34fc83d`](https://github.com/ckb-devrel/ccc/commit/34fc83d316a99889f3019d8069c478113506fe7a) Thanks [@Hanssen0](https://github.com/Hanssen0)! - feat(core): SignerNostrPrivateKey support nsec key
 

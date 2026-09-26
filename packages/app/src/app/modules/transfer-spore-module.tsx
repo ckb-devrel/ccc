@@ -13,7 +13,9 @@ async function* findSignerSpores(signer: ccc.Signer) {
     order: "desc",
   })) {
     const id = spore.cellOutput.type?.args;
-    if (!id) continue;
+    if (!id) {
+      continue;
+    }
     yield {
       id,
       clusterId: sporeData.clusterId
@@ -50,7 +52,9 @@ type RawSporeOption = Omit<SporeOption, "clusterName">;
 async function prepareSpores(items: RawSporeOption[], signer: ccc.Signer) {
   return Promise.all(
     items.map(async ({ clusterId, id }): Promise<SporeOption> => {
-      if (!clusterId) return { clusterId, clusterName: "Public Spore", id };
+      if (!clusterId) {
+        return { clusterId, clusterName: "Public Spore", id };
+      }
       const cluster = await ccc.spore.findCluster(signer.client, clusterId);
       return {
         clusterId,
@@ -87,7 +91,9 @@ export function TransferSporeModule({
     : (spores[0]?.id ?? "");
 
   const submit = async (mode: "melt" | "transfer") => {
-    if (!signer || !activeSporeId) return;
+    if (!signer || !activeSporeId) {
+      return;
+    }
     setBusyAction(mode);
     try {
       await submitTransaction(

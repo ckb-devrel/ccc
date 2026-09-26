@@ -17,7 +17,9 @@ function contextName(level: Exclude<ContextLevel, "none">) {
 }
 
 function parseContext(level: ContextLevel, value: string) {
-  if (level === "none") return undefined;
+  if (level === "none") {
+    return undefined;
+  }
 
   let parsed: unknown;
   try {
@@ -51,7 +53,9 @@ async function findContract(client: ccc.Client, typeIdArgs: string) {
     typeIdArgs,
   );
   const cell = await client.findSingletonCellByType(type);
-  if (!cell) throw new Error("SSRI contract cell not found");
+  if (!cell) {
+    throw new Error("SSRI contract cell not found");
+  }
   return cell.outPoint;
 }
 
@@ -65,7 +69,9 @@ async function callSsri(
   contextText: string,
 ) {
   const scriptCell = await client.getCell(outPoint);
-  if (!scriptCell) throw new Error("SSRI contract cell not found");
+  if (!scriptCell) {
+    throw new Error("SSRI contract cell not found");
+  }
   const args = splitLines(argsText).map((value) => ccc.hexFrom(value));
   const context = parseContext(contextLevel, contextText);
   const executorOwner = ssri.ExecutorJsonRpc.open({ urls: [executorUrl] });
@@ -83,7 +89,9 @@ async function callSsri(
 
 function parseOutPoint(value: string) {
   const separator = value.lastIndexOf(":");
-  if (separator < 0) throw new Error("OutPoint must use txHash:index format");
+  if (separator < 0) {
+    throw new Error("OutPoint must use txHash:index format");
+  }
   return ccc.OutPoint.from({
     txHash: value.slice(0, separator),
     index: value.slice(separator + 1),

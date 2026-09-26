@@ -48,7 +48,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
     const revision = ++derivationRevision.current;
     setMnemonic(nextMnemonic);
     setAccounts([]);
-    if (!bip39.validateMnemonic(nextMnemonic, wordlist)) return;
+    if (!bip39.validateMnemonic(nextMnemonic, wordlist)) {
+      return;
+    }
 
     try {
       const next = await deriveCkbAccounts(
@@ -57,7 +59,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
         0,
         boundedAccountCount(count),
       );
-      if (revision !== derivationRevision.current) return;
+      if (revision !== derivationRevision.current) {
+        return;
+      }
       setAccounts(next);
       show({
         label: "DERIVATION",
@@ -73,7 +77,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
   };
 
   const derive = async () => {
-    if (derivationInFlight.current) return;
+    if (derivationInFlight.current) {
+      return;
+    }
     derivationInFlight.current = true;
     setDeriving(true);
     const revision = ++derivationRevision.current;
@@ -85,7 +91,9 @@ export function MnemonicModule({ client, log, show }: ModuleRuntimeProps) {
         accounts.length,
         amount,
       );
-      if (revision !== derivationRevision.current) return;
+      if (revision !== derivationRevision.current) {
+        return;
+      }
       setAccounts((current) => [...current, ...next]);
       show({
         label: "DERIVATION",

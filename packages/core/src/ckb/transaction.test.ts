@@ -964,6 +964,38 @@ describe("Transaction", () => {
       ).rejects.toThrow("doesn't use all available capacity");
     });
 
+    it("should throw error when change function over-allocates capacity leaving fee below leastFee", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+          },
+        ],
+        outputs: [
+          {
+            capacity: ccc.fixedPointFrom(30),
+            lock,
+          },
+        ],
+      });
+
+      await expect(
+        tx.completeFee(
+          signer,
+          (changedTx, capacity) => {
+            changedTx.addOutput({
+              capacity: capacity + ccc.fixedPointFrom(1),
+              lock,
+            });
+            return 0;
+          },
+          1000n,
+        ),
+      ).rejects.toThrow(
+        "The change function doesn't use all available capacity",
+      );
+    });
+
     it("should handle fee rate from client when not provided", async () => {
       const tx = ccc.Transaction.from({
         inputs: [
@@ -1024,6 +1056,236 @@ describe("Transaction", () => {
       expect(client.getFeeRate).toHaveBeenCalledWith(
         options.feeRateBlockRange,
         options,
+      );
+    });
+  });
+
+  describe("completeFeeChangeToOutput", () => {
+    let mockCapacityCells: ccc.Cell[];
+    const cellCapacity = ccc.fixedPointFrom(100);
+
+    beforeEach(() => {
+      mockCapacityCells = Array.from({ length: 10 }, (_, i) =>
+        ccc.Cell.from({
+          outPoint: {
+            txHash: `0x${"1".repeat(63)}${i.toString(16)}`,
+            index: 0,
+          },
+          cellOutput: {
+            capacity: cellCapacity,
+            lock,
+          },
+          outputData: "0x",
+        }),
+      );
+
+      vi.spyOn(signer, "findCells").mockImplementation(
+        async function* (filter) {
+          if (!filter.script || filter.scriptLenRange) {
+            for (const cell of mockCapacityCells) {
+              yield cell;
+            }
+          }
+        },
+      );
+
+      vi.spyOn(client, "getCell").mockImplementation(async (outPoint) => {
+        return mockCapacityCells.find((c) => c.outPoint.eq(outPoint));
+      });
+
+      vi.spyOn(client, "getFeeRate").mockResolvedValue(ccc.numFrom(1000));
+      vi.spyOn(signer, "prepareTransaction").mockImplementation(async (tx) =>
+        ccc.Transaction.from(tx),
+      );
+      vi.spyOn(signer, "getRecommendedAddressObj").mockResolvedValue({
+        script: lock,
+        prefix: "ckt",
+      });
+    });
+
+    it("should reject when output is at minimum occupied capacity and cannot pay fee without inputs (#557)", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: ccc.fixedPointFrom(61), lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      vi.spyOn(signer, "findCells").mockImplementation(async function* () {});
+
+      await expect(
+        tx.completeFeeChangeToOutput(signer, 0, 1000n),
+      ).rejects.toThrow(ccc.ErrorTransactionInsufficientCapacity);
+    });
+
+    it("should reject with exact fee shortage when output is at minimum capacity and shouldAddInputs is false (#557)", async () => {
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: ccc.fixedPointFrom(61), lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      const err: unknown = await tx
+        .completeFeeChangeToOutput(signer, 0, 1000n, undefined, {
+          shouldAddInputs: false,
+        })
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ccc.ErrorTransactionInsufficientCapacity);
+      if (!(err instanceof ccc.ErrorTransactionInsufficientCapacity)) {
+        return;
+      }
+      expect(err.isForChange).toBe(false);
+      expect(err.amount).toBe(tx.estimateFee(1000n));
+    });
+
+    it("should succeed normally by deducting fee when target output has enough free capacity", async () => {
+      const initialCapacity = ccc.fixedPointFrom(100);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+            cellOutput: { capacity: initialCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: initialCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBe(0);
+      expect(hasChange).toBe(true);
+      expect(tx.inputs).toHaveLength(1);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(tx.outputs[0].capacity).toBe(initialCapacity - estimatedFee);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+    });
+
+    it("should collect inputs when target output has no free capacity and signer has funds", async () => {
+      const minCapacity = ccc.fixedPointFrom(61);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: minCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: minCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBeGreaterThan(0);
+      expect(hasChange).toBe(true);
+      expect(tx.inputs.length).toBe(1 + addedInputs);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+      expect(tx.outputs[0].capacity).toBeGreaterThan(minCapacity);
+    });
+
+    it("should collect inputs when target output has partial free capacity but not enough for fee", async () => {
+      const minCapacity = ccc.fixedPointFrom(61);
+      // Leave only 50 shannons free, fee is ~355 shannons
+      const partialCapacity = minCapacity + 50n;
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"00".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: partialCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: partialCapacity, lock }],
+      });
+
+      const [addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(addedInputs).toBeGreaterThan(0);
+      expect(hasChange).toBe(true);
+      const estimatedFee = tx.estimateFee(1000n);
+      expect(await tx.getFee(client)).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+      expect(tx.outputs[0].capacity).toBeGreaterThan(minCapacity);
+    });
+
+    it("should converge when prepareTransaction changes transaction size and balance", async () => {
+      const cellDep = {
+        outPoint: { txHash: `0x${"4".repeat(64)}`, index: 0 },
+        depType: "code" as const,
+      };
+      const dummyWitness = `0x${"00".repeat(100)}`;
+      vi.mocked(signer.prepareTransaction).mockImplementation(
+        async (txLike) => {
+          const prepared = ccc.Transaction.from(txLike);
+          if (prepared.cellDeps.length === 0) {
+            prepared.addCellDeps(cellDep);
+            prepared.setWitnessArgs(0, { lock: dummyWitness });
+          }
+          return prepared;
+        },
+      );
+
+      const minCapacity = ccc.fixedPointFrom(61);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: mockCapacityCells[0].outPoint,
+            cellOutput: { capacity: minCapacity, lock },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: minCapacity, lock }],
+      });
+
+      const [_addedInputs, hasChange] = await tx.completeFeeChangeToOutput(
+        signer,
+        0,
+        1000n,
+      );
+
+      expect(hasChange).toBe(true);
+      expect(tx.cellDeps).toHaveLength(1);
+      const estimatedFee = tx.estimateFee(1000n);
+      const actualFee = await tx.getFee(client);
+      expect(actualFee).toBe(estimatedFee);
+      expect(await tx.getFeeRate(client)).toBeGreaterThanOrEqual(1000n);
+    });
+
+    it("should throw error for non-existed output index", () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ capacity: ccc.fixedPointFrom(61), lock }],
+      });
+
+      expect(() => tx.completeFeeChangeToOutput(signer, 1, 1000n)).toThrow(
+        "Non-existed output to change",
+      );
+      expect(() => tx.completeFeeChangeToOutput(signer, -1, 1000n)).toThrow(
+        "Non-existed output to change",
       );
     });
   });
@@ -1141,12 +1403,14 @@ describe("Transaction", () => {
           cellOutput: { lock },
           outputData: "0x",
         });
+        const initialCapacity = cell.cellOutput.capacity;
         cell.outputData = `0x${"12".repeat(100)}`;
 
         const result = ccc.CellAny.from(cell);
 
-        expect(result).toBe(cell);
-        const actual = cell.cellOutput.capacity;
+        expect(result).not.toBe(cell);
+        expect(cell.cellOutput.capacity).toBe(initialCapacity);
+        const actual = result.cellOutput.capacity;
         const required = ccc.CellOutput.from(
           cell.cellOutput.clone(),
           cell.outputData,
@@ -1411,12 +1675,14 @@ describe("Transaction", () => {
           },
           outputData: "0x",
         });
+        const initialCapacity = originalCell.cellOutput.capacity;
         originalCell.outputData = `0x${"12".repeat(100)}`;
 
         const result = ccc.Cell.from(originalCell);
 
-        expect(result).toBe(originalCell); // Should return the same instance
-        const actual = originalCell.cellOutput.capacity;
+        expect(result).not.toBe(originalCell); // Should return a new instance when invalid
+        expect(originalCell.cellOutput.capacity).toBe(initialCapacity); // Original capacity unchanged
+        const actual = result.cellOutput.capacity;
         const required = ccc.CellOutput.from(
           originalCell.cellOutput.clone(),
           originalCell.outputData,
@@ -1429,12 +1695,14 @@ describe("Transaction", () => {
           outputs: [{ capacity: 1000n, lock }],
           outputsData: ["0x"],
         });
+        const initialCapacity = originalTx.outputs[0].capacity;
         originalTx.outputsData[0] = `0x${"12".repeat(100)}`;
 
         const result = ccc.Transaction.from(originalTx);
 
-        expect(result).toBe(originalTx); // Should return the same instance
-        const actual = originalTx.outputs[0].capacity;
+        expect(result).not.toBe(originalTx); // Should return a new instance when invalid
+        expect(originalTx.outputs[0].capacity).toBe(initialCapacity); // Original capacity unchanged
+        const actual = result.outputs[0].capacity;
         const required = ccc.CellOutput.from(
           originalTx.outputs[0].clone(),
           originalTx.outputsData[0],
@@ -1646,6 +1914,277 @@ describe("Transaction", () => {
         // Add output 1. Since outputs.length (1) >= inputs.length (2) is false, it does not splice.
         tx.addOutput({ lock });
         expect(tx.witnesses).toEqual(["0x", "0x", "0x3333"]);
+      });
+    });
+
+    describe("Invariant Capacity Normalization", () => {
+      describe("CellOutput.from", () => {
+        it("returns the same instance for a valid existing instance", () => {
+          const minCap = ccc.fixedPointFrom(8 + lock.occupiedSize);
+          const validOutput = ccc.CellOutput.from({
+            capacity: minCap + 100n,
+            lock,
+          });
+          const result = ccc.CellOutput.from(validOutput, "0x");
+          expect(result).toBe(validOutput);
+        });
+
+        it("returns a new instance when existing instance has insufficient capacity", () => {
+          const insufficientOutput = ccc.CellOutput.from({
+            capacity: 100n,
+            lock,
+          });
+          const data = `0x${"12".repeat(50)}`;
+          const result = ccc.CellOutput.from(insufficientOutput, data);
+
+          expect(result).not.toBe(insufficientOutput);
+          expect(insufficientOutput.capacity).toBe(100n);
+          const expectedMin = ccc.fixedPointFrom(
+            insufficientOutput.occupiedSize + 50,
+          );
+          expect(result.capacity).toBe(expectedMin);
+        });
+
+        it("preserves sufficient explicit capacity", () => {
+          const explicitCapacity = ccc.fixedPointFrom(200);
+          const output = ccc.CellOutput.from({
+            capacity: explicitCapacity,
+            lock,
+          });
+          const result = ccc.CellOutput.from(output, "0x1234");
+          expect(result).toBe(output);
+          expect(result.capacity).toBe(explicitCapacity);
+        });
+
+        it("does not reduce capacity when data shrinks", () => {
+          const largeData = `0x${"12".repeat(100)}`;
+          const output = ccc.CellOutput.from({ lock }, largeData);
+          const initialCapacity = output.capacity;
+
+          const result = ccc.CellOutput.from(output, "0x");
+          expect(result).toBe(output);
+          expect(result.capacity).toBe(initialCapacity);
+        });
+      });
+
+      describe("CellAny.from", () => {
+        it("returns the same instance for a valid existing instance", () => {
+          const cell = ccc.CellAny.from({
+            cellOutput: { lock },
+            outputData: "0x1234",
+          });
+          const result = ccc.CellAny.from(cell);
+          expect(result).toBe(cell);
+        });
+
+        it("returns a new instance when capacity is insufficient without mutating original", () => {
+          const cell = ccc.CellAny.from({
+            cellOutput: { lock },
+            outputData: "0x",
+          });
+          const originalCapacity = cell.cellOutput.capacity;
+          cell.outputData = `0x${"12".repeat(100)}`;
+
+          const result = ccc.CellAny.from(cell);
+          expect(result).not.toBe(cell);
+          expect(cell.cellOutput.capacity).toBe(originalCapacity);
+          const expectedMin = ccc.fixedPointFrom(
+            cell.cellOutput.occupiedSize + 100,
+          );
+          expect(result.cellOutput.capacity).toBe(expectedMin);
+          expect(result.outputData).toBe(cell.outputData);
+        });
+
+        it("reconstructs an invalid Cell instance as CellAny", () => {
+          const outPoint = { txHash: `0x${"0".repeat(64)}`, index: 0 };
+          const cell = ccc.Cell.from({
+            outPoint,
+            cellOutput: { lock },
+            outputData: "0x",
+          });
+          cell.outputData = `0x${"12".repeat(100)}`;
+
+          const result = ccc.CellAny.from(cell);
+          expect(result).not.toBe(cell);
+          expect(result).toBeInstanceOf(ccc.CellAny);
+          expect(result).not.toBeInstanceOf(ccc.Cell);
+          expect(result.outPoint).toBe(cell.outPoint);
+        });
+      });
+
+      describe("Cell.from", () => {
+        it("returns the same instance for a valid existing Cell", () => {
+          const outPoint = { txHash: `0x${"0".repeat(64)}`, index: 0 };
+          const cell = ccc.Cell.from({
+            outPoint,
+            cellOutput: { lock },
+            outputData: "0x1234",
+          });
+          const result = ccc.Cell.from(cell);
+          expect(result).toBe(cell);
+        });
+
+        it("returns a shallowly reconstructed corrected Cell when capacity is insufficient without modifying original", () => {
+          const outPoint = { txHash: `0x${"0".repeat(64)}`, index: 0 };
+          const cell = ccc.Cell.from({
+            outPoint,
+            cellOutput: { lock },
+            outputData: "0x",
+          });
+          const originalCapacity = cell.cellOutput.capacity;
+          const originalCellOutput = cell.cellOutput;
+          cell.outputData = `0x${"12".repeat(100)}`;
+
+          const result = ccc.Cell.from(cell);
+          expect(result).not.toBe(cell);
+          expect(cell.cellOutput).toBe(originalCellOutput);
+          expect(cell.cellOutput.capacity).toBe(originalCapacity);
+          const expectedMin = ccc.fixedPointFrom(
+            cell.cellOutput.occupiedSize + 100,
+          );
+          expect(result.cellOutput.capacity).toBe(expectedMin);
+          expect(result.outputData).toBe(cell.outputData);
+          expect(result.outPoint).toBe(cell.outPoint);
+          expect(result.cellOutput.lock).toBe(cell.cellOutput.lock);
+        });
+      });
+
+      describe("Transaction.from", () => {
+        it("returns the same instance for a valid existing transaction", () => {
+          const tx = ccc.Transaction.from({
+            outputs: [{ lock }],
+            outputsData: ["0x1234"],
+          });
+          const result = ccc.Transaction.from(tx);
+          expect(result).toBe(tx);
+        });
+
+        it("returns a reconstructed transaction when an output capacity is insufficient without mutating original", () => {
+          const tx = ccc.Transaction.from({
+            outputs: [{ lock }],
+            outputsData: ["0x"],
+          });
+          const originalOutput = tx.outputs[0];
+          const originalCapacity = originalOutput.capacity;
+          tx.outputsData[0] = `0x${"12".repeat(100)}`;
+
+          const result = ccc.Transaction.from(tx);
+          expect(result).not.toBe(tx);
+          expect(tx.outputs[0]).toBe(originalOutput);
+          expect(tx.outputs[0].capacity).toBe(originalCapacity);
+          const expectedMin = ccc.fixedPointFrom(
+            originalOutput.occupiedSize + 100,
+          );
+          expect(result.outputs[0].capacity).toBe(expectedMin);
+        });
+
+        it("shallowly reconstructs transaction in the invalid path", () => {
+          const cellDep = ccc.CellDep.from({
+            outPoint: { txHash: `0x${"1".repeat(64)}`, index: 0 },
+            depType: "code",
+          });
+          const input = ccc.CellInput.from({
+            previousOutput: { txHash: `0x${"2".repeat(64)}`, index: 0 },
+            since: 0,
+            cellOutput: ccc.CellOutput.from({ capacity: 1000n, lock }),
+          });
+          const tx = ccc.Transaction.from({
+            cellDeps: [cellDep],
+            inputs: [input],
+            outputs: [{ lock, type }],
+            outputsData: ["0x"],
+          });
+          tx.outputsData[0] = `0x${"ab".repeat(200)}`;
+
+          const result = ccc.Transaction.from(tx);
+          expect(result).not.toBe(tx);
+
+          // Top-level arrays and invalid outputs are reconstructed
+          expect(result.outputs).not.toBe(tx.outputs);
+          expect(result.outputs[0]).not.toBe(tx.outputs[0]);
+          expect(result.inputs).not.toBe(tx.inputs);
+          expect(result.cellDeps).not.toBe(tx.cellDeps);
+          expect(result.outputsData).not.toBe(tx.outputsData);
+
+          // Unaffected entities and scripts are shallowly reused
+          expect(result.cellDeps[0]).toBe(tx.cellDeps[0]);
+          expect(result.inputs[0]).toBe(tx.inputs[0]);
+          expect(result.outputs[0].lock).toBe(tx.outputs[0].lock);
+          expect(result.outputs[0].type).toBe(tx.outputs[0].type);
+
+          // Original transaction and outputs are not mutated
+          expect(tx.outputs[0].capacity).toBe(
+            ccc.fixedPointFrom(tx.outputs[0].occupiedSize),
+          );
+          expect(result.outputs[0].capacity).toBe(
+            ccc.fixedPointFrom(tx.outputs[0].occupiedSize + 200),
+          );
+        });
+      });
+
+      describe("Shared-reference regressions", () => {
+        it("does not inflate input-side CellOutput when input and output share the instance", () => {
+          const sharedOutput = ccc.CellOutput.from({ capacity: 1000n, lock });
+          const input = ccc.CellInput.from({
+            previousOutput: { txHash: `0x${"3".repeat(64)}`, index: 0 },
+            since: 0,
+            cellOutput: sharedOutput,
+          });
+          const tx = new ccc.Transaction({
+            version: 0n,
+            cellDeps: [],
+            headerDeps: [],
+            inputs: [input],
+            outputs: [sharedOutput],
+            outputsData: [`0x${"ff".repeat(100)}`],
+            witnesses: [],
+          });
+
+          const normalized = ccc.Transaction.from(tx);
+
+          // Original shared output and input are unchanged
+          expect(sharedOutput.capacity).toBe(1000n);
+          expect(tx.inputs[0].cellOutput?.capacity).toBe(1000n);
+          expect(tx.outputs[0].capacity).toBe(1000n);
+
+          // Normalized transaction has corrected output and untouched input
+          const expectedMin = ccc.fixedPointFrom(
+            sharedOutput.occupiedSize + 100,
+          );
+          expect(normalized.outputs[0].capacity).toBe(expectedMin);
+          expect(normalized.inputs[0].cellOutput?.capacity).toBe(1000n);
+        });
+
+        it("independently normalizes capacities when two outputs share the same CellOutput instance", () => {
+          const sharedOutput = ccc.CellOutput.from({ capacity: 1000n, lock });
+          const tx = new ccc.Transaction({
+            version: 0n,
+            cellDeps: [],
+            headerDeps: [],
+            inputs: [],
+            outputs: [sharedOutput, sharedOutput],
+            outputsData: [`0x${"11".repeat(50)}`, `0x${"22".repeat(100)}`],
+            witnesses: [],
+          });
+
+          const normalized = ccc.Transaction.from(tx);
+
+          // Original shared output is unchanged
+          expect(sharedOutput.capacity).toBe(1000n);
+          expect(tx.outputs[0].capacity).toBe(1000n);
+          expect(tx.outputs[1].capacity).toBe(1000n);
+
+          // Normalized outputs get independently correct capacities
+          const expectedCap0 = ccc.fixedPointFrom(
+            sharedOutput.occupiedSize + 50,
+          );
+          const expectedCap1 = ccc.fixedPointFrom(
+            sharedOutput.occupiedSize + 100,
+          );
+          expect(normalized.outputs[0].capacity).toBe(expectedCap0);
+          expect(normalized.outputs[1].capacity).toBe(expectedCap1);
+          expect(normalized.outputs[0]).not.toBe(normalized.outputs[1]);
+        });
       });
     });
   });

@@ -116,7 +116,9 @@ export function CreateSporeClusterModule({
   const [busy, setBusy] = useState(false);
 
   const create = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusy(true);
     try {
       let clusterId = "";

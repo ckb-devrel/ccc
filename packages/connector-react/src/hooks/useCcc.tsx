@@ -63,6 +63,7 @@ export function Provider({
   children,
   connectorProps,
   hideMark,
+  hideKhie,
   name,
   icon,
   khieRelayAddress,
@@ -74,6 +75,7 @@ export function Provider({
   children: ReactNode;
   connectorProps?: HTMLAttributes<{}>;
   hideMark?: boolean;
+  hideKhie?: boolean;
   name?: string;
   icon?: string;
   khieRelayAddress?: string;
@@ -184,6 +186,7 @@ export function Provider({
       <Connector
         client={client}
         hideMark={hideMark}
+        hideKhie={hideKhie}
         name={name}
         icon={icon}
         khieRelayAddress={khieRelayAddress}

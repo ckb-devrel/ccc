@@ -22,7 +22,9 @@ export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
   const [busyAction, setBusyAction] = useState<"sign" | "verify">();
 
   const sign = async () => {
-    if (!signer || busyAction) return;
+    if (!signer || busyAction) {
+      return;
+    }
     setBusyAction("sign");
     try {
       const nextSignature = await signMessage(signer, message);
@@ -46,7 +48,9 @@ export function SignModule({ log, show, signer }: ModuleRuntimeProps) {
   };
 
   const verify = async () => {
-    if (busyAction) return;
+    if (busyAction) {
+      return;
+    }
     setBusyAction("verify");
     try {
       const valid = await verifyMessage(message, signature);

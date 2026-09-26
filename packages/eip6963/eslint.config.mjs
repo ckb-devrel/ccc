@@ -59,4 +59,5 @@ export default [
     },
   }),
   eslintPluginPrettierRecommended,
+  { rules: { curly: ["error", "all"] } },
 ];

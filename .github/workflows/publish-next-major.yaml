@@ -16,4 +16,4 @@ jobs:
     uses: ./.github/workflows/_changesets-release.yaml
     secrets: inherit
     with:
-      release_name: CCC prerelease
+      release_name: CCC Pre-release

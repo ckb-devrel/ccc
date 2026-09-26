@@ -35,7 +35,9 @@ function isDaoDeposit(cell: ccc.Cell) {
 
 function addHeaderDeps(tx: ccc.Transaction, ...hashes: ccc.Hex[]) {
   hashes.forEach((hash) => {
-    if (!tx.headerDeps.includes(hash)) tx.headerDeps.push(hash);
+    if (!tx.headerDeps.includes(hash)) {
+      tx.headerDeps.push(hash);
+    }
   });
 }
 
@@ -93,7 +95,9 @@ async function buildDaoAction(
   const { depositHeader, withdrawHeader } = await dao.getNervosDaoInfo(
     signer.client,
   );
-  if (!depositHeader) throw new Error("DAO deposit header not found");
+  if (!depositHeader) {
+    throw new Error("DAO deposit header not found");
+  }
   if (isDaoDeposit(dao)) {
     addHeaderDeps(tx, depositHeader.hash);
     tx.addInput(dao);
@@ -105,7 +109,9 @@ async function buildDaoAction(
     return tx;
   }
 
-  if (!withdrawHeader) throw new Error("DAO withdraw header not found");
+  if (!withdrawHeader) {
+    throw new Error("DAO withdraw header not found");
+  }
   addHeaderDeps(tx, withdrawHeader.hash, depositHeader.hash);
   const inputIndex =
     tx.addInput({
@@ -148,7 +154,9 @@ async function prepareDaoPositions(cells: ccc.Cell[], signer: ccc.Signer) {
       const transaction = await signer.client.getTransaction(
         cell.outPoint.txHash,
       );
-      if (transaction && transaction.status !== "committed") return;
+      if (transaction && transaction.status !== "committed") {
+        return;
+      }
 
       const { depositHeader, withdrawHeader } = await cell.getNervosDaoInfo(
         signer.client,
@@ -202,7 +210,9 @@ export function NervosDaoModule({
 
   const maximum = async () => {
     setMaximumFeeRate(undefined);
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusyAction("maximum");
     try {
       const result = await calculateMaximumDaoDeposit(signer);
@@ -232,7 +242,9 @@ export function NervosDaoModule({
   };
 
   const submit = async (mode: "deposit" | "progress", cell?: ccc.Cell) => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     const actionKey = mode === "deposit" ? mode : cellKey(cell);
     setBusyAction(actionKey);
     try {
@@ -245,8 +257,12 @@ export function NervosDaoModule({
       await submitTransaction(
         actionName,
         (tx) => {
-          if (mode === "deposit") return buildDaoDeposit(signer, tx, amount);
-          if (!cell) throw new Error("Select a DAO cell");
+          if (mode === "deposit") {
+            return buildDaoDeposit(signer, tx, amount);
+          }
+          if (!cell) {
+            throw new Error("Select a DAO cell");
+          }
           return buildDaoAction(signer, tx, cell);
         },
         { feeRate: mode === "deposit" ? maximumFeeRate : undefined },
@@ -341,7 +357,9 @@ function cellKey(cell?: ccc.Cell) {
 }
 
 function describeDaoError(cause: unknown) {
-  if (!(cause instanceof DaoDepositTooSmallError)) return cause;
+  if (!(cause instanceof DaoDepositTooSmallError)) {
+    return cause;
+  }
   return new Error(
     `Minimum deposit is ${ccc.fixedPointToString(cause.minimum)} CKB`,
   );

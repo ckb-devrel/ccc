@@ -209,7 +209,9 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
     this.disposed = true;
     const socket = this.socket;
 
-    if (!socket || socket.readyState === socket.CLOSED) return;
+    if (!socket || socket.readyState === socket.CLOSED) {
+      return;
+    }
 
     await new Promise<void>((resolve) => {
       socket.addEventListener("close", () => resolve(), { once: true });

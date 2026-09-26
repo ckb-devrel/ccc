@@ -75,7 +75,9 @@ export function TransferUdtModule({
     let cancelled = false;
     loadKnownXUdtConfig(client)
       .then((knownConfig) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setConfig((current) => ({ ...current, ...knownConfig }));
       })
       .catch((cause) =>
@@ -87,7 +89,9 @@ export function TransferUdtModule({
   }, [client, log, show]);
 
   const transfer = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusy(true);
     show({
       label: "ASSEMBLY",

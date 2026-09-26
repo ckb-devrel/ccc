@@ -31,7 +31,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
       const nextRoot = await decryptHdKeystore(keystore, password);
       const amount = boundedAccountCount(count);
       const next = await deriveCkbAccounts(client, nextRoot, 0, amount);
-      if (revision !== credentialRevision.current) return;
+      if (revision !== credentialRevision.current) {
+        return;
+      }
       setRoot(nextRoot);
       setAccounts(next);
       show({
@@ -50,7 +52,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
   };
 
   const more = async () => {
-    if (!root || moreInFlight.current) return;
+    if (!root || moreInFlight.current) {
+      return;
+    }
     moreInFlight.current = true;
     setDerivingMore(true);
     const revision = credentialRevision.current;
@@ -61,7 +65,9 @@ export function KeystoreModule({ client, log, show }: ModuleRuntimeProps) {
         accounts.length,
         boundedAccountCount(count),
       );
-      if (revision !== credentialRevision.current) return;
+      if (revision !== credentialRevision.current) {
+        return;
+      }
       setAccounts((current) => [...current, ...next]);
       show({
         label: "DERIVATION",

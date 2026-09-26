@@ -8,6 +8,7 @@ import {
   CONNECTOR_ENDPOINT_URL,
   createKhieNode,
   JSON_RPC_PROTOCOL,
+  KHIE_APP_CONNECT_URL,
   type KhieNode,
 } from "./node.js";
 import { khieWalletFrom } from "./wallet.js";
@@ -16,6 +17,7 @@ export type KhiePairingPhase = "connecting" | "idle" | "pairing";
 export type KhieRelayState = "connected" | "connecting" | "failed" | "idle";
 
 export type KhiePairingSessionState = Readonly<{
+  appEndpoint: string;
   canPair: boolean;
   error?: string;
   errorKind?: "incompatible-peer";
@@ -26,6 +28,7 @@ export type KhiePairingSessionState = Readonly<{
 }>;
 
 export const KHIE_PAIRING_SESSION_INITIAL_STATE: KhiePairingSessionState = {
+  appEndpoint: "",
   canPair: false,
   ownEndpoint: "",
   phase: "idle",
@@ -41,6 +44,7 @@ export type KhiePairingSessionConfig = {
 
 type KhiePairingSessionResources = {
   abortController: AbortController;
+  connectionController?: KhieConnectionController;
   nodeOwner?: ccc.Owner<KhieNode>;
   relayController?: Libp2p.RelayConnectionController;
   nodeSubscriptions: Array<() => void>;
@@ -59,6 +63,7 @@ function removeNodeSubscriptions(resources: KhiePairingSessionResources) {
 
 async function releaseResources(resources: KhiePairingSessionResources) {
   removeNodeSubscriptions(resources);
+  resources.connectionController?.stop();
 
   try {
     if (resources.pendingSigner) {
@@ -173,21 +178,30 @@ export class KhiePairingSession {
       const updateId = ++endpointUpdateId;
       const addresses = node.getMultiaddrs();
       if (addresses.length === 0) {
-        this.update({ ownEndpoint: "" });
+        this.update({ appEndpoint: "", ownEndpoint: "" });
         return;
       }
 
-      void Libp2p.encodePairingEndpoint(
-        CONNECTOR_ENDPOINT_URL,
-        addresses,
-        node.services.pairing.secret,
-        "connector",
-      )
-        .then((ownEndpoint) => {
+      const secret = node.services.pairing.secret;
+      void Promise.all([
+        Libp2p.encodePairingEndpoint(
+          CONNECTOR_ENDPOINT_URL,
+          addresses,
+          secret,
+          "connector",
+        ),
+        Libp2p.encodePairingEndpoint(
+          KHIE_APP_CONNECT_URL,
+          addresses,
+          secret,
+          "connector",
+        ),
+      ])
+        .then(([ownEndpoint, appEndpoint]) => {
           if (updateId !== endpointUpdateId) {
             return;
           }
-          this.update({ ownEndpoint });
+          this.update({ appEndpoint, ownEndpoint });
         })
         .catch((cause: unknown) => {
           if (updateId !== endpointUpdateId) {
@@ -293,9 +307,15 @@ export class KhiePairingSession {
 
     let signer: ccc.SignerJsonRpc;
     try {
+      resources.connectionController = new KhieConnectionController(
+        node,
+        peerId,
+      );
       signer = await ccc.SignerJsonRpc.new(this.client, { transport });
       signal.throwIfAborted();
     } catch (cause) {
+      resources.connectionController?.stop();
+      resources.connectionController = undefined;
       resources.selectedPeer = undefined;
       this.updateError(cause, { phase: "idle" });
       await node.services.pairing.unpair(peerId);
@@ -365,15 +385,12 @@ export class KhiePairingSession {
       const abortController = resources.abortController;
       const relayController = resources.relayController;
       const nodeOwnership = nodeOwner.map((node) => node);
-      const connectionController = new KhieConnectionController(
-        nodeOwnership.value,
-        peerId,
-      );
+      const connectionController = resources.connectionController;
       const connectedOwner = new ccc.OwnerUnique(
         nodeOwnership.value,
         async () => {
           abortController.abort();
-          connectionController.stop();
+          connectionController?.stop();
           try {
             await cleanup();
           } finally {

@@ -39,6 +39,7 @@ export default [
     },
   },
   eslintPluginPrettierRecommended,
+  { rules: { curly: ["error", "all"] } },
   {
     settings: {
       // Fix for ESLint 10+: eslint-plugin-react uses context.getFilename() (legacy API)

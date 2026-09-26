@@ -23,7 +23,9 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     return () => void owner.dispose().catch(() => {});
   }, []);
 
-  if (!clientOptions) return null;
+  if (!clientOptions) {
+    return null;
+  }
 
   return (
     <ccc.Provider

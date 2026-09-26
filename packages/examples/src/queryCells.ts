@@ -17,7 +17,9 @@ for await (const cell of signer.client.findCellsByLock(lock)) {
     `| Data length: ${(cell.outputData.length - 2) / 2} bytes`,
   );
   count++;
-  if (count >= 10) break; // Limit output for demo
+  if (count >= 10) {
+    break;
+  } // Limit output for demo
 }
 console.log(`Found ${count} cells (showing max 10)`);
 
@@ -43,6 +45,8 @@ console.log(`Found ${udtCount} UDT cells`);
 let signerCellCount = 0;
 for await (const _cell of signer.findCells({})) {
   signerCellCount++;
-  if (signerCellCount >= 20) break;
+  if (signerCellCount >= 20) {
+    break;
+  }
 }
 console.log(`Signer owns at least ${signerCellCount} cells`);

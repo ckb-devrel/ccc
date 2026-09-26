@@ -86,7 +86,9 @@ async function buildClaim(
     1,
   );
   const { value: ownerCell, done } = await iterator.next();
-  if (done || !ownerCell) throw new Error("An owner cell is required to claim");
+  if (done || !ownerCell) {
+    throw new Error("An owner cell is required to claim");
+  }
   tx.addInput(ownerCell);
   tx.addInput({
     previousOutput: cell.outPoint,
@@ -135,7 +137,9 @@ export function TimeLockedTransferModule({
   });
 
   useEffect(() => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     let cancelled = false;
     let reportedError = false;
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -143,12 +147,16 @@ export function TimeLockedTransferModule({
       void signer.client
         .getTip()
         .then((nextTip) => {
-          if (cancelled) return;
+          if (cancelled) {
+            return;
+          }
           reportedError = false;
           setTip(nextTip);
         })
         .catch((cause) => {
-          if (cancelled || reportedError) return;
+          if (cancelled || reportedError) {
+            return;
+          }
           reportedError = true;
           reportModuleError(cause, show, log, "Unable to load chain tip");
         })
@@ -161,12 +169,16 @@ export function TimeLockedTransferModule({
     refreshTip();
     return () => {
       cancelled = true;
-      if (refreshTimer !== undefined) clearTimeout(refreshTimer);
+      if (refreshTimer !== undefined) {
+        clearTimeout(refreshTimer);
+      }
     };
   }, [log, refreshNonce, show, signer]);
 
   const transmit = async (mode: "claim" | "lock", target?: TimeLockCell) => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     const actionKey = mode === "lock" ? mode : cellKey(target?.cell);
     setBusyAction(actionKey);
     try {
@@ -182,7 +194,9 @@ export function TimeLockedTransferModule({
               blocks,
             );
           }
-          if (!target) throw new Error("Select a time-lock cell to claim");
+          if (!target) {
+            throw new Error("Select a time-lock cell to claim");
+          }
           return buildClaim(signer, tx, target);
         },
       );

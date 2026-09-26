@@ -19,7 +19,9 @@ for await (const txRecord of signer.client.findTransactionsByLock(
     `| Block: ${txRecord.blockNumber}`,
   );
   txCount++;
-  if (txCount >= 10) break; // Limit output for demo
+  if (txCount >= 10) {
+    break;
+  } // Limit output for demo
 }
 console.log(`Found ${txCount} transactions (showing max 10)`);
 

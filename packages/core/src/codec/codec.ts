@@ -2,21 +2,18 @@
 
 import { Bytes, bytesFrom, BytesLike } from "../bytes/index.js";
 
-export type CodecLike<Encodable, Decoded = Encodable> = {
-  encode: (encodable: Encodable) => BytesLike;
-  decode: (
-    decodable: Bytes,
-    config?: { isExtraFieldIgnored?: boolean },
-  ) => Decoded;
-  from?: ((encoded: Encodable) => Decoded) | null;
-  byteLength?: number;
+export type CodecLike<Encodable, Decoded = Encodable, Context = any> = {
+  readonly encode: (encodable: Encodable) => BytesLike;
+  readonly decode: (decodable: Bytes, context?: Context) => Decoded;
+  readonly from?: ((encodable: Encodable) => Decoded) | null;
+  readonly byteLength?: number;
 };
-export class Codec<Encodable, Decoded = Encodable> {
+export class Codec<Encodable, Decoded = Encodable, Context = any> {
   constructor(
     public readonly encode: (encodable: Encodable) => Bytes,
     public readonly decode: (
       decodable: BytesLike,
-      config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
+      context?: Context,
     ) => Decoded,
     public readonly from: (encodable: Encodable) => Decoded,
     public readonly byteLength?: number, // if provided, treat codec as fixed length
@@ -30,21 +27,17 @@ export class Codec<Encodable, Decoded = Encodable> {
     }
   }
 
-  decodeOr<T>(
-    decodable: BytesLike,
-    fallback: T,
-    config?: { isExtraFieldIgnored?: boolean }, // This is equivalent to "compatible" in the Rust implementation of Molecule.
-  ) {
+  decodeOr<T>(decodable: BytesLike, fallback: T, context?: Context) {
     try {
-      return this.decode(decodable, config);
+      return this.decode(decodable, context);
     } catch (_) {
       return fallback;
     }
   }
 
-  static from<Encodable, Decoded = Encodable>(
-    codecLike: CodecLike<Encodable, Decoded>,
-  ): Codec<Encodable, Decoded> {
+  static from<Encodable, Decoded = Encodable, Context = any>(
+    codecLike: CodecLike<Encodable, Decoded, Context>,
+  ): Codec<Encodable, Decoded, Context> {
     const newEncode = function (encodable: Encodable) {
       const encoded = bytesFrom(codecLike.encode(encodable));
       if (
@@ -57,10 +50,7 @@ export class Codec<Encodable, Decoded = Encodable> {
       }
       return encoded;
     };
-    const newDecode = function (
-      decodable: BytesLike,
-      config?: { isExtraFieldIgnored?: boolean },
-    ) {
+    const newDecode = function (decodable: BytesLike, context?: Context) {
       const decodableBytes = bytesFrom(decodable);
       if (
         codecLike.byteLength !== undefined &&
@@ -70,7 +60,7 @@ export class Codec<Encodable, Decoded = Encodable> {
           `Codec.decode: expected byte length ${codecLike.byteLength}, got ${decodableBytes.byteLength}`,
         );
       }
-      return codecLike.decode(decodableBytes, config);
+      return codecLike.decode(decodableBytes, context);
     };
     return new Codec(
       newEncode,
@@ -91,16 +81,16 @@ export class Codec<Encodable, Decoded = Encodable> {
     inMap?: (encodable: NewEncodable) => Encodable;
     outMap?: (decoded: Decoded) => NewDecoded;
     from?: (encodable: NewEncodable) => NewDecoded;
-  }): Codec<NewEncodable, NewDecoded> {
+  }): Codec<NewEncodable, NewDecoded, Context> {
     const encode = inMap
       ? (encodable: NewEncodable) => this.encode(inMap(encodable))
       : (this.encode as unknown as (encodable: NewEncodable) => Bytes);
     const decode = outMap
-      ? (buffer: BytesLike, config?: { isExtraFieldIgnored?: boolean }) =>
-          outMap(this.decode(buffer, config))
+      ? (buffer: BytesLike, context?: Context) =>
+          outMap(this.decode(buffer, context))
       : (this.decode as unknown as (
           buffer: BytesLike,
-          config?: { isExtraFieldIgnored?: boolean },
+          context?: Context,
         ) => NewDecoded);
     const newFrom =
       from ??
@@ -116,18 +106,45 @@ export class Codec<Encodable, Decoded = Encodable> {
 
   mapIn<NewEncodable>(
     map: (encodable: NewEncodable) => Encodable,
-  ): Codec<NewEncodable, Decoded> {
+  ): Codec<NewEncodable, Decoded, Context> {
     return this.map({ inMap: map });
   }
 
   mapOut<NewDecoded>(
     map: (decoded: Decoded) => NewDecoded,
-  ): Codec<Encodable, NewDecoded> {
+  ): Codec<Encodable, NewDecoded, Context> {
     return this.map({ outMap: map });
   }
 }
 
-export type EncodableType<T extends CodecLike<any, any>> =
-  T extends CodecLike<infer Encodable, unknown> ? Encodable : never;
-export type DecodedType<T extends CodecLike<any, any>> =
-  T extends CodecLike<any, infer Decoded> ? Decoded : never;
+export type EncodableType<T extends CodecLike<any, any, any>> =
+  T extends CodecLike<infer Encodable, unknown, any> ? Encodable : never;
+export type DecodedType<T extends CodecLike<any, any, any>> =
+  T extends CodecLike<any, infer Decoded, any> ? Decoded : never;
+
+type IsAny<T> = 0 extends 1 & T ? true : false;
+
+/**
+ * The context a codec specifically requires when composed with other codecs.
+ * Legacy `any` is normalized to `unknown`, while `Extract` preserves that the
+ * normalized type is assignable to the codec's original context.
+ */
+export type ContextType<T extends CodecLike<any, any, any>> = T extends {
+  readonly decode: (decodable: Bytes, context?: infer Context) => unknown;
+}
+  ? Extract<IsAny<Context> extends true ? unknown : Context, Context>
+  : unknown;
+
+/**
+ * The combined context required by every codec in a record.
+ *
+ * Map each child context to a function parameter before forming the union so a
+ * legacy `any` (normalized to `unknown` by {@link ContextType}) cannot absorb
+ * the other contexts. Inferring from the resulting contravariant parameter
+ * position converts the function union into an intersection of its contexts.
+ */
+export type ChildContext<T extends Record<string, CodecLike<any, any, any>>> = {
+  [K in keyof T]: (context: ContextType<T[K]>) => void;
+}[keyof T] extends (context: infer Context) => void
+  ? Context
+  : unknown;

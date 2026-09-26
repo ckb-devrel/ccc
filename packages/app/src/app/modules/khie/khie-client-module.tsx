@@ -2,26 +2,38 @@
 
 import { ccc } from "@ckb-ccc/connector-react";
 import { Libp2p } from "@ckb-ccc/libp2p";
-import { ArrowRight, Check, ChevronDown, ScanLine, X } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Info,
+  ScanLine,
+  X,
+} from "lucide-react";
 import {
   type CSSProperties,
   useCallback,
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { CopyableText } from "../../copyable-text";
 import type { ModuleRuntimeProps } from "../../modules";
 import { QrCode } from "../../qr-code";
 import { QrScanner } from "../../qr-scanner";
 import styles from "./khie-client-module.module.css";
+import { KhieIcon } from "./khie-icon";
 import {
   DEFAULT_KHIE_RELAY_ADDRESS,
   type KhieRemotePeer,
   KhieSignerSession,
 } from "./khie-signer-session";
 import { displayPeerName } from "./peer-name";
+import { summarizeTransfer } from "./transaction-summary";
 
 type SignerWaiter = {
   abort: () => void;
@@ -32,10 +44,15 @@ type SignerWaiter = {
 };
 type ApprovalPrompt = ccc.SignerJsonRpcConfirmation & {
   abort: () => void;
+  id: number;
   resolve: (approved: boolean) => void;
   signal: AbortSignal;
 };
 type RelayState = "connected" | "connecting" | "failed" | "idle";
+type LocationPairing =
+  | { appEndpoint: string; endpoint: string; kind: "connector"; stay: boolean }
+  | { endpoint: string; kind: "provider" }
+  | { endpoint: string; kind: "browser" };
 type SignerJsonRpcProviderInfo = {
   icon?: string;
   name?: string;
@@ -44,8 +61,21 @@ type SignerJsonRpcProviderInfo = {
 };
 
 const PROVIDER_ENDPOINT_URL = "https://app.ckbccc.com/#khie";
+const KHIE_APP_CONNECT_URL = "khie-wallet://app/connect";
 const APPROVAL_ENABLE_DELAY_MS = 1_000;
 const SIGNER_REPLACEMENT_GRACE_MS = 1_000;
+
+function cleanPairingHash() {
+  if (
+    typeof window === "undefined" ||
+    !window.location.hash.startsWith("#khie?")
+  ) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.hash = "khie";
+  window.history.replaceState(window.history.state, "", url);
+}
 
 export function KhieClientModule({
   client,
@@ -75,11 +105,16 @@ export function KhieClientModule({
   const [scanning, setScanning] = useState(false);
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
   const [approval, setApproval] = useState<ApprovalPrompt>();
+  const [isClosingApproval, setIsClosingApproval] = useState(false);
   const [approvalEnabled, setApprovalEnabled] = useState(false);
   const [queuedApprovalCount, setQueuedApprovalCount] = useState(0);
   const [remotePeer, setRemotePeer] = useState<KhieRemotePeer>();
   const [incompatiblePeerError, setIncompatiblePeerError] = useState<string>();
+  const [locationPairing, setLocationPairing] = useState<LocationPairing>();
 
+  const nextApprovalIdRef = useRef(1);
+  const locationDialogRef = useRef<HTMLDialogElement>(null);
+  const pairedLocationEndpointRef = useRef<string>(undefined);
   const signerRef = useRef(signer);
   const signerWaiters = useRef(new Set<SignerWaiter>());
   const approvalRef = useRef<ApprovalPrompt>(undefined);
@@ -159,16 +194,31 @@ export function KhieClientModule({
       if (approvalRef.current === prompt) {
         approvalEnabledRef.current = false;
         setApprovalEnabled(false);
-        const next = approvalQueue.current.shift();
-        approvalRef.current = next;
-        setApproval(next);
-      } else {
-        const index = approvalQueue.current.indexOf(prompt);
-        if (index === -1) {
-          return false;
+
+        prompt.signal.removeEventListener("abort", prompt.abort);
+        prompt.resolve(approved);
+
+        if (
+          typeof window !== "undefined" &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+          const next = approvalQueue.current.shift();
+          approvalRef.current = next;
+          setApproval(next);
+          setIsClosingApproval(false);
+          setQueuedApprovalCount(approvalQueue.current.length);
+          return true;
         }
-        approvalQueue.current.splice(index, 1);
+
+        setIsClosingApproval(true);
+        return true;
       }
+
+      const index = approvalQueue.current.indexOf(prompt);
+      if (index === -1) {
+        return false;
+      }
+      approvalQueue.current.splice(index, 1);
       setQueuedApprovalCount(approvalQueue.current.length);
 
       prompt.signal.removeEventListener("abort", prompt.abort);
@@ -177,12 +227,20 @@ export function KhieClientModule({
     },
     [],
   );
+  const onApprovalCloseComplete = useCallback(() => {
+    setIsClosingApproval(false);
+    const next = approvalQueue.current.shift();
+    approvalRef.current = next;
+    setApproval(next);
+    setQueuedApprovalCount(approvalQueue.current.length);
+  }, []);
   const confirmKhieRequest = useEffectEvent(
     (request: ccc.SignerJsonRpcConfirmation, signal: AbortSignal) =>
       new Promise<boolean>((resolve) => {
         const prompt: ApprovalPrompt = {
           ...request,
           abort: () => void settleApproval(prompt, false),
+          id: nextApprovalIdRef.current++,
           resolve,
           signal,
         };
@@ -211,6 +269,7 @@ export function KhieClientModule({
     approvalEnabledRef.current = false;
     approvalQueue.current = [];
     setApproval(undefined);
+    setIsClosingApproval(false);
     setApprovalEnabled(false);
     setQueuedApprovalCount(0);
     prompts.forEach((prompt) => {
@@ -261,30 +320,88 @@ export function KhieClientModule({
       logCurrent(`Relay connected: ${address}`, "success");
     },
   );
-  const pairLocationEndpoint = useEffectEvent(
-    async (currentSession: KhieSignerSession) => {
+  useEffect(() => {
+    let revision = 0;
+    const readLocationEndpoint = async () => {
+      const currentRevision = ++revision;
       const endpoint = window.location.href;
-      try {
-        // Pairing parameters live in the URL fragment. Decode without a role
-        // constraint so normal module anchors and malformed links are ignored,
-        // while session.pair can surface a valid endpoint's role mismatch.
-        await Libp2p.decodePairingEndpoint(endpoint);
-      } catch {
+      const url = new URL(endpoint);
+      if (!url.hash.startsWith("#khie?")) {
+        setLocationPairing(undefined);
         return;
       }
 
-      setIncompatiblePeerError(undefined);
-      setKhieEndpoint(endpoint);
-      setPairing(true);
       try {
-        if (await currentSession.pair(endpoint)) {
-          setKhieEndpoint("");
+        const target = await Libp2p.decodePairingEndpoint(endpoint);
+        const role = new URLSearchParams(url.hash.slice("#khie?".length))
+          .get("role")
+          ?.trim();
+        if (role === "provider") {
+          if (currentRevision === revision) {
+            setLocationPairing({ endpoint, kind: "provider" });
+          }
+          return;
         }
-      } finally {
-        setPairing(false);
+        if (role === "connector") {
+          try {
+            const appEndpoint = await Libp2p.encodePairingEndpoint(
+              KHIE_APP_CONNECT_URL,
+              target.addresses,
+              target.secret,
+              "connector",
+            );
+            if (currentRevision === revision) {
+              setLocationPairing({
+                appEndpoint,
+                endpoint,
+                kind: "connector",
+                stay: false,
+              });
+            }
+            return;
+          } catch {
+            // Keep browser pairing available if the app link cannot be built.
+          }
+        }
+        if (currentRevision === revision) {
+          setLocationPairing({ endpoint, kind: "browser" });
+        }
+      } catch {
+        if (currentRevision === revision) {
+          setLocationPairing(undefined);
+        }
       }
-    },
+    };
+
+    void readLocationEndpoint();
+    window.addEventListener("hashchange", readLocationEndpoint);
+    window.addEventListener("popstate", readLocationEndpoint);
+    return () => {
+      ++revision;
+      window.removeEventListener("hashchange", readLocationEndpoint);
+      window.removeEventListener("popstate", readLocationEndpoint);
+    };
+  }, []);
+
+  const showLocationDialog = Boolean(
+    !paired &&
+    (locationPairing?.kind === "provider" ||
+      (locationPairing?.kind === "connector" && !locationPairing.stay)),
   );
+  useEffect(() => {
+    const dialog = locationDialogRef.current;
+    if (!showLocationDialog || !dialog) {
+      return;
+    }
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+    return () => {
+      if (dialog.open) {
+        dialog.close();
+      }
+    };
+  }, [showLocationDialog, locationPairing?.endpoint]);
 
   const resolveApproval = (approved: boolean) => {
     if (!approvalEnabledRef.current) {
@@ -412,6 +529,25 @@ export function KhieClientModule({
   );
 
   useEffect(() => {
+    const endpoint = locationPairing?.endpoint;
+    if (
+      (locationPairing?.kind !== "browser" &&
+        !(locationPairing?.kind === "connector" && locationPairing.stay)) ||
+      !endpoint ||
+      !nodeReady ||
+      !session ||
+      !signer ||
+      pairedLocationEndpointRef.current === endpoint
+    ) {
+      return;
+    }
+
+    pairedLocationEndpointRef.current = endpoint;
+    setKhieEndpoint(endpoint);
+    void pairEndpoint(endpoint);
+  }, [locationPairing, nodeReady, pairEndpoint, session, signer]);
+
+  useEffect(() => {
     // Start lazily, then keep the session owned by the module across signer
     // replacement or temporary signer absence.
     if (!signer || sessionOwnerRef.current) {
@@ -449,6 +585,7 @@ export function KhieClientModule({
       onEndpointChange: setPairingEndpoint,
       onError: reportCurrentError,
       onPaired: () => {
+        cleanPairingHash();
         setIncompatiblePeerError(undefined);
         setPaired(true);
         setPairing(false);
@@ -473,7 +610,6 @@ export function KhieClientModule({
         });
         logCurrent("Signer node is ready", "success");
         void connectDefaultRelay(session);
-        void pairLocationEndpoint(session);
       },
       onUnpaired: () => {
         replaceSignerJsonRpcProviderSession();
@@ -532,6 +668,16 @@ export function KhieClientModule({
   };
 
   const unpair = () => session?.unpair();
+  const dismissLocationDialog = () => {
+    cleanPairingHash();
+    setLocationPairing(undefined);
+  };
+  const stayInBrowser = () => {
+    setLocationPairing((current) =>
+      current?.kind === "connector" ? { ...current, stay: true } : current,
+    );
+    cleanPairingHash();
+  };
   const showingPairingOverlay = pairing;
   const approvalDescription = approval
     ? formatApprovalDescription(approval)
@@ -542,9 +688,19 @@ export function KhieClientModule({
       <div className={`module-console ${styles["paired-panel"]}`}>
         <RemotePeerDetails peer={remotePeer} onUnpair={unpair} />
         <section className={styles["request-area"]}>
+          <p aria-hidden={Boolean(approval)} className={styles["request-idle"]}>
+            Connected to an app, waiting for requests…
+            <br />
+            Return to the app to continue.
+          </p>
           {approval ? (
-            <>
+            <RequestCardReveal
+              key={approval.id}
+              isClosing={isClosingApproval}
+              onCloseComplete={onApprovalCloseComplete}
+            >
               <h3 className={styles["request-title"]}>
+                <KhieIcon size={18} className={styles["request-khie-icon"]} />
                 <span>{formatApprovalTitle(approval)}</span>
                 {queuedApprovalCount > 0 ? (
                   <span className={styles["request-queue"]}>
@@ -552,39 +708,36 @@ export function KhieClientModule({
                   </span>
                 ) : null}
               </h3>
-              <div className={styles["request-card"]}>
-                {approval.method === "sign_transaction" ? (
-                  <TransactionApprovalDetails
-                    client={signer?.client ?? client}
-                    transaction={approval.transaction}
-                  />
-                ) : approvalDescription ? (
-                  <p className={styles["request-description"]}>
-                    {approvalDescription}
-                  </p>
-                ) : null}
-                <div className={`module-actions ${styles["approval-actions"]}`}>
-                  <button
-                    disabled={!approvalEnabled}
-                    type="button"
-                    onClick={() => resolveApproval(false)}
-                  >
-                    Reject
-                  </button>
-                  <button
-                    className="is-primary"
-                    disabled={!approvalEnabled}
-                    type="button"
-                    onClick={() => resolveApproval(true)}
-                  >
-                    Approve
-                  </button>
-                </div>
+              {approval.method === "sign_transaction" ? (
+                <TransactionApprovalDetails
+                  client={signer?.client ?? client}
+                  signer={signer}
+                  transaction={approval.transaction}
+                />
+              ) : approvalDescription ? (
+                <p className={styles["request-description"]}>
+                  {approvalDescription}
+                </p>
+              ) : null}
+              <div className={`module-actions ${styles["approval-actions"]}`}>
+                <button
+                  disabled={!approvalEnabled || isClosingApproval}
+                  type="button"
+                  onClick={() => resolveApproval(false)}
+                >
+                  Reject
+                </button>
+                <button
+                  className="is-primary"
+                  disabled={!approvalEnabled || isClosingApproval}
+                  type="button"
+                  onClick={() => resolveApproval(true)}
+                >
+                  Approve
+                </button>
               </div>
-            </>
-          ) : (
-            <p className={styles["request-idle"]}>Ready for requests…</p>
-          )}
+            </RequestCardReveal>
+          ) : null}
         </section>
       </div>
     );
@@ -620,6 +773,104 @@ export function KhieClientModule({
 
   return (
     <div className="module-console">
+      {showLocationDialog &&
+      locationPairing?.kind !== "browser" &&
+      locationPairing
+        ? createPortal(
+            <dialog
+              ref={locationDialogRef}
+              className={styles["location-choice-dialog"]}
+              aria-labelledby="khie-location-choice-title"
+              onMouseDown={(event) => {
+                const dialog = locationDialogRef.current;
+                if (event.target !== dialog || !dialog) {
+                  return;
+                }
+                const rect = dialog.getBoundingClientRect();
+                if (
+                  event.clientX < rect.left ||
+                  event.clientX > rect.right ||
+                  event.clientY < rect.top ||
+                  event.clientY > rect.bottom
+                ) {
+                  dismissLocationDialog();
+                }
+              }}
+              onCancel={(event) => {
+                event.preventDefault();
+                dismissLocationDialog();
+              }}
+            >
+              <div className={styles["location-choice-header"]}>
+                <h2
+                  className={styles["location-choice-title"]}
+                  id="khie-location-choice-title"
+                >
+                  {locationPairing.kind === "connector"
+                    ? "Connect with Khie"
+                    : "About Khie"}
+                </h2>
+                <button
+                  type="button"
+                  className={styles["location-choice-close"]}
+                  onClick={dismissLocationDialog}
+                  aria-label="Close"
+                >
+                  <X aria-hidden="true" size={14} />
+                </button>
+              </div>
+              <p className={styles["location-choice-description"]}>
+                Khie is a peer-to-peer wallet connection protocol.
+              </p>
+              {locationPairing.kind === "connector" ? (
+                <p className={styles["location-choice-description"]}>
+                  You opened a link from a Khie app. If you already have a
+                  wallet that supports Khie, you can use it to connect directly.
+                  Otherwise, stay in the browser and connect an existing wallet
+                  to use it with Khie.
+                </p>
+              ) : (
+                <p className={styles["location-choice-description"]}>
+                  You opened a Khie wallet connection link. This wallet can be
+                  used with any app that supports Khie. This page lets you try
+                  connecting to an app through Khie.
+                </p>
+              )}
+              <div
+                className={`module-actions ${styles["location-choice-actions"]}`}
+              >
+                {locationPairing.kind === "connector" ? (
+                  <>
+                    <a
+                      className="is-primary"
+                      href={locationPairing.appEndpoint}
+                      onClick={() => {
+                        dismissLocationDialog();
+                      }}
+                    >
+                      Open wallet app
+                    </a>
+                    <button type="button" onClick={stayInBrowser}>
+                      Stay in browser
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="is-primary"
+                    type="button"
+                    onClick={() => {
+                      dismissLocationDialog();
+                      window.location.replace("/");
+                    }}
+                  >
+                    Got it
+                  </button>
+                )}
+              </div>
+            </dialog>,
+            document.body,
+          )
+        : null}
       <div
         className="module-fields"
         aria-hidden={showingPairingOverlay}
@@ -639,11 +890,12 @@ export function KhieClientModule({
                   <CopyableText
                     className={styles["endpoint-copy"]}
                     value={pairingEndpoint}
+                    title="Tap to copy pairing code"
                     ariaLabel="Copy wallet pairing code"
                     iconSize={15}
                     onError={(cause) => reportError(cause, show, log)}
                   >
-                    <span>{pairingEndpoint}</span>
+                    <span>Tap to copy pairing code</span>
                   </CopyableText>
                 </div>
               ) : (
@@ -831,17 +1083,30 @@ function RemotePeerDetails({
       <div className={styles["peer-overview"]}>
         {peer ? (
           <div className={styles["peer-copy"]}>
-            <div className={styles["peer-primary"]}>
+            <bdi className={styles["peer-name"]} dir="auto" title={name}>
+              {name}
+            </bdi>
+            <div className={styles["peer-status"]}>
               <span className={styles["peer-path"]} data-direct={peer.direct}>
                 {path}
               </span>
-              <bdi className={styles["peer-name"]} dir="auto" title={name}>
-                {name}
-              </bdi>
+              <span className={styles["peer-separator"]}>·</span>
+              <span className={styles["peer-last-seen"]}>
+                {peer.active ? (
+                  "Active"
+                ) : peer.lastSeenAt === undefined ? (
+                  "Last seen not available"
+                ) : (
+                  <>
+                    Last seen{" "}
+                    <InactiveLastSeen
+                      key={peer.lastSeenAt}
+                      timestamp={peer.lastSeenAt}
+                    />
+                  </>
+                )}
+              </span>
             </div>
-            <span className={styles["peer-agent"]} title={peer.agentVersion}>
-              {peer.agentVersion ?? "Unknown agent"}
-            </span>
           </div>
         ) : (
           <p className={styles["peer-loading"]}>Loading remote peer details…</p>
@@ -852,32 +1117,6 @@ function RemotePeerDetails({
           </button>
         </div>
       </div>
-
-      {peer ? (
-        <div className={styles["peer-times"]}>
-          <div className={styles["peer-time"]}>
-            <span>Peer ID</span>
-            <code className={styles["peer-id"]} title={peer.id}>
-              {peer.id}
-            </code>
-          </div>
-          <div className={styles["peer-time"]}>
-            <span>Last seen</span>
-            <strong>
-              {peer.active ? (
-                "Active"
-              ) : peer.lastSeenAt === undefined ? (
-                "Not available"
-              ) : (
-                <InactiveLastSeen
-                  key={peer.lastSeenAt}
-                  timestamp={peer.lastSeenAt}
-                />
-              )}
-            </strong>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -905,13 +1144,215 @@ type TransactionCellView = {
   reference?: string;
 };
 
+function RequestCardReveal({
+  children,
+  isClosing = false,
+  onCloseComplete,
+}: {
+  children: React.ReactNode;
+  isClosing?: boolean;
+  onCloseComplete?: () => void;
+}) {
+  const clipRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const handleCloseComplete = useEffectEvent(() => onCloseComplete?.());
+
+  const [isOpen, setIsOpen] = useState(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return true;
+    }
+    return false;
+  });
+  const [isTransitioning, setIsTransitioning] = useState(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const inner = innerRef.current;
+    if (!clip || !inner) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = inner.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      clip.style.setProperty("--card-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(inner);
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return () => {
+        observer.disconnect();
+        if (rafFrame !== undefined) {
+          cancelAnimationFrame(rafFrame);
+        }
+      };
+    }
+
+    const openFrame = requestAnimationFrame(() => {
+      setIsOpen(true);
+    });
+
+    const fallbackTimeout = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 750);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(openFrame);
+      clearTimeout(fallbackTimeout);
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isClosing) {
+      return;
+    }
+
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      handleCloseComplete();
+      return;
+    }
+
+    closeTimeoutRef.current = setTimeout(() => {
+      handleCloseComplete();
+    }, 750);
+
+    return () => {
+      clearTimeout(closeTimeoutRef.current);
+    };
+  }, [isClosing]);
+
+  const activeTransition = isTransitioning || isClosing;
+  const activeOpen = isOpen && !isClosing;
+
+  return (
+    <div className={styles["request-card-holder"]}>
+      <div
+        ref={clipRef}
+        className={`${styles["request-card"]} ${
+          activeOpen ? styles["is-open"] : ""
+        } ${activeTransition ? styles["is-transitioning"] : ""} ${
+          isClosing ? styles["is-closing"] : ""
+        }`}
+        onTransitionEnd={(e) => {
+          if (e.propertyName === "height" && e.target === e.currentTarget) {
+            if (isClosing) {
+              clearTimeout(closeTimeoutRef.current);
+              onCloseComplete?.();
+            } else {
+              setIsTransitioning(false);
+            }
+          }
+        }}
+      >
+        <div ref={innerRef} className={styles["request-card-content"]}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TransactionApprovalDetails({
   client,
+  signer,
   transaction,
 }: {
   client: ccc.Client;
+  signer?: ccc.Signer;
   transaction: ccc.Transaction;
 }) {
+  const [ownLocksResolution, setOwnLocksResolution] = useState<{
+    locks: ccc.Script[];
+    signer?: ccc.Signer;
+  }>();
+  const [
+    technicalDetailsOpenForTransaction,
+    setTechnicalDetailsOpenForTransaction,
+  ] = useState<ccc.Transaction>();
+  const technicalDetailsAutoExpandedForTransaction =
+    useRef<ccc.Transaction>(undefined);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const wrapper = wrapperRef.current;
+    const inner = innerRef.current;
+    if (!wrapper || !inner) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = inner.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      wrapper.style.setProperty("--td-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(inner);
+    return () => {
+      observer.disconnect();
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
+
+  const ownLocks =
+    signer !== undefined && ownLocksResolution?.signer === signer
+      ? ownLocksResolution.locks
+      : undefined;
+
   const [inputResolution, setInputResolution] = useState<{
     cells: TransactionCellView[];
     client: ccc.Client;
@@ -932,6 +1373,31 @@ function TransactionApprovalDetails({
     feeResolution.transaction === transaction
       ? feeResolution.value
       : undefined;
+
+  useEffect(() => {
+    let active = true;
+    if (!signer) {
+      return;
+    }
+    void signer
+      .getAddressObjs()
+      .then((addresses) => {
+        if (active) {
+          setOwnLocksResolution({
+            locks: addresses.map(({ script }) => script),
+            signer,
+          });
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setOwnLocksResolution(undefined);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [signer]);
 
   useEffect(() => {
     let active = true;
@@ -1004,39 +1470,213 @@ function TransactionApprovalDetails({
   }));
   const transactionHash = transaction.hash();
 
+  const summary =
+    inputs && ownLocks
+      ? summarizeTransfer(
+          inputs,
+          transaction.outputs,
+          ownLocks,
+          transaction.outputsData,
+        )
+      : undefined;
+  const technicalDetailsOpen =
+    technicalDetailsOpenForTransaction === transaction;
+
+  useEffect(() => {
+    if (
+      !summary?.involvesSpecialData ||
+      technicalDetailsAutoExpandedForTransaction.current === transaction
+    ) {
+      return;
+    }
+    technicalDetailsAutoExpandedForTransaction.current = transaction;
+    setTechnicalDetailsOpenForTransaction(transaction);
+  }, [summary?.involvesSpecialData, transaction]);
+
   return (
     <div className={styles["transaction-details"]}>
-      <div className={styles["transaction-summary"]}>
-        <CopyableText
-          ariaLabel="Copy transaction hash"
-          className={styles["transaction-hash-copy"]}
-          iconSize={10}
-          value={transactionHash}
+      {summary ? (
+        <div className={styles["summary-container"]}>
+          {summary.otherParticipantsInputCapacity > ccc.Zero ? (
+            <div className={styles["summary-notice"]}>
+              <AlertCircle size={14} />
+              <span>
+                This transaction uses{" "}
+                <strong>
+                  {ccc.fixedPointToString(
+                    summary.otherParticipantsInputCapacity,
+                  )}{" "}
+                  CKB
+                </strong>{" "}
+                provided by other participants. Review transaction details
+                before approving.
+              </span>
+            </div>
+          ) : null}
+
+          {summary.outgoing.length === 0 ? (
+            <p className={styles["summary-no-outgoing"]}>
+              No CKB is sent to other addresses
+            </p>
+          ) : (
+            <div className={styles["summary-recipients-group"]}>
+              <div className={styles["summary-section-heading"]}>
+                <span>To</span>
+                <span>{summary.outgoing.length}</span>
+              </div>
+              <div className={styles["summary-recipients-list"]}>
+                {summary.outgoing.map(({ lock, capacity }) => {
+                  const address = ccc.Address.fromScript(
+                    lock,
+                    client,
+                  ).toString();
+                  return (
+                    <div
+                      key={lock.hash()}
+                      className={styles["summary-recipient-row"]}
+                    >
+                      <code
+                        className={styles["summary-recipient-address"]}
+                        title={address}
+                      >
+                        {address}
+                      </code>
+                      <span className={styles["summary-recipient-amount"]}>
+                        {ccc.fixedPointToString(capacity)} CKB
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className={styles["summary-row"]}>
+            <span className={styles["summary-row-label"]}>Fee</span>
+            <span className={styles["summary-row-value"]}>
+              {fee === undefined
+                ? "Parsing…"
+                : fee === null
+                  ? "Unavailable"
+                  : `${ccc.fixedPointToString(fee)} CKB`}
+            </span>
+          </div>
+
+          {summary.netChange !== undefined ? (
+            <div
+              className={`${styles["summary-row"]} ${styles["summary-balance-row"]}`}
+            >
+              <span className={styles["summary-row-label"]}>
+                Balance change
+              </span>
+              <strong className={styles["summary-balance-value"]}>
+                {summary.netChange > ccc.Zero
+                  ? `+${ccc.fixedPointToString(summary.netChange)} CKB`
+                  : summary.netChange < ccc.Zero
+                    ? `-${ccc.fixedPointToString(-summary.netChange)} CKB`
+                    : "0 CKB"}
+              </strong>
+            </div>
+          ) : null}
+
+          {summary.involvesSpecialData ? (
+            <div className={styles["summary-notice"]}>
+              <Info size={14} />
+              <span>
+                This transaction involves tokens or contract data not reflected
+                in the amounts above. Review transaction details before
+                approving.
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <p className={styles["summary-loading"]}>
+          Loading transaction summary…
+        </p>
+      )}
+
+      <div className={styles["technical-details-section"]}>
+        <button
+          type="button"
+          className={styles["technical-details-toggle"]}
+          aria-expanded={technicalDetailsOpen}
+          onClick={() => {
+            if (
+              typeof window !== "undefined" &&
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ) {
+              setTechnicalDetailsOpenForTransaction((open) =>
+                open === transaction ? undefined : transaction,
+              );
+              return;
+            }
+            setIsTransitioning(true);
+            setTechnicalDetailsOpenForTransaction((open) =>
+              open === transaction ? undefined : transaction,
+            );
+          }}
         >
-          <code className={styles["transaction-hash"]} title={transactionHash}>
-            {transactionHash}
-          </code>
-        </CopyableText>
-        <span className={styles["transaction-fee"]}>
-          {fee === undefined
-            ? "Fee …"
-            : fee === null
-              ? "Fee unavailable"
-              : `Fee ${ccc.fixedPointToString(fee)} CKB · ${transactionFeeRate(transaction, fee)} shannons/KB`}
-        </span>
+          <span>Transaction details</span>
+          <ChevronDown
+            className={styles["technical-details-chevron"]}
+            size={13}
+          />
+        </button>
+
+        <div
+          ref={wrapperRef}
+          className={`${styles["technical-details-wrapper"]} ${
+            technicalDetailsOpen ? styles["is-open"] : ""
+          } ${isTransitioning ? styles["is-transitioning"] : ""}`}
+          aria-hidden={!technicalDetailsOpen}
+          inert={!technicalDetailsOpen ? true : undefined}
+          onTransitionEnd={(e) => {
+            if (e.propertyName === "height" && e.target === e.currentTarget) {
+              setIsTransitioning(false);
+            }
+          }}
+        >
+          <div ref={innerRef}>
+            <div className={styles["technical-details-content"]}>
+              <div className={styles["transaction-summary"]}>
+                <CopyableText
+                  ariaLabel="Copy transaction hash"
+                  className={styles["transaction-hash-copy"]}
+                  iconSize={10}
+                  value={transactionHash}
+                >
+                  <code
+                    className={styles["transaction-hash"]}
+                    title={transactionHash}
+                  >
+                    {transactionHash}
+                  </code>
+                </CopyableText>
+                <span className={styles["transaction-fee"]}>
+                  {fee === undefined
+                    ? "Fee …"
+                    : fee === null
+                      ? "Fee unavailable"
+                      : `${transactionFeeRate(transaction, fee)} shannons/KB`}
+                </span>
+              </div>
+              <TransactionCellGroup
+                cells={inputs}
+                client={client}
+                empty="No inputs"
+                title="Inputs"
+              />
+              <TransactionCellGroup
+                cells={outputs}
+                client={client}
+                empty="No outputs"
+                title="Outputs"
+              />
+            </div>
+          </div>
+        </div>
       </div>
-      <TransactionCellGroup
-        cells={inputs}
-        client={client}
-        empty="No inputs"
-        title="Inputs"
-      />
-      <TransactionCellGroup
-        cells={outputs}
-        client={client}
-        empty="No outputs"
-        title="Outputs"
-      />
     </div>
   );
 }
@@ -1052,12 +1692,6 @@ function TransactionCellGroup({
   empty: string;
   title: string;
 }) {
-  const totalCapacity =
-    cells?.reduce(
-      (total, cell) => total + transactionCellCapacity(cell),
-      ccc.Zero,
-    ) ?? ccc.Zero;
-
   return (
     <section className={styles["transaction-cell-group"]}>
       <div className={styles["transaction-cell-heading"]}>
@@ -1071,12 +1705,7 @@ function TransactionCellGroup({
           <p className={styles["transaction-cell-status"]}>{empty}</p>
         ) : (
           cells.map((cell) => (
-            <TransactionCellItem
-              cell={cell}
-              client={client}
-              key={cell.key}
-              totalCapacity={totalCapacity}
-            />
+            <TransactionCellItem cell={cell} client={client} key={cell.key} />
           ))
         )}
       </div>
@@ -1087,21 +1716,66 @@ function TransactionCellGroup({
 function TransactionCellItem({
   cell,
   client,
-  totalCapacity,
 }: {
   cell: TransactionCellView;
   client: ccc.Client;
-  totalCapacity: bigint;
 }) {
   const { cellOutput } = cell;
-  const capacity = transactionCellCapacity(cell);
+  const totalCapacity = transactionCellCapacity(cell);
+  const freeCapacity = transactionCellFreeCapacity(cell);
   const capacityShare =
     cellOutput && totalCapacity > ccc.Zero
-      ? Number((capacity * ccc.numFrom(1000)) / totalCapacity) / 10
+      ? Math.min(
+          100,
+          Math.max(
+            0,
+            Number((freeCapacity * ccc.numFrom(1000)) / totalCapacity) / 10,
+          ),
+        )
       : 0;
   const style = {
     "--capacity-share": `${capacityShare}%`,
   } as CSSProperties;
+
+  const [isOpen, setIsOpen] = useState(false);
+  const clipRef = useRef<HTMLDivElement>(null);
+  const expandedRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const clip = clipRef.current;
+    const expanded = expandedRef.current;
+    if (!clip || !expanded) {
+      return;
+    }
+
+    let previousHeight: number | undefined;
+    let rafFrame: number | undefined;
+    const syncHeight = () => {
+      const height = expanded.scrollHeight;
+      if (height === previousHeight) {
+        return;
+      }
+      previousHeight = height;
+      clip.style.setProperty("--cell-height", `${height}px`);
+    };
+    const observer = new ResizeObserver(() => {
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+      rafFrame = requestAnimationFrame(() => {
+        rafFrame = undefined;
+        syncHeight();
+      });
+    });
+    syncHeight();
+    observer.observe(expanded);
+    return () => {
+      observer.disconnect();
+      if (rafFrame !== undefined) {
+        cancelAnimationFrame(rafFrame);
+      }
+    };
+  }, []);
 
   if (!cellOutput) {
     return (
@@ -1118,8 +1792,16 @@ function TransactionCellItem({
   ).toString();
 
   return (
-    <details className={styles["transaction-cell"]} style={style}>
-      <summary>
+    <div
+      className={`${styles["transaction-cell"]} ${isOpen ? styles["is-open"] : ""}`}
+      style={style}
+    >
+      <button
+        type="button"
+        className={styles["transaction-cell-header"]}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((v) => !v)}
+      >
         <span className={styles["transaction-cell-summary"]}>
           <span className={styles["transaction-cell-identity"]}>
             <small>{cell.label}</small>
@@ -1132,31 +1814,38 @@ function TransactionCellItem({
           </strong>
         </span>
         <ChevronDown aria-hidden="true" size={15} />
-      </summary>
-      <div className={styles["transaction-cell-expanded"]}>
-        {cell.reference ? (
-          <TransactionCellField
-            copyable
-            label="Outpoint"
-            value={cell.reference}
+      </button>
+      <div
+        ref={clipRef}
+        className={`${styles["transaction-cell-expanded-clip"]} ${isOpen ? styles["is-open"] : ""}`}
+        aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
+      >
+        <div ref={expandedRef} className={styles["transaction-cell-expanded"]}>
+          {cell.reference ? (
+            <TransactionCellField
+              copyable
+              label="Outpoint"
+              value={cell.reference}
+            />
+          ) : null}
+          <TransactionScriptDetails
+            address={lockAddress}
+            label="Lock script"
+            script={cellOutput.lock}
           />
-        ) : null}
-        <TransactionScriptDetails
-          address={lockAddress}
-          label="Lock script"
-          script={cellOutput.lock}
-        />
-        <TransactionScriptDetails
-          label="Type script"
-          script={cellOutput.type}
-        />
-        <TransactionCellField
-          label="Data"
-          multiline
-          value={cell.outputData ?? "0x"}
-        />
+          <TransactionScriptDetails
+            label="Type script"
+            script={cellOutput.type}
+          />
+          <TransactionCellField
+            label="Data"
+            multiline
+            value={cell.outputData ?? "0x"}
+          />
+        </div>
       </div>
-    </details>
+    </div>
   );
 }
 
@@ -1236,6 +1925,22 @@ function transactionCellCapacity(cell: TransactionCellView) {
   return (
     (cell.cellOutput?.capacity ?? ccc.Zero) + (cell.extraCapacity ?? ccc.Zero)
   );
+}
+
+function transactionCellOccupiedCapacity(cell: TransactionCellView) {
+  if (!cell.cellOutput) {
+    return ccc.Zero;
+  }
+  const output = ccc.CellOutput.from(cell.cellOutput);
+  const occupiedSize =
+    output.occupiedSize + ccc.bytesFrom(cell.outputData ?? "0x").length;
+  return ccc.fixedPointFrom(occupiedSize);
+}
+
+function transactionCellFreeCapacity(cell: TransactionCellView) {
+  const total = transactionCellCapacity(cell);
+  const occupied = transactionCellOccupiedCapacity(cell);
+  return total > occupied ? total - occupied : ccc.Zero;
 }
 
 function transactionFeeRate(transaction: ccc.Transaction, fee: ccc.Num) {

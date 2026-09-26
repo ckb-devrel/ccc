@@ -13,14 +13,18 @@ function createSigner(client: ccc.Client) {
   const replacedListeners = new Set<() => void>();
   const close = vi.fn();
   const replace = () => {
-    if (!connected) return;
+    if (!connected) {
+      return;
+    }
     connected = false;
     const listeners = [...replacedListeners];
     replacedListeners.clear();
     listeners.forEach((listener) => listener());
   };
   const disconnect = vi.fn(async () => {
-    if (!connected) return;
+    if (!connected) {
+      return;
+    }
     close();
     replace();
   });

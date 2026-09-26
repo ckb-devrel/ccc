@@ -83,8 +83,12 @@ describe("getDidCkbHistory", () => {
     const op = ccc.OutPoint.from(outPoint);
     const hash = op.txHash.toLowerCase();
     const index = Number(op.index);
-    if (hash === txUpdate1.toLowerCase() && index === 0) return update1Cell;
-    if (hash === txGenesis.toLowerCase() && index === 0) return genesisCell;
+    if (hash === txUpdate1.toLowerCase() && index === 0) {
+      return update1Cell;
+    }
+    if (hash === txGenesis.toLowerCase() && index === 0) {
+      return genesisCell;
+    }
     if (hash === txFunding.toLowerCase()) {
       // Non-DID input that funded the genesis; getCell still works, but the
       // type script doesn't match, so the walk treats this tx as the genesis.

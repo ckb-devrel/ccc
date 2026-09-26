@@ -1,5 +1,19 @@
 # @ckb-ccc/lumos-patches
 
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [[`bb6cbf4`](https://github.com/ckb-devrel/ccc/commit/bb6cbf4ad68438c84faed61d8516530c643f3f4e), [`b21b27d`](https://github.com/ckb-devrel/ccc/commit/b21b27d4d29484b255d95105f6079ebb688b0e5c), [`21bf250`](https://github.com/ckb-devrel/ccc/commit/21bf2505cd9992a000da7a0c6a18b78aac67b34a), [`8b650f0`](https://github.com/ckb-devrel/ccc/commit/8b650f0f06853923a6fa8cf9202f2854d215cf33), [`a7bcb6d`](https://github.com/ckb-devrel/ccc/commit/a7bcb6d4db3e5255d9178a654a872050f86523ce), [`6946dd1`](https://github.com/ckb-devrel/ccc/commit/6946dd123400954a21eccfa71a0fb5b4af271051), [`3506c09`](https://github.com/ckb-devrel/ccc/commit/3506c09a5d16f4ec33ed379b73951b47434e2370), [`665931f`](https://github.com/ckb-devrel/ccc/commit/665931f2e040cc19503f4924453cf9d8d8bec5e8), [`de94e2c`](https://github.com/ckb-devrel/ccc/commit/de94e2c06778af3bcc413dd10f755806874afe45), [`2c91baa`](https://github.com/ckb-devrel/ccc/commit/2c91baaeb7090442264c2067defaa2c34d1d067f)]:
+  - @ckb-ccc/core@1.23.0
+
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [[`90891c1`](https://github.com/ckb-devrel/ccc/commit/90891c15049cba439e041acb93868d0d9865d848), [`5be7663`](https://github.com/ckb-devrel/ccc/commit/5be7663ce5857f75c349d111fd6983396365f308), [`99c24ee`](https://github.com/ckb-devrel/ccc/commit/99c24ee6b93ed909aa601c3b4580732d320c14ec)]:
+  - @ckb-ccc/core@1.22.1
+
 ## 1.1.14-next.0
 
 ### Patch Changes

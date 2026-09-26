@@ -1,6 +1,6 @@
 import { bytesFrom } from "../../bytes/index.js";
 import { Cell, CellLike, Script, ScriptLike } from "../../ckb/index.js";
-import { HexLike, hexFrom } from "../../hex/index.js";
+import { Hex, HexLike, hexFrom } from "../../hex/index.js";
 import { NumLike, numFrom } from "../../num/index.js";
 import {
   ClientCollectableSearchKeyLike,
@@ -19,12 +19,27 @@ export type CellRecord =
   | [true, Cell]
   | [undefined, Cell];
 
+function matchPartialHex(data: Hex, filter: Hex): boolean {
+  const needle = filter.slice(2);
+  if (needle.length === 0) {
+    return true;
+  }
+  let pos = data.indexOf(needle, 2);
+  while (pos !== -1) {
+    if (pos % 2 === 0) {
+      return true;
+    }
+    pos = data.indexOf(needle, pos + 1);
+  }
+  return false;
+}
+
 export function filterData(
   dataLike: HexLike,
   filterLike: HexLike | undefined,
   filterMode: "exact" | "prefix" | "partial",
 ): boolean {
-  if (!filterLike) {
+  if (filterLike == null) {
     return true;
   }
 
@@ -33,7 +48,7 @@ export function filterData(
   if (
     (filterMode === "exact" && data !== filter) ||
     (filterMode === "prefix" && !data.startsWith(filter)) ||
-    (filterMode === "partial" && data.search(filter) === -1)
+    (filterMode === "partial" && !matchPartialHex(data, filter))
   ) {
     return false;
   }

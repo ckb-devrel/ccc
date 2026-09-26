@@ -14,7 +14,7 @@ on:
       release_name:
         description: GitHub release name prefix
         type: string
-        default: CCC release
+        default: CCC Release
 
 jobs:
   finalize:

@@ -54,7 +54,9 @@ export async function decryptHdKeystore(keystore: string, password: string) {
 }
 
 export function boundedAccountCount(value: string) {
-  if (!value.trim()) throw new Error("Account count is required");
+  if (!value.trim()) {
+    throw new Error("Account count is required");
+  }
 
   const count = Number(value);
   if (!Number.isFinite(count) || !Number.isInteger(count)) {

@@ -32,7 +32,9 @@ import { Console } from "./tabs/Console";
 function openWebSocket(url: string): ccc.Owner<WebSocket> {
   const socket = new WebSocket(url);
   return new ccc.OwnerUnique(socket, async (socket) => {
-    if (socket.readyState === socket.CLOSED) return;
+    if (socket.readyState === socket.CLOSED) {
+      return;
+    }
 
     await new Promise<void>((resolve) => {
       const finish = () => {
@@ -223,7 +225,9 @@ async function getFromNostr(
     });
   } finally {
     window.clearTimeout(timeout);
-    if (abort) signal.removeEventListener("abort", abort);
+    if (abort) {
+      signal.removeEventListener("abort", abort);
+    }
     await socketOwner.dispose();
   }
 }
@@ -410,6 +414,8 @@ export default function Home() {
                 source,
               );
 
+              // Reload to verify the shared source can be fetched from Nostr.
+              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
               window.location.href = `/?src=nostr:${id}`;
             }}
           >

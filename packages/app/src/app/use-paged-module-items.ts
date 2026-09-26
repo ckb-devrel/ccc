@@ -39,7 +39,9 @@ export function usePagedModuleItems<Source, Raw, Item = Raw>({
       activeGeneration: number,
       append: boolean,
     ) => {
-      if (loadingRef.current) return;
+      if (loadingRef.current) {
+        return;
+      }
       loadingRef.current = true;
       setLoading(true);
       try {
@@ -50,10 +52,14 @@ export function usePagedModuleItems<Source, Raw, Item = Raw>({
         }
         while (raw.length < MODULE_ITEM_PAGE_SIZE + 1) {
           const next = await activeIterator.next();
-          if (next.done) break;
+          if (next.done) {
+            break;
+          }
           raw.push(next.value);
         }
-        if (generation.current !== activeGeneration) return;
+        if (generation.current !== activeGeneration) {
+          return;
+        }
 
         buffered.current =
           raw.length > MODULE_ITEM_PAGE_SIZE
@@ -63,7 +69,9 @@ export function usePagedModuleItems<Source, Raw, Item = Raw>({
         const prepared = callbacks.current.preparePage
           ? await callbacks.current.preparePage(page, activeSource)
           : (page as unknown as Item[]);
-        if (generation.current !== activeGeneration) return;
+        if (generation.current !== activeGeneration) {
+          return;
+        }
         setItems((current) => (append ? [...current, ...prepared] : prepared));
         setHasMore(buffered.current !== undefined);
       } catch (cause) {
@@ -87,16 +95,22 @@ export function usePagedModuleItems<Source, Raw, Item = Raw>({
     iterator.current = undefined;
     buffered.current = undefined;
     loadingRef.current = false;
-    if (previous) void previous.return(undefined);
+    if (previous) {
+      void previous.return(undefined);
+    }
 
     let cancelled = false;
     void (async () => {
       await Promise.resolve();
-      if (cancelled || generation.current !== activeGeneration) return;
+      if (cancelled || generation.current !== activeGeneration) {
+        return;
+      }
       setItems([]);
       setHasMore(false);
       setLoading(false);
-      if (source === undefined) return;
+      if (source === undefined) {
+        return;
+      }
       const activeIterator = callbacks.current.iterate(source);
       iterator.current = activeIterator;
       await readPage(source, activeIterator, activeGeneration, false);
@@ -104,7 +118,9 @@ export function usePagedModuleItems<Source, Raw, Item = Raw>({
 
     return () => {
       cancelled = true;
-      if (iterator.current) void iterator.current.return(undefined);
+      if (iterator.current) {
+        void iterator.current.return(undefined);
+      }
       iterator.current = undefined;
     };
   }, [readPage, revision, source]);

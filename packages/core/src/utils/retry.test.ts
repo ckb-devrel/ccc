@@ -67,7 +67,9 @@ describe("retry", () => {
       .mockRejectedValueOnce(new Error("second"))
       .mockResolvedValue("done");
     const delays = (function* () {
-      while (true) yield 100;
+      while (true) {
+        yield 100;
+      }
     })();
     const retried = retry(delays, async ({ resolve }) =>
       resolve(await operation()),

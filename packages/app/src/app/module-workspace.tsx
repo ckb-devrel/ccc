@@ -258,7 +258,9 @@ function MountedModuleWorkspace({
   }, []);
   const submitTransaction = useCallback<SubmitTransaction>(
     async (actionName, action, options) => {
-      if (!signer) throw new Error("Connect a signer first");
+      if (!signer) {
+        throw new Error("Connect a signer first");
+      }
       const tx = await action(ccc.Transaction.from({}));
       await tx.completeFeeBy(signer, options?.feeRate);
       const txHash = await signer.sendTransaction(tx);

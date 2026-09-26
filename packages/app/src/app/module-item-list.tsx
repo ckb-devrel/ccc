@@ -89,7 +89,9 @@ export function ModuleItemList({
   useEffect(() => {
     const element = list.current;
     const contentElement = content.current;
-    if (!element || !contentElement) return;
+    if (!element || !contentElement) {
+      return;
+    }
 
     const contentObserver = new ResizeObserver(() => {
       updateHeight(element, contentElement);

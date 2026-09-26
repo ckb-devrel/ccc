@@ -259,12 +259,13 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
 
   /**
    * Creates a CellOutput instance from a CellOutputLike object.
-   * This method supports automatic capacity calculation when outputData is provided and capacity is 0 or omitted.
+   *
+   * If `outputData` is provided, capacity is ensured to meet the occupied minimum.
+   * Valid instances are returned as-is, while invalid instances are reconstructed
+   * shallowly without mutating the original.
    *
    * @param cellOutput - A CellOutputLike object or an instance of CellOutput.
-   * @param outputData - Optional output data used for automatic capacity calculation.
-   *                     When provided and capacity is 0, the capacity will be calculated
-   *                     as occupiedSize + outputData.length.
+   * @param outputData - Optional output data for capacity verification.
    * @returns A CellOutput instance.
    *
    * @example
@@ -279,20 +280,36 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
    * // Automatic capacity calculation
    * const cellOutput2 = CellOutput.from({
    *   lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
-   * }, "0x1234"); // Capacity will be calculated automatically
+   * }, "0x1234");
    * ```
    */
   static from(
     cellOutput: CellOutputLike,
     outputData?: HexLike | null,
   ): CellOutput {
-    const output =
-      cellOutput instanceof CellOutput
-        ? cellOutput
-        : super.from({
-            ...cellOutput,
-            capacity: cellOutput.capacity ?? 0,
-          });
+    if (cellOutput instanceof CellOutput) {
+      if (outputData == null) {
+        return cellOutput;
+      }
+
+      const minCapacity = fixedPointFrom(
+        cellOutput.occupiedSize + bytesFrom(outputData).length,
+      );
+      if (cellOutput.capacity >= minCapacity) {
+        return cellOutput;
+      }
+
+      return new CellOutput({
+        capacity: minCapacity,
+        lock: cellOutput.lock,
+        type: cellOutput.type,
+      });
+    }
+
+    const output = super.from({
+      ...cellOutput,
+      capacity: cellOutput.capacity ?? 0,
+    });
 
     if (outputData != null) {
       output.capacity = numMax(
@@ -365,11 +382,12 @@ export class CellAny {
 
   /**
    * Creates a `CellAny` instance from a `CellAnyLike` object.
-   * This factory method provides a convenient way to create `CellAny` instances
-   * from plain objects, automatically handling the optional `outPoint` or `previousOutput`.
+   *
+   * Returns valid instances as-is. Reconstructs a corrected instance shallowly
+   * without mutating the original if capacity is insufficient for the data.
    *
    * @param cell - A `CellAnyLike` object.
-   * @returns A new `CellAny` instance.
+   * @returns A `CellAny` instance.
    *
    * @example
    * ```typescript
@@ -389,8 +407,11 @@ export class CellAny {
    */
   static from(cell: CellAnyLike): CellAny {
     if (cell instanceof CellAny) {
-      cell.cellOutput = CellOutput.from(cell.cellOutput, cell.outputData);
-      return cell;
+      const output = CellOutput.from(cell.cellOutput, cell.outputData);
+      if (output === cell.cellOutput) {
+        return cell;
+      }
+      return new CellAny(output, cell.outputData, cell.outPoint);
     }
 
     const outputData = hexFrom(cell.outputData ?? "0x");
@@ -515,13 +536,13 @@ export class Cell extends CellAny {
 
   /**
    * Creates a Cell instance from a CellLike object.
-   * This method accepts either `outPoint` or `previousOutput` to specify the cell's location,
-   * and supports automatic capacity calculation for the cell output.
+   *
+   * Returns valid instances as-is. Reconstructs a corrected instance shallowly
+   * without mutating the original if capacity is insufficient for the data.
    *
    * @param cell - A CellLike object or an instance of Cell. The object can use either:
    *               - `outPoint`: For referencing a cell output
    *               - `previousOutput`: For referencing a cell input (alternative name for outPoint)
-   *               The cellOutput can omit capacity for automatic calculation.
    * @returns A Cell instance.
    *
    * @example
@@ -541,7 +562,6 @@ export class Cell extends CellAny {
    *   previousOutput: { txHash: "0x...", index: 0 },
    *   cellOutput: {
    *     lock: { codeHash: "0x...", hashType: "type", args: "0x..." }
-   *     // capacity will be calculated automatically
    *   },
    *   outputData: "0x1234"
    * });
@@ -550,8 +570,11 @@ export class Cell extends CellAny {
 
   static from(cell: CellLike): Cell {
     if (cell instanceof Cell) {
-      cell.cellOutput = CellOutput.from(cell.cellOutput, cell.outputData);
-      return cell;
+      const output = CellOutput.from(cell.cellOutput, cell.outputData);
+      if (output === cell.cellOutput) {
+        return cell;
+      }
+      return new Cell(cell.outPoint, output, cell.outputData);
     }
 
     return new Cell(
@@ -1249,6 +1272,9 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   /**
    * Creates a Transaction instance from a TransactionLike object.
    *
+   * Returns valid instances as-is. Reconstructs a corrected transaction shallowly
+   * without mutating the original if any output capacity is insufficient.
+   *
    * @param tx - A TransactionLike object or an instance of Transaction.
    * @returns A Transaction instance.
    *
@@ -1267,10 +1293,22 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
    */
   static from(tx: TransactionLike): Transaction {
     if (tx instanceof Transaction) {
-      tx.outputs.forEach((output, i) => {
-        tx.outputs[i] = CellOutput.from(output, tx.outputsData[i] ?? "0x");
+      const outputs = tx.outputs.map((output, i) =>
+        CellOutput.from(output, tx.outputsData[i] ?? "0x"),
+      );
+      if (outputs.every((output, i) => output === tx.outputs[i])) {
+        return tx;
+      }
+
+      return new Transaction({
+        version: tx.version,
+        cellDeps: Array.from(tx.cellDeps),
+        headerDeps: Array.from(tx.headerDeps),
+        inputs: Array.from(tx.inputs),
+        outputs,
+        outputsData: Array.from(tx.outputsData),
+        witnesses: Array.from(tx.witnesses),
       });
-      return tx;
     }
     const outputs =
       tx.outputs?.map((output, i) =>
@@ -2494,13 +2532,22 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       const needed = numFrom(
         await Promise.resolve(change(changedTx, fee - leastFee)),
       );
+
       if (needed > Zero) {
         // No enough extra capacity to create new cells for change, collect inputs again
         leastExtraCapacity = needed;
         continue;
       }
 
-      if ((await changedTx.getFee(from.client)) !== leastFee) {
+      const changedActualFee = await changedTx.getFee(from.client);
+      if (changedActualFee < leastFee && fee < leastFee) {
+        // Fee is not fully paid yet because the initial transaction had insufficient inputs.
+        // Collect inputs again to pay leastFee.
+        leastExtraCapacity = Zero;
+        continue;
+      }
+
+      if (changedActualFee !== leastFee) {
         throw new Error(
           "The change function doesn't use all available capacity",
         );
@@ -2668,14 +2715,21 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
       shouldAddInputs?: boolean;
     },
   ): Promise<[number, boolean]> {
-    const change = Number(numFrom(index));
-    if (!this.outputs[change]) {
+    const change = transactionIndexFrom(index);
+    if (change === undefined || !this.outputs[change]) {
       throw new Error("Non-existed output to change");
     }
     return this.completeFee(
       from,
       (tx, capacity) => {
-        tx.outputs[change].capacity += capacity;
+        tx.setOutput(
+          change,
+          {
+            ...tx.outputs[change],
+            capacity: tx.outputs[change].capacity + capacity,
+          },
+          tx.outputsData[change],
+        );
         return 0;
       },
       feeRate,

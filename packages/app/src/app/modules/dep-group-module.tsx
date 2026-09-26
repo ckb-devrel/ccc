@@ -52,7 +52,9 @@ async function findDepGroup(client: ccc.Client, typeId: string) {
     typeId,
   );
   const cell = await client.findSingletonCellByType(type, true);
-  if (!cell) throw new Error(`Dep group ${typeId} not found`);
+  if (!cell) {
+    throw new Error(`Dep group ${typeId} not found`);
+  }
   return { cell, outPoints: OutPointVec.decode(cell.outputData) };
 }
 
@@ -78,7 +80,9 @@ async function saveDepGroup(
     );
     await tx.completeInputsAtLeastOne(signer);
     const outputType = tx.outputs[outputIndex].type;
-    if (!outputType) throw new Error("Type ID output disappeared");
+    if (!outputType) {
+      throw new Error("Type ID output disappeared");
+    }
     outputType.args = ccc.hashTypeId(tx.inputs[0], outputIndex);
     return { tx, typeId: outputType.args };
   }
@@ -97,7 +101,9 @@ async function saveDepGroup(
 function parseOutPoints(value: string) {
   return splitLines(value).map((line) => {
     const separator = line.lastIndexOf(":");
-    if (separator < 0) throw new Error(`Invalid outpoint: ${line}`);
+    if (separator < 0) {
+      throw new Error(`Invalid outpoint: ${line}`);
+    }
     return ccc.OutPoint.from({
       txHash: line.slice(0, separator),
       index: line.slice(separator + 1),
@@ -162,15 +168,21 @@ export function DepGroupModule({
   );
 
   useEffect(() => {
-    if (typeIdSelection !== "manual" || !isCompleteTypeId(typeId)) return;
+    if (typeIdSelection !== "manual" || !isCompleteTypeId(typeId)) {
+      return;
+    }
     let cancelled = false;
     findDepGroup(client, typeId)
       .then(({ outPoints: loadedOutPoints }) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setOutPoints(formatOutPoints(loadedOutPoints));
       })
       .catch(() => {
-        if (!cancelled) setOutPoints("");
+        if (!cancelled) {
+          setOutPoints("");
+        }
       });
     return () => {
       cancelled = true;
@@ -184,7 +196,9 @@ export function DepGroupModule({
   };
 
   const save = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusy(true);
     const updating = typeIdSelection !== "new";
     try {
@@ -203,7 +217,9 @@ export function DepGroupModule({
         },
       );
       setTypeId(savedTypeId);
-      if (!updating) setTypeIdSelection("cell");
+      if (!updating) {
+        setTypeIdSelection("cell");
+      }
       log(`Type ID: ${savedTypeId}`, "success");
       refreshTimers.current.forEach(clearTimeout);
       setRefreshNonce((value) => value + 1);
@@ -264,7 +280,9 @@ export function DepGroupModule({
           />
           {depGroups.map((depGroup) => {
             const id = depGroup.cell.cellOutput.type?.args;
-            if (!id) return null;
+            if (!id) {
+              return null;
+            }
             const count = depGroup.outPoints.length;
             return (
               <ModuleSelectionItem

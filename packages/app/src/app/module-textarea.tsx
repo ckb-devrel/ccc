@@ -53,12 +53,16 @@ export function ModuleTextarea({
   }, []);
 
   useLayoutEffect(() => {
-    if (textarea.current) updateIndicator(textarea.current);
+    if (textarea.current) {
+      updateIndicator(textarea.current);
+    }
   }, [defaultValue, updateIndicator, value]);
 
   useEffect(() => {
     const element = textarea.current;
-    if (!element) return;
+    if (!element) {
+      return;
+    }
 
     const observer = new ResizeObserver(() => updateIndicator(element));
     observer.observe(element);

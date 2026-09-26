@@ -12,14 +12,18 @@ import styles from "./deployer-module.module.css";
 import { reportModuleError } from "./module-helpers";
 
 async function findTypeIdCell(client: ccc.Client, args: string) {
-  if (!args) return undefined;
+  if (!args) {
+    return undefined;
+  }
   const type = await ccc.Script.fromKnownScript(
     client,
     ccc.KnownScript.TypeId,
     args,
   );
   const cell = await client.findSingletonCellByType(type, true);
-  if (!cell) throw new Error(`Type ID cell ${args} not found`);
+  if (!cell) {
+    throw new Error(`Type ID cell ${args} not found`);
+  }
   return cell;
 }
 
@@ -54,8 +58,9 @@ async function deploy(
   const existing = await findTypeIdCell(signer.client, typeIdArgs);
   let id: string;
   if (existing) {
-    if (!existing.cellOutput.type?.args)
+    if (!existing.cellOutput.type?.args) {
       throw new Error("Selected cell has no Type ID");
+    }
     ({ tx } = await transferTypeId({
       client: signer.client,
       id: existing.cellOutput.type.args,
@@ -83,7 +88,9 @@ async function burnTypeId(
   typeIdArgs: string,
 ) {
   const cell = await findTypeIdCell(signer.client, typeIdArgs);
-  if (!cell) throw new Error("Select a Type ID cell to burn");
+  if (!cell) {
+    throw new Error("Select a Type ID cell to burn");
+  }
   tx.addInput(cell);
   await tx.addCellDepsOfKnownScripts(signer.client, ccc.KnownScript.TypeId);
   return tx;
@@ -160,7 +167,9 @@ function deploymentCapacity(
   receiver?: ccc.ScriptLike,
   type?: ccc.ScriptLike,
 ) {
-  if (!receiver || !type) return undefined;
+  if (!receiver || !type) {
+    return undefined;
+  }
   const baseSize = ccc.CellOutput.from({ lock: receiver, type }).occupiedSize;
   return ccc.fixedPointToString(ccc.fixedPointFrom(baseSize + fileSize));
 }
@@ -203,14 +212,20 @@ export function DeployerModule({
 
   useEffect(() => {
     let cancelled = false;
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     hashFile(file)
       .then((hash) => {
-        if (!cancelled) setFileDataHash(hash);
+        if (!cancelled) {
+          setFileDataHash(hash);
+        }
       })
       .catch(() => {
-        if (!cancelled) setFileDataHash("Unavailable");
+        if (!cancelled) {
+          setFileDataHash("Unavailable");
+        }
       });
     return () => {
       cancelled = true;
@@ -218,15 +233,21 @@ export function DeployerModule({
   }, [file]);
 
   useEffect(() => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     let cancelled = false;
     getNewTypeIdDefaults(signer)
       .then((defaults) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setNewTypeIdDefaults(defaults);
       })
       .catch(() => {
-        if (!cancelled) setNewTypeIdDefaults(undefined);
+        if (!cancelled) {
+          setNewTypeIdDefaults(undefined);
+        }
       });
     return () => {
       cancelled = true;
@@ -256,12 +277,18 @@ export function DeployerModule({
     let cancelled = false;
     findTypeIdCell(signer.client, typeId)
       .then(async (cell) => {
-        if (!cell || cancelled) return;
+        if (!cell || cancelled) {
+          return;
+        }
         const prepared = await prepareTypeIdCell(cell, signer.client);
-        if (!cancelled) setManualTypeIdCell(prepared);
+        if (!cancelled) {
+          setManualTypeIdCell(prepared);
+        }
       })
       .catch(() => {
-        if (!cancelled) setManualTypeIdCell(undefined);
+        if (!cancelled) {
+          setManualTypeIdCell(undefined);
+        }
       });
     return () => {
       cancelled = true;
@@ -269,7 +296,9 @@ export function DeployerModule({
   }, [signer, typeId, typeIdSelection]);
 
   const submit = async (mode: "burn" | "deploy") => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusyAction(mode);
     const action =
       mode === "burn"
@@ -281,8 +310,12 @@ export function DeployerModule({
       let detail = "";
       let deployedTypeId = typeId;
       await submitTransaction(`Cell ${action}`, async (tx) => {
-        if (mode === "burn") return burnTypeId(signer, tx, typeId);
-        if (!file) throw new Error("Select a file to deploy");
+        if (mode === "burn") {
+          return burnTypeId(signer, tx, typeId);
+        }
+        if (!file) {
+          throw new Error("Select a file to deploy");
+        }
         if (!deploymentReceiver) {
           throw new Error("Unable to resolve deployment receiver");
         }
@@ -298,12 +331,18 @@ export function DeployerModule({
         deployedTypeId = result.id;
         return result.tx;
       });
-      if (detail) log(detail, "success");
+      if (detail) {
+        log(detail, "success");
+      }
       if (mode === "deploy") {
         setTypeId(deployedTypeId);
-        if (typeIdSelection === "new") setTypeIdSelection("cell");
+        if (typeIdSelection === "new") {
+          setTypeIdSelection("cell");
+        }
       }
-      if (mode === "burn") setTypeId("");
+      if (mode === "burn") {
+        setTypeId("");
+      }
       refreshTimers.current.forEach(clearTimeout);
       setRefreshNonce((value) => value + 1);
       refreshTimers.current = [
@@ -361,7 +400,9 @@ export function DeployerModule({
                 onClick={() => {
                   setFile(undefined);
                   setFileDataHash(undefined);
-                  if (fileInput.current) fileInput.current.value = "";
+                  if (fileInput.current) {
+                    fileInput.current.value = "";
+                  }
                 }}
               >
                 <X size={14} />
@@ -456,7 +497,9 @@ export function DeployerModule({
           />
           {typeIdCells.map(({ cell }) => {
             const id = cell.cellOutput.type?.args;
-            if (!id) return null;
+            if (!id) {
+              return null;
+            }
             const outPoint = `${cell.outPoint.txHash}:${cell.outPoint.index}`;
             const occupied = ccc.fixedPointToString(
               ccc.fixedPointFrom(cell.occupiedSize),
@@ -621,7 +664,9 @@ function DeployCopyDetail({
 }
 
 function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
   if (bytes < 1024 ** 2) {
     return `${(bytes / 1024).toFixed(2)} KiB · ${bytes} bytes`;
   }
@@ -629,7 +674,9 @@ function formatFileSize(bytes: number) {
 }
 
 function formatCreationDate(timestamp?: number) {
-  if (timestamp === undefined) return "Unavailable";
+  if (timestamp === undefined) {
+    return "Unavailable";
+  }
   try {
     return new Date(timestamp).toLocaleString(undefined, {
       year: "numeric",

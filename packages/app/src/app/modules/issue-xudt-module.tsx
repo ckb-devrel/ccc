@@ -83,7 +83,9 @@ async function issueWithSingleUseSeal(
       ccc.KnownScript.UniqueType,
     );
     const infoType = tx.outputs[infoOutputIndex].type;
-    if (!infoType) throw new Error("Token info output disappeared");
+    if (!infoType) {
+      throw new Error("Token info output disappeared");
+    }
     infoType.args = ccc.hexFrom(
       ccc
         .bytesFrom(ccc.hashTypeId(tx.inputs[sealInputIndex], infoOutputIndex))
@@ -122,8 +124,9 @@ async function issueWithTypeId(
       ],
     });
     await typeIdTx.completeInputsByCapacity(signer);
-    if (!typeIdTx.outputs[0].type)
+    if (!typeIdTx.outputs[0].type) {
       throw new Error("Type ID output disappeared");
+    }
     typeIdTx.outputs[0].type.args = ccc.hashTypeId(typeIdTx.inputs[0], 0);
     typeId = typeIdTx.outputs[0].type;
     await typeIdTx.completeFeeBy(signer);
@@ -142,7 +145,9 @@ async function issueWithTypeId(
   progress(ownerHash, "Owner cell created");
 
   const typeIdCell = await signer.client.findSingletonCellByType(typeId);
-  if (!typeIdCell) throw new Error("Type ID cell not found");
+  if (!typeIdCell) {
+    throw new Error("Type ID cell not found");
+  }
   await submitTransaction("Issue xUDT with Type ID", async (tx) => {
     const typeIdInputIndex = tx.inputs.length;
     tx.addInput(typeIdCell);
@@ -178,7 +183,9 @@ async function issueWithTypeId(
       ccc.KnownScript.UniqueType,
     );
     const infoType = tx.outputs[infoOutputIndex].type;
-    if (!infoType) throw new Error("Token info output disappeared");
+    if (!infoType) {
+      throw new Error("Token info output disappeared");
+    }
     infoType.args = ccc.hexFrom(
       ccc
         .bytesFrom(ccc.hashTypeId(tx.inputs[typeIdInputIndex], infoOutputIndex))
@@ -218,7 +225,9 @@ function IssueXUdtModule({
     setToken((current) => ({ ...current, [key]: value }));
 
   const issue = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     let validToken: TokenInfo;
     try {
       validToken = validateTokenInfo(token);

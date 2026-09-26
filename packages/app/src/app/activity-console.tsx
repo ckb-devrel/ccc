@@ -43,7 +43,9 @@ function createActivityLogStore(): ActivityLogStore {
 
   return {
     clear: () => {
-      if (entries.length === 0) return;
+      if (entries.length === 0) {
+        return;
+      }
       entries = [];
       emit();
     },
@@ -121,7 +123,9 @@ export function ActivityConsole({
 
   useLayoutEffect(() => {
     const measure = previewMeasureRef.current;
-    if (!measure) return;
+    if (!measure) {
+      return;
+    }
     const nextWidth = Math.ceil(measure.getBoundingClientRect().width) + 1;
     if (nextWidth === previewWidthRef.current) {
       return;

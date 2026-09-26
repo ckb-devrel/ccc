@@ -16,7 +16,9 @@ async function* findSignerClusters(signer: ccc.Signer) {
     order: "desc",
   })) {
     const id = cluster.cellOutput.type?.args;
-    if (id) yield { id, name: clusterData.name };
+    if (id) {
+      yield { id, name: clusterData.name };
+    }
   }
 }
 
@@ -75,7 +77,9 @@ export function MintSporeModule({
       : "";
 
   const mint = async () => {
-    if (!signer) return;
+    if (!signer) {
+      return;
+    }
     setBusy(true);
     try {
       let sporeId = "";

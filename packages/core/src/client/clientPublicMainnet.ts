@@ -52,9 +52,14 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     config: Omit<Parameters<typeof RequestorJsonRpc.new>[0], "onError"> &
       ClientConfig,
   ): ClientPublicMainnet {
-    const { cache, scripts, ...requestorConfig } = config;
+    const { cache, scripts, addressResolver, ...requestorConfig } = config;
     const requestor = this.newRequestor(requestorConfig);
-    return new ClientPublicMainnet({ cache, scripts, requestor });
+    return new ClientPublicMainnet({
+      cache,
+      scripts,
+      addressResolver,
+      requestor,
+    });
   }
 
   /** Opens a Client with explicit ownership of its default dependencies. */
@@ -70,6 +75,7 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     const {
       cache,
       scripts,
+      addressResolver,
       urls = this.defaultUrls(),
       ...requestorConfig
     } = config ?? {};
@@ -81,6 +87,7 @@ export class ClientPublicMainnet extends ClientJsonRpc {
         new ClientPublicMainnet({
           cache,
           scripts,
+          addressResolver,
           requestor,
           url: urls[0],
           fallbacks: [...urls.slice(1)],

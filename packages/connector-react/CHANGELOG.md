@@ -1,5 +1,37 @@
 # @ckb-ccc/connector-react
 
+## 2.2.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@2.3.2
+
+## 2.2.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@2.3.1
+
+## 2.2.0
+
+### Minor Changes
+
+- [#552](https://github.com/ckb-devrel/ccc/pull/552) [`ab98c7a`](https://github.com/ckb-devrel/ccc/commit/ab98c7a772226cef78e865f6b37e83e7e2f57d66) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Add a `hideKhie` option to hide the Khie wallet connection entry.
+
+### Patch Changes
+
+- Updated dependencies [[`ab98c7a`](https://github.com/ckb-devrel/ccc/commit/ab98c7a772226cef78e865f6b37e83e7e2f57d66), [`c544a91`](https://github.com/ckb-devrel/ccc/commit/c544a9102098771cd54cf8708b91c1ac9afc6cde)]:
+  - @ckb-ccc/connector@2.3.0
+
+## 2.1.6
+
+### Patch Changes
+
+- Updated dependencies [[`087c24a`](https://github.com/ckb-devrel/ccc/commit/087c24a0336bf923a3bdadb1ed1769daf0bdd0bd), [`cd3d8b7`](https://github.com/ckb-devrel/ccc/commit/cd3d8b7db0a4662851fe4907902f7fb69fce3da6)]:
+  - @ckb-ccc/connector@2.2.4
+
 ## 2.1.6-next.0
 
 ### Patch Changes

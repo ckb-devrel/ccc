@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/spore",
-  "version": "1.6.14-next.0",
+  "version": "1.6.15",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Spore protocol",
   "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
@@ -40,7 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.3",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",

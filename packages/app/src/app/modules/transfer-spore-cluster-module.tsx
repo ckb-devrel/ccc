@@ -15,7 +15,9 @@ async function* findSignerClusters(signer: ccc.Signer) {
     clusterData,
   } of ccc.spore.findSporeClustersBySigner({ signer, order: "desc" })) {
     const id = cluster.cellOutput.type?.args;
-    if (id) yield { id, name: clusterData.name };
+    if (id) {
+      yield { id, name: clusterData.name };
+    }
   }
 }
 
@@ -56,7 +58,9 @@ export function TransferSporeClusterModule({
     : (clusters[0]?.id ?? "");
 
   const transfer = async () => {
-    if (!signer || !activeClusterId) return;
+    if (!signer || !activeClusterId) {
+      return;
+    }
     setBusy(true);
     try {
       await submitTransaction("Transfer Spore cluster", (tx) =>

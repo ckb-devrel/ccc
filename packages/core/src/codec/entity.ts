@@ -3,7 +3,12 @@ import { hashCkb } from "../hasher/index.js";
 import { Hex, hexFrom } from "../hex/index.js";
 import type { UnionDecoded, UnionMatchHandlers } from "../molecule/codec.js";
 import { Constructor } from "../utils/index.js";
-import { Codec, CodecLike, DecodedType } from "./codec.js";
+import {
+  Codec,
+  type CodecLike,
+  type ContextType,
+  type DecodedType,
+} from "./codec.js";
 
 /**
  * The base class of CCC to create a serializable instance. This should be used with the {@link codec} decorator.
@@ -15,7 +20,12 @@ export abstract class Entity {
    * This should be used with the {@link codec} decorator.
    * @public
    */
-  static Base<SubTypeLike, SubType = SubTypeLike>() {
+  static Base<
+    SubTypeLike,
+    SubType = SubTypeLike,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Context = any,
+  >() {
     // Static methods in this class are written in function syntax not method syntax
     // to enable strictFunctionTypes to catch more errors.
     // This protects when the class is extended and the static methods are overridden with incompatible types.
@@ -44,28 +54,22 @@ export abstract class Entity {
        * @public
        * @static
        * @param _ - The bytes to decode
-       * @param _config - The configuration for decoding, including whether to ignore extra fields
+       * @param _context - Optional context passed to the codec
        * @returns The decoded entity
        * @throws Will throw an error if the entity is not serializable
        */
-      static decode: (
-        _: BytesLike,
-        _config?: { isExtraFieldIgnored?: boolean },
-      ) => SubType;
+      static decode: (_: BytesLike, _context?: Context) => SubType;
 
       /**
        * Create an entity from bytes
        * @public
        * @static
        * @param _ - The bytes to create the entity from
-       * @param _config - The configuration for decoding, including whether to ignore extra fields
+       * @param _context - Optional context passed to the codec
        * @returns The created entity
        * @throws Will throw an error if the entity is not serializable
        */
-      static fromBytes: (
-        _bytes: BytesLike,
-        _config?: { isExtraFieldIgnored?: boolean },
-      ) => SubType;
+      static fromBytes: (_bytes: BytesLike, _context?: Context) => SubType;
 
       /**
        * Create an entity from a serializable object
@@ -174,14 +178,18 @@ export abstract class Entity {
    */
   static BaseUnion<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+    CodecType extends CodecLike<any, UnionDecoded<any, any>, any>,
     SubTypeLike,
     SubType = SubTypeLike,
   >() {
     type Handlers<Result> = UnionMatchHandlers<CodecType, Result>;
     type Decoded = DecodedType<CodecType>;
 
-    abstract class Impl extends Entity.Base<SubTypeLike, SubType>() {
+    abstract class Impl extends Entity.Base<
+      SubTypeLike,
+      SubType,
+      ContextType<CodecType>
+    >() {
       /**
        * The inner decoded object representing the union value.
        * @public
@@ -262,33 +270,33 @@ export abstract class Entity {
  * }
  * ```
  */
-export function codec<Encodable, Decoded>(
-  codecLike: CodecLike<Encodable, Decoded>,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function codec<Encodable, Decoded, Context = any>(
+  codecLike: CodecLike<Encodable, Decoded, Context>,
 ) {
   const codec = Codec.from(codecLike);
 
   return function <
     TypeLike extends Encodable,
     Type extends TypeLike,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ConstructorType extends Constructor<Type, [Decoded, ...any[]]>,
+    ConstructorType extends Constructor<Type>,
   >(
     Constructor: ConstructorType &
       Omit<CodecLike<TypeLike, Type>, "from"> & {
         // Since Base.from only accepts TypeLike,
         // passing this check actually tells us that Decoded extends TypeLike
         from: (encodable: TypeLike | Decoded) => Type;
-        fromBytes: (bytes: BytesLike) => Type;
+        fromBytes: (bytes: BytesLike, context?: Context) => Type;
       },
     ..._: unknown[]
   ): void {
-    const Base = Object.getPrototypeOf(Constructor) as Omit<
-      CodecLike<TypeLike, Type>,
-      "from"
-    > & {
+    const Base = Object.getPrototypeOf(Constructor) as {
+      byteLength?: number;
+      encode?: (encodable: TypeLike) => Bytes;
+      decode?: (bytesLike: BytesLike, context?: Context) => Type;
       // See above, we already know that Decoded extends TypeLike, so we can safely cast the type here.
-      from: (encodable: TypeLike) => Type;
-      fromBytes: (bytes: BytesLike) => Type;
+      from?: (encodable: TypeLike) => Type;
+      fromBytes?: (bytes: BytesLike, context?: Context) => Type;
     };
 
     Base.byteLength = codec.byteLength;
@@ -304,18 +312,18 @@ export function codec<Encodable, Decoded>(
       Base.decode = function (
         this: typeof Constructor,
         bytesLike: BytesLike,
-        config?: { isExtraFieldIgnored?: boolean },
+        context?: Context,
       ) {
-        return this.from(codec.decode(bytesFrom(bytesLike), config));
+        return this.from(codec.decode(bytesFrom(bytesLike), context));
       };
     }
     if (Base.fromBytes === undefined) {
       Base.fromBytes = function (
         this: typeof Constructor,
         bytes: BytesLike,
-        config?: { isExtraFieldIgnored?: boolean },
+        context?: Context,
       ) {
-        return this.from(codec.decode(bytesFrom(bytes), config));
+        return this.from(codec.decode(bytesFrom(bytes), context));
       };
     }
     if (Base.from === undefined) {
