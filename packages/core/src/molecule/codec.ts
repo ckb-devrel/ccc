@@ -8,8 +8,10 @@ import {
   BytesLike,
 } from "../bytes/index.js";
 import {
+  ChildContext,
   Codec,
   CodecLike,
+  ContextType,
   DecodedType,
   EncodableType,
 } from "../codec/codec.js";
@@ -57,6 +59,10 @@ function getMessage(e: unknown): string {
 function isPositiveSafeInteger(val: unknown): val is number {
   return typeof val === "number" && Number.isSafeInteger(val) && val > 0;
 }
+
+export type TableDecodeContext = {
+  isExtraFieldIgnored?: boolean;
+};
 
 /**
  * Verifies a table or dynvec header and returns item boundaries.
@@ -149,9 +155,9 @@ function verifyAndExtractOffsets(
  * Vector with fixed size item codec
  * @param itemCodec fixed-size vector item codec
  */
-export function fixedItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
-): Codec<Array<Encodable>, Array<Decoded>> {
+export function fixedItemVec<Encodable, Decoded, Context>(
+  itemCodec: CodecLike<Encodable, Decoded, Context>,
+): Codec<Array<Encodable>, Array<Decoded>, ContextType<typeof itemCodec>> {
   const itemByteLength = itemCodec.byteLength;
   if (itemByteLength === undefined) {
     throw new Error("fixedItemVec: itemCodec requires a byte length");
@@ -162,7 +168,11 @@ export function fixedItemVec<Encodable, Decoded>(
     );
   }
 
-  return Codec.from({
+  return Codec.from<
+    Array<Encodable>,
+    Array<Decoded>,
+    ContextType<typeof itemCodec>
+  >({
     encode(userDefinedItems) {
       try {
         const concatted: number[] = [];
@@ -212,10 +222,14 @@ export function fixedItemVec<Encodable, Decoded>(
  * Vector with dynamic size item codec, you can create a recursive vector with this function
  * @param itemCodec the vector item codec. It can be fixed-size or dynamic-size.
  */
-export function dynItemVec<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
-): Codec<Array<Encodable>, Array<Decoded>> {
-  return Codec.from({
+export function dynItemVec<Encodable, Decoded, Context>(
+  itemCodec: CodecLike<Encodable, Decoded, Context>,
+): Codec<Array<Encodable>, Array<Decoded>, ContextType<typeof itemCodec>> {
+  return Codec.from<
+    Array<Encodable>,
+    Array<Decoded>,
+    ContextType<typeof itemCodec>
+  >({
     encode(userDefinedItems) {
       try {
         let offset = 4 + userDefinedItems.length * 4;
@@ -259,9 +273,9 @@ export function dynItemVec<Encodable, Decoded>(
  * General vector codec, if `itemCodec` is fixed size type, it will create a fixvec codec, otherwise a dynvec codec will be created.
  * @param itemCodec
  */
-export function vector<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
-): Codec<Array<Encodable>, Array<Decoded>> {
+export function vector<Encodable, Decoded, Context>(
+  itemCodec: CodecLike<Encodable, Decoded, Context>,
+): Codec<Array<Encodable>, Array<Decoded>, ContextType<typeof itemCodec>> {
   if (itemCodec.byteLength !== undefined) {
     return fixedItemVec(itemCodec);
   }
@@ -275,10 +289,18 @@ export function vector<Encodable, Decoded>(
  * - if it's not empty, just serialize the inner item (the size is same as the inner item's size).
  * @param innerCodec
  */
-export function option<Encodable, Decoded>(
-  innerCodec: CodecLike<Encodable, Decoded>,
-): Codec<Encodable | undefined | null, Decoded | undefined> {
-  return Codec.from({
+export function option<Encodable, Decoded, Context>(
+  innerCodec: CodecLike<Encodable, Decoded, Context>,
+): Codec<
+  Encodable | undefined | null,
+  Decoded | undefined,
+  ContextType<typeof innerCodec>
+> {
+  return Codec.from<
+    Encodable | undefined | null,
+    Decoded | undefined,
+    ContextType<typeof innerCodec>
+  >({
     encode(userDefinedOrNull) {
       if (userDefinedOrNull == null) {
         return bytesFrom([]);
@@ -307,10 +329,10 @@ export function option<Encodable, Decoded>(
  * Wrap the encoded value with a fixed-length buffer
  * @param codec
  */
-export function byteVec<Encodable, Decoded>(
-  codec: CodecLike<Encodable, Decoded>,
-): Codec<Encodable, Decoded> {
-  return Codec.from({
+export function byteVec<Encodable, Decoded, Context>(
+  codec: CodecLike<Encodable, Decoded, Context>,
+): Codec<Encodable, Decoded, ContextType<typeof codec>> {
+  return Codec.from<Encodable, Decoded, ContextType<typeof codec>>({
     encode(userDefined) {
       try {
         const payload = bytesFrom(codec.encode(userDefined));
@@ -343,13 +365,15 @@ export function byteVec<Encodable, Decoded>(
 }
 
 export type EncodableRecordOptionalKeys<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
 > = {
   [K in keyof T]: Extract<EncodableType<T[K]>, undefined> extends never
     ? never
     : K;
 }[keyof T];
-export type EncodableRecord<T extends Record<string, CodecLike<any, any>>> = {
+export type EncodableRecord<
+  T extends Record<string, CodecLike<any, any, any>>,
+> = {
   [key in keyof Pick<T, EncodableRecordOptionalKeys<T>>]+?: EncodableType<
     T[key]
   >;
@@ -358,30 +382,33 @@ export type EncodableRecord<T extends Record<string, CodecLike<any, any>>> = {
 };
 
 export type DecodedRecordOptionalKeys<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
 > = {
   [K in keyof T]: Extract<DecodedType<T[K]>, undefined> extends never
     ? never
     : K;
 }[keyof T];
-export type DecodedRecord<T extends Record<string, CodecLike<any, any>>> = {
-  [key in keyof Pick<T, DecodedRecordOptionalKeys<T>>]+?: DecodedType<T[key]>;
-} & {
-  [key in keyof Omit<T, DecodedRecordOptionalKeys<T>>]: DecodedType<T[key]>;
-};
+export type DecodedRecord<T extends Record<string, CodecLike<any, any, any>>> =
+  {
+    [key in keyof Pick<T, DecodedRecordOptionalKeys<T>>]+?: DecodedType<T[key]>;
+  } & {
+    [key in keyof Omit<T, DecodedRecordOptionalKeys<T>>]: DecodedType<T[key]>;
+  };
 
 /**
  * Table is a dynamic-size type. It can be considered as a dynvec but the length is fixed.
  * @param codecLayout
  */
 export function table<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
   Encodable extends EncodableRecord<T>,
   Decoded extends DecodedRecord<T>,
->(codecLayout: T): Codec<Encodable, Decoded> {
+>(
+  codecLayout: T,
+): Codec<Encodable, Decoded, ChildContext<T> & TableDecodeContext> {
   const keys = Object.keys(codecLayout);
 
-  return Codec.from({
+  return Codec.from<Encodable, Decoded, ChildContext<T> & TableDecodeContext>({
     encode(object) {
       let offset = 4 + keys.length * 4;
       const header: number[] = [];
@@ -401,12 +428,12 @@ export function table<
       const packedTotalSize = uint32To(header.length + body.length + 4);
       return bytesConcat(packedTotalSize, header, body);
     },
-    decode(buffer, config) {
+    decode(buffer, context) {
       const value = bytesFrom(buffer);
       const schemaKeyCount = keys.length;
       const offsets = verifyAndExtractOffsets(value, "table", {
         expected: schemaKeyCount,
-        allowExtra: config?.isExtraFieldIgnored === true,
+        allowExtra: context?.isExtraFieldIgnored === true,
       });
       const result: Record<string, unknown> = {};
 
@@ -416,7 +443,7 @@ export function table<
         const end = offsets[i + 1];
         const itemBuffer = value.subarray(start, end);
         try {
-          result[key] = codecLayout[key].decode(itemBuffer, config);
+          result[key] = codecLayout[key].decode(itemBuffer, context);
         } catch (e: unknown) {
           throw new Error(`table.${key} - ${getMessage(e)}`, { cause: e });
         }
@@ -428,7 +455,7 @@ export function table<
 }
 
 export type UnionEncodable<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
   ? {
@@ -437,7 +464,7 @@ export type UnionEncodable<
     }
   : never;
 export type UnionDecoded<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
   K extends keyof T = keyof T,
 > = K extends unknown
   ? {
@@ -447,7 +474,7 @@ export type UnionDecoded<
   : never;
 
 export type UnionMatchHandlers<
-  CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+  CodecType extends CodecLike<any, UnionDecoded<any, any>, any>,
   Result,
 > = {
   [T in DecodedType<CodecType>["type"]]: (
@@ -455,7 +482,9 @@ export type UnionMatchHandlers<
   ) => Result;
 };
 
-function validateUnionFields<T extends Record<string, CodecLike<any, any>>>(
+function validateUnionFields<
+  T extends Record<string, CodecLike<any, any, any>>,
+>(
   prefix: string,
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
@@ -499,7 +528,9 @@ function validateUnionFields<T extends Record<string, CodecLike<any, any>>>(
   }
 }
 
-function extractUnionEncodable<T extends Record<string, CodecLike<any, any>>>(
+function extractUnionEncodable<
+  T extends Record<string, CodecLike<any, any, any>>,
+>(
   encodable: UnionEncodable<T> | { inner: UnionEncodable<T> },
 ): UnionEncodable<T> {
   if ("type" in encodable && "value" in encodable) {
@@ -509,12 +540,16 @@ function extractUnionEncodable<T extends Record<string, CodecLike<any, any>>>(
   return encodable.inner;
 }
 
-function createUnionCodec<T extends Record<string, CodecLike<any, any>>>(
+function createUnionCodec<T extends Record<string, CodecLike<any, any, any>>>(
   prefix: string,
   codecLayout: T,
   fields: Record<keyof T, number | undefined | null> | undefined,
   payloadByteLength?: number,
-): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
+): Codec<
+  UnionEncodable<T> | { inner: UnionEncodable<T> },
+  UnionDecoded<T>,
+  ChildContext<T>
+> {
   const keys = Object.keys(codecLayout);
   const fieldIds = new Map<string, number>();
   const fieldsById = new Map<number, string>();
@@ -528,7 +563,8 @@ function createUnionCodec<T extends Record<string, CodecLike<any, any>>>(
 
   return Codec.from<
     UnionEncodable<T> | { inner: UnionEncodable<T> },
-    UnionDecoded<T>
+    UnionDecoded<T>,
+    ChildContext<T>
   >({
     byteLength,
     encode(encodable) {
@@ -623,10 +659,14 @@ function createUnionCodec<T extends Record<string, CodecLike<any, any>>>(
  * // Fixed-size union (explicit extension):
  * fixedUnion({ cafe: Uint16, bee: Uint16 });
  */
-export function union<T extends Record<string, CodecLike<any, any>>>(
+export function union<T extends Record<string, CodecLike<any, any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
-): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
+): Codec<
+  UnionEncodable<T> | { inner: UnionEncodable<T> },
+  UnionDecoded<T>,
+  ChildContext<T>
+> {
   if (Object.keys(codecLayout).length === 0) {
     throw new Error("union: must have at least one variant");
   }
@@ -657,10 +697,14 @@ export function union<T extends Record<string, CodecLike<any, any>>>(
  * @param codecLayout an object mapping variant names to fixed-size codecs of identical byteLength
  * @param fields optional mapping from variant names to custom numeric IDs
  */
-export function fixedUnion<T extends Record<string, CodecLike<any, any>>>(
+export function fixedUnion<T extends Record<string, CodecLike<any, any, any>>>(
   codecLayout: T,
   fields?: Record<keyof T, number | undefined | null>,
-): Codec<UnionEncodable<T> | { inner: UnionEncodable<T> }, UnionDecoded<T>> {
+): Codec<
+  UnionEncodable<T> | { inner: UnionEncodable<T> },
+  UnionDecoded<T>,
+  ChildContext<T>
+> {
   const entries = Object.entries(codecLayout);
   if (entries.length === 0) {
     throw new Error("fixedUnion: must have at least one variant");
@@ -700,10 +744,10 @@ export function fixedUnion<T extends Record<string, CodecLike<any, any>>>(
  * @param codecLayout a object contains all fields' codec
  */
 export function struct<
-  T extends Record<string, CodecLike<any, any>>,
+  T extends Record<string, CodecLike<any, any, any>>,
   Encodable extends EncodableRecord<T>,
   Decoded extends DecodedRecord<T>,
->(codecLayout: T): Codec<Encodable, Decoded> {
+>(codecLayout: T): Codec<Encodable, Decoded, ChildContext<T>> {
   const keys = Object.keys(codecLayout);
   if (keys.length === 0) {
     throw new Error("struct: must have at least one field");
@@ -725,7 +769,7 @@ export function struct<
     }
   }
 
-  return Codec.from({
+  return Codec.from<Encodable, Decoded, ChildContext<T>>({
     byteLength,
     encode(object) {
       const bytes: number[] = [];
@@ -765,10 +809,10 @@ export function struct<
  * @param itemCodec the fixed-size array item codec
  * @param itemCount
  */
-export function array<Encodable, Decoded>(
-  itemCodec: CodecLike<Encodable, Decoded>,
+export function array<Encodable, Decoded, Context>(
+  itemCodec: CodecLike<Encodable, Decoded, Context>,
   itemCount: number,
-): Codec<Array<Encodable>, Array<Decoded>> {
+): Codec<Array<Encodable>, Array<Decoded>, ContextType<typeof itemCodec>> {
   if (itemCodec.byteLength === undefined) {
     throw new Error("array: itemCodec requires a byte length");
   }
@@ -789,7 +833,11 @@ export function array<Encodable, Decoded>(
     );
   }
 
-  return Codec.from({
+  return Codec.from<
+    Array<Encodable>,
+    Array<Decoded>,
+    ContextType<typeof itemCodec>
+  >({
     byteLength,
     encode(items) {
       try {
