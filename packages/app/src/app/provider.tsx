@@ -1,11 +1,54 @@
 "use client";
 
 import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+/** Native name of a language tag, e.g. `"zh-Hans"` → `"简体中文"`. */
+function localeDisplayName(locale: ccc.ConnectorLocale): string {
+  try {
+    return (
+      new Intl.DisplayNames([locale], { type: "language" }).of(locale) ?? locale
+    );
+  } catch {
+    return locale;
+  }
+}
+
+/**
+ * Connector languages offered by the header dropdown, read straight from the
+ * connector's built-in locale registry. Contributing a new connector
+ * language (see CONTRIBUTING.md) makes it show up here automatically.
+ */
+export const CONNECTOR_LOCALES: readonly {
+  value: ccc.ConnectorLocale;
+  label: string;
+}[] = (Object.keys(ccc.locales) as ccc.ConnectorLocale[]).map((value) => ({
+  value,
+  label: localeDisplayName(value),
+}));
+
+export type AppConnectorLocale = ccc.ConnectorLocale;
+
+const LocaleContext = createContext<{
+  locale: AppConnectorLocale;
+  setLocale: (locale: AppConnectorLocale) => void;
+}>({ locale: "en", setLocale: () => {} });
+
+/** Locale of the connector UI, switchable at runtime from the header. */
+export function useConnectorLocale() {
+  return useContext(LocaleContext);
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [clientOptions, setClientOptions] =
     useState<{ name: string; client: ccc.Client }[]>();
+  const [locale, setLocale] = useState<AppConnectorLocale>("en");
 
   useEffect(() => {
     const owner = ccc.OwnerAggregated.from([
@@ -30,6 +73,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <ccc.Provider
       name="CCC App"
       icon="/logo.svg"
+      locale={locale}
       clientOptions={clientOptions}
       connectorProps={{
         style: {
@@ -50,7 +94,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } as React.CSSProperties,
       }}
     >
-      {children}
+      <LocaleContext.Provider value={{ locale, setLocale }}>
+        {children}
+      </LocaleContext.Provider>
     </ccc.Provider>
   );
 }

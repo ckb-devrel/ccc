@@ -1,6 +1,7 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { RETRY_SVG } from "../assets/retry.svg.js";
+import { I18n } from "../i18n/index.js";
 
 @customElement("ccc-connecting")
 export class Connecting extends LitElement {
@@ -10,6 +11,7 @@ export class Connecting extends LitElement {
   @property()
   public icon!: string;
 
+  /** Already formatted for display; see `displayError`. */
   @property()
   public error?: string;
 
@@ -19,10 +21,14 @@ export class Connecting extends LitElement {
   @property({ attribute: false })
   public onRetry?: () => unknown;
 
+  @property({ attribute: false })
+  public i18n = new I18n();
+
   render() {
-    const title = this.error
-      ? `Failed to open ${this.name}`
-      : `Opening ${this.name}...`;
+    const title = this.i18n.t(
+      this.error ? "failedToOpenWallet" : "openingWallet",
+      { name: this.name },
+    );
 
     return html`
       <img
@@ -39,7 +45,7 @@ export class Connecting extends LitElement {
               class="retry"
               @click=${() => this.onRetry?.()}
             >
-              ${RETRY_SVG} Try again
+              ${RETRY_SVG} ${this.i18n.t("tryAgain")}
             </ccc-button-pill>`
           : undefined
       }

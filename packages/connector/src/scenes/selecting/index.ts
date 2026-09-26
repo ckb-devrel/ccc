@@ -2,7 +2,8 @@ import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { CloseRequestEvent, ConnectedEvent } from "../../events/internal.js";
-import { errorMessage } from "../error.js";
+import { I18n } from "../../i18n/index.js";
+import { ConnectorError, displayError } from "../error.js";
 import { generateSignersScene } from "./signers.js";
 import { generateWalletsScene } from "./wallets.js";
 
@@ -14,12 +15,15 @@ export class SelectingScene extends LitElement {
   @property()
   public wallets?: ccc.WalletWithSigners[];
 
+  @property({ attribute: false })
+  public i18n = new I18n();
+
   @state()
   private selectedWallet?: ccc.WalletWithSigners;
   @state()
   private selectedSigner?: ccc.SignerInfo;
   @state()
-  private connectingError?: string;
+  private connectingError?: { cause: unknown };
 
   render() {
     const [title, body] = this.renderContent();
@@ -52,12 +56,17 @@ export class SelectingScene extends LitElement {
           this.selectedWallet = selectedWallet;
         },
         this.signerSelectedHandler,
+        this.i18n,
       );
     }
 
     const signer = this.selectedSigner;
     if (!signer) {
-      return generateSignersScene(wallet, this.signerSelectedHandler);
+      return generateSignersScene(
+        wallet,
+        this.signerSelectedHandler,
+        this.i18n,
+      );
     }
 
     return [
@@ -65,8 +74,12 @@ export class SelectingScene extends LitElement {
       html`<ccc-connecting
         .name=${wallet.name}
         .icon=${wallet.icon}
-        .error=${this.connectingError}
-        hint="Confirm connection in the wallet"
+        .error=${
+          this.connectingError &&
+          displayError(this.connectingError.cause, this.i18n)
+        }
+        .hint=${this.i18n.t("confirmInWallet")}
+        .i18n=${this.i18n}
         .onRetry=${() => this.signerSelectedHandler(wallet, signer)}
       ></ccc-connecting>`,
     ];
@@ -98,11 +111,16 @@ export class SelectingScene extends LitElement {
       await signer.connect();
 
       if (!(await signer.isConnected())) {
-        this.connectingError = "Unknown connection status";
+        this.connectingError = {
+          cause: new ConnectorError(
+            "unknown-connection-status",
+            "Unknown connection status",
+          ),
+        };
         return;
       }
     } catch (cause) {
-      this.connectingError = errorMessage(cause);
+      this.connectingError = { cause };
       return;
     }
 
