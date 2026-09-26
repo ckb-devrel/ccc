@@ -1,10 +1,16 @@
-import { test } from "vitest";
+import { expect, test } from "vitest";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { bytesFrom } from "../bytes/index.js";
 import { Hex } from "../hex/index.js";
 import { mol } from "../molecule/index.js";
-import { Codec, CodecLike, ContextType } from "./index.js";
+import {
+  Codec,
+  CodecLike,
+  ContextType,
+  Entity,
+  codec as entityCodec,
+} from "./index.js";
 
 type Equal<Left, Right> =
   (<T>() => T extends Left ? 1 : 2) extends <T>() => T extends Right ? 1 : 2
@@ -85,9 +91,35 @@ const oldStyleCodecAssignment: Codec<string, string> =
 void oldStyleCodecAssignment;
 
 type Value = { value: number };
-const tableAsLegacyCodec: mol.Codec<Value, Value> = mol.table({
+const entityTable = mol.table({
   value: mol.Uint8,
 });
+
+@entityCodec(entityTable)
+class ContextEntity extends Entity.Base<
+  Value,
+  ContextEntity,
+  ContextType<typeof entityTable>
+>() {
+  constructor(public readonly value: number) {
+    super();
+  }
+
+  static from(value: Value): ContextEntity {
+    return value instanceof ContextEntity
+      ? value
+      : new ContextEntity(value.value);
+  }
+}
+
+type _EntityPreservesContext = Assert<
+  Equal<
+    Parameters<typeof ContextEntity.decode>[1],
+    ContextType<typeof entityTable> | undefined
+  >
+>;
+
+const tableAsLegacyCodec: mol.Codec<Value, Value> = entityTable;
 const tableAsLegacyCodecLike: mol.CodecLike<any> = tableAsLegacyCodec;
 const legacyCodecRecord: Record<string, mol.CodecLike<any>> = {
   Table: tableAsLegacyCodec,
@@ -102,3 +134,18 @@ void legacyCodecRecord;
 void customLegacyCodec;
 
 test("compile-time context assertions", () => {});
+
+test("entity decode methods forward context to the codec", () => {
+  // A one-field table containing one structurally valid trailing field.
+  const raw = bytesFrom("0d0000000c0000000d00000042", "hex");
+
+  expect(() => ContextEntity.decode(raw)).toThrow(
+    "table: invalid field count, expected 1, but got 2",
+  );
+  expect(ContextEntity.decode(raw, { isExtraFieldIgnored: true })).toEqual(
+    new ContextEntity(0x42),
+  );
+  expect(ContextEntity.fromBytes(raw, { isExtraFieldIgnored: true })).toEqual(
+    new ContextEntity(0x42),
+  );
+});
