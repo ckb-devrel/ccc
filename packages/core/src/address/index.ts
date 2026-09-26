@@ -52,12 +52,13 @@ export class Address {
   /**
    * Creates an Address instance from an address string.
    *
-   * @param address - The address string to parse, or a name the client's
-   * `nameResolver` claims. Names are resolved only with a single Client.
+   * @param address - The address string to parse. If it does not parse, a
+   * single Client's `addressResolver` may resolve it.
    * @param clients - A Client instance or a record of Client instances keyed by prefix.
    * @returns A promise that resolves to an Address instance.
    *
-   * @throws Will throw an error if the address prefix is unknown or mismatched.
+   * @throws Will throw an error if the address prefix is unknown or mismatched,
+   * or if the resolver handles the address but does not find it.
    */
 
   static async fromString(
@@ -68,15 +69,18 @@ export class Address {
     try {
       parsed = addressPayloadFromString(address);
     } catch (error) {
-      // A name has no prefix to pick a client from a record with.
-      const resolved =
-        clients instanceof Client
-          ? await clients.resolveName(address)
-          : undefined;
-      if (resolved === undefined) {
+      // A record of clients is keyed by prefix, which an unparsed address does not have.
+      const client =
+        "addressPrefix" in clients ? (clients as Client) : undefined;
+      const resolver = client?.addressResolver;
+      if (!client || !resolver?.shouldResolve(address)) {
         throw error;
       }
-      parsed = addressPayloadFromString(resolved);
+      const script = await resolver.resolve(address, client);
+      if (!script) {
+        throw new Error(`Address ${address} not found`, { cause: error });
+      }
+      return Address.fromScript(script, client);
     }
     const { prefix, format, payload } = parsed;
 

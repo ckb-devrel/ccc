@@ -39,21 +39,25 @@ import {
 import { KnownScript } from "./knownScript.js";
 
 /**
- * Resolves human-readable names to CKB addresses for `Address.fromString`.
+ * Resolves address representations that `Address.fromString` cannot parse,
+ * such as human-readable names, to scripts.
  *
  * @public
  */
-export type NameResolver = {
-  /** The suffixes this resolver claims, for example `[".example"]`. */
-  suffixes: string[];
-  /** Returns an address string, or `undefined` if the name is unknown. */
-  resolve(name: string, client: Client): Promise<string | undefined>;
-};
+export abstract class AddressResolver {
+  /** Whether this resolver handles the representation. */
+  abstract shouldResolve(address: string): boolean;
+  /** The script it points to, or `undefined` if it is not found. */
+  abstract resolve(
+    address: string,
+    client: Client,
+  ): Promise<ScriptLike | undefined>;
+}
 
 export type ClientConfig = {
   cache?: ClientCache;
   scripts?: Partial<Record<KnownScript, ScriptInfoLike>>;
-  nameResolver?: NameResolver;
+  addressResolver?: AddressResolver;
 };
 
 /**
@@ -62,12 +66,12 @@ export type ClientConfig = {
 export abstract class Client {
   public cache: ClientCache;
   private readonly scripts: Partial<Record<KnownScript, ScriptInfoLike>>;
-  private readonly nameResolver?: NameResolver;
+  public readonly addressResolver?: AddressResolver;
 
   constructor(config?: ClientConfig) {
     this.cache = config?.cache ?? new ClientCacheMemory();
     this.scripts = config?.scripts ?? {};
-    this.nameResolver = config?.nameResolver;
+    this.addressResolver = config?.addressResolver;
   }
 
   /**
@@ -114,24 +118,6 @@ export abstract class Client {
       );
     }
     return ScriptInfo.from(found);
-  }
-
-  /**
-   * Resolves a name with the configured `nameResolver`.
-   *
-   * @param name - A human-readable name, for example `alice.example`.
-   * @returns The address string, or `undefined` if no resolver is configured,
-   * none of its suffixes match the name, or it does not know the name.
-   */
-  async resolveName(name: string): Promise<string | undefined> {
-    const resolver = this.nameResolver;
-    const lower = name.toLowerCase();
-    if (
-      !resolver?.suffixes.some((suffix) => lower.endsWith(suffix.toLowerCase()))
-    ) {
-      return undefined;
-    }
-    return resolver.resolve(name, this);
   }
 
   abstract getFeeRateStatistics(
