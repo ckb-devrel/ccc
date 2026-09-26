@@ -181,7 +181,7 @@ export abstract class Entity {
    */
   static BaseUnion<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    CodecType extends CodecLike<any, UnionDecoded<any, any>>,
+    CodecType extends CodecLike<any, UnionDecoded<any, any>, any>,
     SubTypeLike,
     SubType = SubTypeLike,
   >() {
@@ -263,12 +263,11 @@ export function codec<
   Encodable,
   TypeLike extends Encodable,
   Decoded extends TypeLike,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Context = any,
 >(codec: {
   encode: (encodable: Encodable) => Bytes;
-  decode: (
-    decodable: Bytes,
-    config?: { isExtraFieldIgnored?: boolean },
-  ) => Decoded;
+  decode: (decodable: Bytes, context?: Context) => Decoded;
   byteLength?: number;
 }) {
   return function <

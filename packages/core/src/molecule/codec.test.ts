@@ -125,6 +125,30 @@ describe("Molecule Table and DynVec header and offset validation", () => {
     );
   });
 
+  test("forwards compatible decoding context through nested codecs", () => {
+    const nested = mol.byteVec(
+      mol.vector(
+        mol.option(
+          mol.union({
+            x: mol.table({ value: mol.Uint8 }),
+          }),
+        ),
+      ),
+    );
+    // ByteVec(DynVec(Option(Union(Table)))) with a valid trailing table field.
+    const raw = bytesFrom(
+      "190000001900000008000000000000000d0000000c0000000d00000042",
+      "hex",
+    );
+
+    expect(() => nested.decode(raw)).toThrow(
+      "table: invalid field count, expected 1, but got 2",
+    );
+    expect(nested.decode(raw, { isExtraFieldIgnored: true })).toEqual([
+      { type: "x", value: { value: 0x42 } },
+    ]);
+  });
+
   test("should reject excessive strict-table fields before validating trailing offsets", () => {
     const table1 = mol.table({ a: mol.Uint8 });
     // total_size = 16, offsets = [16, 16, 15]. The trailing offset is invalid,
