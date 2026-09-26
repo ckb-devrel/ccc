@@ -104,7 +104,7 @@ abstract getInternalAddress(): Promise<string>;
 abstract getIdentity(): Promise<string>;
 
 // 获取推荐的 CKB 地址字符串
-async getRecommendedAddress(preference?: unknown): Promise<string>;
+async getRecommendedAddress(): Promise<string>;
 
 // 获取所有 CKB 地址字符串
 async getAddresses(): Promise<string[]>;
@@ -113,7 +113,7 @@ async getAddresses(): Promise<string[]>;
 abstract getAddressObjs(): Promise<Address[]>;
 
 // 获取推荐的 Address 对象
-async getRecommendedAddressObj(_preference?: unknown): Promise<Address>;
+async getRecommendedAddressObj(): Promise<Address>;
 ```
 
 ### 余额查询

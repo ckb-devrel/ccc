@@ -181,21 +181,19 @@ export abstract class Signer {
   /**
    * Gets the recommended Address object for the signer.
    *
-   * @param _preference - Optional preference parameter.
    * @returns A promise that resolves to the recommended Address object.
    */
-  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
+  async getRecommendedAddressObj(): Promise<Address> {
     return (await this.getAddressObjs())[0];
   }
 
   /**
    * Gets the recommended address for the signer as a string.
    *
-   * @param preference - Optional preference parameter.
    * @returns A promise that resolves to the recommended address as a string.
    */
-  async getRecommendedAddress(preference?: unknown): Promise<string> {
-    return (await this.getRecommendedAddressObj(preference)).toString();
+  async getRecommendedAddress(): Promise<string> {
+    return (await this.getRecommendedAddressObj()).toString();
   }
 
   /**
