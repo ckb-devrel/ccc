@@ -23,7 +23,7 @@
     "@shikijs/monaco": "^4.3.0",
     "axios": "^1.11.0",
     "bech32": "^2.0.0",
-    "bitcoinjs-lib": "^7.0.0",
+    "bitcoinjs-lib": "7.0.1",
     "isomorphic-ws": "^5.0.0",
     "lucide-react": "^1.21.0",
     "monaco-editor": "^0.56.0",
