@@ -38,9 +38,23 @@ import {
 } from "./clientTypes.js";
 import { KnownScript } from "./knownScript.js";
 
+/**
+ * Resolves address representations that `Address.fromString` cannot parse,
+ * such as human-readable names, to scripts.
+ *
+ * @public
+ */
+export interface AddressResolver {
+  /** Whether this resolver handles the representation. */
+  shouldResolve(address: string): boolean;
+  /** The script it points to, or `undefined` if it is not found. */
+  resolve(address: string, client: Client): Promise<ScriptLike | undefined>;
+}
+
 export type ClientConfig = {
   cache?: ClientCache;
   scripts?: Partial<Record<KnownScript, ScriptInfoLike>>;
+  addressResolver?: AddressResolver;
 };
 
 /**
@@ -49,10 +63,12 @@ export type ClientConfig = {
 export abstract class Client {
   public cache: ClientCache;
   private readonly scripts: Partial<Record<KnownScript, ScriptInfoLike>>;
+  public readonly addressResolver?: AddressResolver;
 
   constructor(config?: ClientConfig) {
     this.cache = config?.cache ?? new ClientCacheMemory();
     this.scripts = config?.scripts ?? {};
+    this.addressResolver = config?.addressResolver;
   }
 
   /**

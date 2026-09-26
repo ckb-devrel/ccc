@@ -148,7 +148,7 @@ export class Address {
   // 将地址字符串解码为对应的 Address 对象
   static async fromString(
     address: string,
-    clients: Client | Record<string, Client>,
+    client: Client,
   ): Promise<Address> {}
 
   // 由 Script 与 Client 构造 Address

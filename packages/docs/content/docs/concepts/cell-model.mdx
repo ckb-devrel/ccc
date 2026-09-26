@@ -148,7 +148,7 @@ export class Address {
   // Decode an address string back to its Address object
   static async fromString(
     address: string,
-    clients: Client | Record<string, Client>,
+    client: Client,
   ): Promise<Address> {}
 
   // Build an Address from a Script and a Client

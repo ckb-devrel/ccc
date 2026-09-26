@@ -37,7 +37,7 @@ const address = ccc.Address.from({
 
 ### 解析地址字符串
 
-`Address.fromString` 将地址字符串解码为结构化对象：
+`Address.fromString` 将编码后的 CKB 地址解析为结构化对象。如果字符串不是编码地址，`client` 上可选的 `addressResolver` 可以解析名称等其他表示形式：
 
 ```ts
 import { ccc } from "@ckb-ccc/ccc";
@@ -56,9 +56,9 @@ console.log(address.script.args);     // Lock 脚本 args
 console.log(address.prefix);          // "ckb"
 ```
 
-该方法会校验地址前缀与 `client` 所在网络是否匹配，不匹配时抛出异常（例如将 `ckt` 地址传给主网 `client`）。
+对于编码地址，该方法会校验地址前缀与 `client` 所在网络是否匹配，不匹配时抛出异常（例如将 `ckt` 地址传给主网 `client`）。
 
-如果同一段代码需要同时处理两个网络，可以传入一个 `client` 对象字典：
+传入以 prefix 为 key 的 `client` 对象字典已经 deprecated。如果同一段代码需要同时处理两个网络，应由调用方依次尝试各个 `client` 并处理失败：
 
 ```ts
 const clientsOwner = ccc.OwnerAggregated.from([
@@ -66,12 +66,42 @@ const clientsOwner = ccc.OwnerAggregated.from([
   ccc.ClientPublicTestnet.open(),
 ] as const);
 const [mainnetClient, testnetClient] = clientsOwner.value;
-const address = await ccc.Address.fromString(someAddress, {
-  ckb: mainnetClient,
-  ckt: testnetClient,
-});
-await clientsOwner.dispose();
+let address: ccc.Address;
+
+try {
+  try {
+    address = await ccc.Address.fromString(someAddress, mainnetClient);
+  } catch {
+    address = await ccc.Address.fromString(someAddress, testnetClient);
+  }
+} finally {
+  await clientsOwner.dispose();
+}
 ```
+
+### 解析名称及其他表示形式
+
+如果应用接受编码后的 CKB 地址以外的表示形式，可以配置 `AddressResolver`：
+
+```ts
+const names: Record<string, ccc.ScriptLike> = {
+  "alice.example": aliceLock,
+};
+
+const addressResolver: ccc.AddressResolver = {
+  shouldResolve: (value) => value.endsWith(".example"),
+  resolve: async (value) => names[value],
+};
+
+const clientOwner = ccc.ClientPublicMainnet.open({ addressResolver });
+const address = await ccc.Address.fromString(
+  "alice.example",
+  clientOwner.value,
+);
+await clientOwner.dispose();
+```
+
+只有常规地址解析失败后才会调用 resolver。`shouldResolve` 用于判断该 resolver 是否负责给定的表示形式；如果返回 `false`，`Address.fromString` 会保留原始解析错误；如果 `resolve` 返回 `undefined`，则抛出 `Address ... not found`。解析得到的脚本会与传入 `client` 的网络前缀组合成 `Address`。
 
 ### 从脚本构造地址
 
@@ -195,4 +225,4 @@ const addressLike = await cccA.addressFromPayload(prefix, format, payload, clien
 const address = ccc.Address.from(addressLike);
 ```
 
-`Address.fromString` 的实现正是 `addressPayloadFromString` + 前缀校验 + `addressFromPayload` 三步的组合。
+对于编码地址，`Address.fromString` 会依次执行 `addressPayloadFromString`、前缀校验和 `addressFromPayload`。如果第一步失败，则可能改由 `client.addressResolver` 解析。
