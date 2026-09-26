@@ -37,7 +37,9 @@ const address = ccc.Address.from({
 
 ### Parse an address string
 
-`Address.fromString` decodes an address string into a structured object:
+`Address.fromString` parses an encoded CKB address into a structured object. If
+the string is not an encoded address, the client's optional `addressResolver`
+can resolve another representation, such as a name:
 
 ```ts
 import { ccc } from "@ckb-ccc/ccc";
@@ -56,9 +58,13 @@ console.log(address.script.args);     // lock script args
 console.log(address.prefix);          // "ckb"
 ```
 
-It validates that the address prefix matches the client's network and throws on a mismatch (e.g. passing a `ckt` address to a mainnet client).
+For encoded addresses, it validates that the prefix matches the client's
+network and throws on a mismatch (e.g. passing a `ckt` address to a mainnet
+client).
 
-When you need to handle both networks in the same code path, pass a record of clients:
+Passing a prefix-keyed record of clients is deprecated. When you need to handle
+both networks in the same code path, try the clients explicitly and handle the
+failed attempt at the call site:
 
 ```ts
 const clientsOwner = ccc.OwnerAggregated.from([
@@ -66,12 +72,47 @@ const clientsOwner = ccc.OwnerAggregated.from([
   ccc.ClientPublicTestnet.open(),
 ] as const);
 const [mainnetClient, testnetClient] = clientsOwner.value;
-const address = await ccc.Address.fromString(someAddress, {
-  ckb: mainnetClient,
-  ckt: testnetClient,
-});
-await clientsOwner.dispose();
+let address: ccc.Address;
+
+try {
+  try {
+    address = await ccc.Address.fromString(someAddress, mainnetClient);
+  } catch {
+    address = await ccc.Address.fromString(someAddress, testnetClient);
+  }
+} finally {
+  await clientsOwner.dispose();
+}
 ```
+
+### Resolve names and other representations
+
+Configure an `AddressResolver` when an application accepts representations
+other than encoded CKB addresses:
+
+```ts
+const names: Record<string, ccc.ScriptLike> = {
+  "alice.example": aliceLock,
+};
+
+const addressResolver: ccc.AddressResolver = {
+  shouldResolve: (value) => value.endsWith(".example"),
+  resolve: async (value) => names[value],
+};
+
+const clientOwner = ccc.ClientPublicMainnet.open({ addressResolver });
+const address = await ccc.Address.fromString(
+  "alice.example",
+  clientOwner.value,
+);
+await clientOwner.dispose();
+```
+
+The resolver is consulted only after normal address parsing fails.
+`shouldResolve` selects the representations it owns. If it returns `false`,
+`Address.fromString` preserves the original parsing error; if `resolve` returns
+`undefined`, it throws `Address ... not found`. A resolved script is paired with
+the supplied client's network prefix.
 
 ### Construct an address from a script
 
@@ -195,4 +236,6 @@ const addressLike = await cccA.addressFromPayload(prefix, format, payload, clien
 const address = ccc.Address.from(addressLike);
 ```
 
-`Address.fromString` is exactly `addressPayloadFromString` + prefix validation + `addressFromPayload`.
+For an encoded address, `Address.fromString` combines
+`addressPayloadFromString` + prefix validation + `addressFromPayload`. If the
+first step fails, it may instead delegate to the client's `addressResolver`.
