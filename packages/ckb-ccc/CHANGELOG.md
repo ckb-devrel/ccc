@@ -1,5 +1,12 @@
 # ckb-ccc
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [[`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24)]:
+  - @ckb-ccc/ccc@2.0.0-next.2
+
 ## 1.1.15
 
 ### Patch Changes
