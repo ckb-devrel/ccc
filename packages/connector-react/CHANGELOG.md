@@ -1,5 +1,12 @@
 # @ckb-ccc/connector-react
 
+## 2.2.3-next.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/connector@2.3.3-next.0
+
 ## 2.2.2
 
 ### Patch Changes

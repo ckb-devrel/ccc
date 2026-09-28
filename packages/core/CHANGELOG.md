@@ -1,5 +1,35 @@
 # @ckb-ccc/core
 
+## 2.0.0-next.2
+
+### Major Changes
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`cc657a1`](https://github.com/ckb-devrel/ccc/commit/cc657a177e08fdd56e14befccf1e54f556dd9db4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Make the `JsonRpcTransportWebSocket` constructor private. Use `JsonRpcTransportWebSocket.open()` and dispose the returned owner when finished.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`6502363`](https://github.com/ckb-devrel/ccc/commit/6502363ec6a980bf04b4b360ffba465f00d910f8) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated prefix-keyed Client record overload from `Address.fromString`. Pass one Client at a time and try multiple Clients explicitly when supporting multiple networks.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`068265f`](https://github.com/ckb-devrel/ccc/commit/068265fdfdb123bcb192a78b1290f305ec438e73) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the unused `preference` parameter from `Signer.getRecommendedAddress()` and `Signer.getRecommendedAddressObj()`.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`f085313`](https://github.com/ckb-devrel/ccc/commit/f085313fa35be3fa88989a1156126ad35a22cb3d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove `Client.url`. A Client may use multiple endpoints or a Transport without a URL, so applications that need an endpoint must retain that configuration separately.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`1274029`](https://github.com/ckb-devrel/ccc/commit/1274029a23bc1913bd777af0080d0a537283dacc) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated `epochFrom`, `epochFromHex`, and `epochToHex` helpers. Use `Epoch.from`, `Epoch.fromNum`, and `Epoch.from(...).toPackedHex()` instead.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`d70cb9d`](https://github.com/ckb-devrel/ccc/commit/d70cb9d44f159d90f54c3e00551a2fe1bac557f6) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated numeric `Epoch` accessors. Use the named `integer`, `numerator`, and `denominator` properties instead.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`ed42a16`](https://github.com/ckb-devrel/ccc/commit/ed42a160b15905f7ba9cda0f07a92721262a00c1) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the ineffective `verbosity` and `withCycles` parameters from Client block and header methods.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`3cb494a`](https://github.com/ckb-devrel/ccc/commit/3cb494afe98c5755f5db223183f7725b758bfb8d) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated `mol` aliases for `Entity`, `codec`, `Codec`, `uint`, `uintNumber`, `CodecLike`, `DecodedType`, and `EncodableType`. Import their top-level `ccc` equivalents instead.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated network preference API. Wallet integrations expose one fixed-network signer per selectable network; applications should select the desired signer directly.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`aafb18f`](https://github.com/ckb-devrel/ccc/commit/aafb18f6903222ab6e0d510aa485da6b419f24f4) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove `ClientJsonRpcConfig` and the legacy public constructors for JSON-RPC Clients. Use `ClientPublicMainnet.new()` or `ClientPublicTestnet.new()` with a borrowed Transport, or use `.open()` with owned endpoint URLs.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`332aaf1`](https://github.com/ckb-devrel/ccc/commit/332aaf19c20e6fb63ec36e3e35e697e8437bdf9f) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove `RequestorJsonRpcConfig`, the legacy positional `RequestorJsonRpc` constructor, and `RequestorJsonRpc.url`. Use `RequestorJsonRpc.new()` with a borrowed Transport or `RequestorJsonRpc.open()` with owned endpoint URLs.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`e066488`](https://github.com/ckb-devrel/ccc/commit/e06648840ab394240ae7f08f000a1d4fa2644b31) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated transaction methods `setOutputDataAt`, `getWitnessArgsAt`, `getWitnessArgsAtUnsafe`, `setWitnessArgsAt`, and `setWitnessAt`. Use their equivalents without the `At` suffix.
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`6603a14`](https://github.com/ckb-devrel/ccc/commit/6603a14f4ceefc988e30bca8f3620dc77f457ad5) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated `Transaction.stringify()` method. Use the top-level `stringify(transaction)` helper instead.
+
 ## 1.23.0
 
 ### Minor Changes

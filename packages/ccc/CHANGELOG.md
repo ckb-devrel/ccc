@@ -1,5 +1,24 @@
 # @ckb-ccc/ccc
 
+## 2.0.0-next.2
+
+### Major Changes
+
+- [#579](https://github.com/ckb-devrel/ccc/pull/579) [`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24) Thanks [@Hanssen0](https://github.com/Hanssen0)! - Remove the deprecated network preference API. Wallet integrations expose one fixed-network signer per selectable network; applications should select the desired signer directly.
+
+### Patch Changes
+
+- Updated dependencies [[`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24)]:
+  - @ckb-ccc/joy-id@2.0.0-next.1
+  - @ckb-ccc/okx@2.0.0-next.0
+  - @ckb-ccc/uni-sat@2.0.0-next.0
+  - @ckb-ccc/utxo-global@2.0.0-next.0
+  - @ckb-ccc/xverse@2.0.0-next.0
+  - @ckb-ccc/eip6963@1.1.16-next.0
+  - @ckb-ccc/nip07@1.1.16-next.0
+  - @ckb-ccc/rei@1.1.16-next.0
+  - @ckb-ccc/shell@2.0.0-next.2
+
 ## 1.3.6
 
 ### Patch Changes

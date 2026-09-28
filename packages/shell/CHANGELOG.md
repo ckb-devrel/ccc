@@ -1,5 +1,19 @@
 # @ckb-ccc/shell
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- Updated dependencies [[`cc657a1`](https://github.com/ckb-devrel/ccc/commit/cc657a177e08fdd56e14befccf1e54f556dd9db4), [`6502363`](https://github.com/ckb-devrel/ccc/commit/6502363ec6a980bf04b4b360ffba465f00d910f8), [`068265f`](https://github.com/ckb-devrel/ccc/commit/068265fdfdb123bcb192a78b1290f305ec438e73), [`f085313`](https://github.com/ckb-devrel/ccc/commit/f085313fa35be3fa88989a1156126ad35a22cb3d), [`1274029`](https://github.com/ckb-devrel/ccc/commit/1274029a23bc1913bd777af0080d0a537283dacc), [`d70cb9d`](https://github.com/ckb-devrel/ccc/commit/d70cb9d44f159d90f54c3e00551a2fe1bac557f6), [`ed42a16`](https://github.com/ckb-devrel/ccc/commit/ed42a160b15905f7ba9cda0f07a92721262a00c1), [`3cb494a`](https://github.com/ckb-devrel/ccc/commit/3cb494afe98c5755f5db223183f7725b758bfb8d), [`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24), [`aafb18f`](https://github.com/ckb-devrel/ccc/commit/aafb18f6903222ab6e0d510aa485da6b419f24f4), [`332aaf1`](https://github.com/ckb-devrel/ccc/commit/332aaf19c20e6fb63ec36e3e35e697e8437bdf9f), [`a37ac4e`](https://github.com/ckb-devrel/ccc/commit/a37ac4ea9aacee45fe01472734043eee5de404c2), [`e066488`](https://github.com/ckb-devrel/ccc/commit/e06648840ab394240ae7f08f000a1d4fa2644b31), [`6603a14`](https://github.com/ckb-devrel/ccc/commit/6603a14f4ceefc988e30bca8f3620dc77f457ad5)]:
+  - @ckb-ccc/core@2.0.0-next.2
+  - @ckb-ccc/ssri@1.0.0-next.2
+  - @ckb-ccc/co-build@0.1.0-next.2
+  - @ckb-ccc/coin@0.1.0-next.2
+  - @ckb-ccc/did-ckb@0.3.0-next.2
+  - @ckb-ccc/spore@1.6.16-next.0
+  - @ckb-ccc/type-id@0.1.16-next.0
+  - @ckb-ccc/udt@0.2.16-next.0
+
 ## 1.3.15
 
 ### Patch Changes
