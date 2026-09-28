@@ -24,12 +24,7 @@ export class JsonRpcTransportWebSocket implements JsonRpcTransport {
   private socket?: WebSocket;
   private openSocket?: Promise<WebSocket>;
 
-  /**
-   * @deprecated Use {@link JsonRpcTransportWebSocket.open} to make lifecycle
-   * ownership explicit. This constructor will become private in a future
-   * release.
-   */
-  constructor(
+  private constructor(
     private readonly url: string,
     private readonly timeout = 30000,
   ) {}

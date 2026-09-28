@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ClientBlockHeader } from "../client/index.js";
-import { Epoch, epochFrom, epochFromHex, epochToHex } from "./epoch";
+import { Epoch } from "./epoch";
 
 describe("Epoch", () => {
   it("constructs from tuple and object via from()", () => {
@@ -215,20 +215,6 @@ describe("Epoch", () => {
       (DEFAULT_EPOCH_IN_MILLISECONDS * delta.numerator) / delta.denominator;
 
     expect(target.toUnix(minimalRef)).toBe(expected);
-  });
-
-  it("deprecated helpers epochFrom / epochFromHex / epochToHex", () => {
-    const e = Epoch.from([3n, 4n, 5n]);
-    expect(epochFrom(e)).toBe(e);
-
-    const hex = epochToHex(e);
-    expect(typeof hex).toBe("string");
-    expect(hex.startsWith("0x")).toBe(true);
-
-    const decoded = epochFromHex(hex);
-    expect(decoded.integer).toBe(e.integer);
-    expect(decoded.numerator).toBe(e.numerator);
-    expect(decoded.denominator).toBe(e.denominator);
   });
 });
 

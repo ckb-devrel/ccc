@@ -41,23 +41,6 @@ describe("ExecutorJsonRpc ownership", () => {
     ).rejects.toThrow(ExecutorErrorExecutionFailed);
   });
 
-  it("keeps legacy constructor Requestor injection compatible", () => {
-    const requestor = ccc.RequestorJsonRpc.new({
-      transport: {
-        request: async (payload) => ({
-          id: payload.id,
-          jsonrpc: "2.0",
-          result: "ok",
-        }),
-      },
-    });
-
-    const executor = new ExecutorJsonRpc("https://example.com", { requestor });
-
-    expect(executor.requestor).toBe(requestor);
-    expect(executor.url).toBe("https://example.com");
-  });
-
   it("opens an owned Executor", async () => {
     const owner = ExecutorJsonRpc.open({ urls: ["ws://example.com"] });
     const executor = owner.value;

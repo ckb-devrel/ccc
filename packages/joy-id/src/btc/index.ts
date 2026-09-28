@@ -65,7 +65,6 @@ export class BitcoinSigner extends ccc.SignerBtc {
     client: ccc.Client,
     public readonly name: string,
     public readonly icon: string,
-    _preferredNetworks?: ccc.NetworkPreference[],
     public readonly addressType: "auto" | "p2wpkh" | "p2tr" = "auto",
     private readonly _appUri?: string,
     private readonly connectionsRepo: ConnectionsRepo = new ConnectionsRepoLocalStorage(),

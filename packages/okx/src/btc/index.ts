@@ -11,13 +11,11 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * Creates an instance of Signer.
    * @param client - The client instance.
    * @param providers - The providers instance.
-   * @param preferredNetworks - Deprecated network preferences (ignored).
    * @param network - The network represented by this signer.
    */
   constructor(
     client: ccc.Client,
     public readonly providers: Record<string, BitcoinProvider>,
-    _preferredNetworks?: ccc.NetworkPreference[],
     public readonly network = "btc",
   ) {
     super(client);

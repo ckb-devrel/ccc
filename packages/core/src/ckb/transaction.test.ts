@@ -1841,7 +1841,7 @@ describe("Transaction", () => {
         tx.addOutput({ lock });
 
         // Set witness for output 1 at index 1
-        tx.setWitnessAt(1, "0x2222");
+        tx.setWitness(1, "0x2222");
         expect(tx.witnesses).toEqual(["0x", "0x2222"]);
 
         // Add input 1. Since outputs (2) > inputs (1), it should not splice "0x" at index 1.
@@ -1876,7 +1876,7 @@ describe("Transaction", () => {
         tx.addOutput({ lock });
 
         // Set witness for input 1 at index 1
-        tx.setWitnessAt(1, "0x1111");
+        tx.setWitness(1, "0x1111");
         expect(tx.witnesses).toEqual(["0x", "0x1111"]);
 
         // Add output 1. Since inputs (2) > outputs (1), it should not splice "0x" at index 1.
@@ -1898,7 +1898,7 @@ describe("Transaction", () => {
         tx.addOutput({ lock });
 
         // Set an extra witness (e.g., CoBuild SighashAll) at index 1
-        tx.setWitnessAt(1, "0x3333");
+        tx.setWitness(1, "0x3333");
         expect(tx.witnesses).toEqual(["0x", "0x3333"]);
 
         // Add input 1. Since inputs.length (1) >= outputs.length (1), it splices "0x" to shift the extra witness.

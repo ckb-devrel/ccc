@@ -8,6 +8,19 @@ import {
 import { ClientWithFeeRate } from "./client.js";
 import { WebComponentConnector } from "./index.js";
 
+function createClient(mainnet = false): ccc.Client {
+  const config = {
+    transport: {
+      request: async (): Promise<never> => {
+        throw new Error("Unexpected Client request");
+      },
+    },
+  };
+  return mainnet
+    ? ccc.ClientPublicMainnet.new(config)
+    : ccc.ClientPublicTestnet.new(config);
+}
+
 function createSigner(client: ccc.Client) {
   let connected = true;
   const replacedListeners = new Set<() => void>();
@@ -121,7 +134,7 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("forwards ownership while retaining borrowed connection state", async () => {
     const connector = createConnector();
-    const client = new ccc.ClientPublicTestnet();
+    const client = createClient();
     const { close, signer } = createSigner(client);
     const connected = vi.fn();
     const cleared = vi.fn();
@@ -181,7 +194,7 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("does not disconnect a controller signer when its owner is disposed", async () => {
     const connector = createConnector();
-    const client = new ccc.ClientPublicTestnet();
+    const client = createClient();
     const { close, signer } = createSigner(client);
     const wallet = { icon: "", name: "Wallet" };
     const signerInfo = new ccc.SignerInfo("Signer", signer);
@@ -228,7 +241,7 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("replaces a selected connection without an intermediate clear", async () => {
     const connector = createConnector();
-    const client = new ccc.ClientPublicTestnet();
+    const client = createClient();
     const previous = createSigner(client);
     const next = createSigner(client);
     const transitions: Array<ccc.Signer | undefined> = [];
@@ -271,7 +284,7 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("clears signer state when the signer is replaced", async () => {
     const connector = createConnector();
-    const client = new ccc.ClientPublicTestnet();
+    const client = createClient();
     const { replace, signer } = createSigner(client);
     connector.client = client;
     const connectionOwner = connectKhie(connector, signer);
@@ -286,7 +299,7 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("ignores a connection event whose ownership is no longer active", async () => {
     const connector = createConnector();
-    const client = new ccc.ClientPublicTestnet();
+    const client = createClient();
     const current = createSigner(client);
     const stale = createSigner(client);
     connector.client = client;
@@ -328,8 +341,8 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("disconnects the Khie signer when the Client changes", async () => {
     const connector = createConnector();
-    const firstClient = ClientWithFeeRate.from(new ccc.ClientPublicTestnet());
-    const secondClient = ClientWithFeeRate.from(new ccc.ClientPublicMainnet());
+    const firstClient = ClientWithFeeRate.from(createClient());
+    const secondClient = ClientWithFeeRate.from(createClient(true));
     const { close, disconnect, signer } = createSigner(firstClient);
     connector.client = firstClient;
     connectKhie(connector, signer);
@@ -345,8 +358,8 @@ describe("WebComponentConnector connection lifecycle", () => {
 
   it("keeps a controller signer until refresh replaces it", async () => {
     const connector = createConnector();
-    const firstClient = ClientWithFeeRate.from(new ccc.ClientPublicTestnet());
-    const secondClient = ClientWithFeeRate.from(new ccc.ClientPublicMainnet());
+    const firstClient = ClientWithFeeRate.from(createClient());
+    const secondClient = ClientWithFeeRate.from(createClient(true));
     const { close, signer } = createSigner(firstClient);
     const wallet = { icon: "", name: "Wallet" };
     const signerInfo = new ccc.SignerInfo("Signer", signer);

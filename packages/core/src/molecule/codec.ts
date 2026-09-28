@@ -17,33 +17,6 @@ import {
 } from "../codec/codec.js";
 import { numFromBytes, NumLike, numToBytes } from "../num/index.js";
 
-export {
-  /**
-   * @deprecated Use ccc.Codec instead
-   */
-  Codec,
-  /**
-   * @deprecated Use ccc.codecUint instead
-   */
-  codecUint as uint,
-  /**
-   * @deprecated Use ccc.codecUintNumber instead
-   */
-  codecUintNumber as uintNumber,
-  /**
-   * @deprecated Use ccc.CodecLike instead
-   */
-  type CodecLike,
-  /**
-   * @deprecated Use ccc.DecodedType instead
-   */
-  type DecodedType,
-  /**
-   * @deprecated Use ccc.EncodableType instead
-   */
-  type EncodableType,
-} from "../codec/index.js";
-
 function uint32To(numLike: NumLike) {
   return numToBytes(numLike, 4);
 }

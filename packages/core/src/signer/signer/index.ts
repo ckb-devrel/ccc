@@ -44,17 +44,6 @@ export enum SignerType {
 
 /**
  * @public
- * @deprecated Wallet integrations now expose one signer per selectable network.
- * This compatibility type will be removed in the next major release.
- */
-export type NetworkPreference = {
-  addressPrefix: string;
-  signerType: SignerType;
-  network: string;
-};
-
-/**
- * @public
  */
 export class Signature {
   constructor(
@@ -77,30 +66,6 @@ export abstract class Signer {
 
   get client(): Client {
     return this.client_;
-  }
-
-  /**
-   * @deprecated Wallet integrations now use fixed-network signers.
-   */
-  matchNetworkPreference(
-    preferences: NetworkPreference[],
-    currentNetwork: string | undefined,
-  ): NetworkPreference | undefined {
-    if (
-      currentNetwork !== undefined &&
-      preferences.some(
-        ({ signerType, addressPrefix, network }) =>
-          signerType === this.type &&
-          addressPrefix === this.client.addressPrefix &&
-          network === currentNetwork,
-      )
-    ) {
-      return;
-    }
-    return preferences.find(
-      ({ signerType, addressPrefix }) =>
-        signerType === this.type && addressPrefix === this.client.addressPrefix,
-    );
   }
 
   static async verifyMessage(
@@ -216,21 +181,19 @@ export abstract class Signer {
   /**
    * Gets the recommended Address object for the signer.
    *
-   * @param _preference - Optional preference parameter.
    * @returns A promise that resolves to the recommended Address object.
    */
-  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
+  async getRecommendedAddressObj(): Promise<Address> {
     return (await this.getAddressObjs())[0];
   }
 
   /**
    * Gets the recommended address for the signer as a string.
    *
-   * @param preference - Optional preference parameter.
    * @returns A promise that resolves to the recommended address as a string.
    */
-  async getRecommendedAddress(preference?: unknown): Promise<string> {
-    return (await this.getRecommendedAddressObj(preference)).toString();
+  async getRecommendedAddress(): Promise<string> {
+    return (await this.getRecommendedAddressObj()).toString();
   }
 
   /**

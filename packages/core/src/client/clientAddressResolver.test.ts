@@ -121,16 +121,6 @@ describe("Client address resolver", () => {
     );
   });
 
-  it("does not resolve with a record of clients", async () => {
-    const addressResolver = resolverOf({ "alice.example": script });
-    const client = ClientPublicTestnet.new({ transport, addressResolver });
-
-    await expect(
-      Address.fromString("alice.example", { ckt: client }),
-    ).rejects.toThrow("Unknown address format alice.example");
-    expect(addressResolver.shouldResolve).not.toHaveBeenCalled();
-  });
-
   it("resolves with a client from another copy of the package", async () => {
     const addressResolver = resolverOf({ "alice.example": script });
     const client = {

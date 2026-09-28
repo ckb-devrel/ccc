@@ -2,7 +2,7 @@ import WebSocket from "isomorphic-ws";
 import { RequestorJsonRpc } from "../jsonRpc/requestor.js";
 import type { ClientConfig } from "./client.js";
 import { TESTNET_SCRIPTS } from "./clientPublicTestnet.advanced.js";
-import { ClientJsonRpc, type ClientJsonRpcConfig } from "./jsonRpc/client.js";
+import { ClientJsonRpc } from "./jsonRpc/client.js";
 
 /**
  * @public
@@ -18,33 +18,8 @@ export class ClientPublicTestnet extends ClientJsonRpc {
       : ["https://testnet.ckb.dev/", "https://testnet.ckbapp.dev/"];
   }
 
-  private static resolveConfig(
-    config?: ClientJsonRpcConfig & {
-      /** @deprecated URL belongs to Transport construction. */
-      url?: string;
-    },
-  ): ClientJsonRpcConfig & { url: string; fallbacks: string[] } {
-    const defaultUrls = this.defaultUrls();
-    return {
-      ...config,
-      url: config?.url ?? defaultUrls[0],
-      fallbacks: config?.fallbacks ?? [...defaultUrls],
-      scripts: config?.scripts ?? TESTNET_SCRIPTS,
-    };
-  }
-
-  /**
-   * @deprecated Use {@link ClientPublicTestnet.new} with a borrowed Transport or
-   * {@link ClientPublicTestnet.open} when creating Transports.
-   */
-  constructor(
-    config?: ClientJsonRpcConfig & {
-      /** @deprecated URL belongs to Transport construction. */
-      url?: string;
-    },
-  ) {
-    const resolved = ClientPublicTestnet.resolveConfig(config);
-    super(resolved.url, resolved);
+  private constructor(requestor: RequestorJsonRpc, config?: ClientConfig) {
+    super(requestor, config);
   }
 
   /** Creates a Client that borrows an existing Transport. */
@@ -52,13 +27,17 @@ export class ClientPublicTestnet extends ClientJsonRpc {
     config: Omit<Parameters<typeof RequestorJsonRpc.new>[0], "onError"> &
       ClientConfig,
   ): ClientPublicTestnet {
-    const { cache, scripts, addressResolver, ...requestorConfig } = config;
+    const {
+      cache,
+      scripts = TESTNET_SCRIPTS,
+      addressResolver,
+      ...requestorConfig
+    } = config;
     const requestor = this.newRequestor(requestorConfig);
-    return new ClientPublicTestnet({
+    return new ClientPublicTestnet(requestor, {
       cache,
       scripts,
       addressResolver,
-      requestor,
     });
   }
 
@@ -74,7 +53,7 @@ export class ClientPublicTestnet extends ClientJsonRpc {
   ) {
     const {
       cache,
-      scripts,
+      scripts = TESTNET_SCRIPTS,
       addressResolver,
       urls = this.defaultUrls(),
       ...requestorConfig
@@ -84,13 +63,10 @@ export class ClientPublicTestnet extends ClientJsonRpc {
       urls,
     }).map(
       (requestor) =>
-        new ClientPublicTestnet({
+        new ClientPublicTestnet(requestor, {
           cache,
           scripts,
           addressResolver,
-          requestor,
-          url: urls[0],
-          fallbacks: [...urls.slice(1)],
         }),
     );
   }

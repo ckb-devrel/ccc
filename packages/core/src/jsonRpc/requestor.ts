@@ -43,49 +43,16 @@ function transform(value: unknown, transformer?: (i: unknown) => unknown) {
   return value;
 }
 
-/**
- * @deprecated Used only by the legacy positional constructor. Use the static
- * {@link RequestorJsonRpc.new} or {@link RequestorJsonRpc.open} methods.
- */
-export type RequestorJsonRpcConfig = {
-  fallbacks?: string[];
-  timeout?: number;
-  maxConcurrent?: number;
-  transport?: JsonRpcTransport;
-};
-
 export class RequestorJsonRpc {
-  public readonly maxConcurrent?: number;
   private concurrent = 0;
   private readonly pending: (() => void)[] = [];
-
-  public readonly transport: JsonRpcTransport;
-
   private id = 0;
 
-  /**
-   * Creates a Requestor using legacy positional arguments.
-   *
-   * @param url_ - The URL of the JSON-RPC server.
-   * @param timeout - The timeout for requests in milliseconds
-   * @deprecated Use {@link RequestorJsonRpc.new} with a borrowed Transport or
-   * {@link RequestorJsonRpc.open} when creating Transports.
-   */
-  constructor(
-    private readonly url_: string,
-    config?: RequestorJsonRpcConfig,
+  private constructor(
+    public readonly transport: JsonRpcTransport,
+    public readonly maxConcurrent?: number,
     private readonly onError?: (err: unknown) => Promise<void> | void,
-  ) {
-    this.maxConcurrent = config?.maxConcurrent;
-    if (config?.transport) {
-      this.transport = config.transport;
-    } else {
-      this.transport = openTransports(
-        [url_, ...(config?.fallbacks ?? [])],
-        config,
-      ).value;
-    }
-  }
+  ) {}
 
   /** Creates a Requestor that borrows an existing Transport. */
   static new({
@@ -97,7 +64,7 @@ export class RequestorJsonRpc {
     maxConcurrent?: number;
     onError?: (err: unknown) => Promise<void> | void;
   }): RequestorJsonRpc {
-    return new RequestorJsonRpc("", { transport, maxConcurrent }, onError);
+    return new RequestorJsonRpc(transport, maxConcurrent, onError);
   }
 
   /** Opens a Requestor with ownership of its default transports. */
@@ -119,18 +86,6 @@ export class RequestorJsonRpc {
         onError,
       }),
     );
-  }
-
-  /**
-   * Returns the URL of the JSON-RPC server.
-   *
-   * @returns The URL of the JSON-RPC server.
-   * @deprecated URL belongs to Transport construction and is unavailable for
-   * Requestors created with {@link RequestorJsonRpc.new}.
-   */
-
-  get url(): string {
-    return this.url_;
   }
 
   /**

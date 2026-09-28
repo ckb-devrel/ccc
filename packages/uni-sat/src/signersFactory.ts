@@ -9,10 +9,7 @@ import { Signer } from "./signer.js";
  * @param client - The client instance.
  * @returns The Signer instance if the UniSat provider is available, otherwise undefined.
  */
-export function getUniSatSigners(
-  client: ccc.Client,
-  preferredNetworks?: ccc.NetworkPreference[],
-): ccc.SignerInfo[] {
+export function getUniSatSigners(client: ccc.Client): ccc.SignerInfo[] {
   const windowRef = window as { unisat?: Provider };
 
   if (typeof windowRef.unisat === "undefined") {
@@ -34,7 +31,7 @@ export function getUniSatSigners(
         network === "fractalBtc",
     )
     .map(([name, network]) => ({
-      signer: new Signer(client, windowRef.unisat!, preferredNetworks, network),
+      signer: new Signer(client, windowRef.unisat!, network),
       name,
     }));
 }

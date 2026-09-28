@@ -75,7 +75,9 @@ const networkConfig = buildNetworkConfig(
 );
 
 // 2. 初始化 CKB 客户端与 Signer （此处以私钥 Signer 为例）
-const ckbClient = new ccc.ClientPublicTestnet();
+const ckbClientOwner = ccc.ClientPublicTestnet.open();
+const ckbClient = ckbClientOwner.value;
+// 不再使用时调用 `await ckbClientOwner.dispose()`。
 const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
 
 // 3. 创建脚本提供者（用于获取 RGB++ 脚本信息）

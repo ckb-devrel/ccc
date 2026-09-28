@@ -17,7 +17,6 @@ export abstract class Client {
     this.cache = config?.cache ?? new ClientCacheMemory();
   }
 
-  abstract get url(): string;
   abstract get addressPrefix(): string;
 
   abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
@@ -63,20 +62,16 @@ CCC ships with two ready-to-use client implementations:
 abstract getTip(): Promise<Num>;
 
 // Get the current tip block header
-abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
+abstract getTipHeader(): Promise<ClientBlockHeader>;
 
 // Get a block by number (uses cache if available)
 async getBlockByNumber(
   blockNumber: NumLike,
-  verbosity?: number | null,
-  withCycles?: boolean | null,
 ): Promise<ClientBlock | undefined>;
 
 // Get a block by hash (uses cache if available)
 async getBlockByHash(
   blockHash: HexLike,
-  verbosity?: number | null,
-  withCycles?: boolean | null,
 ): Promise<ClientBlock | undefined>;
 ```
 

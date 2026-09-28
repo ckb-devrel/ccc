@@ -35,6 +35,6 @@ if (txCount > 0) {
   const header = await signer.client.getTipHeader();
   console.log(`Tip hash: ${header.hash}`);
   console.log(
-    `Tip epoch: ${header.epoch[0]}, ${header.epoch[1]}/${header.epoch[2]}`,
+    `Tip epoch: ${header.epoch.integer}, ${header.epoch.numerator}/${header.epoch.denominator}`,
   );
 }

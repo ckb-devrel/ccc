@@ -13,6 +13,16 @@ let nextRequestId = 0;
 const sessionOwners: ReturnType<typeof SignerJsonRpcProviderSession.open>[] =
   [];
 
+function createClient() {
+  return ClientPublicTestnet.new({
+    transport: {
+      request: async () => {
+        throw new Error("Unexpected Client request");
+      },
+    },
+  });
+}
+
 afterEach(async () => {
   await Promise.all(sessionOwners.splice(0).map((owner) => owner.dispose()));
   vi.useRealTimers();
@@ -42,7 +52,7 @@ function payload(
 
 function mockSigner(overrides: Partial<Signer> = {}) {
   return {
-    client: new ClientPublicTestnet(),
+    client: createClient(),
     connect: vi.fn(async () => {}),
     isConnected: vi.fn(async () => true),
     signType: SignerSignType.CkbSecp256k1,

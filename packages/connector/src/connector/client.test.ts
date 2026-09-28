@@ -2,9 +2,19 @@ import { ccc } from "@ckb-ccc/ccc";
 import { describe, expect, it } from "vitest";
 import { ClientWithFeeRate } from "./client.js";
 
+function createClient() {
+  return ccc.ClientPublicTestnet.new({
+    transport: {
+      request: async (): Promise<never> => {
+        throw new Error("Unexpected Client request");
+      },
+    },
+  });
+}
+
 describe("ClientWithFeeRate", () => {
   it("wraps the initial client once so signers retain the fee-rate proxy", async () => {
-    const originalClient = new ccc.ClientPublicTestnet();
+    const originalClient = createClient();
     const client = ClientWithFeeRate.from(originalClient);
     client.feeRate = 2_000n;
 

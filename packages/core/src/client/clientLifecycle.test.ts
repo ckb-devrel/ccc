@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { RequestorJsonRpc } from "../jsonRpc/requestor.js";
 import { JsonRpcTransport } from "../jsonRpc/transports/index.js";
 import { ClientPublicTestnet } from "./clientPublicTestnet.js";
 
@@ -38,21 +37,5 @@ describe("Client ownership", () => {
         client.requestor.buildPayload("test", []),
       ),
     ).resolves.toBe("ok");
-  });
-
-  it("keeps legacy constructor Requestor injection compatible", () => {
-    const requestor = RequestorJsonRpc.new({
-      transport: {
-        request: async (payload) => ({
-          id: payload.id,
-          jsonrpc: "2.0",
-          result: "ok",
-        }),
-      },
-    });
-
-    const client = new ClientPublicTestnet({ requestor });
-
-    expect(client.requestor).toBe(requestor);
   });
 });

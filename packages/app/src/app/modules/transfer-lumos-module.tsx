@@ -29,12 +29,11 @@ async function composeWithLumos(
     signer.client.addressPrefix === "ckb"
       ? predefined.LINA
       : predefined.AGGRON4;
-  const indexer = new Indexer(
-    signer.client.url
-      .replace("wss://", "https://")
-      .replace("ws://", "http://")
-      .replace(/\/ws\/?$/, "/"),
-  );
+  const indexerUrl =
+    signer.client.addressPrefix === "ckb"
+      ? "https://mainnet.ckb.dev/"
+      : "https://testnet.ckb.dev/";
+  const indexer = new Indexer(indexerUrl);
 
   registerCustomLockScriptInfos(generateDefaultScriptInfos());
   let skeleton = new TransactionSkeleton({ cellProvider: indexer });

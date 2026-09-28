@@ -62,9 +62,9 @@ For encoded addresses, it validates that the prefix matches the client's
 network and throws on a mismatch (e.g. passing a `ckt` address to a mainnet
 client).
 
-Passing a prefix-keyed record of clients is deprecated. When you need to handle
-both networks in the same code path, try the clients explicitly and handle the
-failed attempt at the call site:
+`Address.fromString` accepts one client. When you need to handle both networks
+in the same code path, try the clients explicitly and handle the failed attempt
+at the call site:
 
 ```ts
 const clientsOwner = ccc.OwnerAggregated.from([

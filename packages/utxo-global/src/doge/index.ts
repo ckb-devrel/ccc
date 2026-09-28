@@ -10,7 +10,6 @@ export class SignerDoge extends ccc.SignerDoge {
   constructor(
     client: ccc.Client,
     public readonly provider: Provider,
-    _preferredNetworks?: ccc.NetworkPreference[],
     public readonly network = "doge",
   ) {
     super(client);

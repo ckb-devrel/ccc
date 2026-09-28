@@ -71,13 +71,6 @@ export abstract class Client {
     this.addressResolver = config?.addressResolver;
   }
 
-  /**
-   * The legacy primary URL associated with this Client.
-   *
-   * @deprecated A Client may use multiple endpoints or a Transport without a
-   * URL, so this value does not reliably identify its connection.
-   */
-  abstract get url(): string;
   abstract get addressPrefix(): string;
 
   /**
@@ -177,7 +170,6 @@ export abstract class Client {
   /**
    * Get the header of the latest block.
    *
-   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns The tip block header.
    *
    * @example
@@ -191,81 +183,40 @@ export abstract class Client {
    * console.log(`Block #${header.number}, hash: ${header.hash}`);
    * ```
    */
-  abstract getTipHeader(
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
-  ): Promise<ClientBlockHeader>;
+  abstract getTipHeader(): Promise<ClientBlockHeader>;
   abstract getBlockByNumberNoCache(
     blockNumber: NumLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
-    /**
-     * @deprecated This parameter has no effect and will be removed.
-     */
-    withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
   abstract getBlockByHashNoCache(
     blockHash: HexLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
-    /**
-     * @deprecated This parameter has no effect and will be removed.
-     */
-    withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined>;
   abstract getHeaderByNumberNoCache(
     blockNumber: NumLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
   abstract getHeaderByHashNoCache(
     blockHash: HexLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined>;
   async getBlockByNumber(
     blockNumber: NumLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
-    /**
-     * @deprecated This parameter has no effect and will be removed.
-     */
-    withCycles?: boolean | null,
   ): Promise<ClientBlock | undefined> {
     const block = await this.cache.getBlockByNumber(blockNumber);
     if (block) {
       return block;
     }
 
-    const res = await this.getBlockByNumberNoCache(
-      blockNumber,
-      verbosity,
-      withCycles,
-    );
+    const res = await this.getBlockByNumberNoCache(blockNumber);
     if (res && this.cache.hasHeaderConfirmed(res.header)) {
       await this.cache.recordBlocks(res);
     }
     return res;
   }
-  async getBlockByHash(
-    blockHash: HexLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
-    /**
-     * @deprecated This parameter has no effect and will be removed.
-     */
-    withCycles?: boolean | null,
-  ): Promise<ClientBlock | undefined> {
+  async getBlockByHash(blockHash: HexLike): Promise<ClientBlock | undefined> {
     const block = await this.cache.getBlockByHash(blockHash);
     if (block) {
       return block;
     }
 
-    const res = await this.getBlockByHashNoCache(
-      blockHash,
-      verbosity,
-      withCycles,
-    );
+    const res = await this.getBlockByHashNoCache(blockHash);
     if (res && this.cache.hasHeaderConfirmed(res.header)) {
       await this.cache.recordBlocks(res);
     }
@@ -273,15 +224,13 @@ export abstract class Client {
   }
   async getHeaderByNumber(
     blockNumber: NumLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined> {
     const header = await this.cache.getHeaderByNumber(blockNumber);
     if (header) {
       return header;
     }
 
-    const res = await this.getHeaderByNumberNoCache(blockNumber, verbosity);
+    const res = await this.getHeaderByNumberNoCache(blockNumber);
     if (res && this.cache.hasHeaderConfirmed(res)) {
       await this.cache.recordHeaders(res);
     }
@@ -289,15 +238,13 @@ export abstract class Client {
   }
   async getHeaderByHash(
     blockHash: HexLike,
-    /** @deprecated This parameter has no effect and will be removed. */
-    verbosity?: number | null,
   ): Promise<ClientBlockHeader | undefined> {
     const header = await this.cache.getHeaderByHash(blockHash);
     if (header) {
       return header;
     }
 
-    const res = await this.getHeaderByHashNoCache(blockHash, verbosity);
+    const res = await this.getHeaderByHashNoCache(blockHash);
     if (res && this.cache.hasHeaderConfirmed(res)) {
       await this.cache.recordHeaders(res);
     }

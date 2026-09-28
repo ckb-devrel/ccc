@@ -30,7 +30,6 @@ export interface SignersControllerRefreshContext {
   client: ccc.Client;
   appName: string;
   appIcon: string;
-  preferredNetworks: ccc.NetworkPreference[];
   onUpdate: (wallets: WalletWithSigners[]) => void;
   wallets: WalletWithSigners[];
 }
@@ -43,11 +42,7 @@ export class SignersController {
 
   constructor() {}
 
-  getConfig(configs?: {
-    preferredNetworks?: ccc.NetworkPreference[];
-    name?: string;
-    icon?: string;
-  }) {
+  getConfig(configs?: { name?: string; icon?: string }) {
     const appName =
       configs?.name ??
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -60,34 +55,9 @@ export class SignersController {
         ?.href ??
       "https://fav.farm/%E2%9D%93";
 
-    const preferredNetworks = [
-      ...(configs?.preferredNetworks ?? []),
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.BTC,
-        network: "btc",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.BTC,
-        network: "btcTestnet",
-      },
-      {
-        addressPrefix: "ckb",
-        signerType: ccc.SignerType.Doge,
-        network: "doge",
-      },
-      {
-        addressPrefix: "ckt",
-        signerType: ccc.SignerType.Doge,
-        network: "dogeTestnet",
-      },
-    ];
-
     return {
       appName,
       appIcon,
-      preferredNetworks,
     };
   }
 
@@ -100,20 +70,18 @@ export class SignersController {
     client: ccc.Client,
     onUpdate: (wallets: WalletWithSigners[]) => void,
     configs?: {
-      preferredNetworks?: ccc.NetworkPreference[];
       name?: string;
       icon?: string;
     },
   ) {
     this.disconnect();
 
-    const { appName, appIcon, preferredNetworks } = this.getConfig(configs);
+    const { appName, appIcon } = this.getConfig(configs);
 
     const context: SignersControllerRefreshContext = {
       client,
       appName,
       appIcon,
-      preferredNetworks,
       onUpdate,
       wallets: [],
     };
@@ -123,11 +91,11 @@ export class SignersController {
   }
 
   async addRealSigners(context: SignersControllerRefreshContext) {
-    const { appName, appIcon, client, preferredNetworks } = context;
+    const { appName, appIcon, client } = context;
     await this.addSigners(
       "UTXO Global Wallet",
       UTXO_GLOBAL_SVG,
-      UtxoGlobal.getUtxoGlobalSigners(client, preferredNetworks),
+      UtxoGlobal.getUtxoGlobalSigners(client),
       context,
     );
 
@@ -141,28 +109,27 @@ export class SignersController {
     await this.addSigners(
       "JoyID Passkey",
       JOY_ID_SVG,
-      JoyId.getJoyIdSigners(client, appName, appIcon, preferredNetworks),
+      JoyId.getJoyIdSigners(client, appName, appIcon),
       context,
     );
 
     await this.addSigners(
       "UniSat",
       UNI_SAT_SVG,
-      UniSat.getUniSatSigners(client, preferredNetworks),
+      UniSat.getUniSatSigners(client),
       context,
     );
 
     await this.addSigners(
       "OKX Wallet",
       OKX_SVG,
-      Okx.getOKXSigners(client, preferredNetworks),
+      Okx.getOKXSigners(client),
       context,
     );
 
     await Promise.all(
-      Xverse.getXverseSigners(client, preferredNetworks).map(
-        ({ wallet, signerInfo }) =>
-          this.addSigner(wallet.name, wallet.icon, signerInfo, context),
+      Xverse.getXverseSigners(client).map(({ wallet, signerInfo }) =>
+        this.addSigner(wallet.name, wallet.icon, signerInfo, context),
       ),
     );
 

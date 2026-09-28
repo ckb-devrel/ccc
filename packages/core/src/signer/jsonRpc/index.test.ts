@@ -10,6 +10,15 @@ import { SignerJsonRpc, SignerJsonRpcErrorCode } from "./index.js";
 import { SignerJsonRpcTransformers } from "./transformers.js";
 
 const SESSION_ID = `0x${"11".repeat(16)}`;
+const UNUSED_CLIENT_TRANSPORT: JsonRpcTransport = {
+  request: async () => {
+    throw new Error("Unexpected Client request");
+  },
+};
+
+function createClient() {
+  return ClientPublicTestnet.new({ transport: UNUSED_CLIENT_TRANSPORT });
+}
 
 function infoResult(overrides: Record<string, unknown> = {}) {
   return {
@@ -46,7 +55,7 @@ describe("SignerJsonRpc", () => {
   });
 
   it("loads info before explicitly connecting", async () => {
-    const client = new ClientPublicTestnet();
+    const client = createClient();
     const requests: Array<[string, unknown[]]> = [];
     const transport: JsonRpcTransport = {
       async request(payload) {
@@ -114,7 +123,7 @@ describe("SignerJsonRpc", () => {
         return response(payload, infoResult());
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
 
@@ -130,7 +139,7 @@ describe("SignerJsonRpc", () => {
   });
 
   it("loads scripts using the local client address prefix", async () => {
-    const client = new ClientPublicTestnet();
+    const client = createClient();
     const methods: string[] = [];
     const transport: JsonRpcTransport = {
       async request(payload) {
@@ -169,7 +178,7 @@ describe("SignerJsonRpc", () => {
         return response(payload, "signature");
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
 
@@ -214,7 +223,7 @@ describe("SignerJsonRpc", () => {
       },
     };
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const identity = signer.getIdentity();
@@ -280,7 +289,7 @@ describe("SignerJsonRpc", () => {
       },
     };
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const identity = signer.getIdentity();
@@ -314,7 +323,7 @@ describe("SignerJsonRpc", () => {
     };
 
     try {
-      const signerPromise = SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signerPromise = SignerJsonRpc.new(createClient(), {
         transport,
       });
       await vi.advanceTimersByTimeAsync(35_000);
@@ -349,7 +358,7 @@ describe("SignerJsonRpc", () => {
     };
 
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const identity = signer.getIdentity();
@@ -405,7 +414,7 @@ describe("SignerJsonRpc", () => {
     };
 
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const identity = signer.getIdentity();
@@ -448,7 +457,7 @@ describe("SignerJsonRpc", () => {
     };
 
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const identity = signer.getIdentity();
@@ -500,7 +509,7 @@ describe("SignerJsonRpc", () => {
         });
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
     const identity = signer.getIdentity();
@@ -537,7 +546,7 @@ describe("SignerJsonRpc", () => {
         };
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
     await signer.connect();
@@ -573,7 +582,7 @@ describe("SignerJsonRpc", () => {
       },
     };
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const replaced = vi.fn();
@@ -623,7 +632,7 @@ describe("SignerJsonRpc", () => {
         return response(payload, null);
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
 
@@ -683,7 +692,7 @@ describe("SignerJsonRpc", () => {
       },
     };
     try {
-      const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+      const signer = await SignerJsonRpc.new(createClient(), {
         transport,
       });
       const firstIdentity = signer.getIdentity();
@@ -715,7 +724,7 @@ describe("SignerJsonRpc", () => {
         return response(payload, infoResult());
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
       disconnectHandler,
     });
@@ -750,7 +759,7 @@ describe("SignerJsonRpc", () => {
         return response(payload, infoResult());
       },
     };
-    const signer = await SignerJsonRpc.new(new ClientPublicTestnet(), {
+    const signer = await SignerJsonRpc.new(createClient(), {
       transport,
     });
 

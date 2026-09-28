@@ -17,7 +17,6 @@ export abstract class Client {
     this.cache = config?.cache ?? new ClientCacheMemory();
   }
 
-  abstract get url(): string;
   abstract get addressPrefix(): string;
 
   abstract getKnownScript(script: KnownScript): Promise<ScriptInfo>;
@@ -63,20 +62,16 @@ CCC 提供两个开箱即用的 `Client` 实现：
 abstract getTip(): Promise<Num>;
 
 // 获取当前最新区块头
-abstract getTipHeader(verbosity?: number | null): Promise<ClientBlockHeader>;
+abstract getTipHeader(): Promise<ClientBlockHeader>;
 
 // 按区块高度查询区块（优先读取缓存）
 async getBlockByNumber(
   blockNumber: NumLike,
-  verbosity?: number | null,
-  withCycles?: boolean | null,
 ): Promise<ClientBlock | undefined>;
 
 // 按区块哈希查询区块（优先读取缓存）
 async getBlockByHash(
   blockHash: HexLike,
-  verbosity?: number | null,
-  withCycles?: boolean | null,
 ): Promise<ClientBlock | undefined>;
 ```
 

@@ -58,7 +58,7 @@ console.log(address.prefix);          // "ckb"
 
 对于编码地址，该方法会校验地址前缀与 `client` 所在网络是否匹配，不匹配时抛出异常（例如将 `ckt` 地址传给主网 `client`）。
 
-传入以 prefix 为 key 的 `client` 对象字典已经 deprecated。如果同一段代码需要同时处理两个网络，应由调用方依次尝试各个 `client` 并处理失败：
+`Address.fromString` 只接受一个 `client`。如果同一段代码需要同时处理两个网络，应由调用方依次尝试各个 `client` 并处理失败：
 
 ```ts
 const clientsOwner = ccc.OwnerAggregated.from([

@@ -20,7 +20,6 @@ export function getJoyIdSigners(
   client: ccc.Client,
   name: string,
   icon: string,
-  preferredNetworks?: ccc.NetworkPreference[],
 ): ccc.SignerInfo[] {
   if (isStandaloneBrowser() || ccc.isWebview(window.navigator.userAgent)) {
     return [ccc.SignerType.CKB, ccc.SignerType.EVM, ccc.SignerType.BTC].map(
@@ -50,7 +49,6 @@ export function getJoyIdSigners(
         client,
         name,
         icon,
-        preferredNetworks,
         addressType,
         undefined,
         undefined,

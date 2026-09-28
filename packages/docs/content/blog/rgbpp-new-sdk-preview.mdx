@@ -79,7 +79,9 @@ const networkConfig = buildNetworkConfig(
 );
 
 // 2. CKB Client & Signer (using SignerCkbPrivateKey as an example)
-const ckbClient = new ccc.ClientPublicTestnet();
+const ckbClientOwner = ccc.ClientPublicTestnet.open();
+const ckbClient = ckbClientOwner.value;
+// Call `await ckbClientOwner.dispose()` when it is no longer needed.
 const ckbSigner = new ccc.SignerCkbPrivateKey(ckbClient, ckbPrivateKey);
 
 // 3. Script Provider: supplies necessary RGB++ script information

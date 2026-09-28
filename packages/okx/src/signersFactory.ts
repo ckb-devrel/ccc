@@ -10,10 +10,7 @@ import { NostrSigner } from "./nostr/index.js";
  * @param client - The client instance.
  * @returns The BitcoinSigner instance if the OKX wallet is available, otherwise undefined.
  */
-export function getOKXSigners(
-  client: ccc.Client,
-  preferredNetworks?: ccc.NetworkPreference[],
-): ccc.SignerInfo[] {
+export function getOKXSigners(client: ccc.Client): ccc.SignerInfo[] {
   const windowRef = window as {
     okxwallet?: Record<string, BitcoinProvider> & { nostr: NostrProvider };
   };
@@ -29,7 +26,7 @@ export function getOKXSigners(
       ? [["BTC Signet", "btcSignet"]]
       : []),
   ].map(([name, network]) => ({
-    signer: new BitcoinSigner(client, okxwallet, preferredNetworks, network),
+    signer: new BitcoinSigner(client, okxwallet, network),
     name,
   }));
 

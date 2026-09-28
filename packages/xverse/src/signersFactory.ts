@@ -20,7 +20,6 @@ function getProviderById(providerId: string) {
  */
 export function getXverseSigners(
   client: ccc.Client,
-  preferredNetworks?: ccc.NetworkPreference[],
 ): { wallet: ccc.Wallet; signerInfo: ccc.SignerInfo }[] {
   const windowRef = window as {
     BitcoinProvider?: BtcProvider;
@@ -52,12 +51,7 @@ export function getXverseSigners(
             },
             signerInfo: {
               name: network && network !== "Mainnet" ? `BTC ${network}` : "BTC",
-              signer: new Signer(
-                client,
-                getProviderById(provider.id),
-                preferredNetworks,
-                network,
-              ),
+              signer: new Signer(client, getProviderById(provider.id), network),
             },
           }));
       });

@@ -61,26 +61,11 @@ export class Address {
    * or if the resolver handles the address but does not find it.
    */
 
-  static async fromString(address: string, client: Client): Promise<Address>;
-
-  /**
-   * @deprecated Pass a single Client instead. Callers supporting multiple
-   * prefixes should try each Client themselves.
-   */
-  static async fromString(
-    address: string,
-    clients: Record<string, Client>,
-  ): Promise<Address>;
-
-  static async fromString(
-    address: string,
-    clients: Client | Record<string, Client>,
-  ): Promise<Address> {
+  static async fromString(address: string, client: Client): Promise<Address> {
     let parsed: ReturnType<typeof addressPayloadFromString>;
     try {
       parsed = addressPayloadFromString(address);
     } catch (error) {
-      const client = clients as Client;
       const resolver = client.addressResolver;
       if (!resolver?.shouldResolve(address)) {
         throw error;
@@ -93,10 +78,6 @@ export class Address {
     }
     const { prefix, format, payload } = parsed;
 
-    const client = (clients as Record<string, Client>)[prefix] ?? clients;
-    if (!client) {
-      throw new Error(`Unknown address prefix ${prefix}`);
-    }
     const expectedPrefix = client.addressPrefix;
     if (expectedPrefix !== prefix) {
       throw new Error(

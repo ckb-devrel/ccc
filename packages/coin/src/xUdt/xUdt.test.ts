@@ -149,8 +149,17 @@ describe("CoinXUdt", () => {
     args: hash32,
   };
 
+  const createClient = () =>
+    ccc.ClientPublicTestnet.new({
+      transport: {
+        request: async (): Promise<never> => {
+          throw new Error("Unexpected Client request");
+        },
+      },
+    });
+
   beforeEach(() => {
-    client = new ccc.ClientPublicTestnet();
+    client = createClient();
     signer = new ccc.SignerCkbPublicKey(
       client,
       "0x026f3255791f578cc5e38783b6f2d87d4709697b797def6bf7b3b9af4120e2bfd9",

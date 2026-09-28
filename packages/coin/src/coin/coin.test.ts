@@ -23,8 +23,21 @@ let lock: ccc.Script;
 let type: ccc.Script;
 let coin: Coin;
 
+function createClient(mainnet = false): ccc.Client {
+  const config = {
+    transport: {
+      request: async (): Promise<never> => {
+        throw new Error("Unexpected Client request");
+      },
+    },
+  };
+  return mainnet
+    ? ccc.ClientPublicMainnet.new(config)
+    : ccc.ClientPublicTestnet.new(config);
+}
+
 beforeEach(async () => {
-  client = new ccc.ClientPublicTestnet();
+  client = createClient();
   signer = new ccc.SignerCkbPublicKey(
     client,
     "0x026f3255791f578cc5e38783b6f2d87d4709697b797def6bf7b3b9af4120e2bfd9",
@@ -1574,7 +1587,7 @@ describe("Coin", () => {
     });
 
     it("client getter returns the provided client", async () => {
-      const otherClient = new ccc.ClientPublicMainnet();
+      const otherClient = createClient(true);
       const customClientCoin = await Coin.new({
         script: type,
         client: otherClient,

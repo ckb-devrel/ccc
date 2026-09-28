@@ -282,7 +282,7 @@ export class CkbSigner extends ccc.Signer {
         {
           ...config,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          tx: JSON.parse(tx.stringify()),
+          tx: JSON.parse(ccc.stringify(tx)),
           signerAddress: (await this.assertConnection()).address,
           witnessIndexes,
         },

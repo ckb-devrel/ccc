@@ -52,7 +52,7 @@ export class SignerCkbPublicKey extends Signer {
     );
   }
 
-  async getRecommendedAddressObj(_preference?: unknown): Promise<Address> {
+  async getRecommendedAddressObj(): Promise<Address> {
     return this.getAddressObjSecp256k1();
   }
 

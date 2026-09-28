@@ -42,7 +42,6 @@ function createSigner() {
     CLIENT,
     "JoyID",
     "",
-    undefined,
     "p2wpkh",
     undefined,
     new ConnectionsRepoMemory({

@@ -7,10 +7,7 @@ import { SignerDoge } from "./doge/index.js";
 /**
  * @public
  */
-export function getUtxoGlobalSigners(
-  client: ccc.Client,
-  preferredNetworks?: ccc.NetworkPreference[],
-): ccc.SignerInfo[] {
+export function getUtxoGlobalSigners(client: ccc.Client): ccc.SignerInfo[] {
   const windowRef = window as {
     utxoGlobal?: {
       bitcoinSigner: Provider;
@@ -42,7 +39,6 @@ export function getUtxoGlobalSigners(
         signer: new SignerBtc(
           client,
           windowRef.utxoGlobal!.bitcoinSigner,
-          preferredNetworks,
           network,
         ),
       })),
@@ -58,7 +54,6 @@ export function getUtxoGlobalSigners(
         signer: new SignerDoge(
           client,
           windowRef.utxoGlobal!.dogeSigner,
-          preferredNetworks,
           network,
         ),
       })),

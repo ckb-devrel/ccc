@@ -25,7 +25,6 @@ import {
   numFromBytes,
   numMax,
   numToBytes,
-  numToHex,
 } from "../num/index.js";
 import type { Signer } from "../signer/index.js";
 import { apply, reduceAsync } from "../utils/index.js";
@@ -1374,21 +1373,6 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
   }
 
   /**
-   * @deprecated
-   * Use ccc.stringify instead.
-   * stringify the tx to JSON string.
-   */
-  stringify(): string {
-    return JSON.stringify(this, (_, value) => {
-      if (typeof value === "bigint") {
-        return numToHex(value);
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return value;
-    });
-  }
-
-  /**
    * Converts the raw transaction data to bytes.
    *
    * @returns A Uint8Array containing the raw transaction bytes.
@@ -1675,15 +1659,6 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
           ),
         ),
     );
-  }
-
-  /**
-   * Sets output data at an index.
-   *
-   * @deprecated Use {@link setOutputData} instead.
-   */
-  setOutputDataAt(index: number, data: HexLike): void {
-    this.setOutputData(index, data);
   }
 
   /**
@@ -2070,42 +2045,6 @@ export class Transaction extends Entity.Base<TransactionLike, Transaction>() {
     }
 
     this.witnesses[i] = hexFrom(witness);
-  }
-
-  /**
-   * Gets the witness at an index as `WitnessArgs`.
-   *
-   * @deprecated Use {@link getWitnessArgs} instead.
-   */
-  getWitnessArgsAt(index: NumLike): WitnessArgs | undefined {
-    return this.getWitnessArgs(index);
-  }
-
-  /**
-   * Gets the witness at an index as `WitnessArgs`, throwing if decoding fails.
-   *
-   * @deprecated Use {@link getWitnessArgsUnsafe} instead.
-   */
-  getWitnessArgsAtUnsafe(index: NumLike): WitnessArgs | undefined {
-    return this.getWitnessArgsUnsafe(index);
-  }
-
-  /**
-   * Sets a witness at an index from `WitnessArgs`.
-   *
-   * @deprecated Use {@link setWitnessArgs} instead.
-   */
-  setWitnessArgsAt(index: number, witnessLike: WitnessArgsLike): void {
-    this.setWitnessArgs(index, witnessLike);
-  }
-
-  /**
-   * Sets a witness at an index.
-   *
-   * @deprecated Use {@link setWitness} instead.
-   */
-  setWitnessAt(index: number, witness: HexLike): void {
-    this.setWitness(index, witness);
   }
 
   /**

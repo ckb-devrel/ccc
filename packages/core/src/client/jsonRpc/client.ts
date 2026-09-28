@@ -5,10 +5,7 @@ import {
   TransactionLike,
 } from "../../ckb/index.js";
 import { Hex, HexLike, hexFrom } from "../../hex/index.js";
-import {
-  RequestorJsonRpc,
-  RequestorJsonRpcConfig,
-} from "../../jsonRpc/requestor.js";
+import { RequestorJsonRpc } from "../../jsonRpc/requestor.js";
 import { Num, NumLike, numFrom, numToHex } from "../../num/index.js";
 import { Owner, apply } from "../../utils/index.js";
 import type { ClientConfig } from "../client.js";
@@ -88,54 +85,16 @@ function handleJsonRpcError(errAny: unknown): never {
   throw new ErrorClientBase(err);
 }
 
-export type ClientJsonRpcConfig = RequestorJsonRpcConfig &
-  ClientConfig & {
-    /**
-     * @deprecated Requestor injection is supported only by legacy constructors.
-     * Use a borrowed Transport with `Client.new` or let `Client.open` create one.
-     */
-    requestor?: RequestorJsonRpc;
-  };
-
 /**
  * An abstract class implementing JSON-RPC client functionality for a specific URL and timeout.
  * Provides methods for sending transactions and building JSON-RPC payloads.
  */
 export abstract class ClientJsonRpc extends Client {
-  public readonly requestor: RequestorJsonRpc;
-
-  /**
-   * Creates an instance of ClientJsonRpc.
-   *
-   * @param url_ - The URL of the JSON-RPC server.
-   * @param timeout - The timeout for requests in milliseconds
-   * @deprecated Use the concrete Client's `new` or `open` method.
-   */
-
-  constructor(
-    private readonly url_: string,
-    config?: ClientJsonRpcConfig,
+  protected constructor(
+    public readonly requestor: RequestorJsonRpc,
+    config?: ClientConfig,
   ) {
     super(config);
-
-    const requestor = config?.requestor;
-    if (requestor) {
-      this.requestor = requestor;
-    } else if (config?.transport) {
-      this.requestor = RequestorJsonRpc.new({
-        transport: config.transport,
-        maxConcurrent: config.maxConcurrent,
-        onError: handleJsonRpcError,
-      });
-    } else {
-      // Legacy constructor intentionally discards ownership.
-      this.requestor = RequestorJsonRpc.open({
-        urls: [url_, ...(config?.fallbacks ?? [])],
-        timeout: config?.timeout,
-        maxConcurrent: config?.maxConcurrent,
-        onError: handleJsonRpcError,
-      }).value;
-    }
   }
 
   /** Creates a Requestor that borrows an existing Transport. */
@@ -156,17 +115,6 @@ export abstract class ClientJsonRpc extends Client {
       ...config,
       onError: handleJsonRpcError,
     });
-  }
-
-  /**
-   * Returns the legacy primary URL of the JSON-RPC server.
-   *
-   * @returns The URL of the JSON-RPC server.
-   * @deprecated A Client may use multiple endpoints or a Transport without a
-   * URL, so this value does not reliably identify its connection.
-   */
-  get url(): string {
-    return this.url_;
   }
 
   /**
@@ -199,7 +147,6 @@ export abstract class ClientJsonRpc extends Client {
   /**
    * Get tip block header
    *
-   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getTipHeader = this.buildSender(
@@ -212,8 +159,6 @@ export abstract class ClientJsonRpc extends Client {
    * Get block by block number
    *
    * @param blockNumber - The block number.
-   * @param verbosity - Deprecated; this parameter has no effect.
-   * @param withCycles - Deprecated; this parameter has no effect.
    * @returns Block
    */
   getBlockByNumberNoCache = this.buildSender(
@@ -226,8 +171,6 @@ export abstract class ClientJsonRpc extends Client {
    * Get block by block hash
    *
    * @param blockHash - The block hash.
-   * @param verbosity - Deprecated; this parameter has no effect.
-   * @param withCycles - Deprecated; this parameter has no effect.
    * @returns Block
    */
   getBlockByHashNoCache = this.buildSender(
@@ -240,7 +183,6 @@ export abstract class ClientJsonRpc extends Client {
    * Get header by block number
    *
    * @param blockNumber - The block number.
-   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getHeaderByNumberNoCache = this.buildSender(
@@ -253,7 +195,6 @@ export abstract class ClientJsonRpc extends Client {
    * Get header by block hash
    *
    * @param blockHash - The block hash.
-   * @param verbosity - Deprecated; this parameter has no effect.
    * @returns BlockHeader
    */
   getHeaderByHashNoCache = this.buildSender(

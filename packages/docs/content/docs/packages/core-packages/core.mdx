@@ -121,7 +121,7 @@ abstract class Signer {
   readonly client: Client;
 
   abstract getInternalAddress(): Promise<string>;
-  abstract getRecommendedAddressObj(preference?: unknown): Promise<Address>;
+  abstract getRecommendedAddressObj(): Promise<Address>;
   abstract signTransaction(tx: Transaction): Promise<Transaction>;
 
   async sendTransaction(tx: Transaction): Promise<Hex>;

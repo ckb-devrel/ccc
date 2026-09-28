@@ -116,58 +116,9 @@ export abstract class Executor {
   }
 }
 
-export type ExecutorJsonRpcConfig = ccc.RequestorJsonRpcConfig & {
-  /**
-   * @deprecated Requestor injection is supported only by the legacy
-   * constructor. Use a borrowed Transport with `ExecutorJsonRpc.new` or let
-   * `ExecutorJsonRpc.open` create one.
-   */
-  requestor?: ccc.RequestorJsonRpc;
-};
-
 export class ExecutorJsonRpc extends Executor {
-  public readonly requestor: ccc.RequestorJsonRpc;
-
-  /**
-   * The external server URL passed to the legacy constructor.
-   * @deprecated Use a borrowed Transport with {@link ExecutorJsonRpc.new} or
-   * let {@link ExecutorJsonRpc.open} create Transports.
-   */
-  public get url(): string {
-    return this.url_;
-  }
-
-  /**
-   * Creates an instance of SSRI executor through Json RPC.
-   * @param url_ - The external server URL.
-   * @param config - JSON-RPC request configuration.
-   * @deprecated Use {@link ExecutorJsonRpc.new} with a borrowed Transport or
-   * {@link ExecutorJsonRpc.open} when creating Transports.
-   */
-  constructor(
-    private readonly url_: string,
-    config?: ExecutorJsonRpcConfig,
-  ) {
+  private constructor(public readonly requestor: ccc.RequestorJsonRpc) {
     super();
-
-    const requestor = config?.requestor;
-    if (requestor) {
-      this.requestor = requestor;
-    } else if (config?.transport) {
-      this.requestor = ccc.RequestorJsonRpc.new({
-        transport: config.transport,
-        maxConcurrent: config.maxConcurrent,
-        onError: handleJsonRpcError,
-      });
-    } else {
-      // Legacy constructor intentionally discards ownership.
-      this.requestor = ccc.RequestorJsonRpc.open({
-        urls: [this.url_, ...(config?.fallbacks ?? [])],
-        timeout: config?.timeout,
-        maxConcurrent: config?.maxConcurrent,
-        onError: handleJsonRpcError,
-      }).value;
-    }
   }
 
   /** Creates an Executor that borrows an existing Transport. */
@@ -178,7 +129,7 @@ export class ExecutorJsonRpc extends Executor {
       ...config,
       onError: handleJsonRpcError,
     });
-    return new ExecutorJsonRpc("", { requestor });
+    return new ExecutorJsonRpc(requestor);
   }
 
   /** Opens an Executor with ownership of its default Transports. */
@@ -188,7 +139,7 @@ export class ExecutorJsonRpc extends Executor {
     return ccc.RequestorJsonRpc.open({
       ...config,
       onError: handleJsonRpcError,
-    }).map((requestor) => new ExecutorJsonRpc("", { requestor }));
+    }).map((requestor) => new ExecutorJsonRpc(requestor));
   }
 
   /* Calls a method on the SSRI executor through SSRI Server.

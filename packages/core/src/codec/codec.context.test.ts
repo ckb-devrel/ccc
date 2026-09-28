@@ -119,9 +119,9 @@ type _EntityPreservesContext = Assert<
   >
 >;
 
-const tableAsLegacyCodec: mol.Codec<Value, Value> = entityTable;
-const tableAsLegacyCodecLike: mol.CodecLike<any> = tableAsLegacyCodec;
-const legacyCodecRecord: Record<string, mol.CodecLike<any>> = {
+const tableAsLegacyCodec: Codec<Value, Value> = entityTable;
+const tableAsLegacyCodecLike: CodecLike<any> = tableAsLegacyCodec;
+const legacyCodecRecord: Record<string, CodecLike<any>> = {
   Table: tableAsLegacyCodec,
   Uint32: mol.Uint32,
 };
