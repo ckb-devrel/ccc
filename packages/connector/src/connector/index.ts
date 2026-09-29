@@ -13,7 +13,7 @@ import {
   ConnectedEvent,
   FeeRateSelectedEvent,
 } from "../events/internal.js";
-import { type ConnectorLocaleLike, I18n } from "../i18n/index.js";
+import { type ConnectorLocale, I18n } from "../i18n/index.js";
 import { SignersController } from "../signers/index.js";
 import { ClientWithFeeRate } from "./client.js";
 
@@ -48,9 +48,13 @@ export class WebComponentConnector extends LitElement {
   /** Default Relay multiaddr shown and used by the Khie connection flow. */
   @property({ attribute: "khie-relay-address" })
   public khieRelayAddress?: string;
-  /** BCP 47 language tag of the UI, e.g. `"zh-CN"`. Defaults to `"en"`. */
+  /**
+   * Language of the UI, one of `connectorLocales`, e.g. `"zh-Hans"`.
+   * Matching is exact; any other value (e.g. from an HTML attribute) falls
+   * back to `"en"`.
+   */
   @property()
-  public locale?: ConnectorLocaleLike;
+  public locale?: ConnectorLocale;
   @state()
   private i18n = new I18n();
   @property({ attribute: false })

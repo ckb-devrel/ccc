@@ -4,11 +4,9 @@ import type { ConnectorMessages, MessageKey } from "./types.js";
 
 // Package-internal entry. The public barrel re-exports the types only.
 export {
-  matchLocale,
+  connectorLocales,
   resolveConnectorLocale,
   type ConnectorLocale,
-  type ConnectorLocaleLike,
-  type LocaleCandidate,
 } from "./locale.js";
 export { locales } from "./locales/index.js";
 export type { ConnectorMessages, MessageKey } from "./types.js";
@@ -29,8 +27,8 @@ export class I18n {
   readonly locale: ConnectorLocale;
   readonly messages: ConnectorMessages;
 
-  constructor(like?: string | null) {
-    this.locale = resolveConnectorLocale(like);
+  constructor(locale?: string | null) {
+    this.locale = resolveConnectorLocale(locale);
     this.messages = locales[this.locale];
   }
 

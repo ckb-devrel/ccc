@@ -21,7 +21,7 @@ describe("ConnectorError", () => {
     expect(displayError(error, new I18n())).toBe(
       locales.en.errorKhieWalletUnpaired,
     );
-    expect(displayError(error, new I18n("zh-CN"))).toBe(
+    expect(displayError(error, new I18n("zh-Hans"))).toBe(
       locales["zh-Hans"].errorKhieWalletUnpaired,
     );
   });
@@ -33,7 +33,7 @@ describe("ConnectorError", () => {
     expect(displayError(error, new I18n())).toBe(
       "Unable to scan pairing code: NotAllowedError",
     );
-    expect(displayError(error, new I18n("zh-CN"))).toBe(
+    expect(displayError(error, new I18n("zh-Hans"))).toBe(
       "无法扫描配对码：NotAllowedError",
     );
   });
@@ -58,17 +58,17 @@ describe("ConnectorError", () => {
 
 describe("displayError", () => {
   it("shows third-party errors as-is", () => {
-    expect(displayError(new Error("User rejected"), new I18n("zh-CN"))).toBe(
+    expect(displayError(new Error("User rejected"), new I18n("zh-Hans"))).toBe(
       "User rejected",
     );
-    expect(displayError("plain string", new I18n("zh-CN"))).toBe(
+    expect(displayError("plain string", new I18n("zh-Hans"))).toBe(
       "plain string",
     );
   });
 
   it("translates the unknown-error fallback", () => {
     expect(displayError({}, new I18n())).toBe("Unknown browser error");
-    expect(displayError({}, new I18n("zh-CN"))).toBe(
+    expect(displayError({}, new I18n("zh-Hans"))).toBe(
       locales["zh-Hans"].errorUnknownBrowser,
     );
   });

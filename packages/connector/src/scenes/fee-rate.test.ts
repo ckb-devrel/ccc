@@ -21,7 +21,7 @@ function createScene(locale = "en") {
 
 describe("FeeRateScene", () => {
   it("derives the selected option from the fee rate, not the label", () => {
-    const scene = createScene("zh-CN");
+    const scene = createScene("zh-Hans");
     scene.recommendedFeeRate = 1234n;
 
     expect(scene.options.map(({ id }) => id)).toEqual(["economy", "auto"]);
@@ -36,7 +36,7 @@ describe("FeeRateScene", () => {
   });
 
   it("dispatches an undefined fee rate for the auto option in any locale", () => {
-    const scene = createScene("zh-CN");
+    const scene = createScene("zh-Hans");
     const received: (bigint | undefined)[] = [];
     scene.addEventListener("fee-rate-selected", (event) => {
       received.push((event as FeeRateSelectedEvent).feeRate);

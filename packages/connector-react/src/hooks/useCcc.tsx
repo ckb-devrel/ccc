@@ -28,8 +28,6 @@ const CCC_CONTEXT = createContext<
       client: ccc.Client;
       wallet?: ccc.Wallet;
       signerInfo?: ccc.SignerInfo;
-      /** Active UI locale of the connector (read-only). */
-      locale: ccc.ConnectorLocaleLike;
     }
   | undefined
 >(undefined);
@@ -89,8 +87,11 @@ export function Provider({
   signersController?: ccc.SignersController;
   defaultClient?: ccc.Client;
   clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
-  /** BCP 47 language tag of the connector UI, e.g. `"zh-CN"`. Defaults to `"en"`. */
-  locale?: ccc.ConnectorLocaleLike;
+  /**
+   * Language of the connector UI, one of `ccc.connectorLocales`, e.g.
+   * `"zh-Hans"`. Defaults to `"en"`. Map app languages to it yourself.
+   */
+  locale?: ccc.ConnectorLocale;
 }) {
   const [ref, setRef] = useState<ccc.WebComponentConnector | null>(null);
   const connectionOwner = useRef<
@@ -186,7 +187,6 @@ export function Provider({
         client,
         wallet: connection?.wallet,
         signerInfo: connection?.signerInfo,
-        locale: locale ?? "en",
       }}
     >
       <Connector

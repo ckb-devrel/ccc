@@ -21,14 +21,14 @@ function localeDisplayName(locale: ccc.ConnectorLocale): string {
 }
 
 /**
- * Connector languages offered by the header dropdown, read straight from the
- * connector's built-in locale registry. Contributing a new connector
- * language (see CONTRIBUTING.md) makes it show up here automatically.
+ * Connector languages offered by the header dropdown, read from the
+ * connector's built-in locale list. Contributing a new connector language
+ * (see CONTRIBUTING.md) makes it show up here automatically.
  */
 export const CONNECTOR_LOCALES: readonly {
   value: ccc.ConnectorLocale;
   label: string;
-}[] = (Object.keys(ccc.locales) as ccc.ConnectorLocale[]).map((value) => ({
+}[] = ccc.connectorLocales.map((value) => ({
   value,
   label: localeDisplayName(value),
 }));
