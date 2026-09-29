@@ -1,5 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
-import { Psbt } from "bitcoinjs-lib";
+import { Transaction, type TxOpts } from "@scure/btc-signer";
 import * as v from "valibot";
 import {
   Address,
@@ -14,6 +14,38 @@ import {
   rpcErrorResponseMessageSchema,
   rpcSuccessResponseMessageSchema,
 } from "./advancedBarrel.js";
+
+// scure drops unknown PSBT fields by default.
+const PSBT_OPTIONS: TxOpts = { unknown: "ignore", proprietary: "ignore" };
+
+type PsbtInputUpdate = Parameters<Transaction["updateInput"]>[1];
+
+// finalizeIdx needs every input's UTXO to check the fee, so finalize the input
+// alone.
+function finalizeInput(tx: Transaction, index: number) {
+  const input = tx.getInput(index);
+  const scratch = new Transaction(PSBT_OPTIONS);
+  scratch.addInput(input);
+  scratch.finalizeIdx(0);
+  const finalized = scratch.getInput(0);
+  const cleared = Object.fromEntries(
+    Object.keys(input)
+      .filter((key) => !(key in finalized))
+      .map((key) => [key, undefined]),
+  ) as PsbtInputUpdate;
+
+  // Fields a signature commits to can't be cleared while it exists.
+  tx.updateInput(index, {
+    partialSig: undefined,
+    tapKeySig: undefined,
+    tapScriptSig: undefined,
+  });
+  tx.updateInput(index, {
+    ...cleared,
+    finalScriptSig: finalized.finalScriptSig,
+    finalScriptWitness: finalized.finalScriptWitness,
+  });
+}
 
 async function checkResponse<T extends keyof Requests>(
   response: Promise<RpcResponse<T>>,
@@ -206,8 +238,9 @@ export class Signer extends ccc.SignerBtc {
 
     try {
       // Collect all unsigned inputs
-      const psbt = Psbt.fromHex(psbtHex.slice(2));
-      psbt.data.inputs.forEach((input, index) => {
+      const tx = Transaction.fromPSBT(ccc.bytesFrom(psbtHex), PSBT_OPTIONS);
+      for (let index = 0; index < tx.inputsLength; index++) {
+        const input = tx.getInput(index);
         const isSigned =
           input.finalScriptSig ||
           input.finalScriptWitness ||
@@ -218,7 +251,7 @@ export class Signer extends ccc.SignerBtc {
         if (!isSigned) {
           inputsToSign.push(ccc.InputToSign.from({ index, address }));
         }
-      });
+      }
 
       // If no unsigned inputs found, the PSBT is already fully signed
       // Let the wallet handle this case (likely a no-op or error)
@@ -278,18 +311,18 @@ export class Signer extends ccc.SignerBtc {
    * leaving inputs owned by other signers untouched.
    */
   private finalizeSignedInputs(
-    psbt: Psbt,
+    tx: Transaction,
     signInputs: Record<string, number[]>,
   ): void {
     const indexes = new Set(Object.values(signInputs).flat());
 
     try {
       for (const index of indexes) {
-        const input = psbt.data.inputs[index];
+        const input = index < tx.inputsLength ? tx.getInput(index) : undefined;
         if (input?.finalScriptSig || input?.finalScriptWitness) {
           continue;
         }
-        psbt.finalizeInput(index);
+        finalizeInput(tx, index);
       }
     } catch (error) {
       throw new Error(
@@ -348,9 +381,12 @@ export class Signer extends ccc.SignerBtc {
       return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
     }
 
-    const signedPsbt = Psbt.fromBase64(signedPsbtBase64);
+    const signedPsbt = Transaction.fromPSBT(
+      ccc.bytesFrom(signedPsbtBase64, "base64"),
+      PSBT_OPTIONS,
+    );
     this.finalizeSignedInputs(signedPsbt, signInputs);
-    return ccc.hexFrom(signedPsbt.toBuffer());
+    return ccc.hexFrom(signedPsbt.toPSBT());
   }
 
   /**
