@@ -51,6 +51,30 @@ const EXTRA_SOURCES = [
     ),
     name: "@noble/curves",
   },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/@scure/btc-signer",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "@scure/btc-signer",
+  },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/@scure/base",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "@scure/base",
+  },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/micro-packed",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "micro-packed",
+  },
 ];
 
 export function Editor({
@@ -162,7 +186,7 @@ export function Editor({
           });
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            "import { ccc } from '@ckb-ccc/core'; import * as bitcoin from 'bitcoinjs-lib'; export { bitcoin }; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
+            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client; /** @deprecated Removed. Use `import * as btc from \"@scure/btc-signer\"`. */ export const bitcoin: never;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
