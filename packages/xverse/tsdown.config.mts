@@ -15,7 +15,17 @@ const entry = {
   advancedBarrel: "src/advancedBarrel.ts",
 } as const;
 
-const bundleDeps: string[] = [];
+// ESM-only, so bundled for CommonJS.
+const bundleDeps: string[] = [
+  "@scure/btc-signer",
+  "@scure/btc-signer/*",
+  "@scure/base",
+  "micro-packed",
+  "@noble/curves",
+  "@noble/curves/*",
+  "@noble/hashes",
+  "@noble/hashes/*",
+];
 
 export default defineConfig(
   (

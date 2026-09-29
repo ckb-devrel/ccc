@@ -6,6 +6,7 @@ import {
   ConnectionsRepo,
   ConnectionsRepoLocalStorage,
 } from "../connectionsStorage/index.js";
+import { finalizeSignedInputs, parseSignedPsbt } from "./psbt.js";
 
 /**
  * Converts CCC-level sign PSBT options into the shape expected by JoyID,
@@ -208,7 +209,14 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * Signs a PSBT using JoyID wallet.
    *
    * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT as a Hex string.
+   *
+   * @remarks
+   * JoyID returns a raw transaction when asked to finalize, and rejects PSBTs
+   * with inputs it can't sign. So JoyID is always asked for an unfinalized
+   * PSBT, and `autoFinalized` is handled here. Inputs that already have a
+   * JoyID signature are not finalized.
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
@@ -216,16 +224,19 @@ export class BitcoinSigner extends ccc.SignerBtc {
   ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
     const formattedOptions = ccc.SignPsbtOptions.from(options);
+    const unsignedPsbtHex = ccc.hexFrom(psbtHex);
 
     const config = this.getConfig();
-    const { tx: signedPsbtHex } = await createPopup(
+    const { tx } = await createPopup(
       buildJoyIDURL(
         {
           ...config,
-          tx: ccc.hexFrom(psbtHex).slice(2),
-          options: toJoyIdSignPsbtOptions(formattedOptions),
+          tx: unsignedPsbtHex.slice(2),
+          options: toJoyIdSignPsbtOptions(
+            new ccc.SignPsbtOptions(false, formattedOptions.inputsToSign),
+          ),
           signerAddress: address,
-          autoFinalized: formattedOptions.autoFinalized,
+          autoFinalized: false,
         },
         "popup",
         "/sign-psbt",
@@ -233,7 +244,19 @@ export class BitcoinSigner extends ccc.SignerBtc {
       { ...config, type: DappRequestType.SignPsbt },
     );
 
-    return ccc.hexFrom(signedPsbtHex);
+    const signedPsbtHex = ccc.hexFrom(tx);
+    const { unsigned, signed } = parseSignedPsbt(
+      unsignedPsbtHex,
+      signedPsbtHex,
+    );
+    if (!formattedOptions.autoFinalized) {
+      return signedPsbtHex;
+    }
+    return finalizeSignedInputs(
+      unsigned,
+      signed,
+      formattedOptions.inputsToSign,
+    );
   }
 
   /**

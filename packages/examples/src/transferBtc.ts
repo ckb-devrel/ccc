@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/ccc";
-import { bitcoin, signer } from "@ckb-ccc/playground";
+import { signer } from "@ckb-ccc/playground";
+import * as btc from "@scure/btc-signer";
 
 // Supported wallets: Unisat, JoyID, Xverse
 // Check if the current signer is also a Bitcoin signer
@@ -60,46 +61,37 @@ if (!vout || !vout.scriptpubkey) {
 }
 
 // Build PSBT with the selected UTXO as input
-const psbt = new bitcoin.Psbt({
-  network: isXverse ? bitcoin.networks.testnet : bitcoin.networks.testnet,
-});
-const input: {
-  hash: string;
-  index: number;
-  witnessUtxo: {
-    script: Uint8Array;
-    value: bigint;
-  };
-  tapInternalKey?: Uint8Array;
-} = {
-  hash: selectedUtxo.txid,
+const tx = new btc.Transaction();
+const isTaproot =
+  vout.scriptpubkey_type === "v1_p2tr" ||
+  vout.scriptpubkey_type === "witness_v1_taproot";
+tx.addInput({
+  txid: selectedUtxo.txid,
   index: selectedUtxo.vout,
   witnessUtxo: {
     script: ccc.bytesFrom(vout.scriptpubkey),
-    value: BigInt(vout.value),
+    amount: BigInt(vout.value),
   },
-};
-
-// Handle Taproot (P2TR) specific input fields
-if (
-  vout.scriptpubkey_type === "v1_p2tr" ||
-  vout.scriptpubkey_type === "witness_v1_taproot"
-) {
-  input.tapInternalKey = ccc
-    .bytesFrom(await signer.getBtcPublicKey())
-    .subarray(1);
-}
-
-psbt.addInput(input);
-
-// Add a single output back to the same address minus a hardcoded 200 sat fee
-psbt.addOutput({
-  address: btcAddress,
-  value: BigInt(vout.value) - BigInt(FEE_SATS),
+  // Taproot inputs need the internal key
+  ...(isTaproot
+    ? {
+        tapInternalKey: ccc
+          .bytesFrom(await signer.getBtcPublicKey())
+          .subarray(1),
+      }
+    : {}),
 });
 
+// Add a single output back to the same address minus a hardcoded 200 sat fee
+// Signet uses the testnet address format
+tx.addOutputAddress(
+  btcAddress,
+  BigInt(vout.value) - BigInt(FEE_SATS),
+  btc.TEST_NETWORK,
+);
+
 // Sign and broadcast the transaction
-const txId = await signer.signAndBroadcastPsbt(psbt.toHex());
+const txId = await signer.signAndBroadcastPsbt(tx.toPSBT());
 console.log(
   `View transaction: https://mempool.space/${btcTestnetName}/tx/${txId.slice(2)}`,
 );
