@@ -2,7 +2,7 @@ import { ccc } from "@ckb-ccc/ccc";
 import { Libp2p } from "@ckb-ccc/libp2p";
 import type { PeerId } from "@libp2p/interface";
 import type { ConnectorConnection } from "../../events/external.js";
-import { errorMessage } from "../error.js";
+import { ConnectorError } from "../error.js";
 import { KhieConnectionController } from "./connection.js";
 import {
   CONNECTOR_ENDPOINT_URL,
@@ -19,7 +19,8 @@ export type KhieRelayState = "connected" | "connecting" | "failed" | "idle";
 export type KhiePairingSessionState = Readonly<{
   appEndpoint: string;
   canPair: boolean;
-  error?: string;
+  /** Raw cause; the UI formats it with `displayError` so it follows the locale. */
+  error?: unknown;
   errorKind?: "incompatible-peer";
   ownEndpoint: string;
   phase: KhiePairingPhase;
@@ -122,7 +123,7 @@ export class KhiePairingSession {
   ) {
     this.update({
       ...patch,
-      error: errorMessage(cause),
+      error: cause,
       errorKind: isIncompatiblePeerError(cause)
         ? "incompatible-peer"
         : undefined,
@@ -347,7 +348,10 @@ export class KhiePairingSession {
 
       if (this.resources?.pendingSigner?.signer === signer) {
         this.updateError(
-          new Error("The wallet unpaired. Go back and pair again."),
+          new ConnectorError(
+            "peer-unpaired",
+            "The wallet unpaired. Go back and pair again.",
+          ),
           { signer: undefined },
         );
       }
@@ -377,7 +381,10 @@ export class KhiePairingSession {
     try {
       await signer.connect();
       if (!(await signer.isConnected())) {
-        throw new Error("Khie signer did not connect");
+        throw new ConnectorError(
+          "signer-not-connected",
+          "Khie signer did not connect",
+        );
       }
       signal.throwIfAborted();
 

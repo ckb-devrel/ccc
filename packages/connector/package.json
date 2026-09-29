@@ -22,6 +22,8 @@
     "./advanced": "./dist/advanced.js"
   },
   "scripts": {
+    "test": "vitest",
+    "test:ci": "vitest run",
     "build": "tsc",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
@@ -35,7 +37,8 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.61.1"
+    "typescript-eslint": "^8.61.1",
+    "vitest": "^4.1.9"
   },
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,7 @@
 import { css, html, LitElement } from "lit";
 import { customElement, query } from "lit/decorators.js";
 import type { QRCamera, QRCanvas } from "qr/dom.js";
+import { ConnectorError } from "../scenes/error.js";
 
 const SCAN_INTERVAL_MS = 100;
 
@@ -35,10 +36,16 @@ export async function createBarcodeDetector(): Promise<
 
 function assertCameraAvailable() {
   if (!window.isSecureContext) {
-    throw new Error("Camera access requires HTTPS or localhost");
+    throw new ConnectorError(
+      "camera-https-required",
+      "Camera access requires HTTPS or localhost",
+    );
   }
   if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Camera access is not supported by this browser");
+    throw new ConnectorError(
+      "camera-not-supported",
+      "Camera access is not supported by this browser",
+    );
   }
 }
 
@@ -142,7 +149,12 @@ export class QrScanner extends LitElement {
   private async start() {
     const video = this.video;
     if (!video) {
-      this.fail(new Error("Camera preview is not available"));
+      this.fail(
+        new ConnectorError(
+          "camera-preview-unavailable",
+          "Camera preview is not available",
+        ),
+      );
       return;
     }
 

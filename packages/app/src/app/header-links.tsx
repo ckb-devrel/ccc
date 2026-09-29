@@ -1,7 +1,9 @@
 import type { ccc } from "@ckb-ccc/connector-react";
-import { Droplets, Search, SquareTerminal } from "lucide-react";
+import { Droplets, Languages, Search, SquareTerminal } from "lucide-react";
 import type { ReactNode } from "react";
+import { Dropdown } from "./dropdown";
 import styles from "./header-links.module.css";
+import { CONNECTOR_LOCALES, useConnectorLocale } from "./provider";
 
 export function HeaderLinks({ client }: { client: ccc.Client }) {
   const explorer =
@@ -31,7 +33,27 @@ export function HeaderLinks({ client }: { client: ccc.Client }) {
       <HeaderLink href={explorer} label="CKB Explorer">
         <Search />
       </HeaderLink>
+      <LocaleToggle />
     </nav>
+  );
+}
+
+function LocaleToggle() {
+  const { locale, setLocale } = useConnectorLocale();
+
+  return (
+    <Dropdown
+      className={styles.locale}
+      label="Connector language"
+      icon={<Languages aria-hidden="true" />}
+      value={locale}
+      options={CONNECTOR_LOCALES.map(({ value, label }) => ({
+        value,
+        label,
+        hint: value,
+      }))}
+      onChange={setLocale}
+    />
   );
 }
 
