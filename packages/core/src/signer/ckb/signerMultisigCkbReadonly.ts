@@ -1,6 +1,7 @@
 import { Address } from "../../address/index.js";
 import { Bytes, bytesConcat, bytesFrom, BytesLike } from "../../bytes/index.js";
 import {
+  Epoch,
   Script,
   ScriptLike,
   Since,
@@ -28,6 +29,23 @@ import {
   recoverMessageSecp256k1,
   SECP256K1_SIGNATURE_LENGTH,
 } from "./secp256k1Signing.js";
+
+function sinceSatisfiesConstraint(inputSinceLike: NumLike, since: Since) {
+  const inputSince = Since.from(inputSinceLike);
+
+  if (
+    inputSince.relative !== since.relative ||
+    inputSince.metric !== since.metric
+  ) {
+    return false;
+  }
+
+  if (since.metric === "epoch") {
+    return Epoch.from(inputSince.value).ge(since.value);
+  }
+
+  return inputSince.value >= since.value;
+}
 
 export type MultisigCkbWitnessLike = (
   | {
@@ -516,13 +534,28 @@ export class SignerMultisigCkbReadonly extends SignerMultisig {
    */
   async prepareTransactionOneScript(
     txLike: TransactionLike,
-    script: ScriptLike,
+    scriptLike: ScriptLike,
     cellDeps: CellDepInfoLike[],
   ) {
     const tx = Transaction.from(txLike);
+    const script = Script.from(scriptLike);
     const position = await tx.findInputIndexByLock(script, this.client);
     if (position === undefined) {
       return tx;
+    }
+
+    if (this.since) {
+      const since = this.since.toNum();
+
+      for (const input of tx.inputs) {
+        const { cellOutput } = await input.getCell(this.client);
+        if (
+          script.eq(cellOutput.lock) &&
+          !sinceSatisfiesConstraint(input.since, this.since)
+        ) {
+          input.since = since;
+        }
+      }
     }
 
     await tx.addCellDepInfos(this.client, cellDeps);
