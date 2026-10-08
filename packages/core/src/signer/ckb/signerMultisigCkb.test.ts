@@ -157,6 +157,134 @@ describe("MultisigCkbWitness", () => {
 });
 
 describe("SignerMultisigCkbReadonly", () => {
+  const multisigInfo: ccc.MultisigCkbWitnessLike = {
+    publicKeyHashes: ["0x1111111111111111111111111111111111111111"],
+    threshold: 1,
+  };
+  const scriptInfo: ccc.ScriptInfoLike = {
+    codeHash:
+      "0x2222222222222222222222222222222222222222222222222222222222222222",
+    hashType: "type",
+    cellDeps: [],
+  };
+  const timeLock: ccc.SinceLike = {
+    relative: "relative",
+    metric: "blockNumber",
+    value: 42,
+  };
+  const input = (
+    index: number,
+    lock: ccc.ScriptLike,
+    since: ccc.SinceLike = 0,
+  ) => ({
+    previousOutput: { txHash: ZERO_HASH, index },
+    since,
+    cellOutput: { lock },
+    outputData: "0x",
+  });
+
+  describe("prepareTransaction with since", () => {
+    const createSigner = (since?: ccc.SinceLike) =>
+      new ccc.SignerMultisigCkbReadonly(client, multisigInfo, {
+        since,
+        scriptInfos: [scriptInfo],
+      });
+
+    it("sets since on one matching multisig input", async () => {
+      const signer = createSigner(timeLock);
+      const [{ script }] = await signer.scriptInfos;
+      const tx = ccc.Transaction.from({
+        inputs: [
+          input(0, script, {
+            ...timeLock,
+            value: 41,
+          }),
+        ],
+      });
+
+      const prepared = await signer.prepareTransaction(tx);
+
+      expect(prepared.inputs[0].since).toBe(ccc.Since.from(timeLock).toNum());
+    });
+
+    it("preserves a stronger since of the same type", async () => {
+      const signer = createSigner(timeLock);
+      const [{ script }] = await signer.scriptInfos;
+      const strongerSince = ccc.Since.from({
+        ...timeLock,
+        value: 43,
+      }).toNum();
+      const tx = ccc.Transaction.from({
+        inputs: [input(0, script, strongerSince)],
+      });
+
+      const prepared = await signer.prepareTransaction(tx);
+
+      expect(prepared.inputs[0].since).toBe(strongerSince);
+    });
+
+    it("preserves a semantically stronger epoch since", async () => {
+      const epochTimeLock: ccc.SinceLike = {
+        relative: "relative",
+        metric: "epoch",
+        value: ccc.Epoch.from([100, 1, 2]).toNum(),
+      };
+      const signer = createSigner(epochTimeLock);
+      const [{ script }] = await signer.scriptInfos;
+      const strongerSince = ccc.Since.from({
+        ...epochTimeLock,
+        value: ccc.Epoch.from([101, 0, 1]).toNum(),
+      }).toNum();
+      const tx = ccc.Transaction.from({
+        inputs: [input(0, script, strongerSince)],
+      });
+
+      const prepared = await signer.prepareTransaction(tx);
+
+      expect(prepared.inputs[0].since).toBe(strongerSince);
+    });
+
+    it("sets since on every matching multisig input", async () => {
+      const signer = createSigner(timeLock);
+      const [{ script }] = await signer.scriptInfos;
+      const tx = ccc.Transaction.from({
+        inputs: [input(0, script), input(1, script)],
+      });
+
+      const prepared = await signer.prepareTransaction(tx);
+      const expectedSince = ccc.Since.from(timeLock).toNum();
+
+      expect(prepared.inputs.map(({ since }) => since)).toEqual([
+        expectedSince,
+        expectedSince,
+      ]);
+    });
+
+    it("does not change since on unrelated inputs", async () => {
+      const signer = createSigner(timeLock);
+      const [{ script }] = await signer.scriptInfos;
+      const unrelatedScript = ccc.Script.from({ ...script, args: "0x1234" });
+      const tx = ccc.Transaction.from({
+        inputs: [input(0, script), input(1, unrelatedScript, 100)],
+      });
+
+      const prepared = await signer.prepareTransaction(tx);
+
+      expect(prepared.inputs[0].since).toBe(ccc.Since.from(timeLock).toNum());
+      expect(prepared.inputs[1].since).toBe(100n);
+    });
+
+    it("does not change input since when signer since is not configured", async () => {
+      const signer = createSigner();
+      const [{ script }] = await signer.scriptInfos;
+      const tx = ccc.Transaction.from({ inputs: [input(0, script, 100)] });
+
+      const prepared = await signer.prepareTransaction(tx);
+
+      expect(prepared.inputs[0].since).toBe(100n);
+    });
+  });
+
   it("should initialize correctly", async () => {
     const witness: ccc.MultisigCkbWitnessLike = {
       publicKeys: [
