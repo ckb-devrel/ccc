@@ -1,5 +1,13 @@
 # @ckb-ccc/core
 
+## 1.23.1
+
+### Patch Changes
+
+- [#591](https://github.com/ckb-devrel/ccc/pull/591) [`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): preserve consumed outputs when marking chained transactions
+
+- [#593](https://github.com/ckb-devrel/ccc/pull/593) [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): ensure every matching multisig input satisfies the configured since
+
 ## 1.23.0
 
 ### Minor Changes
