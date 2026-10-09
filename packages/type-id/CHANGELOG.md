@@ -1,5 +1,13 @@
 # @ckb-ccc/type-id
 
+## 0.1.16
+
+### Patch Changes
+
+- [#592](https://github.com/ckb-devrel/ccc/pull/592) [`b827462`](https://github.com/ckb-devrel/ccc/commit/b827462aebba537f2785d6a4abb506954189f96e) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(type-id): allow transfers to set falsy encoded values such as empty bytes and zero
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c)]:
+  - @ckb-ccc/core@1.23.1
+
 ## 0.1.15
 
 ### Patch Changes

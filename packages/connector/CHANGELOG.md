@@ -1,5 +1,22 @@
 # @ckb-ccc/connector
 
+## 2.4.0
+
+### Minor Changes
+
+- [#555](https://github.com/ckb-devrel/ccc/pull/555) [`6118633`](https://github.com/ckb-devrel/ccc/commit/6118633d17fa8d6e91b5b3573f7057738995689b) Thanks [@yixyxiu](https://github.com/yixyxiu)! - feat(connector): add localization support
+  
+  - New `locale` property on `<ccc-connector>` and `ccc.Provider`; English by default, `zh-Hans` built in. The value must be an exact built-in tag; anything else falls back to English.
+  - `ccc.connectorLocales` lists the built-in language tags at runtime.
+  - Fee rate options are selected by a stable id instead of their display label.
+  - Errors raised by the connector itself (camera access, Khie pairing) are translated at render time via `ConnectorError`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @ckb-ccc/libp2p@0.3.3
+  - @ckb-ccc/ccc@1.3.7
+
 ## 2.3.2
 
 ### Patch Changes
