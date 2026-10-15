@@ -41,8 +41,8 @@ export function useGetExplorerLink() {
 
   const prefix =
     client.addressPrefix === "ckb"
-      ? "https://explorer.nervos.org"
-      : "https://pudge.explorer.nervos.org";
+      ? "https://explorer.ckbccc.com/mainnet"
+      : "https://test-explorer.ckbccc.com/testnet";
 
   return {
     index: prefix,
@@ -61,7 +61,7 @@ export function useGetExplorerLink() {
       return (
         <Link
           className="underline"
-          href={`${prefix}/transaction/${txHash}`}
+          href={`${prefix}/tx/${txHash}`}
           target="_blank"
         >
           {display ?? txHash}
