@@ -2,14 +2,12 @@ import type { ccc } from "@ckb-ccc/connector-react";
 import { Droplets, Languages, Search, SquareTerminal } from "lucide-react";
 import type { ReactNode } from "react";
 import { Dropdown } from "./dropdown";
+import { getExplorerBaseUrl } from "./explorer-link";
 import styles from "./header-links.module.css";
 import { CONNECTOR_LOCALES, useConnectorLocale } from "./provider";
 
 export function HeaderLinks({ client }: { client: ccc.Client }) {
-  const explorer =
-    client.addressPrefix === "ckb"
-      ? "https://explorer.nervos.org"
-      : "https://pudge.explorer.nervos.org";
+  const explorer = getExplorerBaseUrl(client);
 
   return (
     <nav className={styles.root} aria-label="CCC links">
@@ -30,7 +28,7 @@ export function HeaderLinks({ client }: { client: ccc.Client }) {
           <path d="M154.525 0v112.422h-40.744l93.895 93.896V0h-53.151Z" />
         </svg>
       </HeaderLink>
-      <HeaderLink href={explorer} label="CKB Explorer">
+      <HeaderLink href={explorer} label="CKBadger">
         <Search />
       </HeaderLink>
       <LocaleToggle />
