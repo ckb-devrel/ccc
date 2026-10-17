@@ -34,6 +34,9 @@ const DEFAULT_MAX_STEPS = 50;
  * Cost: roughly one `getTransaction` call per step plus one `input.getCell`
  * lookup per non-DID input on each step. `input.getCell` goes through the
  * client's cell cache, so repeated walks over the same chain are cheap.
+ *
+ * @throws If an input cell lookup fails or the input cell is unavailable.
+ * An unresolved input cannot establish that a transaction is the genesis.
  */
 export async function getDidCkbHistory(props: {
   client: ccc.Client;
@@ -109,14 +112,7 @@ async function findPriorDidCell(
 ): Promise<ccc.Cell | undefined> {
   const { inputs } = ccc.Transaction.from(tx);
   for (const input of inputs) {
-    let cell: ccc.Cell;
-    try {
-      cell = await input.getCell(client);
-    } catch {
-      // Skip inputs whose previous output we can't fetch; they can't be the
-      // prior DID cell anyway, so the walk should keep looking at siblings.
-      continue;
-    }
+    const cell = await input.getCell(client);
     const type = cell.cellOutput.type;
     if (!type) {
       continue;

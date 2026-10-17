@@ -199,6 +199,149 @@ describe("getDidCkbHistory", () => {
     expect(history[0].data.value.localId).toBe("did:plc:abc");
   });
 
+  it("propagates a transaction lookup timeout from the real client input lookup", async () => {
+    const realClient = new ccc.ClientPublicTestnet();
+    const type = await ccc.Script.fromKnownScript(
+      realClient,
+      ccc.KnownScript.DidCkb,
+      id,
+    );
+    const update = ccc.Transaction.from({
+      inputs: [{ previousOutput: { txHash: txGenesis, index: 0 } }],
+    });
+    const liveCell = update1Cell.clone();
+    liveCell.outPoint.txHash = update.hash();
+    liveCell.cellOutput.type = type;
+    const error = new Error("Request timeout");
+    vi.spyOn(realClient, "getTransaction").mockImplementation(async (hash) => {
+      if (ccc.hexFrom(hash) !== update.hash()) {
+        throw error;
+      }
+      return ccc.ClientTransactionResponse.from({
+        transaction: update,
+        status: "committed",
+      });
+    });
+
+    await expect(
+      getDidCkbHistory({ client: realClient, id, liveCell }),
+    ).rejects.toBe(error);
+  });
+
+  it.each([undefined, "did:plc:abc"])(
+    "rejects an unavailable previous DID cell instead of inferring genesis (localId: %s)",
+    async (localId) => {
+      (client.getTransaction as Mock).mockResolvedValue(
+        txResponse({
+          inputs: [{ previousOutput: { txHash: txGenesis, index: 0 } }],
+        }),
+      );
+      (client.getCell as Mock).mockResolvedValue(undefined);
+
+      await expect(
+        getDidCkbHistory({
+          client,
+          id,
+          liveCell: didCell(txUpdate1, { v: 2 }, localId),
+        }),
+      ).rejects.toThrow("Unable to complete input");
+    },
+  );
+
+  it("propagates a lookup error after a newer history entry has been resolved", async () => {
+    (client.getTransaction as Mock)
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [{ previousOutput: { txHash: txUpdate1, index: 0 } }],
+        }),
+      )
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [{ previousOutput: { txHash: txGenesis, index: 0 } }],
+        }),
+      );
+    const error = new Error("Request timeout");
+    (client.getCell as Mock)
+      .mockResolvedValueOnce(update1Cell)
+      .mockRejectedValueOnce(error);
+
+    await expect(
+      getDidCkbHistory({ client, id, liveCell: update2Cell }),
+    ).rejects.toBe(error);
+    expect((client.getTransaction as Mock).mock.calls).toHaveLength(2);
+  });
+
+  it("rejects when a funding input cannot be resolved before the DID input", async () => {
+    (client.getTransaction as Mock)
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [
+            { previousOutput: { txHash: txFunding, index: 0 } },
+            { previousOutput: { txHash: txGenesis, index: 0 } },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [{ previousOutput: { txHash: txFunding, index: 0 } }],
+        }),
+      );
+    const error = new Error("Request timeout");
+    (client.getCell as Mock).mockImplementation(
+      async (op: ccc.OutPointLike) => {
+        if (ccc.OutPoint.from(op).txHash === txFunding) {
+          throw error;
+        }
+        return cellAt(op);
+      },
+    );
+
+    await expect(
+      getDidCkbHistory({ client, id, liveCell: update1Cell }),
+    ).rejects.toBe(error);
+  });
+
+  it("skips resolved non-matching inputs before the previous DID cell", async () => {
+    const funding = cellAt({ txHash: txFunding, index: 0 })!;
+    const otherCodeHash = funding.clone();
+    otherCodeHash.outPoint.index = 1n;
+    otherCodeHash.cellOutput.type = didTypeScript.clone();
+    otherCodeHash.cellOutput.type.codeHash = fundingLock.codeHash;
+    const otherId = funding.clone();
+    otherId.outPoint.index = 2n;
+    otherId.cellOutput.type = didTypeScript.clone();
+    otherId.cellOutput.type.args = ccc.hexFrom("0x" + "cd".repeat(20));
+    (client.getTransaction as Mock)
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [funding, otherCodeHash, otherId, genesisCell].map(
+            (cell) => ({
+              previousOutput: cell.outPoint,
+            }),
+          ),
+        }),
+      )
+      .mockResolvedValueOnce(
+        txResponse({
+          inputs: [{ previousOutput: funding.outPoint }],
+        }),
+      );
+    (client.getCell as Mock)
+      .mockResolvedValueOnce(funding)
+      .mockResolvedValueOnce(otherCodeHash)
+      .mockResolvedValueOnce(otherId)
+      .mockResolvedValueOnce(genesisCell)
+      .mockResolvedValueOnce(funding);
+
+    const history = await getDidCkbHistory({
+      client,
+      id,
+      liveCell: update1Cell,
+    });
+    expect(history.map(({ action }) => action)).toEqual(["UPDATE", "CREATE"]);
+    expect(history.map(({ txHash }) => txHash)).toEqual([txUpdate1, txGenesis]);
+  });
+
   it("returns an empty array when no live cell exists", async () => {
     (client.findSingletonCellByType as Mock).mockResolvedValue(undefined);
     const history = await getDidCkbHistory({ client, id });
