@@ -12,7 +12,3 @@ allowBuilds:
   secp256k1: true
   sharp: true
   unrs-resolver: true
-overrides:
-  # typedoc-plugin-ga's legacy ESLint chain pins minimatch 9.0.3 exactly.
-  # Keep this CommonJS consumer on its existing major with the security fixes.
-  '@typescript-eslint/typescript-estree@6.21.0>minimatch': 9.0.9
