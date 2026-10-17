@@ -1,6 +1,7 @@
 import { defineConfig, coverageConfigDefaults } from "vitest/config";
 
 const packages = [
+  "packages/btc-psbt",
   "packages/connector",
   "packages/core",
   "packages/did-ckb",

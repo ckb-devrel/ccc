@@ -2,9 +2,9 @@ packages:
   - "packages/*"
 minimumReleaseAge: 1440
 allowBuilds:
-  '@nestjs/core': true
-  '@parcel/watcher': true
-  '@tailwindcss/oxide': true
+  "@nestjs/core": true
+  "@parcel/watcher": true
+  "@tailwindcss/oxide": true
   core-js: true
   core-js-pure: true
   esbuild: true

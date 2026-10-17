@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { decodeSearch } from "@joyid/common";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { schnorr, secp256k1 } from "@noble/curves/secp256k1.js";
 import * as btc from "@scure/btc-signer";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPopup } from "../common/index.js";
@@ -32,7 +32,7 @@ function createKey(seed: number) {
 
 const JOYID = createKey(1);
 const OTHER = createKey(2);
-// Key-path finalization only needs a valid x-only key.
+// Key-path responses are verified against the actual output key.
 const TAPROOT_OUTPUT = ccc.bytesConcat([0x51, 0x20], JOYID.publicKey.slice(1));
 
 class ConnectionsRepoMemory implements ConnectionsRepo {
@@ -272,7 +272,12 @@ describe("BitcoinSigner.signPsbt", () => {
 
   it("should finalize Taproot key-path inputs", async () => {
     mockJoyIdSigning((tx) =>
-      tx.updateInput(0, { tapKeySig: new Uint8Array(64).fill(1) }),
+      tx.updateInput(0, {
+        tapKeySig: schnorr.sign(
+          tx.preimageWitnessV1(0, [TAPROOT_OUTPUT], 0, [10000n]),
+          JOYID.privateKey,
+        ),
+      }),
     );
 
     const signed = await createSigner().signPsbt(createPsbt([TAPROOT_OUTPUT]));

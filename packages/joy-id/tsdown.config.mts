@@ -15,8 +15,9 @@ const entry = {
   advancedBarrel: "src/advancedBarrel.ts",
 } as const;
 
-// ESM-only, so bundled for CommonJS.
+// Inline the private PSBT boundary and ESM dependencies in both formats.
 const bundleDeps: string[] = [
+  "@ckb-ccc/btc-psbt",
   "@scure/btc-signer",
   "@scure/btc-signer/*",
   "@scure/base",
@@ -33,7 +34,8 @@ export default defineConfig(
       {
         entry,
         deps: {
-          onlyBundle: [] as string[],
+          alwaysBundle: bundleDeps,
+          onlyBundle: bundleDeps,
         },
         format: "esm",
         copy: "./misc/basedirs/dist/*",

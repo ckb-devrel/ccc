@@ -1,3 +1,4 @@
+import { WalletPsbt, validateInputSelection } from "@ckb-ccc/btc-psbt";
 import { ccc } from "@ckb-ccc/core";
 import { DappRequestType, buildJoyIDURL } from "@joyid/common";
 import { createPopup } from "../common/index.js";
@@ -216,7 +217,9 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * JoyID returns a raw transaction when asked to finalize, and rejects PSBTs
    * with inputs it can't sign. So JoyID is always asked for an unfinalized
    * PSBT, and `autoFinalized` is handled here. Inputs that already have a
-   * JoyID signature are not finalized.
+   * JoyID signature are not finalized. Transaction, prevout, and signature
+   * policy checks also run with `autoFinalized: false`. The wallet must not
+   * add or replace finalized scripts.
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
@@ -225,6 +228,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
     const { address } = await this.assertConnection();
     const formattedOptions = ccc.SignPsbtOptions.from(options);
     const unsignedPsbtHex = ccc.hexFrom(psbtHex);
+    formattedOptions.inputsToSign = validateInputSelection(
+      formattedOptions.inputsToSign,
+      WalletPsbt.fromPSBT(ccc.bytesFrom(unsignedPsbtHex)).inputsLength,
+    );
 
     const config = this.getConfig();
     const { tx } = await createPopup(
@@ -248,9 +255,10 @@ export class BitcoinSigner extends ccc.SignerBtc {
     const { unsigned, signed } = parseSignedPsbt(
       unsignedPsbtHex,
       signedPsbtHex,
+      formattedOptions.inputsToSign,
     );
     if (!formattedOptions.autoFinalized) {
-      return signedPsbtHex;
+      return ccc.hexFrom(signed.toPSBT());
     }
     return finalizeSignedInputs(
       unsigned,

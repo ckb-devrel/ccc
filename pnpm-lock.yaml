@@ -178,6 +178,48 @@ importers:
         specifier: npm:@typescript/typescript6@^6.0.2
         version: '@typescript/typescript6@6.0.2'
 
+  packages/btc-psbt:
+    devDependencies:
+      '@ckb-ccc/core':
+        specifier: workspace:*
+        version: link:../core
+      '@eslint/js':
+        specifier: ^10.0.1
+        version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
+      '@noble/curves':
+        specifier: ^2.2.0
+        version: 2.4.0
+      '@scure/btc-signer':
+        specifier: 2.4.1
+        version: 2.4.1
+      '@typescript/native':
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
+      eslint:
+        specifier: ^10.5.0
+        version: 10.12.0(jiti@2.7.0)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@10.12.0(jiti@2.7.0))
+      eslint-plugin-prettier:
+        specifier: ^5.5.6
+        version: 5.5.7(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@10.12.0(jiti@2.7.0)))(eslint@10.12.0(jiti@2.7.0))(prettier@3.9.9)
+      prettier:
+        specifier: ^3.8.4
+        version: 3.9.9
+      prettier-plugin-organize-imports:
+        specifier: ^4.3.0
+        version: 4.3.0(@typescript/typescript6@6.0.2)(prettier@3.9.9)
+      typescript:
+        specifier: npm:@typescript/typescript6@^6.0.2
+        version: '@typescript/typescript6@6.0.2'
+      typescript-eslint:
+        specifier: ^8.61.1
+        version: 8.71.2(@typescript/typescript6@6.0.2)(eslint@10.12.0(jiti@2.7.0))
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.11(@types/node@26.6.4)(@vitest/coverage-v8@4.1.11)(vite@7.3.7(@types/node@26.6.5)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+
   packages/ccc:
     dependencies:
       '@ckb-ccc/eip6963':
@@ -800,6 +842,9 @@ importers:
         specifier: 2.4.1
         version: 2.4.1
     devDependencies:
+      '@ckb-ccc/btc-psbt':
+        specifier: workspace:*
+        version: link:../btc-psbt
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
@@ -1550,6 +1595,9 @@ importers:
         specifier: ^1.4.1
         version: 1.5.0(@typescript/typescript6@6.0.2)
     devDependencies:
+      '@ckb-ccc/btc-psbt':
+        specifier: workspace:*
+        version: link:../btc-psbt
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.12.0(jiti@2.7.0))
