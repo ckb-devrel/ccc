@@ -656,3 +656,140 @@ describe("wallet PSBT response validation", () => {
     expect(tx.getInput(0).finalScriptWitness).toBeUndefined();
   });
 });
+
+describe.each([0, 2])("parser compatibility in PSBTv%i", (version) => {
+  it.each([btc.p2pk(PUB).script, btc.p2ms(1, [PUB]).script])(
+    "accepts bare inputs while rejecting stray wrapper and Taproot metadata",
+    (script) => {
+      const before = hex(txFor(script, 1, version));
+      const parsed = parseAndValidateSignedPsbt(before, before).signed;
+      expect("updateInput" in parsed).toBe(false);
+      expect(parsed.getInput(0).witnessUtxo?.script).toEqual(script);
+      for (const field of ["redeemScript", "witnessScript"] as const) {
+        const invalid = mutate(
+          before,
+          (raw) => {
+            raw.inputs[0][field] = script;
+          },
+          version,
+        );
+        expect(() => parseAndValidateSignedPsbt(invalid, invalid)).toThrow(
+          field,
+        );
+      }
+      for (const field of ["tapInternalKey", "tapMerkleRoot"] as const) {
+        const invalid = mutate(
+          before,
+          (raw) => {
+            raw.inputs[0][field] = schnorr.getPublicKey(KEY);
+          },
+          version,
+        );
+        expect(() => parseAndValidateSignedPsbt(invalid, invalid)).toThrow(
+          /Taproot metadata/,
+        );
+      }
+    },
+  );
+
+  it("still validates explicit roots and leaves without trusted request metadata", () => {
+    const payment = btc.p2tr(schnorr.getPublicKey(KEY), {
+      script: btc.p2tr_pk(schnorr.getPublicKey(OTHER)).script,
+    });
+    const tx = txFor(payment.script, 1, version);
+    tx.updateInput(0, {
+      tapInternalKey: payment.tapInternalKey,
+      tapMerkleRoot: payment.tapMerkleRoot,
+      tapLeafScript: payment.tapLeafScript,
+    });
+    const complete = hex(tx);
+    for (const field of ["root", "parity", "internalKey", "leaf"] as const) {
+      const invalid = mutate(
+        complete,
+        (raw) => {
+          const input = raw.inputs[0];
+          if (field === "root") {
+            delete input.tapLeafScript;
+            input.tapMerkleRoot![0] ^= 1;
+          } else if (field === "parity") {
+            delete input.tapMerkleRoot;
+            input.tapLeafScript![0][0].version ^= 1;
+          } else if (field === "internalKey") {
+            delete input.tapMerkleRoot;
+            input.tapInternalKey = schnorr.getPublicKey(OTHER);
+          } else {
+            input.tapLeafScript![0][1][1] ^= 1;
+          }
+        },
+        version,
+      );
+      expect(() => parseAndValidateSignedPsbt(invalid, invalid)).toThrow();
+    }
+    const leavesOnly = mutate(
+      complete,
+      (raw) => {
+        delete raw.inputs[0].tapMerkleRoot;
+      },
+      version,
+    );
+    expect(
+      parseAndValidateSignedPsbt(leavesOnly, leavesOnly).signed.getInput(0)
+        .tapLeafScript,
+    ).toEqual(payment.tapLeafScript);
+  });
+
+  it("validates wrapped script commitments independently of transaction binding", () => {
+    for (const payment of [btc.p2sh(PAY), btc.p2wsh(btc.p2ms(1, [PUB]))]) {
+      const tx = txFor(payment.script, 1, version);
+      const field = payment.type === "sh" ? "redeemScript" : "witnessScript";
+      tx.updateInput(
+        0,
+        payment.type === "sh"
+          ? { redeemScript: payment.redeemScript }
+          : { witnessScript: payment.witnessScript },
+      );
+      const invalid = mutate(
+        hex(tx),
+        (raw) => {
+          raw.inputs[0][field]![0] ^= 1;
+        },
+        version,
+      );
+      expect(() => parseAndValidateSignedPsbt(invalid, invalid)).toThrow(
+        /wrong.*hash/,
+      );
+    }
+  });
+
+  it("checks nonWitnessUtxo txids and redundant prevouts on bare inputs", () => {
+    const tx = singleKeyTx(btc.p2pk(PUB));
+    const before = ccc.hexFrom(tx.toPSBT(version));
+    const wrongTxid = mutate(
+      before,
+      (raw) => {
+        if (version === 0) {
+          raw.global.unsignedTx!.inputs[0].txid[0] ^= 1;
+        } else {
+          raw.inputs[0].txid![0] ^= 1;
+        }
+      },
+      version,
+    );
+    expect(() => parseAndValidateSignedPsbt(wrongTxid, wrongTxid)).toThrow(
+      /wrong txid/,
+    );
+    const wrongAmount = mutate(
+      before,
+      (raw) => {
+        raw.inputs[0].witnessUtxo = {
+          script: btc.p2pk(PUB).script,
+          amount: 1n,
+        };
+      },
+      version,
+    );
+    expect(() => parseAndValidateSignedPsbt(wrongAmount, wrongAmount)).toThrow(
+      /different from nonWitnessUtxo/,
+    );
+  });
+});
