@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { ClientPublicTestnet } from "../../client/index.js";
+import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 import { verifyMessageJoyId } from "./verifyJoyId.js";
 
 // Signatures of "Sign this for me" from joyid-sdk-js packages/ckb/fixtures,
 // with signature and message in base64url as the JoyID popup returns them.
+// Source: nervina-labs/joyid-sdk-js@5f25794006dca5276f6b1f287aa81b460bd9af78.
+// These are text fixtures; they do not establish binary/isData compatibility.
 const FIXTURES = [
   {
     name: "r1_mainkey",
@@ -107,6 +111,9 @@ const FIXTURES = [
 ];
 
 const MESSAGE = "Sign this for me";
+const SESSION_FIXTURES = FIXTURES.filter((f) =>
+  f.keyType.endsWith("_session_key"),
+);
 
 function identity(fixture: (typeof FIXTURES)[number]): string {
   return JSON.stringify({
@@ -128,6 +135,41 @@ function fixture(name: string): (typeof FIXTURES)[number] {
     throw new Error(`No fixture ${name}`);
   }
   return found;
+}
+
+// Exercise the inherited verification boundary without a wallet or RPC access.
+class FixtureSigner extends Signer {
+  constructor(private readonly trustedIdentity: string) {
+    super(
+      ClientPublicTestnet.new({
+        transport: {
+          request: async () => {
+            throw new Error("Unexpected RPC request");
+          },
+        },
+      }),
+    );
+  }
+
+  get type() {
+    return SignerType.CKB;
+  }
+  get signType() {
+    return SignerSignType.JoyId;
+  }
+  async getIdentity() {
+    return this.trustedIdentity;
+  }
+  async connect() {}
+  async isConnected() {
+    return true;
+  }
+  async getInternalAddress(): Promise<never> {
+    throw new Error("Unexpected address request");
+  }
+  async getAddressObjs(): Promise<never> {
+    throw new Error("Unexpected address request");
+  }
 }
 
 describe("verifyMessageJoyId", () => {
@@ -159,18 +201,40 @@ describe("verifyMessageJoyId", () => {
     ).toBe(false);
   });
 
-  it("rejects a key of another type for another message", async () => {
-    const f = fixture("rsa_main_session_key");
-    const other = JSON.stringify({ keyType: "other", publicKey: f.publicKey });
+  describe.each(
+    [
+      "other",
+      "MAIN_KEY",
+      "main_session_key ",
+      "",
+      null,
+      undefined,
+      0,
+      false,
+      ["main_session_key"],
+      {},
+    ].map((keyType) => ({
+      keyType,
+      label: JSON.stringify(keyType) ?? "missing",
+    })),
+  )("unsupported key type $label", ({ keyType }) => {
+    it.each(FIXTURES)(
+      "rejects $name even for the signed message",
+      async (f) => {
+        const unsupported = JSON.stringify({
+          keyType,
+          publicKey: f.publicKey,
+        });
+        const signature = withFields(f.signature, { keyType: f.keyType });
 
-    expect(await verifyMessageJoyId(MESSAGE, f.signature, other)).toBe(true);
-    expect(
-      await verifyMessageJoyId("Another message", f.signature, other),
-    ).toBe(false);
+        expect(await verifyMessageJoyId(MESSAGE, signature, unsupported)).toBe(
+          false,
+        );
+      },
+    );
   });
 
-  it("ignores a challenge in the signature", async () => {
-    const f = fixture("r1_mainkey");
+  it.each(FIXTURES)("ignores a challenge in the $name signature", async (f) => {
     const signature = withFields(f.signature, { challenge: MESSAGE });
 
     expect(
@@ -178,12 +242,124 @@ describe("verifyMessageJoyId", () => {
     ).toBe(false);
   });
 
-  it("reads the algorithm from the public key", async () => {
-    const f = fixture("r1_mainkey");
-    const signature = withFields(f.signature, { alg: -257 });
+  it.each(FIXTURES)(
+    "reads the $name algorithm from the public key",
+    async (f) => {
+      for (const alg of [-7, -257, 0, null, undefined]) {
+        const signature = withFields(f.signature, { alg });
 
-    expect(await verifyMessageJoyId(MESSAGE, signature, identity(f))).toBe(
-      true,
-    );
+        expect(await verifyMessageJoyId(MESSAGE, signature, identity(f))).toBe(
+          true,
+        );
+      }
+    },
+  );
+
+  it.each(FIXTURES)(
+    "ignores identity fields in the $name response",
+    async (f) => {
+      const signature = withFields(f.signature, {
+        pubkey: "00".repeat(64),
+        publicKey: "00".repeat(64),
+        keyType: "other",
+        challenge: "Another message",
+      });
+
+      expect(await verifyMessageJoyId(MESSAGE, signature, identity(f))).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each(FIXTURES)("rejects $name with a different trusted key", async (f) => {
+    const other = FIXTURES.find(
+      (candidate) =>
+        candidate.publicKey !== f.publicKey &&
+        candidate.publicKey.length === f.publicKey.length,
+    )!;
+    const signature = withFields(f.signature, { pubkey: f.publicKey });
+
+    expect(
+      await verifyMessageJoyId(
+        MESSAGE,
+        signature,
+        JSON.stringify({ keyType: f.keyType, publicKey: other.publicKey }),
+      ),
+    ).toBe(false);
   });
+
+  it.each(SESSION_FIXTURES)(
+    "binds $name to the caller's challenge despite a replaced response message",
+    async (f) => {
+      const signature = withFields(f.signature, { message: "AA" });
+
+      expect(await verifyMessageJoyId(MESSAGE, signature, identity(f))).toBe(
+        true,
+      );
+      expect(
+        await verifyMessageJoyId("Another message", signature, identity(f)),
+      ).toBe(false);
+    },
+  );
+
+  it.each(SESSION_FIXTURES)(
+    "does not let $name select session verification for a trusted passkey type",
+    async (f) => {
+      for (const keyType of ["main_key", "sub_key"]) {
+        const signature = withFields(f.signature, { keyType: f.keyType });
+
+        expect(
+          await verifyMessageJoyId(
+            MESSAGE,
+            signature,
+            JSON.stringify({ keyType, publicKey: f.publicKey }),
+          ),
+        ).toBe(false);
+      }
+    },
+  );
+
+  it.each(FIXTURES)(
+    "preserves caller binding through Signer for $name",
+    async (f) => {
+      const signature = {
+        signType: SignerSignType.JoyId,
+        identity: identity(f),
+        signature: withFields(f.signature, { challenge: MESSAGE }),
+      };
+
+      expect(await Signer.verifyMessage(MESSAGE, signature)).toBe(true);
+      expect(await Signer.verifyMessage("Another message", signature)).toBe(
+        false,
+      );
+    },
+  );
+
+  it.each(FIXTURES)(
+    "uses the signer's trusted identity for $name",
+    async (f) => {
+      const signer = new FixtureSigner(identity(f));
+      const other = FIXTURES.find(
+        (candidate) => candidate.publicKey !== f.publicKey,
+      )!;
+      const injected = withFields(other.signature, {
+        pubkey: other.publicKey,
+        keyType: other.keyType,
+        challenge: MESSAGE,
+      });
+
+      expect(await signer.verifyMessage(MESSAGE, f.signature)).toBe(true);
+      expect(await signer.verifyMessage(MESSAGE, injected)).toBe(false);
+      expect(
+        await signer.verifyMessage(MESSAGE, {
+          signType: SignerSignType.JoyId,
+          identity: identity(other),
+          signature: other.signature,
+        }),
+      ).toBe(false);
+      expect(await signer.verifyMessage("Another message", f.signature)).toBe(
+        false,
+      );
+    },
+  );
 });
