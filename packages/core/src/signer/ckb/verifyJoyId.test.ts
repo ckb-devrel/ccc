@@ -1,4 +1,13 @@
+import { p256 } from "@noble/curves/nist.js";
+import {
+  createHash,
+  createPublicKey,
+  generateKeyPairSync,
+  sign,
+  verify,
+} from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { bytesFrom } from "../../bytes/index.js";
 import { ClientPublicTestnet } from "../../client/index.js";
 import { Signer, SignerSignType, SignerType } from "../signer/index.js";
 import { verifyMessageJoyId } from "./verifyJoyId.js";
@@ -114,6 +123,85 @@ const MESSAGE = "Sign this for me";
 const SESSION_FIXTURES = FIXTURES.filter((f) =>
   f.keyType.endsWith("_session_key"),
 );
+
+const BINARY_MESSAGE = Uint8Array.from([0, 1, 2, 0x7f, 0x80, 0xfe, 0xff]);
+// Real testnet main_key capture supplied in this private task on 2026-10-17.
+// This is evidence for main_key only, not sub_key or either session key type.
+const BINARY_FIXTURE = {
+  name: "testnet_binary_main_key",
+  keyType: "main_key",
+  publicKey:
+    "a4a1ce0ccecd6816fa646d46ec15d7f5cc19e3ffbf878707ba9c865d58b05b41403a4217b61d796f266eb331e1b5bf4b522b20cb2ecb5341b8af4305a3772dc2",
+  signature: JSON.stringify({
+    signature:
+      "MEUCIQDvyZQTVF3xqUtpLlYXsCyM_WzkyG8-bCUHlQgH3oiyTQIgOtIjpFd85rXgWwEamVWg5snpCKBzTKftDMU2OlSi1sE",
+    alg: -7,
+    message:
+      "K4sF4fAwPvuJj-TW3mARmMenuGSrvmohxzsueH4YfFIdAAAAAHsidHlwZSI6IndlYmF1dGhuLmdldCIsImNoYWxsZW5nZSI6IkFBRUNmNEQtX3ciLCJvcmlnaW4iOiJodHRwczovL3Rlc3RuZXQuam95aWQuZGV2IiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ",
+  }),
+};
+
+// Real testnet sub_key capture supplied on 2026-10-19 via @ckb-ccc/playground:
+// signer.getIdentity() and signer.signMessage(Uint8Array.from(BINARY_MESSAGE)).
+const BINARY_SUBKEY_FIXTURE = {
+  name: "testnet_binary_sub_key",
+  keyType: "sub_key",
+  publicKey:
+    "8e57e63781adb052ba7cc93a98b697102b74f11f268cb413eb731cb478b2d2deb367eb4d11c04a8e976475c2b165d9733206d70b518fbf43b4fa37de1f797b6e",
+  signature: JSON.stringify({
+    signature:
+      "MEUCIQD04g6l_8IxlR8j624TOQn3e8ldwR0wBqvOtUrXUDuukgIgD6f58Dhj8svDP4_d9MQifdrtPOGM9TiumJ_EAdJr-F8",
+    alg: -7,
+    message:
+      "K4sF4fAwPvuJj-TW3mARmMenuGSrvmohxzsueH4YfFIdAAAAAHsidHlwZSI6IndlYmF1dGhuLmdldCIsImNoYWxsZW5nZSI6IkFBRUNmNEQtX3ciLCJvcmlnaW4iOiJodHRwczovL3Rlc3RuZXQuam95aWQuZGV2IiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ",
+  }),
+};
+
+// Synthetic WebAuthn packets exercise both algorithms and passkey dispatch.
+// They are unit tests, not captures or evidence of sub_key wallet compatibility.
+function syntheticBinaryPasskey(
+  rsa: boolean,
+  message: string | Uint8Array = BINARY_MESSAGE,
+): (typeof FIXTURES)[number] {
+  const pair = rsa
+    ? generateKeyPairSync("rsa", { modulusLength: 2048 })
+    : generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  const jwk = pair.publicKey.export({ format: "jwk" });
+  const publicKey = rsa
+    ? Buffer.concat([
+        Buffer.from(jwk.e!, "base64url").reverse(),
+        Buffer.alloc(1),
+        Buffer.from(jwk.n!, "base64url").reverse(),
+      ]).toString("hex")
+    : Buffer.concat([
+        Buffer.from(jwk.x!, "base64url"),
+        Buffer.from(jwk.y!, "base64url"),
+      ]).toString("hex");
+  const clientData = Buffer.from(
+    JSON.stringify({
+      type: "webauthn.get",
+      challenge: Buffer.from(message).toString("base64url"),
+      origin: "https://synthetic.test",
+    }),
+  );
+  const authData = Buffer.alloc(37);
+  const signatureBase = Buffer.concat([
+    authData,
+    createHash("sha256").update(clientData).digest(),
+  ]);
+  return {
+    name: rsa ? "synthetic_RSA" : "synthetic_P256",
+    keyType: "main_key",
+    publicKey,
+    signature: JSON.stringify({
+      signature: sign("sha256", signatureBase, pair.privateKey).toString(
+        "base64url",
+      ),
+      message: Buffer.concat([authData, clientData]).toString("base64url"),
+      alg: rsa ? -257 : -7,
+    }),
+  };
+}
 
 function identity(fixture: (typeof FIXTURES)[number]): string {
   return JSON.stringify({
@@ -360,6 +448,337 @@ describe("verifyMessageJoyId", () => {
       expect(await signer.verifyMessage("Another message", f.signature)).toBe(
         false,
       );
+    },
+  );
+});
+
+const BINARY_FIXTURES = [BINARY_FIXTURE, BINARY_SUBKEY_FIXTURE];
+
+describe.each(BINARY_FIXTURES)("binary passkeys: $name", (f) => {
+  it("independently verifies the captured signature and raw challenge", () => {
+    const data = JSON.parse(f.signature) as {
+      signature: string;
+      message: string;
+    };
+    const payload = Buffer.from(data.message, "base64url");
+    const clientData = payload.subarray(37);
+    expect(JSON.parse(clientData.toString())).toMatchObject({
+      challenge: Buffer.from(BINARY_MESSAGE).toString("base64url"),
+    });
+    const publicKey = createPublicKey({
+      format: "jwk",
+      key: {
+        kty: "EC",
+        crv: "P-256",
+        x: Buffer.from(f.publicKey.slice(0, 64), "hex").toString("base64url"),
+        y: Buffer.from(f.publicKey.slice(64), "hex").toString("base64url"),
+      },
+    });
+    expect(
+      verify(
+        "sha256",
+        Buffer.concat([
+          payload.subarray(0, 37),
+          createHash("sha256").update(clientData).digest(),
+        ]),
+        publicKey,
+        Buffer.from(data.signature, "base64url"),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    { name: "Uint8Array", input: BINARY_MESSAGE },
+    { name: "ArrayBuffer", input: BINARY_MESSAGE.slice().buffer },
+    { name: "number array", input: Array.from(BINARY_MESSAGE) },
+  ])("accepts the captured signature for $name", async ({ input }) => {
+    expect(await verifyMessageJoyId(input, f.signature, identity(f))).toBe(
+      true,
+    );
+  });
+
+  it.each([
+    {
+      name: "changed byte",
+      input: Uint8Array.from([0, 1, 2, 0x7f, 0x80, 0xfe, 0]),
+    },
+    { name: "prefix", input: BINARY_MESSAGE.slice(0, -1) },
+    { name: "empty", input: new Uint8Array() },
+  ])(
+    "rejects a $name challenge despite response overrides",
+    async ({ input }) => {
+      const signature = withFields(f.signature, {
+        challenge: "0001027f80feff",
+        isData: true,
+      });
+      expect(await verifyMessageJoyId(input, signature, identity(f))).toBe(
+        false,
+      );
+    },
+  );
+
+  it.each(["0001027f80feff", "0x0001027f80feff"])(
+    "treats %s as text rather than binary",
+    async (message) => {
+      expect(await verifyMessageJoyId(message, f.signature, identity(f))).toBe(
+        false,
+      );
+    },
+  );
+
+  it("rejects a damaged captured signature", async () => {
+    const data = JSON.parse(f.signature) as { signature: string };
+    const damaged = Buffer.from(data.signature, "base64url");
+    damaged[damaged.length - 1] ^= 1;
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        withFields(f.signature, {
+          signature: damaged.toString("base64url"),
+        }),
+        identity(f),
+      ),
+    ).toBe(false);
+  });
+
+  it("accepts a high-S equivalent DER signature (derived, not a new capture)", async () => {
+    const data = JSON.parse(f.signature) as { signature: string };
+    const parsed = p256.Signature.fromBytes(
+      Buffer.from(data.signature, "base64url"),
+      "der",
+    );
+    const highS = new p256.Signature(
+      parsed.r,
+      parsed.hasHighS() ? parsed.s : p256.Point.Fn.ORDER - parsed.s,
+    );
+    expect(highS.hasHighS()).toBe(true);
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        withFields(f.signature, {
+          signature: Buffer.from(highS.toBytes("der")).toString("base64url"),
+        }),
+        identity(f),
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores response-owned identity and algorithm fields", async () => {
+    const signature = withFields(f.signature, {
+      keyType: "other",
+      pubkey: "00".repeat(64),
+      publicKey: "00".repeat(64),
+      challenge: "Different challenge",
+      alg: -257,
+      isData: false,
+    });
+    expect(
+      await verifyMessageJoyId(BINARY_MESSAGE, signature, identity(f)),
+    ).toBe(true);
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        withFields(f.signature, {
+          pubkey: f.publicKey,
+        }),
+        JSON.stringify({
+          publicKey: fixture("r1_mainkey").publicKey,
+          keyType: f.keyType,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it.each(
+    ["other", "", null, undefined, 0, false, ["main_key"], {}].map(
+      (keyType) => ({ keyType }),
+    ),
+  )("rejects unsupported binary key type $keyType", async ({ keyType }) => {
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        withFields(f.signature, {
+          keyType: f.keyType,
+        }),
+        JSON.stringify({ publicKey: f.publicKey, keyType }),
+      ),
+    ).toBe(false);
+  });
+
+  it.each([0, 32, 50])(
+    "rejects tampering with signed payload byte %i",
+    async (offset) => {
+      const data = JSON.parse(f.signature) as { message: string };
+      const payload = Buffer.from(data.message, "base64url");
+      payload[offset] ^= 1;
+      expect(
+        await verifyMessageJoyId(
+          BINARY_MESSAGE,
+          withFields(f.signature, {
+            message: payload.toString("base64url"),
+          }),
+          identity(f),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it("rejects a rewritten clientData challenge even when it matches the caller", async () => {
+    const data = JSON.parse(f.signature) as { message: string };
+    const payload = Buffer.from(data.message, "base64url");
+    const changed = Uint8Array.from([9, 8, 7]);
+    const clientData = JSON.parse(payload.subarray(37).toString()) as {
+      challenge: string;
+    };
+    clientData.challenge = Buffer.from(changed).toString("base64url");
+    const signature = withFields(f.signature, {
+      message: Buffer.concat([
+        payload.subarray(0, 37),
+        Buffer.from(JSON.stringify(clientData)),
+      ]).toString("base64url"),
+    });
+    expect(await verifyMessageJoyId(changed, signature, identity(f))).toBe(
+      false,
+    );
+  });
+
+  it.each([
+    "AA",
+    "!",
+    Buffer.concat([Buffer.alloc(37), Buffer.from("not JSON")]).toString(
+      "base64url",
+    ),
+  ])("rejects malformed binary payload %s", async (message) => {
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        withFields(f.signature, { message }),
+        identity(f),
+      ),
+    ).toBe(false);
+  });
+
+  it("uses the captured binary signature through both Signer entry points", async () => {
+    const signature = {
+      signType: SignerSignType.JoyId,
+      signature: f.signature,
+      identity: identity(f),
+    };
+    const signer = new FixtureSigner(identity(f));
+    const changedMessage = BINARY_MESSAGE.slice();
+    changedMessage[changedMessage.length - 1] ^= 1;
+    const wrongIdentity = JSON.stringify({
+      keyType: f.keyType,
+      publicKey: fixture("r1_mainkey").publicKey,
+    });
+    expect(await Signer.verifyMessage(BINARY_MESSAGE, signature)).toBe(true);
+    expect(await Signer.verifyMessage(changedMessage, signature)).toBe(false);
+    expect(
+      await Signer.verifyMessage(BINARY_MESSAGE, {
+        ...signature,
+        identity: wrongIdentity,
+      }),
+    ).toBe(false);
+    for (const response of [f.signature, signature]) {
+      expect(await signer.verifyMessage(BINARY_MESSAGE, response)).toBe(true);
+      expect(await signer.verifyMessage(changedMessage, response)).toBe(false);
+      expect(
+        await new FixtureSigner(wrongIdentity).verifyMessage(
+          BINARY_MESSAGE,
+          response,
+        ),
+      ).toBe(false);
+    }
+  });
+});
+
+describe("verifyMessageJoyId binary passkey compatibility", () => {
+  it("verifies a synthetic hex-looking text challenge as text", async () => {
+    const text = "0001027f80feff";
+    const synthetic = syntheticBinaryPasskey(false, text);
+    expect(
+      await verifyMessageJoyId(text, synthetic.signature, identity(synthetic)),
+    ).toBe(true);
+    expect(
+      await verifyMessageJoyId(
+        BINARY_MESSAGE,
+        synthetic.signature,
+        identity(synthetic),
+      ),
+    ).toBe(false);
+  });
+
+  it.each(
+    FIXTURES.filter(
+      (item) => item.keyType === "main_key" || item.keyType === "sub_key",
+    ),
+  )(
+    "verifies the unchanged text fixture $name against identical byte content",
+    async (item) => {
+      expect(
+        await verifyMessageJoyId(
+          bytesFrom(MESSAGE, "utf8"),
+          item.signature,
+          identity(item),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it.each([false, true])(
+    "verifies synthetic binary passkeys (RSA=%s)",
+    async (rsa) => {
+      const synthetic = syntheticBinaryPasskey(rsa);
+      const data = JSON.parse(synthetic.signature) as {
+        signature: string;
+        message: string;
+      };
+      const damagedSignature = Buffer.from(data.signature, "base64url");
+      damagedSignature[damagedSignature.length - 1] ^= 1;
+      const damagedPayload = Buffer.from(data.message, "base64url");
+      damagedPayload[0] ^= 1;
+      for (const keyType of ["main_key", "sub_key"]) {
+        const trusted = identity({ ...synthetic, keyType });
+        expect(
+          await verifyMessageJoyId(
+            BINARY_MESSAGE,
+            withFields(synthetic.signature, { alg: rsa ? -7 : -257 }),
+            trusted,
+          ),
+        ).toBe(true);
+        expect(
+          await verifyMessageJoyId(
+            BINARY_MESSAGE,
+            withFields(synthetic.signature, {
+              signature: damagedSignature.toString("base64url"),
+            }),
+            trusted,
+          ),
+        ).toBe(false);
+        expect(
+          await verifyMessageJoyId(
+            BINARY_MESSAGE,
+            withFields(synthetic.signature, {
+              message: damagedPayload.toString("base64url"),
+            }),
+            trusted,
+          ),
+        ).toBe(false);
+        expect(
+          await verifyMessageJoyId(
+            BINARY_MESSAGE.slice(1),
+            synthetic.signature,
+            trusted,
+          ),
+        ).toBe(false);
+        expect(
+          await verifyMessageJoyId(
+            "0001027f80feff",
+            synthetic.signature,
+            trusted,
+          ),
+        ).toBe(false);
+      }
     },
   );
 });
