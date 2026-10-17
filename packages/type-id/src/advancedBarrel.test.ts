@@ -174,6 +174,43 @@ describe("type-id", () => {
       expect(addCellDeps).toHaveBeenCalled();
       expect(tx.cellDeps).toContainEqual(customDep);
     });
+
+    it("should encode zero when transferring with a custom codec", async () => {
+      const { transfer } = buildTypeIdOperations({
+        getScriptInfo: async () => ({
+          ...typeIdScript,
+          cellDeps: [{ cellDep: typeIdCellDep }],
+        }),
+        codec: ccc.mol.Uint64,
+      });
+      const id = "0x" + "3".repeat(64);
+      const receiver = ccc.Script.from({
+        codeHash: "0x" + "0".repeat(64),
+        hashType: "type",
+        args: "0xabcd",
+      });
+      const existingCell = ccc.Cell.from({
+        outPoint: { txHash: "0x" + "4".repeat(64), index: 0 },
+        cellOutput: {
+          capacity: ccc.fixedPointFrom(2000),
+          lock: receiver,
+          type: ccc.Script.from({ ...typeIdScript, args: id }),
+        },
+        outputData: ccc.mol.Uint64.encode(5),
+      });
+      (client.findSingletonCellByType as Mock).mockResolvedValue(existingCell);
+
+      const { tx, outIndex } = await transfer({
+        client,
+        id,
+        receiver,
+        data: 0,
+      });
+
+      expect(tx.outputsData[outIndex]).toBe(
+        ccc.hexFrom(ccc.mol.Uint64.encode(0)),
+      );
+    });
   });
 
   describe("Type ID Operations", () => {
@@ -383,6 +420,36 @@ describe("type-id", () => {
         });
 
         expect(tx.outputsData[outIndex]).toBe("0x123456");
+      });
+
+      it("should clear data when transferring with an empty string", async () => {
+        const id = "0x" + "3".repeat(64);
+        const receiver = ccc.Script.from({
+          codeHash: "0x" + "0".repeat(64),
+          hashType: "type",
+          args: "0xabcd",
+        });
+        const existingCell = ccc.Cell.from({
+          outPoint: { txHash: "0x" + "4".repeat(64), index: 0 },
+          cellOutput: {
+            capacity: ccc.fixedPointFrom(2000),
+            lock: receiver,
+            type: ccc.Script.from({ ...typeIdScript, args: id }),
+          },
+          outputData: "0x123456",
+        });
+        (client.findSingletonCellByType as Mock).mockResolvedValue(
+          existingCell,
+        );
+
+        const { tx, outIndex } = await transfer({
+          client,
+          id,
+          receiver,
+          data: "",
+        });
+
+        expect(tx.outputsData[outIndex]).toBe("0x");
       });
 
       it("should transfer type id cell with data transformer", async () => {

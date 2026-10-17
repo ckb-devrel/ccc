@@ -34,13 +34,3 @@
   fill: currentColor;
   stroke: none;
 }
-
-@media (max-width: 680px) {
-  .root {
-    gap: 1px;
-  }
-
-  .link {
-    width: 25px;
-  }
-}

@@ -2,8 +2,13 @@ import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { FeeRateSelectedEvent } from "../events/internal.js";
+import { I18n } from "../i18n/index.js";
+
+/** Stable identifier used for selection logic; never compare on `label`. */
+export type FeeRateOptionId = "auto" | "economy";
 
 type FeeRateOption = {
+  id: FeeRateOptionId;
   description: string;
   feeRate?: ccc.Num;
   label: string;
@@ -21,6 +26,9 @@ export class FeeRateScene extends LitElement {
 
   @property({ attribute: false })
   public feeRate?: ccc.NumLike;
+
+  @property({ attribute: false })
+  public i18n = new I18n();
 
   @state()
   private recommendedFeeRate?: ccc.Num;
@@ -67,22 +75,27 @@ export class FeeRateScene extends LitElement {
   }
 
   private get options(): FeeRateOption[] {
+    const { t } = this;
     return [
       {
-        label: "Economy",
-        description: "Lower cost, confirmation may take longer",
+        id: "economy",
+        label: t("feeRateEconomy"),
+        description: t("feeRateEconomyHint"),
         feeRate: MIN_FEE_RATE,
       },
       {
-        label: "Auto",
+        id: "auto",
+        label: t("feeRateAuto"),
         description:
           this.recommendedFeeRate == null
-            ? "Loading network fee rate..."
-            : "Based on recent network activity",
+            ? t("feeRateLoading")
+            : t("feeRateAutoHint"),
         feeRate: this.recommendedFeeRate,
       },
     ];
   }
+
+  private t: I18n["t"] = (key, vars) => this.i18n.t(key, vars);
 
   private selectCustomFeeRate(value: string) {
     this.customFeeRate = value;
@@ -113,34 +126,35 @@ export class FeeRateScene extends LitElement {
     );
   }
 
-  private get selectedOption(): "Auto" | "Economy" | undefined {
+  private get selectedOptionId(): FeeRateOptionId | undefined {
     if (this.feeRate == null) {
-      return "Auto";
+      return "auto";
     }
-    return ccc.numFrom(this.feeRate) === MIN_FEE_RATE ? "Economy" : undefined;
+    return ccc.numFrom(this.feeRate) === MIN_FEE_RATE ? "economy" : undefined;
   }
 
-  private selectOption(label: string, feeRate: ccc.Num) {
+  private selectOption(id: FeeRateOptionId, feeRate: ccc.Num) {
     this.customFeeRate = feeRate.toString();
     this.dispatchEvent(
-      new FeeRateSelectedEvent(label === "Auto" ? undefined : feeRate),
+      new FeeRateSelectedEvent(id === "auto" ? undefined : feeRate),
     );
   }
 
   render() {
+    const { t } = this;
     return html`
-      <p class="tip">Fee rate is measured in shannons per 1,000 bytes.</p>
+      <p class="tip">${t("feeRateHint")}</p>
 
       <div class="options">
         ${this.options.map(
-          ({ description, feeRate, label }) => html`
+          ({ id, description, feeRate, label }) => html`
             <ccc-button
               class="fee-rate-option"
-              ?selected=${this.selectedOption === label}
+              ?selected=${this.selectedOptionId === id}
               ?disabled=${feeRate == null}
               @click=${() => {
                 if (feeRate != null) {
-                  this.selectOption(label, feeRate);
+                  this.selectOption(id, feeRate);
                 }
               }}
             >
@@ -156,10 +170,10 @@ export class FeeRateScene extends LitElement {
           <ccc-button
             as="div"
             class="fee-rate-option"
-            ?selected=${this.selectedOption == null}
+            ?selected=${this.selectedOptionId == null}
           >
             <span>
-              <strong>Custom</strong>
+              <strong>${t("feeRateCustom")}</strong>
               <small>
                 ${MIN_FEE_RATE.toString()}–${MAX_FEE_RATE.toString()}
               </small>
@@ -168,7 +182,7 @@ export class FeeRateScene extends LitElement {
               class="fee-rate-input"
               inputmode="numeric"
               type="text"
-              placeholder="shannons/KB"
+              placeholder=${t("feeRateUnit")}
               .value=${this.customFeeRate}
               @focus=${() => this.selectCustomMode()}
               @input=${(event: InputEvent) =>

@@ -47,7 +47,12 @@ export class ClientPublicMainnet extends ClientJsonRpc {
     super(resolved.url, resolved);
   }
 
-  /** Creates a Client that borrows an existing Transport. */
+  /**
+   * Creates a Client that borrows an existing Transport.
+   *
+   * For WebSocket, reuse one client instead of sharing a transport across clients.
+   * See {@link RequestorJsonRpc.new} for details.
+   */
   static new(
     config: Omit<Parameters<typeof RequestorJsonRpc.new>[0], "onError"> &
       ClientConfig,

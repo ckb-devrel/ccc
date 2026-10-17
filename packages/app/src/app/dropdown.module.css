@@ -1,0 +1,140 @@
+/* Shares the visual language of the activity console: monospace uppercase
+   labels, hairline borders, gridded dark panel and the mechanical easing. */
+
+.root {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: transparent;
+  font:
+    700 10px/1 "Courier New",
+    monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.trigger:hover,
+.trigger:focus-visible,
+.isOpen .trigger {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.trigger:focus-visible {
+  outline: none;
+}
+
+.trigger svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  stroke-width: 2;
+}
+
+.chevron {
+  transition: transform 300ms var(--easing-mechanical);
+}
+
+.isOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: max(100%, 180px);
+  margin: 0;
+  padding: 6px 0;
+  border: 1px solid var(--line-dark);
+  background-color: rgb(17 24 28 / 98%);
+  background-image:
+    linear-gradient(90deg, rgb(230 238 242 / 2%) 1px, transparent 1px),
+    linear-gradient(rgb(230 238 242 / 2%) 1px, transparent 1px);
+  background-position: center;
+  background-size: 18px 18px;
+  list-style: none;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition:
+    opacity 160ms ease,
+    transform 300ms var(--easing-mechanical);
+}
+
+.menu.alignStart {
+  right: auto;
+  left: 0;
+}
+
+.isOpen .menu {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.option {
+  display: grid;
+  min-height: 32px;
+  align-items: center;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 7px 14px 7px 12px;
+  border-left: 2px solid transparent;
+  color: var(--ink);
+  font:
+    400 11px/1.45 "Courier New",
+    monospace;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option.isActive {
+  background: rgb(230 238 242 / 3%);
+}
+
+.option.isSelected {
+  border-left-color: var(--signal);
+}
+
+.check {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  color: var(--signal);
+}
+
+.check svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 2.5;
+}
+
+.optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optionHint {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

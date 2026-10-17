@@ -71,6 +71,7 @@ export function Provider({
   signersController,
   defaultClient,
   clientOptions,
+  locale,
 }: {
   children: ReactNode;
   connectorProps?: HTMLAttributes<{}>;
@@ -86,6 +87,11 @@ export function Provider({
   signersController?: ccc.SignersController;
   defaultClient?: ccc.Client;
   clientOptions?: { icon?: string; client: ccc.Client; name: string }[];
+  /**
+   * Language of the connector UI, one of `ccc.connectorLocales`, e.g.
+   * `"zh-Hans"`. Defaults to `"en"`. Map app languages to it yourself.
+   */
+  locale?: ccc.ConnectorLocale;
 }) {
   const [ref, setRef] = useState<ccc.WebComponentConnector | null>(null);
   const connectionOwner = useRef<
@@ -195,6 +201,7 @@ export function Provider({
         onClose={close}
         onConnection={onConnection}
         clientOptions={clientOptions}
+        locale={locale}
         {...{
           ...connectorProps,
           style: {

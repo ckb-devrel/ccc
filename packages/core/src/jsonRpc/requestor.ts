@@ -87,7 +87,14 @@ export class RequestorJsonRpc {
     }
   }
 
-  /** Creates a Requestor that borrows an existing Transport. */
+  /**
+   * Creates a Requestor that borrows an existing Transport.
+   * The caller manages the transport's lifecycle.
+   *
+   * Do not share a WebSocket transport across requestors: request IDs can collide,
+   * mixing up responses or leaving requests unresolved. Reuse one requestor, or
+   * create separate transports with {@link RequestorJsonRpc.open}.
+   */
   static new({
     transport,
     maxConcurrent,
