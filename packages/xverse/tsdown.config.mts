@@ -15,7 +15,18 @@ const entry = {
   advancedBarrel: "src/advancedBarrel.ts",
 } as const;
 
-const bundleDeps: string[] = [];
+// Inline the private PSBT boundary and ESM dependencies in both formats.
+const bundleDeps: string[] = [
+  "@ckb-ccc/btc-psbt",
+  "@scure/btc-signer",
+  "@scure/btc-signer/*",
+  "@scure/base",
+  "micro-packed",
+  "@noble/curves",
+  "@noble/curves/*",
+  "@noble/hashes",
+  "@noble/hashes/*",
+];
 
 export default defineConfig(
   (
@@ -23,7 +34,8 @@ export default defineConfig(
       {
         entry,
         deps: {
-          onlyBundle: [] as string[],
+          alwaysBundle: bundleDeps,
+          onlyBundle: bundleDeps,
         },
         format: "esm",
         copy: "./misc/basedirs/dist/*",

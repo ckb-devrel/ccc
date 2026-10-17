@@ -5,7 +5,7 @@
   ],
   "scripts": {
     "test": "pnpm run -C packages/tests test && vitest",
-    "test:ci": "pnpm run -C packages/tests test && vitest run",
+    "test:ci": "pnpm run -C packages/tests test && vitest run && pnpm test:psbt:artifacts",
     "test:cov": "vitest run --coverage",
     "build:prepare": "pnpm -r --filter !./packages/tests --filter !./packages/app --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs --filter !. install",
     "build": "pnpm -r --filter !./packages/tests --filter !./packages/app --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs run build",
@@ -13,7 +13,8 @@
     "lint": "pnpm -r run lint",
     "format": "pnpm -r run format",
     "sync:config": "pnpm -r --filter !./packages/app --filter !./packages/faucet --filter !./packages/playground --filter !./packages/docs -c exec \"cp ../../config/* . && cp ../../config/.* .\"",
-    "docs": "typedoc"
+    "docs": "typedoc",
+    "test:psbt:artifacts": "node scripts/test-psbt-artifacts.mjs"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.0",
