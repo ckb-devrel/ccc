@@ -41,3 +41,40 @@ Check the [package documentation](https://docs.ckbccc.com/docs/packages/wallet-i
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
 </h3>
+
+## Bitcoin PSBT response validation
+
+`signPsbt` binds the wallet response to the requested transaction, input order,
+outputs, locktime, and previously supplied UTXO data. Actual ECDSA and Schnorr
+signature hash modes must match the input declaration and any caller allowlist
+for new or replaced signatures. These checks also run with `autoFinalized: false`.
+Other participants' unchanged signatures are not subject to the caller allowlist.
+Responses that remove an existing signature are rejected.
+Explicit non-default hash modes remain supported.
+
+Wallets must return an unfinalized PSBT. Existing, unchanged finalized inputs are
+preserved, but newly added or changed final scripts are rejected. Missing trusted
+UTXO/script/Taproot metadata is restored after transaction binding, with conflicts
+rejected. Omitted Taproot roots/leaves do not assert an empty tree. New key-path
+signatures, and signatures about to be finalized, are verified against the actual
+output key in the full transaction context. All committed prevouts are required,
+except unrelated prevouts excluded by `ANYONECANPAY`.
+
+Automatic finalization checks that a single-key ECDSA signature's public key
+matches the committed script, including P2SH/P2WSH wrappers.
+It supports ordinary payment scripts, wrapped multisig,
+Taproot key-path, and scure's `tr_ns`/`tr_ms` script templates. Unrelated bare
+P2PK/multisig inputs can be carried through while retaining commitment checks.
+Arbitrary CLTV/CSV or inscription scripts are not automatically solved. Use
+`autoFinalized: false` for partial/multiparty signing or application-managed
+finalization; `broadcastPsbt` remains unsupported.
+
+Both adapters bundle a shared private PSBT boundary using stock scure public APIs.
+It encapsulates compatibility for bare inputs and omitted Taproot tree metadata,
+validates all inputs before finalization and serialization, and never exposes an
+unchecked mutable transaction. ESM and CommonJS consumers receive the same checks.
+
+JoyID's default selection finalizes inputs with new or replaced signature bytes.
+It does not infer ownership from those bytes. An already present identical JoyID
+signature is not considered newly added; explicitly requesting that input still
+reports that JoyID did not add a signature.

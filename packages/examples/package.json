@@ -34,7 +34,8 @@
     "@ckb-ccc/ccc": "workspace:*",
     "@ckb-ccc/playground": "file:src/playground",
     "@noble/curves": "^2.2.0",
-    "@noble/hashes": "^2.2.0"
+    "@noble/hashes": "^2.2.0",
+    "@scure/btc-signer": "2.4.1"
   },
   "packageManager": "pnpm@11.8.0"
 }
