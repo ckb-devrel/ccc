@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/core";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
-import { networks, payments, Psbt } from "bitcoinjs-lib";
+import * as btc from "@scure/btc-signer";
 import { describe, expect, it, vi } from "vitest";
 import {
   AddressPurpose,
@@ -10,7 +10,9 @@ import {
 } from "./advancedBarrel.js";
 import { Signer } from "./signer.js";
 
-const NETWORK = networks.testnet;
+// Same options as the signers.
+const PSBT_OPTS: btc.TxOpts = { unknown: "ignore", disableScriptCheck: true };
+
 const CLIENT = ccc.ClientPublicTestnet.new({
   transport: {
     request: async () => {
@@ -22,47 +24,39 @@ const CLIENT = ccc.ClientPublicTestnet.new({
 function createKey(seed: number) {
   const privateKey = new Uint8Array(32).fill(seed);
   const publicKey = secp256k1.getPublicKey(privateKey, true);
-  const { address, output } = payments.p2wpkh({
-    pubkey: publicKey,
-    network: NETWORK,
-  });
-  return {
-    address: address!,
-    publicKey,
-    output: output!,
-    signer: {
-      publicKey,
-      sign: (hash: Uint8Array) => secp256k1.sign(hash, privateKey),
-    },
-  };
+  const { address, script } = btc.p2wpkh(publicKey, btc.TEST_NETWORK);
+  return { privateKey, publicKey, address, script };
 }
 
 const WALLET = createKey(1);
 const OTHER = createKey(2);
 
-function createPsbt(...inputs: { output: Uint8Array }[]): ccc.Hex {
-  const psbt = new Psbt({ network: NETWORK });
-  inputs.forEach(({ output }, i) => {
-    psbt.addInput({
-      hash: new Uint8Array(32).fill(i + 1),
+function createPsbt(...inputs: { script: Uint8Array }[]): ccc.Hex {
+  const tx = new btc.Transaction(PSBT_OPTS);
+  inputs.forEach(({ script }, i) => {
+    tx.addInput({
+      txid: new Uint8Array(32).fill(i + 1),
       index: 0,
-      witnessUtxo: { script: output, value: 10000n },
+      witnessUtxo: { script, amount: 10000n },
     });
   });
-  psbt.addOutput({ address: WALLET.address, value: 9000n });
-  return ccc.hexFrom(psbt.toBuffer());
+  tx.addOutputAddress(WALLET.address, 9000n, btc.TEST_NETWORK);
+  return ccc.hexFrom(tx.toPSBT());
 }
 
 function createSigner({ sign = true } = {}) {
   const signPsbt = vi.fn((params: SignPsbtParams) => {
-    const psbt = Psbt.fromBase64(params.psbt, { network: NETWORK });
+    const tx = btc.Transaction.fromPSBT(
+      ccc.bytesFrom(params.psbt, "base64"),
+      PSBT_OPTS,
+    );
     if (sign) {
       Object.entries(params.signInputs).forEach(([address, indexes]) => {
         expect(address).toBe(WALLET.address);
-        indexes.forEach((index) => psbt.signInput(index, WALLET.signer));
+        indexes.forEach((index) => tx.signIdx(WALLET.privateKey, index));
       });
     }
-    return { psbt: psbt.toBase64() };
+    return { psbt: ccc.bytesTo(tx.toPSBT(), "base64") };
   });
 
   const provider = {
@@ -94,8 +88,9 @@ function createSigner({ sign = true } = {}) {
   return { signer: new Signer(CLIENT, provider), signPsbt };
 }
 
-function parseSigned(signed: ccc.Hex) {
-  return Psbt.fromBuffer(ccc.bytesFrom(signed), { network: NETWORK });
+function inputsOf(signed: ccc.Hex) {
+  const tx = btc.Transaction.fromPSBT(ccc.bytesFrom(signed), PSBT_OPTS);
+  return Array.from({ length: tx.inputsLength }, (_, i) => tx.getInput(i));
 }
 
 describe("Signer.signPsbt", () => {
@@ -110,7 +105,7 @@ describe("Signer.signPsbt", () => {
         broadcast: false,
       }),
     );
-    const [input] = parseSigned(signed).data.inputs;
+    const [input] = inputsOf(signed);
     expect(input.finalScriptWitness).toBeDefined();
     expect(input.partialSig).toBeUndefined();
   });
@@ -122,7 +117,7 @@ describe("Signer.signPsbt", () => {
       autoFinalized: false,
     });
 
-    const [input] = parseSigned(signed).data.inputs;
+    const [input] = inputsOf(signed);
     expect(input.finalScriptWitness).toBeUndefined();
     expect(input.partialSig).toHaveLength(1);
   });
@@ -137,7 +132,7 @@ describe("Signer.signPsbt", () => {
     expect(signPsbt).toHaveBeenCalledWith(
       expect.objectContaining({ signInputs: { [WALLET.address]: [0] } }),
     );
-    const [mine, theirs] = parseSigned(signed).data.inputs;
+    const [mine, theirs] = inputsOf(signed);
     expect(mine.finalScriptWitness).toBeDefined();
     expect(theirs.finalScriptWitness).toBeUndefined();
     expect(theirs.partialSig).toBeUndefined();
@@ -148,6 +143,133 @@ describe("Signer.signPsbt", () => {
 
     await expect(signer.signPsbt(createPsbt(WALLET))).rejects.toThrow(
       "Use { autoFinalized: false }",
+    );
+  });
+
+  it("should finalize without UTXO info on other signers' inputs", async () => {
+    const { signer } = createSigner();
+    const tx = btc.Transaction.fromPSBT(
+      ccc.bytesFrom(createPsbt(WALLET)),
+      PSBT_OPTS,
+    );
+    tx.addInput({ txid: new Uint8Array(32).fill(9), index: 0 });
+
+    const signed = await signer.signPsbt(ccc.hexFrom(tx.toPSBT()), {
+      inputsToSign: [{ index: 0, address: WALLET.address }],
+    });
+
+    const [mine, theirs] = inputsOf(signed);
+    expect(mine.finalScriptWitness).toBeDefined();
+    expect(theirs.finalScriptWitness).toBeUndefined();
+  });
+
+  it("should keep PSBT fields it does not know", async () => {
+    const { signer } = createSigner();
+    const tx = btc.Transaction.fromPSBT(
+      ccc.bytesFrom(createPsbt(WALLET)),
+      PSBT_OPTS,
+    );
+    tx.updateInput(0, {
+      unknown: [
+        [{ type: 0xee, key: new Uint8Array([1]) }, new Uint8Array([7])],
+      ],
+    });
+
+    const signed = await signer.signPsbt(ccc.hexFrom(tx.toPSBT()));
+
+    const [input] = inputsOf(signed);
+    expect(input.finalScriptWitness).toBeDefined();
+    expect(input.unknown).toHaveLength(1);
+  });
+
+  describe("other signers' inputs with mismatched Taproot metadata", () => {
+    const withForeignInput = () => {
+      const foreign = btc.p2tr(
+        OTHER.publicKey.slice(1),
+        undefined,
+        btc.TEST_NETWORK,
+      );
+      const tx = btc.Transaction.fromPSBT(
+        ccc.bytesFrom(createPsbt(WALLET)),
+        PSBT_OPTS,
+      );
+      tx.addInput({
+        txid: new Uint8Array(32).fill(9),
+        index: 0,
+        witnessUtxo: { script: foreign.script, amount: 10000n },
+        // Not the key behind the output
+        tapInternalKey: WALLET.publicKey.slice(1),
+      });
+      return ccc.hexFrom(tx.toPSBT());
+    };
+
+    it.each([true, false])(
+      "should sign and leave them alone (autoFinalized: %s)",
+      async (autoFinalized) => {
+        const { signer } = createSigner();
+
+        const signed = await signer.signPsbt(withForeignInput(), {
+          autoFinalized,
+          inputsToSign: [{ index: 0, address: WALLET.address }],
+        });
+
+        const [mine, theirs] = inputsOf(signed);
+        if (autoFinalized) {
+          expect(mine.finalScriptWitness).toBeDefined();
+        } else {
+          expect(mine.partialSig).toHaveLength(1);
+        }
+        expect(theirs.finalScriptWitness).toBeUndefined();
+        expect(theirs.tapInternalKey).toEqual(WALLET.publicKey.slice(1));
+      },
+    );
+
+    it("should not finalize them when the wallet signs them", async () => {
+      const { signer, signPsbt } = createSigner();
+      // The wallet signs every requested input, trusting the wrong metadata
+      signPsbt.mockImplementationOnce((params) => {
+        const tx = btc.Transaction.fromPSBT(
+          ccc.bytesFrom(params.psbt, "base64"),
+          PSBT_OPTS,
+        );
+        tx.signIdx(WALLET.privateKey, 0);
+        tx.updateInput(1, { tapKeySig: new Uint8Array(64).fill(1) });
+        return { psbt: ccc.bytesTo(tx.toPSBT(), "base64") };
+      });
+
+      await expect(signer.signPsbt(withForeignInput())).rejects.toThrow(
+        "Use { autoFinalized: false }",
+      );
+    });
+
+    it("should still find the inputs to sign", async () => {
+      const { signer, signPsbt } = createSigner({ sign: false });
+
+      await signer.signPsbt(withForeignInput(), { autoFinalized: false });
+
+      expect(signPsbt).toHaveBeenCalledWith(
+        expect.objectContaining({ signInputs: { [WALLET.address]: [0, 1] } }),
+      );
+    });
+  });
+
+  it("should reject an invalid PSBT to sign", async () => {
+    const { signer, signPsbt } = createSigner();
+
+    await expect(signer.signPsbt("0x70736274ff0100aabb")).rejects.toThrow(
+      "Invalid PSBT to sign",
+    );
+    expect(signPsbt).not.toHaveBeenCalled();
+  });
+
+  it("should reject an invalid PSBT returned by Xverse", async () => {
+    const { signer, signPsbt } = createSigner();
+    signPsbt.mockImplementationOnce(() => ({
+      psbt: ccc.bytesTo("0x70736274ff0100aabb", "base64"),
+    }));
+
+    await expect(signer.signPsbt(createPsbt(WALLET))).rejects.toThrow(
+      "Xverse returned an invalid PSBT",
     );
   });
 
