@@ -47,8 +47,10 @@ export async function prepareCluster(
         }
       }
 
-      // Add the output only if there's not already one with proxy lock
-      if (!tx.outputs.some((output) => output.lock === lock)) {
+      // Add the output only if there's not already one with proxy lock.
+      // Compare by script value. `===` misses the output added for an earlier
+      // spore, whose lock is a different object with the same script.
+      if (!tx.outputs.some((output) => output.lock.eq(lock))) {
         tx.addOutput(
           await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
         );
