@@ -18,6 +18,7 @@ import {
   getSporeScriptInfos,
 } from "../predefined/index.js";
 import { prepareCluster } from "./advanced.js";
+import { matchesClusterFilter } from "./clusterFilter.js";
 
 export async function findSpore(
   client: ccc.Client,
@@ -285,11 +286,7 @@ export async function* findSporesBySigner(params: {
       limit,
     )) {
       const sporeData = unpackToRawSporeData(spore.outputData);
-      if (
-        !clusterId ||
-        (clusterId === "" && !sporeData.clusterId) ||
-        sporeData.clusterId === ccc.hexFrom(clusterId)
-      ) {
+      if (matchesClusterFilter(sporeData.clusterId, clusterId)) {
         yield {
           cell: spore,
           spore,
@@ -350,11 +347,7 @@ export async function* findSpores(params: {
       limit,
     )) {
       const sporeData = unpackToRawSporeData(spore.outputData);
-      if (
-        !clusterId ||
-        (clusterId === "" && !sporeData.clusterId) ||
-        sporeData.clusterId === ccc.hexFrom(clusterId)
-      ) {
+      if (matchesClusterFilter(sporeData.clusterId, clusterId)) {
         yield {
           cell: spore,
           spore,
