@@ -246,13 +246,7 @@ export async function meltSpore(params: {
   };
 }
 
-/**
- * Whether a spore's cluster id satisfies a search filter.
- *
- * - `undefined` does not filter.
- * - `""` keeps public spores only (no cluster id) and is never passed to `hexFrom`.
- * - any other HexLike keeps spores in that cluster.
- */
+/** `undefined` matches every spore. `""` matches spores with no cluster id. */
 function matchesClusterFilter(
   sporeClusterId: ccc.HexLike | undefined,
   clusterId: ccc.HexLike | undefined,
@@ -260,22 +254,10 @@ function matchesClusterFilter(
   if (clusterId === undefined) {
     return true;
   }
-
-  if (clusterId === "") {
-    return isPublicClusterId(sporeClusterId);
+  if (clusterId === "" || !sporeClusterId) {
+    return clusterId === "" && !sporeClusterId;
   }
-
-  if (isPublicClusterId(sporeClusterId)) {
-    return false;
-  }
-
   return ccc.hexFrom(sporeClusterId) === ccc.hexFrom(clusterId);
-}
-
-function isPublicClusterId(
-  clusterId: ccc.HexLike | undefined,
-): clusterId is undefined | "" {
-  return clusterId == null || clusterId === "";
 }
 
 /**
