@@ -18,7 +18,6 @@ import {
   getSporeScriptInfos,
 } from "../predefined/index.js";
 import { prepareCluster } from "./advanced.js";
-import { matchesClusterFilter } from "./clusterFilter.js";
 
 export async function findSpore(
   client: ccc.Client,
@@ -245,6 +244,38 @@ export async function meltSpore(params: {
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
   };
+}
+
+/**
+ * Whether a spore's cluster id satisfies a search filter.
+ *
+ * - `undefined` does not filter.
+ * - `""` keeps public spores only (no cluster id) and is never passed to `hexFrom`.
+ * - any other HexLike keeps spores in that cluster.
+ */
+function matchesClusterFilter(
+  sporeClusterId: ccc.HexLike | undefined,
+  clusterId: ccc.HexLike | undefined,
+): boolean {
+  if (clusterId === undefined) {
+    return true;
+  }
+
+  if (clusterId === "") {
+    return isPublicClusterId(sporeClusterId);
+  }
+
+  if (isPublicClusterId(sporeClusterId)) {
+    return false;
+  }
+
+  return ccc.hexFrom(sporeClusterId) === ccc.hexFrom(clusterId);
+}
+
+function isPublicClusterId(
+  clusterId: ccc.HexLike | undefined,
+): clusterId is undefined | "" {
+  return clusterId == null || clusterId === "";
 }
 
 /**
