@@ -13,6 +13,11 @@ const lock = {
   hashType: "type",
   args: "0x",
 } as const;
+const payerLock = {
+  codeHash: `0x${"00".repeat(32)}`,
+  hashType: "type",
+  args: "0x01",
+} as const;
 const clusterId = `0x${"66".repeat(32)}`;
 const ownerType = {
   codeHash: `0x${"11".repeat(32)}`,
@@ -135,4 +140,58 @@ describe("prepareCluster lockProxy", () => {
     expect(ownerOutputs).toHaveLength(1);
     expect(ownerOutputs[0].cellOutput.capacity).toBe(ownerCapacity);
   });
+
+  it.each([
+    { label: "a smaller", paymentCkb: 61 },
+    { label: "an equal", paymentCkb: 1000 },
+  ])(
+    "restores the proxy input in addition to $label owner payment",
+    async ({ paymentCkb }) => {
+      const client = offlineTestnet();
+      await cacheCluster(client);
+      const paymentCapacity = ccc.fixedPointFrom(paymentCkb);
+      const proxyCapacity = ccc.fixedPointFrom(1000);
+      const tx = ccc.Transaction.from({
+        inputs: [
+          {
+            previousOutput: { txHash: `0x${"aa".repeat(32)}`, index: 0 },
+            cellOutput: { capacity: proxyCapacity, lock },
+            outputData: "0x",
+          },
+          {
+            previousOutput: { txHash: `0x${"bb".repeat(32)}`, index: 0 },
+            cellOutput: {
+              capacity: ccc.fixedPointFrom(2000),
+              lock: payerLock,
+            },
+            outputData: "0x",
+          },
+        ],
+        outputs: [{ capacity: paymentCapacity, lock }],
+        outputsData: ["0x"],
+      });
+      const signer = new ccc.SignerCkbScriptReadonly(client, payerLock);
+      const spore = { contentType: "", content: "0x", clusterId };
+      const createParams = {
+        signer,
+        data: spore,
+        clusterMode: "lockProxy" as const,
+      };
+
+      const { tx: created } = await createSpore({ ...createParams, tx });
+      const { tx: createdTwice } = await createSpore({
+        ...createParams,
+        tx: created,
+      });
+      await createdTwice.completeFeeBy(signer, 1000n);
+
+      const ownerUntyped = createdTwice.outputs.filter(
+        (output) => output.lock.eq(lock) && !output.type,
+      );
+      expect(ownerUntyped).toHaveLength(2);
+      expect(
+        ownerUntyped.reduce((sum, output) => sum + output.capacity, 0n),
+      ).toBe(paymentCapacity + proxyCapacity);
+    },
+  );
 });
