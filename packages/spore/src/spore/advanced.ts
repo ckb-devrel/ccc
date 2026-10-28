@@ -47,13 +47,27 @@ export async function prepareCluster(
         }
       }
 
-      // Add the output only if there's not already one with proxy lock.
-      // Compare by script value. `===` misses the output added for an earlier
-      // spore, whose lock is a different object with the same script.
-      if (!tx.outputs.some((output) => output.lock.eq(lock))) {
-        tx.addOutput(
-          await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
-        );
+      // Restore the selected owner/proxy input unless an output already
+      // reproduces it. Compare lock by value (`eq`, not `===`) so a second
+      // spore of the same cluster reuses that restore. Also match type and
+      // data so a same-lock Spore output is not treated as the restore.
+      const proxyCell = await tx
+        .getInput(lockProxyInputIndex)!
+        .getCell(signer.client);
+      const { lock: proxyLock, type: proxyType } = proxyCell.cellOutput;
+      if (
+        !tx.outputs.some((output, i) => {
+          const sameType = proxyType
+            ? output.type?.eq(proxyType) === true
+            : !output.type;
+          return (
+            output.lock.eq(proxyLock) &&
+            sameType &&
+            (tx.outputsData[i] ?? "0x") === proxyCell.outputData
+          );
+        })
+      ) {
+        tx.addOutput(proxyCell);
       }
 
       tx.addCellDeps({
