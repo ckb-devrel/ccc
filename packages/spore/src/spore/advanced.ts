@@ -3,6 +3,37 @@ import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
 
+const restoredLockProxyInputs = new WeakMap<ccc.CellInput, true>();
+const restoredLockProxyOutPoints = new WeakMap<ccc.Transaction, Set<string>>();
+
+function lockProxyOutPointKey(outPoint: ccc.OutPoint): string {
+  return `${outPoint.txHash}:${outPoint.index.toString()}`;
+}
+
+function hasRestoredLockProxy(
+  tx: ccc.Transaction,
+  input: ccc.CellInput,
+): boolean {
+  if (restoredLockProxyInputs.has(input)) {
+    return true;
+  }
+  return (
+    restoredLockProxyOutPoints
+      .get(tx)
+      ?.has(lockProxyOutPointKey(input.previousOutput)) === true
+  );
+}
+
+function markRestoredLockProxy(
+  tx: ccc.Transaction,
+  input: ccc.CellInput,
+): void {
+  restoredLockProxyInputs.set(input, true);
+  const restored = restoredLockProxyOutPoints.get(tx) ?? new Set<string>();
+  restored.add(lockProxyOutPointKey(input.previousOutput));
+  restoredLockProxyOutPoints.set(tx, restored);
+}
+
 export async function prepareCluster(
   signer: ccc.Signer,
   tx: ccc.Transaction,
@@ -47,27 +78,14 @@ export async function prepareCluster(
         }
       }
 
-      // Restore the selected owner/proxy input unless an output already
-      // reproduces it. Compare lock by value (`eq`, not `===`) so a second
-      // spore of the same cluster reuses that restore. Also match type and
-      // data so a same-lock Spore output is not treated as the restore.
-      const proxyCell = await tx
-        .getInput(lockProxyInputIndex)!
-        .getCell(signer.client);
-      const { lock: proxyLock, type: proxyType } = proxyCell.cellOutput;
-      if (
-        !tx.outputs.some((output, i) => {
-          const sameType = proxyType
-            ? output.type?.eq(proxyType) === true
-            : !output.type;
-          return (
-            output.lock.eq(proxyLock) &&
-            sameType &&
-            (tx.outputsData[i] ?? "0x") === proxyCell.outputData
-          );
-        })
-      ) {
-        tx.addOutput(proxyCell);
+      // Restore this selected proxy input, not an arbitrary owner-locked
+      // output. A same-lock payment or Spore (even with the same type, data,
+      // and capacity) is independent and must not skip the restore. Track the
+      // input/outPoint so a second spore of this cluster reuses that restore.
+      const proxyInput = tx.getInput(lockProxyInputIndex)!;
+      if (!hasRestoredLockProxy(tx, proxyInput)) {
+        tx.addOutput(await proxyInput.getCell(signer.client));
+        markRestoredLockProxy(tx, proxyInput);
       }
 
       tx.addCellDeps({
