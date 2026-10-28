@@ -231,6 +231,12 @@ export type CellOutputLike = {
   capacity?: NumLike | null;
   lock: ScriptLike;
   type?: ScriptLike | null;
+  /**
+   * Off-chain: the lock-proxy input this output restores.
+   * Copied by {@link CellOutput.from} / {@link CellOutput.clone} and JSON,
+   * but not encoded on-chain or sent over RPC.
+   */
+  lockProxyRestoredFrom?: OutPointLike | null;
 };
 /**
  * @public
@@ -258,6 +264,12 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
   ) {
     super();
   }
+
+  /**
+   * Off-chain: the lock-proxy input this output restores.
+   * Not encoded in the on-chain cell.
+   */
+  lockProxyRestoredFrom?: OutPoint;
 
   get occupiedSize(): number {
     return 8 + this.lock.occupiedSize + (this.type?.occupiedSize ?? 0);
@@ -305,13 +317,23 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
         return cellOutput;
       }
 
-      return new CellOutput(minCapacity, cellOutput.lock, cellOutput.type);
+      const bumped = new CellOutput(
+        minCapacity,
+        cellOutput.lock,
+        cellOutput.type,
+      );
+      bumped.lockProxyRestoredFrom = cellOutput.lockProxyRestoredFrom?.clone();
+      return bumped;
     }
 
     const output = new CellOutput(
       numFrom(cellOutput.capacity ?? 0),
       Script.from(cellOutput.lock),
       apply(Script.from, cellOutput.type),
+    );
+    output.lockProxyRestoredFrom = apply(
+      OutPoint.from,
+      cellOutput.lockProxyRestoredFrom,
     );
 
     if (outputData != null) {
@@ -339,6 +361,7 @@ export class CellOutput extends Entity.Base<CellOutputLike, CellOutput>() {
       capacity: this.capacity,
       lock: this.lock.clone(),
       type: this.type?.clone(),
+      lockProxyRestoredFrom: this.lockProxyRestoredFrom?.clone(),
     });
   }
 }
