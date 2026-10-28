@@ -1663,6 +1663,31 @@ describe("Transaction", () => {
         expect(result).toBe(originalOutput); // Should return the same instance
       });
 
+      it("copies lockProxyRestoredFrom through from, clone, and JSON", () => {
+        const outPoint = {
+          txHash: `0x${"ab".repeat(32)}`,
+          index: 1,
+        };
+        const output = ccc.CellOutput.from({
+          capacity: ccc.fixedPointFrom(200),
+          lock,
+          lockProxyRestoredFrom: outPoint,
+        });
+        const untagged = ccc.CellOutput.from({
+          capacity: output.capacity,
+          lock,
+        });
+
+        expect(output.lockProxyRestoredFrom?.eq(outPoint)).toBe(true);
+        expect(output.clone().lockProxyRestoredFrom?.eq(outPoint)).toBe(true);
+        expect(
+          ccc.CellOutput.from(
+            JSON.parse(ccc.stringify(output)) as ccc.CellOutputLike,
+          ).lockProxyRestoredFrom?.eq(outPoint),
+        ).toBe(true);
+        expect(output.toBytes()).toEqual(untagged.toBytes());
+      });
+
       it("should handle Cell instance passed to Cell.from", () => {
         const originalCell = ccc.Cell.from({
           outPoint: {

@@ -3,35 +3,23 @@ import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
 
-const restoredLockProxyInputs = new WeakMap<ccc.CellInput, true>();
-const restoredLockProxyOutPoints = new WeakMap<ccc.Transaction, Set<string>>();
-
-function lockProxyOutPointKey(outPoint: ccc.OutPoint): string {
-  return `${outPoint.txHash}:${outPoint.index.toString()}`;
-}
-
-function hasRestoredLockProxy(
+function isLockProxyRestored(
   tx: ccc.Transaction,
-  input: ccc.CellInput,
+  outPoint: ccc.OutPoint,
 ): boolean {
-  if (restoredLockProxyInputs.has(input)) {
-    return true;
-  }
-  return (
-    restoredLockProxyOutPoints
-      .get(tx)
-      ?.has(lockProxyOutPointKey(input.previousOutput)) === true
+  return tx.outputs.some(
+    (output) => output.lockProxyRestoredFrom?.eq(outPoint) === true,
   );
 }
 
-function markRestoredLockProxy(
+function addLockProxyRestore(
   tx: ccc.Transaction,
-  input: ccc.CellInput,
+  proxyInput: ccc.CellInput,
+  proxyCell: ccc.Cell,
 ): void {
-  restoredLockProxyInputs.set(input, true);
-  const restored = restoredLockProxyOutPoints.get(tx) ?? new Set<string>();
-  restored.add(lockProxyOutPointKey(input.previousOutput));
-  restoredLockProxyOutPoints.set(tx, restored);
+  const restore = proxyCell.cellOutput.clone();
+  restore.lockProxyRestoredFrom = proxyInput.previousOutput.clone();
+  tx.addOutput(restore, proxyCell.outputData);
 }
 
 export async function prepareCluster(
@@ -79,13 +67,13 @@ export async function prepareCluster(
       }
 
       // Restore this selected proxy input, not an arbitrary owner-locked
-      // output. A same-lock payment or Spore (even with the same type, data,
-      // and capacity) is independent and must not skip the restore. Track the
-      // input/outPoint so a second spore of this cluster reuses that restore.
+      // output. Tag the restore output with the input outPoint so the mark
+      // lives on the transaction (survives clone/JSON, stays tx-local, and
+      // clears if that output is removed).
       const proxyInput = tx.getInput(lockProxyInputIndex)!;
-      if (!hasRestoredLockProxy(tx, proxyInput)) {
-        tx.addOutput(await proxyInput.getCell(signer.client));
-        markRestoredLockProxy(tx, proxyInput);
+      const proxyCell = await proxyInput.getCell(signer.client);
+      if (!isLockProxyRestored(tx, proxyInput.previousOutput)) {
+        addLockProxyRestore(tx, proxyInput, proxyCell);
       }
 
       tx.addCellDeps({
