@@ -99,33 +99,40 @@ describe("prepareCluster lockProxy", () => {
   it("restores a typed owner input when createSpore mints to the cluster owner", async () => {
     const client = offlineTestnet();
     await cacheCluster(client);
+    const ownerCapacity = ccc.fixedPointFrom(100);
     const tx = ccc.Transaction.from({
       inputs: [
         {
           previousOutput: { txHash: `0x${"99".repeat(32)}`, index: 0 },
-          cellOutput: { capacity: 0, lock, type: ownerType },
+          cellOutput: { capacity: ownerCapacity, lock, type: ownerType },
           outputData: ownerData,
         },
       ],
     });
     const signer = new ccc.SignerCkbScriptReadonly(client, lock);
     const spore = { contentType: "", content: "0x", clusterId };
-
-    const { tx: created } = await createSpore({
+    const createParams = {
       signer,
       data: spore,
       to: lock,
-      clusterMode: "lockProxy",
-      tx,
+      clusterMode: "lockProxy" as const,
+    };
+
+    const { tx: created } = await createSpore({ ...createParams, tx });
+    const { tx: createdTwice } = await createSpore({
+      ...createParams,
+      tx: created,
     });
 
     const sporeType = {
       ...getSporeScriptInfo(client),
-      args: created.outputs[0].type!.args,
+      args: createdTwice.outputs[0].type!.args,
     };
     expect(
-      matchingOutputs(created, sporeType, created.outputsData[0]),
+      matchingOutputs(createdTwice, sporeType, createdTwice.outputsData[0]),
     ).toHaveLength(1);
-    expect(matchingOutputs(created, ownerType, ownerData)).toHaveLength(1);
+    const ownerOutputs = matchingOutputs(createdTwice, ownerType, ownerData);
+    expect(ownerOutputs).toHaveLength(1);
+    expect(ownerOutputs[0].cellOutput.capacity).toBe(ownerCapacity);
   });
 });
