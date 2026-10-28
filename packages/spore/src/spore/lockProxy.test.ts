@@ -99,7 +99,7 @@ describe("prepareCluster lockProxy", () => {
   it("restores a typed owner input when createSpore mints to the cluster owner", async () => {
     const client = offlineTestnet();
     await cacheCluster(client);
-    const ownerCapacity = ccc.fixedPointFrom(100);
+    const ownerCapacity = ccc.fixedPointFrom(200);
     const tx = ccc.Transaction.from({
       inputs: [
         {
