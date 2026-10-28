@@ -1688,6 +1688,25 @@ describe("Transaction", () => {
         expect(output.toBytes()).toEqual(untagged.toBytes());
       });
 
+      it("keeps lockProxyRestoredFrom when from bumps capacity for output data", () => {
+        const outPoint = {
+          txHash: `0x${"ab".repeat(32)}`,
+          index: 1,
+        };
+        const tagged = ccc.CellOutput.from({
+          capacity: 1000n,
+          lock,
+          lockProxyRestoredFrom: outPoint,
+        });
+        const data = `0x${"12".repeat(100)}`;
+        const bumped = ccc.CellOutput.from(tagged, data);
+
+        expect(bumped).not.toBe(tagged);
+        expect(bumped.capacity).toBeGreaterThan(tagged.capacity);
+        expect(bumped.lockProxyRestoredFrom?.eq(outPoint)).toBe(true);
+        expect(tagged.lockProxyRestoredFrom?.eq(outPoint)).toBe(true);
+      });
+
       it("should handle Cell instance passed to Cell.from", () => {
         const originalCell = ccc.Cell.from({
           outPoint: {
