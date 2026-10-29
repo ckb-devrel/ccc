@@ -3,6 +3,25 @@ import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
 
+function isLockProxyRestored(
+  tx: ccc.Transaction,
+  outPoint: ccc.OutPoint,
+): boolean {
+  return tx.outputs.some(
+    (output) => output.lockProxyRestoredFrom?.eq(outPoint) === true,
+  );
+}
+
+function addLockProxyRestore(
+  tx: ccc.Transaction,
+  proxyInput: ccc.CellInput,
+  proxyCell: ccc.Cell,
+): void {
+  const restore = proxyCell.cellOutput.clone();
+  restore.lockProxyRestoredFrom = proxyInput.previousOutput.clone();
+  tx.addOutput(restore, proxyCell.outputData);
+}
+
 export async function prepareCluster(
   signer: ccc.Signer,
   tx: ccc.Transaction,
@@ -47,11 +66,14 @@ export async function prepareCluster(
         }
       }
 
-      // Add the output only if there's not already one with proxy lock
-      if (!tx.outputs.some((output) => output.lock === lock)) {
-        tx.addOutput(
-          await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
-        );
+      // Restore this selected proxy input, not an arbitrary owner-locked
+      // output. Tag the restore output with the input outPoint so the mark
+      // lives on the transaction (survives clone/JSON, stays tx-local, and
+      // clears if that output is removed).
+      const proxyInput = tx.getInput(lockProxyInputIndex)!;
+      const proxyCell = await proxyInput.getCell(signer.client);
+      if (!isLockProxyRestored(tx, proxyInput.previousOutput)) {
+        addLockProxyRestore(tx, proxyInput, proxyCell);
       }
 
       tx.addCellDeps({
