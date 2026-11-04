@@ -100,6 +100,47 @@ describe("native Mutant references", () => {
     ).rejects.toThrow(/not found/);
     expect(tx.cellDeps).toHaveLength(0);
   });
+  it.each(["missing", "ambiguous"] as const)(
+    "leaves the transaction unchanged when a later rule is %s",
+    async (failure) => {
+      const first = cell();
+      const candidates =
+        failure === "missing"
+          ? [first]
+          : [first, cell(secondId, 1), cell(buildMutantArgs(secondId, 1), 2)];
+      const tx = ccc.Transaction.from({
+        cellDeps: [{ outPoint: point(9), depType: "code" }],
+        witnesses: ["0x1234"],
+      });
+      const before = tx.toHex();
+      await expect(
+        injectMutantReferences({
+          client: clientFor(candidates),
+          tx,
+          mutantIds: [id, secondId],
+          scripts: [info],
+        }),
+      ).rejects.toThrow(failure === "missing" ? /not found/ : /Ambiguous/);
+      expect(tx.toHex()).toBe(before);
+    },
+  );
+  it("adds the complete resolved set while preserving existing dependencies", async () => {
+    const rules = [cell(), cell(buildMutantArgs(secondId, 1), 1)];
+    const tx = ccc.Transaction.from({
+      cellDeps: [{ outPoint: point(9), depType: "code" }],
+    });
+    await injectMutantReferences({
+      client: clientFor(rules),
+      tx,
+      mutantIds: [id, secondId],
+      scripts: [info],
+    });
+    expect(tx.cellDeps.map((dep) => dep.outPoint.toHex())).toEqual(
+      [point(9), ...rules.map((rule) => rule.outPoint)].map((outPoint) =>
+        outPoint.toHex(),
+      ),
+    );
+  });
   it("constructs a paid rule and resolves its returned 32-byte ID", async () => {
     const client = clientFor([]);
     const signer = {
@@ -136,6 +177,31 @@ describe("native Mutant references", () => {
   });
   it.each([-1n, 1n << 64n])("rejects payment outside uint64: %s", (payment) => {
     expect(() => buildMutantArgs(id, payment)).toThrow(/uint64/);
+  });
+  it("checks independent Spore groups separately even when they share a payee", async () => {
+    const rules = [
+      cell(buildMutantArgs(id, 10n), 0),
+      cell(buildMutantArgs(secondId, 10n), 1),
+    ];
+    const funding = cell(id, 2),
+      client = clientFor([...rules, funding]);
+    const tx = ccc.Transaction.from({
+      inputs: [{ previousOutput: funding.outPoint }],
+      outputs: [{ capacity: funding.cellOutput.capacity + 10n, lock }],
+    });
+    for (const rule of rules) {
+      await expect(
+        checkMutantPayments({ client, tx, mutantOutPoints: [rule.outPoint] }),
+      ).resolves.toBeUndefined();
+    }
+    // Combining the groups violates the caller contract: the helper cannot partition them.
+    await expect(
+      checkMutantPayments({
+        client,
+        tx,
+        mutantOutPoints: rules.map((rule) => rule.outPoint),
+      }),
+    ).rejects.toThrow(/not enough/);
   });
   it("checks cumulative same-owner mint payments against net capacity", async () => {
     const rules = [

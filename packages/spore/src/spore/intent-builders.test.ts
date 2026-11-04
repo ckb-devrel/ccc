@@ -219,6 +219,39 @@ describe("optional intent builder compatibility", () => {
     expect(result.tx.witnesses[2]).toBe("0x1234");
     expect(result.tx.getWitnessArgs(0)?.lock).toHaveLength(132);
   });
+  it("forwards opt-out through cluster-backed createSpore", async () => {
+    for (const withIntent of [undefined, false]) {
+      const f = setup(),
+        legacyCluster = getClusterScriptInfo(f.client);
+      f.clusterCell.cellOutput.type = ccc.Script.from({
+        ...legacyCluster,
+        args: id,
+      });
+      const { tx } = await createSpore({
+        signer: f.signer,
+        tx: f.tx,
+        scriptInfo: spore,
+        clusterMode: "clusterCell",
+        withIntent,
+        data: { contentType: "text/plain", content: "0x1234", clusterId: id },
+      });
+      expect(
+        await checkSporeIntent({
+          client: f.client,
+          tx,
+          scripts: { Spore: [spore] },
+        }),
+      ).toHaveLength(withIntent === false ? 0 : 2);
+      expect(tx.inputs).toHaveLength(2);
+      expect(tx.outputs[1].type?.eq(f.clusterCell.cellOutput.type)).toBe(true);
+      expect(
+        tx.cellDeps.some((dep) => dep.outPoint.eq(f.clusterCell.outPoint)),
+      ).toBe(true);
+      if (withIntent === false) {
+        expect(unpackCommonCobuildProof(tx.witnesses.at(-1)!)).toBeUndefined();
+      }
+    }
+  });
   it("prepareCluster preserves default Cluster Action and honors explicit opt-out", async () => {
     for (const withIntent of [undefined, false]) {
       const f = setup(),

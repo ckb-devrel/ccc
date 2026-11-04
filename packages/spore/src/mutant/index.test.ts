@@ -56,6 +56,7 @@ describe("buildMutantArgs", () => {
   const id = "0x" + "ab".repeat(32);
 
   it("builds a bare 32-byte ID", () => {
+    expect(buildMutantArgs(id)).toBe(id);
     expect(ccc.bytesFrom(buildMutantArgs(id)).length).toBe(32);
   });
 

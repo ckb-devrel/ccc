@@ -82,7 +82,7 @@ describe("checkSporeIntent", () => {
       scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
       tx,
     });
-    expect(checked.length).toBe(1);
+    expect(checked).toEqual([action]);
   });
 
   it("rejects a known Spore Action with an unmatched script hash", async () => {

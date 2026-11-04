@@ -250,7 +250,7 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 原生 Mutant 将编译后的 RISC-V ELF 存在不可变 Cell data 中。用 `checkNativeMutantCode` 检查大小及 ELF 头，用 `createMutant` 和经过审查的 `data2` 部署构造发布交易；实际可执行性和规则结果仍由 VM 决定。
 
-`withMutants`／`getMutantIds` 使用不带 `0x` 前缀、逗号分隔的 32 字节 ID。解析会收集全部 `mutant[]` 参数并拒绝全局重复 ID。`findMutant` 支持 32 字节 args 和带支付参数的 40 字节形式，核对部署身份并拒绝歧义匹配。**mint、transfer 和 melt 前都要**用 `injectMutantReferences` 加入全部声明的规则依赖；支付后缀不会改变引用的 ID。`checkMutantPayments` 核对调用方提供的铸造规则及所有者净容量阈值，实际规则集合由调用方选择。
+`withMutants`／`getMutantIds` 使用不带 `0x` 前缀、逗号分隔的 32 字节 ID。解析会收集全部 `mutant[]` 参数并拒绝全局重复 ID。`findMutant` 支持 32 字节 args 和带支付参数的 40 字节形式，核对部署身份并拒绝歧义匹配。**mint、transfer 和 melt 前都要**用 `injectMutantReferences` 加入全部声明的规则依赖；支付后缀不会改变引用的 ID。`checkMutantPayments` **每次只检查一个 Spore type-script group** 的净容量阈值。调用方必须按组划分声明的 Mutant outpoint，并分别调用，即使各组收款 Lock 相同；函数不会推断分组，也不应跨独立组累加阈值。
 
 这些功能用于 SDK 交易构造与离线检查。本地包测试不能代替使用 CCC 自己构建和签名的 devnet 交易与逐字节 VM 重放；旧 SDK PR #142 的验收结果不能直接用于证明此次重写通过验收。
 

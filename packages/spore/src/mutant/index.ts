@@ -239,6 +239,7 @@ export function addMutantCellDep(
  * Use this before minting, transferring or melting a Spore whose content
  * type declares Mutants. Include all IDs returned by getMutantIds; the
  * contract requires the rule dependencies on every lifecycle operation.
+ * All lookups finish before tx is modified; lookup failure leaves tx unchanged.
  */
 export async function injectMutantReferences(params: {
   client: ccc.Client;
@@ -247,20 +248,30 @@ export async function injectMutantReferences(params: {
   scripts?: SporeScriptInfoLike[];
 }): Promise<void> {
   const { client, tx, mutantIds, scripts } = params;
+  const outPoints: ccc.OutPoint[] = [];
   for (const id of mutantIds) {
     const found = await findMutant(client, id, scripts);
     if (!found) {
       throw new Error(`Mutant ${ccc.hexFrom(id)} not found`);
     }
-    addMutantCellDep(tx, found.cell.outPoint);
+    outPoints.push(found.cell.outPoint);
+  }
+  // Resolve the entire set before mutating a caller-owned transaction.
+  for (const outPoint of outPoints) {
+    addMutantCellDep(tx, outPoint);
   }
 }
 
 /**
- * Verify that a transaction satisfies the minimal mint payments declared
- * by the given Mutant cells, mirroring the contract's accounting: for
- * each lock hash, the outputs held by that lock must cover its inputs
- * plus the accumulated thresholds of all its paying Mutants.
+ * Check minimal mint payments for ONE Spore type-script group. For each
+ * payee lock hash, transaction outputs must cover transaction inputs plus
+ * this group's accumulated Mutant thresholds, matching the contract.
+ *
+ * Pass only the Mutant outpoints declared by that group. The helper does
+ * not infer group membership: callers must partition outpoints and invoke
+ * it separately for each Spore group, even when groups share payee Locks.
+ * Combining independent groups can incorrectly sum their thresholds and
+ * reject a transaction that satisfies each group's rule.
  */
 export async function checkMutantPayments(params: {
   client: ccc.Client;
