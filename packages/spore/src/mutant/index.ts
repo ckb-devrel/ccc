@@ -111,7 +111,7 @@ export function withMutants(
   if (new Set(ids).size !== ids.length) {
     throw new Error("Duplicate Mutant ID");
   }
-  return `${contentType.replace(/[ \t;]+$/, "")};mutant[]=${ids.join(",")}`;
+  return `${contentType.trim().replace(/[ \t;]+$/, "")};mutant[]=${ids.join(",")}`;
 }
 
 function contentTypeParameters(contentType: string): [string, string][] {

@@ -90,6 +90,23 @@ describe("contentType mutant[] parameter", () => {
     ).toEqual([ids[0]]);
   });
 
+  it.each([
+    "text/plain;charset=utf8\n",
+    "text/plain;charset=utf8\r\n",
+    "text/plain;charset=utf8;\n",
+    "text/plain;charset=utf8;\r\n",
+    "text/plain;charset=utf8 \t",
+    "text/plain;charset=utf8; \t",
+    "\r\n text/plain;charset=utf8 \t;\r\n",
+  ])("round-trips accepted outer whitespace in %j", (input) => {
+    expect(getMutantIds(input)).toEqual([]);
+    const contentType = withMutants(input, ids);
+    expect(contentType).toBe(
+      `text/plain;charset=utf8;mutant[]=${ids.map((id) => id.slice(2)).join(",")}`,
+    );
+    expect(getMutantIds(contentType)).toEqual(ids);
+  });
+
   it("returns empty when no mutant[] is present", () => {
     expect(getMutantIds("text/plain")).toEqual([]);
   });
