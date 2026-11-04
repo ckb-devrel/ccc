@@ -234,6 +234,15 @@ The `id` returned by `createSpore` is the **type script args** of the Spore cell
 - `"clusterCell"` — higher cost, puts the actual cluster cell in the transaction. Use this when the cluster's lock is different from the signer's.
 - `"skip"` — only if you are manually handling cluster inputs/outputs yourself.
 
+## Spore v3 (upcoming)
+
+The next Spore contract version (spore-contract PRs [#75](https://github.com/sporeprotocol/spore-contract/pull/75)/[#76](https://github.com/sporeprotocol/spore-contract/pull/76)) changes two things clients must handle together:
+
+- **Optional CoBuild intent** — the Spore/Cluster/Proxy/Agent type scripts no longer require CoBuild Actions. An attached Action is intent metadata that the scripts do **not** authenticate: before trusting or displaying one, verify it with `checkSporeIntent({ client, tx })`, which compares every Spore-protocol Action against the transaction's resolved cells and throws on misleading or duplicated intent. Builders targeting v3 scripts can pass `withIntent: false` to skip attaching Actions entirely.
+- **Native Rust Mutants** — a Mutant is now an immutable cell whose data is a RISC-V ELF, executed directly by the Spore contract via CKB-VM2. Use `checkNativeMutantCode` to preflight the ELF, `createMutant` to publish the cell, `withMutants`/`getMutantIds` to manage the `mutant[]` content-type parameter, and `injectMutantReferences` before minting Spores that declare Mutants.
+
+The `SporeVersion.V3` presets stay empty until the contracts are deployed; pass a custom `SporeScriptInfoLike` (e.g. to `createSpore`/`createSporeCluster`/`createMutant`) to target a test deployment in the meantime.
+
 ## Next steps
 
 - [Compose transactions](/docs/guides/compose-transactions) — understand the declare → fill → fee → send pattern used in every Spore operation.

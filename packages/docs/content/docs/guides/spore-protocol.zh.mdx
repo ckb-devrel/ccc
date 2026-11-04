@@ -232,6 +232,15 @@ Spore Cell 将内容存储在链上，所需 CKB 容量远超普通转账。文�
 - `"clusterCell"`——成本较高，将实际 Cluster Cell 纳入交易，适用于 Cluster 的 Lock 与 `signer` 不同的情况。
 - `"skip"`——仅在自行处理 Cluster 输入输出时使用。
 
+## Spore v3(即将推出)
+
+下一代 Spore 合约(spore-contract PR [#75](https://github.com/sporeprotocol/spore-contract/pull/75)/[#76](https://github.com/sporeprotocol/spore-contract/pull/76))有两点需要客户端同步适配:
+
+- **CoBuild 意图变为可选**——Spore/Cluster/Proxy/Agent 的 Type 脚本不再强制要求 CoBuild Action。已附带的 Action 仅是意图元数据,**合约本身不做认证**:在信任或展示意图前,请用 `checkSporeIntent({ client, tx })` 校验——它将每个 Spore 协议 Action 与交易解析出的实际 Cell 逐项比对,发现误导或重复意图即抛出异常。面向 v3 脚本的构建方也可以传 `withIntent: false` 完全跳过 Action 附加。
+- **原生 Rust Mutant**——Mutant 现在是一个不可变 Cell,其 data 即 RISC-V ELF,由 Spore 合约通过 CKB-VM2 直接执行。用 `checkNativeMutantCode` 预检 ELF,`createMutant` 发布 Mutant Cell,`withMutants`/`getMutantIds` 管理 content-type 的 `mutant[]` 参数,铸造声明了 Mutant 的 Spore 前调用 `injectMutantReferences` 注入依赖。
+
+`SporeVersion.V3` 的预设条目在合约部署之前保持为空;期间可传入自定义 `SporeScriptInfoLike`(例如给 `createSpore`/`createSporeCluster`/`createMutant`)来对接测试部署。
+
 ## 下一步
 
 - [组装交易](/docs/guides/compose-transactions)——了解每个 Spore 操作通用的声明 → 填充 → 手续费 → 发送模式。
