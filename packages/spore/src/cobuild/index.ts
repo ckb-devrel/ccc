@@ -1,12 +1,17 @@
-import { ccc } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 import {
   Action,
   ActionVec,
-  Address,
   SporeAction,
   WitnessLayout,
+  WitnessLayoutFieldTags,
 } from "../codec/index.js";
-import { DEFAULT_COBUILD_INFO_HASH } from "../predefined/index.js";
+import {
+  DEFAULT_COBUILD_INFO_HASH,
+  SporeScriptInfoLike,
+  getClusterScriptInfos,
+  getSporeScriptInfos,
+} from "../predefined/index.js";
 
 export function assembleCreateSporeAction(
   sporeOutput: ccc.CellOutputLike,
@@ -160,13 +165,12 @@ export async function prepareSporeTransaction(
 ): Promise<ccc.Transaction> {
   let tx = ccc.Transaction.from(txLike);
 
-  if (actions.length === 0) {
-    return signer.prepareTransaction(tx);
-  }
-
   const existedActions = extractCobuildActionsFromTx(tx);
   tx = await signer.prepareTransaction(tx);
-  injectCobuild(tx, [existedActions, actions].flat());
+  const combined = [...existedActions, ...actions];
+  if (combined.length !== 0) {
+    injectCobuild(tx, combined);
+  }
   return tx;
 }
 
@@ -180,25 +184,53 @@ export function unpackCommonCobuildProof(
   }
 }
 
+function findCobuildMessage(tx: ccc.Transaction) {
+  let message:
+    { index: number; actions: ccc.DecodedType<typeof ActionVec> } | undefined;
+  const tags: number[] = Object.values(WitnessLayoutFieldTags);
+  for (const [index, witness] of tx.witnesses.entries()) {
+    const bytes = ccc.bytesFrom(witness);
+    if (
+      bytes.length < 4 ||
+      !tags.includes(Number(ccc.numFromBytes(bytes.slice(0, 4))))
+    ) {
+      continue; // ordinary Lock witnesses are not CoBuild Messages
+    }
+    let layout: ccc.DecodedType<typeof WitnessLayout>;
+    try {
+      layout = WitnessLayout.decode(bytes);
+    } catch {
+      throw new Error(`Malformed CoBuild witness at index ${index}`);
+    }
+    if (layout.type === "SighashAllOnly") {
+      continue;
+    }
+    if (layout.type !== "SighashAll") {
+      throw new Error(`Unsupported CoBuild witness at index ${index}`);
+    }
+    if (message !== undefined) {
+      throw new Error("Duplicated CoBuild Message");
+    }
+    message = { index, actions: layout.value.message.actions };
+  }
+  return message;
+}
+
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
 ): ccc.DecodedType<typeof ActionVec> {
-  if (tx.witnesses.length === 0) {
+  const message = findCobuildMessage(tx);
+  if (!message) {
     return [];
   }
-  const witnessLayout = unpackCommonCobuildProof(
-    tx.witnesses[tx.witnesses.length - 1],
-  );
-  if (!witnessLayout) {
-    return [];
+  if (message.index < tx.inputs.length) {
+    // Inputs may have been appended since this Message was injected. Keep all
+    // other input witnesses at their original positions while preparing Locks.
+    tx.witnesses[message.index] = "0x";
+  } else {
+    tx.witnesses.splice(message.index, 1);
   }
-  if (witnessLayout.type !== "SighashAll") {
-    throw new Error("Invalid cobuild proof type: SighashAll");
-  }
-
-  // Remove existed cobuild witness
-  tx.witnesses.pop();
-  return witnessLayout.value.message.actions;
+  return message.actions;
 }
 
 export function injectCobuild(
@@ -219,276 +251,272 @@ export function injectCobuild(
   );
 }
 
+export type SporeIntentCategory =
+  "Spore" | "Cluster" | "ClusterProxy" | "ClusterAgent";
+
+/** Reviewed deployment identities, grouped by their actual contract category. */
+export type SporeIntentScripts = Partial<
+  Record<SporeIntentCategory, SporeScriptInfoLike[]>
+>;
+
 /**
- * Verify the CoBuild Actions attached to a transaction against its actual
- * cell transitions.
+ * Check optional intent before displaying it or signing the final transaction.
+ * Returns only verified Spore-family Actions; foreign Actions remain untouched
+ * in the transaction and are excluded from this result, not authenticated.
  *
- * Since spore-contract#76, Spore/Cluster/Proxy/Agent type scripts accept
- * transactions without Actions, and an attached Action is intent metadata
- * that the scripts do not authenticate. Builders and wallets must call
- * this (or equivalent logic) before trusting or displaying an intent.
+ * Existing Spore/Cluster presets are recognized. Supply reviewed `scripts` for
+ * custom v3, Proxy and Agent deployments, and `scriptInfoHashes` for custom
+ * metadata schemas. These are caller trust anchors, not deployment attestation.
+ * Owner fields, operation shape, IDs, immutable transfer data and creation data
+ * hashes must match resolved cells. Agent creation also resolves its Proxy from
+ * code dependencies (including depGroups). Missing cells, ambiguous categories,
+ * duplicate Messages/Actions and misleading known-family metadata fail closed.
  *
- * For every action whose script hash matches a Spore-protocol type script
- * in the transaction, the declared IDs, owners and data hashes are
- * compared against the resolved cells; misleading or duplicate actions
- * throw. Actions of other protocols are passed through unchecked, and a
- * transaction without a CoBuild witness simply returns no actions.
- *
- * Cross-cell references that live outside the transaction (a Cluster
- * Agent's referenced Proxy ID, for example) cannot be verified here and
- * are skipped.
- *
- * @returns the verified actions
+ * No Message means no verified Actions, not certification of the transaction's
+ * complete effects. Callers must still display the actual cell changes and
+ * apply their wallet policy. This function does not verify signatures or fees.
  */
 export async function checkSporeIntent(params: {
   client: ccc.Client;
   tx: ccc.TransactionLike;
+  scripts?: SporeIntentScripts;
+  scriptInfoHashes?: ccc.HexLike[];
 }): Promise<ccc.DecodedType<typeof ActionVec>> {
   const { client } = params;
   const tx = ccc.Transaction.from(params.tx);
-
-  if (tx.witnesses.length === 0) {
+  const actions = findCobuildMessage(tx)?.actions;
+  if (actions === undefined || actions.length === 0) {
     return [];
   }
-  const witnessLayout = unpackCommonCobuildProof(
-    tx.witnesses[tx.witnesses.length - 1],
+
+  // Ignore args when recognizing deployments, but bind both codeHash/hashType.
+  const identity = (script: Pick<ccc.ScriptLike, "codeHash" | "hashType">) =>
+    ccc.Script.from({ ...script, args: "0x" }).hash();
+  const deployments = new Map<ccc.Hex, SporeIntentCategory>();
+  const defaults: SporeIntentScripts = {
+    Spore: Object.values(getSporeScriptInfos(client)).filter(
+      (s) => s !== undefined,
+    ),
+    Cluster: Object.values(getClusterScriptInfos(client)).filter(
+      (s) => s !== undefined,
+    ),
+  };
+  for (const category of [
+    "Spore",
+    "Cluster",
+    "ClusterProxy",
+    "ClusterAgent",
+  ] as const) {
+    for (const script of [
+      ...(defaults[category] ?? []),
+      ...(params.scripts?.[category] ?? []),
+    ]) {
+      const key = identity(script);
+      const previous = deployments.get(key);
+      if (previous !== undefined && previous !== category) {
+        throw new Error("Ambiguous Spore intent deployment category");
+      }
+      deployments.set(key, category);
+    }
+  }
+  const infoHashes = new Set(
+    (params.scriptInfoHashes ?? [DEFAULT_COBUILD_INFO_HASH]).map((hash) => {
+      const hex = ccc.hexFrom(hash);
+      if (ccc.bytesFrom(hex).length !== 32) {
+        throw new Error("Spore script info hash must be 32 bytes");
+      }
+      return hex;
+    }),
   );
-  if (!witnessLayout) {
-    return [];
-  }
-  if (witnessLayout.type !== "SighashAll") {
-    throw new Error("Invalid cobuild proof type: SighashAll");
-  }
-  const actions = witnessLayout.value.message.actions;
-
-  // Index every typed cell transition of the transaction by type hash.
-  // A type script hash includes its args, so each Spore-family cell has
-  // its own entry.
-  interface TransitionSide {
+  interface Side {
+    type: ccc.Script;
     lock: ccc.Script;
-    args: ccc.Hex;
     data: ccc.Hex;
   }
   interface Transition {
-    input?: TransitionSide;
-    output?: TransitionSide;
+    category: SporeIntentCategory;
+    input?: Side;
+    output?: Side;
   }
   const transitions = new Map<ccc.Hex, Transition>();
-
-  for (const input of tx.inputs) {
-    const cell = await client.getCell(input.previousOutput);
-    if (!cell || !cell.cellOutput.type) {
-      continue;
-    }
-    const type = ccc.Script.from(cell.cellOutput.type);
-    const transition = transitions.get(type.hash()) ?? {};
-    transition.input = {
-      lock: ccc.Script.from(cell.cellOutput.lock),
-      args: type.args,
-      data: cell.outputData,
-    };
-    transitions.set(type.hash(), transition);
-  }
-
-  tx.outputs.forEach((output, i) => {
-    if (!output.type) {
+  const add = (
+    side: "input" | "output",
+    output: ccc.CellOutput,
+    data: ccc.Hex,
+  ) => {
+    const type = output.type;
+    if (!type) {
       return;
     }
-    const type = ccc.Script.from(output.type);
-    const transition = transitions.get(type.hash()) ?? {};
-    transition.output = {
-      lock: ccc.Script.from(output.lock),
-      args: type.args,
-      data: tx.outputsData[i] ?? "0x",
-    };
-    transitions.set(type.hash(), transition);
-  });
-
-  const isAddress = (
-    address: ccc.DecodedType<typeof Address>,
-    lock: ccc.Script,
-  ) => address.type === "Script" && ccc.Script.from(address.value).eq(lock);
-
-  const seen = new Set<string>();
-  for (const action of actions) {
-    const transition = transitions.get(action.scriptHash);
-    if (!transition) {
-      continue; // not a Spore-protocol transition of this transaction
+    const category = deployments.get(identity(type));
+    if (!category) {
+      return;
     }
-
-    const sporeAction = SporeAction.decode(ccc.bytesFrom(action.data));
-    const key = `${action.scriptHash}:${sporeAction.type}`;
-    if (seen.has(key)) {
-      throw new Error(`Duplicated CoBuild action: ${key}`);
+    const key = type.hash();
+    const transition = transitions.get(key) ?? { category };
+    if (transition[side]) {
+      throw new Error(`Multiple Spore ${side} cells for ${key}`);
     }
-    seen.add(key);
-
-    const mustBe = (condition: boolean, what: string) => {
-      if (!condition) {
-        throw new Error(`Misleading CoBuild intent: ${what}`);
-      }
-    };
-
-    switch (sporeAction.type) {
-      case "CreateSpore": {
-        const { sporeId, to, dataHash } = sporeAction.value;
-        mustBe(transition.output !== undefined, "CreateSpore without output");
-        mustBe(transition.input === undefined, "CreateSpore over a spent cell");
-        mustBe(transition.output!.args === sporeId, "CreateSpore ID mismatch");
-        mustBe(
-          isAddress(to, transition.output!.lock),
-          "CreateSpore to mismatch",
-        );
-        mustBe(
-          ccc.hashCkb(ccc.bytesFrom(transition.output!.data)) === dataHash,
-          "CreateSpore data hash mismatch",
-        );
-        break;
-      }
-      case "TransferSpore": {
-        const { sporeId, from, to } = sporeAction.value;
-        mustBe(
-          transition.input !== undefined && transition.output !== undefined,
-          "TransferSpore requires both input and output",
-        );
-        mustBe(
-          transition.output!.args === sporeId,
-          "TransferSpore ID mismatch",
-        );
-        mustBe(
-          isAddress(from, transition.input!.lock),
-          "TransferSpore from mismatch",
-        );
-        mustBe(
-          isAddress(to, transition.output!.lock),
-          "TransferSpore to mismatch",
-        );
-        break;
-      }
-      case "MeltSpore": {
-        const { sporeId, from } = sporeAction.value;
-        mustBe(transition.input !== undefined, "MeltSpore without input");
-        mustBe(transition.output === undefined, "MeltSpore over a kept cell");
-        mustBe(transition.input!.args === sporeId, "MeltSpore ID mismatch");
-        mustBe(
-          isAddress(from, transition.input!.lock),
-          "MeltSpore from mismatch",
-        );
-        break;
-      }
-      case "CreateCluster": {
-        const { clusterId, to, dataHash } = sporeAction.value;
-        mustBe(transition.output !== undefined, "CreateCluster without output");
-        mustBe(
-          transition.input === undefined,
-          "CreateCluster over a spent cell",
-        );
-        mustBe(
-          transition.output!.args === clusterId,
-          "CreateCluster ID mismatch",
-        );
-        mustBe(
-          isAddress(to, transition.output!.lock),
-          "CreateCluster to mismatch",
-        );
-        mustBe(
-          ccc.hashCkb(ccc.bytesFrom(transition.output!.data)) === dataHash,
-          "CreateCluster data hash mismatch",
-        );
-        break;
-      }
-      case "TransferCluster": {
-        const { clusterId, from, to } = sporeAction.value;
-        mustBe(
-          transition.input !== undefined && transition.output !== undefined,
-          "TransferCluster requires both input and output",
-        );
-        mustBe(
-          transition.output!.args === clusterId,
-          "TransferCluster ID mismatch",
-        );
-        mustBe(
-          isAddress(from, transition.input!.lock),
-          "TransferCluster from mismatch",
-        );
-        mustBe(
-          isAddress(to, transition.output!.lock),
-          "TransferCluster to mismatch",
-        );
-        break;
-      }
-      case "CreateClusterProxy":
-      case "TransferClusterProxy":
-      case "MeltClusterProxy": {
-        const { clusterId, clusterProxyId } = sporeAction.value;
-        const sides: ("input" | "output")[] =
-          sporeAction.type === "MeltClusterProxy"
-            ? ["input"]
-            : sporeAction.type === "CreateClusterProxy"
-              ? ["output"]
-              : ["input", "output"];
-        for (const side of sides) {
-          mustBe(
-            transition[side] !== undefined,
-            `${sporeAction.type} without ${side}`,
-          );
-          const cell = transition[side]!;
-          mustBe(
-            cell.args === clusterProxyId,
-            `${sporeAction.type} proxy ID mismatch`,
-          );
-          mustBe(
-            ccc.bytesFrom(cell.data).length === 32 &&
-              ccc.hexFrom(ccc.bytesFrom(cell.data)) === clusterId,
-            `${sporeAction.type} cluster ID mismatch`,
-          );
-        }
-        if (sporeAction.type === "CreateClusterProxy") {
-          mustBe(
-            transition.input === undefined,
-            "CreateClusterProxy over a spent cell",
-          );
-        }
-        if (sporeAction.type === "MeltClusterProxy") {
-          mustBe(
-            transition.output === undefined,
-            "MeltClusterProxy over a kept cell",
-          );
-        }
-        break;
-      }
-      case "CreateClusterAgent":
-      case "TransferClusterAgent":
-      case "MeltClusterAgent": {
-        const { clusterId } = sporeAction.value;
-        const side =
-          sporeAction.type === "MeltClusterAgent" ? "input" : "output";
-        mustBe(
-          transition[side] !== undefined,
-          `${sporeAction.type} without ${side}`,
-        );
-        mustBe(
-          transition[side]!.args === clusterId,
-          `${sporeAction.type} cluster ID mismatch`,
-        );
-        if (sporeAction.type === "CreateClusterAgent") {
-          mustBe(
-            transition.input === undefined,
-            "CreateClusterAgent over a spent cell",
-          );
-        }
-        if (sporeAction.type === "MeltClusterAgent") {
-          mustBe(
-            transition.output === undefined,
-            "MeltClusterAgent over a kept cell",
-          );
-        }
-        // The referenced Proxy ID lives in a cell dependency outside the
-        // transaction and cannot be verified here.
-        break;
-      }
+    const length = ccc.bytesFrom(type.args).length;
+    if (
+      category === "ClusterProxy"
+        ? length !== 32 && length !== 40
+        : category === "ClusterAgent"
+          ? length !== 32
+          : length < 32
+    ) {
+      throw new Error(`Invalid ${category} ID length`);
     }
+    transition[side] = { type, lock: output.lock, data };
+    transitions.set(key, transition);
+  };
+  for (const [index, input] of tx.inputs.entries()) {
+    const cell = await client.getCell(input.previousOutput);
+    if (!cell) {
+      throw new Error(`Input cell not found at index ${index}`);
+    }
+    add("input", cell.cellOutput, cell.outputData);
+  }
+  for (const [index, output] of tx.outputs.entries()) {
+    if (tx.outputsData[index] === undefined) {
+      throw new Error(`Output data not found at index ${index}`);
+    }
+    add("output", output, tx.outputsData[index]);
   }
 
-  return actions;
+  // Lazy resolution: only Agent creation needs another cell's declared ID.
+  let dependencies: ccc.Cell[] | undefined;
+  const resolveDependencies = async () => {
+    if (dependencies) {
+      return dependencies;
+    }
+    const cells: ccc.Cell[] = [];
+    for (const dep of tx.cellDeps) {
+      const cell = await client.getCell(dep.outPoint);
+      if (!cell) {
+        throw new Error("Intent dependency cell not found");
+      }
+      if (dep.depType === "code") {
+        cells.push(cell);
+      } else {
+        for (const outPoint of mol
+          .vector(ccc.OutPoint)
+          .decode(cell.outputData)) {
+          const member = await client.getCell(outPoint);
+          if (!member) {
+            throw new Error("Intent depGroup member not found");
+          }
+          cells.push(member);
+        }
+      }
+    }
+    dependencies = cells;
+    return cells;
+  };
+  const mustBe = (condition: boolean, what: string) => {
+    if (!condition) {
+      throw new Error(`Misleading CoBuild intent: ${what}`);
+    }
+  };
+  const seen = new Set<ccc.Hex>();
+  const verified: ccc.DecodedType<typeof ActionVec> = [];
+  for (const action of actions) {
+    const transition = transitions.get(action.scriptHash);
+    const knownInfo = infoHashes.has(action.scriptInfoHash);
+    if (!transition && !knownInfo) {
+      continue;
+    } // foreign, excluded from verified result
+    mustBe(
+      transition !== undefined,
+      "Unrecognized Spore deployment or script hash",
+    );
+    mustBe(knownInfo, "Unrecognized Spore script info hash");
+    if (seen.has(action.scriptHash)) {
+      throw new Error("Duplicated CoBuild action");
+    }
+    seen.add(action.scriptHash);
+    const decoded = SporeAction.decode(action.data);
+    const { type: kind, value } = decoded;
+    const category = kind.replace(/^(Create|Transfer|Melt)/, "");
+    mustBe(
+      category === transition!.category,
+      `${kind} deployment category mismatch`,
+    );
+    const { input, output } = transition!;
+    if (kind.startsWith("Create")) {
+      mustBe(!input && !!output, `${kind} requires output without input`);
+    } else if (kind.startsWith("Transfer")) {
+      mustBe(!!input && !!output, `${kind} requires both input and output`);
+      mustBe(input!.data === output!.data, `${kind} modifies immutable data`);
+    } else {
+      mustBe(
+        !!input && !output,
+        `${kind} requires input without output (over a kept cell)`,
+      );
+    }
+    const side = output ?? input!;
+    const id = ccc.hexFrom(ccc.bytesFrom(side.type.args).slice(0, 32));
+    const declaredId =
+      "sporeId" in value
+        ? value.sporeId
+        : category === "ClusterProxy" && "clusterProxyId" in value
+          ? value.clusterProxyId
+          : value.clusterId;
+    mustBe(id === declaredId, `${kind} ID mismatch`);
+    if ("from" in value) {
+      mustBe(
+        value.from.type === "Script" &&
+          ccc.Script.from(value.from.value).eq(input!.lock),
+        `${kind} from mismatch`,
+      );
+    }
+    if ("to" in value) {
+      mustBe(
+        value.to.type === "Script" &&
+          ccc.Script.from(value.to.value).eq(output!.lock),
+        `${kind} to mismatch`,
+      );
+    }
+    if ("dataHash" in value) {
+      mustBe(
+        ccc.hashCkb(output!.data) === value.dataHash,
+        `${kind} data hash mismatch`,
+      );
+    }
+    if (category === "ClusterProxy" && "clusterId" in value) {
+      mustBe(side.data === value.clusterId, `${kind} cluster ID mismatch`);
+    }
+    if (category === "ClusterAgent") {
+      mustBe(
+        ccc.bytesFrom(side.data).length === 32,
+        `${kind} invalid Proxy type hash`,
+      );
+      if (decoded.type === "CreateClusterAgent") {
+        const proxy = (await resolveDependencies()).find(
+          (cell) => cell.cellOutput.type?.hash() === side.data,
+        );
+        mustBe(!!proxy?.cellOutput.type, `${kind} Proxy dependency missing`);
+        const proxyType = proxy!.cellOutput.type!;
+        mustBe(
+          deployments.get(identity(proxyType)) === "ClusterProxy",
+          `${kind} unrecognized Proxy deployment`,
+        );
+        const args = ccc.bytesFrom(proxyType.args);
+        mustBe(
+          args.length === 32 || args.length === 40,
+          `${kind} invalid Proxy args`,
+        );
+        mustBe(
+          ccc.hexFrom(args.slice(0, 32)) === decoded.value.clusterProxyId,
+          `${kind} Proxy ID mismatch`,
+        );
+        mustBe(
+          proxy!.outputData === decoded.value.clusterId,
+          `${kind} Proxy cluster mismatch`,
+        );
+      }
+    }
+    verified.push(action);
+  }
+  return verified;
 }

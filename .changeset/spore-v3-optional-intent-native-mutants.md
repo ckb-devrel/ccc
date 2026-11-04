@@ -8,3 +8,5 @@ feat(spore): prepare for Spore v3 — optional CoBuild intent and native Rust Mu
 - All Spore/Cluster builders accept `withIntent: false` to skip attaching CoBuild Actions, valid only for scripts that accept transactions without them (Spore v3).
 - Add `checkSporeIntent` to verify attached Actions against the resolved cells of a transaction, the downstream responsibility after CoBuild became optional intent metadata.
 - Add Mutant tooling: `withMutants`/`getMutantIds` content-type helpers, `checkNativeMutantCode` ELF preflight mirroring the Mutant extension contract, `createMutant`, `findMutant`, `injectMutantReferences`, and `checkMutantPayments`.
+
+Harden intent validation with category-bound deployment identities, a verified-only return value, complete owner and operation checks, all-witness Message handling and dependency-resolved Agent references. Preserve existing Actions during no-intent composition. Support paid Mutant/Proxy ID suffixes and all distinct MIME rule parameters, rejecting duplicate IDs and ambiguous rule matches.

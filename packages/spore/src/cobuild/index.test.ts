@@ -53,7 +53,13 @@ describe("checkSporeIntent", () => {
     const tx = ccc.Transaction.from({
       inputs: [{ previousOutput: inputCell.outPoint }],
     });
-    expect(await checkSporeIntent({ client, tx })).toEqual([]);
+    expect(
+      await checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).toEqual([]);
   });
 
   it("accepts a truthful create intent", async () => {
@@ -71,11 +77,15 @@ describe("checkSporeIntent", () => {
     const action = assembleCreateSporeAction(output, ccc.bytesFrom(content));
     injectCobuild(tx, [action]);
 
-    const checked = await checkSporeIntent({ client, tx });
+    const checked = await checkSporeIntent({
+      client,
+      scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+      tx,
+    });
     expect(checked.length).toBe(1);
   });
 
-  it("passes actions of unknown protocols through unchecked", async () => {
+  it("rejects a known Spore Action with an unmatched script hash", async () => {
     const output = {
       capacity,
       lock: lockB,
@@ -89,7 +99,13 @@ describe("checkSporeIntent", () => {
     const action = assembleCreateSporeAction(output, ccc.bytesFrom(content));
     injectCobuild(tx, [{ ...action, scriptHash: "0x" + "99".repeat(32) }]);
 
-    expect((await checkSporeIntent({ client, tx })).length).toBe(1);
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).rejects.toThrow(/script hash/);
   });
 
   it("rejects a misleading data hash", async () => {
@@ -109,9 +125,13 @@ describe("checkSporeIntent", () => {
     );
     injectCobuild(tx, [action]);
 
-    await expect(checkSporeIntent({ client, tx })).rejects.toThrow(
-      /data hash mismatch/,
-    );
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).rejects.toThrow(/data hash mismatch/);
   });
 
   it("rejects a misleading recipient", async () => {
@@ -131,9 +151,13 @@ describe("checkSporeIntent", () => {
     );
     injectCobuild(tx, [action]);
 
-    await expect(checkSporeIntent({ client, tx })).rejects.toThrow(
-      /to mismatch/,
-    );
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).rejects.toThrow(/to mismatch/);
   });
 
   it("rejects duplicated actions", async () => {
@@ -150,9 +174,13 @@ describe("checkSporeIntent", () => {
     const action = assembleCreateSporeAction(output, ccc.bytesFrom(content));
     injectCobuild(tx, [action, action]);
 
-    await expect(checkSporeIntent({ client, tx })).rejects.toThrow(
-      /Duplicated/,
-    );
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).rejects.toThrow(/Duplicated/);
   });
 
   it("accepts a truthful transfer intent and checks the sender", async () => {
@@ -181,7 +209,15 @@ describe("checkSporeIntent", () => {
     });
     const action = assembleTransferSporeAction(spentSpore.cellOutput, output);
     injectCobuild(tx, [action]);
-    expect((await checkSporeIntent({ client, tx })).length).toBe(1);
+    expect(
+      (
+        await checkSporeIntent({
+          client,
+          scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+          tx,
+        })
+      ).length,
+    ).toBe(1);
 
     const forged = ccc.Transaction.from({
       inputs: [{ previousOutput: inputCell.outPoint }],
@@ -194,9 +230,13 @@ describe("checkSporeIntent", () => {
         output,
       ),
     ]);
-    await expect(checkSporeIntent({ client, tx: forged })).rejects.toThrow(
-      /from mismatch/,
-    );
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx: forged,
+      }),
+    ).rejects.toThrow(/from mismatch/);
   });
 
   it("rejects a melt intent when the Spore survives in the outputs", async () => {
@@ -226,8 +266,12 @@ describe("checkSporeIntent", () => {
     const action = assembleMeltSporeAction(spentSpore.cellOutput);
     injectCobuild(tx, [action]);
 
-    await expect(checkSporeIntent({ client, tx })).rejects.toThrow(
-      /MeltSpore over a kept cell/,
-    );
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).rejects.toThrow(/MeltSpore.*kept cell/);
   });
 });

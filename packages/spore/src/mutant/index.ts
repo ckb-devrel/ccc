@@ -1,5 +1,4 @@
 import { ccc } from "@ckb-ccc/core";
-import { findSingletonCellByArgs } from "../helper/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -77,10 +76,11 @@ export function buildMutantArgs(
   if (payment === undefined) {
     return id;
   }
-  return ccc.hexFrom([
-    ...ccc.bytesFrom(id),
-    ...ccc.numLeToBytes(ccc.numFrom(payment), 8),
-  ]);
+  const threshold = ccc.numFrom(payment);
+  if (threshold < 0n || threshold > 0xffffffffffffffffn) {
+    throw new Error("Mutant payment must be a uint64");
+  }
+  return ccc.hexFrom([...ccc.bytesFrom(id), ...ccc.numLeToBytes(threshold, 8)]);
 }
 
 /**
@@ -93,7 +93,9 @@ export function withMutants(
   contentType: string,
   mutantIds: ccc.HexLike[],
 ): string {
-  if (contentType.includes("mutant[]")) {
+  if (
+    contentTypeParameters(contentType).some(([name]) => name === "mutant[]")
+  ) {
     throw new Error("Content type already has a mutant[] parameter");
   }
   if (mutantIds.length === 0) {
@@ -106,7 +108,34 @@ export function withMutants(
     }
     return ccc.hexFrom(bytes).slice(2);
   });
-  return `${contentType};mutant[]=${ids.join(",")}`;
+  if (new Set(ids).size !== ids.length) {
+    throw new Error("Duplicate Mutant ID");
+  }
+  return `${contentType.replace(/[ \t;]+$/, "")};mutant[]=${ids.join(",")}`;
+}
+
+function contentTypeParameters(contentType: string): [string, string][] {
+  // The contract treats ';' as a parameter delimiter even inside quoted values.
+  // Only SP/HTAB are optional whitespace; a space around '=' changes the key.
+  const parts = contentType.trim().split(";").slice(1);
+  const result: [string, string][] = [];
+  for (const [index, part] of parts.entries()) {
+    if (/^[ \t]*$/.test(part) && index === parts.length - 1) {
+      continue;
+    }
+    const equal = part.indexOf("=");
+    const name = part.slice(0, equal).replace(/^[ \t]+/, "");
+    const value = part.slice(equal + 1).replace(/[ \t]+$/, "");
+    if (
+      equal < 0 ||
+      !/^(?:mutant\[\]|[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.+%*'-]*)$/.test(name) ||
+      !/^(?:"(?:[^"\\\n]|\\[^\n])*"|[a-zA-Z0-9!#$&^_.+%*',-]*)$/.test(value)
+    ) {
+      throw new Error("Invalid content-type parameter");
+    }
+    result.push([name, value]);
+  }
+  return result;
 }
 
 /**
@@ -117,24 +146,27 @@ export function withMutants(
  * @returns the parsed Mutant IDs, empty if no `mutant[]` is present
  */
 export function getMutantIds(contentType: string): ccc.Hex[] {
-  const params = contentType.split(";");
-  const mutantParam = params
-    .slice(1)
-    .find((param) => param.trimStart().startsWith("mutant[]="));
-  if (mutantParam === undefined) {
-    return [];
-  }
-
-  const value = mutantParam.slice(mutantParam.indexOf("=") + 1);
-  return value.split(",").map((id) => {
-    const trimmed = id.trim();
-    if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) {
-      throw new Error(
-        `Invalid Mutant ID in content type: expected 64 hex characters without 0x prefix, got "${id}"`,
-      );
+  const ids: ccc.Hex[] = [];
+  const seen = new Set<ccc.Hex>();
+  for (const [name, value] of contentTypeParameters(contentType)) {
+    if (name !== "mutant[]") {
+      continue;
     }
-    return ccc.hexFrom(trimmed.toLowerCase());
-  });
+    for (const id of value.split(",")) {
+      if (!/^[0-9a-fA-F]{64}$/.test(id)) {
+        throw new Error(
+          "Invalid Mutant ID: expected 64 hex characters without 0x prefix",
+        );
+      }
+      const normalized = ccc.hexFrom(id.toLowerCase());
+      if (seen.has(normalized)) {
+        throw new Error("Duplicate Mutant ID");
+      }
+      seen.add(normalized);
+      ids.push(normalized);
+    }
+  }
+  return ids;
 }
 
 /**
@@ -151,11 +183,44 @@ export async function findMutant(
     }
   | undefined
 > {
-  return findSingletonCellByArgs(
-    client,
-    id,
-    scripts ?? Object.values(getMutantScriptInfos(client)),
-  );
+  const mutantId = ccc.hexFrom(id);
+  if (ccc.bytesFrom(mutantId).length !== 32) {
+    throw new Error("Mutant ID must be 32 bytes");
+  }
+  let found: { cell: ccc.Cell; scriptInfo: SporeScriptInfo } | undefined;
+  for (const info of scripts ?? Object.values(getMutantScriptInfos(client))) {
+    if (!info) {
+      continue;
+    }
+    const scriptInfo = SporeScriptInfo.from(info);
+    for await (const cell of client.findCells({
+      script: { ...scriptInfo, args: mutantId },
+      scriptType: "type",
+      scriptSearchMode: "prefix",
+      withData: true,
+    })) {
+      const type = cell.cellOutput.type;
+      if (
+        !type ||
+        type.codeHash !== scriptInfo.codeHash ||
+        type.hashType !== scriptInfo.hashType
+      ) {
+        continue;
+      }
+      const args = ccc.bytesFrom(type.args);
+      if (
+        (args.length !== 32 && args.length !== 40) ||
+        ccc.hexFrom(args.slice(0, 32)) !== mutantId
+      ) {
+        continue;
+      }
+      if (found && !found.cell.outPoint.eq(cell.outPoint)) {
+        throw new Error(`Ambiguous Mutant ID ${mutantId}`);
+      }
+      found = { cell, scriptInfo };
+    }
+  }
+  return found;
 }
 
 /**
@@ -171,9 +236,9 @@ export function addMutantCellDep(
 /**
  * Resolve Mutant cells by ID and add them as code dependencies.
  *
- * Use this before sending a transaction whose Spores declare Mutants in
- * their content type; the Spore contract rejects mints whose declared
- * Mutant cells are missing from the dependencies.
+ * Use this before minting, transferring or melting a Spore whose content
+ * type declares Mutants. Include all IDs returned by getMutantIds; the
+ * contract requires the rule dependencies on every lifecycle operation.
  */
 export async function injectMutantReferences(params: {
   client: ccc.Client;
@@ -297,7 +362,12 @@ export async function createMutant(params: {
 }> {
   const { signer, payment, to } = params;
   const code = checkNativeMutantCode(params.code);
-  const scriptInfo = params.scriptInfo ?? getMutantScriptInfo(signer.client);
+  const scriptInfo = SporeScriptInfo.from(
+    params.scriptInfo ?? getMutantScriptInfo(signer.client),
+  );
+  if (scriptInfo.hashType !== "data2") {
+    throw new Error("Native Mutant deployment requires data2");
+  }
 
   const tx = ccc.Transaction.from(params.tx ?? {});
   await tx.completeInputsAtLeastOne(signer);
