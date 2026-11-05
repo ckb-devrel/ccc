@@ -9,6 +9,7 @@ export async function prepareCluster(
   data: SporeDataView,
   clusterMode?: "lockProxy" | "clusterCell" | "skip",
   scriptInfoHash?: ccc.HexLike,
+  withIntent?: boolean,
 ): Promise<ccc.EncodableType<typeof Action> | undefined> {
   // skip if the spore is not belong to a cluster
   if (!data.clusterId || clusterMode === "skip") {
@@ -74,7 +75,7 @@ export async function prepareCluster(
         depType: "code",
       });
 
-      if (scriptInfo.cobuild) {
+      if (withIntent !== false && scriptInfo.cobuild) {
         return assembleTransferClusterAction(
           cluster.cellOutput,
           cluster.cellOutput,

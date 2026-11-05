@@ -62,6 +62,24 @@ export const SCRIPTS_SPORE_TESTNET: Record<
       },
     ],
   },
+  // Pending the testnet deployment of spore-contract PRs #75/#76.
+  [SporeVersion.V3]: undefined,
+});
+
+/**
+ * Mutant extension scripts. The v3 entry is the native Rust Mutant
+ * extension (`spore_extension_rust`, `data2`) from spore-contract#75:
+ * its cell data is the executed RISC-V ELF itself.
+ */
+export const SCRIPTS_MUTANT_TESTNET: Record<
+  SporeVersion,
+  SporeScriptInfoLike | undefined
+> = Object.freeze({
+  [SporeVersion.V1]: undefined,
+  [SporeVersion.V2]: undefined,
+  [SporeVersion.DID]: undefined,
+  // Pending the testnet deployment of spore-contract#75.
+  [SporeVersion.V3]: undefined,
 });
 
 export const SCRIPTS_CLUSTER_TESTNET: Record<
@@ -104,4 +122,6 @@ export const SCRIPTS_CLUSTER_TESTNET: Record<
     ],
   },
   [SporeVersion.DID]: undefined,
+  // Pending the testnet deployment of spore-contract PRs #75/#76.
+  [SporeVersion.V3]: undefined,
 });

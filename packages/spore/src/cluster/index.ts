@@ -73,6 +73,7 @@ export async function assertCluster(
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of new cluster, default spore version if undefined
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
  *  - **tx**: a new transaction that contains created Cluster cell
  *  - **id**: the id of the created Cluster cell
@@ -84,11 +85,12 @@ export async function createSporeCluster(params: {
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
   id: ccc.Hex;
 }> {
-  const { signer, data, to, scriptInfoHash } = params;
+  const { signer, data, to, scriptInfoHash, withIntent } = params;
   const scriptInfo = params.scriptInfo ?? getClusterScriptInfo(signer.client);
 
   // prepare transaction
@@ -113,15 +115,16 @@ export async function createSporeCluster(params: {
   await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
 
   // generate cobuild action
-  const actions = scriptInfo.cobuild
-    ? [
-        assembleCreateClusterAction(
-          tx.outputs[tx.outputs.length - 1],
-          packedClusterData,
-          scriptInfoHash,
-        ),
-      ]
-    : [];
+  const actions =
+    withIntent !== false && scriptInfo.cobuild
+      ? [
+          assembleCreateClusterAction(
+            tx.outputs[tx.outputs.length - 1],
+            packedClusterData,
+            scriptInfoHash,
+          ),
+        ]
+      : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
@@ -137,6 +140,7 @@ export async function createSporeCluster(params: {
  * @param params.to the new owner of the Cluster cell
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
  *  - **tx**: a new transaction that contains transferred Cluster cell
  */
@@ -147,10 +151,11 @@ export async function transferSporeCluster(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, to, scripts, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash, withIntent } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
@@ -175,15 +180,16 @@ export async function transferSporeCluster(params: {
   await tx.addCellDepInfos(signer.client, clusterScriptInfo.cellDeps);
 
   // generate cobuild action
-  const actions = clusterScriptInfo.cobuild
-    ? [
-        assembleTransferClusterAction(
-          cluster.cellOutput,
-          tx.outputs[tx.outputs.length - 1],
-          scriptInfoHash,
-        ),
-      ]
-    : [];
+  const actions =
+    withIntent !== false && clusterScriptInfo.cobuild
+      ? [
+          assembleTransferClusterAction(
+            cluster.cellOutput,
+            tx.outputs[tx.outputs.length - 1],
+            scriptInfoHash,
+          ),
+        ]
+      : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
