@@ -111,6 +111,24 @@ describe("contentType mutant[] parameter", () => {
     expect(getMutantIds("text/plain")).toEqual([]);
   });
 
+  it.each(["", " \r\n\t", "text", "/plain", "!text/plain", "text /plain"])(
+    "rejects the contract-invalid media type %j before adding or parsing IDs",
+    (input) => {
+      expect(() => withMutants(input, ids)).toThrow(/content-type/);
+      expect(() =>
+        getMutantIds(`${input};mutant[]=${ids[0].slice(2)}`),
+      ).toThrow(/content-type/);
+    },
+  );
+
+  it.each(["text/plain", "*/*", "application/vnd.example.item+json"])(
+    "keeps the contract-supported media type %s",
+    (input) => {
+      expect(getMutantIds(input)).toEqual([]);
+      expect(getMutantIds(withMutants(input, ids))).toEqual(ids);
+    },
+  );
+
   it("rejects duplicates and empty ID lists on build", () => {
     expect(() => withMutants("text/plain;mutant[]=x", ids)).toThrow(/already/);
     expect(() => withMutants("text/plain", [])).toThrow(/At least one/);

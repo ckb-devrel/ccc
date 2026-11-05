@@ -33,6 +33,7 @@ function clientFor(cells: ccc.Cell[]) {
     findCells: vi.fn(async function* (search: ccc.ClientIndexerSearchKeyLike) {
       expect(search.scriptSearchMode).toBe("prefix");
       expect(search.withData).toBe(true);
+      expect(search.scriptType).toBe("type");
       yield* cells; // even an overbroad response must be checked locally
     }),
     getCell: vi.fn(async (outPoint: ccc.OutPointLike) =>
@@ -43,6 +44,27 @@ function clientFor(cells: ccc.Cell[]) {
 }
 
 describe("native Mutant references", () => {
+  it.each(["data", "data1", "type"] as const)(
+    "rejects %s rule descriptors before lookup or dependency injection",
+    async (hashType) => {
+      const rule = cell();
+      rule.cellOutput.type!.hashType = hashType;
+      const client = clientFor([rule]);
+      const findCells = vi.spyOn(client, "findCells");
+      const scripts = [{ ...info, hashType }];
+      await expect(findMutant(client, id, scripts)).rejects.toThrow(/data2/);
+      const tx = ccc.Transaction.from({
+        cellDeps: [{ outPoint: point(9), depType: "code" }],
+        witnesses: ["0x1234"],
+      });
+      const before = tx.toHex();
+      await expect(
+        injectMutantReferences({ client, tx, mutantIds: [id], scripts }),
+      ).rejects.toThrow(/data2/);
+      expect(findCells).not.toHaveBeenCalled();
+      expect(tx.toHex()).toBe(before);
+    },
+  );
   it.each([undefined, 0n, 100n])(
     "looks up and injects a rule with payment %s",
     async (payment) => {

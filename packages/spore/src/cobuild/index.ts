@@ -163,7 +163,7 @@ export async function prepareSporeTransaction(
   txLike: ccc.TransactionLike,
   actions: ccc.EncodableType<typeof ActionVec>,
 ): Promise<ccc.Transaction> {
-  let tx = ccc.Transaction.from(txLike);
+  let tx = ccc.Transaction.from(txLike).clone();
 
   const existedActions = extractCobuildActionsFromTx(tx);
   tx = await signer.prepareTransaction(tx);

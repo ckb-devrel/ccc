@@ -5,6 +5,7 @@ import {
   assembleCreateSporeAction,
   checkSporeIntent,
   injectCobuild,
+  prepareSporeTransaction,
   unpackCommonCobuildProof,
 } from "../cobuild/index.js";
 import { packRawClusterData, packRawSporeData } from "../codec/index.js";
@@ -118,6 +119,67 @@ async function build(
 }
 
 describe("optional intent builder compatibility", () => {
+  it.each([
+    [false, false],
+    [false, true],
+    [true, false],
+    [true, true],
+  ])(
+    "preserves the caller on preparation failure and retry (input-slot Message: %s, new Actions: %s)",
+    async (inInputSlot, withNewAction) => {
+      const f = setup();
+      const output = {
+        capacity: 100000000000n,
+        lock,
+        type: { ...spore, args: id },
+      };
+      const tx = ccc.Transaction.from({
+        inputs: inInputSlot ? [] : f.tx.inputs,
+        outputs: [output],
+        outputsData: ["0x"],
+      });
+      const existing = assembleCreateSporeAction(output, "0x");
+      injectCobuild(tx, [existing]);
+      if (inInputSlot) {
+        tx.inputs.push(f.tx.inputs[0]);
+      }
+      const actions = withNewAction
+        ? [
+            assembleCreateSporeAction(
+              { ...output, type: { ...spore, args: hex("66") } },
+              "0x",
+            ),
+          ]
+        : [];
+      let attempts = 0;
+      f.signer.prepareTransaction = vi.fn(
+        async (txLike: ccc.TransactionLike) => {
+          const prepared = ccc.Transaction.from(txLike);
+          prepared.outputs[0].capacity += 1n;
+          prepared.witnesses[0] = "0x1234";
+          if (attempts++ === 0) {
+            throw new Error("Preparation rejected");
+          }
+          return prepared;
+        },
+      );
+      const before = tx.toHex();
+      await expect(
+        prepareSporeTransaction(f.signer, tx, actions),
+      ).rejects.toThrow("Preparation rejected");
+      expect(tx.toHex()).toBe(before);
+
+      const retried = await prepareSporeTransaction(f.signer, tx, actions);
+      expect(retried).not.toBe(tx);
+      expect(tx.toHex()).toBe(before);
+      expect(retried.outputs[0].capacity).toBe(output.capacity + 1n);
+      expect(retried.witnesses[0]).toBe("0x1234");
+      expect(unpackCommonCobuildProof(retried.witnesses.at(-1)!)).toEqual({
+        type: "SighashAll",
+        value: { seal: "0x", message: { actions: [existing, ...actions] } },
+      });
+    },
+  );
   it.each(operations)(
     "%s preserves default Actions and opts out only explicitly",
     async (operation) => {

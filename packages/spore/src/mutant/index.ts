@@ -115,9 +115,21 @@ export function withMutants(
 }
 
 function contentTypeParameters(contentType: string): [string, string][] {
+  const normalized = contentType.trim();
+  const slash = normalized.indexOf("/");
+  // Mirror MIME::str_parse's prefix checks without tightening its subtype grammar.
+  if (
+    slash < 0 ||
+    !/^[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.+%*'-]*$/.test(
+      normalized.slice(0, slash),
+    ) ||
+    !/[a-zA-Z0-9!#$&^_.+%*'-]/.test(normalized.slice(slash + 1))
+  ) {
+    throw new Error("Invalid content-type media type");
+  }
   // The contract treats ';' as a parameter delimiter even inside quoted values.
   // Only SP/HTAB are optional whitespace; a space around '=' changes the key.
-  const parts = contentType.trim().split(";").slice(1);
+  const parts = normalized.split(";").slice(1);
   const result: [string, string][] = [];
   for (const [index, part] of parts.entries()) {
     if (/^[ \t]*$/.test(part) && index === parts.length - 1) {
@@ -170,7 +182,7 @@ export function getMutantIds(contentType: string): ccc.Hex[] {
 }
 
 /**
- * Search an on-chain Mutant cell by its ID.
+ * Search an on-chain native Mutant cell by its ID using data2 deployments.
  */
 export async function findMutant(
   client: ccc.Client,
@@ -193,6 +205,9 @@ export async function findMutant(
       continue;
     }
     const scriptInfo = SporeScriptInfo.from(info);
+    if (scriptInfo.hashType !== "data2") {
+      throw new Error("Native Mutant lookup requires data2");
+    }
     for await (const cell of client.findCells({
       script: { ...scriptInfo, args: mutantId },
       scriptType: "type",
