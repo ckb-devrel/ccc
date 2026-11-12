@@ -1,5 +1,13 @@
 # @ckb-ccc/ssri
 
+## 0.4.6
+
+### Patch Changes
+
+- [#607](https://github.com/ckb-devrel/ccc/pull/607) [`d6f77ae`](https://github.com/ckb-devrel/ccc/commit/d6f77aefd25ef5af184661296cdd0c9a81beb4e1) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Preserve SSRI executor error messages and original causes for transport, execution, and decoding failures, including non-Error thrown values.
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c), [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4)]:
+  - @ckb-ccc/core@1.23.1
+
 ## 0.4.5
 
 ### Patch Changes

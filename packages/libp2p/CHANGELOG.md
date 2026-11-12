@@ -1,5 +1,13 @@
 # @ckb-ccc/libp2p
 
+## 0.3.3
+
+### Patch Changes
+
+- [#631](https://github.com/ckb-devrel/ccc/pull/631) [`1c28847`](https://github.com/ckb-devrel/ccc/commit/1c288470881d5ca376f587cffdf24fb15c3eb59f) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Upgrade the Khie WebRTC transport to v7 together with compatible libp2p and registrar interfaces.
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c), [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4)]:
+  - @ckb-ccc/core@1.23.1
+
 ## 0.3.2
 
 ### Patch Changes
