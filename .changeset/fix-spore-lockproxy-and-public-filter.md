@@ -1,6 +1,5 @@
 ---
 "@ckb-ccc/spore": patch
-"@ckb-ccc/core": patch
 ---
 
-fix(spore): restore the selected lock-proxy input via an output tagged with that input's outPoint (survives clone/JSON, stays per-transaction), keep one owner restore per cluster, and treat `clusterId: ""` as public spores only
+fix(spore): keep a single lock-proxy output for one cluster owner via `Script.eq`, and treat `clusterId: ""` as public spores only
