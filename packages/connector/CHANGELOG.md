@@ -1,5 +1,25 @@
 # @ckb-ccc/connector
 
+## 2.4.0
+
+### Minor Changes
+
+- [#555](https://github.com/ckb-devrel/ccc/pull/555) [`6118633`](https://github.com/ckb-devrel/ccc/commit/6118633d17fa8d6e91b5b3573f7057738995689b) Thanks [@yixyxiu](https://github.com/yixyxiu)! - feat(connector): add localization support
+  
+  - New `locale` property on `<ccc-connector>` and `ccc.Provider`; English by default, `zh-Hans` built in. The value must be an exact built-in tag; anything else falls back to English.
+  - `ccc.connectorLocales` lists the built-in language tags at runtime.
+  - Fee rate options are selected by a stable id instead of their display label.
+  - Errors raised by the connector itself (camera access, Khie pairing) are translated at render time via `ConnectorError`.
+
+### Patch Changes
+
+- [#631](https://github.com/ckb-devrel/ccc/pull/631) [`1c28847`](https://github.com/ckb-devrel/ccc/commit/1c288470881d5ca376f587cffdf24fb15c3eb59f) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Upgrade the Khie WebRTC transport to v7 together with compatible libp2p and registrar interfaces.
+
+- [#633](https://github.com/ckb-devrel/ccc/pull/633) [`0fb264a`](https://github.com/ckb-devrel/ccc/commit/0fb264a7c8b338e55c977a99bbb815679717c0bd) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Ignore malformed or unavailable saved connection data so the connector can mount without a saved wallet selection.
+- Updated dependencies [[`1c28847`](https://github.com/ckb-devrel/ccc/commit/1c288470881d5ca376f587cffdf24fb15c3eb59f)]:
+  - @ckb-ccc/libp2p@0.3.3
+  - @ckb-ccc/ccc@1.3.7
+
 ## 2.3.2
 
 ### Patch Changes
