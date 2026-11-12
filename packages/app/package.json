@@ -31,7 +31,7 @@
     "@libp2p/circuit-relay-v2": "^4.2.11",
     "@libp2p/identify": "^4.1.12",
     "@libp2p/interface": "^3.2.5",
-    "@libp2p/webrtc": "^6.0.29",
+    "@libp2p/webrtc": "^7.0.2",
     "@libp2p/websockets": "^10.1.19",
     "@multiformats/multiaddr": "^13.0.3",
     "@scure/bip32": "^2.0.0",
