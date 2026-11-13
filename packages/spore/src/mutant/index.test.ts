@@ -107,6 +107,47 @@ describe("contentType mutant[] parameter", () => {
     expect(getMutantIds(contentType)).toEqual(ids);
   });
 
+  // Unicode White_Space used by Rust char::is_whitespace, not ECMAScript trim.
+  it.each([
+    0x0009, 0x000a, 0x000b, 0x000c, 0x000d, 0x0020, 0x0085, 0x00a0, 0x1680,
+    0x2000, 0x2001, 0x2002, 0x2003, 0x2004, 0x2005, 0x2006, 0x2007, 0x2008,
+    0x2009, 0x200a, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000,
+  ])("matches contract outer whitespace code point %i", (codePoint) => {
+    const whitespace = String.fromCodePoint(codePoint);
+    const raw = `${whitespace}text/plain;mutant[]=${ids[0].slice(2)}${whitespace}`;
+    expect(getMutantIds(raw)).toEqual([ids[0]]);
+    const constructed = withMutants(
+      `${whitespace}text/plain${whitespace}`,
+      ids,
+    );
+    expect(constructed).toBe(
+      `text/plain;mutant[]=${ids.map((id) => id.slice(2)).join(",")}`,
+    );
+    expect(getMutantIds(constructed)).toEqual(ids);
+  });
+
+  it.each([0xfeff, 0x180e, 0x200b])(
+    "does not trim non-whitespace code point %i from the main type",
+    (codePoint) => {
+      const input = `${String.fromCodePoint(codePoint)}text/plain`;
+      expect(() => withMutants(input, ids)).toThrow(/content-type/);
+      expect(() =>
+        getMutantIds(`${input};mutant[]=${ids[0].slice(2)}`),
+      ).toThrow(/content-type/);
+    },
+  );
+
+  it.each(["\u0085", "\u00a0"])(
+    "does not treat inner Unicode whitespace %j as parameter OWS",
+    (whitespace) => {
+      const input = `text/plain;${whitespace}charset=utf8`;
+      expect(() => withMutants(input, ids)).toThrow(/content-type/);
+      expect(() =>
+        getMutantIds(`${input};mutant[]=${ids[0].slice(2)}`),
+      ).toThrow(/content-type/);
+    },
+  );
+
   it("returns empty when no mutant[] is present", () => {
     expect(getMutantIds("text/plain")).toEqual([]);
   });

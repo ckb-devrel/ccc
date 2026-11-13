@@ -111,11 +111,16 @@ export function withMutants(
   if (new Set(ids).size !== ids.length) {
     throw new Error("Duplicate Mutant ID");
   }
-  return `${contentType.trim().replace(/[ \t;]+$/, "")};mutant[]=${ids.join(",")}`;
+  return `${trimContentTypeWhitespace(contentType).replace(/[ \t;]+$/, "")};mutant[]=${ids.join(",")}`;
+}
+
+function trimContentTypeWhitespace(contentType: string): string {
+  // Rust str::trim uses Unicode White_Space: includes U+0085, excludes U+FEFF.
+  return contentType.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, "");
 }
 
 function contentTypeParameters(contentType: string): [string, string][] {
-  const normalized = contentType.trim();
+  const normalized = trimContentTypeWhitespace(contentType);
   const slash = normalized.indexOf("/");
   // Mirror MIME::str_parse's prefix checks without tightening its subtype grammar.
   if (
