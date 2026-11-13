@@ -234,6 +234,55 @@ The `id` returned by `createSpore` is the **type script args** of the Spore cell
 - `"clusterCell"` — higher cost, puts the actual cluster cell in the transaction. Use this when the cluster's lock is different from the signer's.
 - `"skip"` — only if you are manually handling cluster inputs/outputs yourself.
 
+## Spore v3 (upcoming)
+
+The proposed contracts in spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) and [#76](https://github.com/sporeprotocol/spore-contract/pull/76) introduce native Mutants and optional core CoBuild Actions. Existing presets and the default V2 behavior stay unchanged. V3 presets remain empty until reviewed deployments are published; supply custom `SporeScriptInfoLike` descriptors to use a local candidate.
+
+### Optional intent
+
+All five Spore/Cluster builders accept `withIntent: false` to omit their new Actions. Use it only when every affected script accepts absent Actions. Existing transaction Actions are preserved and reattached after Lock preparation, including when a builder adds inputs without a new Action.
+
+Before displaying metadata, call `checkSporeIntent` from `@ckb-ccc/spore/advanced`. **Display only its returned verified Spore Actions as verified.** Foreign Actions remain untouched in the transaction but are excluded from that result. Always show the actual transaction changes too: an empty result does not certify that no assets move.
+
+The checker recognizes existing Spore/Cluster presets by code hash and hash type. Pass reviewed custom deployments by category through `scripts: { Spore: [v3Spore], Cluster: [v3Cluster], ClusterProxy: [proxyInfo], ClusterAgent: [agentInfo] }`. These are trust anchors supplied by the application, not claims of deployment provenance. If a builder uses a custom `scriptInfoHash`, explicitly allow it through `scriptInfoHashes`; the default is `DEFAULT_COBUILD_INFO_HASH`.
+
+All eleven Action variants bind their IDs, owners and operation shape to resolved cells. Transfers preserve data; Spore/Cluster retain contract-valid ID suffixes, and Proxy IDs use the first 32 bytes of valid 32/40-byte args. Agent creation resolves the referenced Proxy from code deps or depGroups, checks its approved deployment, ID and Cluster binding. Missing inputs/dependencies, unknown known-family metadata, duplicate cells/Actions/Messages and malformed CoBuild layouts fail closed. The checker scans every witness so a trailing ordinary witness cannot hide a Message. Signature verification, fees and application authorization remain separate wallet responsibilities.
+
+### Native rules
+
+A native Mutant stores a compiled RISC-V ELF in immutable Cell data. Use `checkNativeMutantCode` for bounded ELF header preflight and `createMutant` with a reviewed `type` deployment to construct publication. The VM still decides executable validity and the rule result.
+
+`withMutants` and `getMutantIds` manage comma-separated 32-byte IDs without a `0x` prefix. Parsing includes every `mutant[]` parameter and rejects global duplicate IDs. `findMutant` resolves either 32-byte args or the 40-byte ID/payment form, validates deployment identity and rejects ambiguous matches. Use `injectMutantReferences` before **mint, transfer and melt**, including every declared rule dependency; a payment suffix does not change the referenced ID. `checkMutantPayments` checks net-capacity thresholds for **one Spore type-script group per call**. Callers must partition the declared Mutant outpoints and invoke it separately for each group, even when payee Locks match; the helper does not infer group membership, so passing independent groups together overcounts their thresholds and can reject a valid transaction.
+
+These are SDK construction and offline validation helpers. Local package checks do not replace fresh CCC-built signed devnet transactions and exact-byte VM replay for release acceptance. The obsolete SDK PR #142's acceptance evidence does not certify this rewrite.
+
+### Type-bound deployments and governance
+
+New v3 deployment references use `hashType: "type"`. `createSporeCodeDeployment`
+derives that reference from standard code-Cell Type ID args and records the
+reviewed governance Lock. Pass its `scriptInfo` to builders. Its dependency
+metadata lets CCC resolve a live successor rather than keeping a spent OutPoint.
+`createSporeDeploymentProfile` groups distinct Spore, Cluster and Mutant code
+identities; optional Proxy/Agent entries use the same mechanism. The profile's
+Type IDs must match the reviewed contract build plan.
+
+Governance is implemented by the deployment's existing Lock, not by a strategy
+label in this SDK. Before signing, `resolveSporeCodeDeployment` resolves the
+live code Cell and checks its standard Type ID, reviewed Lock and optional
+`expectedDataHash`. Omit that binary pin only when the application intends to
+follow authorized code upgrades. A Lock rotation requires a newly reviewed
+descriptor. This helper does not audit the Lock's semantics or certify that it
+prevents code-Cell destruction. Keep exact executable pins in application
+replay profiles when execution semantics must remain fixed.
+
+Use `createSpore({ scriptInfo: profile.spore.scriptInfo,
+clusterScripts: [profile.cluster.scriptInfo], ... })` for a custom type-bound
+Cluster. Supply the deployment list appropriate for the intended old/new
+Collection; compatibility is still constrained by contract allowlists.
+Mutant code dependencies are injected with the same reviewed native profile.
+Historical presets and the V2 default remain unchanged; existing NFTs are not
+silently migrated. Type-bound native execution requires Meepo activation.
+
 ## Next steps
 
 - [Compose transactions](/docs/guides/compose-transactions) — understand the declare → fill → fee → send pattern used in every Spore operation.

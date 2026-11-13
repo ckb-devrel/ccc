@@ -8,6 +8,7 @@ const packages = [
   "packages/libp2p",
   "packages/nip07",
   "packages/okx",
+  "packages/spore",
   "packages/ssri",
   "packages/type-id",
   "packages/uni-sat",
