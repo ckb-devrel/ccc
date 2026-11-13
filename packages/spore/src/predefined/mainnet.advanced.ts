@@ -81,7 +81,7 @@ export const SCRIPTS_CLUSTER_MAINNET: Record<
 
 /**
  * Mutant extension scripts. The v3 entry is the native Rust Mutant
- * extension (`spore_extension_rust`, `data2`) from spore-contract#75:
+ * extension (`spore_extension_rust`, `type`) from spore-contract#75:
  * its cell data is the executed RISC-V ELF itself.
  */
 export const SCRIPTS_MUTANT_MAINNET: Record<

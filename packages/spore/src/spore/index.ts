@@ -79,6 +79,7 @@ export async function assertSpore(
  *   - skip: don't handle the cluster logic
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of Spore cell, if not provided, the default script info will be used
+ * @param params.clusterScripts reviewed Cluster deployments, including a custom type-bound profile when needed
  * @param params.scriptInfoHash the script info hash used in cobuild
  * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
@@ -92,6 +93,7 @@ export async function createSpore(params: {
   clusterMode?: "lockProxy" | "clusterCell" | "skip";
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
+  clusterScripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
   withIntent?: boolean;
 }): Promise<{
@@ -146,6 +148,7 @@ export async function createSpore(params: {
     clusterMode,
     undefined,
     withIntent,
+    params.clusterScripts,
   );
   if (action) {
     actions.push(action);

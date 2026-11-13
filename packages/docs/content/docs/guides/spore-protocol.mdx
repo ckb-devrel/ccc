@@ -250,11 +250,38 @@ All eleven Action variants bind their IDs, owners and operation shape to resolve
 
 ### Native rules
 
-A native Mutant stores a compiled RISC-V ELF in immutable Cell data. Use `checkNativeMutantCode` for bounded ELF header preflight and `createMutant` with a reviewed `data2` deployment to construct publication. The VM still decides executable validity and the rule result.
+A native Mutant stores a compiled RISC-V ELF in immutable Cell data. Use `checkNativeMutantCode` for bounded ELF header preflight and `createMutant` with a reviewed `type` deployment to construct publication. The VM still decides executable validity and the rule result.
 
 `withMutants` and `getMutantIds` manage comma-separated 32-byte IDs without a `0x` prefix. Parsing includes every `mutant[]` parameter and rejects global duplicate IDs. `findMutant` resolves either 32-byte args or the 40-byte ID/payment form, validates deployment identity and rejects ambiguous matches. Use `injectMutantReferences` before **mint, transfer and melt**, including every declared rule dependency; a payment suffix does not change the referenced ID. `checkMutantPayments` checks net-capacity thresholds for **one Spore type-script group per call**. Callers must partition the declared Mutant outpoints and invoke it separately for each group, even when payee Locks match; the helper does not infer group membership, so passing independent groups together overcounts their thresholds and can reject a valid transaction.
 
 These are SDK construction and offline validation helpers. Local package checks do not replace fresh CCC-built signed devnet transactions and exact-byte VM replay for release acceptance. The obsolete SDK PR #142's acceptance evidence does not certify this rewrite.
+
+### Type-bound deployments and governance
+
+New v3 deployment references use `hashType: "type"`. `createSporeCodeDeployment`
+derives that reference from standard code-Cell Type ID args and records the
+reviewed governance Lock. Pass its `scriptInfo` to builders. Its dependency
+metadata lets CCC resolve a live successor rather than keeping a spent OutPoint.
+`createSporeDeploymentProfile` groups distinct Spore, Cluster and Mutant code
+identities; optional Proxy/Agent entries use the same mechanism. The profile's
+Type IDs must match the reviewed contract build plan.
+
+Governance is implemented by the deployment's existing Lock, not by a strategy
+label in this SDK. Before signing, `resolveSporeCodeDeployment` resolves the
+live code Cell and checks its standard Type ID, reviewed Lock and optional
+`expectedDataHash`. Omit that binary pin only when the application intends to
+follow authorized code upgrades. A Lock rotation requires a newly reviewed
+descriptor. This helper does not audit the Lock's semantics or certify that it
+prevents code-Cell destruction. Keep exact executable pins in application
+replay profiles when execution semantics must remain fixed.
+
+Use `createSpore({ scriptInfo: profile.spore.scriptInfo,
+clusterScripts: [profile.cluster.scriptInfo], ... })` for a custom type-bound
+Cluster. Supply the deployment list appropriate for the intended old/new
+Collection; compatibility is still constrained by contract allowlists.
+Mutant code dependencies are injected with the same reviewed native profile.
+Historical presets and the V2 default remain unchanged; existing NFTs are not
+silently migrated. Type-bound native execution requires Meepo activation.
 
 ## Next steps
 

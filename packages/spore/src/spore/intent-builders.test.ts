@@ -23,13 +23,13 @@ const lock = ccc.Script.from({
 const recipient = ccc.Script.from({ ...lock, args: "0x01" });
 const spore = {
   codeHash: hex("aa"),
-  hashType: "data2" as const,
+  hashType: "type" as const,
   cellDeps: [],
   cobuild: true,
 };
 const cluster = {
   codeHash: hex("bb"),
-  hashType: "data2" as const,
+  hashType: "type" as const,
   cellDeps: [],
   cobuild: true,
 };
@@ -119,6 +119,20 @@ async function build(
 }
 
 describe("optional intent builder compatibility", () => {
+  it("forwards custom type-bound Cluster deployments during Spore creation", async () => {
+    const f = setup();
+    const { tx } = await createSpore({
+      signer: f.signer,
+      tx: f.tx,
+      scriptInfo: spore,
+      clusterScripts: [cluster],
+      clusterMode: "clusterCell",
+      withIntent: false,
+      data: { contentType: "text/plain", content: "0x1234", clusterId: id },
+    });
+    expect(tx.inputs).toHaveLength(2);
+    expect(tx.outputs[1].type?.eq(f.clusterCell.cellOutput.type!)).toBe(true);
+  });
   it.each([
     [false, false],
     [false, true],

@@ -182,7 +182,7 @@ export function getMutantIds(contentType: string): ccc.Hex[] {
 }
 
 /**
- * Search an on-chain native Mutant cell by its ID using data2 deployments.
+ * Search an on-chain native Mutant cell by its ID using type-bound deployments.
  */
 export async function findMutant(
   client: ccc.Client,
@@ -205,8 +205,8 @@ export async function findMutant(
       continue;
     }
     const scriptInfo = SporeScriptInfo.from(info);
-    if (scriptInfo.hashType !== "data2") {
-      throw new Error("Native Mutant lookup requires data2");
+    if (scriptInfo.hashType !== "type") {
+      throw new Error("Native Mutant lookup requires a type-bound deployment");
     }
     for await (const cell of client.findCells({
       script: { ...scriptInfo, args: mutantId },
@@ -391,8 +391,10 @@ export async function createMutant(params: {
   const scriptInfo = SporeScriptInfo.from(
     params.scriptInfo ?? getMutantScriptInfo(signer.client),
   );
-  if (scriptInfo.hashType !== "data2") {
-    throw new Error("Native Mutant deployment requires data2");
+  if (scriptInfo.hashType !== "type") {
+    throw new Error(
+      "Native Mutant deployment requires a type-bound deployment",
+    );
   }
 
   const tx = ccc.Transaction.from(params.tx ?? {});

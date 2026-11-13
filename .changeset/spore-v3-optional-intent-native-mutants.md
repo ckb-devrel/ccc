@@ -10,3 +10,5 @@ feat(spore): prepare for Spore v3 — optional CoBuild intent and native Rust Mu
 - Add Mutant tooling: `withMutants`/`getMutantIds` content-type helpers, `checkNativeMutantCode` ELF preflight mirroring the Mutant extension contract, `createMutant`, `findMutant`, `injectMutantReferences`, and `checkMutantPayments`.
 
 Harden intent validation with category-bound deployment identities, a verified-only return value, complete owner and operation checks, all-witness Message handling and dependency-resolved Agent references. Preserve existing Actions during no-intent composition. Support paid Mutant/Proxy ID suffixes and all distinct MIME rule parameters, rejecting duplicate IDs and ambiguous rule matches.
+
+Bind new native deployments through standard code Type IDs with reviewed deployment-supplied governance Locks and optional executable pins. Resolve live code successors and forward custom Cluster descriptors. Historical presets/defaults remain unchanged.

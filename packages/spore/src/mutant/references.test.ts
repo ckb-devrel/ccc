@@ -13,7 +13,7 @@ import {
 const hex = (byte: string) => ccc.hexFrom(byte.repeat(32));
 const id = hex("ab"),
   secondId = hex("cd");
-const info = { codeHash: hex("11"), hashType: "data2" as const, cellDeps: [] };
+const info = { codeHash: hex("11"), hashType: "type" as const, cellDeps: [] };
 const lock = ccc.Script.from({
   codeHash: hex("22"),
   hashType: "type",
@@ -44,7 +44,7 @@ function clientFor(cells: ccc.Cell[]) {
 }
 
 describe("native Mutant references", () => {
-  it.each(["data", "data1", "type"] as const)(
+  it.each(["data", "data1", "data2"] as const)(
     "rejects %s rule descriptors before lookup or dependency injection",
     async (hashType) => {
       const rule = cell();
@@ -52,7 +52,9 @@ describe("native Mutant references", () => {
       const client = clientFor([rule]);
       const findCells = vi.spyOn(client, "findCells");
       const scripts = [{ ...info, hashType }];
-      await expect(findMutant(client, id, scripts)).rejects.toThrow(/data2/);
+      await expect(findMutant(client, id, scripts)).rejects.toThrow(
+        /type-bound/,
+      );
       const tx = ccc.Transaction.from({
         cellDeps: [{ outPoint: point(9), depType: "code" }],
         witnesses: ["0x1234"],
@@ -60,7 +62,7 @@ describe("native Mutant references", () => {
       const before = tx.toHex();
       await expect(
         injectMutantReferences({ client, tx, mutantIds: [id], scripts }),
-      ).rejects.toThrow(/data2/);
+      ).rejects.toThrow(/type-bound/);
       expect(findCells).not.toHaveBeenCalled();
       expect(tx.toHex()).toBe(before);
     },
@@ -195,7 +197,7 @@ describe("native Mutant references", () => {
         code,
         scriptInfo: { ...info, hashType: "data1" },
       }),
-    ).rejects.toThrow(/data2/);
+    ).rejects.toThrow(/type-bound/);
   });
   it.each([-1n, 1n << 64n])("rejects payment outside uint64: %s", (payment) => {
     expect(() => buildMutantArgs(id, payment)).toThrow(/uint64/);

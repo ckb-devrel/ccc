@@ -9,7 +9,7 @@ export enum SporeVersion {
   V2 = "V2",
   DID = "DID",
   /**
-   * Spore v3 contracts (spore-contract PRs #75/#76): CKB-VM2 `data2`
+   * Spore v3 contracts (spore-contract PRs #75/#76): Type ID-bound contracts on Meepo/CKB-VM2
    * Spore/Cluster scripts, native Rust Mutants, and optional CoBuild intent.
    *
    * Preset entries stay `undefined` until the contracts are deployed;
