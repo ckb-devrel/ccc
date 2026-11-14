@@ -1,5 +1,5 @@
+import { finalizeReadyInputs, isFinalized, parsePsbt } from "@ckb-ccc/btc-psbt";
 import { ccc } from "@ckb-ccc/core";
-import { Transaction, type TxOpts } from "@scure/btc-signer";
 import * as v from "valibot";
 import {
   Address,
@@ -14,38 +14,6 @@ import {
   rpcErrorResponseMessageSchema,
   rpcSuccessResponseMessageSchema,
 } from "./advancedBarrel.js";
-
-// scure drops unknown PSBT fields by default.
-const PSBT_OPTIONS: TxOpts = { unknown: "ignore", proprietary: "ignore" };
-
-type PsbtInputUpdate = Parameters<Transaction["updateInput"]>[1];
-
-// finalizeIdx needs every input's UTXO to check the fee, so finalize the input
-// alone.
-function finalizeInput(tx: Transaction, index: number) {
-  const input = tx.getInput(index);
-  const scratch = new Transaction(PSBT_OPTIONS);
-  scratch.addInput(input);
-  scratch.finalizeIdx(0);
-  const finalized = scratch.getInput(0);
-  const cleared = Object.fromEntries(
-    Object.keys(input)
-      .filter((key) => !(key in finalized))
-      .map((key) => [key, undefined]),
-  ) as PsbtInputUpdate;
-
-  // Fields a signature commits to can't be cleared while it exists.
-  tx.updateInput(index, {
-    partialSig: undefined,
-    tapKeySig: undefined,
-    tapScriptSig: undefined,
-  });
-  tx.updateInput(index, {
-    ...cleared,
-    finalScriptSig: finalized.finalScriptSig,
-    finalScriptWitness: finalized.finalScriptWitness,
-  });
-}
 
 async function checkResponse<T extends keyof Requests>(
   response: Promise<RpcResponse<T>>,
@@ -227,46 +195,6 @@ export class Signer extends ccc.SignerBtc {
     ).signature;
   }
 
-  /**
-   * Build default inputsToSign for all unsigned inputs
-   */
-  private buildDefaultinputsToSign(
-    psbtHex: ccc.Hex,
-    address: string,
-  ): ccc.InputToSign[] {
-    const inputsToSign: ccc.InputToSign[] = [];
-
-    try {
-      // Collect all unsigned inputs
-      const tx = Transaction.fromPSBT(ccc.bytesFrom(psbtHex), PSBT_OPTIONS);
-      for (let index = 0; index < tx.inputsLength; index++) {
-        const input = tx.getInput(index);
-        const isSigned =
-          input.finalScriptSig ||
-          input.finalScriptWitness ||
-          input.tapKeySig ||
-          (input.partialSig && input.partialSig.length > 0) ||
-          (input.tapScriptSig && input.tapScriptSig.length > 0);
-
-        if (!isSigned) {
-          inputsToSign.push(ccc.InputToSign.from({ index, address }));
-        }
-      }
-
-      // If no unsigned inputs found, the PSBT is already fully signed
-      // Let the wallet handle this case (likely a no-op or error)
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Failed to parse PSBT hex. Please provide inputsToSign explicitly in options. Original error: ${errorMessage}`,
-        { cause: error },
-      );
-    }
-
-    return inputsToSign;
-  }
-
   private async prepareSignPsbtParams(
     psbtHex: ccc.Hex,
     options: ccc.SignPsbtOptions,
@@ -274,11 +202,22 @@ export class Signer extends ccc.SignerBtc {
     psbtBase64: string;
     signInputs: Record<string, number[]>;
   }> {
-    let inputsToSign = options.inputsToSign;
+    const unsigned = parsePsbt(ccc.bytesFrom(psbtHex));
+    const inputsToSign = [...options.inputsToSign];
 
     if (!inputsToSign.length) {
       const address = await this.getBtcAccount();
-      inputsToSign = this.buildDefaultinputsToSign(psbtHex, address);
+      for (let index = 0; index < unsigned.inputsLength; index++) {
+        const input = unsigned.getInput(index);
+        if (
+          !isFinalized(input) &&
+          !input.tapKeySig &&
+          !input.partialSig?.length &&
+          !input.tapScriptSig?.length
+        ) {
+          inputsToSign.push(ccc.InputToSign.from({ index, address }));
+        }
+      }
     }
 
     const psbtBase64 = ccc.bytesTo(psbtHex, "base64");
@@ -304,36 +243,6 @@ export class Signer extends ccc.SignerBtc {
   }
 
   /**
-   * Finalize the inputs Xverse was asked to sign.
-   *
-   * Xverse returns the signed PSBT without finalizing it, so this is done
-   * locally to honor `autoFinalized`. Only the requested inputs are touched,
-   * leaving inputs owned by other signers untouched.
-   */
-  private finalizeSignedInputs(
-    tx: Transaction,
-    signInputs: Record<string, number[]>,
-  ): void {
-    const indexes = new Set(Object.values(signInputs).flat());
-
-    try {
-      for (const index of indexes) {
-        const input = index < tx.inputsLength ? tx.getInput(index) : undefined;
-        if (input?.finalScriptSig || input?.finalScriptWitness) {
-          continue;
-        }
-        finalizeInput(tx, index);
-      }
-    } catch (error) {
-      throw new Error(
-        "Failed to finalize the PSBT signed by Xverse. " +
-          "Use { autoFinalized: false } for partial or multisig signing.",
-        { cause: error },
-      );
-    }
-  }
-
-  /**
    * Signs a PSBT using Xverse wallet.
    *
    * @param psbtHex - The hex string of PSBT to sign.
@@ -351,9 +260,8 @@ export class Signer extends ccc.SignerBtc {
    * - psbt: The base64 encoded signed PSBT, which is not finalized
    *
    * Xverse has no equivalent of `autoFinalized`, so when it is enabled the
-   * requested inputs are finalized locally after signing. `sighashTypes` and
-   * `disableTweakSigner` in `inputsToSign` are not supported by Xverse and
-   * are ignored.
+   * ready supported inputs are finalized locally after signing. The RPC does not
+   * support `sighashTypes` or `disableTweakSigner`.
    *
    * @see https://docs.xverse.app/sats-connect/bitcoin-methods/signpsbt
    */
@@ -377,15 +285,11 @@ export class Signer extends ccc.SignerBtc {
       )
     ).psbt;
 
+    const signedPsbt = parsePsbt(ccc.bytesFrom(signedPsbtBase64, "base64"));
     if (!normalized.autoFinalized) {
-      return ccc.hexFrom(ccc.bytesFrom(signedPsbtBase64, "base64"));
+      return ccc.hexFrom(signedPsbt.toPSBT());
     }
-
-    const signedPsbt = Transaction.fromPSBT(
-      ccc.bytesFrom(signedPsbtBase64, "base64"),
-      PSBT_OPTIONS,
-    );
-    this.finalizeSignedInputs(signedPsbt, signInputs);
+    finalizeReadyInputs(signedPsbt);
     return ccc.hexFrom(signedPsbt.toPSBT());
   }
 
