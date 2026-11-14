@@ -41,3 +41,18 @@ Check the [package documentation](https://docs.ckbccc.com/docs/packages/wallet-i
 <h3 align="center">
   Read more about CCC on <a href="https://docs.ckbccc.com">our website</a> or <a href="https://github.com/ckb-devrel/ccc">GitHub Repo</a>.
 </h3>
+
+## Bitcoin PSBT signing
+
+`signPsbt` returns a PSBT. With `autoFinalized` enabled, CCC finalizes every ready
+supported input, including previously signed inputs outside `inputsToSign`.
+Finalized, incomplete and unsupported inputs remain unchanged. `inputsToSign`
+only controls the wallet signing request. Use `autoFinalized: false` for a
+partial PSBT without local finalization.
+
+See the [shared PSBT helpers](../btc-psbt/README.md) for supported scripts,
+including P2SH-P2WPKH, multisig and Taproot, using complete common-wallet PSBTs.
+
+`broadcastPsbt` is unsupported; use `signAndBroadcastPsbt` for the combined flow.
+
+Xverse's RPC does not support `sighashTypes` or `disableTweakSigner`.
