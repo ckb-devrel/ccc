@@ -1,7 +1,8 @@
 import { ccc } from "@ckb-ccc/core";
 import { decodeSearch } from "@joyid/common";
-import { secp256k1 } from "@noble/curves/secp256k1.js";
+import { schnorr, secp256k1 } from "@noble/curves/secp256k1.js";
 import * as btc from "@scure/btc-signer";
+import { RawPSBTV0 } from "@scure/btc-signer/psbt.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPopup } from "../common/index.js";
 import {
@@ -32,7 +33,7 @@ function createKey(seed: number) {
 
 const JOYID = createKey(1);
 const OTHER = createKey(2);
-// Key-path finalization only needs a valid x-only key.
+// A native Taproot key-path output.
 const TAPROOT_OUTPUT = ccc.bytesConcat([0x51, 0x20], JOYID.publicKey.slice(1));
 
 class ConnectionsRepoMemory implements ConnectionsRepo {
@@ -144,6 +145,122 @@ describe("BitcoinSigner.signPsbt", () => {
     vi.mocked(createPopup).mockReset();
   });
 
+  it.each([false, true])(
+    "should handle wrapped SegWit (autoFinalized: %s)",
+    async (autoFinalized) => {
+      const wrapped = btc.p2sh(btc.p2wpkh(JOYID.publicKey));
+      const tx = new btc.Transaction();
+      tx.addInput({
+        txid: new Uint8Array(32).fill(1),
+        index: 0,
+        witnessUtxo: { amount: 10000n, script: wrapped.script },
+        redeemScript: wrapped.redeemScript,
+      });
+      tx.addOutput({ amount: 9000n, script: JOYID.script });
+      const request = ccc.hexFrom(tx.toPSBT());
+      tx.signIdx(JOYID.privateKey, 0);
+      const signer = createSigner();
+      vi.mocked(createPopup).mockResolvedValue({
+        tx: ccc.hexFrom(tx.toPSBT()).slice(2),
+      });
+      const [input] = inputsOf(
+        await signer.signPsbt(request, {
+          autoFinalized,
+          inputsToSign: [{ index: 0, address: JOYID.address }],
+        }),
+      );
+      expect(!!input.finalScriptWitness).toBe(autoFinalized);
+      expect(!!input.finalScriptSig).toBe(autoFinalized);
+      expect(!!input.partialSig).toBe(!autoFinalized);
+      expect(input.redeemScript).toEqual(
+        autoFinalized ? undefined : wrapped.redeemScript,
+      );
+    },
+  );
+
+  it.each([false, true])(
+    "should reject invalid redeemScript (autoFinalized: %s)",
+    async (autoFinalized) => {
+      const tx = new btc.Transaction();
+      tx.addInput({
+        txid: new Uint8Array(32).fill(1),
+        index: 0,
+        witnessUtxo: { amount: 10000n, script: JOYID.script },
+      });
+      tx.addOutput({ amount: 9000n, script: JOYID.script });
+      const request = ccc.hexFrom(tx.toPSBT());
+      const raw = RawPSBTV0.decode(tx.toPSBT());
+      raw.inputs[0].redeemScript = JOYID.script;
+      const invalid = RawPSBTV0.encode(raw);
+      const signer = createSigner();
+      vi.mocked(createPopup).mockResolvedValue({
+        tx: ccc.hexFrom(invalid).slice(2),
+      });
+      try {
+        await signer.signPsbt(request, {
+          autoFinalized,
+          inputsToSign: [{ index: 0, address: JOYID.address }],
+        });
+        expect.fail("Invalid script metadata must be rejected");
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect(((error as Error).cause as Error).message).toContain(
+          "redeemScript",
+        );
+      }
+    },
+  );
+
+  describe.each([0, 2] as const)(
+    "PSBT v%s Taproot key path with tree metadata",
+    (version) => {
+      it.each([0, 3, 0x83])(
+        "should preserve/finalize input 1 with sighash %s",
+        async (mode) => {
+          const tree = btc.p2tr(schnorr.getPublicKey(JOYID.privateKey), {
+            script: btc.p2tr_pk(schnorr.getPublicKey(OTHER.privateKey)).script,
+          });
+          const tx = new btc.Transaction({ PSBTVersion: version });
+          for (let index = 0; index < 2; index++) {
+            tx.addInput({
+              txid: new Uint8Array(32).fill(index + 1),
+              index: 0,
+              witnessUtxo: { amount: 10000n, script: tree.script },
+              tapInternalKey: tree.tapInternalKey,
+              tapMerkleRoot: tree.tapMerkleRoot,
+              tapLeafScript: tree.tapLeafScript,
+            });
+            tx.addOutput({ amount: 9000n, script: JOYID.script });
+          }
+          tx.updateInput(1, { sighashType: mode });
+          const request = ccc.hexFrom(tx.toPSBT());
+          tx.signIdx(JOYID.privateKey, 1, [mode]);
+          const signer = createSigner();
+          vi.mocked(createPopup).mockResolvedValue({
+            tx: ccc.hexFrom(tx.toPSBT()).slice(2),
+          });
+          for (const autoFinalized of [false, true]) {
+            const [pending, signed] = inputsOf(
+              await signer.signPsbt(request, {
+                autoFinalized,
+                inputsToSign: [
+                  { index: 1, address: JOYID.address, sighashTypes: [mode] },
+                ],
+              }),
+            );
+            expect(pending.finalScriptWitness).toBeUndefined();
+            if (autoFinalized) {
+              expect(signed.finalScriptWitness).toHaveLength(1);
+              expect(signed.tapKeySig).toBeUndefined();
+            } else {
+              expect(signed.finalScriptWitness).toBeUndefined();
+              expect(signed.tapKeySig).toEqual(tx.getInput(1).tapKeySig);
+            }
+          }
+        },
+      );
+    },
+  );
   it("should ask JoyID not to finalize and finalize locally by default", async () => {
     mockJoyIdSigning();
     const psbtHex = createPsbt([JOYID.script]);
@@ -214,7 +331,7 @@ describe("BitcoinSigner.signPsbt", () => {
     expect(theirs.partialSig).toBeUndefined();
   });
 
-  it("should finalize without UTXO info on other signers' inputs", async () => {
+  it("should report missing UTXO data instead of finalizing in a scratch transaction", async () => {
     mockJoyIdSigning();
     const tx = new btc.Transaction();
     tx.addInput({
@@ -225,32 +342,12 @@ describe("BitcoinSigner.signPsbt", () => {
     tx.addInput({ txid: new Uint8Array(32).fill(2), index: 0 });
     tx.addOutputAddress(JOYID.address, 9000n, btc.TEST_NETWORK);
 
-    const signed = await createSigner().signPsbt(ccc.hexFrom(tx.toPSBT()));
-
-    const [mine, theirs] = inputsOf(signed);
-    expect(mine.finalScriptWitness).toBeDefined();
-    expect(theirs.finalScriptWitness).toBeUndefined();
-  });
-
-  it("should finalize P2SH-P2WPKH inputs", async () => {
-    const nested = btc.p2sh(btc.p2wpkh(JOYID.publicKey), btc.TEST_NETWORK);
-    mockJoyIdSigning((tx) => tx.signIdx(JOYID.privateKey, 0));
-    const tx = new btc.Transaction();
-    tx.addInput({
-      txid: new Uint8Array(32).fill(1),
-      index: 0,
-      witnessUtxo: { script: nested.script, amount: 10000n },
-      redeemScript: nested.redeemScript,
+    await expect(
+      createSigner().signPsbt(ccc.hexFrom(tx.toPSBT())),
+    ).rejects.toMatchObject({
+      message: "Failed to finalize PSBT input #0.",
+      cause: { message: "Cannot find previous output info" },
     });
-    tx.addOutputAddress(JOYID.address, 9000n, btc.TEST_NETWORK);
-
-    const signed = await createSigner().signPsbt(ccc.hexFrom(tx.toPSBT()));
-
-    const [input] = inputsOf(signed);
-    expect(input.finalScriptSig).toBeDefined();
-    expect(input.finalScriptWitness).toBeDefined();
-    expect(input.redeemScript).toBeUndefined();
-    expect(input.partialSig).toBeUndefined();
   });
 
   it("should keep PSBT fields it does not know", async () => {
@@ -272,7 +369,12 @@ describe("BitcoinSigner.signPsbt", () => {
 
   it("should finalize Taproot key-path inputs", async () => {
     mockJoyIdSigning((tx) =>
-      tx.updateInput(0, { tapKeySig: new Uint8Array(64).fill(1) }),
+      tx.updateInput(0, {
+        tapKeySig: schnorr.sign(
+          tx.preimageWitnessV1(0, [TAPROOT_OUTPUT], 0, [10000n]),
+          JOYID.privateKey,
+        ),
+      }),
     );
 
     const signed = await createSigner().signPsbt(createPsbt([TAPROOT_OUTPUT]));
@@ -293,7 +395,7 @@ describe("BitcoinSigner.signPsbt", () => {
     expect(inputsOf(signed)[0].finalScriptWitness).toBeDefined();
   });
 
-  it("should not finalize inputs signed only by other signers", async () => {
+  it("should finalize ready P2WPKH inputs signed before the wallet call", async () => {
     mockJoyIdSigning();
     const psbtHex = createPsbt([JOYID.script, OTHER.script], (tx) =>
       tx.signIdx(OTHER.privateKey, 1),
@@ -303,48 +405,73 @@ describe("BitcoinSigner.signPsbt", () => {
 
     const [mine, theirs] = inputsOf(signed);
     expect(mine.finalScriptWitness).toBeDefined();
-    expect(theirs.finalScriptWitness).toBeUndefined();
-    expect(theirs.partialSig).toHaveLength(1);
+    expect(theirs.finalScriptWitness).toBeDefined();
+    expect(theirs.partialSig).toBeUndefined();
   });
 
-  it("should throw when JoyID skips a requested input signed by others", async () => {
+  it("should leave unsigned requested inputs unchanged and finalize other ready inputs", async () => {
     mockJoyIdSigning();
-    const psbtHex = createPsbt([JOYID.script, OTHER.script], (tx) =>
-      tx.signIdx(OTHER.privateKey, 1),
-    );
-
-    await expect(
-      createSigner().signPsbt(psbtHex, {
-        inputsToSign: [
-          { index: 0, address: JOYID.address },
-          { index: 1, address: OTHER.address },
-        ],
-      }),
-    ).rejects.toThrow(
-      "JoyID did not add a signature to the requested input #1",
-    );
-  });
-
-  it("should throw when JoyID skips an unsigned requested input", async () => {
-    mockJoyIdSigning();
-
-    await expect(
-      createSigner().signPsbt(createPsbt([JOYID.script, OTHER.script]), {
+    const signed = await createSigner().signPsbt(
+      createPsbt([JOYID.script, OTHER.script]),
+      {
         inputsToSign: [{ index: 1, address: OTHER.address }],
-      }),
-    ).rejects.toThrow(
-      "JoyID did not add a signature to the requested input #1",
+      },
     );
+    const [ready, pending] = inputsOf(signed);
+    expect(ready.finalScriptWitness).toBeDefined();
+    expect(pending.finalScriptWitness).toBeUndefined();
+    expect(pending.partialSig).toBeUndefined();
   });
 
-  it("should suggest autoFinalized false when finalizing fails", async () => {
+  it("should leave Taproot inputs without a key-path signature unchanged", async () => {
     mockJoyIdSigning((tx) =>
       tx.updateInput(0, { partialSig: [staleJoyIdSignature()] }),
     );
+    const signed = await createSigner().signPsbt(createPsbt([TAPROOT_OUTPUT]));
+    expect(inputsOf(signed)[0].finalScriptWitness).toBeUndefined();
+    expect(inputsOf(signed)[0].partialSig).toHaveLength(1);
+  });
 
-    await expect(
-      createSigner().signPsbt(createPsbt([TAPROOT_OUTPUT])),
-    ).rejects.toThrow("Use { autoFinalized: false }");
+  it("should preserve finalized inputs while finalizing later ready inputs", async () => {
+    const request = createPsbt([JOYID.script, JOYID.script], (tx) => {
+      tx.signIdx(JOYID.privateKey, 0);
+      tx.finalizeIdx(0);
+      tx.signIdx(JOYID.privateKey, 1);
+    });
+    mockJoyIdSigning(() => {});
+    const before = inputsOf(request)[0];
+    const signed = await createSigner().signPsbt(request);
+    expect(inputsOf(signed)[0]).toEqual(before);
+    expect(inputsOf(signed)[1].finalScriptWitness).toBeDefined();
+  });
+
+  it("should leave a P2WPKH input with a nonmatching signature key unchanged", async () => {
+    mockJoyIdSigning((tx) =>
+      tx.updateInput(0, { partialSig: [staleJoyIdSignature()] }),
+    );
+    const signed = await createSigner().signPsbt(createPsbt([OTHER.script]));
+    expect(inputsOf(signed)[0].finalScriptWitness).toBeUndefined();
+    expect(inputsOf(signed)[0].partialSig).toHaveLength(1);
+  });
+
+  it("should surface unexpected finalizer errors for ready inputs", async () => {
+    mockJoyIdSigning();
+    const failure = new Error("Unexpected finalizer failure");
+    const finalize = vi
+      .spyOn(btc.Transaction.prototype, "finalizeIdx")
+      .mockImplementationOnce(() => {
+        throw failure;
+      });
+    try {
+      await expect(
+        createSigner().signPsbt(createPsbt([JOYID.script])),
+      ).rejects.toMatchObject({
+        message: "Failed to finalize PSBT input #0.",
+        cause: failure,
+      });
+    } finally {
+      finalize.mockRestore();
+    }
   });
 
   it.each([true, false])(
@@ -369,43 +496,26 @@ describe("BitcoinSigner.signPsbt", () => {
     },
   );
 
-  it.each([true, false])(
-    "should reject a PSBT for a different transaction (autoFinalized: %s)",
-    async (autoFinalized) => {
-      vi.mocked(createPopup).mockResolvedValue({
-        tx: createPsbt([OTHER.script, OTHER.script]).slice(2),
-      });
-
-      await expect(
-        createSigner().signPsbt(createPsbt([JOYID.script]), { autoFinalized }),
-      ).rejects.toThrow("different transaction");
-    },
-  );
-
-  describe("inputs already signed by JoyID (unsupported)", () => {
+  describe("inputs already signed by JoyID", () => {
     const presigned = () =>
       createPsbt([JOYID.script], (tx) => tx.signIdx(JOYID.privateKey, 0));
 
-    it("should leave the input unfinalized by default", async () => {
+    it("should finalize an already signed input by default", async () => {
       mockJoyIdSigning();
 
       const signed = await createSigner().signPsbt(presigned());
 
       const [input] = inputsOf(signed);
-      expect(input.finalScriptWitness).toBeUndefined();
-      expect(input.partialSig).toHaveLength(1);
+      expect(input.finalScriptWitness).toBeDefined();
+      expect(input.partialSig).toBeUndefined();
     });
 
-    it("should report the requested input as not signed", async () => {
+    it("should finalize an already signed requested input", async () => {
       mockJoyIdSigning();
-
-      await expect(
-        createSigner().signPsbt(presigned(), {
-          inputsToSign: [{ index: 0, address: JOYID.address }],
-        }),
-      ).rejects.toThrow(
-        "JoyID did not add a signature to the requested input #0",
-      );
+      const signed = await createSigner().signPsbt(presigned(), {
+        inputsToSign: [{ index: 0, address: JOYID.address }],
+      });
+      expect(inputsOf(signed)[0].finalScriptWitness).toBeDefined();
     });
   });
 });

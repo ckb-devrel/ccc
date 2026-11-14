@@ -1,3 +1,4 @@
+import { finalizeReadyInputs, parsePsbt } from "@ckb-ccc/btc-psbt";
 import { ccc } from "@ckb-ccc/core";
 import { DappRequestType, buildJoyIDURL } from "@joyid/common";
 import { createPopup } from "../common/index.js";
@@ -6,7 +7,6 @@ import {
   ConnectionsRepo,
   ConnectionsRepoLocalStorage,
 } from "../connectionsStorage/index.js";
-import { finalizeSignedInputs, parseSignedPsbt } from "./psbt.js";
 
 /**
  * Converts CCC-level sign PSBT options into the shape expected by JoyID,
@@ -215,8 +215,7 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * @remarks
    * JoyID returns a raw transaction when asked to finalize, and rejects PSBTs
    * with inputs it can't sign. So JoyID is always asked for an unfinalized
-   * PSBT, and `autoFinalized` is handled here. Inputs that already have a
-   * JoyID signature are not finalized.
+   * PSBT, and `autoFinalized` is handled here for every ready supported input. Other inputs are left unchanged.
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
@@ -245,18 +244,20 @@ export class BitcoinSigner extends ccc.SignerBtc {
     );
 
     const signedPsbtHex = ccc.hexFrom(tx);
-    const { unsigned, signed } = parseSignedPsbt(
-      unsignedPsbtHex,
-      signedPsbtHex,
-    );
-    if (!formattedOptions.autoFinalized) {
-      return signedPsbtHex;
+    if (!signedPsbtHex.startsWith("0x70736274ff")) {
+      throw new Error("JoyID did not return a PSBT.");
     }
-    return finalizeSignedInputs(
-      unsigned,
-      signed,
-      formattedOptions.inputsToSign,
-    );
+    let signed: ReturnType<typeof parsePsbt>;
+    try {
+      signed = parsePsbt(ccc.bytesFrom(signedPsbtHex));
+    } catch (error) {
+      throw new Error("JoyID returned an invalid PSBT.", { cause: error });
+    }
+    if (!formattedOptions.autoFinalized) {
+      return ccc.hexFrom(signed.toPSBT());
+    }
+    finalizeReadyInputs(signed);
+    return ccc.hexFrom(signed.toPSBT());
   }
 
   /**
