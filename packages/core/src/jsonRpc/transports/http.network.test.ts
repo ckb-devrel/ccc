@@ -1,5 +1,9 @@
-import { createServer, type RequestListener } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
+import {
+  createServer,
+  type RequestListener,
+  type ServerResponse,
+} from "node:http";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonRpcTransportFallback } from "./fallback.js";
 import { JsonRpcTransportHttp } from "./http.js";
 
@@ -8,6 +12,7 @@ const payload = { id: 0, jsonrpc: "2.0" as const, method: "test", params: [] };
 describe("HTTP response body lifecycle with native fetch", () => {
   const servers: ReturnType<typeof createServer>[] = [];
   afterEach(async () => {
+    vi.unstubAllGlobals();
     await Promise.all(
       servers.splice(0).map(
         (server) =>
@@ -17,6 +22,53 @@ describe("HTTP response body lifecycle with native fetch", () => {
           }),
       ),
     );
+  });
+
+  it("falls back while a logging clone is still reading the error body", async () => {
+    let errorResponse: ServerResponse | undefined;
+    let healthyCalls = 0;
+    const url = await serve((request, response) => {
+      request.resume();
+      if (request.url === "/failed") {
+        errorResponse = response;
+        response.writeHead(503);
+        response.write("unfinished error body");
+      } else {
+        healthyCalls += 1;
+        response.end(JSON.stringify({ ...payload, result: "ok" }));
+      }
+    });
+    const nativeFetch = globalThis.fetch;
+    let logging: Promise<string> | undefined;
+    let loggingFinished = false;
+    vi.stubGlobal("fetch", async (...args: Parameters<typeof fetch>) => {
+      const response = await nativeFetch(...args);
+      if (!response.ok) {
+        logging = response
+          .clone()
+          .text()
+          .then((text) => {
+            loggingFinished = true;
+            return text;
+          });
+      }
+      return response;
+    });
+    const transport = new JsonRpcTransportFallback([
+      new JsonRpcTransportHttp(`${url}/failed`, 5000),
+      new JsonRpcTransportHttp(`${url}/healthy`, 5000),
+    ]);
+    const pending = transport.request(payload);
+    try {
+      await expect.poll(() => healthyCalls, { timeout: 1000 }).toBe(1);
+      await expect(pending).resolves.toMatchObject({ result: "ok" });
+      expect(loggingFinished).toBe(false);
+    } finally {
+      errorResponse?.end();
+      await logging;
+      await pending;
+    }
+    expect(loggingFinished).toBe(true);
   });
 
   async function serve(handler: RequestListener) {
