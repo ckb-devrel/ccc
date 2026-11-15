@@ -186,7 +186,7 @@ export function Editor({
           });
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client; /** @deprecated Removed. Use `import * as btc from \"@scure/btc-signer\"`. */ export const bitcoin: never;",
+            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
