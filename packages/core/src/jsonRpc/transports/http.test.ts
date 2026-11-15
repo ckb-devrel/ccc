@@ -23,6 +23,61 @@ afterEach(() => {
 });
 
 describe("JsonRpcTransportHttp", () => {
+  it.each([400, 429, 503])(
+    "cancels the unread HTTP %i body",
+    async (status) => {
+      const cancel = vi.fn();
+      const body = new ReadableStream({ cancel });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(body, { status })),
+      );
+
+      await expect(
+        new JsonRpcTransportHttp("https://example.com").request(payload),
+      ).rejects.toThrow(`HTTP request failed with status ${status}`);
+      expect(cancel).toHaveBeenCalledOnce();
+      expect(body.locked).toBe(false);
+      await expect(body.getReader().read()).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+    },
+  );
+
+  it("preserves the HTTP error when body cancellation rejects", async () => {
+    const body = new ReadableStream({
+      cancel: () => Promise.reject(new Error("cleanup failed")),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(body, { status: 503 })),
+    );
+
+    await expect(
+      new JsonRpcTransportHttp("https://example.com").request(payload),
+    ).rejects.toThrow("HTTP request failed with status 503");
+  });
+
+  it("consumes a successful body without cancelling it", async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(JSON.stringify(response)));
+        controller.close();
+      },
+      cancel,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(body)),
+    );
+    await expect(
+      new JsonRpcTransportHttp("https://example.com").request(payload),
+    ).resolves.toEqual(response);
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
   it.each([200, 201, 299])(
     "parses successful HTTP %i responses",
     async (status) => {

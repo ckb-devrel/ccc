@@ -31,6 +31,9 @@ export class JsonRpcTransportHttp implements JsonRpcTransport {
     });
     // Reject HTTP errors here so fallback transports can try the next endpoint.
     if (!response.ok) {
+      // Release the connection without waiting for an error body to finish.
+      // A failed cleanup must not replace the HTTP status error.
+      await response.body?.cancel().catch(() => {});
       throw new Error(`HTTP request failed with status ${response.status}`);
     }
 
