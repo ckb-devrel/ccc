@@ -59,6 +59,43 @@ describe("JsonRpcTransportHttp", () => {
     ).rejects.toThrow("HTTP request failed with status 503");
   });
 
+  it("preserves the HTTP error when a wrapped cancel throws synchronously", async () => {
+    const httpResponse = new Response("unavailable", { status: 503 });
+    const cancel = vi
+      .spyOn(httpResponse.body!, "cancel")
+      .mockImplementation(() => {
+        throw new Error("cleanup threw");
+      });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => httpResponse),
+    );
+
+    await expect(
+      new JsonRpcTransportHttp("https://example.com").request(payload),
+    ).rejects.toThrow("HTTP request failed with status 503");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("handles a cancellation rejection after the HTTP request has failed", async () => {
+    let rejectCancel: (reason: Error) => void = () => {};
+    const cancellation = new Promise<void>((_resolve, reject) => {
+      rejectCancel = reject;
+    });
+    const body = new ReadableStream({ cancel: () => cancellation });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(body, { status: 503 })),
+    );
+
+    await expect(
+      new JsonRpcTransportHttp("https://example.com").request(payload),
+    ).rejects.toThrow("HTTP request failed with status 503");
+    rejectCancel(new Error("late cleanup failure"));
+    // Let an unhandled rejection surface to the runner if no handler was attached.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
   it("consumes a successful body without cancelling it", async () => {
     const cancel = vi.fn();
     const body = new ReadableStream({
