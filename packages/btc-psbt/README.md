@@ -22,7 +22,7 @@ signed inputs outside that selection. Use `autoFinalized: false` to return the
 partial PSBT without local finalization.
 
 Run `pnpm --filter @ckb-ccc/btc-psbt test run` for the shared tests. After building
-the adapters, run `pnpm --filter @ckb-ccc/joy-id --filter @ckb-ccc/xverse run test:artifacts`
+the adapters, run `pnpm --filter @ckb-ccc/joy-id --filter @ckb-ccc/xverse run test`
 for package-local native ESM/CommonJS loading, signing and bundle checks.
 Adapter behavior is covered by their source unit tests. The artifact smoke checks
 do not install npm tarballs or test package exports resolution.

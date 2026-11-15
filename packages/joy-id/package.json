@@ -36,8 +36,7 @@
     "build": "tsdown",
     "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src",
-    "test": "vitest",
-    "test:artifacts": "node --test test/artifacts.mjs"
+    "test": "node --test test/artifacts.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
