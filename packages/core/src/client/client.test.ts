@@ -238,6 +238,7 @@ describe("Client", () => {
         vi.fn(async (_url: string, init?: RequestInit) => {
           capturedBody = init?.body as string;
           return {
+            ok: true,
             json: async () => ({
               id: 0,
               jsonrpc: "2.0",

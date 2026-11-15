@@ -21,15 +21,19 @@ export class JsonRpcTransportHttp implements JsonRpcTransport {
       ? abortSignalAny([options.signal, timeoutSignal])
       : timeoutSignal;
 
-    return (await (
-      await fetch(this.url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        signal,
-      })
-    ).json()) as JsonRpcResponse;
+    const response = await fetch(this.url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal,
+    });
+    // Reject HTTP errors here so fallback transports can try the next endpoint.
+    if (!response.ok) {
+      throw new Error(`HTTP request failed with status ${response.status}`);
+    }
+
+    return (await response.json()) as JsonRpcResponse;
   }
 }
