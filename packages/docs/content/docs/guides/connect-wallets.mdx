@@ -137,6 +137,7 @@ The fastest way to ship a working Connect Wallet flow. Two pieces:
 | `signersController` | `ccc.SignersController`                                                | Custom signers controller instance               |
 | `defaultClient`     | `ccc.Client`                                                           | Default CKB client (testnet or mainnet)          |
 | `clientOptions`     | `{ icon?: string; client: ccc.Client; name: string }[]`                | Network switching options shown in the connector |
+| `locale`            | `ccc.ConnectorLocale`                                                  | UI language (a built-in tag, e.g. `"zh-Hans"`), default `"en"` |
 
 ## Hooks reference
 
@@ -184,6 +185,28 @@ const address = await signer?.getRecommendedAddress();
 ```
 
 `ccc.SignerType` values: `CKB`, `EVM`, `BTC`, `Nostr`, `Doge`.
+
+## Localization
+
+**Use this when:** your app is multilingual and the connector modal should follow it.
+
+The connector UI is English by default. Pass a `locale` to switch languages; re-render the `Provider` with a new value and the modal updates immediately.
+
+```tsx
+<ccc.Provider locale="zh-Hans">{children}</ccc.Provider>
+```
+
+Built-in locales: `en`, `zh-Hans` (available at runtime as `ccc.connectorLocales`). `locale` must be exactly one of them; any other value falls back to English. Map your app's own language to a built-in tag yourself, e.g. `zh-CN` / `zh-TW` → `zh-Hans`. Wallet and chain names (`MetaMask`, `JoyID`, `BTC`, …) are brand names and are never translated.
+
+Plain Web Component usage works the same way:
+
+```html
+<ccc-connector locale="zh-Hans"></ccc-connector>
+```
+
+Translations ship inside the connector and are not overridable per app. This keeps every app rendering correctly whenever you upgrade CCC, even if the UI changes. If a translation is wrong, please [open an issue](https://github.com/ckb-devrel/ccc/issues/new); to add a language, see the [contributing guide](https://github.com/ckb-devrel/ccc/blob/master/CONTRIBUTING.md#contributing-a-connector-language).
+
+Locale is not auto-detected from the browser. If you want that, map `navigator.language` to a built-in tag and pass it yourself.
 
 ## Choose a wallet network
 

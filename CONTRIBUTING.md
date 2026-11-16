@@ -62,7 +62,7 @@ pnpm format
 
 ### Commit your changes
 
-Please add a changeset for your changes. This is how we track changes and generate changelogs.
+Please add a changeset when your changes require a package release. This is how we track released changes and generate changelogs. Changes that do not require a release do not need a changeset.
 
 ```sh
 pnpm changeset
@@ -128,6 +128,18 @@ To help your pull request get accepted, please consider the following:
 - Write tests.
 - Follow our existing style.
 - Write a good commit message.
+
+### Contributing a connector language
+
+The connector UI (`@ckb-ccc/connector`) ships its translations in `packages/connector/src/i18n/locales/` as a flat key-value map. `en.ts` is the source of truth and `types.ts` documents the naming rules. To add a language:
+
+1. Copy `en.ts` to `<bcp47-tag>.ts` (for example `ja-JP.ts`) and translate every value. Keep `{name}`-style placeholders and leave wallet / chain brand names untranslated.
+2. Register it in `locales/index.ts`; `ConnectorLocale` (`keyof typeof locales`) picks it up automatically. Compilation fails if any key is missing or extra.
+3. Run `pnpm test` in `packages/connector`; the locale test verifies the key set and placeholders match `en`.
+4. Run `pnpm build` and `pnpm lint` in `packages/connector` to make sure it compiles and lints cleanly.
+5. Verify in the app: run `pnpm dev` in `packages/app`, open the dev server in a browser, and check the language dropdown in the header — the new language shows up automatically because the list is built from `ccc.connectorLocales`, which is derived from the `locales` registry. Then select it and walk through the connect, connected, fee rate and Khie pairing dialogs to check for overflow.
+
+To fix a wrong translation, edit the value in the locale file directly; never reuse a key for a different meaning — add a new key instead.
 
 ### Publishing a Canary Release (for maintainers)
 

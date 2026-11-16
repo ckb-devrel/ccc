@@ -1,12 +1,5 @@
-import * as ecc from "@bitcoinerlab/secp256k1";
 import { ccc } from "@ckb-ccc/connector-react";
-import * as bitcoin from "bitcoinjs-lib";
 import * as React from "react";
-
-// Initialize the ECC library for bitcoinjs-lib to support Schnorr signatures (Taproot).
-// This must be done once globally before any PSBT operations.
-bitcoin.initEccLib(ecc);
-
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
@@ -17,6 +10,7 @@ const LIBS = await Promise.all(
     [
       ["@noble/curves/secp256k1.js"],
       ["@noble/hashes/sha2.js"],
+      ["@scure/btc-signer"],
       ["@ckb-ccc/ccc", "@ckb-ccc/core"],
       ["@ckb-ccc/ccc/advanced", "@ckb-ccc/core/advanced"],
       ["@ckb-ccc/spore"],
@@ -27,6 +21,18 @@ const LIBS = await Promise.all(
     k.forEach((k) => LIBS_MAP_.set(k, lib));
   }),
 ).then(() => LIBS_MAP_);
+
+// Old saved scripts may still use `bitcoin` (bitcoinjs-lib).
+const removedBitcoin = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error(
+        'The playground no longer provides "bitcoin" (bitcoinjs-lib). Use `import * as btc from "@scure/btc-signer"` instead.',
+      );
+    },
+  },
+);
 
 function findSourcePos(
   sourceMap: string | undefined,
@@ -115,7 +121,7 @@ export async function execute(
         },
         signer,
         client: signer.client,
-        bitcoin,
+        bitcoin: removedBitcoin,
       };
     }
 

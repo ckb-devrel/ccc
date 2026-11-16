@@ -29,7 +29,89 @@ beforeEach(async () => {
   );
 });
 
+describe("udtBalanceFrom", () => {
+  it.each(Array.from({ length: 16 }, (_, length) => length))(
+    "counts %i-byte data as zero without throwing",
+    (length) => {
+      const data = new Uint8Array(length).fill(0xff);
+      expect(ccc.udtBalanceFrom(data)).toBe(0n);
+      expect(ccc.udtBalanceFrom(ccc.hexFrom(data))).toBe(0n);
+    },
+  );
+
+  it("does not interpret the reported short amount as five tokens", () => {
+    expect(ccc.udtBalanceFrom("0x05")).toBe(0n);
+    expect(ccc.numFromBytes("0x05")).toBe(5n);
+  });
+
+  it.each([0n, 5n, 0x123456789abcdefn, (1n << 128n) - 1n])(
+    "preserves complete uint128 amount %s and ignores trailing data",
+    (amount) => {
+      const data = ccc.numLeToBytes(amount, 16);
+      expect(ccc.udtBalanceFrom(data)).toBe(amount);
+      expect(ccc.udtBalanceFrom(ccc.hexFrom(data))).toBe(amount);
+      expect(ccc.udtBalanceFrom(ccc.bytesConcat(data, "0xff0102"))).toBe(
+        amount,
+      );
+    },
+  );
+
+  it("respects a byte view's boundaries without modifying it", () => {
+    const data = new Uint8Array(18).fill(0xff);
+    data.set(ccc.numLeToBytes(5n, 16), 1);
+    const original = data.slice();
+    expect(ccc.udtBalanceFrom(data.subarray(1, 17))).toBe(5n);
+    expect(ccc.udtBalanceFrom(data.subarray(1, 16))).toBe(0n);
+    expect(data).toEqual(original);
+  });
+});
+
 describe("Transaction", () => {
+  describe("UDT balances", () => {
+    it("ignores incomplete amounts and unrelated types in both inputs and outputs", async () => {
+      const data = [
+        ...Array.from({ length: 16 }, (_, length) =>
+          new Uint8Array(length).fill(0xff),
+        ),
+        ccc.numLeToBytes(5n, 16),
+        ccc.bytesConcat(ccc.numLeToBytes(7n, 16), "0xffff"),
+        ccc.numLeToBytes(0n, 16),
+      ];
+      const cells = data.map((outputData, index) =>
+        ccc.Cell.from({
+          outPoint: { txHash: `0x${"01".repeat(32)}`, index },
+          cellOutput: { lock, type },
+          outputData,
+        }),
+      );
+      for (const otherType of [
+        undefined,
+        { ...type, args: `${type.args}00` },
+      ]) {
+        cells.push(
+          ccc.Cell.from({
+            outPoint: { txHash: `0x${"02".repeat(32)}`, index: cells.length },
+            cellOutput: { lock, type: otherType },
+            outputData: ccc.numLeToBytes(900n, 16),
+          }),
+        );
+      }
+      vi.spyOn(client, "getCell").mockImplementation(async (outPoint) =>
+        cells.find((cell) => cell.outPoint.eq(outPoint)),
+      );
+      const tx = ccc.Transaction.from({
+        inputs: cells.map((cell) => ({ previousOutput: cell.outPoint })),
+        outputs: cells.map((cell) => cell.cellOutput),
+        outputsData: cells.map((cell) => cell.outputData),
+      });
+
+      expect(await tx.getInputsUdtBalance(client, type)).toBe(12n);
+      expect(tx.getOutputsUdtBalance(type)).toBe(12n);
+      // Balance accounting does not remove owner-mode cells or validate them.
+      expect(tx.inputs).toHaveLength(cells.length);
+      expect(tx.outputsData).toEqual(cells.map((cell) => cell.outputData));
+    });
+  });
   describe("calcDaoClaimEpoch", () => {
     it("does not add a cycle when deposit and withdrawal fractions are equal", () => {
       const zero32 = `0x${"00".repeat(32)}`;
@@ -282,6 +364,57 @@ describe("Transaction", () => {
         const cell = mockUdtCells.find((c) => c.outPoint.eq(outPoint));
         return cell;
       });
+    });
+
+    it.each(["0x", "0x05", `0x${"ff".repeat(15)}`])(
+      "does not use an existing incomplete amount %s to fund outputs",
+      async (outputData) => {
+        mockUdtCells[0].outputData = ccc.hexFrom(outputData);
+        const tx = ccc.Transaction.from({
+          inputs: [{ previousOutput: mockUdtCells[0].outPoint }],
+          outputs: [{ lock, type }],
+          outputsData: [ccc.numLeToBytes(5n, 16)],
+        });
+
+        const addedCount = await tx.completeInputsByUdt(signer, type);
+
+        expect(addedCount).toBe(1);
+        expect(await tx.getInputsUdtBalance(client, type)).toBe(100n);
+        expect(signer.findCells).toHaveBeenCalledWith(
+          expect.objectContaining({
+            outputDataLenRange: [16, ccc.numFrom("0xffffffff")],
+          }),
+          true,
+        );
+        expect(tx.inputs[0].previousOutput.eq(mockUdtCells[0].outPoint)).toBe(
+          true,
+        );
+      },
+    );
+
+    it("reports insufficient balance when only an existing short amount is available", async () => {
+      mockUdtCells = [mockUdtCells[0]];
+      mockUdtCells[0].outputData = "0x05";
+      const tx = ccc.Transaction.from({
+        inputs: [{ previousOutput: mockUdtCells[0].outPoint }],
+        outputs: [{ lock, type }],
+        outputsData: [ccc.numLeToBytes(5n, 16)],
+      });
+
+      await expect(tx.completeInputsByUdt(signer, type)).rejects.toThrow(
+        ccc.ErrorTransactionInsufficientCoin,
+      );
+      expect(tx.inputs).toHaveLength(1);
+    });
+
+    it("does not require funding for short output data", async () => {
+      const tx = ccc.Transaction.from({
+        outputs: [{ lock, type }],
+        outputsData: ["0x05"],
+      });
+      expect(await tx.completeInputsByUdt(signer, type)).toBe(0);
+      expect(tx.outputsData).toEqual(["0x05"]);
+      expect(signer.findCells).not.toHaveBeenCalled();
     });
 
     it("should return 0 when no UDT balance is needed", async () => {

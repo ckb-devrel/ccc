@@ -1,3 +1,4 @@
+import { finalizeReadyInputs, parsePsbt } from "@ckb-ccc/btc-psbt";
 import { ccc } from "@ckb-ccc/core";
 import { DappRequestType, buildJoyIDURL } from "@joyid/common";
 import { createPopup } from "../common/index.js";
@@ -207,7 +208,13 @@ export class BitcoinSigner extends ccc.SignerBtc {
    * Signs a PSBT using JoyID wallet.
    *
    * @param psbtHex - The hex string of PSBT to sign.
+   * @param options - Options for signing the PSBT
    * @returns A promise that resolves to the signed PSBT as a Hex string.
+   *
+   * @remarks
+   * JoyID returns a raw transaction when asked to finalize, and rejects PSBTs
+   * with inputs it can't sign. So JoyID is always asked for an unfinalized
+   * PSBT, and `autoFinalized` is handled here for every ready supported input. Other inputs are left unchanged.
    */
   async signPsbt(
     psbtHex: ccc.HexLike,
@@ -215,16 +222,19 @@ export class BitcoinSigner extends ccc.SignerBtc {
   ): Promise<ccc.Hex> {
     const { address } = await this.assertConnection();
     const formattedOptions = ccc.SignPsbtOptions.from(options);
+    const unsignedPsbtHex = ccc.hexFrom(psbtHex);
 
     const config = this.getConfig();
-    const { tx: signedPsbtHex } = await createPopup(
+    const { tx } = await createPopup(
       buildJoyIDURL(
         {
           ...config,
-          tx: ccc.hexFrom(psbtHex).slice(2),
-          options: toJoyIdSignPsbtOptions(formattedOptions),
+          tx: unsignedPsbtHex.slice(2),
+          options: toJoyIdSignPsbtOptions(
+            new ccc.SignPsbtOptions(false, formattedOptions.inputsToSign),
+          ),
           signerAddress: address,
-          autoFinalized: formattedOptions.autoFinalized,
+          autoFinalized: false,
         },
         "popup",
         "/sign-psbt",
@@ -232,7 +242,21 @@ export class BitcoinSigner extends ccc.SignerBtc {
       { ...config, type: DappRequestType.SignPsbt },
     );
 
-    return ccc.hexFrom(signedPsbtHex);
+    const signedPsbtHex = ccc.hexFrom(tx);
+    if (!signedPsbtHex.startsWith("0x70736274ff")) {
+      throw new Error("JoyID did not return a PSBT.");
+    }
+    let signed: ReturnType<typeof parsePsbt>;
+    try {
+      signed = parsePsbt(ccc.bytesFrom(signedPsbtHex));
+    } catch (error) {
+      throw new Error("JoyID returned an invalid PSBT.", { cause: error });
+    }
+    if (!formattedOptions.autoFinalized) {
+      return ccc.hexFrom(signed.toPSBT());
+    }
+    finalizeReadyInputs(signed);
+    return ccc.hexFrom(signed.toPSBT());
   }
 
   /**

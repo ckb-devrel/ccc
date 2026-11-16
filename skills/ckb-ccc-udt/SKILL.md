@@ -364,10 +364,10 @@ async function transferUdt(signer: ccc.Signer, receiverAddress: string) {
 
 **Q: How do I find the args for a specific xUDT?**
 
-A: You can view it in the CKB explorer:
-1. Find the xUDT in the CKB explorer (e.g., https://testnet.explorer.nervos.org/xudt/0xb5378a3a22ed158233a4493ec0994483aada2bc6de9446952184653d90bdf889)
-2. Navigate to the xUDT's detail page
-3. In the info section, look for the **Type Script** section and find the **Args** field
+A: You can view it in CKBadger:
+1. Find the xUDT in the token inventory: [testnet](https://test-explorer.ckbccc.com/testnet/inventory/tokens) or [mainnet](https://explorer.ckbccc.com/mainnet/inventory/tokens)
+2. Open the token's detail page (`/{network}/tokens/{typeHash}`), then open a transaction from its **Activities** tab
+3. Find an output Cell carrying that xUDT and copy the **Args** from its **Type** script (not its Lock script or the token's type hash)
 4. This Args value is the xUDT's args, used when constructing `ccc.Script.fromKnownScript(client, ccc.KnownScript.XUdt, args)`
 
 ---

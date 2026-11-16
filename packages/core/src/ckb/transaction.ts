@@ -1080,13 +1080,17 @@ export class WitnessArgs extends Entity.Base<WitnessArgsLike, WitnessArgs>() {
 }
 
 /**
- * Convert a bytes to a num.
+ * Read the little-endian uint128 UDT amount from the first 16 bytes.
+ *
+ * Data shorter than 16 bytes has no complete amount and contributes zero to
+ * balance calculations. Trailing data is ignored. This does not validate the
+ * cell or its spendability: owner-mode and extension rules are protocol-specific.
  *
  * @public
  */
 export function udtBalanceFrom(dataLike: BytesLike): Num {
   const data = bytesFrom(dataLike).subarray(0, 16);
-  return data.length === 0 ? Zero : numFromBytes(data);
+  return data.length < 16 ? Zero : numFromBytes(data);
 }
 
 export const RawTransaction = mol.table({

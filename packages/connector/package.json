@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/connector",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "CCC - CKBer's Codebase. Common Chains Connector UI",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -22,6 +22,8 @@
     "./advanced": "./dist/advanced.js"
   },
   "scripts": {
+    "test": "vitest",
+    "test:ci": "vitest run",
     "build": "tsc",
     "lint": "eslint ./src",
     "format": "prettier --write . && eslint --fix ./src"
@@ -35,7 +37,8 @@
     "prettier-plugin-organize-imports": "^4.3.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.61.1"
+    "typescript-eslint": "^8.61.1",
+    "vitest": "^4.1.9"
   },
   "publishConfig": {
     "access": "public"
@@ -45,14 +48,14 @@
     "@chainsafe/libp2p-yamux": "^8.0.1",
     "@ckb-ccc/ccc": "workspace:*",
     "@ckb-ccc/libp2p": "workspace:*",
-    "@libp2p/circuit-relay-v2": "^4.2.12",
-    "@libp2p/identify": "^4.1.13",
-    "@libp2p/interface": "^3.3.0",
-    "@libp2p/webrtc": "^6.0.30",
-    "@libp2p/websockets": "^10.1.20",
+    "@libp2p/circuit-relay-v2": "^4.2.17",
+    "@libp2p/identify": "^4.1.18",
+    "@libp2p/interface": "^3.4.0",
+    "@libp2p/webrtc": "^7.0.2",
+    "@libp2p/websockets": "^10.1.25",
     "@multiformats/multiaddr": "^13.0.3",
     "core-js": "^3.50.0",
-    "libp2p": "^3.3.9",
+    "libp2p": "^3.5.1",
     "lit": "^3.3.3",
     "qr": "^0.7.0"
   },

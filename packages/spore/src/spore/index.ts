@@ -246,6 +246,23 @@ export async function meltSpore(params: {
   };
 }
 
+/** `undefined` matches every spore. `""` matches spores with no cluster id. */
+function matchClusterFilter(
+  sporeClusterId: ccc.HexLike | undefined,
+  clusterId: ccc.HexLike | undefined,
+): boolean {
+  // No filter: every spore matches.
+  if (clusterId === undefined) {
+    return true;
+  }
+  // `""` keeps public spores only. Do not pass `""` to `hexFrom`.
+  if (clusterId === "" || !sporeClusterId) {
+    return clusterId === "" && !sporeClusterId;
+  }
+  // Any other cluster id is compared as hex.
+  return ccc.hexFrom(sporeClusterId) === ccc.hexFrom(clusterId);
+}
+
 /**
  * Search on-chain spores under the signer's control, if cluster provided, filter spores belonging to this cluster
  *
@@ -285,11 +302,7 @@ export async function* findSporesBySigner(params: {
       limit,
     )) {
       const sporeData = unpackToRawSporeData(spore.outputData);
-      if (
-        !clusterId ||
-        (clusterId === "" && !sporeData.clusterId) ||
-        sporeData.clusterId === ccc.hexFrom(clusterId)
-      ) {
+      if (matchClusterFilter(sporeData.clusterId, clusterId)) {
         yield {
           cell: spore,
           spore,
@@ -350,11 +363,7 @@ export async function* findSpores(params: {
       limit,
     )) {
       const sporeData = unpackToRawSporeData(spore.outputData);
-      if (
-        !clusterId ||
-        (clusterId === "" && !sporeData.clusterId) ||
-        sporeData.clusterId === ccc.hexFrom(clusterId)
-      ) {
+      if (matchClusterFilter(sporeData.clusterId, clusterId)) {
         yield {
           cell: spore,
           spore,

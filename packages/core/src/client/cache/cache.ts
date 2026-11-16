@@ -38,32 +38,36 @@ export abstract class ClientCache {
   async markTransactions(
     ...transactionLike: (TransactionLike | TransactionLike[])[]
   ): Promise<void> {
-    await Promise.all([
-      this.recordTransactionResponses(
-        transactionLike.flat().map((transaction) => ({
-          transaction: transaction,
-          status: "sent",
-        })),
-      ),
-      ...transactionLike.flat().map((transactionLike) => {
-        const tx = Transaction.from(transactionLike);
-        const txHash = tx.hash();
+    const transactions = transactionLike.flat().map(Transaction.from);
 
-        return Promise.all([
-          ...tx.inputs.map((i) => this.markUnusable(i.previousOutput)),
-          ...tx.outputs.map((o, i) =>
-            this.markUsable({
-              cellOutput: o,
-              outputData: tx.outputsData[i],
-              outPoint: {
-                txHash,
-                index: i,
-              },
-            }),
-          ),
-        ]);
+    await this.recordTransactionResponses(
+      transactions.map((transaction) => ({
+        transaction,
+        status: "sent",
+      })),
+    );
+
+    await Promise.all(
+      transactions.flatMap((tx) => {
+        const txHash = tx.hash();
+        return tx.outputs.map((cellOutput, index) =>
+          this.markUsable({
+            cellOutput,
+            outputData: tx.outputsData[index],
+            outPoint: {
+              txHash,
+              index,
+            },
+          }),
+        );
       }),
-    ]);
+    );
+
+    await Promise.all(
+      transactions.flatMap((tx) =>
+        tx.inputs.map((input) => this.markUnusable(input.previousOutput)),
+      ),
+    );
   }
   abstract clear(): Promise<void>;
   abstract findCells(

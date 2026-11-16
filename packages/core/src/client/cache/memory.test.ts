@@ -51,6 +51,27 @@ const MOCK_TX_RESPONSE = {
   blockHash: "0x" + "a".repeat(64),
 };
 
+function createChainedTransactions() {
+  const parent = ccc.Transaction.from({
+    ...MOCK_TX,
+    outputs: [MOCK_CELL_OUTPUT, MOCK_CELL_OUTPUT],
+    outputsData: ["0x", "0x"],
+  });
+  const child = ccc.Transaction.from({
+    ...MOCK_TX,
+    inputs: [
+      {
+        previousOutput: {
+          txHash: parent.hash(),
+          index: 0,
+        },
+      },
+    ],
+  });
+
+  return { parent, child };
+}
+
 const MOCK_HEADER: ccc.ClientBlockHeaderLike = {
   compactTarget: "0x1",
   dao: {
@@ -134,6 +155,86 @@ describe("ClientCacheMemory", () => {
     expect(ccc.hexFrom(ccc.Cell.from(cells[0]).outPoint.toBytes())).toBe(
       ccc.hexFrom(ccc.Cell.from(MOCK_CELL_1).outPoint.toBytes()),
     );
+  });
+
+  describe("markTransactions", () => {
+    it("should keep a consumed parent output unusable when the parent is first", async () => {
+      const { parent, child } = createChainedTransactions();
+      const parentOutput = { txHash: parent.hash(), index: 0 };
+
+      await cache.markTransactions(parent, child);
+
+      expect(await cache.isUnusable(parentOutput)).toBe(true);
+    });
+
+    it("should keep a consumed parent output unusable when the child is first", async () => {
+      const { parent, child } = createChainedTransactions();
+      const parentOutput = { txHash: parent.hash(), index: 0 };
+
+      await cache.markTransactions(child, parent);
+
+      expect(await cache.isUnusable(parentOutput)).toBe(true);
+    });
+
+    it("should keep a consumed parent output unusable with array arguments", async () => {
+      const { parent, child } = createChainedTransactions();
+      const parentOutput = { txHash: parent.hash(), index: 0 };
+
+      await cache.markTransactions([parent, child]);
+
+      expect(await cache.isUnusable(parentOutput)).toBe(true);
+    });
+
+    it("should leave untouched parent outputs and child outputs usable", async () => {
+      const { parent, child } = createChainedTransactions();
+
+      await cache.markTransactions(parent, child);
+
+      expect(await cache.isUnusable({ txHash: parent.hash(), index: 0 })).toBe(
+        true,
+      );
+      expect(await cache.isUnusable({ txHash: parent.hash(), index: 1 })).toBe(
+        false,
+      );
+      expect(await cache.isUnusable({ txHash: child.hash(), index: 0 })).toBe(
+        false,
+      );
+    });
+
+    it("should exclude a consumed parent output from findCells", async () => {
+      const { parent, child } = createChainedTransactions();
+      await cache.markTransactions(parent, child);
+
+      const cells = [];
+      for await (const cell of cache.findCells({
+        script: MOCK_SCRIPT,
+        scriptType: "lock",
+        scriptSearchMode: "exact",
+      })) {
+        cells.push(cell);
+      }
+
+      expect(
+        cells.some(
+          (cell) =>
+            cell.outPoint.txHash === parent.hash() &&
+            cell.outPoint.index === 0n,
+        ),
+      ).toBe(false);
+      expect(
+        cells.some(
+          (cell) =>
+            cell.outPoint.txHash === parent.hash() &&
+            cell.outPoint.index === 1n,
+        ),
+      ).toBe(true);
+      expect(
+        cells.some(
+          (cell) =>
+            cell.outPoint.txHash === child.hash() && cell.outPoint.index === 0n,
+        ),
+      ).toBe(true);
+    });
   });
 
   it("should record and get cells", async () => {

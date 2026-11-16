@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/xverse",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Xverse",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -36,7 +36,7 @@
     "build": "tsdown",
     "lint": "tsc --noEmit && eslint ./src",
     "format": "prettier --write . && eslint --fix ./src",
-    "test": "vitest"
+    "test": "node --test test/artifacts.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -50,16 +50,24 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.61.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "@ckb-ccc/btc-psbt": "workspace:*"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
-    "bitcoinjs-lib": "^7.0.1",
+    "@scure/btc-signer": "2.4.1",
     "valibot": "^1.4.1"
   },
   "packageManager": "pnpm@11.8.0",
-  "types": "./dist.commonjs/index.d.ts"
+  "types": "./dist.commonjs/index.d.ts",
+  "inlinedDependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0",
+    "@scure/btc-signer": "2.4.1",
+    "micro-packed": "0.11.1"
+  }
 }

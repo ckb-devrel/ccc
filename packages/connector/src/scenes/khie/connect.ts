@@ -1,7 +1,8 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { css, html, LitElement } from "lit";
 import { customElement, property, query, state } from "lit/decorators.js";
-import { errorMessage } from "../error.js";
+import { I18n } from "../../i18n/index.js";
+import { displayError } from "../error.js";
 import type { KhiePairing } from "./pairing.js";
 import { KHIE_WALLET_NAME, khieSignerIcon } from "./wallet.js";
 
@@ -18,10 +19,13 @@ export class KhieConnectScene extends LitElement {
   @property({ attribute: false })
   public defaultRelayAddress?: string;
 
+  @property({ attribute: false })
+  public i18n = new I18n();
+
   @state()
   private status: KhieLoadStatus = "loading";
   @state()
-  private error?: string;
+  private error?: { cause: unknown };
 
   @query("ccc-khie-pairing")
   private khiePairing?: KhiePairing;
@@ -40,7 +44,7 @@ export class KhieConnectScene extends LitElement {
 
   render() {
     return html`<ccc-dialog
-      header="Connect a Wallet via Khie"
+      header=${this.i18n.t("khieConnectWallet")}
       ?canBack=${true}
       @back=${this.back}
     >
@@ -54,14 +58,16 @@ export class KhieConnectScene extends LitElement {
         .appName=${this.appName}
         .client=${this.client}
         .defaultRelayAddress=${this.defaultRelayAddress}
+        .i18n=${this.i18n}
       ></ccc-khie-pairing>`;
     }
 
     return html`<ccc-connecting
       .name=${KHIE_WALLET_NAME}
       .icon=${khieSignerIcon(undefined)}
-      .error=${this.error}
-      hint="Loading Khie…"
+      .error=${this.error && displayError(this.error.cause, this.i18n)}
+      .hint=${this.i18n.t("khieLoading")}
+      .i18n=${this.i18n}
       .onRetry=${this.status === "error" ? () => this.loadKhie() : undefined}
     ></ccc-connecting>`;
   }
@@ -83,7 +89,7 @@ export class KhieConnectScene extends LitElement {
       }
     } catch (cause) {
       if (loadId === this.loadId) {
-        this.error = errorMessage(cause);
+        this.error = { cause };
         this.status = "error";
       }
     }

@@ -6,6 +6,12 @@ import { CHECK_SVG } from "../assets/check.svg.js";
 export class CopyButton extends LitElement {
   @property()
   public value?: string;
+  /** `aria-label` of the copy icon. */
+  @property()
+  public copyLabel = "Copy";
+  /** `aria-label` of the copied icon. */
+  @property()
+  public copiedLabel = "Copied";
 
   @state()
   private isCopied = false;
@@ -72,11 +78,16 @@ export class CopyButton extends LitElement {
       <slot></slot>
       ${
         this.isCopied
-          ? html`<span class="check" role="img" aria-label="Copied"
+          ? html`<span class="check" role="img" aria-label=${this.copiedLabel}
               >${CHECK_SVG}</span
             >`
           : html`
-              <svg class="copy" viewBox="0 0 24 24" alt="copy">
+              <svg
+                class="copy"
+                viewBox="0 0 24 24"
+                role="img"
+                aria-label=${this.copyLabel}
+              >
                 <path
                   d="M19 13.5657V6.10526C19 5.49737 18.5091 5 17.9091 5H10.5454C9.94543 5 9.45452 5.49737 9.45452 6.10526V13.5657C9.45452 14.1736 9.94543 14.671 10.5454 14.671H17.9091C18.5091 14.671 19 14.1736 19 13.5657Z"
                 />

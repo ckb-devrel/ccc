@@ -102,7 +102,7 @@ export function About(props: React.ComponentPropsWithoutRef<"div">) {
         </Link>
         <Link href={index} target="_blank">
           <Search className="h-6 w-6" strokeWidth={4} />
-          CKB Explorer
+          CKBadger
         </Link>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/ccc";
 import { html } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { KHIE_SVG } from "../../assets/khie.svg.js";
+import type { I18n } from "../../i18n/index.js";
 
 export function generateWalletsScene(
   wallets: ccc.WalletWithSigners[],
@@ -11,9 +12,10 @@ export function generateWalletsScene(
     wallet: ccc.WalletWithSigners,
     signer: ccc.SignerInfo,
   ) => unknown,
+  i18n: I18n,
 ) {
   return [
-    "Connect Wallet",
+    i18n.t("connectWallet"),
     html`
       ${
         hideKhie

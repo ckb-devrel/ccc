@@ -4,6 +4,12 @@ import type { ReactNode } from "react";
 
 type ExplorerResource = "address" | "transaction";
 
+export function getExplorerBaseUrl(client: ccc.Client): string {
+  return client.addressPrefix === "ckb"
+    ? "https://explorer.ckbccc.com/mainnet"
+    : "https://test-explorer.ckbccc.com/testnet";
+}
+
 export function explorerLink(
   client: ccc.Client,
   resource: ExplorerResource,
@@ -11,14 +17,12 @@ export function explorerLink(
   content: ReactNode = value,
   className?: string,
 ) {
-  const origin =
-    client.addressPrefix === "ckb"
-      ? "https://explorer.nervos.org"
-      : "https://pudge.explorer.nervos.org";
+  const baseUrl = getExplorerBaseUrl(client);
+  const path = resource === "transaction" ? "tx" : resource;
 
   return (
     <a
-      href={`${origin}/${resource}/${value}`}
+      href={`${baseUrl}/${path}/${value}`}
       target="_blank"
       rel="noreferrer"
       title={value}

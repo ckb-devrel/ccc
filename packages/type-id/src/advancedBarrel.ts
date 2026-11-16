@@ -151,7 +151,7 @@ export function buildTypeIdOperations<
       }
 
       const outputData = await (async () => {
-        if (!data) {
+        if (data == null) {
           return inCell.outputData;
         }
 

@@ -21,44 +21,61 @@ export type ContextScript = {
 };
 
 export class ExecutorErrorUnknown extends Error {
-  constructor(msg?: string) {
-    super(msg);
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
   }
 }
 
 export class ExecutorErrorExecutionFailed extends Error {
-  constructor(msg?: string) {
-    super(msg);
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
   }
 }
 
 export class ExecutorErrorDecode extends Error {
-  constructor(msg?: string) {
-    super(msg);
+  constructor(msg?: string, options?: ErrorOptions) {
+    super(msg, options);
+  }
+}
+
+function getErrorMessage(error: unknown): string {
+  if (typeof error === "string") {
+    return error;
+  }
+  try {
+    if (typeof error === "object" && error !== null && "message" in error) {
+      const message = error.message;
+      if (typeof message === "string") {
+        return message;
+      }
+    }
+  } catch {}
+  try {
+    const json = JSON.stringify(error);
+    if (json !== undefined) {
+      return json;
+    }
+  } catch {}
+  try {
+    return String(error);
+  } catch {
+    return "Unknown error";
   }
 }
 
 function handleJsonRpcError(errAny: unknown): never {
-  if (
-    typeof errAny !== "object" ||
-    errAny === null ||
-    !("code" in errAny) ||
-    typeof errAny.code !== "number"
-  ) {
-    throw new ExecutorErrorUnknown(JSON.stringify(errAny));
-  }
-
-  if (errAny.code === 1003 || errAny.code === 1004) {
-    if ("message" in errAny && typeof errAny.message === "string") {
-      throw new ExecutorErrorExecutionFailed(errAny.message);
+  // Inspect custom thrown values without letting getters replace the error.
+  let code: unknown;
+  try {
+    if (typeof errAny === "object" && errAny !== null && "code" in errAny) {
+      code = errAny.code;
     }
-    throw new ExecutorErrorExecutionFailed();
+  } catch {}
+  const message = getErrorMessage(errAny);
+  if (code === 1003 || code === 1004) {
+    throw new ExecutorErrorExecutionFailed(message, { cause: errAny });
   }
-
-  if ("message" in errAny && typeof errAny.message === "string") {
-    throw new ExecutorErrorUnknown(errAny.message);
-  }
-  throw new ExecutorErrorUnknown();
+  throw new ExecutorErrorUnknown(message, { cause: errAny });
 }
 
 export type ContextCode =
@@ -83,7 +100,7 @@ export class ExecutorResponse<T> {
     try {
       return new ExecutorResponse(fn(this.res), this.cellDeps);
     } catch (err) {
-      throw new ExecutorErrorDecode(JSON.stringify(err));
+      throw new ExecutorErrorDecode(getErrorMessage(err), { cause: err });
     }
   }
 }
