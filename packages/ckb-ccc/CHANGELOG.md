@@ -1,5 +1,13 @@
 # ckb-ccc
 
+## 2.0.0-next.2
+
+### Patch Changes
+
+- [#637](https://github.com/ckb-devrel/ccc/pull/637) [`a449a45`](https://github.com/ckb-devrel/ccc/commit/a449a45505f50cd9672056b2607df6304ae0c89a) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Publish all public packages together after merging master into next-major so their workspace dependencies use the corresponding prerelease versions.
+- Updated dependencies [[`a449a45`](https://github.com/ckb-devrel/ccc/commit/a449a45505f50cd9672056b2607df6304ae0c89a), [`1bcc9e2`](https://github.com/ckb-devrel/ccc/commit/1bcc9e21e3aa215d8f4704929fa57ea4f00a0c24)]:
+  - @ckb-ccc/ccc@2.0.0-next.2
+
 ## 1.1.16
 
 ### Patch Changes

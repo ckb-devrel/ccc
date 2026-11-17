@@ -1,5 +1,13 @@
 # @ckb-ccc/connector-react
 
+## 2.3.1-next.0
+
+### Patch Changes
+
+- [#637](https://github.com/ckb-devrel/ccc/pull/637) [`a449a45`](https://github.com/ckb-devrel/ccc/commit/a449a45505f50cd9672056b2607df6304ae0c89a) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Publish all public packages together after merging master into next-major so their workspace dependencies use the corresponding prerelease versions.
+- Updated dependencies [[`a449a45`](https://github.com/ckb-devrel/ccc/commit/a449a45505f50cd9672056b2607df6304ae0c89a)]:
+  - @ckb-ccc/connector@2.4.1-next.0
+
 ## 2.3.0
 
 ### Minor Changes
