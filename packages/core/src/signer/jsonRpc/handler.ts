@@ -62,6 +62,12 @@ export type SignerJsonRpcProviderSessionConfig = {
     request: SignerJsonRpcConfirmation,
     options?: SignerJsonRpcProviderSessionOptions,
   ) => Promise<boolean>;
+  /**
+   * Accept the placeholder input of a lock proof (the only input, out point index 0xffffffff, capacity
+   * u64::MAX, no type, empty data) when the dApp carries its cell. Off by default, so a wallet that
+   * has not opted in still refuses such a transaction.
+   */
+  acceptPseudoInputs?: boolean;
 };
 
 export class SignerJsonRpcProviderSession {
@@ -170,9 +176,12 @@ export class SignerJsonRpcProviderSession {
         [
           1,
           async ([transaction]) =>
-            JsonRpcTransformers.transactionFrom(
+            SignerJsonRpcTransformers.transactionFrom(
               await this.requireSigner().prepareTransaction(
-                parseTransactionParam(transaction),
+                parseTransactionParam(
+                  transaction,
+                  this.config.acceptPseudoInputs,
+                ),
               ),
             ),
         ],
@@ -182,12 +191,15 @@ export class SignerJsonRpcProviderSession {
         [
           1,
           async ([transaction], options) => {
-            const parsedTransaction = parseTransactionParam(transaction);
+            const parsedTransaction = parseTransactionParam(
+              transaction,
+              this.config.acceptPseudoInputs,
+            );
             await this.requireConfirmation(
               { method: "sign_transaction", transaction: parsedTransaction },
               options,
             );
-            return JsonRpcTransformers.transactionFrom(
+            return SignerJsonRpcTransformers.transactionFrom(
               await this.requireSigner().signOnlyTransaction(parsedTransaction),
             );
           },
@@ -404,10 +416,13 @@ function parseMessageParam(message: unknown) {
   }
 }
 
-function parseTransactionParam(transaction: unknown) {
+function parseTransactionParam(transaction: unknown, accept = false) {
   try {
-    return JsonRpcTransformers.transactionTo(
-      transaction as Parameters<typeof JsonRpcTransformers.transactionTo>[0],
+    return SignerJsonRpcTransformers.transactionTo(
+      transaction as Parameters<
+        typeof SignerJsonRpcTransformers.transactionTo
+      >[0],
+      accept,
     );
   } catch (cause) {
     throw new JsonRpcError({

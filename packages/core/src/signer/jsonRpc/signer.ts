@@ -223,14 +223,14 @@ export class SignerJsonRpc extends Signer {
 
   prepareTransaction = this.buildSender(
     "prepare_transaction",
-    [JsonRpcTransformers.transactionFrom],
-    JsonRpcTransformers.transactionTo,
+    [SignerJsonRpcTransformers.transactionFrom],
+    SignerJsonRpcTransformers.transactionTo,
   ) as Signer["prepareTransaction"];
 
   signOnlyTransaction = this.buildSender(
     "sign_transaction",
-    [JsonRpcTransformers.transactionFrom],
-    JsonRpcTransformers.transactionTo,
+    [SignerJsonRpcTransformers.transactionFrom],
+    SignerJsonRpcTransformers.transactionTo,
   ) as Signer["signOnlyTransaction"];
 
   buildSender(
