@@ -12,11 +12,3 @@ allowBuilds:
   secp256k1: true
   sharp: true
   unrs-resolver: true
-
-# Keep transitive patch releases above their published security fix floors.
-overrides:
-  "dompurify@<3.4.17": "^3.4.17"
-  "launch-editor@<2.14.2": "^2.14.2"
-  "minimatch@>=9.0.0 <9.0.7": "^9.0.9"
-  "shell-quote@>=1.8.4 <1.11.0": "^1.12.0"
-  "minimatch@>=11.0.0 <11.0.9": "^11.0.9"
