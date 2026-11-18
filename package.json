@@ -19,7 +19,7 @@
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@types/jest": "^30.0.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "jest": "30.5.2",
     "ts-jest": "^29.4.11",
     "typedoc": "0.28.20",
@@ -28,7 +28,7 @@
     "typedoc-plugin-ga": "^1.1.1",
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.12"
   },
   "packageManager": "pnpm@11.8.0"
 }
