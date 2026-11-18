@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
+import { SporeScriptInfoLike } from "../predefined/index.js";
 
 export async function prepareCluster(
   signer: ccc.Signer,
@@ -9,6 +10,8 @@ export async function prepareCluster(
   data: SporeDataView,
   clusterMode?: "lockProxy" | "clusterCell" | "skip",
   scriptInfoHash?: ccc.HexLike,
+  withIntent?: boolean,
+  scripts?: SporeScriptInfoLike[],
 ): Promise<ccc.EncodableType<typeof Action> | undefined> {
   // skip if the spore is not belong to a cluster
   if (!data.clusterId || clusterMode === "skip") {
@@ -22,6 +25,7 @@ export async function prepareCluster(
   const { cell: cluster, scriptInfo } = await assertCluster(
     signer.client,
     data.clusterId,
+    scripts,
   );
 
   // If this cluster has been processed, nothing will happen to the tx
@@ -77,7 +81,7 @@ export async function prepareCluster(
         depType: "code",
       });
 
-      if (scriptInfo.cobuild) {
+      if (withIntent !== false && scriptInfo.cobuild) {
         return assembleTransferClusterAction(
           cluster.cellOutput,
           cluster.cellOutput,

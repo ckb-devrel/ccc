@@ -232,6 +232,49 @@ Spore Cell 将内容存储在链上，所需 CKB 容量远超普通转账。文�
 - `"clusterCell"`——成本较高，将实际 Cluster Cell 纳入交易，适用于 Cluster 的 Lock 与 `signer` 不同的情况。
 - `"skip"`——仅在自行处理 Cluster 输入输出时使用。
 
+## Spore v3（即将推出）
+
+spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) 和 [#76](https://github.com/sporeprotocol/spore-contract/pull/76) 提议引入原生 Mutant，并将核心 CoBuild Action 改为可选。现有预设和默认 V2 行为保持不变。V3 预设在部署完成并审查前留空；本地候选版本可传入自定义 `SporeScriptInfoLike`。
+
+### 可选意图
+
+五个 Spore／Cluster 构建函数均支持 `withIntent: false`，跳过本次新 Action。只有所有相关脚本都允许缺少 Action 时才能使用。交易已有的 Action 会保留，并在 Lock 准备后重新附加，即使本次构建增加了输入但没有新增 Action。
+
+展示元数据前，从 `@ckb-ccc/spore/advanced` 调用 `checkSporeIntent`。**只有它返回的 Spore Action 才能展示为已验证。** 外部协议 Action 仍留在交易中，但不会混入已验证结果。钱包还必须展示实际交易变化；空结果不能证明没有资产流转。
+
+检查器通过 code hash 和 hash type 识别已有 Spore／Cluster 预设。自定义部署应按真实类别传入 `scripts: { Spore: [v3Spore], Cluster: [v3Cluster], ClusterProxy: [proxyInfo], ClusterAgent: [agentInfo] }`。这些配置是应用提供的信任依据，不构成部署来源证明。构建时若使用自定义 `scriptInfoHash`，还需通过 `scriptInfoHashes` 显式允许；默认只接受 `DEFAULT_COBUILD_INFO_HASH`。
+
+全部 11 种 Action 都核对 ID、所有者和创建／转移／销毁形态；转移还检查 data 不变，并保留合约允许的 Spore／Cluster ID 后缀。Proxy 的 ID 取合法 32／40 字节 args 的前 32 字节。创建 Agent 时，会解析 code dep 或 depGroup 中引用的 Proxy，核对其已认可部署、ID 和 Cluster 关系。输入或依赖缺失、已知协议元数据不匹配、重复 Cell／Action／Message 及损坏的 CoBuild 布局都会失败。检查会扫描所有 witness，尾部普通 witness 无法隐藏前面的 Message。签名、费用和应用授权仍由钱包分别处理。
+
+### 原生规则
+
+原生 Mutant 将编译后的 RISC-V ELF 存在不可变 Cell data 中。用 `checkNativeMutantCode` 检查大小及 ELF 头，用 `createMutant` 和经过审查的 `type` 部署构造发布交易；实际可执行性和规则结果仍由 VM 决定。
+
+`withMutants`／`getMutantIds` 使用不带 `0x` 前缀、逗号分隔的 32 字节 ID。解析会收集全部 `mutant[]` 参数并拒绝全局重复 ID。`findMutant` 支持 32 字节 args 和带支付参数的 40 字节形式，核对部署身份并拒绝歧义匹配。**mint、transfer 和 melt 前都要**用 `injectMutantReferences` 加入全部声明的规则依赖；支付后缀不会改变引用的 ID。`checkMutantPayments` **每次只检查一个 Spore type-script group** 的净容量阈值。调用方必须按组划分声明的 Mutant outpoint，并分别调用，即使各组收款 Lock 相同；函数不会推断分组，也不应跨独立组累加阈值。
+
+这些功能用于 SDK 交易构造与离线检查。本地包测试不能代替使用 CCC 自己构建和签名的 devnet 交易与逐字节 VM 重放；旧 SDK PR #142 的验收结果不能直接用于证明此次重写通过验收。
+
+### Type 绑定部署与治理
+
+新的 v3 部署使用 `hashType: "type"`。`createSporeCodeDeployment` 根据代码
+Cell 的标准 Type ID 参数生成引用，并记录经过审查的治理 Lock；把返回的
+`scriptInfo` 传给构建函数。依赖信息允许 CCC 查找当前后继代码 Cell，避免固定在
+已经被消费的 OutPoint。`createSporeDeploymentProfile` 将 Spore、Cluster、Mutant
+及可选 Proxy/Agent 的不同代码身份组成配置，Type ID 必须与合约构建计划一致。
+
+治理由部署方提供的现有 Lock 执行，SDK 中的名称不构成权限保证。签名前调用
+`resolveSporeCodeDeployment` 检查当前代码 Cell 的标准 Type ID、预期治理 Lock
+及可选 `expectedDataHash`。只有应用明确接受治理授权的代码升级时才省略内容哈希
+固定值；治理 Lock 轮换需要更新经过审查的配置。该函数不审计 Lock 的语义，也不
+保证其禁止销毁代码 Cell。要求固定执行语义的应用重放配置仍应绑定实际可执行文件
+哈希。
+
+自定义 type 绑定 Cluster 可通过 `createSpore({ scriptInfo:
+profile.spore.scriptInfo, clusterScripts: [profile.cluster.scriptInfo], ... })`
+传入。新旧 Collection 的实际兼容范围仍由合约白名单决定。原生 Mutant 依赖使用
+同一套经过审查的配置注入。历史部署和 V2 默认值保持不变，不自动迁移已有 NFT；
+type 绑定的原生执行要求网络已激活 Meepo。
+
 ## 下一步
 
 - [组装交易](/docs/guides/compose-transactions)——了解每个 Spore 操作通用的声明 → 填充 → 手续费 → 发送模式。

@@ -79,7 +79,9 @@ export async function assertSpore(
  *   - skip: don't handle the cluster logic
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of Spore cell, if not provided, the default script info will be used
+ * @param params.clusterScripts reviewed Cluster deployments, including a custom type-bound profile when needed
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
  *  - **tx**: a new transaction that contains created Spore cells
  *  - **id**: the sporeId of created Spore cell
@@ -91,12 +93,14 @@ export async function createSpore(params: {
   clusterMode?: "lockProxy" | "clusterCell" | "skip";
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
+  clusterScripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
   id: ccc.Hex;
 }> {
-  const { signer, data, to, clusterMode, scriptInfoHash } = params;
+  const { signer, data, to, clusterMode, scriptInfoHash, withIntent } = params;
   const scriptInfo = params.scriptInfo ?? getSporeScriptInfo(signer.client);
 
   // prepare transaction
@@ -124,7 +128,7 @@ export async function createSpore(params: {
   );
 
   // create spore action
-  if (scriptInfo.cobuild) {
+  if (withIntent !== false && scriptInfo.cobuild) {
     const output = tx.outputs[tx.outputs.length - 1];
     const createAction = assembleCreateSporeAction(
       output,
@@ -137,7 +141,15 @@ export async function createSpore(params: {
   // complete cellDeps
   await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
 
-  const action = await prepareCluster(signer, tx, data, clusterMode);
+  const action = await prepareCluster(
+    signer,
+    tx,
+    data,
+    clusterMode,
+    undefined,
+    withIntent,
+    params.clusterScripts,
+  );
   if (action) {
     actions.push(action);
   }
@@ -156,6 +168,7 @@ export async function createSpore(params: {
  * @param params.to Spore's new owner
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
  *  - **tx**: a new transaction that contains transferred Spore cells
  */
@@ -166,10 +179,11 @@ export async function transferSpore(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, to, scripts, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash, withIntent } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
@@ -189,15 +203,16 @@ export async function transferSpore(params: {
     sporeCell.outputData,
   );
 
-  const actions = sporeScriptInfo.cobuild
-    ? [
-        assembleTransferSporeAction(
-          sporeCell.cellOutput,
-          tx.outputs[tx.outputs.length - 1],
-          scriptInfoHash,
-        ),
-      ]
-    : [];
+  const actions =
+    withIntent !== false && sporeScriptInfo.cobuild
+      ? [
+          assembleTransferSporeAction(
+            sporeCell.cellOutput,
+            tx.outputs[tx.outputs.length - 1],
+            scriptInfoHash,
+          ),
+        ]
+      : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
@@ -211,6 +226,7 @@ export async function transferSpore(params: {
  * @param params.id sporeId to be melted
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
  * @returns
  *  - **tx**: a new transaction that contains melted Spore cell
  */
@@ -220,10 +236,11 @@ export async function meltSpore(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, scripts, scriptInfoHash } = params;
+  const { signer, id, scripts, scriptInfoHash, withIntent } = params;
 
   // prepare transaction
   const tx = ccc.Transaction.from(params.tx ?? {});
@@ -237,9 +254,10 @@ export async function meltSpore(params: {
   await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
   tx.addInput(sporeCell);
 
-  const actions = sporeScriptInfo.cobuild
-    ? [assembleMeltSporeAction(sporeCell.cellOutput, scriptInfoHash)]
-    : [];
+  const actions =
+    withIntent !== false && sporeScriptInfo.cobuild
+      ? [assembleMeltSporeAction(sporeCell.cellOutput, scriptInfoHash)]
+      : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
