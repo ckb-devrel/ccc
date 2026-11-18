@@ -61,7 +61,8 @@
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
-    "@ckb-ccc/udt": "workspace:*"
+    "@ckb-ccc/udt": "workspace:*",
+    "@ckb-ccc/molecule": "workspace:*"
   },
   "packageManager": "pnpm@11.8.0"
 }

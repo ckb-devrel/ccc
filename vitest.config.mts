@@ -7,6 +7,7 @@ const packages = [
   "packages/did-ckb",
   "packages/joy-id",
   "packages/libp2p",
+  "packages/molecule",
   "packages/nip07",
   "packages/okx",
   "packages/ssri",
