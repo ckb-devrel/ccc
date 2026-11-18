@@ -50,6 +50,11 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
   const [selection, setSelection] = useState("Message");
   const [json, setJson] = useState(EXAMPLE_JSON);
   const [hex, setHex] = useState("");
+  const [conversionError, setConversionError] = useState<{
+    direction: "encode" | "decode";
+    message: string;
+  }>();
+  const conversionErrorId = useId();
   const hasReadout = useRef(false);
   const schemaErrorId = useId();
   const parsed = useMemo(() => {
@@ -67,6 +72,7 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
   const codec = selected ? parsed.codecs?.get(selected) : undefined;
 
   function invalidateReadout() {
+    setConversionError(undefined);
     if (!hasReadout.current) {
       return;
     }
@@ -84,6 +90,7 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
     if (!codec) {
       return;
     }
+    setConversionError(undefined);
     try {
       const { value: result, byteLength } = convertValue(
         codec,
@@ -115,6 +122,13 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
         "success",
       );
     } catch (cause) {
+      setConversionError({
+        direction,
+        message:
+          cause instanceof Error
+            ? cause.message
+            : "Unable to convert Molecule data",
+      });
       hasReadout.current = true;
       reportModuleError(cause, show, log, "Unable to convert Molecule data");
     }
@@ -173,6 +187,12 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
             <span>JSON value</span>
             <ModuleTextarea
               value={json}
+              aria-invalid={conversionError?.direction === "encode"}
+              aria-describedby={
+                conversionError?.direction === "encode"
+                  ? conversionErrorId
+                  : undefined
+              }
               rows={6}
               spellCheck={false}
               onChange={(event) => {
@@ -181,6 +201,11 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
               }}
             />
           </label>
+          {conversionError?.direction === "encode" ? (
+            <p id={conversionErrorId} className={styles.error} role="status">
+              {conversionError.message}
+            </p>
+          ) : null}
           <div className="module-actions">
             <button
               type="button"
@@ -197,6 +222,12 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
             <span>Encoded hex</span>
             <ModuleTextarea
               value={hex}
+              aria-invalid={conversionError?.direction === "decode"}
+              aria-describedby={
+                conversionError?.direction === "decode"
+                  ? conversionErrorId
+                  : undefined
+              }
               rows={6}
               spellCheck={false}
               placeholder="0x…"
@@ -206,6 +237,11 @@ export function MoleculeModule({ log, show }: ModuleRuntimeProps) {
               }}
             />
           </label>
+          {conversionError?.direction === "decode" ? (
+            <p id={conversionErrorId} className={styles.error} role="status">
+              {conversionError.message}
+            </p>
+          ) : null}
           <div className="module-actions">
             <button
               type="button"
