@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
 import { OutPoint, Script, Transaction, WitnessArgs } from "../../ckb/index.js";
-import { ClientPublicTestnet } from "../../client/index.js";
+import { ClientPublicTestnet, KnownScript } from "../../client/index.js";
 import { hashCkb } from "../../hasher/index.js";
 import { hexFrom } from "../../hex/index.js";
 import {
@@ -12,7 +12,6 @@ import {
 } from "../../jsonRpc/index.js";
 import { SignerCkbPrivateKey, verifyMessageSecp256k1 } from "../ckb/index.js";
 import { SignerJsonRpc, SignerJsonRpcProviderSession } from "./index.js";
-import { SignerJsonRpcTransformers } from "./transformers.js";
 
 const MAX = 0xffffffffffffffffn;
 const NULL_LOCK = Script.from({
@@ -26,17 +25,18 @@ const UNABLE = /Unable to complete input/;
 type Options = {
   index?: number;
   txHash?: string;
-  capacity?: bigint;
-  type?: Script;
-  data?: string;
+  outputLock?: Script;
+  noOutput?: boolean;
   extra?: boolean;
 };
 
+// A lock proof: one input that cannot exist, one output under the lock, holding the message.
 function proof(lock: Script, o: Options = {}) {
   const data = bytesFrom(MESSAGE, "utf8");
   const hash = hashCkb(
-    bytesConcat(bytesFrom("CKB lock proof v0\n", "utf8"), lock.hash(), data),
+    bytesConcat(bytesFrom("CKB lock proof v1\n", "utf8"), lock.hash(), data),
   );
+  const outputLock = o.outputLock ?? lock;
   return Transaction.from({
     version: 0,
     cellDeps: [],
@@ -48,8 +48,8 @@ function proof(lock: Script, o: Options = {}) {
           index: o.index ?? 0xffffffff,
         },
         since: 0,
-        cellOutput: { capacity: o.capacity ?? MAX, lock, type: o.type },
-        outputData: o.data ?? "0x",
+        cellOutput: { capacity: MAX, lock },
+        outputData: "0x",
       },
       ...(o.extra
         ? [
@@ -60,10 +60,16 @@ function proof(lock: Script, o: Options = {}) {
           ]
         : []),
     ],
-    outputs: [
-      { capacity: BigInt(8 + 33 + data.length) * 100000000n, lock: NULL_LOCK },
-    ],
-    outputsData: [hexFrom(data)],
+    outputs: o.noOutput
+      ? []
+      : [
+          {
+            capacity:
+              BigInt(8 + outputLock.occupiedSize + data.length) * 100000000n,
+            lock: outputLock,
+          },
+        ],
+    outputsData: o.noOutput ? [] : [hexFrom(data)],
     witnesses: [],
   });
 }
@@ -75,7 +81,7 @@ afterEach(async () => {
   await Promise.all(owners.splice(0).map((o) => o.dispose()));
 });
 
-async function pair(acceptPseudoInputs?: boolean) {
+async function pair(seed = "11") {
   const client = new ClientPublicTestnet();
   const lookups: string[] = [];
   vi.spyOn(client, "getCell").mockImplementation(async (op) => {
@@ -85,12 +91,11 @@ async function pair(acceptPseudoInputs?: boolean) {
   vi.spyOn(client, "findCells").mockImplementation(
     async function* () {} as never,
   );
-  const signer = new SignerCkbPrivateKey(client, `0x${"11".repeat(32)}`);
+  const signer = new SignerCkbPrivateKey(client, `0x${seed.repeat(32)}`);
   const owner = SignerJsonRpcProviderSession.open({
     connect: async () => signer,
     confirmRequest: async () => true,
     getSigner: () => signer,
-    ...(acceptPseudoInputs === undefined ? {} : { acceptPseudoInputs }),
   });
   owners.push(owner);
   const wire: JsonRpcPayload[] = [];
@@ -120,27 +125,25 @@ async function pair(acceptPseudoInputs?: boolean) {
   const dapp = await SignerJsonRpc.new(dappClient, { transport });
   await dapp.connect();
   const lock = (await signer.getAddressObjSecp256k1()).script;
-  const { session_id } = (wire.at(-1)!.params as [{ session_id: string }])[0];
-  let raws = 0;
-  const raw = (method: string, param: unknown) =>
-    Promise.resolve(
-      owner.value.handle({
-        jsonrpc: "2.0",
-        id: 0,
-        method,
-        params: [{ request_id: `raw-${raws++}`, session_id }, param],
-      }),
-    );
-  return { dapp, signer, lookups, wire, lock, raw };
+  return { dapp, signer, client, lookups, wire, lock };
 }
 
-// the witness holds a signature of the fixture key over the sighash of the transaction
-async function isSigned(signer: SignerCkbPrivateKey, signed: Transaction) {
-  const lock = (await signer.getAddressObjSecp256k1()).script;
+// The witness holds a signature of the fixture key, for `lock`, over the sighash of the proof. The
+// transaction that came back over the wire has no input cell, so the proof's own input is put back.
+async function isSigned(
+  signer: SignerCkbPrivateKey,
+  lock: Script,
+  signed: Transaction,
+) {
   const unsigned = signed.clone();
+  unsigned.inputs[0] = proof(lock).inputs[0].clone();
+  unsigned.inputs[0].previousOutput = signed.inputs[0].previousOutput;
   await unsigned.prepareSighashAllWitness(lock, 65, signer.client);
   const info = await unsigned.getSignHashInfo(lock, signer.client);
-  const signature = WitnessArgs.fromBytes(signed.witnesses[0]).lock;
+  const signature =
+    signed.witnesses.length > 0
+      ? WitnessArgs.fromBytes(signed.witnesses[0]).lock
+      : undefined;
   return (
     info !== undefined &&
     signature !== undefined &&
@@ -148,7 +151,7 @@ async function isSigned(signer: SignerCkbPrivateKey, signed: Transaction) {
   );
 }
 
-// the wallet went to look the fake input up (and found nothing), so it did not accept the carried cell
+// the wallet went to look the input up (and found nothing), so it did not rebuild its cell
 const looked = (lookups: string[], tx: Transaction) =>
   lookups.includes(key(tx.inputs[0].previousOutput));
 
@@ -161,63 +164,82 @@ const sentInput = (wire: JsonRpcPayload[]) =>
     )?.params as [unknown, { inputs: Record<string, unknown>[] }]
   )[1].inputs[0];
 
-describe("a lock proof input over the signer JSON-RPC", () => {
-  it("control: direct signing without the wire signs the template", async () => {
+describe("a pseudo input over the signer JSON-RPC", () => {
+  it("control: direct signing without the wire signs the proof", async () => {
     const { signer, lock } = await pair();
     const prepared = await signer.prepareTransaction(proof(lock));
-    expect(await isSigned(signer, prepared)).toBe(false);
+    expect(await isSigned(signer, lock, prepared)).toBe(false);
     const signed = await signer.signOnlyTransaction(prepared);
-    expect(await isSigned(signer, signed)).toBe(true);
+    expect(await isSigned(signer, lock, signed)).toBe(true);
   });
 
-  it("a wallet that opted in signs it, with the bytes of direct signing and no lookup", async () => {
-    const { dapp, signer, lookups, lock } = await pair(true);
+  it("the wallet signs it, with the bytes of direct signing, no lookup and nothing new on the wire", async () => {
+    const { dapp, signer, lookups, wire, lock } = await pair();
     const direct = await signer.signOnlyTransaction(
       await signer.prepareTransaction(proof(lock)),
     );
     const signed = await dapp.signTransaction(proof(lock));
     expect(signed.witnesses[0]).toBe(direct.witnesses[0]);
-    expect(await isSigned(signer, signed)).toBe(true);
+    expect(await isSigned(signer, lock, signed)).toBe(true);
     expect(lookups).toEqual([]);
+    expect(Object.keys(sentInput(wire)).sort()).toEqual([
+      "previous_output",
+      "since",
+    ]);
   });
 
   it("prepare then sign works through the wire", async () => {
-    const { dapp, signer, lookups, lock } = await pair(true);
+    const { dapp, signer, lookups, lock } = await pair();
     const prepared = await dapp.prepareTransaction(proof(lock));
-    expect(prepared.inputs[0].cellOutput?.capacity).toBe(MAX);
-    expect(await isSigned(signer, prepared)).toBe(false);
+    expect(await isSigned(signer, lock, prepared)).toBe(false);
     const signed = await dapp.signOnlyTransaction(prepared);
-    expect(await isSigned(signer, signed)).toBe(true);
+    expect(await isSigned(signer, lock, signed)).toBe(true);
     expect(lookups).toEqual([]);
   });
 
-  it("a wallet that did not opt in refuses it and looks the input up", async () => {
-    for (const accept of [undefined, false]) {
-      const { dapp, lookups, lock } = await pair(accept);
-      const tx = proof(lock);
-      await expect(dapp.signTransaction(tx)).rejects.toThrow(UNABLE);
-      expect(looked(lookups, tx)).toBe(true);
+  it("the wallet signs for another of its locks, named by the first output", async () => {
+    const { dapp, signer, client, lookups, lock } = await pair();
+    const second = await Script.fromKnownScript(
+      client,
+      KnownScript.AnyoneCanPay,
+      lock.args,
+    );
+    expect(second.eq(lock)).toBe(false);
+    const signed = await dapp.signTransaction(proof(second));
+    expect(await isSigned(signer, second, signed)).toBe(true);
+    // the wallet prepared it as an input of that second lock: its cell deps are the lock's own
+    const { cellDeps } = await client.getKnownScript(KnownScript.AnyoneCanPay);
+    expect(signed.cellDeps.map((d) => d.outPoint.txHash)).toEqual(
+      cellDeps.map((d) => d.cellDep.outPoint.txHash),
+    );
+    expect(lookups).toEqual([]);
+  });
+
+  it("a first output under a lock that is not the wallet's comes back unsigned", async () => {
+    const other = await pair("22");
+    const cases = {
+      "another key's lock": other.lock,
+      "a null lock": NULL_LOCK,
+    };
+    for (const outputLock of Object.values(cases)) {
+      const { dapp, lookups, lock } = await pair();
+      const signed = await dapp.signTransaction(proof(lock, { outputLock }));
+      expect(signed.witnesses).toEqual([]);
+      expect(lookups).toEqual([]);
     }
   });
 
-  describe("when the wallet opted in, anything but the exact shape is looked up", () => {
-    const typeScript = Script.from({
-      codeHash: `0x${"22".repeat(32)}`,
-      hashType: "type",
-      args: "0x",
-    });
+  describe("anything but the exact shape is looked up", () => {
     const cases: Record<string, Options> = {
       "index 0": { index: 0 },
-      "capacity below u64::MAX": { capacity: MAX - 1n },
-      "a type script": { type: typeScript },
-      "non-empty data": { data: "0x01" },
       "an all-zero tx hash": { txHash: `0x${"00".repeat(32)}` },
       "a tx hash shorter than 32 bytes": { txHash: "0x01" },
       "a second input next to it": { extra: true },
+      "no output to take the lock from": { noOutput: true },
     };
     for (const [name, options] of Object.entries(cases)) {
       it(`control: ${name}`, async () => {
-        const { dapp, lookups, lock } = await pair(true);
+        const { dapp, lookups, lock } = await pair();
         const tx = proof(lock, options);
         await expect(dapp.signTransaction(tx)).rejects.toThrow(UNABLE);
         expect(looked(lookups, tx)).toBe(true);
@@ -225,56 +247,23 @@ describe("a lock proof input over the signer JSON-RPC", () => {
     }
   });
 
-  it("a normal input keeps exactly its out point and since on the wire", async () => {
-    const { dapp, wire, lock } = await pair(true);
-    await dapp
-      .signTransaction(
-        Transaction.from({
-          inputs: [
-            {
-              previousOutput: { txHash: `0x${"ab".repeat(32)}`, index: 1 },
-              since: 0,
-            },
-          ],
-          outputs: [{ capacity: 100n * 100000000n, lock }],
-          outputsData: ["0x"],
-        }),
-      )
-      .catch(() => undefined);
-    expect(Object.keys(sentInput(wire)).sort()).toEqual([
-      "previous_output",
-      "since",
-    ]);
-  });
-
-  it("extra fields on a normal input are ignored and the input is looked up", async () => {
-    const { lookups, lock, raw } = await pair(true);
+  it("a normal input is looked up, and its transaction is sent as before", async () => {
+    const { dapp, lookups, wire, lock } = await pair();
     const tx = Transaction.from({
       inputs: [
         {
-          previousOutput: { txHash: `0x${"ab".repeat(32)}`, index: 0 },
+          previousOutput: { txHash: `0x${"ab".repeat(32)}`, index: 1 },
           since: 0,
         },
       ],
       outputs: [{ capacity: 100n * 100000000n, lock }],
       outputsData: ["0x"],
     });
-    const json = SignerJsonRpcTransformers.transactionFrom(tx);
-    const sent = {
-      ...json,
-      inputs: [{ ...json.inputs[0], cell_output: {}, output_data: "0x" }],
-    };
-    await expect(raw("sign_transaction", sent)).rejects.toThrow(UNABLE);
+    await expect(dapp.signTransaction(tx)).rejects.toThrow(UNABLE);
     expect(looked(lookups, tx)).toBe(true);
-  });
-
-  it("a proof input that fails the rule is sent without a cell", async () => {
-    const { dapp, wire, lock } = await pair(true);
-    await dapp
-      .signTransaction(proof(lock, { index: 0 }))
-      .catch(() => undefined);
-    const input = sentInput(wire);
-    expect("cell_output" in input).toBe(false);
-    expect("output_data" in input).toBe(false);
+    expect(Object.keys(sentInput(wire)).sort()).toEqual([
+      "previous_output",
+      "since",
+    ]);
   });
 });

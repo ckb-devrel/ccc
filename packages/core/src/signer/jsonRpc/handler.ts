@@ -1,5 +1,5 @@
 import { randomBytes } from "@noble/hashes/utils.js";
-import type { Transaction } from "../../ckb/index.js";
+import { CellInput, type Transaction } from "../../ckb/index.js";
 import { JsonRpcTransformers } from "../../client/jsonRpc/advanced.js";
 import { hexFrom } from "../../hex/index.js";
 import { JsonRpcError, type JsonRpcPayload } from "../../jsonRpc/index.js";
@@ -62,12 +62,6 @@ export type SignerJsonRpcProviderSessionConfig = {
     request: SignerJsonRpcConfirmation,
     options?: SignerJsonRpcProviderSessionOptions,
   ) => Promise<boolean>;
-  /**
-   * Accept the placeholder input of a lock proof (the only input, out point index 0xffffffff, capacity
-   * u64::MAX, no type, empty data) when the dApp carries its cell. Off by default, so a wallet that
-   * has not opted in still refuses such a transaction.
-   */
-  acceptPseudoInputs?: boolean;
 };
 
 export class SignerJsonRpcProviderSession {
@@ -176,12 +170,9 @@ export class SignerJsonRpcProviderSession {
         [
           1,
           async ([transaction]) =>
-            SignerJsonRpcTransformers.transactionFrom(
+            JsonRpcTransformers.transactionFrom(
               await this.requireSigner().prepareTransaction(
-                parseTransactionParam(
-                  transaction,
-                  this.config.acceptPseudoInputs,
-                ),
+                parseTransactionParam(transaction),
               ),
             ),
         ],
@@ -191,15 +182,12 @@ export class SignerJsonRpcProviderSession {
         [
           1,
           async ([transaction], options) => {
-            const parsedTransaction = parseTransactionParam(
-              transaction,
-              this.config.acceptPseudoInputs,
-            );
+            const parsedTransaction = parseTransactionParam(transaction);
             await this.requireConfirmation(
               { method: "sign_transaction", transaction: parsedTransaction },
               options,
             );
-            return SignerJsonRpcTransformers.transactionFrom(
+            return JsonRpcTransformers.transactionFrom(
               await this.requireSigner().signOnlyTransaction(parsedTransaction),
             );
           },
@@ -416,13 +404,44 @@ function parseMessageParam(message: unknown) {
   }
 }
 
-function parseTransactionParam(transaction: unknown, accept = false) {
+const PSEUDO_INPUT_INDEX = 0xffffffffn;
+const PSEUDO_INPUT_CAPACITY = 0xffffffffffffffffn;
+
+/**
+ * A transaction whose only input is at out point index 0xffffffff, with a 32-byte tx hash that is
+ * not all zero, can never be committed: no transaction has that many outputs. Such an input cannot
+ * be looked up, so its cell is rebuilt here: capacity u64::MAX, the lock of the first output, no
+ * type and empty data. The signer then signs for that lock, if it is one of its own. A lock proof is
+ * such a transaction. Every other input is looked up as usual.
+ */
+function rebuildPseudoInput(tx: Transaction): Transaction {
+  const lock = tx.outputs[0]?.lock;
+  if (tx.inputs.length !== 1 || lock === undefined) {
+    return tx;
+  }
+  const { previousOutput, since } = tx.inputs[0];
+  if (
+    previousOutput.index !== PSEUDO_INPUT_INDEX ||
+    !/^0x[0-9a-f]{64}$/.test(previousOutput.txHash) ||
+    /^0x0+$/.test(previousOutput.txHash)
+  ) {
+    return tx;
+  }
+  tx.inputs[0] = CellInput.from({
+    previousOutput,
+    since,
+    cellOutput: { capacity: PSEUDO_INPUT_CAPACITY, lock },
+    outputData: "0x",
+  });
+  return tx;
+}
+
+function parseTransactionParam(transaction: unknown) {
   try {
-    return SignerJsonRpcTransformers.transactionTo(
-      transaction as Parameters<
-        typeof SignerJsonRpcTransformers.transactionTo
-      >[0],
-      accept,
+    return rebuildPseudoInput(
+      JsonRpcTransformers.transactionTo(
+        transaction as Parameters<typeof JsonRpcTransformers.transactionTo>[0],
+      ),
     );
   } catch (cause) {
     throw new JsonRpcError({
