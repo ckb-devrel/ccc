@@ -1,0 +1,210 @@
+/* Independent transaction-level layout, not the editor/output workspace divider. */
+.transaction-flow {
+  display: grid;
+  grid-template-columns:
+    minmax(0, var(--transaction-input-ratio)) calc(
+      var(--transaction-divider-space, 20px) - 4px
+    )
+    minmax(0, var(--transaction-output-ratio));
+  gap: 2px;
+  align-items: start;
+  margin: 12px 0;
+}
+.transaction-flow-side {
+  min-width: 0;
+}
+.transaction-flow-side h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.transaction-flow-side h3 span,
+.transaction-flow-tabs span {
+  color: var(--signal);
+  font-family: var(--font-geist-mono), monospace;
+}
+.transaction-cell-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 6px;
+  align-content: start;
+  align-items: start;
+  max-height: clamp(220px, 45dvh, 520px);
+  overflow: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  padding: 1px;
+}
+.transaction-cell-list:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+}
+.transaction-cell-list .cell-card {
+  margin-bottom: 0;
+}
+.transaction-cell-list .cell-summary {
+  min-height: 88px;
+  padding: 8px;
+}
+/* Keep every lock/type trigram inside even the shortest compact card. */
+.transaction-cell-list .cell-fingerprint {
+  width: 72px;
+  height: 72px;
+}
+.transaction-cell-list .cell-capacity {
+  font-size: 16px;
+}
+.transaction-flow-divider {
+  align-self: stretch;
+  min-height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  position: relative;
+  z-index: 1;
+  color: var(--signal);
+}
+.transaction-flow-divider::before {
+  content: "";
+  position: absolute;
+  inset: 0 -4px;
+  /* A 24px transparent hit area without a full-height hover stripe. */
+}
+.transaction-flow-divider > span {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 24px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.transaction-flow-divider:hover > span {
+  color: var(--ink);
+  background: #5bcefa14;
+}
+.transaction-flow-divider:focus-visible {
+  outline: none;
+}
+.transaction-flow-divider:focus-visible > span {
+  outline: 1px solid var(--signal);
+  outline-offset: 2px;
+  background: #5bcefa14;
+}
+.transaction-flow-tabs {
+  display: none;
+}
+@media (max-width: 700px) {
+  .transaction-flow {
+    display: block;
+  }
+  .transaction-flow-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 4px 0;
+    background: var(--paper);
+  }
+  .transaction-flow-tabs button {
+    min-height: 44px;
+    border: 1px solid var(--line);
+    background: var(--recess);
+    color: var(--muted);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+  }
+  .transaction-flow-tabs button[aria-selected="true"] {
+    border-color: var(--signal-dark);
+    color: var(--ink);
+    background: #5bcefa0c;
+    box-shadow: inset 0 -2px var(--signal);
+  }
+  .transaction-flow-divider,
+  .transaction-flow-side h3 {
+    display: none;
+  }
+  .transaction-flow[data-mobile-side="inputs"] .transaction-outputs,
+  .transaction-flow[data-mobile-side="outputs"] .transaction-inputs {
+    display: none;
+  }
+  .transaction-cell-list {
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  }
+}
+
+/* Overview cards select a full-width inspector; details never expand inside a column. */
+.transaction-cell-list .cell-selector {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+}
+.transaction-cell-list .cell-selector[aria-expanded="true"] {
+  outline: 1px solid var(--signal);
+  outline-offset: -1px;
+  background: #5bcefa0c;
+}
+.transaction-inspector {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin-top: 8px;
+  border: 1px solid var(--line-dark);
+  background: var(--recess);
+  scroll-margin-block: 12px;
+}
+.transaction-inspector > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.transaction-inspector h3 {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.transaction-inspector > header button {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 36px;
+  color: var(--muted);
+}
+.transaction-inspector > header button:hover {
+  color: var(--signal);
+  background: #5bcefa0c;
+}
+.transaction-inspector > .cell-card {
+  border: 0;
+  margin: 0;
+  background: transparent;
+}
+.transaction-inspector .cell-detail-body {
+  padding: 12px;
+}
+@media (max-width: 700px) {
+  .transaction-inspector {
+    /* Sticky side tabs: 44px controls + 8px padding + breathing room. */
+    scroll-margin-top: 64px;
+  }
+  .transaction-inspector > header button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

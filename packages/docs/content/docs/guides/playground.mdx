@@ -17,51 +17,86 @@ After this guide you'll be able to:
 
 ## Interface overview
 
-![Playground overview](/guides/playground-overview.png)
-
 The Playground is split into two panels:
 
 - **Left panel** — a Monaco (VS Code) editor with full TypeScript IntelliSense for CCC types
-- **Right panel** — a Console that displays logs, errors, and interactive transaction visualizations
+- **Right panel** — an output timeline that displays logs, errors, and interactive transaction visualizations
+
+Drag the divider to resize the panels, or focus it and use the arrow keys. On narrow screens, use the **Code / Output** tabs. The top bar contains network and wallet controls; run controls stay below the editor.
 
 ### Toolbar buttons
 
-| Button | Description |
-| --- | --- |
-| **Testnet / Mainnet** | Toggle between CKB testnet and mainnet |
-| **Format** | Auto-format your code with Prettier |
-| **Run** | Execute the code and auto-step through `render()` breakpoints |
-| **Step** | Execute in debug mode — pause at each `render()` and click **Continue** to advance |
-| **Share** | Publish your code to Nostr relays and generate a shareable URL |
-| **Connect** | Open the wallet connector to sign and send real transactions. Once connected, this button will display the CKB address of the connected wallet. |
-| **Console** | Show the Console tab |
-| **Clear** | Clear all console output |
-| **About** | Show links to docs, GitHub, faucet, and CKBadger |
+| Button                | Description                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Testnet / Mainnet** | Toggle between CKB testnet and mainnet                                                                                                          |
+| **Format**            | Auto-format your code with Prettier                                                                                                             |
+| **Run**               | Execute the code and auto-step through `render()` breakpoints                                                                                   |
+| **Step**              | Execute in debug mode — pause at each `render()` and click **Continue** to advance                                                              |
+| **Share**             | Publish your code to Nostr relays and generate a shareable URL                                                                                  |
+| **Connect**           | Open the wallet connector to sign and send real transactions. Once connected, this button will display the CKB address of the connected wallet. |
+| **Load source**       | Load a raw HTTP(S) URL or a Nostr reference without running it                                                                                  |
+| **Examples / Save**   | Start from an editable example or download the editor contents                                                                                  |
+| **Clear on run**      | Clear the timeline before each run; disable to compare runs                                                                                     |
+| **Clear**             | Clear all console output                                                                                                                        |
+| **Docs / More**       | Links to documentation, GitHub, faucet, and CKBadger                                                                                            |
+
+### Repository examples
+
+**Examples** includes the local Transaction anatomy preview and transfer builder,
+plus **Query balances**, **Explore live cells**, and **Read transaction history**.
+The three read-only queries reuse `packages/examples/src` from a tested, pinned
+CCC revision rather than maintaining separate Playground copies. The source link
+in the picker opens that revision. Loading requires network access and does not
+execute code or change networks; review the source, select a real or read-only
+example wallet, and press **Run**. Results reflect the selected network and
+address, so an empty history or zero balance is valid. The local anatomy example
+needs neither a wallet nor RPC. None of these picker examples signs or broadcasts.
 
 ## Available imports
 
-Every script in the Playground runs in a sandboxed TypeScript environment. The following modules are available:
+Scripts run as JavaScript in the page, not a security sandbox. Only execute trusted code. The following modules are available:
 
 ```typescript
-import { ccc } from "@ckb-ccc/ccc";               // Core CCC SDK
+import { ccc } from "@ckb-ccc/ccc"; // Core CCC SDK
 import { render, signer, client } from "@ckb-ccc/playground"; // Playground helpers
 ```
 
 ### `@ckb-ccc/playground` exports
 
-| Export | Type | Description |
-| --- | --- | --- |
-| `signer` | `ccc.Signer` | The active signer — either the connected wallet or a built-in read-only key |
-| `client` | `ccc.Client` | The active CKB client (testnet or mainnet) |
+| Export            | Type            | Description                                                                       |
+| ----------------- | --------------- | --------------------------------------------------------------------------------- |
+| `signer`          | `ccc.Signer`    | The connected wallet signer, or an explicitly selected read-only example signer   |
+| `client`          | `ccc.Client`    | The active CKB client (testnet or mainnet)                                        |
 | `render(...args)` | `Promise<void>` | Log values to the Console and pause execution (acts as a breakpoint in Step mode) |
 
 You can also use `console.log()` and `console.error()` — they output to the Console panel.
 
 <Callout type="info">
-  If no wallet is connected, `signer` defaults to a built-in public key signer. You can read chain data and build transactions, but sending them requires a connected wallet.
+  Without a wallet, use `client` for chain reads or the local Transaction
+  anatomy example. Importing `signer` alone is harmless; actually accessing
+  signer state or calling its methods raises a clear choice in the Console:
+  **Connect real wallet** or **Use example wallet**. The example uses the original
+  Playground public address with no private key. It supports reading and building
+  transaction examples, but cannot sign or send. Available example inputs depend
+  on the selected network and address balance.
+
+The top bar labels it **Example wallet · read-only** and offers a one-click
+disconnect. Historical output keeps its Example wallet label and original
+network after switching. Connecting your own wallet replaces the example;
+disconnecting it does not silently restore the example. After either choice,
+the Console adds a separate **Wallet ready** entry with **Run current code**.
+The original failed run stays an **Error**, including in the error count and filter.
+Only the new **Wallet ready** entry is informational; connecting does not rewrite the failure. Review the current editor contents before running; older
+connection entries remain historical. Selecting or connecting never
+automatically runs code, signs or sends.
+
 </Callout>
 
 After understanding the basic interface and available tools, let's explore the core capabilities of the Playground through practical examples.
+
+Concurrent awaited `render()` checkpoints advance in creation order. Unawaited
+checkpoints stop advancing once the top-level script ends; this does not cancel
+arbitrary JavaScript. History-driven source changes wait until a run settles.
 
 ## Example 1 — Transfer CKB
 
@@ -76,22 +111,18 @@ import { render, signer } from "@ckb-ccc/playground";
 console.log("Welcome to CCC Playground!");
 
 // The receiver is the signer itself on mainnet
-const receiver = signer.client.addressPrefix === "ckb" ?
-  await signer.getRecommendedAddress() :
-  "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqflz4emgssc6nqj4yv3nfv2sca7g9dzhscgmg28x";
+const receiver =
+  signer.client.addressPrefix === "ckb"
+    ? await signer.getRecommendedAddress()
+    : "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqflz4emgssc6nqj4yv3nfv2sca7g9dzhscgmg28x";
 console.log(receiver);
 
 // Parse the receiver script from an address
-const { script: lock } = await ccc.Address.fromString(
-  receiver,
-  signer.client,
-);
+const { script: lock } = await ccc.Address.fromString(receiver, signer.client);
 
 // Describe what we want
 const tx = ccc.Transaction.from({
-  outputs: [
-    { capacity: ccc.fixedPointFrom(100), lock },
-  ],
+  outputs: [{ capacity: ccc.fixedPointFrom(100), lock }],
 });
 await render(tx);
 
@@ -112,7 +143,9 @@ await render(tx);
 4. `completeFeeBy` adds a change output and adjusts for the fee, then `render(tx)` shows the final transaction
 
 <Callout type="info">
-  Click **Step** instead of **Run** to pause at each `render()` call. Click **Continue** to advance to the next breakpoint. This is useful for studying how CCC builds a transaction step by step.
+  Click **Step** instead of **Run** to pause at each `render()` call. Click
+  **Continue** to advance to the next breakpoint. This is useful for studying
+  how CCC builds a transaction step by step.
 </Callout>
 
 Now that we've mastered the basic transfer flow, let's explore a more complex scenario — creating a Spore.
@@ -146,13 +179,14 @@ await render(tx);
 <Callout type="warn">
   **About sending transactions**: The above examples are for demonstration purposes only — they build the transaction to its final state without actually sending it. To broadcast the transaction to the chain, call `signer.sendTransaction(tx)` at the end:
 
-  ```typescript
-  // Sign and broadcast the transaction, returning the transaction hash
-  const txHash = await signer.sendTransaction(tx);
-  console.log("Transaction sent:", txHash);
-  ```
+```typescript
+// Sign and broadcast the transaction, returning the transaction hash
+const txHash = await signer.sendTransaction(tx);
+console.log("Transaction sent:", txHash);
+```
 
-  Make sure you have connected a wallet and that the address has sufficient CKB balance.
+Make sure you have connected a wallet and that the address has sufficient CKB balance.
+
 </Callout>
 
 Playground's capabilities go far beyond building transactions. All methods provided by the CCC SDK can be run directly here, meaning you can write arbitrary scripts to perform various on-chain operations — for example, batch asset management, tracking large on-chain transactions, analyzing cell state distributions, and more. Below is a simple data query example.
@@ -180,47 +214,19 @@ console.log("Balance:", ccc.fixedPointToString(balance), "CKB");
 
 ## Understanding the Cell visualization
 
-When `render()` receives a `ccc.Transaction`, the Console displays an interactive transaction diagram. Each Cell is drawn as a circular glyph with three visual layers, as shown in the following figure:
+When `render()` receives a `ccc.Transaction`, the output timeline captures a snapshot. Later mutations to that transaction do not rewrite an earlier checkpoint.
 
-<img src="/guides/playground-cell-visualization.png" alt="Cell visualization" width="500" style={{display:"block",margin:"0 auto"}} />
+Each snapshot shows input capacity, output capacity and the **capacity difference** (fee when the transaction is complete). Unresolved inputs display **Unknown**, and checkpoints without sufficient inputs do not claim a zero fee. DAO extra capacity is listed separately.
 
-### Bagua — the outer and middle rings
+The **Inputs → Outputs** flow uses compact cell cards. Each card shows its capacity, data size and a nested Bagua fingerprint: Lock outside and Type inside. Every trigram stays within the card. The center stays open: the fingerprint identifies scripts rather than suggesting a capacity gauge. Exact occupied/free values and a capacity breakdown appear in the inspector; unknown or invalid capacity is never shown as an accurate ratio. The pattern and color come from the script hash, so matching scripts have matching visual identities. On desktop, drag the arrow between the two sides to adjust their widths, or focus it and use the arrow keys (Home resets). On mobile, switch between Inputs and Outputs using the count tabs.
 
-Each Cell renders two concentric **Bagua** (eight-trigram) rings:
+Select a cell to inspect its OutPoint, Lock and Type scripts, raw data, occupied capacity and free capacity in a full-width panel beneath the transaction flow. The selected cell remains identified by its input/output index. Close the panel to return focus to its card. Explorer links remain tied to the output's original network even after the workbench network changes. Expand **Raw transaction** to inspect cell dependencies, witnesses and the full serialized snapshot.
 
-- **Outer ring** — derived from the Cell's **Lock** Script
-- **Middle ring** — derived from the Cell's **Type** Script (if any)
-
-The trigram pattern is deterministic: `getScriptBagua(script)` extracts 24 bits from the script hash (`hash & 0xffffff000 >> 12`) and splits them into eight 3-bit trigrams. Each trigram draws three lines — a solid line for bit `0` and a broken line for bit `1` — following the classical trigram encoding (☰ Qian, ☷ Kun, etc.).
-
-The **color** of each ring is also derived from the script hash: `hash & 0xfff % 360` gives the HSL hue. This means:
-- Cells with the **same Lock** script share the same outer ring color and pattern
-- Cells with the **same Type** script share the same middle ring color and pattern
-- You can visually identify which Cells belong to the same owner or token type at a glance
-
-### Taiji — the center circle
-
-The center of each Cell displays a slowly spinning **Taiji** (yin-yang) symbol:
-
-- The **yang** (dark) side uses the Lock script color
-- The **yin** (light) side is translucent white
-- A small colored dot inside represents the **free capacity percentage** — how much capacity in this Cell is not occupied by data. Its diameter scales proportionally, and its color matches the Type script color
-
-This tells you at a glance how "full" a Cell is.
-
-### Reading the numbers
-
-Below the Taiji symbol you'll see:
-- **Capacity** in CKB (large number)
-- **DAO profit** (if the Cell is in NervosDAO, shown as `+ X CKB`)
-- A shortened **OutPoint** (`txHash:index`) linking to the transaction in CKBadger
-- **Data size** in bytes (if the Cell contains data)
-
-Click on any Cell to expand its full details: OutPoint, capacity, Lock script (address), Type script, and raw output data.
+The timeline also accepts addresses, scripts, cells, bytes, errors, JSON-compatible values and custom React elements. Use **Errors** to focus on failures, disable **Following output** to inspect earlier entries without automatic scrolling, and turn off **Clear on run** to compare runs.
 
 ## Sharing code
 
-Click **Share** to publish your code to a set of Nostr relays. The Playground generates a `nevent` identifier and redirects to a URL like:
+Click **Share** to publish your code to a set of Nostr relays. The Playground generates a `nevent` identifier, verifies it can retrieve the published code, and offers a copyable URL like:
 
 ```
 https://live.ckbccc.com/?src=nostr:nevent1...
@@ -238,22 +244,24 @@ https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob
 
 - **Use `render()` liberally** — it's your primary debugging tool. Pass a transaction at each stage to see how CCC mutates it.
 - **Step mode is your friend** — click **Step** to pause at each `render()`, inspect the state, then click **Continue**. Great for understanding the transaction lifecycle.
-- **Code persists in localStorage** — if you don't use a `?src=` URL, your code is saved automatically and restored when you return.
-- **Get testnet CKB** — click **About** → **CKB Testnet Faucet** to fund your testnet address, or visit [faucet.nervos.org](https://faucet.nervos.org/) directly.
+- **Local drafts persist** — the local draft is saved automatically and restored when you return. Imported sources and example scripts do not overwrite that draft. Download them with **Save**, or use **Load source → Restore local draft** to return to your saved work.
+- **Get testnet CKB** — click **More** → **Testnet faucet** to fund your testnet address, or visit [faucet.nervos.org](https://faucet.nervos.org/) directly.
 - **Full IntelliSense** — the editor provides autocomplete and type-checking for all CCC types, plus `@noble/curves`, `@noble/hashes`, and `@nervina-labs/dob-render`.
 - **Share to collaborate** — after writing a script, click **Share** to generate a link that others can open to reproduce your code environment.
 
 ## Important Notes
 
 <Callout type="error">
-  Before running any script, **make sure the network environment shown in the bottom-left corner** (Testnet or Mainnet) is correct. Operations on mainnet assets are irreversible.
+  Before running any script, **make sure the network environment shown in the
+  top bar** (Testnet or Mainnet) is correct. Operations on mainnet assets are
+  irreversible.
 </Callout>
 
 - **Testnet first, then Mainnet** — any script should be run and confirmed to behave as expected on the testnet before switching to the mainnet. Never operate on mainnet assets directly.
-- **Check connection status** — make sure the correct wallet and network are connected in the bottom-right corner before sending transactions.
+- **Check connection status** — make sure the correct wallet and network are connected in the top bar before sending transactions.
 - **Minimum CKB capacity** — each Cell must have at least 61 CKB to cover on-chain storage fees. If the output capacity is set too low, the transaction will be rejected by the node.
 - **Transactions are irreversible** — once a transaction is confirmed on-chain, it cannot be undone. When operating on mainnet assets, it is recommended to carefully review the inputs and outputs of the transaction using `render()` first.
-- **Browser refresh** — code is automatically saved in localStorage, so refreshing the page will not lose your work. However, if a `?src=` URL is used, the code comes from an external source, and local modifications will not override the URL parameter.
+- **Browser refresh** — the local draft is saved in localStorage. Imported sources are reloaded from `?src=` on refresh; download your changes before leaving. Example edits are not automatically saved over the local draft.
 - **Execution timeout** — scripts in the Playground run in the browser's main thread. If you write long loops or make many RPC calls, it may cause the page to freeze. It is recommended to execute in steps.
 
 ## Next steps

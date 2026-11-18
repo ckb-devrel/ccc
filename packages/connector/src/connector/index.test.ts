@@ -453,3 +453,32 @@ describe("WebComponentConnector saved connection", () => {
     expect(refresh).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("WebComponentConnector modal close lifecycle", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("closes the active scene and returns home after its dismissal animation", () => {
+    vi.useFakeTimers();
+    const connector = new WebComponentConnector();
+    const closeScene = vi.fn();
+    const onClosed = vi.fn();
+    const dispatch = vi.spyOn(connector, "dispatchEvent");
+    const state = connector as unknown as {
+      pairingKhie: boolean;
+      mainRef: { value: { style: { height: string } } };
+      contentRef: { value: { firstElementChild: { close: () => void } } };
+    };
+    state.pairingKhie = true;
+    state.mainRef = { value: { style: { height: "320px" } } };
+    state.contentRef = { value: { firstElementChild: { close: closeScene } } };
+
+    connector.close(onClosed);
+    expect(state.mainRef.value.style.height).toBe("0");
+    expect(closeScene).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(150);
+    expect(closeScene).toHaveBeenCalledOnce();
+    expect(state.pairingKhie).toBe(false);
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(onClosed).toHaveBeenCalledOnce();
+  });
+});

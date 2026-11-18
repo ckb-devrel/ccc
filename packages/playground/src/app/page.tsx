@@ -1,358 +1,506 @@
 "use client";
 
+import { createCheckpointQueue } from "./checkpointQueue";
+import { RepositoryExamples } from "./components/RepositoryExamples";
+import { restoreWorkspaceFocus } from "./workspaceFocus";
+
+import Image from "next/image";
+
 import { ccc } from "@ckb-ccc/connector-react";
-import axios from "axios";
-import { bech32 } from "bech32";
-import WebSocket from "isomorphic-ws";
 import {
   Braces,
   Bug,
-  FlaskConical,
-  FlaskConicalOff,
-  Loader,
+  Check,
+  ChevronRight,
+  Code2,
+  Copy,
+  Download,
+  ExternalLink,
+  FileCode2,
+  FolderOpen,
+  LoaderCircle,
   Play,
+  Radio,
   Share2,
-  SquareArrowOutUpRight,
-  SquareTerminal,
   StepForward,
-  Trash,
+  X,
 } from "lucide-react";
 import * as prettierTs from "prettier/parser-typescript";
 import * as prettierEstree from "prettier/plugins/estree";
 import * as prettier from "prettier/standalone";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./components/Button";
 import { Editor } from "./components/Editor";
+import { WorkspaceDivider } from "./components/WorkspaceDivider";
+import {
+  MobileWorkspaceTabs,
+  WorkspaceLayoutControls,
+} from "./components/WorkspaceLayoutControls";
 import { useApp } from "./context";
-import { DEFAULT_TRANSFER } from "./examples";
+import { DEFAULT_TRANSFER, VISUAL_EXAMPLE } from "./examples";
 import { execute } from "./execute";
-import { About } from "./tabs/About";
+import { MissingWalletError } from "./execute/wallet";
+import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
+import { DEFAULT_NOSTR_RELAYS, getFromNEvent, shareToNostr } from "./nostr";
 import { Console } from "./tabs/Console";
-
-function openWebSocket(url: string): ccc.Owner<WebSocket> {
-  const socket = new WebSocket(url);
-  return new ccc.OwnerUnique(socket, async (socket) => {
-    if (socket.readyState === socket.CLOSED) {
-      return;
-    }
-
-    await new Promise<void>((resolve) => {
-      const finish = () => {
-        window.clearTimeout(timeout);
-        socket.removeEventListener("close", finish);
-        resolve();
-      };
-      const timeout = window.setTimeout(finish, 1000);
-      socket.addEventListener("close", finish, { once: true });
-      socket.onopen = null;
-      socket.onclose = null;
-      socket.onerror = null;
-      socket.onmessage = null;
-      if (socket.readyState !== socket.CLOSING) {
-        socket.close();
-      }
-    });
-  });
-}
-
-async function shareToNostr(
-  client: ccc.Client,
-  relays: string[],
-  content: string,
-): Promise<string> {
-  const event: ccc.NostrEvent = {
-    kind: 1050,
-    created_at: Math.floor(Date.now() / 1000),
-    tags: [
-      ["filename", "ccc-playground.ts"],
-      ["client", "ccc-playground"],
-    ],
-    content,
-  };
-  const signer = new ccc.SignerNostrPrivateKey(
-    client,
-    Array.from(new Array(32), () => Math.floor(Math.random() * 256)),
-  );
-  const signedEvent = await signer.signNostrEvent(event);
-
-  const sent = (
-    await Promise.all(
-      relays.map(async (relay) => {
-        const socketOwner = openWebSocket(relay);
-        const socket = socketOwner.value;
-        let timeout: number | undefined;
-        try {
-          return await new Promise<string | undefined>((resolve) => {
-            timeout = window.setTimeout(resolve, 5000);
-            socket.onclose = () => {
-              resolve(undefined);
-            };
-            socket.onerror = () => resolve(undefined);
-            socket.onmessage = (event) => {
-              try {
-                const data = JSON.parse(event.data as string);
-                if (data[0] === "OK" && data[1] === signedEvent.id && data[2]) {
-                  resolve(relay);
-                } else {
-                  resolve(undefined);
-                }
-              } catch (_err) {
-                resolve(undefined);
-              }
-            };
-            socket.onopen = () => {
-              socket.send(JSON.stringify(["EVENT", signedEvent]));
-            };
-          });
-        } finally {
-          window.clearTimeout(timeout);
-          await socketOwner.dispose();
-        }
-      }),
-    )
-  ).filter((r) => r !== undefined);
-
-  if (sent.length === 0) {
-    throw new Error("Failed to send event to relay");
-  }
-
-  const id = ccc.bytesFrom(signedEvent.id);
-  return bech32.encode(
-    "nevent",
-    bech32.toWords(
-      ccc.bytesConcat(
-        [0, id.length],
-        id,
-        ...sent
-          .map((relay) => {
-            console.log(relay);
-            const bytes = ccc.bytesFrom(relay, "utf8");
-            return [[1, bytes.length], bytes];
-          })
-          .flat(),
-      ),
-    ),
-    65536,
-  );
-}
-
-function getTLVs(tlv: number[]) {
-  let i = 0;
-
-  const values = [];
-  while (i < tlv.length) {
-    const type = tlv[i];
-    const length = tlv[i + 1];
-    const value = tlv.slice(i + 2, i + 2 + length);
-    i += 2 + length;
-
-    values.push({ type, length, value });
-  }
-
-  return values;
-}
-
-async function getFromNEvent(
-  defaultRelays: string[],
-  id: string,
-): Promise<string | undefined> {
-  let eventId;
-  const relays = [...defaultRelays];
-  for (const { type, value } of getTLVs(
-    bech32.fromWords(bech32.decode(id, 65536).words),
-  )) {
-    if (type === 0) {
-      eventId = ccc.hexFrom(value).slice(2);
-    }
-    if (type === 1) {
-      const relay = ccc.bytesTo(value, "utf8");
-      if (!relays.includes(relay)) {
-        relays.push(relay);
-      }
-    }
-  }
-  if (!eventId) {
-    throw new Error("Invalid nevent");
-  }
-
-  const aborter = new AbortController();
-  const requests = relays.map((relay) =>
-    getFromNostr(relay, eventId, aborter.signal),
-  );
-  try {
-    return await Promise.any(requests);
-  } finally {
-    aborter.abort();
-    await Promise.allSettled(requests);
-  }
-}
-
-async function getFromNostr(
-  relayUrl: string,
-  id: string,
-  signal: AbortSignal,
-): Promise<string> {
-  const socketOwner = openWebSocket(relayUrl);
-  const socket = socketOwner.value;
-  let timeout: number | undefined;
-  let abort: (() => void) | undefined;
-  try {
-    return await new Promise<string>((resolve, reject) => {
-      timeout = window.setTimeout(() => reject(new Error("Timeout")), 10000);
-      abort = () => reject(new Error("Aborted"));
-      signal.addEventListener("abort", abort, { once: true });
-      socket.onclose = () => {
-        reject(new Error("Connection closed"));
-      };
-      socket.onerror = () => reject(new Error("Connection error"));
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data as string);
-          if (data[0] === "EVENT" && data[1] === "1") {
-            resolve(data[2].content);
-          } else if (data[0] === "EOSE") {
-            reject(new Error("Event not found"));
-          } else {
-            reject(new Error(JSON.stringify(event.data)));
-          }
-        } catch (err) {
-          reject(err);
-        }
-      };
-      socket.onopen = () => {
-        socket.send(JSON.stringify(["REQ", "1", { ids: [id] }]));
-      };
-    });
-  } finally {
-    window.clearTimeout(timeout);
-    if (abort) {
-      signal.removeEventListener("abort", abort);
-    }
-    await socketOwner.dispose();
-  }
-}
-
-const DEFAULT_NOSTR_RELAYS = [
-  "wss://relay.nostr.band",
-  "wss://purplerelay.com",
-  "wss://relay.nostr.net",
-  "wss://nostr.oxtr.dev",
-  "wss://relay.damus.io",
-];
+import { useGetExplorerLink } from "./utils";
 
 export default function Home() {
-  const { openSigner, openAction, signer, sendMessage, clearMessage } =
-    useApp();
-  const { setClient, client } = ccc.useCcc();
-
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    openSigner,
+    openAction,
+    signer,
+    isExampleWallet,
+    disconnect,
+    clearMessage,
+    beginOutputRun,
+  } = useApp();
+  const { setClient, client, isOpen: isWalletDialogOpen } = ccc.useCcc();
+  const { index: explorerUrl } = useGetExplorerLink();
   const [source, setSource] = useState(DEFAULT_TRANSFER);
+  const [origin, setOrigin] = useState("Unsaved source");
+  const [ready, setReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [next, setNext] = useState<((abort?: boolean) => void) | undefined>(
-    undefined,
+  const [hasRun, setHasRun] = useState(false);
+  const [walletFailure, setWalletFailure] = useState<MissingWalletError>();
+  const [next, setNext] = useState<(() => void) | undefined>();
+  const [highlight, setHighlight] = useState<number[] | undefined>();
+  const [status, setStatus] = useState("Ready to run");
+  const displayStatus =
+    walletFailure && signer && !isRunning ? "Wallet ready · Run again" : status;
+  const [notice, setNotice] = useState("");
+  const [dialog, setDialog] = useState<
+    "load" | "share" | "examples" | undefined
+  >();
+  const [loadValue, setLoadValue] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [autoClear, setAutoClear] = useState(true);
+  const {
+    mobilePane,
+    setMobilePane,
+    split,
+    setSplit,
+    focusWorkspace,
+    setFocusWorkspace,
+  } = useWorkspaceLayout();
+  const connectionControlsRef = useRef<HTMLDivElement>(null);
+  const deferredHistoryRestore = useRef<(() => void) | undefined>(undefined);
+  const checkpointQueue = useRef<
+    ReturnType<typeof createCheckpointQueue> | undefined
+  >(undefined);
+  const lastWorkspaceFocus = useRef<HTMLElement | null>(null);
+  const walletWasOpen = useRef(false);
+  const walletClosing = useRef(false);
+  useEffect(() => {
+    if (walletWasOpen.current && !isWalletDialogOpen) {
+      restoreWorkspaceFocus(
+        lastWorkspaceFocus.current,
+        connectionControlsRef.current?.querySelector<HTMLElement>(
+          "[data-wallet-control]",
+        ),
+      );
+    }
+    walletWasOpen.current = isWalletDialogOpen;
+    if (!isWalletDialogOpen) {
+      walletClosing.current = false;
+    }
+  }, [isWalletDialogOpen]);
+  useEffect(() => {
+    if (!isWalletDialogOpen) {
+      return;
+    }
+    const host = document.getElementById("playground-wallet-dialog");
+    if (!host) {
+      return;
+    }
+    // Focus only the public host; leave private wallet scenes untouched.
+    const frame = requestAnimationFrame(() =>
+      host.focus({ preventScroll: true }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [isWalletDialogOpen]);
+  const panesRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const loadVersion = useRef(0);
+  const sourceHydrated = useRef(false);
+  const running = useRef(false);
+  const sourceRef = useRef(source);
+  useEffect(() => {
+    sourceRef.current = source;
+  }, [source]);
+  const isTestnet = client.addressPrefix !== "ckb";
+
+  const loadSource = useCallback(
+    async (src: string, commitHistory = false) => {
+      const version = ++loadVersion.current;
+      setIsLoading(true);
+      setNotice("");
+      try {
+        let text: string | undefined;
+        if (src.startsWith("nostr:")) {
+          text = await getFromNEvent(DEFAULT_NOSTR_RELAYS, src.slice(6));
+        } else {
+          const url = new URL(src);
+          if (!["https:", "http:"].includes(url.protocol)) {
+            throw new Error("Use an HTTP(S) source URL or nostr:nevent…");
+          }
+          const response = await fetch(url, {
+            signal: AbortSignal.timeout(15000),
+          });
+          if (!response.ok) {
+            throw new Error(`Source returned HTTP ${response.status}`);
+          }
+          text = await response.text();
+        }
+        if (text === undefined) {
+          throw new Error("No source was returned");
+        }
+        if (version !== loadVersion.current) {
+          return;
+        }
+        if (commitHistory) {
+          const url = new URL(window.location.href);
+          url.searchParams.set("src", src);
+          window.history.pushState({}, "", url);
+        }
+        setSource(text);
+        setOrigin(src);
+        setNotice("Source loaded. Review the code before running it.");
+        setMobilePane("code");
+        setDialog(undefined);
+      } catch (error) {
+        if (version === loadVersion.current) {
+          setNotice(`Could not load source: ${String(error)}`);
+        }
+      } finally {
+        if (version === loadVersion.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [setMobilePane],
   );
 
-  const [tab, setTab] = useState("Console");
-  const [highlight, setHighlight] = useState<number[] | undefined>(undefined);
+  useEffect(() => {
+    // Never overwrite the existing local draft with an imported script.
+    const restore = () => {
+      // Preserve the executing source and highlight mapping until it settles.
+      if (running.current) {
+        deferredHistoryRestore.current = restore;
+        return;
+      }
+      deferredHistoryRestore.current = undefined;
+      ++loadVersion.current;
+      const src = new URLSearchParams(window.location.search).get("src");
+      if (src) {
+        // Keep a safe visible draft during initial remote loading/failure.
+        // Otherwise marking ready could persist DEFAULT_TRANSFER over it.
+        if (!sourceHydrated.current) {
+          sourceHydrated.current = true;
+          try {
+            setSource(
+              window.localStorage.getItem("playgroundSourceCode") ??
+                DEFAULT_TRANSFER,
+            );
+            setOrigin("Local draft");
+          } catch {
+            setOrigin("Unsaved source");
+          }
+        }
+        void loadSource(src);
+        return;
+      }
+      sourceHydrated.current = true;
+      try {
+        setSource(
+          window.localStorage.getItem("playgroundSourceCode") ??
+            DEFAULT_TRANSFER,
+        );
+        setOrigin("Local draft");
+        setNotice("");
+      } catch {
+        setNotice(
+          "Local storage is unavailable. Download your code to keep a copy.",
+        );
+      }
+      setIsLoading(false);
+    };
+    restore();
+    // Hydrate browser-only source persistence after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReady(true);
+    window.addEventListener("popstate", restore);
+    return () => {
+      // Invalidate any outstanding async load on unmount.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      ++loadVersion.current;
+      deferredHistoryRestore.current = undefined;
+      checkpointQueue.current?.dispose();
+      window.removeEventListener("popstate", restore);
+    };
+  }, [loadSource]);
 
-  const isTestnet = client.addressPrefix !== "ckb";
+  useEffect(() => {
+    if (!ready || origin !== "Local draft") {
+      return;
+    }
+    try {
+      window.localStorage.setItem("playgroundSourceCode", source);
+    } catch {
+      /* The editor remains usable when storage is unavailable. */
+    }
+  }, [source, origin, ready]);
+
+  useEffect(() => {
+    if (dialog) {
+      dialogRef.current?.showModal();
+    } else {
+      dialogRef.current?.close();
+    }
+  }, [dialog]);
 
   const runCode = useCallback(
     async (autoPlay: boolean) => {
+      if (running.current || isLoading) {
+        return;
+      }
+      setWalletFailure(undefined);
+      setHasRun(true);
+      running.current = true;
       setIsRunning(true);
+      setMobilePane("output");
+      setStatus("Executing");
+      if (autoClear) {
+        clearMessage();
+      }
+      const outputRun = beginOutputRun();
+      const checkpoints = createCheckpointQueue(autoPlay, (pos, advance) => {
+        setHighlight(pos);
+        setNext(advance ? () => advance : undefined);
+        setStatus(
+          pos
+            ? autoPlay
+              ? "Rendering"
+              : `Paused at line ${pos[0] + 1}`
+            : "Executing",
+        );
+      });
+      checkpointQueue.current = checkpoints;
       try {
         await execute(
-          source,
+          sourceRef.current,
           (pos) => {
-            setHighlight(pos);
-            if (!pos) {
+            if (!pos || !outputRun.isCurrent() || !running.current) {
               return Promise.resolve();
             }
-            return new Promise<void>((resolve, reject) => {
-              const next = (abort?: boolean) => {
-                setNext(undefined);
-
-                if (abort) {
-                  reject("ABORTED");
-                } else {
-                  resolve();
-                }
-              };
-              setNext(() => next);
-              if (autoPlay) {
-                setTimeout(next, 500);
-              }
-            });
+            return checkpoints.enqueue(pos);
           },
           signer,
-          sendMessage,
+          outputRun.log,
+          client,
         );
+        setStatus("Run complete");
+      } catch (error) {
+        if (error instanceof MissingWalletError && outputRun.isCurrent()) {
+          setWalletFailure(error);
+        }
+        outputRun.log("error", "Execution failed", [error]);
+        setStatus("Run failed");
       } finally {
+        running.current = false;
         setIsRunning(false);
+        setNext(undefined);
+        setHighlight(undefined);
+        checkpoints.dispose();
+        checkpointQueue.current = undefined;
+        deferredHistoryRestore.current?.();
       }
     },
-    [source, signer, sendMessage],
+    [
+      autoClear,
+      clearMessage,
+      isLoading,
+      beginOutputRun,
+      signer,
+      setMobilePane,
+      client,
+    ],
   );
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const src = searchParams.get("src");
-
-    if (src == null) {
-      const source = window.localStorage.getItem("playgroundSourceCode");
-      if (source) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSource(source);
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        !event.altKey &&
+        !event.repeat &&
+        !event.isComposing &&
+        !dialog &&
+        !isWalletDialogOpen
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (next) {
+          next();
+        } else {
+          void runCode(true);
+        }
       }
+    };
+    // Let wallet child views consume Escape before closing the outer connector.
+    const onEscape = (event: KeyboardEvent) => {
+      if (
+        isWalletDialogOpen &&
+        event.key === "Escape" &&
+        !event.defaultPrevented
+      ) {
+        event.preventDefault();
+        if (!walletClosing.current) {
+          const host = document.getElementById(
+            "playground-wallet-dialog",
+          ) as ccc.WebComponentConnector | null;
+          if (typeof host?.close === "function") {
+            walletClosing.current = true;
+            // The connector owns animation and active-scene resource cleanup.
+            // Its close event then updates the React provider's visibility.
+            host.close();
+          }
+        }
+      }
+    };
+    // Capture before Monaco handles Ctrl/Cmd+Enter as insertLineAfter.
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("keydown", onEscape);
+    };
+  }, [runCode, next, dialog, isWalletDialogOpen]);
+
+  const replaceSource = (text: string, name: string) => {
+    if (
+      source !== text &&
+      !window.confirm(
+        "Replace the editor contents? Download a copy first if you need to keep them.",
+      )
+    ) {
       return;
     }
-
-    setIsLoading(true);
-
-    if (src.startsWith("nostr:")) {
-      const id = src.slice(6);
-      getFromNEvent(DEFAULT_NOSTR_RELAYS, id)
-        .then((res) => {
-          if (res !== undefined) {
-            setSource(res);
-          }
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      axios
-        .get(src)
-        .then(({ data }) => {
-          setSource(data);
-        })
-        .finally(() => setIsLoading(false));
+    ++loadVersion.current;
+    setNotice("");
+    setSource(text);
+    setOrigin(name);
+    if (name === "Local draft") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("src");
+      window.history.pushState({}, "", url);
     }
-  }, []);
-
-  useEffect(() => {
-    if (next) {
-      next(true);
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const src = searchParams.get("src");
-
-    if (src == null) {
-      window.localStorage.setItem("playgroundSourceCode", source);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [source]);
+    setIsLoading(false);
+    setDialog(undefined);
+    setMobilePane("code");
+  };
 
   return (
-    <div className="flex min-h-dvh w-full flex-col lg:h-dvh lg:flex-row">
-      <div className="flex shrink-0 basis-1/2 flex-col overflow-hidden lg:h-dvh">
-        <Editor
-          value={source}
-          onChange={(v) => setSource(v ?? "")}
-          isLoading={isLoading}
-          highlight={highlight}
-        />
-        <div className="flex shrink-0 overflow-x-auto bg-gray-800">
+    <main
+      inert={isWalletDialogOpen}
+      onFocusCapture={(event) => {
+        lastWorkspaceFocus.current = event.target as HTMLElement;
+      }}
+      className={`workbench ${isRunning ? "is-running" : ""} ${focusWorkspace ? "workspace-focused" : ""}`}
+    >
+      <header
+        className={`workbench-header ${isExampleWallet ? "has-example-wallet" : ""}`}
+      >
+        <a
+          className="brand"
+          href="https://ckbccc.com/"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Image
+            className="brand-logo"
+            src="/favicon.svg"
+            alt=""
+            width={28}
+            height={28}
+          />
+          <strong>CCC</strong>
+          <span className="brand-divider" />
+          Playground
+        </a>
+        <nav aria-label="Resources" className="resource-nav">
+          <a href="https://docs.ckbccc.com/" target="_blank" rel="noreferrer">
+            Docs <ExternalLink size={12} />
+          </a>
+          <a href="https://app.ckbccc.com/" target="_blank" rel="noreferrer">
+            CCC App <ExternalLink size={12} />
+          </a>
+          <a
+            href="https://github.com/ckb-devrel/ccc/tree/dev/packages/playground"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source <ExternalLink size={12} />
+          </a>
+          <details className="resource-more">
+            <summary>More</summary>
+            <div>
+              <a
+                href="https://docs.ckbccc.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Documentation
+              </a>
+              <a
+                href="https://app.ckbccc.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                CCC App
+              </a>
+              <a
+                href="https://github.com/ckb-devrel/ccc/tree/dev/packages/playground"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Playground source
+              </a>
+              <a
+                href="https://faucet.nervos.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Testnet faucet
+              </a>
+              <a href={explorerUrl} target="_blank" rel="noreferrer">
+                CKBadger explorer
+              </a>
+              <a
+                href="https://www.nervos.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Nervos Network
+              </a>
+              <a
+                href="https://x.com/CKBDevrel"
+                target="_blank"
+                rel="noreferrer"
+              >
+                CKB DevRel on X
+              </a>
+            </div>
+          </details>
+        </nav>
+        <div className="connection-controls" ref={connectionControlsRef}>
           <Button
+            className={`network-button ${!isTestnet ? "mainnet" : ""}`}
+            disabled={isRunning}
             onClick={() =>
               setClient(
                 isTestnet
@@ -361,92 +509,449 @@ export default function Home() {
               )
             }
           >
-            {isTestnet ? (
-              <FlaskConical size="16" />
-            ) : (
-              <FlaskConicalOff size="16" />
-            )}
-            <span className="ml-1">{isTestnet ? "Testnet" : "Mainnet"}</span>
+            <span className="status-light" />
+            {isTestnet ? "Testnet" : "Mainnet"}
           </Button>
-          <Button
-            onClick={() =>
-              prettier
-                .format(source, {
-                  parser: "typescript",
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  plugins: [prettierTs, prettierEstree as any],
-                })
-                .then(setSource)
-            }
-          >
-            <Braces size="16" />
-            <span className="ml-1">Format</span>
-          </Button>
-          {isRunning ? (
-            next ? (
-              <Button onClick={() => next?.()}>
-                <StepForward size="16" />
-                <span className="ml-1">Continue</span>
+          {isExampleWallet ? (
+            <div className="example-wallet-control">
+              <span title="Read-only example address. No private key; cannot sign or send.">
+                {openAction} <small>read-only</small>
+              </span>
+              <Button
+                disabled={isRunning}
+                onClick={openSigner}
+                title="Connect your own wallet"
+                aria-label="Connect real wallet"
+                data-wallet-control
+              >
+                <span className="real-wallet-label">Connect real wallet</span>
+                <span className="real-wallet-label-short" aria-hidden="true">
+                  Connect
+                </span>
               </Button>
-            ) : (
-              <Button>
-                <Loader className="animate-spin" size="16" />
-                <span className="ml-1">Running</span>
+              <Button
+                disabled={isRunning}
+                onClick={disconnect}
+                title="Disconnect example wallet"
+                aria-label="Disconnect example wallet"
+              >
+                <X size={14} />
               </Button>
-            )
+            </div>
           ) : (
-            <>
-              <Button onClick={() => runCode(true)}>
-                <Play size="16" />
-                <span className="ml-1">Run</span>
-              </Button>
-              <Button onClick={() => runCode(false)}>
-                <Bug size="16" />
-                <span className="ml-1">Step</span>
-              </Button>
-            </>
+            <Button
+              disabled={isRunning}
+              onClick={openSigner}
+              data-wallet-control
+            >
+              {openAction}
+            </Button>
           )}
+        </div>
+      </header>
+      {notice && (
+        <div className="notice" role="status">
+          <span>{notice}</span>
+          <button aria-label="Dismiss notice" onClick={() => setNotice("")}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      <MobileWorkspaceTabs pane={mobilePane} onPaneChange={setMobilePane} />
+      <div
+        className="workspace-panes"
+        ref={panesRef}
+        style={{
+          gridTemplateColumns: `minmax(0, ${split}fr) 10px minmax(0, ${100 - split}fr)`,
+        }}
+        data-mobile-pane={mobilePane}
+      >
+        <section className="editor-panel" aria-label="Code editor">
+          <div className="panel-heading">
+            <span>
+              <Code2 size={15} />
+              <strong>01</strong> SOURCE
+            </span>
+            <span className="file-label">playground.tsx</span>
+          </div>
+          <div className="source-origin" title={origin}>
+            <span className="status-light" />
+            {origin === "Local draft"
+              ? "Local draft · saved in this browser"
+              : origin}
+          </div>
+          <div className="editor-surface">
+            <Editor
+              value={source}
+              onChange={(v) => {
+                if (!isLoading && !isRunning) {
+                  setSource(v ?? "");
+                }
+              }}
+              isLoading={isLoading}
+              readOnly={isRunning || isLoading}
+              highlight={highlight}
+            />
+          </div>
+          <div className="editor-toolbar">
+            <div className="toolbar-group">
+              <Button
+                disabled={isRunning || isLoading}
+                title="Format TypeScript"
+                onClick={async () => {
+                  try {
+                    setSource(
+                      await prettier.format(source, {
+                        parser: "typescript",
+                        plugins: [prettierTs, prettierEstree],
+                      }),
+                    );
+                  } catch (error) {
+                    setNotice(`Could not format: ${String(error)}`);
+                  }
+                }}
+              >
+                <Braces size={15} />
+                <span>Format</span>
+              </Button>
+              <Button
+                title="Download source"
+                onClick={() => {
+                  const url = URL.createObjectURL(
+                    new Blob([source], { type: "text/plain" }),
+                  );
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = "ccc-playground.tsx";
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }}
+              >
+                <Download size={15} />
+                <span>Save</span>
+              </Button>
+            </div>
+            <div className="toolbar-group">
+              {next ? (
+                <Button className="primary" onClick={next}>
+                  <StepForward size={15} />
+                  Continue
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    disabled={isRunning || isLoading}
+                    onClick={() => void runCode(false)}
+                  >
+                    <Bug size={15} />
+                    Step
+                  </Button>
+                  <Button
+                    className="primary"
+                    disabled={isRunning || isLoading}
+                    onClick={() => void runCode(true)}
+                  >
+                    {isRunning ? (
+                      <LoaderCircle size={15} className="animate-spin" />
+                    ) : (
+                      <Play size={15} />
+                    )}
+                    Run
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+        <WorkspaceDivider
+          split={split}
+          onSplitChange={setSplit}
+          panesRef={panesRef}
+        />
+        <section className="output-panel" aria-label="Code output">
+          <Console
+            executionStatus={displayStatus}
+            hasRun={hasRun}
+            walletFailure={walletFailure}
+            onRun={() => void runCode(true)}
+            isRunning={isRunning}
+            autoClear={autoClear}
+            onAutoClear={setAutoClear}
+          />
+        </section>
+      </div>
+      <footer className="workspace-dock" aria-label="Workspace tools">
+        <div className="workspace-heading" id="workspace-tools">
+          <h1 className="sr-only">CCC Playground: Code. Run. Inspect.</h1>
+          <div className="workspace-actions">
+            <Button
+              disabled={isRunning || isLoading}
+              onClick={() => setDialog("examples")}
+            >
+              <FileCode2 size={15} />
+              Examples
+            </Button>
+            <Button
+              disabled={isRunning || isLoading}
+              onClick={() => setDialog("load")}
+            >
+              <FolderOpen size={15} />
+              Load source
+            </Button>
+            <Button
+              disabled={isSharing || isLoading}
+              onClick={() => {
+                setShareUrl("");
+                setDialog("share");
+              }}
+            >
+              <Share2 size={15} />
+              Share
+            </Button>
+          </div>
+        </div>
+        <span className="dock-status" aria-live="polite">
+          <span className={`status-light ${isRunning ? "active" : ""}`} />
+          {displayStatus}
+        </span>
+        <WorkspaceLayoutControls
+          focused={focusWorkspace}
+          onFocusChange={setFocusWorkspace}
+        />
+      </footer>
+      <dialog
+        ref={dialogRef}
+        className="workbench-dialog"
+        aria-label={
+          dialog === "load"
+            ? "Load source"
+            : dialog === "share"
+              ? "Share source"
+              : "Choose example"
+        }
+        onCancel={(event) => {
+          if (isSharing) {
+            event.preventDefault();
+            return;
+          }
+          ++loadVersion.current;
+          setIsLoading(false);
+          setDialog(undefined);
+        }}
+        onClose={() => setDialog(undefined)}
+      >
+        <div className="dialog-heading">
+          <span className="eyebrow">
+            {dialog === "load"
+              ? "IMPORT SOURCE"
+              : dialog === "share"
+                ? "PUBLISH SOURCE"
+                : "EXAMPLE SCRIPTS"}
+          </span>
           <Button
-            onClick={async () => {
-              const id = await shareToNostr(
-                client,
-                DEFAULT_NOSTR_RELAYS,
-                source,
-              );
-
-              // Reload to verify the shared source can be fetched from Nostr.
-              // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-              window.location.href = `/?src=nostr:${id}`;
+            aria-label="Close dialog"
+            disabled={isSharing}
+            onClick={() => {
+              ++loadVersion.current;
+              setIsLoading(false);
+              setDialog(undefined);
             }}
           >
-            <Share2 size="16" />
-            <span className="ml-1">Share</span>
+            <X size={18} />
           </Button>
         </div>
-      </div>
-      <div className="flex shrink-0 grow basis-1/2 flex-col overflow-hidden">
-        {
-          {
-            Console: <Console onRun={() => runCode(true)} />,
-            About: <About className="grow p-4" />,
-          }[tab]
-        }
-        <div className="flex shrink-0 overflow-x-auto bg-gray-800">
-          <Button onClick={openSigner}>{openAction}</Button>
-          <Button onClick={() => setTab("Console")}>
-            <SquareTerminal size="16" />
-            <span className="ml-1">Console</span>
-          </Button>
-          <Button onClick={clearMessage}>
-            <Trash size="16" />
-            <span className="ml-1">Clear</span>
-          </Button>
-          <Button onClick={() => setTab("About")}>
-            <SquareArrowOutUpRight size="16" />
-            <span className="ml-1">About</span>
-          </Button>
-        </div>
-      </div>
-    </div>
+        {dialog === "load" && (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (
+                !isLoading &&
+                window.confirm(
+                  "Load this source into the editor? Your saved local draft will be kept.",
+                )
+              ) {
+                void loadSource(loadValue.trim(), true);
+              }
+            }}
+          >
+            <h2>Bring your own code.</h2>
+            <p>
+              Load a raw HTTP(S) URL or a <code>nostr:nevent…</code> reference.
+              Code is loaded, never automatically executed.
+            </p>
+            <label htmlFor="source-url">Source URL</label>
+            <input
+              id="source-url"
+              required
+              value={loadValue}
+              onChange={(e) => setLoadValue(e.target.value)}
+              placeholder="https://…/example.ts"
+              autoFocus
+            />
+            <div className="dialog-actions">
+              <Button
+                type="button"
+                disabled={isLoading}
+                onClick={() => {
+                  try {
+                    replaceSource(
+                      localStorage.getItem("playgroundSourceCode") ??
+                        DEFAULT_TRANSFER,
+                      "Local draft",
+                    );
+                  } catch {
+                    setNotice("Could not restore the local draft.");
+                  }
+                }}
+              >
+                Restore local draft
+              </Button>
+              <Button className="primary" disabled={isLoading} type="submit">
+                {isLoading ? (
+                  <LoaderCircle size={16} className="animate-spin" />
+                ) : (
+                  <FolderOpen size={16} />
+                )}
+                Load source
+              </Button>
+            </div>
+            {notice && <p role="status">{notice}</p>}
+          </form>
+        )}
+        {dialog === "examples" && (
+          <>
+            <h2>Start with something small.</h2>
+            <p>
+              Every example is editable. Build up a transaction, inspect it,
+              then make it your own.
+            </p>
+            <button
+              className="example-card"
+              onClick={() =>
+                replaceSource(VISUAL_EXAMPLE, "Example · Transaction anatomy")
+              }
+            >
+              <span>
+                <strong>Transaction anatomy</strong>
+                <small>
+                  A local transaction preview. No wallet or RPC required.
+                </small>
+              </span>
+              <ChevronRight size={20} />
+            </button>
+            <button
+              className="example-card"
+              onClick={() =>
+                replaceSource(DEFAULT_TRANSFER, "Example · Build a transfer")
+              }
+            >
+              <span>
+                <strong>Build a transfer</strong>
+                <small>
+                  Build with live chain data on the selected network. Requires a
+                  connected or example wallet; does not broadcast.
+                </small>
+              </span>
+              <ChevronRight size={20} />
+            </button>
+            <RepositoryExamples
+              isLoading={isLoading}
+              onLoad={(sourceUrl) => {
+                if (
+                  isLoading ||
+                  !window.confirm(
+                    "Load this repository example into the editor? Your saved local draft will be kept.",
+                  )
+                ) {
+                  return;
+                }
+                void loadSource(sourceUrl, true);
+              }}
+            />
+            {notice && <p role="status">{notice}</p>}
+            <p className="muted">
+              Use <code>await render(value)</code> to create a visual
+              checkpoint. Step pauses at each checkpoint.
+            </p>
+          </>
+        )}
+        {dialog === "share" && (
+          <>
+            <h2>A link to your experiment.</h2>
+            <p>
+              Publish the current code to public Nostr relays. Do not include
+              private keys or secrets. Relay storage is not guaranteed to be
+              permanent.
+            </p>
+            {shareUrl ? (
+              <>
+                <label htmlFor="share-url">Verified share link</label>
+                <input id="share-url" readOnly value={shareUrl} />
+                <Button
+                  className="primary"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(shareUrl);
+                      setCopied(true);
+                    } catch {
+                      setNotice(
+                        "Copy unavailable. Select and copy the link above.",
+                      );
+                    }
+                  }}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}{" "}
+                  {copied ? "Copied" : "Copy link"}
+                </Button>
+              </>
+            ) : (
+              <Button
+                className="primary"
+                disabled={isSharing}
+                onClick={async () => {
+                  setIsSharing(true);
+                  setNotice("");
+                  const snapshot = source;
+                  try {
+                    const id = await shareToNostr(
+                      client,
+                      DEFAULT_NOSTR_RELAYS,
+                      snapshot,
+                    );
+                    const retrieved = await getFromNEvent(
+                      DEFAULT_NOSTR_RELAYS,
+                      id,
+                    );
+                    if (retrieved !== snapshot) {
+                      throw new Error("Published code could not be verified");
+                    }
+                    const url = new URL(
+                      window.location.origin + window.location.pathname,
+                    );
+                    url.searchParams.set("src", `nostr:${id}`);
+                    setShareUrl(url.toString());
+                    setCopied(false);
+                  } catch (error) {
+                    setNotice(
+                      `Could not verify share: ${String(error)}. A relay may already have stored the code.`,
+                    );
+                  } finally {
+                    setIsSharing(false);
+                  }
+                }}
+              >
+                {isSharing ? (
+                  <LoaderCircle size={16} className="animate-spin" />
+                ) : (
+                  <Radio size={16} />
+                )}{" "}
+                {isSharing ? "Publishing & verifying…" : "Publish to Nostr"}
+              </Button>
+            )}
+            {notice && <p role="status">{notice}</p>}
+          </>
+        )}
+      </dialog>
+    </main>
   );
 }

@@ -3,11 +3,24 @@ import React, { ReactNode } from "react";
 import { Address } from "../components/Address";
 import { CellInfo } from "../components/Cell";
 import { Transaction } from "../components/Transaction";
+import { MissingWalletError } from "../execute/wallet";
+import { SignerOutputSnapshot } from "../output";
 
 export async function enhanceDisplay(
   msg: unknown,
   client: ccc.Client,
 ): Promise<ReactNode> {
+  if (msg instanceof SignerOutputSnapshot) {
+    const result = await msg.result;
+    if ("error" in result) {
+      return enhanceDisplay(result.error, client);
+    }
+    return <Address address={result.address} />;
+  }
+  if (msg instanceof MissingWalletError) {
+    return <p>This run stopped because no wallet was connected.</p>;
+  }
+
   if (msg instanceof Error) {
     const { message, cause, stack } = msg;
     return (

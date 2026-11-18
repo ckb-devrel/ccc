@@ -3,6 +3,7 @@ import * as React from "react";
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
+import { createWalletBindings } from "./wallet";
 
 const LIBS_MAP_ = new Map();
 const LIBS = await Promise.all(
@@ -71,8 +72,9 @@ export async function execute(
   onUpdate: (
     pos: [number, number, number, number] | undefined,
   ) => Promise<void>,
-  signer: ccc.Signer,
+  signer: ccc.Signer | undefined,
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
+  client: ccc.Client,
 ) {
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -83,6 +85,7 @@ export async function execute(
     },
   });
 
+  const wallet = createWalletBindings(client, signer);
   const exports = {};
   const require = (path: string) => {
     const lib = LIBS.get(path);
@@ -119,8 +122,10 @@ export async function execute(
             }
           }
         },
-        signer,
-        client: signer.client,
+        get signer() {
+          return wallet.signer;
+        },
+        client: wallet.client,
         bitcoin: removedBitcoin,
       };
     }
