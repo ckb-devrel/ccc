@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { bytesConcat, bytesFrom } from "../../bytes/index.js";
-import { Script, Transaction } from "../../ckb/index.js";
+import { OutPoint, Script, Transaction, WitnessArgs } from "../../ckb/index.js";
 import { ClientPublicTestnet } from "../../client/index.js";
 import { hashCkb } from "../../hasher/index.js";
 import { hexFrom } from "../../hex/index.js";
@@ -10,8 +10,9 @@ import {
   type JsonRpcResponse,
   type JsonRpcTransport,
 } from "../../jsonRpc/index.js";
-import { SignerCkbPrivateKey } from "../ckb/index.js";
+import { SignerCkbPrivateKey, verifyMessageSecp256k1 } from "../ckb/index.js";
 import { SignerJsonRpc, SignerJsonRpcProviderSession } from "./index.js";
+import { SignerJsonRpcTransformers } from "./transformers.js";
 
 const MAX = 0xffffffffffffffffn;
 const NULL_LOCK = Script.from({
@@ -67,6 +68,8 @@ function proof(lock: Script, o: Options = {}) {
   });
 }
 
+const key = (op: OutPoint) => `${op.txHash}:${op.index.toString()}`;
+
 const owners: { dispose(): Promise<void> }[] = [];
 afterEach(async () => {
   await Promise.all(owners.splice(0).map((o) => o.dispose()));
@@ -76,7 +79,7 @@ async function pair(acceptPseudoInputs?: boolean) {
   const client = new ClientPublicTestnet();
   const lookups: string[] = [];
   vi.spyOn(client, "getCell").mockImplementation(async (op) => {
-    lookups.push(`${op.txHash}:${op.index}`);
+    lookups.push(key(OutPoint.from(op)));
     return undefined;
   });
   vi.spyOn(client, "findCells").mockImplementation(
@@ -93,12 +96,12 @@ async function pair(acceptPseudoInputs?: boolean) {
   const wire: JsonRpcPayload[] = [];
   const transport: JsonRpcTransport = {
     async request(payload): Promise<JsonRpcResponse> {
-      const sent = JSON.parse(JSON.stringify(payload));
+      const sent = JSON.parse(JSON.stringify(payload)) as JsonRpcPayload;
       wire.push(sent);
       try {
         const result = JSON.parse(
           JSON.stringify(await owner.value.handle(sent)) ?? "null",
-        );
+        ) as unknown;
         return { jsonrpc: "2.0", id: payload.id, result };
       } catch (e) {
         const code = e instanceof JsonRpcError ? e.code : -32000;
@@ -117,14 +120,37 @@ async function pair(acceptPseudoInputs?: boolean) {
   const dapp = await SignerJsonRpc.new(dappClient, { transport });
   await dapp.connect();
   const lock = (await signer.getAddressObjSecp256k1()).script;
-  return { dapp, signer, lookups, wire, lock };
+  const { session_id } = (wire.at(-1)!.params as [{ session_id: string }])[0];
+  let raws = 0;
+  const raw = (method: string, param: unknown) =>
+    Promise.resolve(
+      owner.value.handle({
+        jsonrpc: "2.0",
+        id: 0,
+        method,
+        params: [{ request_id: `raw-${raws++}`, session_id }, param],
+      }),
+    );
+  return { dapp, signer, lookups, wire, lock, raw };
+}
+
+// the witness holds a signature of the fixture key over the sighash of the transaction
+async function isSigned(signer: SignerCkbPrivateKey, signed: Transaction) {
+  const lock = (await signer.getAddressObjSecp256k1()).script;
+  const unsigned = signed.clone();
+  await unsigned.prepareSighashAllWitness(lock, 65, signer.client);
+  const info = await unsigned.getSignHashInfo(lock, signer.client);
+  const signature = WitnessArgs.fromBytes(signed.witnesses[0]).lock;
+  return (
+    info !== undefined &&
+    signature !== undefined &&
+    verifyMessageSecp256k1(info.message, signature, signer.publicKey)
+  );
 }
 
 // the wallet went to look the fake input up (and found nothing), so it did not accept the carried cell
 const looked = (lookups: string[], tx: Transaction) =>
-  lookups.includes(
-    `${tx.inputs[0].previousOutput.txHash}:${tx.inputs[0].previousOutput.index}`,
-  );
+  lookups.includes(key(tx.inputs[0].previousOutput));
 
 // params are [request metadata, transaction]
 const sentInput = (wire: JsonRpcPayload[]) =>
@@ -138,10 +164,10 @@ const sentInput = (wire: JsonRpcPayload[]) =>
 describe("a lock proof input over the signer JSON-RPC", () => {
   it("control: direct signing without the wire signs the template", async () => {
     const { signer, lock } = await pair();
-    const signed = await signer.signOnlyTransaction(
-      await signer.prepareTransaction(proof(lock)),
-    );
-    expect(bytesFrom(signed.witnesses[0]).length).toBeGreaterThan(65);
+    const prepared = await signer.prepareTransaction(proof(lock));
+    expect(await isSigned(signer, prepared)).toBe(false);
+    const signed = await signer.signOnlyTransaction(prepared);
+    expect(await isSigned(signer, signed)).toBe(true);
   });
 
   it("a wallet that opted in signs it, with the bytes of direct signing and no lookup", async () => {
@@ -151,15 +177,17 @@ describe("a lock proof input over the signer JSON-RPC", () => {
     );
     const signed = await dapp.signTransaction(proof(lock));
     expect(signed.witnesses[0]).toBe(direct.witnesses[0]);
+    expect(await isSigned(signer, signed)).toBe(true);
     expect(lookups).toEqual([]);
   });
 
   it("prepare then sign works through the wire", async () => {
-    const { dapp, lookups, lock } = await pair(true);
+    const { dapp, signer, lookups, lock } = await pair(true);
     const prepared = await dapp.prepareTransaction(proof(lock));
     expect(prepared.inputs[0].cellOutput?.capacity).toBe(MAX);
-    const signed = await dapp.signTransaction(prepared);
-    expect(bytesFrom(signed.witnesses[0]).length).toBeGreaterThan(65);
+    expect(await isSigned(signer, prepared)).toBe(false);
+    const signed = await dapp.signOnlyTransaction(prepared);
+    expect(await isSigned(signer, signed)).toBe(true);
     expect(lookups).toEqual([]);
   });
 
@@ -184,6 +212,7 @@ describe("a lock proof input over the signer JSON-RPC", () => {
       "a type script": { type: typeScript },
       "non-empty data": { data: "0x01" },
       "an all-zero tx hash": { txHash: `0x${"00".repeat(32)}` },
+      "a tx hash shorter than 32 bytes": { txHash: "0x01" },
       "a second input next to it": { extra: true },
     };
     for (const [name, options] of Object.entries(cases)) {
@@ -216,6 +245,27 @@ describe("a lock proof input over the signer JSON-RPC", () => {
       "previous_output",
       "since",
     ]);
+  });
+
+  it("extra fields on a normal input are ignored and the input is looked up", async () => {
+    const { lookups, lock, raw } = await pair(true);
+    const tx = Transaction.from({
+      inputs: [
+        {
+          previousOutput: { txHash: `0x${"ab".repeat(32)}`, index: 0 },
+          since: 0,
+        },
+      ],
+      outputs: [{ capacity: 100n * 100000000n, lock }],
+      outputsData: ["0x"],
+    });
+    const json = SignerJsonRpcTransformers.transactionFrom(tx);
+    const sent = {
+      ...json,
+      inputs: [{ ...json.inputs[0], cell_output: {}, output_data: "0x" }],
+    };
+    await expect(raw("sign_transaction", sent)).rejects.toThrow(UNABLE);
+    expect(looked(lookups, tx)).toBe(true);
   });
 
   it("a proof input that fails the rule is sent without a cell", async () => {
