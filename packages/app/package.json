@@ -22,6 +22,7 @@
     "@ckb-ccc/connector-react": "workspace:*",
     "@ckb-ccc/libp2p": "workspace:*",
     "@ckb-ccc/lumos-patches": "workspace:*",
+    "@ckb-ccc/molecule": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
     "@ckb-lumos/ckb-indexer": "0.24.0-next.2",

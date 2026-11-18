@@ -2,6 +2,7 @@ import type { ccc } from "@ckb-ccc/connector-react";
 import {
   ArrowLeftRight,
   BadgeCent,
+  Binary,
   BookKey,
   Braces,
   CircleDotDashed,
@@ -36,6 +37,7 @@ import { KhieIcon } from "./modules/khie/khie-icon";
 import { KhieModule } from "./modules/khie/khie-module";
 import { MintSporeModule } from "./modules/mint-spore-module";
 import { MnemonicModule } from "./modules/mnemonic-module";
+import { MoleculeModule } from "./modules/molecule-module";
 import { NervosDaoModule } from "./modules/nervos-dao-module";
 import { SignModule } from "./modules/sign-module";
 import { SsriModule } from "./modules/ssri-module";
@@ -137,6 +139,15 @@ export const demoModules: readonly DemoModule[] = defineModules([
     icon: Hash,
     access: "local",
     component: HashModule,
+  },
+  {
+    name: "Molecule",
+    description:
+      "Encode JSON values or decode bytes using your own Molecule schema. No wallet connection required.",
+    group: "Utilities",
+    icon: Binary,
+    access: "local",
+    component: MoleculeModule,
   },
   {
     name: "Mnemonic",

@@ -1,0 +1,50 @@
+.typeRow {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  align-items: end;
+  gap: 14px;
+}
+
+.value {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 10px;
+}
+
+.value :global(.module-actions) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.value :global(.module-actions button) {
+  width: 100%;
+  min-width: 0;
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--error, #ff9a8b);
+}
+
+.result {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+  .typeRow,
+  .values {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

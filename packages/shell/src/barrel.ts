@@ -1,5 +1,6 @@
 export * from "@ckb-ccc/core/barrel";
 export { didCkb } from "@ckb-ccc/did-ckb";
+export { molecule } from "@ckb-ccc/molecule";
 export { spore } from "@ckb-ccc/spore";
 export { ssri } from "@ckb-ccc/ssri";
 export { typeId } from "@ckb-ccc/type-id";
