@@ -12,7 +12,6 @@ import {
   Braces,
   Bug,
   Check,
-  ChevronRight,
   Code2,
   Copy,
   Download,
@@ -38,7 +37,7 @@ import {
   WorkspaceLayoutControls,
 } from "./components/WorkspaceLayoutControls";
 import { useApp } from "./context";
-import { DEFAULT_TRANSFER, VISUAL_EXAMPLE } from "./examples";
+import { DEFAULT_TRANSFER } from "./examples";
 import { execute } from "./execute";
 import { MissingWalletError } from "./execute/wallet";
 import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
@@ -495,13 +494,6 @@ export default function Home() {
               >
                 Nervos Network
               </a>
-              <a
-                href="https://x.com/CKBDevrel"
-                target="_blank"
-                rel="noreferrer"
-              >
-                CKB DevRel on X
-              </a>
             </div>
           </details>
         </nav>
@@ -731,7 +723,11 @@ export default function Home() {
       </footer>
       <dialog
         ref={dialogRef}
-        className="workbench-dialog"
+        className={
+          dialog === "examples"
+            ? "workbench-dialog workbench-dialog--examples"
+            : "workbench-dialog"
+        }
         aria-label={
           dialog === "load"
             ? "Load source"
@@ -829,41 +825,12 @@ export default function Home() {
           </form>
         )}
         {dialog === "examples" && (
-          <>
+          <div className="example-dialog-content">
             <h2>Start with something small.</h2>
             <p>
               Every example is editable. Build up a transaction, inspect it,
               then make it your own.
             </p>
-            <button
-              className="example-card"
-              onClick={() =>
-                replaceSource(VISUAL_EXAMPLE, "Example · Transaction anatomy")
-              }
-            >
-              <span>
-                <strong>Transaction anatomy</strong>
-                <small>
-                  A local transaction preview. No wallet or RPC required.
-                </small>
-              </span>
-              <ChevronRight size={20} />
-            </button>
-            <button
-              className="example-card"
-              onClick={() =>
-                replaceSource(DEFAULT_TRANSFER, "Example · Build a transfer")
-              }
-            >
-              <span>
-                <strong>Build a transfer</strong>
-                <small>
-                  Build with live chain data on the selected network. Requires a
-                  connected or example wallet; does not broadcast.
-                </small>
-              </span>
-              <ChevronRight size={20} />
-            </button>
             <RepositoryExamples
               isLoading={isLoading}
               onLoad={(sourceUrl) => {
@@ -883,7 +850,7 @@ export default function Home() {
               Use <code>await render(value)</code> to create a visual
               checkpoint. Step pauses at each checkpoint.
             </p>
-          </>
+          </div>
         )}
         {dialog === "share" && (
           <>

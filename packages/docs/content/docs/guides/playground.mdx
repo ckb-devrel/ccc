@@ -42,15 +42,21 @@ Drag the divider to resize the panels, or focus it and use the arrow keys. On na
 
 ### Repository examples
 
-**Examples** includes the local Transaction anatomy preview and transfer builder,
-plus **Query balances**, **Explore live cells**, and **Read transaction history**.
-The three read-only queries reuse `packages/examples/src` from a tested, pinned
-CCC revision rather than maintaining separate Playground copies. The source link
-in the picker opens that revision. Loading requires network access and does not
-execute code or change networks; review the source, select a real or read-only
-example wallet, and press **Run**. Results reflect the selected network and
-address, so an empty history or zero balance is valid. The local anatomy example
-needs neither a wallet nor RPC. None of these picker examples signs or broadcasts.
+**Examples** starts with the CKB, xUDT, and Spore transfer builders, followed by
+balance, live cell, transaction history, and DID queries. They load the current
+`packages/examples/src` sources from the CCC repository’s `master` branch; there
+are no separate Picker copies. Loading requires network access and does not run
+code or change networks. Review the source before pressing **Run**. Cancelling
+a load keeps the current editor and saved draft.
+
+The transfer examples preview transactions to the selected wallet itself. They
+do not sign or broadcast. The CKB example needs enough spendable CKB. The xUDT
+example also needs a balance of the specific token in its source; a balance of
+a different xUDT is not sufficient. The Spore example reports an empty result
+if the wallet has no Spores. Results depend on the selected wallet and network,
+including when using the read-only Example wallet. The initial editor code is
+unchanged. Edit the DID identifier for the selected network; an absent DID is a
+valid empty result.
 
 ## Available imports
 
@@ -72,8 +78,7 @@ import { render, signer, client } from "@ckb-ccc/playground"; // Playground help
 You can also use `console.log()` and `console.error()` — they output to the Console panel.
 
 <Callout type="info">
-  Without a wallet, use `client` for chain reads or the local Transaction
-  anatomy example. Importing `signer` alone is harmless; actually accessing
+  Without a wallet, use `client` for chain reads or construct local values. Importing `signer` alone is harmless; actually accessing
   signer state or calling its methods raises a clear choice in the Console:
   **Connect real wallet** or **Use example wallet**. The example uses the original
   Playground public address with no private key. It supports reading and building
@@ -270,3 +275,14 @@ https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob
 - [UDT Tokens](/docs/guides/udt-tokens) — issue and transfer fungible tokens.
 - [Spore Protocol](/docs/guides/spore-protocol) — create on-chain digital objects.
 - [Connect Wallets](/docs/guides/connect-wallets) — integrate wallet connections into your own app.
+
+### Checkpoints, drafts and sharing
+
+`render()` always creates an awaited checkpoint, even if the browser stack cannot
+be mapped to a source line; that checkpoint has no editor highlight. Step stays
+on the Code pane so Continue remains reachable, while Run opens Output.
+Remote loading keeps the current editor text until replacement succeeds, and a
+failed browser draft write is labelled unsaved with a prompt to download using Save.
+When a relay acknowledges a share but read-back fails, Retry verification checks
+the acknowledged snapshot without publishing it again. If the code has changed,
+choose the explicit new-share action to publish the current code instead.

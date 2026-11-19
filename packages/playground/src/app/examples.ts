@@ -32,33 +32,29 @@ await tx.completeFeeBy(signer, 1000);
 await render(tx);
 `;
 
-export const VISUAL_EXAMPLE = `import { ccc } from "@ckb-ccc/ccc";
-import { render } from "@ckb-ccc/playground";
-
-// A local preview: no wallet, RPC call or broadcast.
-const lock = ccc.Script.from({
-  codeHash: "0x" + "00".repeat(32),
-  hashType: "type",
-  args: "0x" + "11".repeat(20),
-});
-const tx = ccc.Transaction.from({
-  outputs: [
-    { capacity: ccc.fixedPointFrom(100), lock },
-    { capacity: ccc.fixedPointFrom(200), lock },
-  ],
-  outputsData: ["0x", "0x"],
-});
-await render(tx);
-console.log("Two output cells. Inputs and fees are not complete yet.");
-
-// You can also render your own React interface.
-await render(<p>Change the capacities above, then run again.</p>);
-`;
-
-/** Update this pin together with the source-compatibility tests. No duplicated source. */
-export const EXAMPLES_REVISION = "7095ccad564b94ea2e59284cb4a364aa3499252e";
-export const EXAMPLES_REPOSITORY_URL = `https://github.com/ckb-devrel/ccc/tree/${EXAMPLES_REVISION}/packages/examples/src`;
+const EXAMPLES_PATH = "ckb-devrel/ccc";
+const EXAMPLES_DIRECTORY = "packages/examples/src";
+export const EXAMPLES_REPOSITORY_URL = `https://github.com/${EXAMPLES_PATH}/tree/master/${EXAMPLES_DIRECTORY}`;
+const RAW_EXAMPLES_URL = `https://raw.githubusercontent.com/${EXAMPLES_PATH}/master/${EXAMPLES_DIRECTORY}`;
 export const REPOSITORY_EXAMPLES = [
+  {
+    file: "transfer.ts",
+    title: "Build a CKB transfer",
+    description:
+      "Build and preview a transfer to your own address. Requires a funded connected or example wallet on the selected network; never signs or broadcasts.",
+  },
+  {
+    file: "transferUdt.ts",
+    title: "Build an xUDT transfer",
+    description:
+      "Preview sending one unit of the sample xUDT to yourself. Requires that token and enough CKB for capacity and fees.",
+  },
+  {
+    file: "transferSpore.ts",
+    title: "Query and transfer a Spore",
+    description:
+      "List owned Spores and preview sending the first one to yourself. With no owned Spores, the script just reports an empty result.",
+  },
   {
     file: "queryBalance.ts",
     title: "Query balances",
@@ -77,7 +73,19 @@ export const REPOSITORY_EXAMPLES = [
     description:
       "List up to ten address transactions and inspect the latest block.",
   },
+  {
+    file: "resolveDid.ts",
+    title: "Resolve a CKB DID",
+    description:
+      "Resolve a DID document and list DIDs owned by the selected address. Edit the sample identifier for your network.",
+  },
+  {
+    file: "didHistory.ts",
+    title: "Trace DID history",
+    description:
+      "Follow a live DID back through updates to its creation (up to 50 steps). An absent DID returns an empty history.",
+  },
 ].map((example) => ({
   ...example,
-  sourceUrl: `https://raw.githubusercontent.com/ckb-devrel/ccc/${EXAMPLES_REVISION}/packages/examples/src/${example.file}`,
+  sourceUrl: `${RAW_EXAMPLES_URL}/${example.file}`,
 }));

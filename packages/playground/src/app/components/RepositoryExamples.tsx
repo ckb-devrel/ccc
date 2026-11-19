@@ -9,13 +9,7 @@ export function RepositoryExamples({
   isLoading: boolean;
 }) {
   return (
-    <section aria-labelledby="repository-examples-title">
-      <h3 id="repository-examples-title">Read from the chain</h3>
-      <p className="muted">
-        Use a connected wallet or the read-only example wallet. These examples
-        query the currently selected network; results depend on its address
-        activity. They do not sign or broadcast.
-      </p>
+    <section aria-label="Repository examples">
       {REPOSITORY_EXAMPLES.map((example) => (
         <button
           key={example.file}
@@ -31,12 +25,12 @@ export function RepositoryExamples({
         </button>
       ))}
       <p className="muted">
-        Loaded from a tested revision of{" "}
+        Loaded from the{" "}
         <a href={EXAMPLES_REPOSITORY_URL} target="_blank" rel="noreferrer">
-          CCC repository examples
+          CCC repository’s master branch
         </a>
-        . Loading requires network access and never runs code. Review the
-        fetched source before pressing Run.
+        . Examples can change; loading requires network access and never runs
+        code. Review the fetched source before pressing Run.
       </p>
     </section>
   );

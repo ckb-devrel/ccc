@@ -71,7 +71,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 Concurrent `await render(...)` checkpoints advance in creation order. Once the top-level script ends, unawaited checkpoints no longer advance; this is not cancellation of arbitrary JavaScript. Browser history source changes wait until the active run settles.
 
-Code runs in the page, not a security sandbox. Only run code you trust. It can use the selected client and signer, and arbitrary JavaScript cannot be reliably interrupted by this UI. The transaction preview example needs neither a wallet nor an RPC request; the transfer example reads live chain data but does not broadcast a transaction.
+Code runs in the page, not a security sandbox. Only run code you trust. It can use the selected client and signer, and arbitrary JavaScript cannot be reliably interrupted by this UI. Examples load the current CCC repository sources from `master` through the same confirmation flow. Loading does not run code. The CKB, xUDT and Spore transfer examples preview unsigned transactions; available assets depend on the selected wallet and network. The initial editor code is unchanged.
 
 ### Development checks
 
@@ -112,8 +112,7 @@ calling a signer method without a wallet raises `MissingWalletError`. The output
 offers Connect wallet and Use example wallet. Without a wallet extension, choose
 the read-only example wallet, then press Run again. Connecting never resumes
 execution automatically. Build a transfer accepts either wallet option and does
-not broadcast; signing or sending requires a real wallet. Transaction anatomy
-remains a local, wallet-free example. No demo wallet identity is silently substituted.
+not broadcast; signing or sending requires a real wallet. No demo wallet identity is silently substituted.
 
 Clear output resets Follow output to enabled. While following, the control reads
 Following output in gray; when paused, Follow output is blue and resumes it.

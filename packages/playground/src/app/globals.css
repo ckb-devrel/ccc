@@ -58,7 +58,6 @@ code,
 pre,
 .eyebrow,
 .panel-heading,
-.workbench-status,
 .source-origin,
 .entry-number {
   font-family: var(--font-geist-mono), monospace;
@@ -91,10 +90,6 @@ pre,
 .brand strong {
   font-size: 21px;
   letter-spacing: -1px;
-}
-.brand-symbol {
-  color: var(--signal);
-  font-size: 27px;
 }
 .brand-divider {
   width: 1px;
@@ -465,22 +460,6 @@ input[type="checkbox"] {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.workbench-status {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 36px;
-  gap: 16px;
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-}
-.workbench-status > span {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
 .notice {
   display: flex;
   align-items: center;
@@ -510,6 +489,19 @@ input[type="checkbox"] {
   color: var(--ink);
   background: var(--panel);
   box-shadow: 0 24px 80px #0009;
+}
+.workbench-dialog--examples[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.workbench-dialog--examples .example-dialog-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.example-dialog-content .example-card:focus-visible {
+  outline-offset: -4px;
 }
 .workbench-dialog::backdrop {
   background: #000a;
@@ -670,12 +662,6 @@ input[type="checkbox"] {
   .mobile-tabs button[aria-pressed="true"] {
     color: var(--signal);
     border-bottom-color: var(--signal);
-  }
-  .workbench-status > span:last-child {
-    display: none;
-  }
-  .keyboard-hint {
-    display: none !important;
   }
   .output-empty {
     padding: 22px;
@@ -863,36 +849,6 @@ input[type="checkbox"] {
 .result-warning {
   color: var(--error);
 }
-.tx-flow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr);
-  align-items: start;
-  gap: 5px;
-  margin: 16px 0;
-}
-.tx-column {
-  min-width: 0;
-}
-.tx-column h3 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 0 9px;
-  font-size: 10px;
-  color: var(--muted);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.tx-column h3 span {
-  color: var(--signal);
-  font-family: var(--font-geist-mono), monospace;
-}
-.tx-flow-arrow {
-  color: var(--signal);
-  align-self: center;
-  text-align: center;
-}
 .tx-empty {
   padding: 20px 8px;
   border: 1px dashed var(--line);
@@ -1016,12 +972,6 @@ input[type="checkbox"] {
   overflow-wrap: anywhere;
 }
 @media (max-width: 420px) {
-  .tx-flow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .tx-flow-arrow {
-    transform: rotate(90deg);
-  }
   .tx-summary strong {
     font-size: 13px;
   }
@@ -1083,13 +1033,7 @@ input[type="checkbox"] {
   padding: 5px 8px;
   flex-shrink: 0;
 }
-.workbench-status {
-  min-height: 24px;
-  flex-shrink: 0;
-  font-size: 10px;
-}
-.output-controls,
-.output-status {
+.output-controls {
   flex-shrink: 0;
 }
 .workspace-focused .workspace-actions {
@@ -1122,9 +1066,6 @@ input[type="checkbox"] {
   }
   .brand strong {
     font-size: 18px;
-  }
-  .brand-symbol {
-    font-size: 20px;
   }
   .brand-divider,
   .resource-nav {
@@ -1190,9 +1131,6 @@ input[type="checkbox"] {
   .editor-toolbar .primary {
     min-width: 64px;
   }
-  .workbench-status {
-    min-height: 22px;
-  }
 }
 
 /* Small, discrete feedback: never animate editor dimensions or scrolling. */
@@ -1242,6 +1180,10 @@ input[type="checkbox"] {
   background: var(--panel);
   z-index: 1;
   padding: 6px 0;
+}
+.workbench-dialog--examples .dialog-heading {
+  flex-shrink: 0;
+  position: static;
 }
 .workbench-dialog .dialog-heading button {
   min-width: 36px;
@@ -1357,12 +1299,6 @@ input[type="checkbox"] {
     height: auto;
     gap: 5px;
     padding: 6px 8px;
-  }
-  .tx-flow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .tx-flow-arrow {
-    transform: rotate(90deg);
   }
   .tx-summary {
     grid-template-columns: minmax(0, 1fr);
