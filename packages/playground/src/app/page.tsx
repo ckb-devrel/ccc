@@ -1,4 +1,5 @@
 "use client";
+import { verifyShareAttempt, type ShareAttempt } from "./shareAttempt";
 
 import { createCheckpointQueue } from "./checkpointQueue";
 import { RepositoryExamples } from "./components/RepositoryExamples";
@@ -71,11 +72,13 @@ export default function Home() {
   const displayStatus =
     walletFailure && signer && !isRunning ? "Wallet ready · Run again" : status;
   const [notice, setNotice] = useState("");
+  const [savedDraft, setSavedDraft] = useState<string | undefined>();
   const [dialog, setDialog] = useState<
     "load" | "share" | "examples" | undefined
   >();
   const [loadValue, setLoadValue] = useState("");
   const [shareUrl, setShareUrl] = useState("");
+  const [shareAttempt, setShareAttempt] = useState<ShareAttempt>();
   const [copied, setCopied] = useState(false);
   const [autoClear, setAutoClear] = useState(true);
   const {
@@ -249,8 +252,11 @@ export default function Home() {
     }
     try {
       window.localStorage.setItem("playgroundSourceCode", source);
+      // Persistence result is external browser state, reflected in the label.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSavedDraft(source);
     } catch {
-      /* The editor remains usable when storage is unavailable. */
+      setSavedDraft(undefined);
     }
   }, [source, origin, ready]);
 
@@ -271,7 +277,7 @@ export default function Home() {
       setHasRun(true);
       running.current = true;
       setIsRunning(true);
-      setMobilePane("output");
+      setMobilePane(autoPlay ? "output" : "code");
       setStatus("Executing");
       if (autoClear) {
         clearMessage();
@@ -281,10 +287,12 @@ export default function Home() {
         setHighlight(pos);
         setNext(advance ? () => advance : undefined);
         setStatus(
-          pos
+          advance
             ? autoPlay
               ? "Rendering"
-              : `Paused at line ${pos[0] + 1}`
+              : pos
+                ? `Paused at line ${pos[0] + 1}`
+                : "Paused at checkpoint"
             : "Executing",
         );
       });
@@ -292,8 +300,8 @@ export default function Home() {
       try {
         await execute(
           sourceRef.current,
-          (pos) => {
-            if (!pos || !outputRun.isCurrent() || !running.current) {
+          (pos, checkpoint) => {
+            if (!checkpoint || !outputRun.isCurrent() || !running.current) {
               return Promise.resolve();
             }
             return checkpoints.enqueue(pos);
@@ -307,7 +315,7 @@ export default function Home() {
         if (error instanceof MissingWalletError && outputRun.isCurrent()) {
           setWalletFailure(error);
         }
-        outputRun.log("error", "Execution failed", [error]);
+        outputRun.terminalError(error);
         setStatus("Run failed");
       } finally {
         running.current = false;
@@ -577,7 +585,9 @@ export default function Home() {
           <div className="source-origin" title={origin}>
             <span className="status-light" />
             {origin === "Local draft"
-              ? "Local draft · saved in this browser"
+              ? savedDraft === source
+                ? "Local draft · saved in this browser"
+                : "Local draft · not saved — use Save to download"
               : origin}
           </div>
           <div className="editor-surface">
@@ -913,18 +923,14 @@ export default function Home() {
                   setNotice("");
                   const snapshot = source;
                   try {
-                    const id = await shareToNostr(
-                      client,
-                      DEFAULT_NOSTR_RELAYS,
+                    const id = await verifyShareAttempt(
                       snapshot,
+                      shareAttempt,
+                      (text) =>
+                        shareToNostr(client, DEFAULT_NOSTR_RELAYS, text),
+                      (id) => getFromNEvent(DEFAULT_NOSTR_RELAYS, id),
+                      setShareAttempt,
                     );
-                    const retrieved = await getFromNEvent(
-                      DEFAULT_NOSTR_RELAYS,
-                      id,
-                    );
-                    if (retrieved !== snapshot) {
-                      throw new Error("Published code could not be verified");
-                    }
                     const url = new URL(
                       window.location.origin + window.location.pathname,
                     );
@@ -945,8 +951,29 @@ export default function Home() {
                 ) : (
                   <Radio size={16} />
                 )}{" "}
-                {isSharing ? "Publishing & verifying…" : "Publish to Nostr"}
+                {isSharing
+                  ? "Verifying share…"
+                  : shareAttempt
+                    ? "Retry verification"
+                    : "Publish to Nostr"}
               </Button>
+            )}
+            {shareAttempt && !shareUrl && (
+              <p className="muted">
+                Retry verification checks the previously published snapshot
+                without publishing again.
+                {source !== shareAttempt.source && (
+                  <Button
+                    disabled={isSharing}
+                    onClick={() => {
+                      setShareAttempt(undefined);
+                      setNotice("");
+                    }}
+                  >
+                    Use current code for a new share
+                  </Button>
+                )}
+              </p>
             )}
             {notice && <p role="status">{notice}</p>}
           </>

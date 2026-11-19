@@ -9,7 +9,7 @@ export function createCheckpointQueue(
   ) => void,
 ) {
   type Checkpoint = {
-    position: CheckpointPosition;
+    position: CheckpointPosition | undefined;
     resolve: () => void;
   };
   const pending: Checkpoint[] = [];
@@ -39,7 +39,7 @@ export function createCheckpointQueue(
     }
   };
   return {
-    enqueue(position: CheckpointPosition) {
+    enqueue(position: CheckpointPosition | undefined) {
       if (closed) {
         return new Promise<void>(() => {});
       }

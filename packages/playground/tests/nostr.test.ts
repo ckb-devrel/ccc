@@ -190,6 +190,67 @@ describe("Nostr source loading", () => {
     await result;
     expect(state.sockets.every((s) => s.closed)).toBe(true);
   });
+  it.each([
+    ["wrong prefix", "nprofile", [0, 32, ...new Array(32).fill(1)]],
+    ["missing event ID", "nevent", []],
+    ["empty event ID", "nevent", [0, 0]],
+    ["short event ID", "nevent", [0, 1, 1]],
+    ["long event ID", "nevent", [0, 33, ...new Array(33).fill(1)]],
+    ["truncated ID", "nevent", [0, 32, 1]],
+    [
+      "incomplete trailing header",
+      "nevent",
+      [0, 32, ...new Array(32).fill(1), 1],
+    ],
+    ["truncated relay", "nevent", [0, 32, ...new Array(32).fill(1), 1, 2, 1]],
+    [
+      "duplicate event ID",
+      "nevent",
+      [0, 32, ...new Array(32).fill(1), 0, 32, ...new Array(32).fill(2)],
+    ],
+  ] as const)(
+    "rejects %s before any relay traffic",
+    async (_label, prefix, bytes) => {
+      const id = bech32.encode(
+        prefix,
+        bech32.toWords(Uint8Array.from(bytes)),
+        65536,
+      );
+      await expect(
+        getFromNEvent(["wss://default.example"], id),
+      ).rejects.toThrow("Invalid nevent");
+      expect(state.sockets).toHaveLength(0);
+    },
+  );
+  it("accepts an ID without relay hints and ignores complete optional TLVs", async () => {
+    const id = bech32.encode(
+      "nevent",
+      bech32.toWords(
+        Uint8Array.from([
+          0,
+          32,
+          ...ccc.bytesFrom(requestedId),
+          2,
+          32,
+          ...new Array(32).fill(1),
+          3,
+          4,
+          0,
+          0,
+          4,
+          26,
+          99,
+          1,
+          7,
+        ]),
+      ),
+      65536,
+    );
+    await expect(getFromNEvent(["wss://default.example"], id)).resolves.toBe(
+      "console.log('imported')",
+    );
+    expect(state.sockets.map((s) => s.url)).toEqual(["wss://default.example"]);
+  });
   it("rejects invalid references before opening any sockets", async () => {
     await expect(getFromNEvent([], "not-a-nevent")).rejects.toThrow();
     expect(state.sockets).toHaveLength(0);

@@ -191,8 +191,12 @@ export function Editor({
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
         }}
-        value={isLoading ? "" : value}
-        onChange={onChange}
+        value={value}
+        onChange={(value) => {
+          if (!isLoading) {
+            onChange(value);
+          }
+        }}
         onMount={(editor, monaco) => {
           monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
             ...monaco.languages.typescript.typescriptDefaults.getCompilerOptions(),

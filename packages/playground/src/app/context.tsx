@@ -54,6 +54,7 @@ export const APP_CONTEXT = createContext<
       beginOutputRun: () => {
         log: (level: "error" | "info", title: string, msgs: unknown[]) => void;
         isCurrent: () => boolean;
+        terminalError: (error: unknown) => void;
       };
       sendMessage: (
         level: "error" | "info",
@@ -171,8 +172,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const beginOutputRun = useCallback(() => {
     const isCurrent = outputSessions.current.begin();
+    let reportedTerminal = false;
     return {
       isCurrent,
+      terminalError: (error: unknown) => {
+        if (reportedTerminal) {
+          return;
+        }
+        reportedTerminal = true;
+        // sendMessage captures the original run client and wallet mode.
+        sendMessage(
+          "error",
+          isCurrent()
+            ? "Execution failed"
+            : "Execution failed after wallet/network changed",
+          [error],
+        );
+      },
       log: (level: "error" | "info", title: string, msgs: unknown[]) => {
         if (isCurrent()) {
           sendMessage(level, title, msgs);
@@ -188,11 +204,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sendMessage(
         "error",
         `${formatTimestamp(Date.now())} Global async error (unattributed): ${name}`,
-        [
-          event.reason instanceof Error
-            ? event.reason
-            : new Error(String(event.reason)),
-        ],
+        event.reason instanceof Error
+          ? [event.reason]
+          : [
+              new Error(
+                "Unhandled promise rejection (original reason follows)",
+              ),
+              event.reason,
+            ],
       );
     };
 

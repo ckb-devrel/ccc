@@ -120,8 +120,14 @@ function getTLVs(tlv: number[]) {
 
   const values = [];
   while (i < tlv.length) {
+    if (i + 2 > tlv.length) {
+      throw new Error("Invalid nevent: incomplete TLV header");
+    }
     const type = tlv[i];
     const length = tlv[i + 1];
+    if (i + 2 + length > tlv.length) {
+      throw new Error("Invalid nevent: incomplete TLV value");
+    }
     const value = tlv.slice(i + 2, i + 2 + length);
     i += 2 + length;
 
@@ -135,12 +141,17 @@ export async function getFromNEvent(
   defaultRelays: string[],
   id: string,
 ): Promise<string | undefined> {
-  let eventId;
+  const decoded = bech32.decode(id, 65536);
+  if (decoded.prefix !== "nevent") {
+    throw new Error("Invalid nevent: expected nevent prefix");
+  }
+  let eventId: string | undefined;
   const relays = [...defaultRelays];
-  for (const { type, value } of getTLVs(
-    bech32.fromWords(bech32.decode(id, 65536).words),
-  )) {
+  for (const { type, value } of getTLVs(bech32.fromWords(decoded.words))) {
     if (type === 0) {
+      if (value.length !== 32 || eventId !== undefined) {
+        throw new Error("Invalid nevent: expected one 32-byte event ID");
+      }
       eventId = ccc.hexFrom(value).slice(2);
     }
     if (type === 1) {

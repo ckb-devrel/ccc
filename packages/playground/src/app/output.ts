@@ -65,6 +65,20 @@ export function snapshotOutput(values: unknown[]): unknown[] {
       return diagnostic();
     }
   }
+  function snapshotObject(value: object, prototype: object | null): unknown {
+    const result: object = Object.create(prototype);
+    seen.set(value, result);
+    for (const key of Object.keys(value)) {
+      // Keep own keys as data even when they shadow a prototype setter.
+      Object.defineProperty(result, key, {
+        value: read(value, key),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
+    }
+    return result;
+  }
   function snapshotValue(value: unknown): unknown {
     if (value === null || typeof value !== "object" || isValidElement(value)) {
       return value;
@@ -77,12 +91,16 @@ export function snapshotOutput(values: unknown[]): unknown[] {
       value instanceof ccc.Cell ||
       value instanceof ccc.CellInput ||
       value instanceof ccc.CellOutput ||
-      value instanceof ccc.Script
+      value instanceof ccc.Script ||
+      value instanceof ccc.OutPoint ||
+      value instanceof ccc.CellDep ||
+      value instanceof ccc.Address
     ) {
-      return value.clone();
-    }
-    if (value instanceof ccc.Address) {
-      return snapshotAddress(value);
+      // CCC's from()/clone() factories may repair insufficient capacity.
+      // A debugger snapshot must retain the emitted fields, even when invalid.
+      // Only these known data classes are copied; arbitrary classes retain
+      // their semantics below. Keep prototypes for their display methods.
+      return snapshotObject(value, Object.getPrototypeOf(value));
     }
     if (value instanceof ccc.Signer) {
       return new SignerOutputSnapshot(value);
@@ -119,16 +137,15 @@ export function snapshotOutput(values: unknown[]): unknown[] {
       }
       return result;
     }
+    const prototype: object | null = Object.getPrototypeOf(value);
+    // Transaction output cells are native CellAny values. Custom subclasses
+    // may rely on private state that cannot be copied from their own keys.
     if (
-      Object.getPrototypeOf(value) === Object.prototype ||
-      Object.getPrototypeOf(value) === null
+      prototype === ccc.CellAny.prototype ||
+      prototype === Object.prototype ||
+      prototype === null
     ) {
-      const result: Record<string, unknown> = Object.create(null);
-      seen.set(value, result);
-      for (const key of Object.keys(value)) {
-        result[key] = read(value, key);
-      }
-      return result;
+      return snapshotObject(value, prototype);
     }
     return value;
   }

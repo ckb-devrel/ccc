@@ -71,6 +71,7 @@ export async function execute(
   source: string,
   onUpdate: (
     pos: [number, number, number, number] | undefined,
+    checkpoint?: boolean,
   ) => Promise<void>,
   signer: ccc.Signer | undefined,
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
@@ -99,23 +100,23 @@ export async function execute(
           log("info", formatTimestamp(Date.now()), msgs);
 
           const stack = new Error().stack;
-          if (!stack) {
-            return;
-          }
           const match = stack
-            .split("\n")[2]
+            ?.split("\n")[2]
             ?.match("<anonymous>:([0-9]*):([0-9]*)\\)");
-          if (!match) {
-            return;
-          }
-          try {
-            await onUpdate(
-              findSourcePos(
+          let position: [number, number, number, number] | undefined;
+          if (match) {
+            try {
+              position = findSourcePos(
                 compiled.sourceMapText,
                 Number(match[1]) - 4,
                 Number(match[2]) - 2,
-              ),
-            );
+              );
+            } catch {
+              /* Mapping is optional; the checkpoint is not. */
+            }
+          }
+          try {
+            await onUpdate(position, true);
           } catch (err) {
             if (err !== "ABORTED") {
               throw err;
