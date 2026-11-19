@@ -56,28 +56,3 @@ it("keeps the saved editor value while imports are loading, ignoring loading-tim
   )("edit");
   expect(onChange).toHaveBeenCalledExactlyOnceWith("edit");
 });
-it("reports local-storage failure without disabling later autosave attempts", () => {
-  const page = readFileSync(
-    new URL("../src/app/page.tsx", import.meta.url),
-    "utf8",
-  );
-  const a = page.indexOf('    if (!ready || origin !== "Local draft")');
-  const b = page.indexOf("\n  }, [source, origin, ready]);", a);
-  const setter = vi.fn(),
-    setItem = vi.fn().mockImplementationOnce(() => {
-      throw Error("quota");
-    });
-  const save = new Function(
-    "ready",
-    "origin",
-    "source",
-    "window",
-    "setSavedDraft",
-    ts.transpile(page.slice(a, b)),
-  );
-  save(true, "Local draft", "new", { localStorage: { setItem } }, setter);
-  expect(setter).toHaveBeenLastCalledWith(undefined);
-  save(true, "Local draft", "later", { localStorage: { setItem } }, setter);
-  expect(setter).toHaveBeenLastCalledWith("later");
-  expect(page).toContain("not saved — use Save to download");
-});

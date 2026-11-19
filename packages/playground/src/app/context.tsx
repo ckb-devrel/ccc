@@ -11,7 +11,12 @@ import React, {
   useState,
 } from "react";
 import { ExampleWallet } from "./exampleWallet";
-import { captureOutputEntry, type OutputOrigin } from "./output";
+import { createOutputQueue, type Messages } from "./outputQueue";
+import {
+  createOutputRun,
+  reportUnhandledRejection,
+  type SendOutputMessage,
+} from "./outputRun";
 import { createOutputSessionGate } from "./outputSession";
 import { formatString, formatTimestamp } from "./utils";
 
@@ -33,41 +38,24 @@ function WalletIcon({
   );
 }
 
-export type Messages = ReturnType<typeof captureOutputEntry>[];
+type WalletContext = {
+  signer: ccc.Signer | undefined;
+  isExampleWallet: boolean;
+  enableExampleWallet: () => void;
+  openSigner: () => unknown;
+  disconnect: () => void;
+  openAction: ReactNode;
+};
 
-export const APP_CONTEXT = createContext<
-  | {
-      enabledAnimate: boolean;
-      backgroundLifted: boolean;
-      setAnimate: (v: boolean) => void;
-      setBackgroundLifted: (v: boolean) => void;
+type OutputCommands = {
+  clearMessage: () => void;
+  beginOutputRun: () => ReturnType<typeof createOutputRun>;
+  sendMessage: SendOutputMessage;
+};
 
-      signer: ccc.Signer | undefined;
-      isExampleWallet: boolean;
-      enableExampleWallet: () => void;
-      openSigner: () => unknown;
-      disconnect: () => void;
-      openAction: ReactNode;
-
-      messages: Messages;
-      clearMessage: () => void;
-      beginOutputRun: () => {
-        log: (level: "error" | "info", title: string, msgs: unknown[]) => void;
-        isCurrent: () => boolean;
-        terminalError: (error: unknown) => void;
-      };
-      sendMessage: (
-        level: "error" | "info",
-        title: string,
-        msgs: unknown[],
-      ) => void;
-      createSender: (title: string) => {
-        log: (...msgs: unknown[]) => void;
-        error: (...msgs: unknown[]) => void;
-      };
-    }
-  | undefined
->(undefined);
+const APP_CONTEXT = createContext<WalletContext | undefined>(undefined);
+const OUTPUT_COMMANDS = createContext<OutputCommands | undefined>(undefined);
+const OUTPUT_MESSAGES = createContext<Messages | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const {
@@ -80,8 +68,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [address, setAddress] = useState<string>("");
 
-  const [enabledAnimate, setAnimate] = useState(true);
-  const [backgroundLifted, setBackgroundLifted] = useState(false);
   const [exampleEnabled, setExampleEnabled] = useState(false);
   const exampleWallet = useMemo(() => new ExampleWallet(client), [client]);
   const isExampleWallet = exampleEnabled && !cccSigner;
@@ -121,103 +107,115 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [signer]);
 
+  const walletContext = useMemo(
+    () => ({
+      signer,
+      isExampleWallet,
+      enableExampleWallet: () => {
+        if (!cccSigner) {
+          setExampleEnabled(true);
+        }
+      },
+      // Opening or dismissing the picker does not replace the selected wallet.
+      openSigner: open,
+      disconnect: () => {
+        setExampleEnabled(false);
+        if (cccSigner) {
+          disconnect();
+        }
+      },
+      openAction: cccSigner ? (
+        <>
+          {wallet && <WalletIcon wallet={wallet} className="mr-2" />}
+          {address === "" ? "Loading..." : formatString(address, 5, 4)}
+        </>
+      ) : isExampleWallet ? (
+        <>
+          <FlaskConical className="mr-2" size="1em" />
+          Example wallet
+        </>
+      ) : (
+        <>
+          <Link className="mr-2" size="1em" />
+          Connect
+        </>
+      ),
+    }),
+    [address, cccSigner, disconnect, isExampleWallet, open, signer, wallet],
+  );
+
+  return (
+    <APP_CONTEXT.Provider value={walletContext}>
+      <OutputProvider
+        client={client}
+        signer={signer}
+        isExampleWallet={isExampleWallet}
+      >
+        {children}
+      </OutputProvider>
+    </APP_CONTEXT.Provider>
+  );
+}
+
+function OutputProvider({
+  children,
+  client,
+  signer,
+  isExampleWallet,
+}: {
+  children: ReactNode;
+  client: ccc.Client;
+  signer: ccc.Signer | undefined;
+  isExampleWallet: boolean;
+}) {
   // Match the runtime bindings while a connector refresh is in flight.
   const outputClient = signer?.client ?? client;
   const [messages, setMessages] = useState<Messages>([]);
-  const messageId = React.useRef(0);
-  const outputSessions = React.useRef(createOutputSessionGate());
-  const cachedMessagesRef = React.useRef<Messages>([]);
-  const messagesTimeoutRef = React.useRef<number | null>(null);
+  const [queue] = useState(() =>
+    createOutputQueue((batch) =>
+      setMessages((previous) => [...previous, ...batch]),
+    ),
+  );
+  const [outputSessions] = useState(createOutputSessionGate);
 
-  const sendMessage = useCallback(
-    (
-      level: "error" | "info",
-      title: string,
-      msgs: unknown[],
-      origin: OutputOrigin = "diagnostic",
-    ) => {
-      cachedMessagesRef.current.push(
-        captureOutputEntry(
-          level,
-          title,
-          msgs,
-          ++messageId.current,
-          outputClient,
-          isExampleWallet,
-          origin,
-        ),
-      );
-
-      if (messagesTimeoutRef.current) {
-        return;
-      }
-
-      messagesTimeoutRef.current = window.setTimeout(() => {
-        const toAdd = cachedMessagesRef.current.splice(0);
-        setMessages((prevMessages) => [...prevMessages, ...toAdd]);
-        messagesTimeoutRef.current = null;
-      }, 100);
+  const sendMessage = useCallback<SendOutputMessage>(
+    (level, title, msgs, origin) => {
+      queue.append(outputClient, isExampleWallet, level, title, msgs, origin);
     },
-    [outputClient, isExampleWallet],
+    [queue, outputClient, isExampleWallet],
   );
 
   useEffect(() => {
-    const sessions = outputSessions.current;
     return () => {
-      sessions.invalidate();
-      if (messagesTimeoutRef.current) {
-        clearTimeout(messagesTimeoutRef.current);
-      }
+      outputSessions.invalidate();
+      queue.clear();
     };
-  }, []);
+  }, [outputSessions, queue]);
 
   useEffect(() => {
     // Late callbacks from a previous wallet/network must not append to the new context.
-    outputSessions.current.invalidate();
-  }, [client, signer]);
+    outputSessions.invalidate();
+  }, [client, signer, outputSessions]);
 
-  const beginOutputRun = useCallback(() => {
-    const isCurrent = outputSessions.current.begin();
-    let reportedTerminal = false;
-    return {
-      isCurrent,
-      terminalError: (error: unknown) => {
-        if (reportedTerminal) {
-          return;
-        }
-        reportedTerminal = true;
-        // sendMessage captures the original run client and wallet mode.
-        sendMessage(
-          "error",
-          isCurrent()
-            ? "Execution failed"
-            : "Execution failed after wallet/network changed",
-          [error],
-        );
+  const outputCommands = useMemo<OutputCommands>(
+    () => ({
+      sendMessage,
+      beginOutputRun: () => createOutputRun(outputSessions, sendMessage),
+      clearMessage: () => {
+        // Clear history and queued entries, not the currently running script.
+        queue.clear();
+        setMessages([]);
       },
-      log: (level: "error" | "info", title: string, msgs: unknown[]) => {
-        if (isCurrent()) {
-          sendMessage(level, title, msgs, "script");
-        }
-      },
-    };
-  }, [sendMessage]);
+    }),
+    [outputSessions, queue, sendMessage],
+  );
 
   useEffect(() => {
     const handler = (event: PromiseRejectionEvent) => {
-      const name =
-        event.reason instanceof Error ? event.reason.name : "Unknown Error";
-      sendMessage(
-        "error",
-        `${formatTimestamp(Date.now())} Global async error (unattributed): ${name}`,
-        event.reason instanceof Error
-          ? [event.reason]
-          : [
-              new Error(
-                "Unhandled promise rejection (original reason follows)",
-              ),
-              event.reason,
-            ],
+      reportUnhandledRejection(
+        event.reason,
+        formatTimestamp(Date.now()),
+        sendMessage,
       );
     };
 
@@ -226,74 +224,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [sendMessage]);
 
   return (
-    <APP_CONTEXT.Provider
-      value={{
-        enabledAnimate,
-        backgroundLifted,
-        setAnimate,
-        setBackgroundLifted,
-
-        signer,
-        isExampleWallet,
-        enableExampleWallet: () => {
-          if (!cccSigner) {
-            setExampleEnabled(true);
-          }
-        },
-        // Opening or dismissing the picker does not replace the selected wallet.
-        openSigner: open,
-        disconnect: () => {
-          setExampleEnabled(false);
-          if (cccSigner) {
-            disconnect();
-          }
-        },
-        openAction: cccSigner ? (
-          <>
-            {wallet && <WalletIcon wallet={wallet} className="mr-2" />}
-            {address === "" ? "Loading..." : formatString(address, 5, 4)}
-          </>
-        ) : isExampleWallet ? (
-          <>
-            <FlaskConical className="mr-2" size="1em" />
-            Example wallet
-          </>
-        ) : (
-          <>
-            <Link className="mr-2" size="1em" />
-            Connect
-          </>
-        ),
-
-        messages,
-        beginOutputRun,
-        clearMessage: () => {
-          // Clear history and queued entries, not the currently running script.
-          if (messagesTimeoutRef.current) {
-            clearTimeout(messagesTimeoutRef.current);
-            messagesTimeoutRef.current = null;
-          }
-          setMessages([]);
-          cachedMessagesRef.current.length = 0;
-        },
-        sendMessage,
-        createSender: (title) => ({
-          log: (...msgs) => sendMessage("info", title, msgs),
-          error: (...msgs) => sendMessage("error", title, msgs),
-        }),
-      }}
-    >
-      {children}
-    </APP_CONTEXT.Provider>
+    <OUTPUT_COMMANDS.Provider value={outputCommands}>
+      <OUTPUT_MESSAGES.Provider value={messages}>
+        {children}
+      </OUTPUT_MESSAGES.Provider>
+    </OUTPUT_COMMANDS.Provider>
   );
 }
 
-export function useApp() {
-  const context = React.useContext(APP_CONTEXT);
-  if (!context) {
-    throw Error(
-      "The component which invokes the useApp hook should be placed in a AppProvider.",
-    );
+function useRequiredContext<T>(
+  context: React.Context<T | undefined>,
+  hookName: string,
+): T {
+  const value = React.useContext(context);
+  if (value === undefined) {
+    throw Error(`${hookName} must be used within AppProvider.`);
   }
-  return context;
+  return value;
+}
+
+export function useApp() {
+  return useRequiredContext(APP_CONTEXT, "useApp");
+}
+
+export function useOutputCommands() {
+  return useRequiredContext(OUTPUT_COMMANDS, "useOutputCommands");
+}
+
+export function useOutputMessages() {
+  return useRequiredContext(OUTPUT_MESSAGES, "useOutputMessages");
 }

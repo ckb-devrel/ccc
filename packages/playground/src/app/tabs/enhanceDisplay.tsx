@@ -43,7 +43,7 @@ export async function enhanceDisplay(
     const url = msg.slice(1, -1);
     return (
       <a
-        className="px-2 text-[#2D5FF5] underline underline-offset-2"
+        className="px-2 underline underline-offset-2"
         href={url}
         target="_blank"
         rel="noopener noreferrer"

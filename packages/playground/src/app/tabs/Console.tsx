@@ -13,9 +13,10 @@ import {
   WalletReadyNotice,
   WalletRequiredNotice,
 } from "../components/WalletRequiredNotice";
-import { type Messages, useApp } from "../context";
+import { useApp, useOutputCommands, useOutputMessages } from "../context";
 import { MissingWalletError } from "../execute/wallet";
 import { useFollowOutput } from "../hooks/useFollowOutput";
+import type { Messages } from "../outputQueue";
 import {
   createWalletRecoveryTracker,
   isRuntimeError,
@@ -136,6 +137,7 @@ export function Console({
   onRun,
   isRunning,
   runBlocked,
+  editorReady,
   autoClear,
   onAutoClear,
 }: {
@@ -145,11 +147,13 @@ export function Console({
   onRun: () => void;
   isRunning: boolean;
   runBlocked: boolean;
+  editorReady: boolean;
   autoClear: boolean;
   onAutoClear: (value: boolean) => void;
 }) {
-  const { messages, clearMessage, signer, isExampleWallet, sendMessage } =
-    useApp();
+  const { signer, isExampleWallet } = useApp();
+  const { clearMessage, sendMessage } = useOutputCommands();
+  const messages = useOutputMessages();
   const recovery = useRef(createWalletRecoveryTracker());
   const [errorsOnly, setErrorsOnly] = useState(false);
   const visibleFailure = messages.some((entry) =>
@@ -252,7 +256,7 @@ export function Console({
             <EmptyOutput
               hasRun={hasRun}
               isRunning={isRunning}
-              runBlocked={runBlocked}
+              runBlocked={runBlocked || !editorReady}
               onRun={onRun}
             />
           ) : (
@@ -268,7 +272,7 @@ export function Console({
                       walletFailure={walletFailure}
                       onRun={onRun}
                       isRunning={isRunning}
-                      runBlocked={runBlocked}
+                      runBlocked={runBlocked || !editorReady}
                     />
                   ),
               )}

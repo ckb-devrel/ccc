@@ -6,23 +6,28 @@ import {
   WalletReadyNotice,
   WalletRequiredNotice,
 } from "../src/app/components/WalletRequiredNotice";
-import type { Messages } from "../src/app/context";
 import { MissingWalletError } from "../src/app/execute/wallet";
 import { captureOutputEntry } from "../src/app/output";
+import type { Messages } from "../src/app/outputQueue";
 import { Console } from "../src/app/tabs/Console";
 import { WalletReadyMessage } from "../src/app/walletRecovery";
 
 const state = vi.hoisted(() => ({
   app: {
     signer: undefined as unknown,
-    messages: [] as Messages,
     isExampleWallet: false,
     openSigner: vi.fn(),
     enableExampleWallet: vi.fn(),
   },
   connector: { signerInfo: undefined as unknown, isOpen: false },
+  messages: [] as Messages,
+  commands: { clearMessage: vi.fn(), sendMessage: vi.fn() },
 }));
-vi.mock("../src/app/context", () => ({ useApp: () => state.app }));
+vi.mock("../src/app/context", () => ({
+  useApp: () => state.app,
+  useOutputCommands: () => state.commands,
+  useOutputMessages: () => state.messages,
+}));
 vi.mock("@ckb-ccc/connector-react", async () => {
   const { ccc } = await import("@ckb-ccc/ccc");
   return { ccc: { ...ccc, useCcc: () => state.connector } };
@@ -33,7 +38,7 @@ function render(active = true) {
 }
 beforeEach(() => {
   state.app.signer = undefined;
-  state.app.messages = [];
+  state.messages = [];
   state.app.isExampleWallet = false;
   state.connector.signerInfo = undefined;
   state.connector.isOpen = false;
@@ -81,6 +86,7 @@ describe("wallet failure recovery", () => {
           onRun,
           isRunning: false,
           runBlocked: false,
+          editorReady: true,
           autoClear: true,
           onAutoClear: vi.fn(),
         }),
@@ -90,11 +96,11 @@ describe("wallet failure recovery", () => {
         "info",
         "Ready to run",
         [new WalletReadyMessage(failure, example)],
-        state.app.messages.length + 1,
+        state.messages.length + 1,
         client,
         example,
       );
-    state.app.messages.push(
+    state.messages.push(
       captureOutputEntry(
         "error",
         "Execution failed",
@@ -104,18 +110,38 @@ describe("wallet failure recovery", () => {
         false,
       ),
     );
-    state.app.messages.push(ready(true));
+    state.messages.push(ready(true));
     state.app.isExampleWallet = true;
     expect(timeline()).toContain("Run current code</button>");
     state.app.isExampleWallet = false;
     expect(timeline()).not.toContain("Run current code</button>"); // Real notice is still queued.
-    state.app.messages.push(ready(false));
+    state.messages.push(ready(false));
     const html = timeline();
     expect(html).toContain("Read-only example wallet selected.");
     expect(html).toContain("Wallet connected.");
     expect(html.match(/Run current code<\/button>/g)).toHaveLength(1);
     expect(onRun).not.toHaveBeenCalled();
   });
+  it.each([false, true])(
+    "gates the empty Console run button with editorReady=%s",
+    (editorReady) => {
+      const html = renderToStaticMarkup(
+        createElement(Console, {
+          executionStatus: "Ready to run",
+          hasRun: false,
+          onRun: vi.fn(),
+          isRunning: false,
+          runBlocked: false,
+          editorReady,
+          autoClear: true,
+          onAutoClear: vi.fn(),
+        }),
+      );
+      const beforeLabel = html.split("Run code</button>")[0];
+      const runMarkup = beforeLabel.slice(beforeLabel.lastIndexOf("<button"));
+      expect(runMarkup.includes('disabled=""')).toBe(!editorReady);
+    },
+  );
   it("keeps connection history without a stale execution action", () => {
     const html = renderToStaticMarkup(
       createElement(WalletReadyNotice, {

@@ -308,28 +308,31 @@ it("preserves sparse array indexes, nested holes and cyclic references", () => {
   expect(inner[2]).toBe("third");
 });
 
-it("contains throwing getters without losing other properties or logged values", () => {
-  // A getter may throw a value that itself cannot safely be inspected.
-  const { proxy, revoke } = Proxy.revocable({}, {});
-  revoke();
-  const getter = vi.fn(() => {
-    throw proxy;
-  });
-  const value = {
-    good: { value: 1 },
-    get bad() {
-      return getter();
-    },
-  };
-  const [saved, next] = snapshotOutput([value, "later value"]) as [
-    typeof value,
-    string,
-  ];
-  expect(saved.good).toEqual({ value: 1 });
-  expect(saved.bad).toBeInstanceOf(Error);
-  expect(next).toBe("later value");
-  expect(getter).toHaveBeenCalledOnce();
-});
+it.each(["diagnostic", "script"] as const)(
+  "contains throwing getters in %s output without losing logged values",
+  (origin) => {
+    // A getter may throw a value that itself cannot safely be inspected.
+    const { proxy, revoke } = Proxy.revocable({}, {});
+    revoke();
+    const getter = vi.fn(() => {
+      throw proxy;
+    });
+    const value = {
+      good: { value: 1 },
+      get bad() {
+        return getter();
+      },
+    };
+    const [saved, next] = snapshotOutput([value, "later value"], origin) as [
+      typeof value,
+      string,
+    ];
+    expect(saved.good).toEqual({ value: 1 });
+    expect(saved.bad).toBeInstanceOf(Error);
+    expect(next).toBe("later value");
+    expect(getter).toHaveBeenCalledOnce();
+  },
+);
 it("contains array getters and hostile object inspection", () => {
   const items = [1, 2, 3];
   Object.defineProperty(items, 1, {

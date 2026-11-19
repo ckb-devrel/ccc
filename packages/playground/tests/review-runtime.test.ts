@@ -1,104 +1,77 @@
 import { ccc } from "@ckb-ccc/ccc";
-import { readFileSync } from "node:fs";
-import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
-import { createCheckpointQueue } from "../src/app/checkpointQueue";
 import { ExampleWallet } from "../src/app/exampleWallet";
 import { execute } from "../src/app/execute";
 import {
   createWalletBindings,
-  hasSignerNetworkMismatch,
   MissingWalletError,
 } from "../src/app/execute/wallet";
-import { captureOutputEntry } from "../src/app/output";
+import { captureOutputEntry, type OutputOrigin } from "../src/app/output";
+import {
+  createOutputRun,
+  reportUnhandledRejection,
+} from "../src/app/outputRun";
 import { createOutputSessionGate } from "../src/app/outputSession";
 import { verifyShareAttempt, type ShareAttempt } from "../src/app/shareAttempt";
+import { createSourceDocument } from "../src/app/sourceDocument";
+import {
+  createWorkbenchExecution,
+  handleExecutionShortcut,
+  type ExecutionView,
+} from "../src/app/workbenchExecution";
 
-function compile(code: string, env: Record<string, unknown>) {
-  return new Function(
-    ...Object.keys(env),
-    ts.transpile(code, { target: ts.ScriptTarget.ES2022 }),
-  )(...Object.values(env));
-}
 describe("reviewed lifecycle regressions", () => {
   const client = { addressPrefix: "ckt" } as ccc.Client;
-  // Exercise the real provider's queued captures without a browser timer.
-  const context = readFileSync(
-    new URL("../src/app/context.tsx", import.meta.url),
-    "utf8",
-  );
   function setupOutput() {
     const gate = createOutputSessionGate();
     const entries: ReturnType<typeof captureOutputEntry>[] = [];
-    const callback = (name: string, env: Record<string, unknown>) => {
-      const start = context.indexOf(`  const ${name} = useCallback(`);
-      const end = context.indexOf("\n\n  useEffect", start);
-      return compile(context.slice(start, end) + `; return ${name};`, {
-        useCallback: (fn: unknown) => fn,
-        ...env,
-      });
+    const sendMessage = (
+      level: "error" | "info",
+      title: string,
+      msgs: unknown[],
+      origin: OutputOrigin = "diagnostic",
+    ) => {
+      entries.push(
+        captureOutputEntry(
+          level,
+          title,
+          msgs,
+          entries.length,
+          client,
+          false,
+          origin,
+        ),
+      );
     };
-    const sendMessage = callback("sendMessage", {
-      cachedMessagesRef: { current: entries },
-      messagesTimeoutRef: { current: 1 },
-      messageId: { current: 0 },
-      outputClient: client,
-      isExampleWallet: false,
-      captureOutputEntry,
-    });
-    const begin = callback("beginOutputRun", {
-      outputSessions: { current: gate },
-      sendMessage,
-    });
-    const beginOutputRun = vi.fn(() => begin());
+    const beginOutputRun = vi.fn(() => createOutputRun(gate, sendMessage));
     return { gate, entries, beginOutputRun, sendMessage };
   }
+
   function setupRun(signer: ccc.Signer | undefined) {
-    const page = readFileSync(
-      new URL("../src/app/page.tsx", import.meta.url),
-      "utf8",
-    );
-    const start = page.indexOf("  const runCode =");
-    const end = page.indexOf("    // Let wallet child views", start);
-    const runAndKeyboard =
-      page.slice(start, end).replace("  useLayoutEffect(() => {", "") +
-      "; return { runCode, onKey };";
     const runScript = vi.fn<typeof execute>(async () => {});
     const clearMessage = vi.fn();
     const { gate, entries, beginOutputRun } = setupOutput();
-    const setWalletFailure = vi.fn();
-    const setNext = vi.fn<(update?: () => () => void) => void>();
-    const setStatus = vi.fn();
-    const deferredHistoryRestore = { current: vi.fn() };
+    const publish = vi.fn<(view: ExecutionView) => void>();
+    const execution = createWorkbenchExecution(publish, runScript);
+    const onSettled = vi.fn();
     const sourceRef = { current: 'console.log("fixture")' };
-    const { runCode, onKey } = compile(runAndKeyboard, {
-      client,
-      signer,
-      hasSignerNetworkMismatch,
-      useCallback: (callback: unknown) => callback,
-      running: { current: false },
-      checkpointQueue: { current: undefined },
-      deferredHistoryRestore,
-      createCheckpointQueue,
-      sourceRef,
-      execute: runScript,
-      clearMessage,
-      beginOutputRun,
-      MissingWalletError,
-      isLoading: false,
-      autoClear: true,
-      dialog: undefined,
-      isWalletDialogOpen: false,
-      next: undefined,
-      setWalletFailure,
-      setHasRun: vi.fn(),
-      setIsRunning: vi.fn(),
-      setMobilePane: vi.fn(),
-      setStatus,
-      setHighlight: vi.fn(),
-      setNext,
-    });
+    const runCode = (autoPlay: boolean) =>
+      execution.run({
+        source: sourceRef.current,
+        isLoading: false,
+        autoPlay,
+        client,
+        signer,
+        beginOutputRun,
+        clearOutput: clearMessage,
+        onStart: () => {},
+        onSettled,
+      });
+    const onKey = (event: KeyboardEvent) =>
+      handleExecutionShortcut(event, false, () => void runCode(true));
+    const view = () => publish.mock.lastCall![0];
     return {
+      execution,
       runCode,
       onKey,
       execute: runScript,
@@ -106,10 +79,9 @@ describe("reviewed lifecycle regressions", () => {
       beginOutputRun,
       gate,
       entries,
-      setWalletFailure,
-      setNext,
-      setStatus,
-      deferredHistoryRestore,
+      publish,
+      view,
+      onSettled,
       sourceRef,
     };
   }
@@ -122,7 +94,7 @@ describe("reviewed lifecycle regressions", () => {
       ctrlKey: true,
       preventDefault: vi.fn(),
       stopPropagation: vi.fn(),
-    };
+    } as unknown as KeyboardEvent;
     await blocked.runCode(true);
     await blocked.runCode(false);
     blocked.onKey(shortcut);
@@ -143,7 +115,7 @@ describe("reviewed lifecycle regressions", () => {
     expect(ready.execute).toHaveBeenCalledOnce();
   });
 
-  it("keeps the second awaited Step checkpoint after a signer change invalidates output", async () => {
+  it("retains both Step checkpoints and defers Back until execution settles after output invalidation", async () => {
     const f = setupRun({ client } as ccc.Signer);
     f.execute.mockImplementation(execute);
     f.sourceRef.current = [
@@ -151,20 +123,47 @@ describe("reviewed lifecycle regressions", () => {
       'await render("first");',
       'await render("second");',
     ].join("\n");
+    let location = new URL(
+      "https://playground.test/?src=https://example.test/code",
+    );
+    const sourceDocument = createSourceDocument(
+      {
+        storage: () => ({ getItem: () => "saved draft", setItem: vi.fn() }),
+        location: () => new URL(location),
+        pushHistory: vi.fn(),
+        confirm: () => true,
+        readRemote: async () => f.sourceRef.current,
+        isExecuting: f.execution.isActive,
+        onOpened: vi.fn(),
+      },
+      vi.fn(),
+    );
+    await sourceDocument.restoreHistory();
+    f.onSettled.mockImplementation(() => void sourceDocument.flushHistory());
     const completion = f.runCode(false);
-    const first = f.setNext.mock.lastCall![0]!();
+    const first = f.view().next!;
+    await f.runCode(true); // A paused execution cannot be replaced by another Run.
     f.gate.invalidate();
+    location = new URL("https://playground.test/");
+    sourceDocument.restoreHistory();
+    expect(sourceDocument.getDocument().text).toBe(f.sourceRef.current);
     first();
     // Let the script reach its next awaited render, without advancing it.
     await new Promise<void>((done) => setTimeout(done, 0));
-    expect(f.setStatus.mock.lastCall?.[0]).toMatch(/^Paused at /);
-    expect(f.deferredHistoryRestore.current).not.toHaveBeenCalled();
-    const second = f.setNext.mock.lastCall![0]!();
+    expect(f.view().status).toMatch(/^Paused at /);
+    expect(f.onSettled).not.toHaveBeenCalled();
+    const second = f.view().next!;
     expect(second).not.toBe(first);
     second();
     await completion;
-    expect(f.setStatus.mock.lastCall?.[0]).toBe("Run complete");
-    expect(f.deferredHistoryRestore.current).toHaveBeenCalledOnce();
+    expect(f.view()).toMatchObject({
+      status: "Run complete",
+      isRunning: false,
+    });
+    expect(f.view().next).toBeUndefined();
+    expect(f.view().highlight).toBeUndefined();
+    expect(f.onSettled).toHaveBeenCalledOnce();
+    expect(sourceDocument.getDocument().text).toBe("saved draft");
     expect(f.execute).toHaveBeenCalledOnce();
   });
 
@@ -182,9 +181,9 @@ describe("reviewed lifecycle regressions", () => {
       f.sourceRef.current = `import { render, signer } from "@ckb-ccc/playground";
       console.log("before"); ${statement}; console.log("after");`;
       await f.runCode(true);
-      const failure = f.setWalletFailure.mock.lastCall?.[0];
+      const failure = f.view().walletFailure;
       expect(failure).toBeInstanceOf(MissingWalletError);
-      expect(f.setStatus.mock.lastCall?.[0]).toBe("Run failed");
+      expect(f.view().status).toBe("Run failed");
       expect(f.entries.map(([level, , values]) => [level, values])).toEqual([
         ["info", ["before"]],
         ["error", [failure]],
@@ -199,8 +198,10 @@ describe("reviewed lifecycle regressions", () => {
     f.sourceRef.current = `import { signer } from "@ckb-ccc/playground";
       throw { reason: "Invalid input", signer };`;
     await f.runCode(true);
-    expect(f.setStatus.mock.lastCall?.[0]).toBe("Run failed");
-    expect(f.setWalletFailure).toHaveBeenCalledExactlyOnceWith(undefined);
+    expect(f.view().status).toBe("Run failed");
+    expect(
+      f.publish.mock.calls.every(([view]) => view.walletFailure === undefined),
+    ).toBe(true);
     expect(f.entries).toHaveLength(1);
     expect(f.entries[0].slice(0, 3)).toEqual([
       "error",
@@ -347,32 +348,21 @@ describe("reviewed lifecycle regressions", () => {
     ]);
   });
   it("preserves structured global rejection reasons and existing Error identities", () => {
-    const start = context.indexOf(
-      "    const handler = (event: PromiseRejectionEvent)",
-    );
-    const end = context.indexOf(
-      '\n\n    window.addEventListener("unhandledrejection"',
-      start,
-    );
     const { sendMessage, entries } = setupOutput();
-    const handler = compile(context.slice(start, end) + ";return handler;", {
-      sendMessage,
-      formatTimestamp: () => "now",
-    });
     const { signer } = createWalletBindings(client, undefined);
     const reason = {
       code: "RPC_FAILED",
       detail: "upstream unavailable",
       signer,
     };
-    handler({ reason });
+    reportUnhandledRejection(reason, "now", sendMessage);
     expect(entries[0][2][1]).toEqual({
       code: "RPC_FAILED",
       detail: "upstream unavailable",
       signer: expect.any(Error),
     });
     const error = Error("known");
-    handler({ reason: error });
+    reportUnhandledRejection(error, "now", sendMessage);
     expect(entries[1][2][0]).toBe(error);
   });
 });
