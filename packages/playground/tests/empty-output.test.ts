@@ -3,9 +3,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { EmptyOutput } from "../src/app/components/EmptyOutput";
 
-const render = (hasRun: boolean, isRunning: boolean) =>
+const render = (hasRun: boolean, isRunning: boolean, runBlocked = false) =>
   renderToStaticMarkup(
-    createElement(EmptyOutput, { hasRun, isRunning, onRun: vi.fn() }),
+    createElement(EmptyOutput, {
+      hasRun,
+      isRunning,
+      runBlocked,
+      onRun: vi.fn(),
+    }),
   );
 
 describe("empty output execution state", () => {
@@ -25,4 +30,11 @@ describe("empty output execution state", () => {
     expect(html).toContain("Run again");
     expect(html).not.toContain("AWAITING EXECUTION");
   });
+  it.each([false, true])(
+    "disables the Console run action while the wallet network differs (hasRun=%s)",
+    (hasRun) => {
+      expect(render(hasRun, false, true)).toMatch(/<button[^>]*disabled/);
+      expect(render(hasRun, false)).not.toMatch(/<button[^>]*disabled/);
+    },
+  );
 });

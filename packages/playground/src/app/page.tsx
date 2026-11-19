@@ -28,7 +28,13 @@ import {
 import * as prettierTs from "prettier/parser-typescript";
 import * as prettierEstree from "prettier/plugins/estree";
 import * as prettier from "prettier/standalone";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "./components/Button";
 import { Editor } from "./components/Editor";
 import { WorkspaceDivider } from "./components/WorkspaceDivider";
@@ -39,7 +45,7 @@ import {
 import { useApp } from "./context";
 import { DEFAULT_TRANSFER } from "./examples";
 import { execute } from "./execute";
-import { MissingWalletError } from "./execute/wallet";
+import { hasSignerNetworkMismatch, MissingWalletError } from "./execute/wallet";
 import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
 import { DEFAULT_NOSTR_RELAYS, getFromNEvent, shareToNostr } from "./nostr";
 import { Console } from "./tabs/Console";
@@ -68,8 +74,12 @@ export default function Home() {
   const [next, setNext] = useState<(() => void) | undefined>();
   const [highlight, setHighlight] = useState<number[] | undefined>();
   const [status, setStatus] = useState("Ready to run");
-  const displayStatus =
-    walletFailure && signer && !isRunning ? "Wallet ready · Run again" : status;
+  const walletNetworkMismatch = hasSignerNetworkMismatch(client, signer);
+  const displayStatus = walletNetworkMismatch
+    ? "Wallet network differs · Wait for it to switch"
+    : walletFailure && signer && !isRunning
+      ? "Wallet ready · Run again"
+      : status;
   const [notice, setNotice] = useState("");
   const [savedDraft, setSavedDraft] = useState<string | undefined>();
   const [dialog, setDialog] = useState<
@@ -269,7 +279,11 @@ export default function Home() {
 
   const runCode = useCallback(
     async (autoPlay: boolean) => {
-      if (running.current || isLoading) {
+      if (
+        running.current ||
+        isLoading ||
+        hasSignerNetworkMismatch(client, signer)
+      ) {
         return;
       }
       setWalletFailure(undefined);
@@ -337,7 +351,8 @@ export default function Home() {
     ],
   );
 
-  useEffect(() => {
+  // Refresh the keyboard handler with the committed wallet and network before paint.
+  useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (
         (event.ctrlKey || event.metaKey) &&
@@ -642,7 +657,7 @@ export default function Home() {
               ) : (
                 <>
                   <Button
-                    disabled={isRunning || isLoading}
+                    disabled={isRunning || isLoading || walletNetworkMismatch}
                     onClick={() => void runCode(false)}
                   >
                     <Bug size={15} />
@@ -650,7 +665,7 @@ export default function Home() {
                   </Button>
                   <Button
                     className="primary"
-                    disabled={isRunning || isLoading}
+                    disabled={isRunning || isLoading || walletNetworkMismatch}
                     onClick={() => void runCode(true)}
                   >
                     {isRunning ? (
@@ -673,6 +688,7 @@ export default function Home() {
         <section className="output-panel" aria-label="Code output">
           <Console
             executionStatus={displayStatus}
+            runBlocked={walletNetworkMismatch}
             hasRun={hasRun}
             walletFailure={walletFailure}
             onRun={() => void runCode(true)}

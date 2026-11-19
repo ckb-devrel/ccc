@@ -2,7 +2,13 @@ import { ccc } from "@ckb-ccc/ccc";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { describe, expect, it, vi } from "vitest";
+import { createCheckpointQueue } from "../src/app/checkpointQueue";
+import { ExampleWallet } from "../src/app/exampleWallet";
 import { execute } from "../src/app/execute";
+import {
+  hasSignerNetworkMismatch,
+  MissingWalletError,
+} from "../src/app/execute/wallet";
 import { createOutputSessionGate } from "../src/app/outputSession";
 import { verifyShareAttempt, type ShareAttempt } from "../src/app/shareAttempt";
 
@@ -13,6 +19,81 @@ function compile(code: string, env: Record<string, unknown>) {
   )(...Object.values(env));
 }
 describe("reviewed lifecycle regressions", () => {
+  it("blocks Run, Step and the keyboard shortcut while a connected signer is on the previous network", async () => {
+    const page = readFileSync(
+      new URL("../src/app/page.tsx", import.meta.url),
+      "utf8",
+    );
+    const start = page.indexOf("  const runCode =");
+    const end = page.indexOf("    // Let wallet child views", start);
+    const runAndKeyboard =
+      page.slice(start, end).replace("  useLayoutEffect(() => {", "") +
+      "; return { runCode, onKey };";
+    const client = { addressPrefix: "ckt" } as ccc.Client;
+    const oldSigner = { client: { addressPrefix: "ckb" } } as ccc.Signer;
+    const currentSigner = { client } as ccc.Signer;
+    function setup(signer: ccc.Signer | undefined) {
+      const execute = vi.fn<typeof import("../src/app/execute").execute>(
+        async () => {},
+      );
+      const clearMessage = vi.fn();
+      const beginOutputRun = vi.fn(() => ({}));
+      const { runCode, onKey } = compile(runAndKeyboard, {
+        client,
+        signer,
+        hasSignerNetworkMismatch,
+        useCallback: (callback: unknown) => callback,
+        running: { current: false },
+        checkpointQueue: { current: undefined },
+        deferredHistoryRestore: { current: undefined },
+        createCheckpointQueue,
+        sourceRef: { current: 'console.log("fixture")' },
+        execute,
+        clearMessage,
+        beginOutputRun,
+        MissingWalletError,
+        isLoading: false,
+        autoClear: true,
+        dialog: undefined,
+        isWalletDialogOpen: false,
+        next: undefined,
+        setWalletFailure: vi.fn(),
+        setHasRun: vi.fn(),
+        setIsRunning: vi.fn(),
+        setMobilePane: vi.fn(),
+        setStatus: vi.fn(),
+        setHighlight: vi.fn(),
+        setNext: vi.fn(),
+      });
+      return { runCode, onKey, execute, clearMessage, beginOutputRun };
+    }
+    const blocked = setup(oldSigner);
+    const shortcut = {
+      key: "Enter",
+      ctrlKey: true,
+      preventDefault: vi.fn(),
+      stopPropagation: vi.fn(),
+    };
+    await blocked.runCode(true);
+    await blocked.runCode(false);
+    blocked.onKey(shortcut);
+    expect(shortcut.preventDefault).toHaveBeenCalledOnce();
+    expect(blocked.execute).not.toHaveBeenCalled();
+    expect(blocked.beginOutputRun).not.toHaveBeenCalled();
+    expect(blocked.clearMessage).not.toHaveBeenCalled();
+
+    const exampleSigner = new ExampleWallet(client);
+    for (const signer of [currentSigner, undefined, exampleSigner]) {
+      const ready = setup(signer);
+      await ready.runCode(false);
+      expect(ready.execute).toHaveBeenCalledOnce();
+      expect(ready.execute.mock.calls[0]?.[2]).toBe(signer);
+    }
+    const ready = setup(currentSigner);
+    ready.onKey(shortcut);
+    expect(ready.execute).toHaveBeenCalledOnce();
+  });
+
   it("unsupported stack still creates an awaited checkpoint without a fabricated highlight", async () => {
     const original = Error.prepareStackTrace;
     Error.prepareStackTrace = () => "unsupported stack format";

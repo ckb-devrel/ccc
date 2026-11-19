@@ -70,11 +70,13 @@ export function WalletReadyNotice({
   example,
   onRun,
   isRunning,
+  runBlocked,
 }: {
   active: boolean;
   example: boolean;
   onRun: () => void;
   isRunning: boolean;
+  runBlocked: boolean;
 }) {
   const { signer, isExampleWallet } = useApp();
   const { isOpen } = ccc.useCcc();
@@ -92,7 +94,7 @@ export function WalletReadyNotice({
           </p>
           <Button
             className="primary"
-            disabled={isRunning || isOpen}
+            disabled={isRunning || isOpen || runBlocked}
             onClick={onRun}
           >
             <Play size={15} /> Run current code

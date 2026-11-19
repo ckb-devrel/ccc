@@ -9,6 +9,16 @@ export class MissingWalletError extends Error {
   }
 }
 
+/** The connector may still expose the previous signer during a network switch. */
+export function hasSignerNetworkMismatch(
+  client: ccc.Client,
+  signer: ccc.Signer | undefined,
+) {
+  return (
+    signer !== undefined && signer.client.addressPrefix !== client.addressPrefix
+  );
+}
+
 /** Creating, importing or destructuring bindings does not use a wallet.
  * The sentinel fails only when executing code actually accesses signer state.
  */

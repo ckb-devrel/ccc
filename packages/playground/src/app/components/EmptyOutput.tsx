@@ -4,10 +4,12 @@ import { Button } from "./Button";
 export function EmptyOutput({
   hasRun,
   isRunning,
+  runBlocked,
   onRun,
 }: {
   hasRun: boolean;
   isRunning: boolean;
+  runBlocked: boolean;
   onRun: () => void;
 }) {
   return (
@@ -38,7 +40,7 @@ export function EmptyOutput({
         </p>
       )}
       {!isRunning && (
-        <Button className="primary" onClick={onRun}>
+        <Button className="primary" onClick={onRun} disabled={runBlocked}>
           <Play size={16} />
           {hasRun ? "Run again" : "Run code"}
         </Button>

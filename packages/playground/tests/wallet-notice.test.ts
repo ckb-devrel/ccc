@@ -46,6 +46,7 @@ describe("wallet failure recovery", () => {
           active: true,
           example,
           isRunning: false,
+          runBlocked: false,
           onRun: vi.fn(),
         }),
       );
@@ -63,6 +64,7 @@ describe("wallet failure recovery", () => {
         active: true,
         example: false,
         isRunning: false,
+        runBlocked: false,
         onRun: vi.fn(),
       }),
     );
@@ -88,9 +90,25 @@ describe("wallet failure recovery", () => {
           active: true,
           example: false,
           isRunning: true,
+          runBlocked: false,
           onRun: vi.fn(),
         }),
       ),
     ).toMatch(/<button[^>]*disabled/);
+  });
+  it("disables a wallet recovery run while the wallet network differs", () => {
+    state.app.signer = {};
+    const renderReady = (runBlocked: boolean) =>
+      renderToStaticMarkup(
+        createElement(WalletReadyNotice, {
+          active: true,
+          example: false,
+          isRunning: false,
+          runBlocked,
+          onRun: vi.fn(),
+        }),
+      );
+    expect(renderReady(true)).toMatch(/<button[^>]*disabled/);
+    expect(renderReady(false)).not.toMatch(/<button[^>]*disabled/);
   });
 });

@@ -29,6 +29,7 @@ function OutputEntry({
   walletFailure,
   onRun,
   isRunning,
+  runBlocked,
   latestReady,
 }: {
   latestReady?: WalletReadyMessage;
@@ -37,6 +38,7 @@ function OutputEntry({
   walletFailure?: MissingWalletError;
   onRun: () => void;
   isRunning: boolean;
+  runBlocked: boolean;
 }) {
   const [level, title, values, , client, isExampleWallet] = entry;
   const [rendered, setRendered] = useState<{
@@ -115,6 +117,7 @@ function OutputEntry({
             example={ready.example}
             onRun={onRun}
             isRunning={isRunning}
+            runBlocked={runBlocked}
           />
         ) : rendered?.entry === entry ? (
           rendered.node
@@ -132,6 +135,7 @@ export function Console({
   walletFailure,
   onRun,
   isRunning,
+  runBlocked,
   autoClear,
   onAutoClear,
 }: {
@@ -140,6 +144,7 @@ export function Console({
   walletFailure?: MissingWalletError;
   onRun: () => void;
   isRunning: boolean;
+  runBlocked: boolean;
   autoClear: boolean;
   onAutoClear: (value: boolean) => void;
 }) {
@@ -183,12 +188,14 @@ export function Console({
   return (
     <>
       <span className="sr-only" role="status">
-        {latestReady &&
-        visibleFailure &&
-        latestReady.failure === visibleFailure &&
-        signer
-          ? "Wallet ready. Review your code and choose Run current code in the output timeline."
-          : ""}
+        {runBlocked
+          ? executionStatus
+          : latestReady &&
+              visibleFailure &&
+              latestReady.failure === visibleFailure &&
+              signer
+            ? "Wallet ready. Review your code and choose Run current code in the output timeline."
+            : ""}
       </span>
       <div className="panel-heading">
         <span>
@@ -239,7 +246,12 @@ export function Console({
       >
         <div ref={content} className="output-content">
           {messages.length === 0 ? (
-            <EmptyOutput hasRun={hasRun} isRunning={isRunning} onRun={onRun} />
+            <EmptyOutput
+              hasRun={hasRun}
+              isRunning={isRunning}
+              runBlocked={runBlocked}
+              onRun={onRun}
+            />
           ) : (
             <div className="output-timeline">
               {messages.map(
@@ -253,6 +265,7 @@ export function Console({
                       walletFailure={walletFailure}
                       onRun={onRun}
                       isRunning={isRunning}
+                      runBlocked={runBlocked}
                     />
                   ),
               )}
@@ -265,7 +278,7 @@ export function Console({
       </div>
       <div className="output-footer">
         <span>
-          {isRunning
+          {isRunning || runBlocked
             ? executionStatus
             : messages.length || hasRun
               ? `${messages.length} entries · ${errors} errors`
