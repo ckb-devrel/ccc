@@ -66,7 +66,7 @@ See [AI Resources](https://docs.ckbccc.com/en/docs/ai-resources) for full setup 
 
 <p align="center">
   <a href="https://live.ckbccc.com/">
-    <img src="./assets/playground-overview.jpg" width="70%" alt="CCC Playground code and transaction workbench with input/output Cell visualization" />
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/playground-overview.jpg" width="70%" alt="CCC Playground code and transaction workbench with input/output Cell visualization" />
   </a>
 </p>
 
