@@ -105,7 +105,7 @@ arbitrary JavaScript. History-driven source changes wait until a run settles.
 
 ## Example 1 — Transfer CKB
 
-This is the default example that ships with the Playground. It demonstrates the **declare → fill → fee → send** pattern.
+This is the default example that ships with the Playground. It demonstrates how to **declare outputs → fill inputs → complete the fee** without signing or sending.
 
 Open the Playground and paste this code (or simply use the default):
 
@@ -143,7 +143,7 @@ await render(tx);
 ### What happens when you click **Run**
 
 1. The code creates a transaction with one output of 100 CKB
-2. `render(tx)` pauses and displays the transaction in the Console — you'll see the output Cell but no inputs yet
+2. `render(tx)` displays the transaction in the output timeline. In **Run**, execution continues automatically; only **Step** pauses at the checkpoint. At this point you'll see the output Cell but no inputs yet
 3. `completeInputsByCapacity` finds live cells to cover 100 CKB, then `render(tx)` shows the transaction again — now with inputs
 4. `completeFeeBy` adds a change output and adjusts for the fee, then `render(tx)` shows the final transaction
 

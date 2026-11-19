@@ -3,7 +3,7 @@ name: ckb-ccc-playground
 description: Covers the CCC Playground (live.ckbccc.com) — an in-browser environment for running and sharing CCC TypeScript code with zero setup — including the @ckb-ccc/playground module's render()/signer helpers, the UI controls and the two ways to share code. Use when the user asks how to try/test CCC code in the browser, how to share a code snippet or reproduce a bug, what render() or the playground's connected or explicitly selected example signer does, or how to contribute an example to the docs gallery — even if they just say "playground" or "live.ckbccc.com" without more context. Requires ckb-ccc-fundamentals and ckb-ccc-transactions for the underlying SDK concepts being demonstrated.
 metadata:
   author: ckb-devrel
-  version: "1.0.0"
+  version: "2.0.0"
   role: spoke
   depends-on: "ckb-ccc-fundamentals, ckb-ccc-transactions"
   priority: normal
