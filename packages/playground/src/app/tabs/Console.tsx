@@ -30,9 +30,9 @@ function OutputEntry({
   onRun,
   isRunning,
   runBlocked,
-  latestReady,
+  activeReady,
 }: {
-  latestReady?: WalletReadyMessage;
+  activeReady?: WalletReadyMessage;
   entry: Messages[number];
   index: number;
   walletFailure?: MissingWalletError;
@@ -113,7 +113,7 @@ function OutputEntry({
           <WalletRequiredNotice active={missingWallet === walletFailure} />
         ) : ready ? (
           <WalletReadyNotice
-            active={ready === latestReady && ready.failure === walletFailure}
+            active={ready === activeReady}
             example={ready.example}
             onRun={onRun}
             isRunning={isRunning}
@@ -164,15 +164,21 @@ export function Console({
         value instanceof WalletReadyMessage,
     )
     .at(-1);
+  const mode = !signer ? undefined : isExampleWallet ? "example" : "real";
+  const activeReady =
+    latestReady?.failure === visibleFailure &&
+    (!signer || latestReady?.example === isExampleWallet)
+      ? latestReady
+      : undefined;
   useEffect(() => {
-    if (recovery.current(visibleFailure, !!signer) && visibleFailure) {
+    if (recovery.current(visibleFailure, mode) && visibleFailure) {
       sendMessage("info", "Ready to run", [
-        new WalletReadyMessage(visibleFailure, isExampleWallet),
+        new WalletReadyMessage(visibleFailure, mode === "example"),
       ]);
       // Connection is an explicit recovery action: reveal its new informational entry.
       setErrorsOnly(false);
     }
-  }, [visibleFailure, signer, isExampleWallet, sendMessage]);
+  }, [visibleFailure, mode, sendMessage]);
   const errors = messages.filter(([level, , values]) =>
     isRuntimeError(level, values),
   ).length;
@@ -190,10 +196,7 @@ export function Console({
       <span className="sr-only" role="status">
         {runBlocked
           ? executionStatus
-          : latestReady &&
-              visibleFailure &&
-              latestReady.failure === visibleFailure &&
-              signer
+          : activeReady && signer
             ? "Wallet ready. Review your code and choose Run current code in the output timeline."
             : ""}
       </span>
@@ -260,7 +263,7 @@ export function Console({
                     <OutputEntry
                       key={entry[3]}
                       entry={entry}
-                      latestReady={latestReady}
+                      activeReady={activeReady}
                       index={index}
                       walletFailure={walletFailure}
                       onRun={onRun}

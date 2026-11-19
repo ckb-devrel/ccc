@@ -12,20 +12,32 @@ describe("wallet recovery timeline", () => {
   it("waits for success, emits once, and ignores rerenders/network changes", () => {
     const next = createWalletRecoveryTracker();
     const failure = new MissingWalletError();
-    expect(next(failure, false)).toBe(false);
-    expect(next(failure, false)).toBe(false); // canceled or failed connection
-    expect(next(failure, true)).toBe(true);
-    expect(next(failure, true)).toBe(false); // new signer object/network, still connected
-    expect(next(failure, false)).toBe(false);
-    expect(next(failure, true)).toBe(true); // explicit reconnection
+    expect(next(failure, undefined)).toBe(false);
+    expect(next(failure, undefined)).toBe(false); // canceled or failed connection
+    expect(next(failure, "real")).toBe(true);
+    expect(next(failure, "real")).toBe(false); // new signer object/network, still connected
+    expect(next(failure, undefined)).toBe(false);
+    expect(next(failure, "real")).toBe(true); // explicit reconnection
+  });
+  it("emits a new readiness entry only when the picker actually replaces the example", () => {
+    const next = createWalletRecoveryTracker();
+    const failure = new MissingWalletError();
+    expect(next(failure, "example")).toBe(true);
+    expect(next(failure, "example")).toBe(false); // picker open, closed or failed
+    expect(next(failure, "real")).toBe(true); // no disconnected intermediate state
+    expect(next(failure, "real")).toBe(false); // account or network refresh
   });
   it("does not revive cleared or previous-run recovery", () => {
     const next = createWalletRecoveryTracker();
-    expect(next(new MissingWalletError(), false)).toBe(false);
-    expect(next(undefined, false)).toBe(false); // Clear or next Run
-    expect(next(undefined, true)).toBe(false);
-    expect(next(new MissingWalletError(), false)).toBe(false);
-    expect(next(new MissingWalletError(), true)).toBe(true);
+    const failure = new MissingWalletError();
+    expect(next(failure, undefined)).toBe(false);
+    expect(next(failure, "example")).toBe(true);
+    expect(next(undefined, "example")).toBe(false); // Clear or next Run
+    expect(next(undefined, "real")).toBe(false);
+    expect(next(undefined, undefined)).toBe(false);
+    const nextFailure = new MissingWalletError();
+    expect(next(nextFailure, undefined)).toBe(false);
+    expect(next(nextFailure, "real")).toBe(true);
   });
   it("keeps readiness marker and its original wallet mode and failure identity", () => {
     const failure = new MissingWalletError();

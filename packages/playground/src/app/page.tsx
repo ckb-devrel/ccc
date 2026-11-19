@@ -75,11 +75,12 @@ export default function Home() {
   const [highlight, setHighlight] = useState<number[] | undefined>();
   const [status, setStatus] = useState("Ready to run");
   const walletNetworkMismatch = hasSignerNetworkMismatch(client, signer);
-  const displayStatus = walletNetworkMismatch
-    ? "Wallet network differs · Wait for it to switch"
-    : walletFailure && signer && !isRunning
-      ? "Wallet ready · Run again"
-      : status;
+  const displayStatus =
+    !isRunning && walletNetworkMismatch
+      ? "Wallet network differs · Wait for it to switch"
+      : walletFailure && signer && !isRunning
+        ? "Wallet ready · Run again"
+        : status;
   const [notice, setNotice] = useState("");
   const [savedDraft, setSavedDraft] = useState<string | undefined>();
   const [dialog, setDialog] = useState<
@@ -314,10 +315,8 @@ export default function Home() {
         await execute(
           sourceRef.current,
           (pos, checkpoint) => {
-            if (!checkpoint || !outputRun.isCurrent() || !running.current) {
-              return Promise.resolve();
-            }
-            return checkpoints.enqueue(pos);
+            // Wallet changes invalidate output, not this execution's Step gates.
+            return checkpoint ? checkpoints.enqueue(pos) : Promise.resolve();
           },
           signer,
           outputRun.log,
@@ -402,6 +401,30 @@ export default function Home() {
       window.removeEventListener("keydown", onEscape);
     };
   }, [runCode, next, dialog, isWalletDialogOpen]);
+
+  const shareSource = async (pending?: ShareAttempt) => {
+    setIsSharing(true);
+    setNotice("");
+    try {
+      const id = await verifyShareAttempt(
+        source,
+        pending,
+        (text) => shareToNostr(client, DEFAULT_NOSTR_RELAYS, text),
+        (id) => getFromNEvent(DEFAULT_NOSTR_RELAYS, id),
+        setShareAttempt,
+      );
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set("src", `nostr:${id}`);
+      setShareUrl(url.toString());
+      setCopied(false);
+    } catch (error) {
+      setNotice(
+        `Could not verify share: ${String(error)}. A relay may already have stored the code.`,
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   const replaceSource = (text: string, name: string) => {
     if (
@@ -901,33 +924,7 @@ export default function Home() {
               <Button
                 className="primary"
                 disabled={isSharing}
-                onClick={async () => {
-                  setIsSharing(true);
-                  setNotice("");
-                  const snapshot = source;
-                  try {
-                    const id = await verifyShareAttempt(
-                      snapshot,
-                      shareAttempt,
-                      (text) =>
-                        shareToNostr(client, DEFAULT_NOSTR_RELAYS, text),
-                      (id) => getFromNEvent(DEFAULT_NOSTR_RELAYS, id),
-                      setShareAttempt,
-                    );
-                    const url = new URL(
-                      window.location.origin + window.location.pathname,
-                    );
-                    url.searchParams.set("src", `nostr:${id}`);
-                    setShareUrl(url.toString());
-                    setCopied(false);
-                  } catch (error) {
-                    setNotice(
-                      `Could not verify share: ${String(error)}. A relay may already have stored the code.`,
-                    );
-                  } finally {
-                    setIsSharing(false);
-                  }
-                }}
+                onClick={() => void shareSource(shareAttempt)}
               >
                 {isSharing ? (
                   <LoaderCircle size={16} className="animate-spin" />
@@ -945,17 +942,9 @@ export default function Home() {
               <p className="muted">
                 Retry verification checks the previously published snapshot
                 without publishing again.
-                {source !== shareAttempt.source && (
-                  <Button
-                    disabled={isSharing}
-                    onClick={() => {
-                      setShareAttempt(undefined);
-                      setNotice("");
-                    }}
-                  >
-                    Use current code for a new share
-                  </Button>
-                )}
+                <Button disabled={isSharing} onClick={() => void shareSource()}>
+                  Publish current code as a new share
+                </Button>
               </p>
             )}
             {notice && <p role="status">{notice}</p>}

@@ -1,6 +1,14 @@
 import type { ccc } from "@ckb-ccc/connector-react";
 
 export class MissingWalletError extends Error {
+  // Classify even arbitrary values thrown by getters without invoking proxy traps.
+  #missingWallet = true;
+  static is(error: unknown): error is MissingWalletError {
+    return (
+      typeof error === "object" && error !== null && #missingWallet in error
+    );
+  }
+
   constructor() {
     super(
       "This code needs a signer. Connect your wallet or choose the read-only example wallet, then press Run again.",

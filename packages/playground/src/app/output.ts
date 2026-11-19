@@ -1,5 +1,6 @@
 import { ccc } from "@ckb-ccc/ccc";
 import { isValidElement } from "react";
+import { MissingWalletError } from "./execute/wallet";
 
 function snapshotAddress(address: ccc.Address) {
   return ccc.Address.from({
@@ -39,30 +40,41 @@ export class SignerOutputSnapshot {
   }
 }
 
+export type OutputOrigin = "script" | "diagnostic";
+
 /** Freeze supported mutable CCC values before the user's code continues.
  * Arbitrary custom/React values retain their original semantics.
  */
-export function snapshotOutput(values: unknown[]): unknown[] {
+export function snapshotOutput(
+  values: unknown[],
+  origin: OutputOrigin = "diagnostic",
+): unknown[] {
   const seen = new WeakMap<object, unknown>();
-  const diagnostic = () =>
-    new Error(
+  function diagnostic(error: unknown) {
+    // Only inspecting script output can stop the script. A diagnostic must
+    // preserve the original failure, even if one of its fields is a signer.
+    if (origin === "script" && MissingWalletError.is(error)) {
+      throw error;
+    }
+    return new Error(
       "Unable to display this value: reading or snapshotting it failed.",
     );
+  }
   function read(value: object, key: string | number): unknown {
     try {
       return snapshot((value as Record<string | number, unknown>)[key]);
-    } catch {
-      return diagnostic();
+    } catch (error) {
+      return diagnostic(error);
     }
   }
   function snapshot(value: unknown): unknown {
     try {
       return snapshotValue(value);
-    } catch {
+    } catch (error) {
       if (value !== null && typeof value === "object") {
         seen.delete(value);
       }
-      return diagnostic();
+      return diagnostic(error);
     }
   }
   function snapshotObject(value: object, prototype: object | null): unknown {
@@ -160,11 +172,12 @@ export function captureOutputEntry(
   id: number,
   client: ccc.Client,
   isExampleWallet: boolean,
+  origin: OutputOrigin = "diagnostic",
 ) {
   return [
     level,
     title,
-    snapshotOutput(values),
+    snapshotOutput(values, origin),
     id,
     client,
     isExampleWallet,

@@ -11,7 +11,7 @@ import React, {
   useState,
 } from "react";
 import { ExampleWallet } from "./exampleWallet";
-import { captureOutputEntry } from "./output";
+import { captureOutputEntry, type OutputOrigin } from "./output";
 import { createOutputSessionGate } from "./outputSession";
 import { formatString, formatTimestamp } from "./utils";
 
@@ -130,7 +130,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const messagesTimeoutRef = React.useRef<number | null>(null);
 
   const sendMessage = useCallback(
-    (level: "error" | "info", title: string, msgs: unknown[]) => {
+    (
+      level: "error" | "info",
+      title: string,
+      msgs: unknown[],
+      origin: OutputOrigin = "diagnostic",
+    ) => {
       cachedMessagesRef.current.push(
         captureOutputEntry(
           level,
@@ -139,6 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ++messageId.current,
           outputClient,
           isExampleWallet,
+          origin,
         ),
       );
 
@@ -191,7 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       log: (level: "error" | "info", title: string, msgs: unknown[]) => {
         if (isCurrent()) {
-          sendMessage(level, title, msgs);
+          sendMessage(level, title, msgs, "script");
         }
       },
     };
@@ -234,11 +240,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setExampleEnabled(true);
           }
         },
-        openSigner: () => {
-          // Choosing a real wallet is explicit, and never resumes execution.
-          setExampleEnabled(false);
-          return open();
-        },
+        // Opening or dismissing the picker does not replace the selected wallet.
+        openSigner: open,
         disconnect: () => {
           setExampleEnabled(false);
           if (cccSigner) {

@@ -309,8 +309,11 @@ it("preserves sparse array indexes, nested holes and cyclic references", () => {
 });
 
 it("contains throwing getters without losing other properties or logged values", () => {
+  // A getter may throw a value that itself cannot safely be inspected.
+  const { proxy, revoke } = Proxy.revocable({}, {});
+  revoke();
   const getter = vi.fn(() => {
-    throw new Error("unavailable");
+    throw proxy;
   });
   const value = {
     good: { value: 1 },

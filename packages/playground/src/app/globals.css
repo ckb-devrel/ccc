@@ -36,12 +36,14 @@ button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-a {
-  color: inherit;
-  text-decoration: none;
-}
-a:hover {
-  color: var(--signal);
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--signal);
+  }
 }
 button:focus-visible,
 a:focus-visible,

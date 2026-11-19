@@ -8,15 +8,19 @@ export class WalletReadyMessage {
   ) {}
 }
 
-/** Emit once per disconnected → connected transition, not on client changes. */
+type WalletMode = "example" | "real" | undefined;
+
+/** Emit once per connection or wallet-mode change, not on client refreshes. */
 export function createWalletRecoveryTracker() {
   let previousFailure: MissingWalletError | undefined;
-  let connected = false;
-  return (failure: MissingWalletError | undefined, available: boolean) => {
+  let previousMode: WalletMode;
+  return (failure: MissingWalletError | undefined, mode: WalletMode) => {
     const emit =
-      !!failure && available && (!connected || failure !== previousFailure);
+      !!failure &&
+      mode !== undefined &&
+      (mode !== previousMode || failure !== previousFailure);
     previousFailure = failure;
-    connected = available;
+    previousMode = mode;
     return emit;
   };
 }
