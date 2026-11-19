@@ -1,5 +1,11 @@
 # @ckb-ccc/core
 
+## 1.24.0
+
+### Minor Changes
+
+- [#641](https://github.com/ckb-devrel/ccc/pull/641) [`3a465c6`](https://github.com/ckb-devrel/ccc/commit/3a465c6a6f609d7a1cc0f51f50ff1e5c6e920dea) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - feat(core): let a wallet sign a transaction with a pseudo input over the signer JSON-RPC. The wallet side rebuilds the cell of an input that cannot exist on chain (the only input, at out point index `0xffffffff`) from the lock of the first output, and no longer looks it up
+
 ## 1.23.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/molecule",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Runtime Molecule schema codecs for CCC",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
