@@ -33,6 +33,11 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
       icon="/favicon.svg"
       clientOptions={clientOptions}
       connectorProps={{
+        id: "playground-wallet-dialog",
+        role: "dialog",
+        "aria-label": "Wallet connection",
+        "aria-modal": "true",
+        tabIndex: -1,
         style: {
           "--background": "#1f2937",
           "--divider": "#374151",

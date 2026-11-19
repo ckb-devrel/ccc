@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint ./src",
-    "format": "prettier --write ./src && eslint --fix ./src"
+    "format": "prettier --write ./src && eslint --fix ./src",
+    "test": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@ckb-ccc/ccc": "workspace:*",

@@ -1,0 +1,54 @@
+.cell-inspect-open,
+details.cell-card[open] > summary .cell-inspect-closed {
+  display: none;
+}
+details.cell-card[open] > summary .cell-inspect-open {
+  display: inline;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .transaction-inspector {
+    animation: inspector-reveal 160ms ease-out;
+  }
+  @keyframes inspector-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(-3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  /* Keep the content visible until the closing size/opacity transition finishes.
+     Native details owns open state, keyboard interaction and accessibility; CSS
+     transitions reverse naturally on rapid toggles without JS timers. Older
+     browsers and reduced-motion users retain immediate native disclosure. */
+  @supports (interpolate-size: allow-keywords) and
+    selector(details::details-content) {
+    .tx-card,
+    .cell-card,
+    .tx-raw {
+      interpolate-size: allow-keywords;
+    }
+    .tx-card::details-content,
+    .cell-card::details-content,
+    .tx-raw::details-content {
+      block-size: 0;
+      opacity: 0;
+      content-visibility: hidden;
+      overflow: clip;
+      transition:
+        block-size 160ms ease-out,
+        opacity 160ms ease-out,
+        content-visibility 160ms;
+      transition-behavior: allow-discrete;
+    }
+    .tx-card[open]::details-content,
+    .cell-card[open]::details-content,
+    .tx-raw[open]::details-content {
+      block-size: auto;
+      opacity: 1;
+      content-visibility: visible;
+    }
+  }
+}

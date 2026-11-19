@@ -39,8 +39,13 @@ export function formatString(
 export function useGetExplorerLink() {
   const { client } = ccc.useCcc();
 
+  return getExplorerLink(client.addressPrefix);
+}
+
+/** Bind result links to the network that produced the result. */
+export function getExplorerLink(addressPrefix: string) {
   const prefix =
-    client.addressPrefix === "ckb"
+    addressPrefix === "ckb"
       ? "https://explorer.ckbccc.com/mainnet"
       : "https://test-explorer.ckbccc.com/testnet";
 
@@ -77,7 +82,7 @@ export function getScriptColor(script?: ccc.ScriptLike): string {
   }
   const hash = ccc.Script.from(script).hash();
 
-  return `hsl(${((ccc.numFrom(hash) & ccc.numFrom(0xfff)) % ccc.numFrom(360)).toString()} 65% 30%)`;
+  return `hsl(${((ccc.numFrom(hash) & ccc.numFrom(0xfff)) % ccc.numFrom(360)).toString()} 42% 64%)`;
 }
 
 export function getScriptBagua(script?: ccc.ScriptLike): ccc.Num {

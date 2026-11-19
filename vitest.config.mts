@@ -10,6 +10,7 @@ const packages = [
   "packages/molecule",
   "packages/nip07",
   "packages/okx",
+  "packages/playground",
   "packages/ssri",
   "packages/type-id",
   "packages/uni-sat",

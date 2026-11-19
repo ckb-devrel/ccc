@@ -1,0 +1,64 @@
+:root {
+  color-scheme: dark;
+  --paper: #090d10;
+  --panel: #11181c;
+  --ink: #e6eef2;
+  --muted: #89979f;
+  --line: #28343a;
+  --line-dark: #4a5b64;
+  --signal: #5bcefa;
+  --signal-dark: #1d8fbd;
+  --error: #f5a9b8;
+  --recess: #070a0c;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-size: 14px;
+}
+button,
+input {
+  font: inherit;
+}
+button:not(:disabled),
+summary {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--signal);
+  }
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 3px;
+}
+::selection {
+  color: var(--recess);
+  background: var(--signal);
+}
+code,
+pre,
+.eyebrow,
+.panel-heading,
+.source-origin,
+.entry-number {
+  font-family: var(--font-geist-mono), monospace;
+}

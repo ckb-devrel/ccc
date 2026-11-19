@@ -3,6 +3,7 @@ import * as React from "react";
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
+import { createWalletBindings } from "./wallet";
 
 const LIBS_MAP_ = new Map();
 const LIBS = await Promise.all(
@@ -70,9 +71,11 @@ export async function execute(
   source: string,
   onUpdate: (
     pos: [number, number, number, number] | undefined,
+    checkpoint?: boolean,
   ) => Promise<void>,
-  signer: ccc.Signer,
+  signer: ccc.Signer | undefined,
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
+  client: ccc.Client,
 ) {
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -83,6 +86,7 @@ export async function execute(
     },
   });
 
+  const wallet = createWalletBindings(client, signer);
   const exports = {};
   const require = (path: string) => {
     const lib = LIBS.get(path);
@@ -96,31 +100,33 @@ export async function execute(
           log("info", formatTimestamp(Date.now()), msgs);
 
           const stack = new Error().stack;
-          if (!stack) {
-            return;
-          }
           const match = stack
-            .split("\n")[2]
+            ?.split("\n")[2]
             ?.match("<anonymous>:([0-9]*):([0-9]*)\\)");
-          if (!match) {
-            return;
-          }
-          try {
-            await onUpdate(
-              findSourcePos(
+          let position: [number, number, number, number] | undefined;
+          if (match) {
+            try {
+              position = findSourcePos(
                 compiled.sourceMapText,
                 Number(match[1]) - 4,
                 Number(match[2]) - 2,
-              ),
-            );
+              );
+            } catch {
+              /* Mapping is optional; the checkpoint is not. */
+            }
+          }
+          try {
+            await onUpdate(position, true);
           } catch (err) {
             if (err !== "ABORTED") {
               throw err;
             }
           }
         },
-        signer,
-        client: signer.client,
+        get signer() {
+          return wallet.signer;
+        },
+        client: wallet.client,
         bitcoin: removedBitcoin,
       };
     }

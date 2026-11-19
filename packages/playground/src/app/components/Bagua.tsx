@@ -10,6 +10,7 @@ export function TrigramLine({
   width,
   height,
   isBroken,
+  gapRatio = 0.236,
   dim = 0.4,
   fill,
   transform,
@@ -22,12 +23,16 @@ export function TrigramLine({
   fill?: string;
   transform?: string;
   isBroken?: boolean;
+  gapRatio?: number;
 }) {
-  const gap = width * 0.236; // 2 * 0.618 - 1
+  const gap = width * gapRatio;
   const decoWidth = height * TAN_22_5;
   const brokenWidth = (width - gap) / 2;
 
   const animate = useMemo(() => {
+    if (dim === 1) {
+      return null;
+    }
     /* eslint-disable react-hooks/purity */
     const percentage = Math.random() * 0.2 + 0.05;
     return (
@@ -81,6 +86,7 @@ export function Trigram(props: {
   width: number;
   thickness: number;
   padding: number;
+  gapRatio?: number;
   dim?: number;
   stroke?: string;
   transform?: string;
@@ -91,6 +97,7 @@ export function Trigram(props: {
     width,
     thickness,
     padding,
+    gapRatio,
     dim,
     stroke,
     transform,
@@ -116,6 +123,7 @@ export function Trigram(props: {
           fill={stroke}
           transform={transform}
           isBroken={(value & ccc.numFrom(1 << i)) !== ccc.Zero}
+          gapRatio={gapRatio}
         />
       ))}
     </>
@@ -128,6 +136,7 @@ export function Bagua({
   padding,
   margin,
   space,
+  gapRatio,
   dim,
   stroke,
   fill,
@@ -138,6 +147,7 @@ export function Bagua({
   padding: number;
   margin: number;
   space: number;
+  gapRatio?: number;
   dim?: number;
 } & React.ComponentPropsWithRef<"svg">) {
   const value = ccc.numFrom(valueLike);
@@ -171,74 +181,12 @@ export function Bagua({
           width={width}
           thickness={thickness}
           padding={padding}
+          gapRatio={gapRatio}
           stroke={stroke}
           dim={dim}
           transform={`rotate(${i * 45} 50 50)`}
         />
       ))}
     </svg>
-  );
-}
-
-export function Taiji({
-  yangColor,
-  yinColor = "#ffffff40",
-  ...props
-}: {
-  yangColor: string;
-  yinColor?: string;
-} & React.ComponentPropsWithRef<"div">) {
-  return (
-    <div
-      {...props}
-      style={{
-        backgroundColor: yangColor,
-        ...(props.style ?? {}),
-      }}
-    >
-      <div
-        className="absolute right-1/2"
-        style={{
-          width: "25%",
-          height: "50%",
-          borderTopLeftRadius: "100vw",
-          borderBottomLeftRadius: "100vw",
-          backgroundColor: yinColor,
-        }}
-      ></div>
-      <div
-        className="absolute left-1/2"
-        style={{
-          width: "50%",
-          height: "100%",
-          backgroundColor: yinColor,
-        }}
-      ></div>
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 rounded-full"
-        style={{
-          width: "50%",
-          height: "50%",
-          backgroundColor: yangColor,
-        }}
-      ></div>
-      <div
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          width: "20%",
-          height: "20%",
-          backgroundColor: yangColor,
-        }}
-      ></div>
-      <div
-        className="absolute top-3/4 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          width: "20%",
-          height: "20%",
-          backgroundColor: yinColor,
-        }}
-      ></div>
-      {props.children}
-    </div>
   );
 }

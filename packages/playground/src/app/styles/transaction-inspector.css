@@ -1,0 +1,227 @@
+.tx-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+.tx-heading::before {
+  content: "▸";
+  color: var(--signal);
+}
+.tx-card[open] > .tx-heading::before {
+  transform: rotate(90deg);
+}
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+.tx-network {
+  margin-left: auto;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.tx-hash {
+  flex-basis: 100%;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--muted);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.tx-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.tx-summary > div {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+}
+.tx-summary > div:first-child {
+  padding-left: 0;
+}
+.tx-summary > div:last-child {
+  border: 0;
+}
+.tx-summary span {
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.tx-summary strong {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.tx-summary small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 400;
+}
+.tx-note,
+.result-warning {
+  margin: 12px 0;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.result-warning {
+  color: var(--error);
+}
+.tx-empty {
+  padding: 20px 8px;
+  border: 1px dashed var(--line);
+  text-align: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+.cell-card {
+  border: 1px solid var(--line);
+  border-left-width: 2px;
+  background: var(--panel);
+  margin-bottom: 8px;
+  min-width: 0;
+}
+.cell-summary {
+  list-style: none;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+}
+.cell-summary:hover {
+  background: #e6eef206;
+}
+.cell-index {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: var(--font-geist-mono), monospace;
+}
+.cell-capacity {
+  flex-basis: 100%;
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.4px;
+}
+.cell-capacity small {
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.cell-meta {
+  color: var(--muted);
+  font-size: 9px;
+}
+.cell-extra {
+  flex-basis: 100%;
+  color: var(--signal);
+  font-size: 9px;
+}
+.cell-inspect {
+  flex-basis: 100%;
+  margin-left: 0;
+  text-align: left;
+  color: var(--signal);
+  font-size: 9px;
+}
+.cell-detail-body {
+  padding: 10px;
+  border-top: 1px solid var(--line);
+}
+.cell-outpoint {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.detail-grid {
+  margin: 8px 0;
+  font-size: 10px;
+}
+.detail-grid dt {
+  color: var(--muted);
+  margin-top: 8px;
+  font-size: 9px;
+}
+.detail-grid dd {
+  margin: 2px 0 0;
+  font-family: var(--font-geist-mono), monospace;
+  overflow-wrap: anywhere;
+}
+.cell-details {
+  /* Keep child margins contained both during height animation (overflow:hidden)
+     and after cleanup, avoiding an 8px jump when the detail-grid margin collapses.
+     This changes layout only; details/summary retain their native semantics. */
+  display: flow-root;
+  margin-top: 10px;
+  font-size: 10px;
+}
+.cell-details > summary,
+.tx-raw > summary {
+  color: var(--muted);
+  padding: 6px 0;
+}
+.cell-details > summary:hover,
+.tx-raw > summary:hover {
+  color: var(--signal);
+}
+.tx-raw {
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+}
+.tx-raw pre {
+  max-height: 320px;
+  overflow: auto;
+  background: var(--paper);
+  padding: 12px;
+  line-height: 1.6;
+  font-size: 10px;
+  white-space: pre;
+}
+.address-card {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left-width: 2px;
+  background: var(--panel);
+}
+.address-value {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .tx-summary strong {
+    font-size: 13px;
+  }
+  .cell-capacity {
+    font-size: 17px;
+  }
+}
+.cell-index {
+  order: 0;
+}
+.cell-capacity {
+  order: 2;
+}
+.cell-meta {
+  order: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+}
+.cell-extra {
+  order: 4;
+}
+.cell-inspect {
+  order: 5;
+}

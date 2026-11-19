@@ -1,14 +1,17 @@
 @import "tailwindcss";
 
-@layer base {
-  button:not(:disabled),
-  [role="button"]:not(:disabled) {
-    cursor: pointer;
-  }
-}
-
-body {
-  color: #cdd6f4;
-  background: #1e1e2e;
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Keep this order: responsive and state rules build on earlier sections. */
+@import "./styles/foundation.css";
+@import "./styles/workbench.css";
+@import "./styles/workspace.css";
+@import "./styles/output.css";
+@import "./styles/dialogs.css";
+@import "./styles/responsive-workbench.css";
+@import "./styles/transaction-inspector.css";
+@import "./styles/compact-layout.css";
+@import "./styles/interaction-and-overflow.css";
+@import "./styles/tool-dock.css";
+@import "./styles/inspector-and-wallet-details.css";
+@import "./styles/collapsed-tools.css";
+@import "./styles/inspector-disclosure.css";
+@import "./styles/mobile-wallet-header.css";
