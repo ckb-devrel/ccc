@@ -1,15 +1,12 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { Address } from "../src/app/components/Address";
 import { animateScriptDisclosure } from "../src/app/components/scriptDisclosure";
+import { readPlaygroundStyles } from "./read-playground-styles";
 
-const css = readFileSync(
-  new URL("../src/app/globals.css", import.meta.url),
-  "utf8",
-);
+const css = readPlaygroundStyles();
 
 describe("script disclosure animation contract", () => {
   it("keeps native details/summary for both default states", () => {

@@ -1,10 +1,8 @@
-import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { readPlaygroundStyles } from "./read-playground-styles";
+
 it("keeps sticky dialog controls inside desktop and mobile scrollports", () => {
-  const css = readFileSync(
-    new URL("../src/app/globals.css", import.meta.url),
-    "utf8",
-  );
+  const css = readPlaygroundStyles();
   const rules = [
     ...css.matchAll(/\.workbench-dialog \.dialog-heading\s*\{([^}]+)\}/g),
   ];

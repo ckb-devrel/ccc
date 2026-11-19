@@ -4,11 +4,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Cell } from "../src/app/components/Cell";
+import { readPlaygroundStyles } from "./read-playground-styles";
 
-const css = readFileSync(
-  new URL("../src/app/globals.css", import.meta.url),
-  "utf8",
-);
+const css = readPlaygroundStyles();
 const flowCss = readFileSync(
   new URL("../src/app/components/TransactionFlow.css", import.meta.url),
   "utf8",

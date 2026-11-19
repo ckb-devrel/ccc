@@ -1,0 +1,182 @@
+/* Script data belongs to the same inspector hierarchy as cell capacity/data.
+   Standalone address output keeps its own card; nested addresses do not. */
+.cell-detail-body > .detail-grid {
+  margin: 0;
+}
+.cell-detail-body > .detail-grid > dt {
+  margin-top: 12px;
+}
+.cell-detail-body > .detail-grid > dt:first-child {
+  margin-top: 0;
+}
+.cell-detail-body .address-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.cell-detail-body .address-value {
+  font-size: inherit;
+  line-height: 1.6;
+}
+.cell-detail-body .cell-details {
+  margin-top: 4px;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.cell-detail-body .cell-details > .detail-grid {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.brand {
+  line-height: 1;
+}
+.brand-logo {
+  display: block;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.workspace-dock {
+  min-height: 40px;
+  padding: 3px 0;
+}
+.wallet-required-notice {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .brand-logo {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* The transaction disclosure owns the full inset, not just its text lines. */
+.tx-heading {
+  margin: -12px;
+  padding: 12px;
+  cursor: pointer;
+}
+.tx-card[open] > .tx-heading {
+  margin-bottom: 12px;
+}
+.tx-heading:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: -1px;
+  background: #5bcefa08;
+}
+
+/* Reserve independent space for text and the full decorative fingerprint.
+   Flex wrapping responds to the card width, including workspace split changes,
+   rather than relying on viewport breakpoints. */
+.cell-summary {
+  gap: 10px;
+  min-height: 102px;
+}
+.cell-summary-copy {
+  flex: 1 1 110px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.cell-summary-copy > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.cell-fingerprint {
+  position: relative;
+  flex: none;
+  margin-left: auto;
+  width: 76px;
+  height: 76px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.cell-fingerprint > svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.cell-fingerprint > .cell-fingerprint-type {
+  inset: 20%;
+  width: 60%;
+  height: 60%;
+}
+
+@media (max-width: 700px) {
+  .editor-toolbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+  }
+  .editor-toolbar .toolbar-group {
+    display: contents;
+  }
+  .editor-toolbar .control-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 4px;
+    justify-content: center;
+  }
+  .editor-toolbar .toolbar-group:last-child > .control-button:only-child {
+    grid-column: span 2;
+  }
+}
+
+/* Keep the optional, read-only example visibly distinct from a real connection. */
+.wallet-choice-actions,
+.example-wallet-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.example-wallet-control > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #8b95a8);
+}
+.example-wallet-control small {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+}
+
+/* Keep secondary scroll regions discoverable without oversized native gutters. */
+.transaction-cell-list,
+.tx-raw pre {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-dark) transparent;
+}
+.output-scroll::-webkit-scrollbar,
+.transaction-cell-list::-webkit-scrollbar,
+.tx-raw pre::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.output-scroll::-webkit-scrollbar-thumb,
+.transaction-cell-list::-webkit-scrollbar-thumb,
+.tx-raw pre::-webkit-scrollbar-thumb {
+  background: var(--line-dark);
+  border-radius: 3px;
+}
+.transaction-cell-list::-webkit-scrollbar-button,
+.tx-raw pre::-webkit-scrollbar-button {
+  display: none;
+}
+.example-output-label {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 9px;
+  white-space: nowrap;
+}

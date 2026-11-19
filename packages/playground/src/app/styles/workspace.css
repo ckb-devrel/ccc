@@ -1,0 +1,95 @@
+.workspace-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.editor-panel,
+.output-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  position: relative;
+}
+.editor-panel::before,
+.output-panel::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: 20px;
+  height: 2px;
+  background: var(--signal);
+  transition: width 500ms var(--ease);
+}
+.is-running .output-panel::before {
+  width: 100%;
+  animation: signal-pulse 1.5s ease infinite;
+}
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.panel-heading > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.panel-heading strong {
+  color: var(--signal);
+  font-weight: 500;
+}
+.panel-heading .control-button {
+  min-height: 28px;
+  padding: 0 7px;
+  font-family: var(--font-geist-sans), sans-serif;
+  letter-spacing: 0;
+}
+.file-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+.source-origin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 10px;
+  background: var(--recess);
+  flex-shrink: 0;
+}
+.editor-surface {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #24292e;
+}
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+}
+.editor-toolbar .primary {
+  min-width: 80px;
+}

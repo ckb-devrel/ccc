@@ -1,0 +1,134 @@
+/* Explicit layout controls avoid scroll-driven resizing and layout jumps. */
+.workbench {
+  padding: 0 12px;
+  min-height: 360px;
+}
+.workbench-header {
+  min-height: 48px;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.workspace-heading {
+  padding: 8px 0;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.layout-controls {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 12px;
+}
+.panel-heading {
+  min-height: 36px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+.source-origin {
+  height: 26px;
+  padding: 0 12px;
+}
+.editor-toolbar {
+  min-height: 44px;
+  padding: 5px 8px;
+  flex-shrink: 0;
+}
+.output-controls {
+  flex-shrink: 0;
+}
+.workspace-focused .workspace-actions {
+  display: none;
+}
+.workspace-focused .source-origin {
+  display: none;
+}
+.workspace-focused .workspace-heading {
+  padding: 4px 0;
+}
+.workspace-focused .connection-controls {
+  margin-left: auto;
+}
+@media (max-width: 700px) {
+  .workbench {
+    padding: 0 6px;
+    min-height: 360px;
+  }
+  .workbench-header {
+    min-height: 48px;
+    padding: 5px 0;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .brand {
+    width: auto;
+    font-size: 0;
+    gap: 4px;
+  }
+  .brand strong {
+    font-size: 18px;
+  }
+  .brand-divider,
+  .resource-nav {
+    display: none;
+  }
+  .connection-controls {
+    margin-left: auto;
+    gap: 5px;
+  }
+  .connection-controls .control-button {
+    padding: 0 8px;
+    min-height: 36px;
+  }
+  .workspace-heading {
+    padding: 6px 0;
+    gap: 6px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .workspace-actions {
+    width: auto;
+    flex: 1;
+    gap: 4px;
+  }
+  .workspace-actions .control-button {
+    min-height: 36px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+  .workspace-actions .control-button svg {
+    display: none;
+  }
+  .layout-controls {
+    gap: 0;
+  }
+  .layout-controls .control-button {
+    min-height: 36px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+  .mobile-tabs {
+    min-height: 36px;
+    flex-shrink: 0;
+  }
+  .mobile-tabs button {
+    min-width: 90px;
+  }
+  .source-origin {
+    height: 24px;
+  }
+  .panel-heading {
+    min-height: 32px;
+  }
+  .editor-toolbar {
+    gap: 4px;
+    padding: 4px;
+  }
+  .editor-toolbar .control-button {
+    padding: 0 8px;
+    min-height: 40px;
+  }
+  .editor-toolbar .primary {
+    min-width: 64px;
+  }
+}
