@@ -284,8 +284,12 @@ export default function Home() {
           Playground
         </a>
         <nav aria-label="Resources" className="resource-nav">
-          <a href="https://docs.ckbccc.com/" target="_blank" rel="noreferrer">
-            Docs <ExternalLink size={12} />
+          <a
+            href="https://docs.ckbccc.com/docs/guides/playground"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Guide <ExternalLink size={12} />
           </a>
           <a href="https://app.ckbccc.com/" target="_blank" rel="noreferrer">
             CCC App <ExternalLink size={12} />
@@ -301,11 +305,11 @@ export default function Home() {
             <summary>More</summary>
             <div>
               <a
-                href="https://docs.ckbccc.com/"
+                href="https://docs.ckbccc.com/docs/guides/playground"
                 target="_blank"
                 rel="noreferrer"
               >
-                Documentation
+                Playground guide
               </a>
               <a
                 href="https://app.ckbccc.com/"
