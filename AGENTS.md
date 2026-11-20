@@ -19,6 +19,10 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full contribution workflow. Keep
 - For cross-package changes, run the CI checks: `pnpm build:all`, `pnpm lint`, and `pnpm test:ci`.
 - For UI changes, check the affected flow in a browser, including narrow layouts. Use mocks or testnet for wallet and transaction checks; do not use real wallet credentials or broadcast mainnet transactions as part of verification. Report what ran and what did not.
 
+## Documentation
+
+- Update the English (`.mdx`) and Simplified Chinese (`.zh.mdx`) versions together when changing the docs site. Keep examples, links, and documented behavior in sync, and check locale-specific links and anchors.
+
 ## Pull requests and releases
 
 - Target `dev` and use Conventional Commits. Add a changeset when an affected package needs a release; skip it for docs-only changes that do not require one.

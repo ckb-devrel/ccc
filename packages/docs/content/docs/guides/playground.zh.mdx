@@ -15,55 +15,95 @@ icon: FlaskConical
 
 ## 界面概览
 
-![Playground overview](/guides/playground-overview.png)
+Playground 分为两个面板：
 
-Playground 分为左右两个面板：
+- **左侧面板**：Monaco（VS Code）编辑器，提供 CCC 类型的 TypeScript IntelliSense。
+- **右侧面板**：输出时间线，显示日志、错误和可交互的交易可视化。
 
-- **左侧面板**——Monaco（VS Code）编辑器，内置 CCC 类型的完整 TypeScript IntelliSense
-- **右侧面板**——控制台（Console），显示日志、错误信息和可交互的交易可视化图
+拖动分隔条调整面板宽度，也可以聚焦后用方向键调整。窄屏上通过 **Code / Output** 标签页切换。顶部工具栏集中提供网络和钱包控制，运行按钮位于编辑器下方。
 
 ### 工具栏按钮
 
 | 按钮 | 说明 |
 | --- | --- |
-| **Testnet / Mainnet** | 切换 CKB 测试网与主网 |
-| **Format** | 使用 Prettier 自动格式化代码 |
-| **Run** | 执行代码，并自动逐步通过 `render()` 断点 |
-| **Step** | 进入调试模式——在每个 `render()` 处暂停，点击 **Continue** 继续执行 |
-| **Share** | 将代码发布到 Nostr 中继节点并生成可分享的 URL |
-| **Connect** | 打开钱包连接器，用于签名和发送真实交易。一旦连接上钱包，此处会显示钱包对应的 CKB 地址 |
-| **Console** | 显示控制台标签页 |
-| **Clear** | 清空所有控制台输出 |
-| **About** | 显示文档、GitHub、水龙头和区块链浏览器的链接 |
+| **Testnet / Mainnet** | 切换 CKB 测试网和主网 |
+| **Format** | 使用 Prettier 格式化代码 |
+| **Run** | 执行代码，自动通过各个 `render()` 检查点 |
+| **Step** | 在每个 `render()` 调用处暂停，点击 **Continue** 继续 |
+| **Share** | 将代码发布到 Nostr 中继并生成分享链接 |
+| **Connect** | 打开钱包连接器。连接后显示所用钱包的 CKB 地址 |
+| **Load source** | 加载 HTTP(S) URL 或 Nostr 引用，不执行代码 |
+| **Examples / Save** | 加载可编辑的示例或下载编辑器中的内容 |
+| **Clear on run** | 每次运行前清空输出时间线；关闭后可以比较多次运行 |
+| **Clear** | 清空控制台输出 |
+| **Guide / More** | 打开本指南；资源菜单还提供 GitHub、水龙头和 CKBadger 链接 |
+
+### 仓库示例
+
+**Examples** 提供 CKB、xUDT 和 Spore 转账示例，以及余额、活跃 Cell、交易历史和 DID 查询。示例直接从 CCC 仓库 `master` 分支的 `packages/examples/src` 加载，没有单独维护的副本。加载需要联网，不会执行代码或切换网络。先核对代码，再点击 **Run**。取消加载会保留当前编辑器内容和已保存的草稿。
+
+转账示例只预览向所选钱包自身转账，不会签名或广播。CKB 示例需要足够的可用 CKB；xUDT 示例还需要代码指定的代币余额，其他 xUDT 不能替代；Spore 示例在钱包没有 Spore 时会返回空结果。结果取决于所选网络和钱包，包括只读示例钱包。加载示例不会改变默认起始脚本。运行 DID 示例时，请按所选网络修改 DID；未找到 DID 时，返回空结果是正常的。
 
 ## 可用的导入模块
 
-Playground 中的所有脚本运行在沙盒 TypeScript 环境中，以下模块可直接使用：
+脚本以 JavaScript 在页面中执行，**没有安全沙盒**，请只运行可信代码。`@ckb-ccc/playground` 由编辑器在运行时提供，不需要在自己的项目里安装。独立项目应安装 `@ckb-ccc/ccc` SDK。
 
 ```typescript
-import { ccc } from "@ckb-ccc/ccc";               // CCC 核心 SDK
+import { ccc } from "@ckb-ccc/ccc"; // CCC 核心 SDK
 import { render, signer, client } from "@ckb-ccc/playground"; // Playground 辅助工具
+```
+
+第一次可以先试试只读查询。把下面的代码粘贴进编辑器，选择网络后点击 **Run**。无需连接钱包，**Output** 就会显示当前区块高度。
+
+```typescript
+import { client, render } from "@ckb-ccc/playground";
+
+await render(await client.getTip());
 ```
 
 ### `@ckb-ccc/playground` 导出项
 
 | 导出项 | 类型 | 说明 |
 | --- | --- | --- |
-| `signer` | `ccc.Signer` | 当前激活的 `signer`——已连接的钱包，或内置的只读密钥 |
-| `client` | `ccc.Client` | 当前激活的 CKB `client`（测试网或主网） |
-| `render(...args)` | `Promise<void>` | 将值输出到控制台并暂停执行（在 Step 模式下充当断点） |
+| `signer` | `ccc.Signer` | 已连接的钱包签名器，或手动选择的只读示例签名器 |
+| `client` | `ccc.Client` | 当前 CKB 客户端（测试网或主网） |
+| `render(...args)` | `Promise<void>` | 将值写入输出时间线；在 **Step** 模式下暂停执行 |
 
-也可以使用 `console.log()` 和 `console.error()`，输出内容会显示在控制台面板中。
+`console.log()` 和 `console.error()` 的输出也会显示在控制台。
 
 <Callout type="info">
-  未连接钱包时，`signer` 默认使用内置的公钥签名器。此时可读取链上数据和构建交易，但发送交易需要连接钱包。
+  未连接钱包时，仍可用 `client` 查询链上数据或在本地构造对象。只导入 `signer` 不会触发连接；首次访问其状态或调用方法时，控制台会提示选择 **Connect real wallet** 或 **Use example wallet**。示例钱包使用公开地址，不持有私钥。它能读取数据和构建交易，不能签名或发送；可用的输入取决于所选网络和该地址的余额。
+
+  顶部的 **Example wallet · read-only** 标识可用于断开示例钱包。切换后，历史输出仍保留原网络和示例钱包标识。连接真实钱包会替换示例钱包，断开后不会自动恢复。选择示例钱包或连接真实钱包后，控制台会新增一条 **Wallet ready** 消息，提供 **Run current code**；之前失败的运行仍是 **Error**，会计入错误统计并可用错误筛选查看。运行前请重新核对当前编辑器中的代码；选择钱包或连接钱包本身不会执行代码、签名或发送。
 </Callout>
 
-了解了基本界面和可用工具后，接下来通过几个实际示例来体验 Playground 的核心能力。
+## 将脚本迁移到应用
+
+保留 `@ckb-ccc/ccc` 的导入和交易构建逻辑，移除 `@ckb-ccc/playground` 的导入。它提供的是编辑器运行时对象，不是要安装到你的项目中的依赖。仅替换脚本实际用到的对象：
+
+- **`client`（读链上数据）**：使用项目已有的 [CCC Client](/zh/docs/concepts/client)，或根据 Playground 所选网络通过 `ccc.ClientPublicTestnet.open()` 或 `ccc.ClientPublicMainnet.open()` 创建。复用 `owner.value`，不必每次查询都创建新客户端；不再使用时调用 `await owner.dispose()`。如果需要自定义 RPC，请参阅[连接节点](/zh/docs/guides/node-js-backend#连接节点)。
+- **`signer`（使用钱包）**：React 应用在 [`ccc.Provider`](/zh/docs/guides/connect-wallets#react-集成) 内通过 `@ckb-ccc/connector-react` 的 `ccc.useSigner()` 获取签名器。等用户连接钱包后再执行依赖签名器的代码；必须与钱包使用同一网络的查询应使用 `signer.client`。Playground 的只读示例钱包不能签名。
+- **`render(value)`（显示结果）**：改为返回结果、记录日志，或保存到 UI 状态。例如，让交易构建函数返回未签名的 `ccc.Transaction`，先在界面预览，再提供单独的签名或发送操作。**Step** 检查点是 Playground 特有的。
+
+例如，将 `import { client, render } from "@ckb-ccc/playground"` 和 `await render(await client.getTip())` 替换为以下独立的测试网脚本。执行 `npm install @ckb-ccc/ccc`，把代码保存为 `get-testnet-height.mts`，然后使用 Node.js 24 运行 `node get-testnet-height.mts`：
+
+```typescript
+import { ccc } from "@ckb-ccc/ccc";
+
+const owner = ccc.ClientPublicTestnet.open();
+try {
+  const client = owner.value;
+  console.log(await client.getTip());
+} finally {
+  await owner.dispose();
+}
+```
+
+同时等待多个 `render()` 检查点时，它们按创建顺序推进。顶层脚本结束后，未等待的检查点不再推进，但这不会取消任意 JavaScript 代码。通过浏览器历史记录切换来源时，需等待当前运行结束。
 
 ## 示例一：CKB 转账
 
-这是 Playground 内置的默认示例，演示了**声明 → 填充 → 手续费 → 发送交易**的交易构建模式。
+这是 Playground 内置的默认示例，演示了**声明输出 → 填充输入 → 补足手续费**的交易构建模式，不签名也不广播。
 
 打开 Playground 并粘贴以下代码（或直接使用默认示例）：
 
@@ -105,7 +145,7 @@ await render(tx);
 ### 点击 **Run** 后的执行流程
 
 1. 代码构建一笔包含 100 CKB 输出的交易
-2. `render(tx)` 暂停执行，并在控制台显示当前交易——此时可以看到输出 Cell，但尚无输入
+2. `render(tx)` 在输出时间线展示当前交易：这时只有输出 Cell，没有输入。**Run** 会自动继续，只有 **Step** 会暂停
 3. `completeInputsByCapacity` 找到足够覆盖 100 CKB 的活跃 Cell，`render(tx)` 再次展示交易——此时已有输入
 4. `completeFeeBy` 添加找零输出并计算手续费，`render(tx)` 展示最终交易
 
@@ -178,47 +218,19 @@ console.log("余额：", ccc.fixedPointToString(balance), "CKB");
 
 ## 理解 Cell 可视化图
 
-`render()` 接收 `ccc.Transaction` 时，控制台会显示一个可交互的交易图。每个 Cell 以圆形图标表示，由三个视觉层组成，如下图所示：
+当 `render()` 接收 `ccc.Transaction` 时，输出时间线会记录快照。此后修改交易对象，不会改写先前的检查点。
 
-<img src="/guides/playground-cell-visualization.png" alt="Cell 可视化图" width="500" style={{display:"block",margin:"0 auto"}} />
+快照显示输入、输出的容量和**容量差**（交易补全后为手续费）。尚未解析的输入会显示 **Unknown**；输入不足时不会显示为零手续费。DAO 额外容量单独列出。
 
-### 八卦——外环与中环
+**Inputs → Outputs** 用紧凑的 Cell 卡片展示交易流，每侧每行一张卡片。卡片显示容量、数据大小和两层八卦指纹：外层标识 Lock，内层标识 Type。卦象和颜色来自脚本哈希，同样的脚本有相同的标识；中央留空，不用八卦表示容量占比。占用容量和空闲容量的准确数值在详情中显示，未知或无效容量不会被显示成确定的比例。桌面端可拖动两侧之间的箭头调整宽度，或聚焦后使用方向键（**Home** 重置）；移动端通过带数量的 **Inputs / Outputs** 标签页切换。
 
-每个 Cell 渲染两个同心**八卦**环：
+点选卡片后，可在交易流下方的通栏详情面板查看 OutPoint、Lock 和 Type 脚本、原始数据、占用容量及空闲容量。选中的 Cell 通过输入或输出的索引标识。关闭详情后，焦点回到原卡片。即使切换工作台网络，区块浏览器链接仍指向该输出原来的网络。展开 **Raw transaction** 可以查看 Cell 依赖、Witness 和完整序列化快照。
 
-- **外环**——由 Cell 的 Lock Script 派生
-- **中环**——由 Cell 的 Type Script 派生（如有）
-
-卦象具有确定性：`getScriptBagua(script)` 从脚本哈希中提取 24 位（`hash & 0xffffff000 >> 12`），拆分为 8 个 3 位卦爻。每个卦爻绘制三条线——`0` 对应阳爻（实线），`1` 对应阴爻（虚线）——遵循经典卦象编码（☰ 乾、☷ 坤，等）。
-
-每环的**颜色**同样由脚本哈希派生：`hash & 0xfff % 360` 得到 HSL 色相值。因此：
-- Lock Script 相同的 Cell，外环颜色和卦象相同
-- Type Script 相同的 Cell，中环颜色和卦象相同
-- 一眼即可识别同一所有者或同一代币类型的 Cell
-
-### 太极——中心圆
-
-每个 Cell 的中心显示一个缓慢旋转的**太极**符号：
-
-- **阳**（深色）半边使用 Lock Script 的颜色
-- **阴**（浅色）半边为半透明白色
-- 内部有一个彩色小圆点，表示**空闲容量占比**——即该 Cell 中未被数据占用的容量比例。圆点大小按比例缩放，颜色与 Type Script 颜色一致
-
-通过太极图可以直观判断一个 Cell 的"填充程度"。
-
-### 读懂数字
-
-太极符号下方显示：
-- **容量**（CKB 面值，大数字）
-- **DAO 收益**（若该 Cell 存入了 NervosDAO，显示为 `+ X CKB`）
-- 缩短后的 **OutPoint**（`txHash:index`），链接至 CKB 区块链浏览器
-- **数据大小**（若 Cell 包含数据，显示字节数）
-
-点击任意 Cell 可展开完整详情：OutPoint、容量、Lock Script（地址）、Type Script 以及原始输出数据。
+时间线也支持地址、脚本、Cell、字节、错误、JSON 兼容值和自定义 React 元素。用 **Errors** 筛选错误，关闭 **Following output** 可查看先前的输出而不自动滚动；关闭 **Clear on run** 可保留输出以比较多次运行。
 
 ## 分享代码
 
-点击 **Share**，代码将发布到一组 Nostr 中继节点。Playground 生成一个 `nevent` 标识符并跳转至如下格式的 URL：
+点击 **Share**，代码将发布到一组 Nostr 中继节点。Playground 会生成 `nevent` 标识符，确认能从中继读取代码后，提供如下格式的可复制链接：
 
 ```
 https://live.ckbccc.com/?src=nostr:nevent1...
@@ -236,22 +248,22 @@ https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob
 
 - **多用 `render()`**——它是主要的调试工具。在每个阶段传入交易对象，观察 CCC 如何逐步修改它。
 - **善用 Step 模式**——点击 **Step** 在每个 `render()` 调用处暂停，检查当前状态，再点击 **Continue** 继续。非常适合理解交易的完整生命周期。
-- **代码自动持久化**——未使用 `?src=` 参数时，代码会自动保存在 localStorage 中，下次访问自动恢复。
-- **获取测试网 CKB**——点击 **About** → **CKB Testnet Faucet** 为测试网地址充值，或直接访问 [faucet.nervos.org](https://faucet.nervos.org/)。
+- **本地草稿会保留**：本地草稿会自动保存并在下次访问时恢复。导入的代码和示例不会覆盖草稿；用 **Save** 下载，或用 **Load source → Restore local draft** 回到已保存的代码。
+- **获取测试网 CKB**——点击 **More** → **Testnet faucet** 为测试网地址充值，或直接访问 [faucet.nervos.org](https://faucet.nervos.org/)。
 - **完整 IntelliSense**——编辑器为所有 CCC 类型提供自动补全和类型检查，同时支持 `@noble/curves`、`@noble/hashes` 和 `@nervina-labs/dob-render`。
 - **分享即协作**——编写完一段脚本后点 **Share** 生成链接，可以发给同事或社区伙伴，对方打开即可复现你的代码环境。
 
 ## 注意事项
 
 <Callout type="error">
-  在运行任何脚本之前，**务必确认左下角显示的网络环境**（Testnet 或 Mainnet）。操作主网资产是不可逆的。
+  在运行任何脚本之前，**务必确认顶部工具栏显示的网络**（Testnet 或 Mainnet）。操作主网资产是不可逆的。
 </Callout>
 
 - **先 Testnet，后 Mainnet**——任何脚本都应先在测试网上运行通过、确认行为符合预期后，再切换到主网执行。切勿一上来就操作主网资产。
-- **注意连接状态**——发送交易前，确认右下角已连接正确的钱包、网络。
-- **CKB 最低容量**——每个 Cell 至少需要 61 CKB 来支付自身的链上存储费用。如果输出 capacity 设置过低，交易会被节点拒绝。
+- **注意连接状态**——发送交易前，确认顶部工具栏所连接的钱包和所选网络正确。
+- **CKB 最低容量**——使用标准 secp256k1 Lock 且不带 Type Script 和数据的 Cell 需要 61 CKB；实际最小容量取决于输出所含的脚本和数据。容量低于占用容量的交易会被节点拒绝。
 - **交易不可撤销**——一旦交易被打包上链就无法撤回。在主网操作资产时，建议先用 `render()` 仔细审查交易的输入输出是否符合预期。
-- **浏览器刷新**——代码自动保存在 localStorage 中，刷新页面不会丢失。但如果使用了 `?src=` URL，代码来自外部源，本地修改不会覆盖 URL 参数。
+- **浏览器刷新**——本地草稿保存在 localStorage。刷新时会从 `?src=` 重新加载导入的代码，离开前请下载修改过的导入代码或示例；这些修改不会自动覆盖本地草稿。
 - **执行超时**——Playground 中的脚本在浏览器主线程运行。如果你编写了长循环或大量 RPC 调用，可能导致页面卡顿。建议分步执行。
 
 ## 下一步
@@ -260,3 +272,9 @@ https://live.ckbccc.com/?src=https://raw.githubusercontent.com/sporeprotocol/dob
 - [UDT 代币](/docs/guides/udt-tokens)——发行和转移用户自定义代币（UDT）。
 - [Spore 协议](/docs/guides/spore-protocol)——创建链上数码物（Digital Object，简称 DOB）。
 - [连接钱包](/docs/guides/connect-wallets)——在自己的应用中集成钱包连接功能。
+
+### 检查点、草稿与分享
+
+即使浏览器无法将调用栈映射到源码行，等待 `render()` 仍会产生检查点，只是不高亮对应的代码行。**Step** 保留在 **Code** 面板，方便点击 **Continue**；**Run** 则切换到 **Output**。远程代码加载成功前，编辑器会保留当前内容；浏览器写入草稿失败时会显示未保存，并提示用 **Save** 下载。
+
+如果中继确认接收但回读失败，**Retry verification** 只会检查刚才发送的快照，不会重新发布。代码已更改时，可以选择新建分享来发布当前代码。
