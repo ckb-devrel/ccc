@@ -101,12 +101,25 @@ export class WebComponentConnector extends LitElement {
   private connection?: ConnectorConnection;
 
   private loadConnection() {
-    const { signerName, walletName } = JSON.parse(
-      window.localStorage.getItem("ccc-connection-info") ?? "{}",
-    ) as { signerName?: string; walletName?: string };
-
-    this.signerName = signerName;
-    this.walletName = walletName;
+    // A saved connection is only a hint. Corrupt or unavailable storage must
+    // not prevent the connector from mounting, including on a later remount.
+    this.signerName = undefined;
+    this.walletName = undefined;
+    try {
+      const saved: unknown = JSON.parse(
+        window.localStorage.getItem("ccc-connection-info") ?? "{}",
+      );
+      if (!saved || typeof saved !== "object" || Array.isArray(saved)) {
+        return;
+      }
+      const { signerName, walletName } = saved as Record<string, unknown>;
+      if (typeof signerName === "string" && typeof walletName === "string") {
+        this.signerName = signerName;
+        this.walletName = walletName;
+      }
+    } catch {
+      // Ignore invalid JSON and storage access errors; allow a fresh connection.
+    }
   }
 
   private saveConnection() {

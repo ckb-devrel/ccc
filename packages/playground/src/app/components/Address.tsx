@@ -1,64 +1,49 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { useMemo, useState } from "react";
-import { getScriptColor, useGetExplorerLink } from "../utils";
+import { useEffect, useRef } from "react";
+import { getExplorerLink, getScriptColor } from "../utils";
+import { animateScriptDisclosure } from "./scriptDisclosure";
 
 export function Address({
   address,
-  isDefaultOpen,
+  isDefaultOpen = false,
 }: {
   address: ccc.Address;
   isDefaultOpen?: boolean;
 }) {
-  const { explorerAddress } = useGetExplorerLink();
-
-  const [isOpen, setIsOpen] = useState<boolean | undefined>();
-
-  const scriptHash = useMemo(() => address.script.hash(), [address]);
-
-  if (!(isOpen ?? isDefaultOpen ?? false)) {
-    return (
-      <div
-        key={scriptHash}
-        className="flex flex-col rounded-md p-2"
-        style={{
-          backgroundColor: getScriptColor(address.script),
-        }}
-      >
-        <div className="break-all">{explorerAddress(address.toString())}</div>
-        <button
-          className="mt-2 text-sm text-gray-300 hover:underline"
-          onClick={() => setIsOpen(true)}
-        >
-          Show More
-        </button>
-      </div>
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (!detailsRef.current) {
+      return;
+    }
+    return animateScriptDisclosure(
+      detailsRef.current,
+      window.matchMedia("(prefers-reduced-motion: reduce)"),
     );
-  }
-
+  }, []);
+  const { explorerAddress } = getExplorerLink(address.prefix);
   return (
     <div
-      key={scriptHash}
-      className="flex flex-col rounded-md p-2"
-      style={{
-        backgroundColor: getScriptColor(address.script),
-      }}
+      className="address-card"
+      style={{ borderLeftColor: getScriptColor(address.script) }}
     >
-      <div className="-mb-1 text-sm text-gray-300">address</div>
-      <div className="break-all">{explorerAddress(address.toString())}</div>
-      <div className="-mb-1 text-sm text-gray-300">scriptHash</div>
-      <div className="break-all">{scriptHash}</div>
-      <div className="-mb-1 text-sm text-gray-300">codeHash</div>
-      <div className="break-all">{address.script.codeHash}</div>
-      <div className="-mb-1 text-sm text-gray-300">hashType</div>
-      <div className="break-all">{address.script.hashType}</div>
-      <div className="-mb-1 text-sm text-gray-300">args</div>
-      <div className="break-all">{address.script.args}</div>
-      <button
-        className="mt-2 text-sm text-gray-300 hover:underline"
-        onClick={() => setIsOpen(false)}
+      <div className="address-value">{explorerAddress(address.toString())}</div>
+      <details
+        ref={detailsRef}
+        className="cell-details"
+        open={isDefaultOpen || undefined}
       >
-        Hide Details
-      </button>
+        <summary>Script details</summary>
+        <dl className="detail-grid">
+          <dt>Script hash</dt>
+          <dd>{address.script.hash()}</dd>
+          <dt>Code hash</dt>
+          <dd>{address.script.codeHash}</dd>
+          <dt>Hash type</dt>
+          <dd>{address.script.hashType}</dd>
+          <dt>Args</dt>
+          <dd>{address.script.args}</dd>
+        </dl>
+      </details>
     </div>
   );
 }

@@ -1,5 +1,19 @@
 # @ckb-ccc/rei
 
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [[`3a465c6`](https://github.com/ckb-devrel/ccc/commit/3a465c6a6f609d7a1cc0f51f50ff1e5c6e920dea)]:
+  - @ckb-ccc/core@1.24.0
+
+## 1.1.16
+
+### Patch Changes
+
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`df37b27`](https://github.com/ckb-devrel/ccc/commit/df37b2778c5b2172e2344ccdd74e7f9f5e20ea43), [`f60bb74`](https://github.com/ckb-devrel/ccc/commit/f60bb7441bf8f01fc62065df767815dee920e24e), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c), [`0337906`](https://github.com/ckb-devrel/ccc/commit/0337906cdb6925f6ec46b1a4c643bb8cb042487c), [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4)]:
+  - @ckb-ccc/core@1.23.1
+
 ## 1.1.15
 
 ### Patch Changes

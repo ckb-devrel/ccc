@@ -1,0 +1,91 @@
+.workbench-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  width: min(520px, calc(100vw - 32px));
+  max-height: 85dvh;
+  padding: 24px;
+  border: 1px solid var(--line-dark);
+  color: var(--ink);
+  background: var(--panel);
+  box-shadow: 0 24px 80px #0009;
+}
+.workbench-dialog--examples[open] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.workbench-dialog--examples .example-dialog-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.example-dialog-content .example-card:focus-visible {
+  outline-offset: -4px;
+}
+.workbench-dialog::backdrop {
+  background: #000a;
+  backdrop-filter: blur(4px);
+}
+.dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.workbench-dialog h2 {
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0 0 12px;
+  letter-spacing: -0.6px;
+}
+.workbench-dialog p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+.workbench-dialog label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.workbench-dialog input:not([type="checkbox"]) {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: var(--recess);
+  border: 1px solid var(--line-dark);
+  color: var(--ink);
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.example-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  background: var(--recess);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  margin: 12px 0;
+}
+.example-card:hover {
+  border-color: var(--signal);
+}
+.example-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 6px;
+}

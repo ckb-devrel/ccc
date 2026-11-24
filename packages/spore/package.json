@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/spore",
-  "version": "1.6.15",
+  "version": "1.6.17",
   "description": "CCC - CKBer's Codebase. Common Chains Connector's support for Spore protocol",
   "author": "ashuralyk <ashuralyk@live.com>",
   "license": "MIT",
@@ -52,7 +52,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.61.1",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.12"
   },
   "publishConfig": {
     "access": "public"

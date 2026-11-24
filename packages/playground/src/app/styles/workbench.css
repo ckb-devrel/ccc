@@ -1,0 +1,127 @@
+.workbench {
+  height: 100dvh;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  padding: 0 24px;
+  background-image:
+    linear-gradient(#e6eef205 1px, transparent 1px),
+    linear-gradient(90deg, #e6eef205 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.workbench-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border-bottom: 1px solid var(--ink);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.brand strong {
+  font-size: 21px;
+  letter-spacing: -1px;
+}
+.brand-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--line-dark);
+  margin: 0 3px;
+}
+.resource-nav {
+  display: flex;
+  gap: 22px;
+  color: var(--muted);
+  font-size: 12px;
+  flex: 1;
+}
+.resource-nav a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.connection-controls,
+.toolbar-group,
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.connection-controls {
+  margin-left: auto;
+}
+.control-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background 160ms var(--ease),
+    border-color 160ms var(--ease),
+    transform 160ms var(--ease);
+}
+.control-button:not(:disabled):hover {
+  background: #e6eef20b;
+  border-color: var(--line-dark);
+}
+.control-button:not(:disabled):active {
+  transform: translateY(1px);
+}
+.control-button.primary {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--paper);
+  font-weight: 650;
+}
+.control-button.primary:not(:disabled):hover {
+  background: #80ddff;
+}
+.network-button {
+  text-transform: uppercase;
+  font-family: var(--font-geist-mono), monospace;
+  letter-spacing: 0.05em;
+}
+.mainnet {
+  color: var(--error);
+}
+.status-light {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  background: var(--signal);
+}
+.status-light.active {
+  animation: signal-pulse 1s steps(2, end) infinite;
+}
+.workspace-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 25px 0 22px;
+}
+.eyebrow {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+h1 {
+  margin: 6px 0 0;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.7px;
+}

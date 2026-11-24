@@ -1,15 +1,9 @@
-import * as ecc from "@bitcoinerlab/secp256k1";
 import { ccc } from "@ckb-ccc/connector-react";
-import * as bitcoin from "bitcoinjs-lib";
 import * as React from "react";
-
-// Initialize the ECC library for bitcoinjs-lib to support Schnorr signatures (Taproot).
-// This must be done once globally before any PSBT operations.
-bitcoin.initEccLib(ecc);
-
 import ts from "typescript";
 import { formatTimestamp } from "../utils";
 import { vlqDecode } from "./vlq";
+import { createWalletBindings } from "./wallet";
 
 const LIBS_MAP_ = new Map();
 const LIBS = await Promise.all(
@@ -17,6 +11,7 @@ const LIBS = await Promise.all(
     [
       ["@noble/curves/secp256k1.js"],
       ["@noble/hashes/sha2.js"],
+      ["@scure/btc-signer"],
       ["@ckb-ccc/ccc", "@ckb-ccc/core"],
       ["@ckb-ccc/ccc/advanced", "@ckb-ccc/core/advanced"],
       ["@ckb-ccc/spore"],
@@ -27,6 +22,18 @@ const LIBS = await Promise.all(
     k.forEach((k) => LIBS_MAP_.set(k, lib));
   }),
 ).then(() => LIBS_MAP_);
+
+// Old saved scripts may still use `bitcoin` (bitcoinjs-lib).
+const removedBitcoin = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error(
+        'The playground no longer provides "bitcoin" (bitcoinjs-lib). Use `import * as btc from "@scure/btc-signer"` instead.',
+      );
+    },
+  },
+);
 
 function findSourcePos(
   sourceMap: string | undefined,
@@ -64,9 +71,11 @@ export async function execute(
   source: string,
   onUpdate: (
     pos: [number, number, number, number] | undefined,
+    checkpoint?: boolean,
   ) => Promise<void>,
-  signer: ccc.Signer,
+  signer: ccc.Signer | undefined,
   log: (level: "error" | "info", title: string, msgs: unknown[]) => void,
+  client: ccc.Client,
 ) {
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
@@ -77,6 +86,7 @@ export async function execute(
     },
   });
 
+  const wallet = createWalletBindings(client, signer);
   const exports = {};
   const require = (path: string) => {
     const lib = LIBS.get(path);
@@ -90,32 +100,34 @@ export async function execute(
           log("info", formatTimestamp(Date.now()), msgs);
 
           const stack = new Error().stack;
-          if (!stack) {
-            return;
-          }
           const match = stack
-            .split("\n")[2]
+            ?.split("\n")[2]
             ?.match("<anonymous>:([0-9]*):([0-9]*)\\)");
-          if (!match) {
-            return;
-          }
-          try {
-            await onUpdate(
-              findSourcePos(
+          let position: [number, number, number, number] | undefined;
+          if (match) {
+            try {
+              position = findSourcePos(
                 compiled.sourceMapText,
                 Number(match[1]) - 4,
                 Number(match[2]) - 2,
-              ),
-            );
+              );
+            } catch {
+              /* Mapping is optional; the checkpoint is not. */
+            }
+          }
+          try {
+            await onUpdate(position, true);
           } catch (err) {
             if (err !== "ABORTED") {
               throw err;
             }
           }
         },
-        signer,
-        client: signer.client,
-        bitcoin,
+        get signer() {
+          return wallet.signer;
+        },
+        client: wallet.client,
+        bitcoin: removedBitcoin,
       };
     }
 

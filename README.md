@@ -66,7 +66,7 @@ See [AI Resources](https://docs.ckbccc.com/en/docs/ai-resources) for full setup 
 
 <p align="center">
   <a href="https://live.ckbccc.com/">
-    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/preview.png" width="70%" />
+    <img src="https://raw.githubusercontent.com/ckb-devrel/ccc/dev/assets/playground-overview.jpg" width="70%" alt="CCC Playground code and transaction workbench with input/output Cell visualization" />
   </a>
 </p>
 
@@ -228,3 +228,19 @@ registerCustomLockScriptInfos(generateDefaultScriptInfos());
 - [RGB++ SDK](https://github.com/RGBPlusPlus/rgbpp-sdk) and its [Design](https://github.com/RGBPlusPlus/RGBPlusPlus-design): RGB++ is a protocol for issuing assets with Turing-completed VM on BTC L1.
 - [Spore SDK](https://github.com/sporeprotocol/spore-sdk) and its [Docs](https://docs.spore.pro/): The on-chain digital object (DOBs) protocol designed to empower ownership, distribution, and value capture.
 - [PW SDK](https://talk.nervos.org/t/lay2-pw-sdk-build-dapps-on-ckb-and-run-them-everywhere/4289) is not maintained anymore. It is the early-age wallet connector and a brave pioneer of the CKB ecosystem.
+
+## Research
+
+The design behind CCC's transaction composer, unified signer, and connector UI is discussed in [When EVM Defaults Break: Three SDK Patterns for UTXO-Family Wallets](https://arxiv.org/abs/2610.30183), a poster paper at IEEE ICDLT 2026. To cite it:
+
+```bibtex
+@misc{zhang2026evmdefaults,
+  title         = {When {EVM} Defaults Break: Three {SDK} Patterns for {UTXO}-Family Wallets},
+  author        = {Zhang, Hanzheng and Chen, Hongzhou},
+  year          = {2026},
+  eprint        = {2610.30183},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CR},
+  url           = {https://arxiv.org/abs/2610.30183}
+}
+```

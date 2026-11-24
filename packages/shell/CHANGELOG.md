@@ -1,5 +1,34 @@
 # @ckb-ccc/shell
 
+## 1.4.0
+
+### Minor Changes
+
+- [#640](https://github.com/ckb-devrel/ccc/pull/640) [`725e33e`](https://github.com/ckb-devrel/ccc/commit/725e33eb4abb600cfc585956b78a8ae0480e27b2) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Add runtime Molecule schemas through `Schema.from`, accepting a single input or a flat array of schema strings and existing schemas. Construct custom codec collections with `new Schema(record)`. Resolve dependencies together and access codecs through `Schema.get<Encodable, Decoded, Context>()`, with `unknown` defaults and explicit caller-supplied value types. Include schema validation without a generated parser or implicit numeric type-name conversions.
+
+### Patch Changes
+
+- Updated dependencies [[`3a465c6`](https://github.com/ckb-devrel/ccc/commit/3a465c6a6f609d7a1cc0f51f50ff1e5c6e920dea), [`725e33e`](https://github.com/ckb-devrel/ccc/commit/725e33eb4abb600cfc585956b78a8ae0480e27b2)]:
+  - @ckb-ccc/core@1.24.0
+  - @ckb-ccc/molecule@0.2.0
+  - @ckb-ccc/did-ckb@0.2.17
+  - @ckb-ccc/spore@1.6.17
+  - @ckb-ccc/ssri@0.4.7
+  - @ckb-ccc/type-id@0.1.17
+  - @ckb-ccc/udt@0.2.17
+
+## 1.3.16
+
+### Patch Changes
+
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`df37b27`](https://github.com/ckb-devrel/ccc/commit/df37b2778c5b2172e2344ccdd74e7f9f5e20ea43), [`f60bb74`](https://github.com/ckb-devrel/ccc/commit/f60bb7441bf8f01fc62065df767815dee920e24e), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c), [`4982f6c`](https://github.com/ckb-devrel/ccc/commit/4982f6c80537c25e1724db700ee366f9300b878e), [`b827462`](https://github.com/ckb-devrel/ccc/commit/b827462aebba537f2785d6a4abb506954189f96e), [`0abf78e`](https://github.com/ckb-devrel/ccc/commit/0abf78e5f469216e82a24de8d4051e757368af90), [`0337906`](https://github.com/ckb-devrel/ccc/commit/0337906cdb6925f6ec46b1a4c643bb8cb042487c), [`d6f77ae`](https://github.com/ckb-devrel/ccc/commit/d6f77aefd25ef5af184661296cdd0c9a81beb4e1), [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4)]:
+  - @ckb-ccc/core@1.23.1
+  - @ckb-ccc/spore@1.6.16
+  - @ckb-ccc/type-id@0.1.16
+  - @ckb-ccc/did-ckb@0.2.16
+  - @ckb-ccc/ssri@0.4.6
+  - @ckb-ccc/udt@0.2.16
+
 ## 1.3.15
 
 ### Patch Changes

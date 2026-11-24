@@ -1,6 +1,6 @@
 {
   "name": "@ckb-ccc/shell",
-  "version": "1.3.15",
+  "version": "1.4.0",
   "description": "Backend Shell of CCC - CKBer's Codebase. Common Chains Connector.",
   "author": "Hanssen0 <hanssen0@hanssen0.com>",
   "license": "MIT",
@@ -61,7 +61,8 @@
     "@ckb-ccc/spore": "workspace:*",
     "@ckb-ccc/ssri": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
-    "@ckb-ccc/udt": "workspace:*"
+    "@ckb-ccc/udt": "workspace:*",
+    "@ckb-ccc/molecule": "workspace:*"
   },
   "packageManager": "pnpm@11.8.0"
 }

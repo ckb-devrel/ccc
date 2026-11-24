@@ -62,7 +62,7 @@ pnpm format
 
 ### Commit your changes
 
-Please add a changeset for your changes. This is how we track changes and generate changelogs.
+Please add a changeset when your changes require a package release. This is how we track released changes and generate changelogs. Changes that do not require a release do not need a changeset.
 
 ```sh
 pnpm changeset

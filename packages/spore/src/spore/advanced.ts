@@ -51,11 +51,14 @@ export async function prepareCluster(
         }
       }
 
-      // Add the output only if there's not already one with proxy lock
-      if (!tx.outputs.some((output) => output.lock === lock)) {
-        tx.addOutput(
-          await tx.getInput(lockProxyInputIndex)!.getCell(signer.client),
-        );
+      // On-chain lock-proxy only requires an owner-lock cell in outputs.
+      // Compare by script value. `===` misses the output added for an earlier
+      // spore, whose lock is a different object with the same script.
+      if (!tx.outputs.some((output) => output.lock.eq(lock))) {
+        const proxyCell = await tx
+          .getInput(lockProxyInputIndex)!
+          .getCell(signer.client);
+        tx.addOutput(proxyCell.cellOutput.clone(), proxyCell.outputData);
       }
 
       tx.addCellDeps({

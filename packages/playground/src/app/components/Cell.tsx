@@ -1,56 +1,146 @@
 import { ccc } from "@ckb-ccc/connector-react";
-import { useEffect, useMemo, useState } from "react";
-import { useApp } from "../context";
-import {
-  formatString,
-  formatTimestamp,
-  getScriptBagua,
-  getScriptColor,
-  useGetExplorerLink,
-} from "../utils";
+import { useEffect, useState } from "react";
+import { getExplorerLink, getScriptColor } from "../utils";
 import { Address } from "./Address";
-import { Bagua, Taiji } from "./Bagua";
+import { CellCapacity } from "./CellCapacity";
+import { CellFingerprint } from "./CellFingerprint";
 
-function Capacity({
-  capacity,
-  profit,
-}: {
-  capacity?: ccc.NumLike;
-  profit: ccc.NumLike;
-}) {
-  const profitNum = ccc.numFrom(profit);
-  const [l, r] = useMemo(() => {
-    if (capacity === undefined) {
-      return ["?"];
+type CellLike = {
+  cellOutput?: ccc.CellOutput;
+  outPoint?: ccc.OutPoint;
+  previousOutput?: ccc.OutPoint;
+  outputData?: ccc.Hex;
+};
+
+type ResolvedCell = {
+  cellOutput?: ccc.CellOutput;
+  outputData?: ccc.Hex;
+  extra?: ccc.Num;
+  error?: string;
+};
+
+function useResolvedCell(cell: CellLike, client: ccc.Client): ResolvedCell {
+  const [resolved, setResolved] = useState<{
+    cell: CellLike;
+    client: ccc.Client;
+    value: ResolvedCell;
+  }>();
+  useEffect(() => {
+    let active = true;
+    const outPoint = cell.previousOutput ?? cell.outPoint;
+    if (!outPoint) {
+      return;
     }
-    return ccc.fixedPointToString(ccc.numFrom(capacity)).split(".");
-  }, [capacity]);
+    const input = ccc.CellInput.from({ ...cell, previousOutput: outPoint });
+    void (async () => {
+      try {
+        const { cellOutput, outputData } = await input.getCell(client);
+        // Keep resolved cell data useful even if DAO accounting fails.
+        if (active) {
+          setResolved({ cell, client, value: { cellOutput, outputData } });
+        }
+        const extra = await input.getExtraCapacity(client);
+        if (active) {
+          setResolved({
+            cell,
+            client,
+            value: { cellOutput, outputData, extra },
+          });
+        }
+      } catch (error) {
+        if (active) {
+          setResolved((previous) => ({
+            cell,
+            client,
+            value: {
+              ...(previous?.cell === cell && previous.client === client
+                ? previous.value
+                : cell),
+              error: String(error),
+            },
+          }));
+        }
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [cell, client]);
+  return resolved?.cell === cell && resolved.client === client
+    ? resolved.value
+    : {
+        cellOutput: cell.cellOutput,
+        outputData: cell.outputData,
+        extra: cell.outPoint || cell.previousOutput ? undefined : ccc.Zero,
+      };
+}
 
-  if (!r) {
-    return (
-      <>
-        <span className="text-3xl font-bold break-all">{l}</span>
-        <span className="text-xs break-all">
-          {profitNum === ccc.Zero
-            ? ""
-            : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
-          CKB
-        </span>
-      </>
-    );
-  }
-
+function CellDetails({
+  cell,
+  value,
+  client,
+}: {
+  cell: CellLike;
+  value: ResolvedCell;
+  client: ccc.Client;
+}) {
+  const outPoint = cell.previousOutput ?? cell.outPoint;
+  const { cellOutput, outputData, extra, error } = value;
+  const { explorerTransaction } = getExplorerLink(client.addressPrefix);
   return (
-    <>
-      <span className="text-3xl font-bold break-all">{l}</span>
-      <span className="-mt-1 text-xs break-all">.{r}</span>
-      <span className="text-xs break-all">
-        {profitNum === ccc.Zero
-          ? ""
-          : `+ ${ccc.fixedPointToString(ccc.numFrom(profit))} `}
-        CKB
-      </span>
-    </>
+    <div className="cell-detail-body">
+      {outPoint && (
+        <div className="cell-outpoint">
+          {explorerTransaction(
+            outPoint.txHash,
+            `${outPoint.txHash}:${outPoint.index}`,
+          )}
+        </div>
+      )}
+      {error && (
+        <p className="result-warning">
+          Some cell information could not be resolved. {error}
+        </p>
+      )}
+      <CellCapacity
+        capacity={cellOutput?.capacity}
+        occupied={
+          cellOutput && outputData !== undefined
+            ? ccc.fixedPointFrom(
+                cellOutput.occupiedSize + ccc.bytesFrom(outputData).length,
+              )
+            : undefined
+        }
+        extra={extra}
+        hasOutPoint={!!outPoint}
+      />
+      <dl className="detail-grid">
+        <dt>Data</dt>
+        <dd>{outputData ?? "Unknown"}</dd>
+        <dt>Lock script</dt>
+        <dd>
+          {cellOutput ? (
+            <Address
+              address={ccc.Address.fromScript(cellOutput.lock, client)}
+            />
+          ) : (
+            "Unknown"
+          )}
+        </dd>
+        <dt>Type script</dt>
+        <dd>
+          {cellOutput?.type ? (
+            <Address
+              address={ccc.Address.fromScript(cellOutput.type, client)}
+            />
+          ) : cellOutput ? (
+            "None"
+          ) : (
+            "Unknown"
+          )}
+        </dd>
+      </dl>
+    </div>
   );
 }
 
@@ -58,252 +148,106 @@ export function CellInfo({
   cell,
   client,
 }: {
-  cell: {
-    cellOutput?: ccc.CellOutput;
-    outPoint?: ccc.OutPoint;
-    outputData?: ccc.Hex;
-  };
+  cell: CellLike;
   client: ccc.Client;
 }) {
-  const { explorerTransaction } = useGetExplorerLink();
-
-  const { outPoint } = cell;
-  const [{ cellOutput, outputData, daoProfit }, setCellState] = useState({
-    cellOutput: cell.cellOutput,
-    outputData: cell.outputData,
-    daoProfit: ccc.Zero,
-  });
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCellState({
-      cellOutput: cell.cellOutput,
-      outputData: cell.outputData,
-      daoProfit: ccc.Zero,
-    });
-    if (!outPoint) {
-      return;
-    }
-    let active = true;
-
-    const input = ccc.CellInput.from({
-      ...cell,
-      previousOutput: outPoint, // For type checking
-    });
-
-    (async () => {
-      try {
-        const { cellOutput, outputData } = await input.getCell(client);
-        const extraCapacity = await input.getExtraCapacity(client);
-
-        if (active) {
-          setCellState({
-            cellOutput,
-            outputData,
-            daoProfit: extraCapacity,
-          });
-        }
-      } catch (_err) {
-        return;
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [cell, outPoint, cell.cellOutput, cell.outputData, client]);
-
+  const value = useResolvedCell(cell, client);
   return (
-    <div>
-      {outPoint
-        ? explorerTransaction(
-            outPoint?.txHash,
-            `${outPoint?.txHash}:${outPoint?.index}`,
-          )
-        : undefined}
-      <div className="my-1">
-        Capacity {ccc.apply(ccc.fixedPointToString, cellOutput?.capacity)}
-        {daoProfit !== ccc.Zero
-          ? ` + ${ccc.fixedPointToString(daoProfit)} `
-          : " "}
-        CKB
-      </div>
-      <div className="mt-1">Lock</div>
-      {cellOutput?.lock ? (
-        <Address address={ccc.Address.fromScript(cellOutput.lock, client)} />
-      ) : undefined}
-      {cellOutput?.type ? (
-        <>
-          <div className="mt-1">Type</div>
-          <Address address={ccc.Address.fromScript(cellOutput.type, client)} />
-        </>
-      ) : (
-        <div className="mt-1">Type is Empty</div>
-      )}
-      {outputData ? <div className="my-1">Data: {outputData}</div> : undefined}
+    <div className="cell-card">
+      <CellDetails cell={cell} value={value} client={client} />
     </div>
   );
 }
 
 export function Cell({
   cell,
+  client,
+  index,
+  kind,
+  onInspect,
+  selected = false,
+  inspectorId,
 }: {
-  cell: {
-    cellOutput?: ccc.CellOutput;
-    previousOutput?: ccc.OutPoint;
-    outputData?: ccc.Hex;
-  };
+  cell: CellLike;
+  client: ccc.Client;
+  index?: number;
+  kind?: "Input" | "Output";
+  onInspect?: (trigger: HTMLButtonElement) => void;
+  selected?: boolean;
+  inspectorId?: string;
 }) {
-  const { explorerTransaction } = useGetExplorerLink();
-  const { client } = ccc.useCcc();
-
-  const { sendMessage } = useApp();
-
-  const { previousOutput } = cell;
-  const [{ cellOutput, outputData, daoProfit }, setCellState] = useState({
-    cellOutput: cell.cellOutput,
-    outputData: cell.outputData,
-    daoProfit: ccc.Zero,
-  });
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCellState({
-      cellOutput: cell.cellOutput,
-      outputData: cell.outputData,
-      daoProfit: ccc.Zero,
-    });
-    if (!previousOutput) {
-      return;
-    }
-    let active = true;
-
-    const input = ccc.CellInput.from({
-      ...cell,
-      previousOutput, // For type checking
-    });
-
-    (async () => {
-      try {
-        const { cellOutput, outputData } = await input.getCell(client);
-        const extraCapacity = await input.getExtraCapacity(client);
-
-        if (active) {
-          setCellState({
-            cellOutput,
-            outputData,
-            daoProfit: extraCapacity,
-          });
-        }
-      } catch (_err) {
-        return;
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [cell, previousOutput, cell.cellOutput, cell.outputData, client]);
-
-  const freePercentage = useMemo(() => {
-    if (!cellOutput || !outputData) {
-      return 0;
-    }
-
-    const total = ccc.numMax(cellOutput.capacity, 1);
-    const freeSize =
-      total -
-      ccc.fixedPointFrom(
-        cellOutput.occupiedSize + ccc.bytesFrom(outputData).length,
-      );
-
-    return ccc.fixedPointToString((freeSize * ccc.numFrom(7500)) / total, 2);
-  }, [cellOutput, outputData]);
-
-  const outputLength = useMemo(() => {
-    if (!outputData) {
-      return 0;
-    }
-
-    return ccc.bytesFrom(outputData).length;
-  }, [outputData]);
-
-  const lockColor = useMemo(
-    () => getScriptColor(cellOutput?.lock),
-    [cellOutput],
-  );
-  const typeColor = useMemo(
-    () => getScriptColor(cellOutput?.type),
-    [cellOutput],
-  );
-
-  return (
-    <div
-      className="relative flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-full"
-      onClick={() => {
-        sendMessage("info", formatTimestamp(Date.now()), [
-          <CellInfo
-            key="0"
-            cell={{ outPoint: previousOutput, outputData, cellOutput }}
-            client={client}
-          />,
-        ]);
-      }}
-    >
-      <Bagua
-        value={getScriptBagua(cellOutput?.lock)}
-        thickness={3.2}
-        padding={1}
-        space={3}
-        margin={2}
-        fill={lockColor}
-        stroke="#000000a0"
-        className="absolute top-1/2 left-1/2 h-33 w-33 -translate-x-1/2 -translate-y-1/2"
-      />
-      <Bagua
-        value={getScriptBagua(cellOutput?.type)}
-        thickness={6}
-        padding={1}
-        space={3}
-        margin={3}
-        fill={typeColor}
-        stroke="#000000a0"
-        className="absolute top-1/2 left-1/2 h-22 w-22 -translate-x-1/2 -translate-y-1/2"
-      />
-      <Taiji
-        className="absolute top-1/2 left-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 animate-spin overflow-hidden rounded-full"
-        style={{ animationDuration: "16s" }}
-        yangColor={lockColor}
-      >
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            width: `${freePercentage}%`,
-            height: `${freePercentage}%`,
-            backgroundColor: typeColor,
-          }}
-        ></div>
-      </Taiji>
-      <div className="relative flex flex-col items-center">
-        <Capacity capacity={cellOutput?.capacity} profit={daoProfit} />
-      </div>
-      {previousOutput ? (
-        <div className="relative text-xs">
-          {explorerTransaction(
-            previousOutput.txHash,
-            `${formatString(
-              previousOutput.txHash,
-              5,
-              3,
-            )}:${previousOutput.index.toString()}`,
+  const value = useResolvedCell(cell, client);
+  const { cellOutput, outputData, extra } = value;
+  const summaryContent = (
+    <>
+      <span className="cell-summary-copy">
+        <span className="cell-index">
+          {kind ?? "Cell"}
+          {index === undefined ? "" : ` ${index}`}
+        </span>
+        <span className="cell-capacity">
+          {cellOutput ? ccc.fixedPointToString(cellOutput.capacity) : "Unknown"}{" "}
+          <small>CKB</small>
+        </span>
+        <span className="cell-meta">
+          <span>
+            {cellOutput
+              ? cellOutput.type
+                ? "Typed cell"
+                : "Plain cell"
+              : "Unresolved cell"}
+          </span>
+          <span>
+            {outputData === undefined
+              ? "Data unknown"
+              : `${ccc.bytesFrom(outputData).length} bytes`}
+          </span>
+        </span>
+        {extra !== undefined && extra !== ccc.Zero && (
+          <span className="cell-extra">
+            + {ccc.fixedPointToString(extra)} CKB DAO extra
+          </span>
+        )}
+        <span className="cell-inspect">
+          {onInspect ? (
+            selected ? (
+              "Close details"
+            ) : (
+              "Inspect cell"
+            )
+          ) : (
+            <>
+              <span className="cell-inspect-closed">Inspect cell</span>
+              <span className="cell-inspect-open">Close details</span>
+            </>
           )}
-        </div>
-      ) : undefined}
-      {outputLength ? (
-        <div className="relative flex justify-center text-sm">
-          {outputLength} bytes
-        </div>
-      ) : undefined}
-    </div>
+        </span>
+      </span>
+      <CellFingerprint lock={cellOutput?.lock} type={cellOutput?.type} />
+    </>
+  );
+  if (onInspect) {
+    return (
+      <button
+        type="button"
+        className="cell-card cell-summary cell-selector"
+        data-output-inspect
+        style={{ borderLeftColor: getScriptColor(cellOutput?.lock) }}
+        aria-expanded={selected}
+        aria-controls={inspectorId}
+        onClick={(event) => onInspect(event.currentTarget)}
+      >
+        {summaryContent}
+      </button>
+    );
+  }
+  return (
+    <details
+      className="cell-card"
+      style={{ borderLeftColor: getScriptColor(cellOutput?.lock) }}
+    >
+      <summary className="cell-summary">{summaryContent}</summary>
+      <CellDetails cell={cell} value={value} client={client} />
+    </details>
   );
 }

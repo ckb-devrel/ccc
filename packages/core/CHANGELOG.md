@@ -1,5 +1,31 @@
 # @ckb-ccc/core
 
+## 1.24.0
+
+### Minor Changes
+
+- [#641](https://github.com/ckb-devrel/ccc/pull/641) [`3a465c6`](https://github.com/ckb-devrel/ccc/commit/3a465c6a6f609d7a1cc0f51f50ff1e5c6e920dea) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - feat(core): let a wallet sign a transaction with a pseudo input over the signer JSON-RPC. The wallet side rebuilds the cell of an input that cannot exist on chain (the only input, at out point index `0xffffffff`) from the lock of the first output, and no longer looks it up
+
+## 1.23.1
+
+### Patch Changes
+
+- [#591](https://github.com/ckb-devrel/ccc/pull/591) [`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): preserve consumed outputs when marking chained transactions
+
+- [#636](https://github.com/ckb-devrel/ccc/pull/636) [`df37b27`](https://github.com/ckb-devrel/ccc/commit/df37b2778c5b2172e2344ccdd74e7f9f5e20ea43) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Reject non-2xx HTTP responses and cancel their response bodies before parsing JSON so JSON-RPC requests can try the configured fallback endpoints.
+
+- [`f60bb74`](https://github.com/ckb-devrel/ccc/commit/f60bb7441bf8f01fc62065df767815dee920e24e) Thanks [@LusoCryptoLabs](https://github.com/LusoCryptoLabs)! - fix(core): verify JoyID signatures against the given key and message
+  
+  Reject unsupported JoyID key types during message verification.
+  
+  Verify binary passkey challenges against their original bytes while preserving text message semantics.
+
+- [#593](https://github.com/ckb-devrel/ccc/pull/593) [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c) Thanks [@Hanssen0](https://github.com/Hanssen0)! - fix(core): ensure every matching multisig input satisfies the configured since
+
+- [#635](https://github.com/ckb-devrel/ccc/pull/635) [`0337906`](https://github.com/ckb-devrel/ccc/commit/0337906cdb6925f6ec46b1a4c643bb8cb042487c) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Exclude data shorter than 16 bytes from `udtBalanceFrom` and its input/output balance and input-completion callers. Short data now contributes zero instead of a partial little-endian amount, without throwing. Empty data still contributes zero; complete uint128 amounts and trailing extension data retain their existing behavior. This is balance accounting, not validation of a cell or transaction, including owner-mode transactions. Consumers using this helper to decode nonstandard short amounts should use their protocol's decoder instead.
+
+- [#604](https://github.com/ckb-devrel/ccc/pull/604) [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Document WebSocket sharing restrictions and transport ownership.
+
 ## 1.23.0
 
 ### Minor Changes

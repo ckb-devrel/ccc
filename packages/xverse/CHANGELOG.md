@@ -1,5 +1,25 @@
 # @ckb-ccc/xverse
 
+## 1.2.8
+
+### Patch Changes
+
+- Updated dependencies [[`3a465c6`](https://github.com/ckb-devrel/ccc/commit/3a465c6a6f609d7a1cc0f51f50ff1e5c6e920dea)]:
+  - @ckb-ccc/core@1.24.0
+
+## 1.2.7
+
+### Patch Changes
+
+- [#605](https://github.com/ckb-devrel/ccc/pull/605) [`ff98c86`](https://github.com/ckb-devrel/ccc/commit/ff98c8633d0a5527e553f83ad34d22fdd21fa443) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Use `@scure/btc-signer` instead of `bitcoinjs-lib` for PSBTs. JoyID no longer
+  calls `initEccLib`, which set global state.
+
+- [#605](https://github.com/ckb-devrel/ccc/pull/605) [`fd4c9a5`](https://github.com/ckb-devrel/ccc/commit/fd4c9a5d7accf51991ededc902844515a3f8baf3) Thanks [@Hanssen0-Alter-Ego](https://github.com/Hanssen0-Alter-Ego)! - Share stock-scure PSBT parsing and best-effort finalization between JoyID and Xverse. Use complete common-wallet PSBTs and finalize ready supported inputs on the original transaction, preserving normal scure parsing and transaction-wide checks. Retain unknown PSBT fields and bundle the helper into ESM and CommonJS output.
+  
+  Both adapters finalize already signed inputs outside the wallet signing selection. Unsigned, finalized and unsupported inputs remain unchanged. Supported scripts include P2SH-P2WPKH, wrapped multisig and standard Taproot script templates.
+- Updated dependencies [[`153844d`](https://github.com/ckb-devrel/ccc/commit/153844d4b7a542b0389b6a58a8e52c7c36433296), [`df37b27`](https://github.com/ckb-devrel/ccc/commit/df37b2778c5b2172e2344ccdd74e7f9f5e20ea43), [`f60bb74`](https://github.com/ckb-devrel/ccc/commit/f60bb7441bf8f01fc62065df767815dee920e24e), [`b1771d8`](https://github.com/ckb-devrel/ccc/commit/b1771d8ab57df4e748202cec4794b1e9daf2fc7c), [`0337906`](https://github.com/ckb-devrel/ccc/commit/0337906cdb6925f6ec46b1a4c643bb8cb042487c), [`917545b`](https://github.com/ckb-devrel/ccc/commit/917545b0479e22d41a95690ce4d0578776e230c4)]:
+  - @ckb-ccc/core@1.23.1
+
 ## 1.2.6
 
 ### Patch Changes

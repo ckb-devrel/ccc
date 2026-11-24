@@ -4,7 +4,7 @@ import MonacoEditor from "@monaco-editor/react";
 import { shikiToMonaco } from "@shikijs/monaco";
 import { LoaderCircle } from "lucide-react";
 import { editor } from "monaco-editor";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createHighlighter } from "shiki";
 
 const COMMON_REGEX = /^\.\/(.*\.d\.ts|.*\.d\.mts|package.json)$/;
@@ -51,7 +51,44 @@ const EXTRA_SOURCES = [
     ),
     name: "@noble/curves",
   },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/@scure/btc-signer",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "@scure/btc-signer",
+  },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/@scure/base",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "@scure/base",
+  },
+  {
+    files: webpackRequire.context(
+      "../../../node_modules/micro-packed",
+      true,
+      COMMON_REGEX,
+    ),
+    name: "micro-packed",
+  },
 ];
+
+const NARROW_EDITOR_QUERY = "(max-width: 700px)";
+function subscribeToEditorViewport(onChange: () => void) {
+  const query = window.matchMedia(NARROW_EDITOR_QUERY);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+function isNarrowEditorViewport() {
+  return window.matchMedia(NARROW_EDITOR_QUERY).matches;
+}
+function serverEditorViewport() {
+  return false;
+}
 
 export function Editor({
   value,
@@ -59,13 +96,21 @@ export function Editor({
   isLoading,
   highlight,
   onMount,
+  readOnly,
 }: {
   value: string;
   onChange: (val: string | undefined) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
   highlight?: number[];
   onMount?: (editor: editor.IStandaloneCodeEditor) => void;
 }) {
+  // Update Monaco options in place, preserving the same model and diagnostics.
+  const isNarrow = useSyncExternalStore(
+    subscribeToEditorViewport,
+    isNarrowEditorViewport,
+    serverEditorViewport,
+  );
   const [editor, setEditor] = useState<
     editor.IStandaloneCodeEditor | undefined
   >(undefined);
@@ -93,7 +138,7 @@ export function Editor({
         },
         options: {
           isWholeLine: true,
-          className: "bg-fuchsia-950",
+          className: "execution-line",
         },
       },
       {
@@ -104,7 +149,7 @@ export function Editor({
           endColumn: highlight[3] + 1,
         },
         options: {
-          className: "bg-fuchsia-900",
+          className: "execution-range",
         },
       },
     ];
@@ -119,16 +164,39 @@ export function Editor({
   return (
     <div className="relative h-full w-full">
       <MonacoEditor
-        className="h-[60vh] w-full lg:h-auto"
+        className="h-full w-full"
+        theme="vs-dark"
         defaultLanguage="typescript"
         defaultPath="/index.tsx"
         options={{
-          padding: { top: 20 },
+          padding: { top: 20, bottom: 20 },
+          readOnly,
+          automaticLayout: true,
+          fontSize: isNarrow ? 16 : 13,
+          lineHeight: isNarrow ? 24 : 22,
+          wordWrap: isNarrow ? "on" : "off",
+          lineNumbersMinChars: isNarrow ? 2 : 5,
+          glyphMargin: false,
+          folding: !isNarrow,
+          lineDecorationsWidth: isNarrow ? 4 : 10,
+          quickSuggestions: isNarrow
+            ? false
+            : {
+                other: "offWhenInlineCompletions",
+                comments: "off",
+                strings: "off",
+              },
+          suggestOnTriggerCharacters: !isNarrow,
+          fontFamily: "var(--font-geist-mono), monospace",
           minimap: { enabled: false },
           scrollBeyondLastLine: false,
         }}
-        value={isLoading ? "" : value}
-        onChange={onChange}
+        value={value}
+        onChange={(value) => {
+          if (!isLoading) {
+            onChange(value);
+          }
+        }}
         onMount={(editor, monaco) => {
           monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
             ...monaco.languages.typescript.typescriptDefaults.getCompilerOptions(),
@@ -162,7 +230,7 @@ export function Editor({
           });
 
           monaco.languages.typescript.typescriptDefaults.addExtraLib(
-            "import { ccc } from '@ckb-ccc/core'; import * as bitcoin from 'bitcoinjs-lib'; export { bitcoin }; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
+            "import { ccc } from '@ckb-ccc/core'; export function render(...msgs: unknown[]): Promise<void>; export const signer: ccc.Signer; export const client: ccc.Client;",
             "file:///node_modules/@ckb-ccc/playground/index.d.ts",
           );
           monaco.languages.typescript.typescriptDefaults.addExtraLib(

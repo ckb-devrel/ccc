@@ -1,0 +1,42 @@
+/* Collapsed tools are one quiet line, with an unobstructed hit target below the editor. */
+.workspace-focused .workspace-dock {
+  min-height: 24px;
+  height: 24px;
+  padding: 0;
+  gap: 0;
+}
+.workspace-focused .dock-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.workspace-focused .workspace-dock .layout-controls {
+  width: 100%;
+  margin: 0;
+}
+.tools-reveal {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.tools-reveal span {
+  width: 100%;
+  height: 1px;
+  background: var(--line-dark);
+}
+.tools-reveal:hover span,
+.tools-reveal:focus-visible span {
+  height: 2px;
+  background: var(--signal);
+}
+.tools-reveal:focus-visible {
+  outline: 1px solid var(--signal);
+  outline-offset: -2px;
+}

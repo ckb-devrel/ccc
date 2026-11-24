@@ -1,0 +1,48 @@
+.real-wallet-label-short {
+  display: none;
+}
+@media (max-width: 700px) {
+  .workbench-header.has-example-wallet {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 6px;
+    padding-bottom: 6px;
+  }
+  .has-example-wallet .connection-controls {
+    display: contents;
+  }
+  .has-example-wallet .brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .has-example-wallet .network-button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .has-example-wallet .resource-nav {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .has-example-wallet .example-wallet-control {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 6px;
+    min-width: 0;
+  }
+  .example-wallet-control > span {
+    flex-wrap: wrap;
+  }
+  .example-wallet-control .real-wallet-label {
+    display: none;
+  }
+  .example-wallet-control .real-wallet-label-short {
+    display: inline;
+  }
+}
+@media (max-width: 700px) {
+  .example-wallet-control .control-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

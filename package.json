@@ -4,8 +4,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "pnpm run -C packages/tests test && vitest",
-    "test:ci": "pnpm run -C packages/tests test && vitest run",
+    "test": "pnpm --filter @ckb-ccc/ccc-tests --filter @ckb-ccc/joy-id --filter @ckb-ccc/xverse run test && vitest",
+    "test:ci": "pnpm --filter @ckb-ccc/ccc-tests --filter @ckb-ccc/joy-id --filter @ckb-ccc/xverse run test && vitest run",
     "test:cov": "vitest run --coverage",
     "build:prepare": "pnpm -r --filter !./packages/tests --filter !./packages/app --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs --filter !. install",
     "build": "pnpm -r --filter !./packages/tests --filter !./packages/app --filter !./packages/faucet --filter !./packages/examples --filter !./packages/playground --filter !./packages/docs run build",
@@ -19,7 +19,7 @@
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@types/jest": "^30.0.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "jest": "30.5.2",
     "ts-jest": "^29.4.11",
     "typedoc": "0.28.20",
@@ -28,7 +28,7 @@
     "typedoc-plugin-ga": "^1.1.1",
     "@typescript/native": "npm:typescript@^7.0.2",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.12"
   },
   "packageManager": "pnpm@11.8.0"
 }

@@ -1,6 +1,6 @@
 import { ccc } from "@ckb-ccc/ccc";
-import { PropertyValues } from "lit";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { LitElement, PropertyValues } from "lit";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ConnectorConnection,
   ConnectorConnectionEvent,
@@ -377,5 +377,108 @@ describe("WebComponentConnector connection lifecycle", () => {
     expect(close).not.toHaveBeenCalled();
     expect(connector.signer?.signer).toBe(signer);
     expect(refresh).toHaveBeenCalledOnce();
+  });
+});
+
+describe("WebComponentConnector saved connection", () => {
+  // Exercise the connector lifecycle without Lit's browser-only rendering.
+  beforeEach(() => {
+    vi.spyOn(LitElement.prototype, "connectedCallback").mockImplementation(
+      () => {},
+    );
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  function mount(raw: string | null) {
+    const getItem = vi.fn(() => raw);
+    vi.stubGlobal("window", { localStorage: { getItem } });
+    const connector = new WebComponentConnector();
+    const refresh = vi
+      .spyOn(connector, "refreshSigner")
+      .mockImplementation(() => {});
+    connector.connectedCallback();
+    const selection = connector as unknown as {
+      signerName?: string;
+      walletName?: string;
+    };
+    expect(getItem).toHaveBeenCalledWith("ccc-connection-info");
+    expect(refresh).toHaveBeenCalledOnce();
+    return { connector, getItem, refresh, selection };
+  }
+
+  it.each([
+    null,
+    "{",
+    "",
+    "null",
+    "[]",
+    '"wallet"',
+    "true",
+    "42",
+    "{}",
+    '{"signerName":1,"walletName":"Wallet"}',
+    '{"signerName":"Signer","walletName":{}}',
+    '{"signerName":"Signer"}',
+    '{"walletName":"Wallet"}',
+  ])("mounts without a saved selection for %s", (raw) => {
+    const { selection } = mount(raw);
+    expect(selection.signerName).toBeUndefined();
+    expect(selection.walletName).toBeUndefined();
+  });
+
+  it("restores valid names and clears stale names on a corrupt remount", () => {
+    const { connector, getItem, refresh, selection } = mount(
+      JSON.stringify({ signerName: "Signer", walletName: "Wallet" }),
+    );
+    expect(selection.signerName).toBe("Signer");
+    expect(selection.walletName).toBe("Wallet");
+    getItem.mockReturnValue("{");
+    connector.connectedCallback();
+    expect(selection.signerName).toBeUndefined();
+    expect(selection.walletName).toBeUndefined();
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("continues mounting when reading localStorage throws", () => {
+    const { connector, getItem, refresh, selection } = mount(null);
+    getItem.mockImplementation(() => {
+      throw new Error("Storage denied");
+    });
+    expect(() => connector.connectedCallback()).not.toThrow();
+    expect(selection.signerName).toBeUndefined();
+    expect(selection.walletName).toBeUndefined();
+    expect(refresh).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("WebComponentConnector modal close lifecycle", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("closes the active scene and returns home after its dismissal animation", () => {
+    vi.useFakeTimers();
+    const connector = new WebComponentConnector();
+    const closeScene = vi.fn();
+    const onClosed = vi.fn();
+    const dispatch = vi.spyOn(connector, "dispatchEvent");
+    const state = connector as unknown as {
+      pairingKhie: boolean;
+      mainRef: { value: { style: { height: string } } };
+      contentRef: { value: { firstElementChild: { close: () => void } } };
+    };
+    state.pairingKhie = true;
+    state.mainRef = { value: { style: { height: "320px" } } };
+    state.contentRef = { value: { firstElementChild: { close: closeScene } } };
+
+    connector.close(onClosed);
+    expect(state.mainRef.value.style.height).toBe("0");
+    expect(closeScene).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(150);
+    expect(closeScene).toHaveBeenCalledOnce();
+    expect(state.pairingKhie).toBe(false);
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(onClosed).toHaveBeenCalledOnce();
   });
 });

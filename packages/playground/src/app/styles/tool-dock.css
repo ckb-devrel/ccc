@@ -1,0 +1,59 @@
+/* A collapsible dock keeps secondary actions beside their persistent toggle.
+   It is in normal flex flow, never overlaid on code or output. */
+.workbench-header .connection-controls {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.workspace-dock {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+  min-height: 46px;
+  padding: 5px 0;
+}
+.workspace-dock .workspace-heading {
+  padding: 0;
+}
+.workspace-dock .layout-controls {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.workspace-dock .tools-toggle {
+  min-width: 118px;
+  border-color: var(--signal-dark);
+  color: var(--signal);
+  background: #5bcefa0c;
+}
+.workspace-dock .tools-toggle[aria-expanded="false"] {
+  background: #5bcefa1a;
+}
+.dock-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font:
+    9px var(--font-geist-mono),
+    monospace;
+  text-transform: uppercase;
+}
+.workspace-focused .workspace-heading {
+  display: none;
+}
+@media (max-width: 700px) {
+  .workspace-dock {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .workspace-dock .workspace-heading {
+    flex-basis: 100%;
+  }
+  .workspace-dock .workspace-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .workspace-dock .tools-toggle {
+    min-height: 36px;
+  }
+}
