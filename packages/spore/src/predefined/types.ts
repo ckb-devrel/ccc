@@ -29,6 +29,8 @@ export type SporeScriptInfoLike = ccc.ScriptInfoLike & {
    * opt out per call with `withIntent: false`.
    */
   cobuild?: boolean;
+  /** Reviewed native lifecycle paired with this V3 Spore deployment. */
+  mutantScript?: ccc.ScriptInfoLike;
 };
 
 export class SporeScriptInfo extends ccc.ScriptInfo {
@@ -37,6 +39,7 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
     hashType: ccc.HashType,
     cellDeps: ccc.CellDepInfo[],
     public cobuild?: boolean,
+    public mutantScript?: ccc.ScriptInfoLike,
   ) {
     super(codeHash, hashType, cellDeps);
   }
@@ -47,6 +50,7 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
       ccc.hashTypeFrom(scriptInfoLike.hashType),
       scriptInfoLike.cellDeps.map((c) => ccc.CellDepInfo.from(c)),
       scriptInfoLike.cobuild,
+      scriptInfoLike.mutantScript,
     );
   }
 }

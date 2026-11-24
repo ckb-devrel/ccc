@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
+import { shouldIncludeAction } from "../helper/index.js";
 import { SporeScriptInfoLike } from "../predefined/index.js";
 
 export async function prepareCluster(
@@ -81,7 +82,9 @@ export async function prepareCluster(
         depType: "code",
       });
 
-      if (withIntent !== false && scriptInfo.cobuild) {
+      if (
+        shouldIncludeAction(signer.client, "Cluster", scriptInfo, withIntent)
+      ) {
         return assembleTransferClusterAction(
           cluster.cellOutput,
           cluster.cellOutput,

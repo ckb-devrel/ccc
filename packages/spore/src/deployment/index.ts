@@ -138,5 +138,6 @@ export function createSporeDeploymentProfile(
   if (new Set(identities).size !== identities.length) {
     throw new Error("Spore deployment roles require distinct code Type IDs");
   }
+  profile.spore.scriptInfo.mutantScript = profile.mutant.scriptInfo;
   return profile;
 }

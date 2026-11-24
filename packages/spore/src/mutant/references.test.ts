@@ -21,11 +21,15 @@ const lock = ccc.Script.from({
 });
 const point = (index: number) =>
   ccc.OutPoint.from({ txHash: hex("33"), index });
+const elf = new Uint8Array(64);
+elf.set([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1]);
+elf[16] = 2;
+elf[18] = 243;
 const cell = (args = id, index = 0) =>
   ccc.Cell.from({
     outPoint: point(index),
     cellOutput: { capacity: 100000000000n, lock, type: { ...info, args } },
-    outputData: "0x",
+    outputData: elf,
   });
 function clientFor(cells: ccc.Cell[]) {
   return {

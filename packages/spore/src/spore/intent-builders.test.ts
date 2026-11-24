@@ -9,7 +9,12 @@ import {
   unpackCommonCobuildProof,
 } from "../cobuild/index.js";
 import { packRawClusterData, packRawSporeData } from "../codec/index.js";
-import { getClusterScriptInfo } from "../predefined/index.js";
+import { createSporeDeploymentProfile } from "../deployment/index.js";
+import { withMutants } from "../mutant/index.js";
+import {
+  getClusterScriptInfo,
+  getSporeScriptInfo,
+} from "../predefined/index.js";
 import { prepareCluster } from "./advanced.js";
 import { createSpore, meltSpore, transferSpore } from "./index.js";
 
@@ -295,7 +300,7 @@ describe("optional intent builder compatibility", () => {
     expect(result.tx.witnesses[2]).toBe("0x1234");
     expect(result.tx.getWitnessArgs(0)?.lock).toHaveLength(132);
   });
-  it("forwards opt-out through cluster-backed createSpore", async () => {
+  it("keeps the required V2 Cluster Action when the V3 Spore opts out", async () => {
     for (const withIntent of [undefined, false]) {
       const f = setup(),
         legacyCluster = getClusterScriptInfo(f.client);
@@ -317,18 +322,22 @@ describe("optional intent builder compatibility", () => {
           tx,
           scripts: { Spore: [spore] },
         }),
-      ).toHaveLength(withIntent === false ? 0 : 2);
+      ).toHaveLength(withIntent === false ? 1 : 2);
       expect(tx.inputs).toHaveLength(2);
       expect(tx.outputs[1].type?.eq(f.clusterCell.cellOutput.type)).toBe(true);
       expect(
         tx.cellDeps.some((dep) => dep.outPoint.eq(f.clusterCell.outPoint)),
       ).toBe(true);
       if (withIntent === false) {
-        expect(unpackCommonCobuildProof(tx.witnesses.at(-1)!)).toBeUndefined();
+        const layout = unpackCommonCobuildProof(tx.witnesses.at(-1)!);
+        expect(
+          layout?.type === "SighashAll" &&
+            layout.value.message.actions[0].scriptHash,
+        ).toBe(f.clusterCell.cellOutput.type.hash());
       }
     }
   });
-  it("prepareCluster preserves default Cluster Action and honors explicit opt-out", async () => {
+  it("prepareCluster preserves the V2 Cluster Action on explicit V3 opt-out", async () => {
     for (const withIntent of [undefined, false]) {
       const f = setup(),
         legacy = getClusterScriptInfo(f.client);
@@ -341,11 +350,128 @@ describe("optional intent builder compatibility", () => {
         undefined,
         withIntent,
       );
-      expect(action !== undefined).toBe(withIntent !== false);
+      expect(action).toBeDefined();
       expect(f.tx.inputs).toHaveLength(2);
       expect(f.tx.outputs[0].type?.eq(f.clusterCell.cellOutput.type)).toBe(
         true,
       );
+    }
+  });
+});
+
+const ruleIds = [hex("71"), hex("72")];
+function mutantFixture() {
+  const f = setup();
+  const descriptor = (byte: string) => ({
+    typeId: hex(byte),
+    governanceLock: lock,
+    cellDep: {
+      outPoint: { txHash: hex(byte), index: 0 },
+      depType: "code" as const,
+    },
+    cobuild: true,
+  });
+  const profile = createSporeDeploymentProfile({
+    spore: descriptor("61"),
+    cluster: descriptor("62"),
+    mutant: descriptor("63"),
+  });
+  const scriptInfo = profile.spore.scriptInfo;
+  const data = {
+    content: "0x77",
+    contentType: withMutants("text/plain", ruleIds),
+  };
+  f.sporeCell.cellOutput.type = ccc.Script.from({ ...scriptInfo, args: id });
+  f.sporeCell.outputData = ccc.hexFrom(packRawSporeData(data));
+  const elf = new Uint8Array(64);
+  elf.set([0x7f, 0x45, 0x4c, 0x46, 2, 1, 1]);
+  elf[16] = 2;
+  elf[18] = 243;
+  const rules = ruleIds.map((args, index) =>
+    ccc.Cell.from({
+      outPoint: { txHash: hex("73"), index },
+      cellOutput: { lock, type: { ...profile.mutant.scriptInfo, args } },
+      outputData: elf,
+    }),
+  );
+  const lookup = vi.fn(async function* (key: ccc.ClientIndexerSearchKeyLike) {
+    expect(key.script.codeHash).toBe(profile.mutant.scriptInfo.codeHash);
+    yield* rules;
+  });
+  f.client.findCells = lookup;
+  const build = (op: "create" | "transfer" | "melt") => {
+    const base = { signer: f.signer, tx: f.tx, withIntent: false };
+    if (op === "create") {
+      return createSpore({ ...base, scriptInfo, data });
+    }
+    const scripts = [getSporeScriptInfo(f.client), scriptInfo];
+    if (op === "transfer") {
+      return transferSpore({ ...base, scripts, id, to: recipient });
+    }
+    return meltSpore({ ...base, scripts, id });
+  };
+  return { ...f, profile, rules, data, lookup, build };
+}
+
+describe("profile-bound native Mutants in Spore builders", () => {
+  it.each(["create", "transfer", "melt"] as const)(
+    "%s includes every rule once and permits retry after lookup failure",
+    async (op) => {
+      const f = mutantFixture();
+      const second = f.rules.pop()!;
+      f.tx.addCellDeps({ outPoint: f.rules[0].outPoint, depType: "code" });
+      const before = f.tx.toHex();
+      await expect(f.build(op)).rejects.toThrow(/not found/);
+      expect(f.tx.toHex()).toBe(before);
+      f.rules.push(second);
+      const { tx } = await f.build(op);
+      expect(tx.cellDeps.map((dep) => dep.outPoint.toHex())).toEqual(
+        f.rules.map((rule) => rule.outPoint.toHex()),
+      );
+      expect(f.tx.toHex()).toBe(before);
+    },
+  );
+
+  it.each(["ambiguous", "malformed ELF", "duplicate ID"] as const)(
+    "rejects %s without changing the input transaction",
+    async (failure) => {
+      const f = mutantFixture();
+      if (failure === "ambiguous") {
+        const duplicate = f.rules[1].clone();
+        duplicate.outPoint.index = 8n;
+        f.rules.push(duplicate);
+      } else if (failure === "malformed ELF") {
+        f.rules[1].outputData = "0x12";
+      } else {
+        f.data.contentType += "," + ruleIds[0].slice(2);
+      }
+      const before = f.tx.toHex();
+      await expect(f.build("create")).rejects.toThrow(
+        failure === "ambiguous"
+          ? /Ambiguous/
+          : failure === "malformed ELF"
+            ? /bytes/
+            : /Duplicate/,
+      );
+      expect(f.tx.toHex()).toBe(before);
+    },
+  );
+
+  it("leaves native-looking MIME on legacy and unpaired custom scripts to their own rules", async () => {
+    const f = mutantFixture();
+    for (const scriptInfo of [getSporeScriptInfo(f.client), spore]) {
+      f.sporeCell.cellOutput.type = ccc.Script.from({
+        ...scriptInfo,
+        args: id,
+      });
+      const { tx } = await transferSpore({
+        signer: f.signer,
+        scripts: [f.profile.spore.scriptInfo, scriptInfo],
+        id,
+        to: recipient,
+      });
+      expect(tx.outputsData[0]).toBe(f.sporeCell.outputData);
+      expect(f.lookup).not.toHaveBeenCalled();
     }
   });
 });

@@ -274,6 +274,7 @@ export async function injectMutantReferences(params: {
     if (!found) {
       throw new Error(`Mutant ${ccc.hexFrom(id)} not found`);
     }
+    checkNativeMutantCode(found.cell.outputData);
     outPoints.push(found.cell.outPoint);
   }
   // Resolve the entire set before mutating a caller-owned transaction.

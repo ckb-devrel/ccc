@@ -9,7 +9,10 @@ import {
   packRawClusterData,
   unpackToRawClusterData,
 } from "../codec/index.js";
-import { findSingletonCellByArgs } from "../helper/index.js";
+import {
+  findSingletonCellByArgs,
+  shouldIncludeAction,
+} from "../helper/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -73,7 +76,7 @@ export async function assertCluster(
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of new cluster, default spore version if undefined
  * @param params.scriptInfoHash the script info hash used in cobuild
- * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
+ * @param params.withIntent set false to omit optional V3 Actions. Published V2 scripts retain their required Actions.
  * @returns
  *  - **tx**: a new transaction that contains created Cluster cell
  *  - **id**: the id of the created Cluster cell
@@ -115,16 +118,20 @@ export async function createSporeCluster(params: {
   await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
 
   // generate cobuild action
-  const actions =
-    withIntent !== false && scriptInfo.cobuild
-      ? [
-          assembleCreateClusterAction(
-            tx.outputs[tx.outputs.length - 1],
-            packedClusterData,
-            scriptInfoHash,
-          ),
-        ]
-      : [];
+  const actions = shouldIncludeAction(
+    signer.client,
+    "Cluster",
+    scriptInfo,
+    withIntent,
+  )
+    ? [
+        assembleCreateClusterAction(
+          tx.outputs[tx.outputs.length - 1],
+          packedClusterData,
+          scriptInfoHash,
+        ),
+      ]
+    : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
@@ -140,7 +147,7 @@ export async function createSporeCluster(params: {
  * @param params.to the new owner of the Cluster cell
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
- * @param params.withIntent set false to skip attaching the CoBuild Action; only valid when every involved script accepts transactions without Actions (Spore v3, spore-contract#76)
+ * @param params.withIntent set false to omit optional V3 Actions. Published V2 scripts retain their required Actions.
  * @returns
  *  - **tx**: a new transaction that contains transferred Cluster cell
  */
@@ -180,16 +187,20 @@ export async function transferSporeCluster(params: {
   await tx.addCellDepInfos(signer.client, clusterScriptInfo.cellDeps);
 
   // generate cobuild action
-  const actions =
-    withIntent !== false && clusterScriptInfo.cobuild
-      ? [
-          assembleTransferClusterAction(
-            cluster.cellOutput,
-            tx.outputs[tx.outputs.length - 1],
-            scriptInfoHash,
-          ),
-        ]
-      : [];
+  const actions = shouldIncludeAction(
+    signer.client,
+    "Cluster",
+    clusterScriptInfo,
+    withIntent,
+  )
+    ? [
+        assembleTransferClusterAction(
+          cluster.cellOutput,
+          tx.outputs[tx.outputs.length - 1],
+          scriptInfoHash,
+        ),
+      ]
+    : [];
 
   return {
     tx: await prepareSporeTransaction(signer, tx, actions),
