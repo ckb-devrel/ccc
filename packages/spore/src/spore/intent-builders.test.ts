@@ -360,7 +360,7 @@ describe("optional intent builder compatibility", () => {
 });
 
 const ruleIds = [hex("71"), hex("72")];
-function mutantFixture() {
+function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
   const f = setup();
   const descriptor = (byte: string) => ({
     typeId: hex(byte),
@@ -379,7 +379,7 @@ function mutantFixture() {
   const scriptInfo = profile.spore.scriptInfo;
   const data = {
     content: "0x77",
-    contentType: withMutants("text/plain", ruleIds),
+    contentType,
   };
   f.sporeCell.cellOutput.type = ccc.Script.from({ ...scriptInfo, args: id });
   f.sporeCell.outputData = ccc.hexFrom(packRawSporeData(data));
@@ -414,6 +414,23 @@ function mutantFixture() {
 }
 
 describe("profile-bound native Mutants in Spore builders", () => {
+  it.each(["transfer", "melt"] as const)(
+    "%s accepts an existing Spore with an escaped line feed and no Mutants",
+    async (op) => {
+      const f = mutantFixture('text/plain;note="first\\\nsecond"');
+      const { tx } = await f.build(op);
+      expect(
+        tx.inputs.some((input) =>
+          input.previousOutput.eq(f.sporeCell.outPoint),
+        ),
+      ).toBe(true);
+      expect(tx.outputsData).toEqual(
+        op === "transfer" ? [f.sporeCell.outputData] : [],
+      );
+      expect(f.lookup).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(["create", "transfer", "melt"] as const)(
     "%s includes every rule once and permits retry after lookup failure",
     async (op) => {

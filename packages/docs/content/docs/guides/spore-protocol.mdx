@@ -240,7 +240,7 @@ The proposed contracts in spore-contract [#75](https://github.com/sporeprotocol/
 
 ### Optional intent
 
-All five Spore/Cluster builders accept `withIntent: false` to omit their new Actions. Use it only when every affected script accepts absent Actions. Existing transaction Actions are preserved and reattached after Lock preparation, including when a builder adds inputs without a new Action.
+All five Spore/Cluster builders accept `withIntent: false` to omit optional V3 Actions. They still add the required Actions for the network's V2 Spore and Cluster presets. For example, minting a V3 Spore with a V2 preset Cluster in `clusterCell` mode still adds the V2 Cluster transfer Action. For custom deployments, keep intent enabled if a script requires its Action. The builders also preserve existing transaction Actions and reattach them after Lock preparation.
 
 Before displaying metadata, call `checkSporeIntent` from `@ckb-ccc/spore/advanced`. **Display only its returned verified Spore Actions as verified.** Foreign Actions remain untouched in the transaction but are excluded from that result. Always show the actual transaction changes too: an empty result does not certify that no assets move.
 
@@ -252,7 +252,11 @@ All eleven Action variants bind their IDs, owners and operation shape to resolve
 
 A native Mutant stores a compiled RISC-V ELF in immutable Cell data. Use `checkNativeMutantCode` for bounded ELF header preflight and `createMutant` with a reviewed `type` deployment to construct publication. The VM still decides executable validity and the rule result.
 
-`withMutants` and `getMutantIds` manage comma-separated 32-byte IDs without a `0x` prefix. Parsing includes every `mutant[]` parameter and rejects global duplicate IDs. `findMutant` resolves either 32-byte args or the 40-byte ID/payment form, validates deployment identity and rejects ambiguous matches. Use `injectMutantReferences` before **mint, transfer and melt**, including every declared rule dependency; a payment suffix does not change the referenced ID. `checkMutantPayments` checks net-capacity thresholds for **one Spore type-script group per call**. Callers must partition the declared Mutant outpoints and invoke it separately for each group, even when payee Locks match; the helper does not infer group membership, so passing independent groups together overcounts their thresholds and can reject a valid transaction.
+`withMutants` and `getMutantIds` manage comma-separated 32-byte IDs without a `0x` prefix. Parsing includes every `mutant[]` parameter and rejects global duplicate IDs. `findMutant` resolves either 32-byte args or the 40-byte ID/payment form, validates deployment identity and rejects ambiguous matches. Both forms refer to the same 32-byte ID.
+
+Use `profile.spore.scriptInfo` from `createSporeDeploymentProfile` as the `scriptInfo` for `createSpore`, or include it in `scripts` for `transferSpore` and `meltSpore`. When that descriptor matches the Spore, the builder reads its `mutant[]` IDs and adds each rule Cell as a dependency automatically. If you use a custom Spore descriptor without a paired Mutant deployment, call `injectMutantReferences` with the declared IDs and the Mutant deployment before passing the transaction to the builder.
+
+`checkMutantPayments` checks net-capacity thresholds for **one Spore type-script group per call**. Callers must partition the declared Mutant outpoints and invoke it separately for each group, even when payee Locks match; the helper does not infer group membership, so passing independent groups together overcounts their thresholds and can reject a valid transaction.
 
 These are SDK construction and offline validation helpers. Local package checks do not replace fresh CCC-built signed devnet transactions and exact-byte VM replay for release acceptance. The obsolete SDK PR #142's acceptance evidence does not certify this rewrite.
 
@@ -279,7 +283,6 @@ Use `createSpore({ scriptInfo: profile.spore.scriptInfo,
 clusterScripts: [profile.cluster.scriptInfo], ... })` for a custom type-bound
 Cluster. Supply the deployment list appropriate for the intended old/new
 Collection; compatibility is still constrained by contract allowlists.
-Mutant code dependencies are injected with the same reviewed native profile.
 Historical presets and the V2 default remain unchanged; existing NFTs are not
 silently migrated. Type-bound native execution requires Meepo activation.
 

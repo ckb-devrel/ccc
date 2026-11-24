@@ -13,7 +13,7 @@ Harden intent validation with category-bound deployment identities, a verified-o
 
 Bind new native deployments through standard code Type IDs with reviewed deployment-supplied governance Locks and optional executable pins. Resolve live code successors and forward custom Cluster descriptors. Historical presets/defaults remain unchanged.
 
-Match the contract's Unicode whitespace trimming in Mutant content-type parsing and construction, including U+0085, while preserving strict parameter whitespace rules.
+Match the contract's Unicode whitespace trimming in Mutant content-type parsing and construction, including U+0085. Accept escaped line feeds in quoted parameters so existing Spores with these content types can be transferred or melted with a paired V3 deployment.
 
 Pass `profile.spore.scriptInfo` from `createSporeDeploymentProfile()` as the
 mint deployment, or include it in the transfer/melt `scripts` list. These builders

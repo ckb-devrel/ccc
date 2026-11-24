@@ -146,7 +146,8 @@ function contentTypeParameters(contentType: string): [string, string][] {
     if (
       equal < 0 ||
       !/^(?:mutant\[\]|[a-zA-Z0-9*][a-zA-Z0-9!#$&^_.+%*'-]*)$/.test(name) ||
-      !/^(?:"(?:[^"\\\n]|\\[^\n])*"|[a-zA-Z0-9!#$&^_.+%*',-]*)$/.test(value)
+      // The contract accepts a line feed inside quotes only after a backslash.
+      !/^(?:"(?:[^"\\\n]|\\.)*"|[a-zA-Z0-9!#$&^_.+%*',-]*)$/s.test(value)
     ) {
       throw new Error("Invalid content-type parameter");
     }

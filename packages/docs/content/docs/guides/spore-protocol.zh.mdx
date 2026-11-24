@@ -238,7 +238,7 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 ### 可选意图
 
-五个 Spore／Cluster 构建函数均支持 `withIntent: false`，跳过本次新 Action。只有所有相关脚本都允许缺少 Action 时才能使用。交易已有的 Action 会保留，并在 Lock 准备后重新附加，即使本次构建增加了输入但没有新增 Action。
+五个 Spore／Cluster 构建函数都支持用 `withIntent: false` 省略可选的 V3 Action。对于当前网络预设的 V2 Spore 和 Cluster，构建函数仍会加入必需的 Action。例如，以 `clusterCell` 模式使用预设的 V2 Cluster 铸造 V3 Spore 时，交易仍会包含 V2 Cluster 的转移 Action。自定义部署如果要求 Action，应保持意图功能开启。构建函数也会保留交易已有的 Action，并在 Lock 准备完成后重新附加。
 
 展示元数据前，从 `@ckb-ccc/spore/advanced` 调用 `checkSporeIntent`。**只有它返回的 Spore Action 才能展示为已验证。** 外部协议 Action 仍留在交易中，但不会混入已验证结果。钱包还必须展示实际交易变化；空结果不能证明没有资产流转。
 
@@ -250,7 +250,11 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 原生 Mutant 将编译后的 RISC-V ELF 存在不可变 Cell data 中。用 `checkNativeMutantCode` 检查大小及 ELF 头，用 `createMutant` 和经过审查的 `type` 部署构造发布交易；实际可执行性和规则结果仍由 VM 决定。
 
-`withMutants`／`getMutantIds` 使用不带 `0x` 前缀、逗号分隔的 32 字节 ID。解析会收集全部 `mutant[]` 参数并拒绝全局重复 ID。`findMutant` 支持 32 字节 args 和带支付参数的 40 字节形式，核对部署身份并拒绝歧义匹配。**mint、transfer 和 melt 前都要**用 `injectMutantReferences` 加入全部声明的规则依赖；支付后缀不会改变引用的 ID。`checkMutantPayments` **每次只检查一个 Spore type-script group** 的净容量阈值。调用方必须按组划分声明的 Mutant outpoint，并分别调用，即使各组收款 Lock 相同；函数不会推断分组，也不应跨独立组累加阈值。
+`withMutants`／`getMutantIds` 使用不带 `0x` 前缀、逗号分隔的 32 字节 ID。解析会收集全部 `mutant[]` 参数并拒绝全局重复 ID。`findMutant` 支持 32 字节 args 和带支付参数的 40 字节形式，核对部署身份并拒绝歧义匹配。两种形式引用同一个 32 字节 ID。
+
+使用 `createSporeDeploymentProfile` 返回的 `profile.spore.scriptInfo` 时，铸造时将它传给 `createSpore` 的 `scriptInfo`，转移或销毁时将它加入 `transferSpore` 或 `meltSpore` 的 `scripts` 列表。构建函数使用这份配置时，会读取 Spore 声明的全部 `mutant[]` ID，自动将对应的规则 Cell 加入交易依赖。若自定义 Spore 配置没有配对的 Mutant 部署，则先用声明的 ID 和 Mutant 部署调用 `injectMutantReferences`，再把交易传给构建函数。
+
+`checkMutantPayments` **每次只检查一个 Spore type-script group** 的净容量阈值。调用方必须按组划分声明的 Mutant outpoint，并分别调用，即使各组收款 Lock 相同；函数不会推断分组，也不应跨独立组累加阈值。
 
 这些功能用于 SDK 交易构造与离线检查。本地包测试不能代替使用 CCC 自己构建和签名的 devnet 交易与逐字节 VM 重放；旧 SDK PR #142 的验收结果不能直接用于证明此次重写通过验收。
 
@@ -271,8 +275,7 @@ Cell 的标准 Type ID 参数生成引用，并记录经过审查的治理 Lock�
 
 自定义 type 绑定 Cluster 可通过 `createSpore({ scriptInfo:
 profile.spore.scriptInfo, clusterScripts: [profile.cluster.scriptInfo], ... })`
-传入。新旧 Collection 的实际兼容范围仍由合约白名单决定。原生 Mutant 依赖使用
-同一套经过审查的配置注入。历史部署和 V2 默认值保持不变，不自动迁移已有 NFT；
+传入。新旧 Collection 的实际兼容范围仍由合约白名单决定。历史部署和 V2 默认值保持不变，不自动迁移已有 NFT；
 type 绑定的原生执行要求网络已激活 Meepo。
 
 ## 下一步

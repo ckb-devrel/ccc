@@ -302,4 +302,12 @@ describe("contract-compatible Mutant MIME lists", () => {
       getMutantIds(withMutants('text/plain;note="mutant[]";', [id])),
     ).toEqual([id]);
   });
+
+  it("reads rule IDs after an escaped line feed and rejects a bare line feed in quotes", () => {
+    const escaped = 'text/plain;note="first\\\nsecond"';
+    expect(getMutantIds(withMutants(escaped, [id]))).toEqual([id]);
+    expect(() => getMutantIds('text/plain;note="first\nsecond"')).toThrow(
+      /content-type parameter/,
+    );
+  });
 });
