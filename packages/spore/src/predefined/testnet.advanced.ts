@@ -36,7 +36,7 @@ export const SCRIPTS_SPORE_TESTNET: Record<
         cellDep: {
           outPoint: {
             txHash:
-              "0x5e8d2a517d50fd4bb4d01737a7952a1f1d35c8afc77240695bb569cd7d9d5a1f",
+              "0xe71e3d378ab589685cafb9ea7da6bd42c9b0b770016d32b727a1e4118ac8d680",
             index: 0,
           },
           depType: "code",
@@ -77,8 +77,8 @@ export const SCRIPTS_CLUSTER_TESTNET: Record<
         cellDep: {
           outPoint: {
             txHash:
-              "0xcebb174d6e300e26074aea2f5dbd7f694bb4fe3de52b6dfe205e54f90164510a",
-            index: 0,
+              "0xe71e3d378ab589685cafb9ea7da6bd42c9b0b770016d32b727a1e4118ac8d680",
+            index: 1,
           },
           depType: "code",
         },
