@@ -54,7 +54,7 @@
   "dependencies": {
     "@ckb-ccc/core": "workspace:*",
     "@ckb-ccc/type-id": "workspace:*",
-    "@ipld/dag-cbor": "^10.0.1",
+    "@ipld/dag-cbor": "^11.0.0",
     "@noble/curves": "^2.2.0"
   },
   "packageManager": "pnpm@11.8.0",
