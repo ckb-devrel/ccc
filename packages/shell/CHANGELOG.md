@@ -1,5 +1,12 @@
 # @ckb-ccc/shell
 
+## 1.4.1
+
+### Patch Changes
+
+- Updated dependencies [[`edcfc8b`](https://github.com/ckb-devrel/ccc/commit/edcfc8b44af964a94823de9ae4cd1e5e059179d2)]:
+  - @ckb-ccc/spore@1.6.18
+
 ## 1.4.0
 
 ### Minor Changes

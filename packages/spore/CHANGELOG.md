@@ -1,5 +1,11 @@
 # @ckb-ccc/spore
 
+## 1.6.18
+
+### Patch Changes
+
+- [#648](https://github.com/ckb-devrel/ccc/pull/648) [`edcfc8b`](https://github.com/ckb-devrel/ccc/commit/edcfc8b44af964a94823de9ae4cd1e5e059179d2) Thanks [@ashuralyk](https://github.com/ashuralyk)! - Update the Testnet V2 Spore and Cluster cell deps to the 2026-11-25 blackhole-lock redeployment of the same 0.2.2-beta.2 binaries. Both entries keep the same code hashes, `hashType: "data1"`, and `depType: "code"`. The new cells have no Type ID.
+
 ## 1.6.17
 
 ### Patch Changes
