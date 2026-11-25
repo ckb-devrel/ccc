@@ -240,7 +240,9 @@ The proposed contracts in spore-contract [#75](https://github.com/sporeprotocol/
 
 ### Optional intent
 
-All five Spore/Cluster builders accept `withIntent: false` to omit optional V3 Actions. They still add the required Actions for the network's V2 Spore and Cluster presets. For example, minting a V3 Spore with a V2 preset Cluster in `clusterCell` mode still adds the V2 Cluster transfer Action. For custom deployments, keep intent enabled if a script requires its Action. The builders also preserve existing transaction Actions and reattach them after Lock preparation.
+All five Spore/Cluster builders accept `withIntent: false` to omit optional V3 Actions. They still add the required Actions for the network's V2 Spore and Cluster presets. For example, minting a V3 Spore with a V2 preset Cluster in `clusterCell` mode still adds the V2 Cluster transfer Action. The builders also preserve existing transaction Actions and reattach them after Lock preparation.
+
+For a custom deployment whose contract requires a CoBuild Action, set `cobuild: true` on that script's deployment descriptor. Leave the builder's `withIntent` option unset or set it to `true`.
 
 Before displaying metadata, call `checkSporeIntent` from `@ckb-ccc/spore/advanced`. **Display only its returned verified Spore Actions as verified.** Foreign Actions remain untouched in the transaction but are excluded from that result. Always show the actual transaction changes too: an empty result does not certify that no assets move.
 

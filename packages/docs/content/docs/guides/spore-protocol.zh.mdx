@@ -238,7 +238,9 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 ### 可选意图
 
-五个 Spore／Cluster 构建函数都支持用 `withIntent: false` 省略可选的 V3 Action。对于当前网络预设的 V2 Spore 和 Cluster，构建函数仍会加入必需的 Action。例如，以 `clusterCell` 模式使用预设的 V2 Cluster 铸造 V3 Spore 时，交易仍会包含 V2 Cluster 的转移 Action。自定义部署如果要求 Action，应保持意图功能开启。构建函数也会保留交易已有的 Action，并在 Lock 准备完成后重新附加。
+五个 Spore／Cluster 构建函数都支持用 `withIntent: false` 省略可选的 V3 Action。对于当前网络预设的 V2 Spore 和 Cluster，构建函数仍会加入必需的 Action。例如，以 `clusterCell` 模式使用预设的 V2 Cluster 铸造 V3 Spore 时，交易仍会包含 V2 Cluster 的转移 Action。构建函数也会保留交易已有的 Action，并在 Lock 准备完成后重新附加。
+
+如果自定义部署的合约要求 CoBuild Action，请在该脚本的部署配置中设置 `cobuild: true`。调用构建函数时，可以省略 `withIntent`，或将它设为 `true`。
 
 展示元数据前，从 `@ckb-ccc/spore/advanced` 调用 `checkSporeIntent`。**只有它返回的 Spore Action 才能展示为已验证。** 外部协议 Action 仍留在交易中，但不会混入已验证结果。钱包还必须展示实际交易变化；空结果不能证明没有资产流转。
 
