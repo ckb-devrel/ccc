@@ -8,7 +8,11 @@ import {
   prepareSporeTransaction,
   unpackCommonCobuildProof,
 } from "../cobuild/index.js";
-import { packRawClusterData, packRawSporeData } from "../codec/index.js";
+import {
+  packRawClusterData,
+  packRawSporeData,
+  WitnessLayout,
+} from "../codec/index.js";
 import { createSporeDeploymentProfile } from "../deployment/index.js";
 import { withMutants } from "../mutant/index.js";
 import {
@@ -124,6 +128,56 @@ async function build(
 }
 
 describe("optional intent builder compatibility", () => {
+  it("rejects composition before invoking a signer if the Message is sealed", async () => {
+    const f = setup();
+    const prepare = vi.spyOn(f.signer, "prepareTransaction");
+    const witness = WitnessLayout.encode({
+      type: "SighashAll",
+      value: { seal: "0x1234", message: { actions: [] } },
+    });
+    f.tx.setWitness(0, witness);
+    const before = f.tx.toHex();
+    await expect(prepareSporeTransaction(f.signer, f.tx, [])).rejects.toThrow(
+      /sealed CoBuild Message/,
+    );
+    await expect(
+      transferSpore({
+        signer: f.signer,
+        tx: f.tx,
+        id,
+        to: recipient,
+        scripts: [spore],
+        withIntent: false,
+      }),
+    ).rejects.toThrow(/sealed CoBuild Message/);
+    expect(f.tx.toHex()).toBe(before);
+    expect(prepare).not.toHaveBeenCalled();
+  });
+
+  it("uses the requested script info hash for both Actions in a Cluster mint", async () => {
+    const f = setup();
+    const scriptInfoHash = hex("ab");
+    const { tx } = await createSpore({
+      signer: f.signer,
+      tx: f.tx,
+      scriptInfo: spore,
+      clusterScripts: [cluster],
+      clusterMode: "clusterCell",
+      scriptInfoHash,
+      data: { contentType: "text/plain", content: "0x1234", clusterId: id },
+    });
+    const actions = await checkSporeIntent({
+      client: f.client,
+      scripts: { Spore: [spore], Cluster: [cluster] },
+      scriptInfoHashes: [scriptInfoHash],
+      tx,
+    });
+    expect(actions.map((action) => action.scriptInfoHash)).toEqual([
+      scriptInfoHash,
+      scriptInfoHash,
+    ]);
+  });
+
   it("forwards custom type-bound Cluster deployments during Spore creation", async () => {
     const f = setup();
     const { tx } = await createSpore({
@@ -365,6 +419,7 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
   const descriptor = (byte: string) => ({
     typeId: hex(byte),
     governanceLock: lock,
+    expectedDataHash: ccc.hashCkb("0x99"),
     cellDep: {
       outPoint: { txHash: hex(byte), index: 0 },
       depType: "code" as const,
@@ -376,6 +431,21 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
     cluster: descriptor("62"),
     mutant: descriptor("63"),
   });
+  const codeCells = [profile.spore, profile.cluster, profile.mutant].map(
+    (deployment, index) =>
+      ccc.Cell.from({
+        outPoint: { txHash: hex("76"), index },
+        cellOutput: { capacity: 10000000000n, lock, type: deployment.codeType },
+        outputData: "0x99",
+      }),
+  );
+  const findAsset = f.client.findSingletonCellByType.bind(f.client);
+  const resolve = vi.fn(
+    async (type: ccc.ScriptLike) =>
+      codeCells.find((cell) => cell.cellOutput.type?.eq(type)) ??
+      findAsset(type),
+  );
+  f.client.findSingletonCellByType = resolve;
   const scriptInfo = profile.spore.scriptInfo;
   const data = {
     content: "0x77",
@@ -410,10 +480,49 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
     }
     return meltSpore({ ...base, scripts, id });
   };
-  return { ...f, profile, rules, data, lookup, build };
+  return { ...f, profile, rules, data, lookup, build, codeCells, resolve };
 }
 
 describe("profile-bound native Mutants in Spore builders", () => {
+  it("uses the live pinned Cluster code Cell and attaches the rule on mint", async () => {
+    const f = mutantFixture();
+    const getCellDeps = vi.spyOn(f.client, "getCellDeps");
+    const { tx } = await createSporeCluster({
+      signer: f.signer,
+      tx: f.tx,
+      scriptInfo: f.profile.cluster.scriptInfo,
+      data: { name: "Native", description: "", mutantId: ruleIds[0] },
+      withIntent: false,
+    });
+    expect(tx.cellDeps.map((dep) => dep.outPoint.toHex())).toEqual(
+      [f.rules[0], f.codeCells[1]].map((cell) => cell.outPoint.toHex()),
+    );
+    expect(f.resolve).toHaveBeenCalledExactlyOnceWith(
+      f.profile.cluster.codeType,
+      true,
+    );
+    expect(getCellDeps).not.toHaveBeenCalled();
+  });
+
+  it.each(["bytecode", "governance Lock"] as const)(
+    "rejects a successor with changed %s before signing",
+    async (change) => {
+      const f = mutantFixture();
+      const code = f.codeCells[0].clone();
+      if (change === "bytecode") {
+        code.outputData = "0x98";
+      } else {
+        code.cellOutput.lock = recipient;
+      }
+      f.codeCells[0] = code;
+      const before = f.tx.toHex();
+      await expect(f.build("create")).rejects.toThrow(
+        change === "bytecode" ? /binary pin/ : /governance Lock/,
+      );
+      expect(f.tx.toHex()).toBe(before);
+    },
+  );
+
   it.each(["transfer", "melt"] as const)(
     "%s accepts an existing Spore with an escaped line feed and no Mutants",
     async (op) => {
@@ -443,7 +552,7 @@ describe("profile-bound native Mutants in Spore builders", () => {
       f.rules.push(second);
       const { tx } = await f.build(op);
       expect(tx.cellDeps.map((dep) => dep.outPoint.toHex())).toEqual(
-        f.rules.map((rule) => rule.outPoint.toHex()),
+        [...f.rules, f.codeCells[0]].map((cell) => cell.outPoint.toHex()),
       );
       expect(f.tx.toHex()).toBe(before);
     },

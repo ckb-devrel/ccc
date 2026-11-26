@@ -1,4 +1,5 @@
 import { ccc } from "@ckb-ccc/core";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -404,7 +405,8 @@ export async function createMutant(params: {
     );
   }
 
-  const tx = ccc.Transaction.from(params.tx ?? {});
+  const source = ccc.Transaction.from(params.tx ?? {});
+  const tx = scriptInfo.codePolicy ? source.clone() : source;
   await tx.completeInputsAtLeastOne(signer);
 
   const id = ccc.hashTypeId(tx.inputs[0], tx.outputs.length);
@@ -419,7 +421,7 @@ export async function createMutant(params: {
     code,
   );
 
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
 
   return { tx, id };
 }

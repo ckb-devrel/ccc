@@ -5,11 +5,13 @@ import {
   assembleTransferSporeAction,
   prepareSporeTransaction,
 } from "../advanced.js";
+import { sporeTransactionForComposition } from "../cobuild/index.js";
 import {
   SporeDataView,
   packRawSporeData,
   unpackToRawSporeData,
 } from "../codec/index.js";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
 import {
   findSingletonCellByArgs,
   shouldIncludeAction,
@@ -77,9 +79,9 @@ async function prepareMutantDependencies(
   scriptInfo: SporeScriptInfoLike,
   contentType: string,
 ): Promise<ccc.Transaction> {
-  const tx = ccc.Transaction.from(txLike ?? {});
+  const tx = sporeTransactionForComposition(txLike);
   if (!scriptInfo.mutantScript) {
-    return tx;
+    return scriptInfo.codePolicy ? tx.clone() : tx;
   }
   if (ccc.hashTypeFrom(scriptInfo.hashType) !== "type") {
     throw new Error("Native Mutant references require a type-bound Spore");
@@ -172,14 +174,14 @@ export async function createSpore(params: {
   }
 
   // complete cellDeps
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
 
   const action = await prepareCluster(
     signer,
     tx,
     data,
     clusterMode,
-    undefined,
+    scriptInfoHash,
     withIntent,
     params.clusterScripts,
   );
@@ -229,7 +231,7 @@ export async function transferSpore(params: {
     sporeScriptInfo,
     sporeData.contentType,
   );
-  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, sporeScriptInfo);
   tx.addInput(sporeCell);
   tx.addOutput(
     {
@@ -294,7 +296,7 @@ export async function meltSpore(params: {
     sporeScriptInfo,
     sporeData.contentType,
   );
-  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, sporeScriptInfo);
   tx.addInput(sporeCell);
 
   const actions = shouldIncludeAction(

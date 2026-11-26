@@ -20,6 +20,13 @@ export enum SporeVersion {
 
 export const SPORE_VERSION_DEFAULT = SporeVersion.V2;
 
+/** Policy for the live executable Cell of a reviewed Type ID deployment. */
+export type SporeCodePolicy = {
+  codeType: ccc.Script;
+  governanceLock: ccc.Script;
+  expectedDataHash?: ccc.Hex;
+};
+
 export type SporeScriptInfoLike = ccc.ScriptInfoLike & {
   /**
    * When true, transactions attach CoBuild Actions by default.
@@ -29,8 +36,9 @@ export type SporeScriptInfoLike = ccc.ScriptInfoLike & {
    * opt out per call with `withIntent: false`.
    */
   cobuild?: boolean;
-  /** Reviewed native lifecycle paired with this V3 Spore deployment. */
+  /** Reviewed native lifecycle paired with this V3 asset deployment. */
   mutantScript?: ccc.ScriptInfoLike;
+  codePolicy?: SporeCodePolicy;
 };
 
 export class SporeScriptInfo extends ccc.ScriptInfo {
@@ -40,6 +48,7 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
     cellDeps: ccc.CellDepInfo[],
     public cobuild?: boolean,
     public mutantScript?: ccc.ScriptInfoLike,
+    public codePolicy?: SporeCodePolicy,
   ) {
     super(codeHash, hashType, cellDeps);
   }
@@ -51,6 +60,7 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
       scriptInfoLike.cellDeps.map((c) => ccc.CellDepInfo.from(c)),
       scriptInfoLike.cobuild,
       scriptInfoLike.mutantScript,
+      scriptInfoLike.codePolicy,
     );
   }
 }

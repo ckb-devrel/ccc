@@ -1,8 +1,11 @@
 import { ccc } from "@ckb-ccc/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SporeAction } from "../codec/index.js";
 import {
+  assembleCreateClusterAction,
   assembleCreateSporeAction,
   assembleMeltSporeAction,
+  assembleTransferClusterAction,
   assembleTransferSporeAction,
   checkSporeIntent,
   injectCobuild,
@@ -46,6 +49,26 @@ beforeEach(() => {
   client = {
     getCell: vi.fn(async () => ({ ...inputCell })),
   } as unknown as ccc.Client;
+});
+
+it("uses the ID prefix in all five Actions and hashes the complete type script", () => {
+  const type = ccc.Script.from({ ...sporeType, args: sporeId + "01" });
+  const input = { capacity, lock: lockA, type };
+  const output = { ...input, lock: lockB };
+  const actions = [
+    assembleCreateSporeAction(output, content),
+    assembleTransferSporeAction(input, output),
+    assembleMeltSporeAction(input),
+    assembleCreateClusterAction(output, content),
+    assembleTransferClusterAction(input, output),
+  ];
+  for (const action of actions) {
+    expect(action.scriptHash).toBe(type.hash());
+    const { value } = SporeAction.decode(ccc.bytesFrom(action.data));
+    expect(value).toMatchObject(
+      "sporeId" in value ? { sporeId } : { clusterId: sporeId },
+    );
+  }
 });
 
 describe("checkSporeIntent", () => {

@@ -21,3 +21,7 @@ read every `mutant[]` entry from the Spore data and add the resolved native ELF
 rule Cells as dependencies. A lookup or validation failure preserves the supplied
 transaction for retry. Custom scripts without a paired native lifecycle keep
 manual dependency handling through `injectMutantReferences()`.
+
+Cluster minting with a paired profile adds the rule Cell for `data.mutantId`.
+Builders attach the exact code Cell checked against the descriptor's governance
+Lock and optional binary pin. Compose before signing a CoBuild Message.

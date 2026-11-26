@@ -13,6 +13,10 @@ import {
   getSporeScriptInfos,
 } from "../predefined/index.js";
 
+function assetId(args: ccc.HexLike): ccc.Hex {
+  return ccc.hexFrom(ccc.bytesFrom(args).slice(0, 32));
+}
+
 export function assembleCreateSporeAction(
   sporeOutput: ccc.CellOutputLike,
   sporeData: ccc.BytesLike,
@@ -26,7 +30,7 @@ export function assembleCreateSporeAction(
   const actionData = SporeAction.encode({
     type: "CreateSpore",
     value: {
-      sporeId: sporeType.args,
+      sporeId: assetId(sporeType.args),
       to: {
         type: "Script",
         value: sporeOutput.lock,
@@ -55,7 +59,7 @@ export function assembleTransferSporeAction(
   const actionData = SporeAction.encode({
     type: "TransferSpore",
     value: {
-      sporeId: sporeType.args,
+      sporeId: assetId(sporeType.args),
       from: {
         type: "Script",
         value: sporeInput.lock,
@@ -85,7 +89,7 @@ export function assembleMeltSporeAction(
   const actionData = SporeAction.encode({
     type: "MeltSpore",
     value: {
-      sporeId: sporeType.args,
+      sporeId: assetId(sporeType.args),
       from: {
         type: "Script",
         value: sporeInput.lock,
@@ -112,7 +116,7 @@ export function assembleCreateClusterAction(
   const actionData = SporeAction.encode({
     type: "CreateCluster",
     value: {
-      clusterId: clusterType.args,
+      clusterId: assetId(clusterType.args),
       to: {
         type: "Script",
         value: clusterOutput.lock,
@@ -140,7 +144,7 @@ export function assembleTransferClusterAction(
   const actionData = SporeAction.encode({
     type: "TransferCluster",
     value: {
-      clusterId: clusterType.args,
+      clusterId: assetId(clusterType.args),
       from: {
         type: "Script",
         value: clusterInput.lock,
@@ -186,7 +190,12 @@ export function unpackCommonCobuildProof(
 
 function findCobuildMessage(tx: ccc.Transaction) {
   let message:
-    { index: number; actions: ccc.DecodedType<typeof ActionVec> } | undefined;
+    | {
+        index: number;
+        seal: ccc.Hex;
+        actions: ccc.DecodedType<typeof ActionVec>;
+      }
+    | undefined;
   const tags: number[] = Object.values(WitnessLayoutFieldTags);
   for (const [index, witness] of tx.witnesses.entries()) {
     const bytes = ccc.bytesFrom(witness);
@@ -211,7 +220,11 @@ function findCobuildMessage(tx: ccc.Transaction) {
     if (message !== undefined) {
       throw new Error("Duplicated CoBuild Message");
     }
-    message = { index, actions: layout.value.message.actions };
+    message = {
+      index,
+      seal: layout.value.seal,
+      actions: layout.value.message.actions,
+    };
   }
   return message;
 }
@@ -219,7 +232,7 @@ function findCobuildMessage(tx: ccc.Transaction) {
 export function extractCobuildActionsFromTx(
   tx: ccc.Transaction,
 ): ccc.DecodedType<typeof ActionVec> {
-  const message = findCobuildMessage(tx);
+  const message = findComposableMessage(tx);
   if (!message) {
     return [];
   }
@@ -231,6 +244,24 @@ export function extractCobuildActionsFromTx(
     tx.witnesses.splice(message.index, 1);
   }
   return message.actions;
+}
+
+function findComposableMessage(tx: ccc.Transaction) {
+  const message = findCobuildMessage(tx);
+  if (message && message.seal !== "0x") {
+    throw new Error(
+      "Cannot compose a transaction with a sealed CoBuild Message",
+    );
+  }
+  return message;
+}
+
+export function sporeTransactionForComposition(
+  txLike?: ccc.TransactionLike,
+): ccc.Transaction {
+  const tx = ccc.Transaction.from(txLike ?? {});
+  findComposableMessage(tx);
+  return tx;
 }
 
 export function injectCobuild(
@@ -455,7 +486,7 @@ export async function checkSporeIntent(params: {
       );
     }
     const side = output ?? input!;
-    const id = ccc.hexFrom(ccc.bytesFrom(side.type.args).slice(0, 32));
+    const id = assetId(side.type.args);
     const declaredId =
       "sporeId" in value
         ? value.sporeId

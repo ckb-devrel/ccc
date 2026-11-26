@@ -242,6 +242,8 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 如果自定义部署的合约要求 CoBuild Action，请在该脚本的部署配置中设置 `cobuild: true`。调用构建函数时，可以省略 `withIntent`，或将它设为 `true`。
 
+请先完成交易组装，再签署 CoBuild Message。Spore 和 Cluster 构建函数会拒绝已有非空 seal 的 Message。
+
 展示元数据前，从 `@ckb-ccc/spore/advanced` 调用 `checkSporeIntent`。**只有它返回的 Spore Action 才能展示为已验证。** 外部协议 Action 仍留在交易中，但不会混入已验证结果。钱包还必须展示实际交易变化；空结果不能证明没有资产流转。
 
 检查器通过 code hash 和 hash type 识别已有 Spore／Cluster 预设。自定义部署应按真实类别传入 `scripts: { Spore: [v3Spore], Cluster: [v3Cluster], ClusterProxy: [proxyInfo], ClusterAgent: [agentInfo] }`。这些配置是应用提供的信任依据，不构成部署来源证明。构建时若使用自定义 `scriptInfoHash`，还需通过 `scriptInfoHashes` 显式允许；默认只接受 `DEFAULT_COBUILD_INFO_HASH`。
@@ -256,6 +258,8 @@ spore-contract [#75](https://github.com/sporeprotocol/spore-contract/pull/75) �
 
 使用 `createSporeDeploymentProfile` 返回的 `profile.spore.scriptInfo` 时，铸造时将它传给 `createSpore` 的 `scriptInfo`，转移或销毁时将它加入 `transferSpore` 或 `meltSpore` 的 `scripts` 列表。构建函数使用这份配置时，会读取 Spore 声明的全部 `mutant[]` ID，自动将对应的规则 Cell 加入交易依赖。若自定义 Spore 配置没有配对的 Mutant 部署，则先用声明的 ID 和 Mutant 部署调用 `injectMutantReferences`，再把交易传给构建函数。
 
+将 `profile.cluster.scriptInfo` 传给 `createSporeCluster` 时，构建函数会自动添加 `data.mutantId` 对应的规则 Cell。
+
 `checkMutantPayments` **每次只检查一个 Spore type-script group** 的净容量阈值。调用方必须按组划分声明的 Mutant outpoint，并分别调用，即使各组收款 Lock 相同；函数不会推断分组，也不应跨独立组累加阈值。
 
 这些功能用于 SDK 交易构造与离线检查。本地包测试不能代替使用 CCC 自己构建和签名的 devnet 交易与逐字节 VM 重放；旧 SDK PR #142 的验收结果不能直接用于证明此次重写通过验收。
@@ -268,9 +272,10 @@ Cell 的标准 Type ID 参数生成引用，并记录经过审查的治理 Lock�
 已经被消费的 OutPoint。`createSporeDeploymentProfile` 将 Spore、Cluster、Mutant
 及可选 Proxy/Agent 的不同代码身份组成配置，Type ID 必须与合约构建计划一致。
 
-治理由部署方提供的现有 Lock 执行，SDK 中的名称不构成权限保证。签名前调用
-`resolveSporeCodeDeployment` 检查当前代码 Cell 的标准 Type ID、预期治理 Lock
-及可选 `expectedDataHash`。只有应用明确接受治理授权的代码升级时才省略内容哈希
+治理由部署方提供的现有 Lock 执行。传入经过审查的部署配置后，构建函数会核对当前
+代码 Cell 的标准 Type ID、预期治理 Lock 及可选 `expectedDataHash`，再将同一 Cell
+的 OutPoint 加入交易。也可以单独调用 `resolveSporeCodeDeployment` 检查这份配置。
+只有应用明确接受治理授权的代码升级时才省略内容哈希
 固定值；治理 Lock 轮换需要更新经过审查的配置。该函数不审计 Lock 的语义，也不
 保证其禁止销毁代码 Cell。要求固定执行语义的应用重放配置仍应绑定实际可执行文件
 哈希。

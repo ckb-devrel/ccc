@@ -4,15 +4,18 @@ import {
   assembleTransferClusterAction,
   prepareSporeTransaction,
 } from "../advanced.js";
+import { sporeTransactionForComposition } from "../cobuild/index.js";
 import {
   ClusterDataView,
   packRawClusterData,
   unpackToRawClusterData,
 } from "../codec/index.js";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
 import {
   findSingletonCellByArgs,
   shouldIncludeAction,
 } from "../helper/index.js";
+import { injectMutantReferences } from "../mutant/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
@@ -97,7 +100,23 @@ export async function createSporeCluster(params: {
   const scriptInfo = params.scriptInfo ?? getClusterScriptInfo(signer.client);
 
   // prepare transaction
-  const tx = ccc.Transaction.from(params.tx ?? {});
+  const source = sporeTransactionForComposition(params.tx);
+  const { mutantScript } = scriptInfo;
+  const tx =
+    scriptInfo.codePolicy || (mutantScript && data.mutantId !== undefined)
+      ? source.clone()
+      : source;
+  if (mutantScript && data.mutantId !== undefined) {
+    if (ccc.hashTypeFrom(scriptInfo.hashType) !== "type") {
+      throw new Error("Native Mutant references require a type-bound Cluster");
+    }
+    await injectMutantReferences({
+      client: signer.client,
+      tx,
+      mutantIds: [data.mutantId],
+      scripts: [mutantScript],
+    });
+  }
   await tx.completeInputsAtLeastOne(signer);
 
   // build cluster cell
@@ -115,7 +134,7 @@ export async function createSporeCluster(params: {
   );
 
   // complete cellDeps
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
 
   // generate cobuild action
   const actions = shouldIncludeAction(
@@ -164,9 +183,6 @@ export async function transferSporeCluster(params: {
 }> {
   const { signer, id, to, scripts, scriptInfoHash, withIntent } = params;
 
-  // prepare transaction
-  const tx = ccc.Transaction.from(params.tx ?? {});
-
   // build cluster cell
   const { cell: cluster, scriptInfo: clusterScriptInfo } = await assertCluster(
     signer.client,
@@ -174,6 +190,8 @@ export async function transferSporeCluster(params: {
     scripts,
   );
 
+  const source = sporeTransactionForComposition(params.tx);
+  const tx = clusterScriptInfo.codePolicy ? source.clone() : source;
   tx.addInput(cluster);
   tx.addOutput(
     {
@@ -184,7 +202,7 @@ export async function transferSporeCluster(params: {
   );
 
   // complete cellDeps
-  await tx.addCellDepInfos(signer.client, clusterScriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, clusterScriptInfo);
 
   // generate cobuild action
   const actions = shouldIncludeAction(

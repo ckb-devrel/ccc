@@ -2,6 +2,7 @@ import { ccc } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
 import { shouldIncludeAction } from "../helper/index.js";
 import { SporeScriptInfoLike } from "../predefined/index.js";
 
@@ -73,9 +74,9 @@ export async function prepareCluster(
         return;
       }
 
+      await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
       tx.addInput(cluster);
       tx.addOutput(cluster.cellOutput, cluster.outputData);
-      await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
       // note: add cluster as cellDep, which will be used in Spore contract
       tx.addCellDeps({
         outPoint: cluster.outPoint,

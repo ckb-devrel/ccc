@@ -1,5 +1,9 @@
 import { ccc } from "@ckb-ccc/core";
-import { SporeScriptInfo } from "../predefined/index.js";
+import {
+  SporeCodePolicy,
+  SporeScriptInfo,
+  SporeScriptInfoLike,
+} from "../predefined/index.js";
 
 const TYPE_ID_CODE_HASH =
   "0x00000000000000000000000000000000000000000000000000545950455f4944";
@@ -16,10 +20,7 @@ export type SporeCodeDeploymentLike = {
   cobuild?: boolean;
 };
 
-export type SporeCodeDeployment = {
-  codeType: ccc.Script;
-  governanceLock: ccc.Script;
-  expectedDataHash?: ccc.Hex;
+export type SporeCodeDeployment = SporeCodePolicy & {
   scriptInfo: SporeScriptInfo;
 };
 
@@ -49,18 +50,22 @@ export function createSporeCodeDeployment(
   if (cellDep.depType !== "code") {
     throw new Error("Type-bound code deployment requires a code CellDep");
   }
-  return {
+  const codePolicy = {
     codeType,
     governanceLock: ccc.Script.from(deployment.governanceLock).clone(),
     expectedDataHash:
       deployment.expectedDataHash === undefined
         ? undefined
         : byte32(deployment.expectedDataHash, "Expected code data hash"),
+  };
+  return {
+    ...codePolicy,
     scriptInfo: SporeScriptInfo.from({
       codeHash: codeType.hash(),
       hashType: "type",
       cellDeps: [{ cellDep, type: codeType.clone() }],
       cobuild: deployment.cobuild,
+      codePolicy,
     }),
   };
 }
@@ -74,31 +79,71 @@ export async function resolveSporeCodeDeployment(
   client: ccc.Client,
   deployment: SporeCodeDeployment,
 ): Promise<ccc.Cell> {
+  return resolveReviewedCodeCell(client, deployment.scriptInfo, deployment);
+}
+
+async function resolveReviewedCodeCell(
+  client: ccc.Client,
+  scriptInfo: SporeScriptInfoLike,
+  policy: SporeCodePolicy,
+): Promise<ccc.Cell> {
+  const { codeType, governanceLock, expectedDataHash } = policy;
   if (
-    deployment.codeType.codeHash !== TYPE_ID_CODE_HASH ||
-    deployment.codeType.hashType !== "type" ||
-    ccc.bytesFrom(deployment.codeType.args).length !== 32 ||
-    deployment.scriptInfo.hashType !== "type" ||
-    deployment.scriptInfo.codeHash !== deployment.codeType.hash()
+    codeType.codeHash !== TYPE_ID_CODE_HASH ||
+    codeType.hashType !== "type" ||
+    ccc.bytesFrom(codeType.args).length !== 32 ||
+    ccc.hashTypeFrom(scriptInfo.hashType) !== "type" ||
+    ccc.hexFrom(scriptInfo.codeHash) !== codeType.hash()
   ) {
     throw new Error("Inconsistent standard Type ID deployment binding");
   }
-  const cell = await client.findSingletonCellByType(deployment.codeType, true);
-  if (!cell || !cell.cellOutput.type?.eq(deployment.codeType)) {
+  const cell = await client.findSingletonCellByType(codeType, true);
+  if (!cell || !cell.cellOutput.type?.eq(codeType)) {
     throw new Error("Type-bound code Cell not found or identity mismatch");
   }
-  if (!cell.cellOutput.lock.eq(deployment.governanceLock)) {
+  if (!cell.cellOutput.lock.eq(governanceLock)) {
     throw new Error(
       "Code Cell governance Lock differs from the reviewed policy",
     );
   }
   if (
-    deployment.expectedDataHash !== undefined &&
-    ccc.hashCkb(cell.outputData) !== deployment.expectedDataHash
+    expectedDataHash !== undefined &&
+    ccc.hashCkb(cell.outputData) !== expectedDataHash
   ) {
     throw new Error("Code Cell data differs from the reviewed binary pin");
   }
   return cell;
+}
+
+/** Bind exactly the reviewed live executable Cell when preparing a transaction. */
+export async function addSporeCodeCellDeps(
+  tx: ccc.Transaction,
+  client: ccc.Client,
+  scriptInfo: SporeScriptInfoLike,
+): Promise<void> {
+  const { codePolicy } = scriptInfo;
+  if (!codePolicy) {
+    await tx.addCellDepInfos(client, scriptInfo.cellDeps);
+    return;
+  }
+
+  const dependencies = scriptInfo.cellDeps.map((dep) =>
+    ccc.CellDepInfo.from(dep),
+  );
+  const executable = dependencies.filter((dep) =>
+    dep.type?.eq(codePolicy.codeType),
+  );
+  if (executable.length !== 1 || executable[0].cellDep.depType !== "code") {
+    throw new Error(
+      "Reviewed deployment requires exactly one executable code CellDep",
+    );
+  }
+  const cell = await resolveReviewedCodeCell(client, scriptInfo, codePolicy);
+  const extraDeps = dependencies.filter((dep) => dep !== executable[0]);
+  if (extraDeps.length > 0) {
+    await tx.addCellDepInfos(client, extraDeps);
+  }
+  tx.addCellDeps({ outPoint: cell.outPoint, depType: "code" });
 }
 
 export type SporeDeploymentProfileLike = {
@@ -139,5 +184,6 @@ export function createSporeDeploymentProfile(
     throw new Error("Spore deployment roles require distinct code Type IDs");
   }
   profile.spore.scriptInfo.mutantScript = profile.mutant.scriptInfo;
+  profile.cluster.scriptInfo.mutantScript = profile.mutant.scriptInfo;
   return profile;
 }
