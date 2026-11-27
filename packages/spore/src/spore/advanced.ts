@@ -30,7 +30,6 @@ export async function prepareCluster(
     scripts,
   );
 
-  // If this cluster has been processed, nothing will happen to the tx
   switch (clusterMode) {
     case "lockProxy": {
       const lock = cluster.cellOutput.lock;
@@ -70,18 +69,20 @@ export async function prepareCluster(
       return;
     }
     case "clusterCell": {
-      if (tx.inputs.some((i) => i.previousOutput.eq(cluster.outPoint))) {
+      const existingInput = tx.inputs.some((input) =>
+        input.previousOutput.eq(cluster.outPoint),
+      );
+      if (!existingInput || scriptInfo.codePolicy) {
+        await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
+        // The Spore contract reads the Cluster's data from a cell dependency.
+        tx.addCellDeps({ outPoint: cluster.outPoint, depType: "code" });
+      }
+      if (existingInput) {
         return;
       }
 
-      await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
       tx.addInput(cluster);
       tx.addOutput(cluster.cellOutput, cluster.outputData);
-      // note: add cluster as cellDep, which will be used in Spore contract
-      tx.addCellDeps({
-        outPoint: cluster.outPoint,
-        depType: "code",
-      });
 
       if (
         shouldIncludeAction(signer.client, "Cluster", scriptInfo, withIntent)

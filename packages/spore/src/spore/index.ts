@@ -20,6 +20,7 @@ import { getMutantIds, injectMutantReferences } from "../mutant/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
+  getClusterScriptInfos,
   getSporeScriptInfo,
   getSporeScriptInfos,
 } from "../predefined/index.js";
@@ -78,10 +79,11 @@ async function prepareMutantDependencies(
   txLike: ccc.TransactionLike | undefined,
   scriptInfo: SporeScriptInfoLike,
   contentType: string,
+  copyForClusterPolicy = false,
 ): Promise<ccc.Transaction> {
   const tx = sporeTransactionForComposition(txLike);
   if (!scriptInfo.mutantScript) {
-    return scriptInfo.codePolicy ? tx.clone() : tx;
+    return scriptInfo.codePolicy || copyForClusterPolicy ? tx.clone() : tx;
   }
   if (ccc.hashTypeFrom(scriptInfo.hashType) !== "type") {
     throw new Error("Native Mutant references require a type-bound Spore");
@@ -132,6 +134,14 @@ export async function createSpore(params: {
 }> {
   const { signer, data, to, clusterMode, scriptInfoHash, withIntent } = params;
   const scriptInfo = params.scriptInfo ?? getSporeScriptInfo(signer.client);
+  // Cluster code validation can fail independently of the Spore deployment.
+  const copyForClusterPolicy =
+    !!data.clusterId &&
+    clusterMode === "clusterCell" &&
+    (
+      params.clusterScripts ??
+      Object.values(getClusterScriptInfos(signer.client))
+    ).some((script) => script?.codePolicy !== undefined);
 
   // prepare transaction
   const actions = [];
@@ -141,6 +151,7 @@ export async function createSpore(params: {
     params.tx,
     scriptInfo,
     data.contentType,
+    copyForClusterPolicy,
   );
   await tx.completeInputsAtLeastOne(signer);
 

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createSporeCluster, transferSporeCluster } from "../cluster/index.js";
 import {
   assembleCreateSporeAction,
+  assembleTransferClusterAction,
   checkSporeIntent,
   injectCobuild,
   prepareSporeTransaction,
@@ -482,6 +483,98 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
   };
   return { ...f, profile, rules, data, lookup, build, codeCells, resolve };
 }
+
+function reviewedClusterMint(reuseCluster: boolean) {
+  const f = mutantFixture();
+  const clusterScript = f.profile.cluster.scriptInfo;
+  f.clusterCell.cellOutput.type = ccc.Script.from({
+    ...clusterScript,
+    args: id,
+  });
+  const action = assembleTransferClusterAction(
+    f.clusterCell.cellOutput,
+    f.clusterCell.cellOutput,
+  );
+  if (reuseCluster) {
+    f.tx.addInput(f.clusterCell);
+    f.tx.addOutput(f.clusterCell.cellOutput, f.clusterCell.outputData);
+    f.tx.addCellDeps({ outPoint: f.clusterCell.outPoint, depType: "code" });
+    injectCobuild(f.tx, [action]);
+  }
+  const mint = () =>
+    createSpore({
+      signer: f.signer,
+      tx: f.tx,
+      scriptInfo: spore,
+      clusterScripts: [clusterScript],
+      clusterMode: "clusterCell",
+      withIntent: false,
+      data: { clusterId: id, contentType: "text/plain", content: "0x77" },
+    });
+  return { ...f, action, mint };
+}
+
+describe("Spore mint with a reviewed Cluster deployment", () => {
+  it.each([false, true])(
+    "checks a preassembled Cluster and includes its live code once (already present: %s)",
+    async (hasCodeDep) => {
+      const f = reviewedClusterMint(true);
+      const live = f.codeCells[1].outPoint;
+      if (hasCodeDep) {
+        f.tx.addCellDeps({ outPoint: live, depType: "code" });
+      } else {
+        f.tx.cellDeps = [];
+      }
+      const before = f.tx.toHex();
+      const { tx } = await f.mint();
+      expect(f.resolve).toHaveBeenCalledWith(f.profile.cluster.codeType, true);
+      expect(tx.inputs.map((input) => input.previousOutput.toHex())).toEqual(
+        f.tx.inputs.map((input) => input.previousOutput.toHex()),
+      );
+      expect(tx.outputs).toHaveLength(2);
+      expect(tx.outputs[0].toHex()).toBe(f.tx.outputs[0].toHex());
+      expect(tx.outputsData[0]).toBe(f.tx.outputsData[0]);
+      expect(tx.cellDeps.map((dep) => dep.outPoint.toHex()).sort()).toEqual(
+        [f.clusterCell.outPoint, live]
+          .map((outPoint) => outPoint.toHex())
+          .sort(),
+      );
+      const proof = unpackCommonCobuildProof(tx.witnesses.at(-1)!);
+      expect(
+        proof?.type === "SighashAll" && proof.value.message.actions,
+      ).toEqual([f.action]);
+      expect(f.tx.toHex()).toBe(before);
+    },
+  );
+
+  it.each([
+    [false, "binary pin"],
+    [true, "binary pin"],
+    [true, "governance Lock"],
+  ])(
+    "keeps a transaction unchanged (preassembled: %s) when Cluster code fails the %s check",
+    async (reuseCluster, mismatch) => {
+      const f = reviewedClusterMint(reuseCluster);
+      const approved = f.codeCells[1];
+      const replacement = approved.clone();
+      if (mismatch === "binary pin") {
+        replacement.outputData = "0x98";
+      } else {
+        replacement.cellOutput.lock = recipient;
+      }
+      f.codeCells[1] = replacement;
+      const before = f.tx.toHex();
+      await expect(f.mint()).rejects.toThrow(mismatch);
+      expect(f.tx.toHex()).toBe(before);
+
+      f.codeCells[1] = approved;
+      const { tx } = await f.mint();
+      expect(tx.outputs).toHaveLength(2);
+      expect(tx.inputs).toHaveLength(2);
+      expect(f.tx.toHex()).toBe(before);
+    },
+  );
+});
 
 describe("profile-bound native Mutants in Spore builders", () => {
   it("uses the live pinned Cluster code Cell and attaches the rule on mint", async () => {
