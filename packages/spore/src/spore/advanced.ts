@@ -2,6 +2,9 @@ import { ccc } from "@ckb-ccc/core";
 import { assembleTransferClusterAction } from "../advanced.js";
 import { assertCluster } from "../cluster/index.js";
 import { Action, SporeDataView } from "../codec/index.js";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
+import { shouldIncludeAction } from "../helper/index.js";
+import { SporeScriptInfoLike } from "../predefined/index.js";
 
 export async function prepareCluster(
   signer: ccc.Signer,
@@ -9,6 +12,8 @@ export async function prepareCluster(
   data: SporeDataView,
   clusterMode?: "lockProxy" | "clusterCell" | "skip",
   scriptInfoHash?: ccc.HexLike,
+  withIntent?: boolean,
+  scripts?: SporeScriptInfoLike[],
 ): Promise<ccc.EncodableType<typeof Action> | undefined> {
   // skip if the spore is not belong to a cluster
   if (!data.clusterId || clusterMode === "skip") {
@@ -22,9 +27,17 @@ export async function prepareCluster(
   const { cell: cluster, scriptInfo } = await assertCluster(
     signer.client,
     data.clusterId,
+    scripts,
   );
+  const existingInput = tx.inputs.some((input) =>
+    input.previousOutput.eq(cluster.outPoint),
+  );
+  const clusterDep = { outPoint: cluster.outPoint, depType: "code" as const };
+  if (existingInput && scriptInfo.codePolicy) {
+    await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
+    tx.addCellDeps(clusterDep);
+  }
 
-  // If this cluster has been processed, nothing will happen to the tx
   switch (clusterMode) {
     case "lockProxy": {
       const lock = cluster.cellOutput.lock;
@@ -57,27 +70,23 @@ export async function prepareCluster(
         tx.addOutput(proxyCell.cellOutput.clone(), proxyCell.outputData);
       }
 
-      tx.addCellDeps({
-        outPoint: cluster.outPoint,
-        depType: "code",
-      });
+      tx.addCellDeps(clusterDep);
       return;
     }
     case "clusterCell": {
-      if (tx.inputs.some((i) => i.previousOutput.eq(cluster.outPoint))) {
+      if (existingInput) {
         return;
       }
 
+      await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
+      // The Spore contract reads the Cluster's data from a cell dependency.
+      tx.addCellDeps(clusterDep);
       tx.addInput(cluster);
       tx.addOutput(cluster.cellOutput, cluster.outputData);
-      await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
-      // note: add cluster as cellDep, which will be used in Spore contract
-      tx.addCellDeps({
-        outPoint: cluster.outPoint,
-        depType: "code",
-      });
 
-      if (scriptInfo.cobuild) {
+      if (
+        shouldIncludeAction(signer.client, "Cluster", scriptInfo, withIntent)
+      ) {
         return assembleTransferClusterAction(
           cluster.cellOutput,
           cluster.cellOutput,

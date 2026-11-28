@@ -8,12 +8,37 @@ export enum SporeVersion {
   V1 = "V1",
   V2 = "V2",
   DID = "DID",
+  /**
+   * Spore v3 contracts (spore-contract PRs #75/#76): Type ID-bound contracts on Meepo/CKB-VM2
+   * Spore/Cluster scripts, native Rust Mutants, and optional CoBuild intent.
+   *
+   * Preset entries stay `undefined` until the contracts are deployed;
+   * pass a custom `SporeScriptInfoLike` to try a v3 deployment early.
+   */
+  V3 = "V3",
 }
 
 export const SPORE_VERSION_DEFAULT = SporeVersion.V2;
 
+/** Policy for the live executable Cell of a reviewed Type ID deployment. */
+export type SporeCodePolicy = {
+  codeType: ccc.Script;
+  governanceLock: ccc.Script;
+  expectedDataHash?: ccc.Hex;
+};
+
 export type SporeScriptInfoLike = ccc.ScriptInfoLike & {
+  /**
+   * When true, transactions attach CoBuild Actions by default.
+   *
+   * For Spore v3 scripts Actions are optional intent metadata
+   * (spore-contract#76): keep this enabled for wallet display, and
+   * opt out per call with `withIntent: false`.
+   */
   cobuild?: boolean;
+  /** Reviewed native lifecycle paired with this V3 asset deployment. */
+  mutantScript?: ccc.ScriptInfoLike;
+  codePolicy?: SporeCodePolicy;
 };
 
 export class SporeScriptInfo extends ccc.ScriptInfo {
@@ -22,6 +47,8 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
     hashType: ccc.HashType,
     cellDeps: ccc.CellDepInfo[],
     public cobuild?: boolean,
+    public mutantScript?: ccc.ScriptInfoLike,
+    public codePolicy?: SporeCodePolicy,
   ) {
     super(codeHash, hashType, cellDeps);
   }
@@ -32,6 +59,8 @@ export class SporeScriptInfo extends ccc.ScriptInfo {
       ccc.hashTypeFrom(scriptInfoLike.hashType),
       scriptInfoLike.cellDeps.map((c) => ccc.CellDepInfo.from(c)),
       scriptInfoLike.cobuild,
+      scriptInfoLike.mutantScript,
+      scriptInfoLike.codePolicy,
     );
   }
 }

@@ -5,15 +5,22 @@ import {
   assembleTransferSporeAction,
   prepareSporeTransaction,
 } from "../advanced.js";
+import { sporeTransactionForComposition } from "../cobuild/index.js";
 import {
   SporeDataView,
   packRawSporeData,
   unpackToRawSporeData,
 } from "../codec/index.js";
-import { findSingletonCellByArgs } from "../helper/index.js";
+import { addSporeCodeCellDeps } from "../deployment/index.js";
+import {
+  findSingletonCellByArgs,
+  shouldIncludeAction,
+} from "../helper/index.js";
+import { getMutantIds, injectMutantReferences } from "../mutant/index.js";
 import {
   SporeScriptInfo,
   SporeScriptInfoLike,
+  getClusterScriptInfos,
   getSporeScriptInfo,
   getSporeScriptInfos,
 } from "../predefined/index.js";
@@ -55,6 +62,7 @@ export async function assertSpore(
   scripts?: SporeScriptInfoLike[],
 ): Promise<{
   cell: ccc.Cell;
+  sporeData: SporeDataView;
   scriptInfo: SporeScriptInfo;
 }> {
   const res = await findSpore(client, args, scripts);
@@ -64,6 +72,30 @@ export async function assertSpore(
   }
 
   return res;
+}
+
+async function prepareMutantDependencies(
+  client: ccc.Client,
+  txLike: ccc.TransactionLike | undefined,
+  scriptInfo: SporeScriptInfoLike,
+  contentType: string,
+  copyForClusterPolicy = false,
+): Promise<ccc.Transaction> {
+  const tx = sporeTransactionForComposition(txLike);
+  if (!scriptInfo.mutantScript) {
+    return scriptInfo.codePolicy || copyForClusterPolicy ? tx.clone() : tx;
+  }
+  if (ccc.hashTypeFrom(scriptInfo.hashType) !== "type") {
+    throw new Error("Native Mutant references require a type-bound Spore");
+  }
+  const prepared = tx.clone();
+  await injectMutantReferences({
+    client,
+    tx: prepared,
+    mutantIds: getMutantIds(contentType),
+    scripts: [scriptInfo.mutantScript],
+  });
+  return prepared;
 }
 
 /**
@@ -79,7 +111,9 @@ export async function assertSpore(
  *   - skip: don't handle the cluster logic
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfo the script info of Spore cell, if not provided, the default script info will be used
+ * @param params.clusterScripts reviewed Cluster deployments, including a custom type-bound profile when needed
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to omit optional V3 Actions. Published V2 scripts retain their required Actions.
  * @returns
  *  - **tx**: a new transaction that contains created Spore cells
  *  - **id**: the sporeId of created Spore cell
@@ -91,18 +125,34 @@ export async function createSpore(params: {
   clusterMode?: "lockProxy" | "clusterCell" | "skip";
   tx?: ccc.TransactionLike;
   scriptInfo?: SporeScriptInfoLike;
+  clusterScripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
   id: ccc.Hex;
 }> {
-  const { signer, data, to, clusterMode, scriptInfoHash } = params;
+  const { signer, data, to, clusterMode, scriptInfoHash, withIntent } = params;
   const scriptInfo = params.scriptInfo ?? getSporeScriptInfo(signer.client);
+  // Cluster code validation can fail independently of the Spore deployment.
+  const copyForClusterPolicy =
+    !!data.clusterId &&
+    (clusterMode === "clusterCell" || clusterMode === "lockProxy") &&
+    (
+      params.clusterScripts ??
+      Object.values(getClusterScriptInfos(signer.client))
+    ).some((script) => script?.codePolicy !== undefined);
 
   // prepare transaction
   const actions = [];
   const ids: ccc.Hex[] = [];
-  const tx = ccc.Transaction.from(params.tx ?? {});
+  const tx = await prepareMutantDependencies(
+    signer.client,
+    params.tx,
+    scriptInfo,
+    data.contentType,
+    copyForClusterPolicy,
+  );
   await tx.completeInputsAtLeastOne(signer);
 
   const { script: lock } = await signer.getRecommendedAddressObj();
@@ -124,7 +174,7 @@ export async function createSpore(params: {
   );
 
   // create spore action
-  if (scriptInfo.cobuild) {
+  if (shouldIncludeAction(signer.client, "Spore", scriptInfo, withIntent)) {
     const output = tx.outputs[tx.outputs.length - 1];
     const createAction = assembleCreateSporeAction(
       output,
@@ -135,9 +185,17 @@ export async function createSpore(params: {
   }
 
   // complete cellDeps
-  await tx.addCellDepInfos(signer.client, scriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
 
-  const action = await prepareCluster(signer, tx, data, clusterMode);
+  const action = await prepareCluster(
+    signer,
+    tx,
+    data,
+    clusterMode,
+    scriptInfoHash,
+    withIntent,
+    params.clusterScripts,
+  );
   if (action) {
     actions.push(action);
   }
@@ -156,6 +214,7 @@ export async function createSpore(params: {
  * @param params.to Spore's new owner
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to omit optional V3 Actions. Published V2 scripts retain their required Actions.
  * @returns
  *  - **tx**: a new transaction that contains transferred Spore cells
  */
@@ -166,20 +225,24 @@ export async function transferSpore(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, to, scripts, scriptInfoHash } = params;
+  const { signer, id, to, scripts, scriptInfoHash, withIntent } = params;
 
-  // prepare transaction
-  const tx = ccc.Transaction.from(params.tx ?? {});
-
-  const { cell: sporeCell, scriptInfo: sporeScriptInfo } = await assertSpore(
+  const {
+    cell: sporeCell,
+    sporeData,
+    scriptInfo: sporeScriptInfo,
+  } = await assertSpore(signer.client, id, scripts);
+  const tx = await prepareMutantDependencies(
     signer.client,
-    id,
-    scripts,
+    params.tx,
+    sporeScriptInfo,
+    sporeData.contentType,
   );
-  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, sporeScriptInfo);
   tx.addInput(sporeCell);
   tx.addOutput(
     {
@@ -189,7 +252,12 @@ export async function transferSpore(params: {
     sporeCell.outputData,
   );
 
-  const actions = sporeScriptInfo.cobuild
+  const actions = shouldIncludeAction(
+    signer.client,
+    "Spore",
+    sporeScriptInfo,
+    withIntent,
+  )
     ? [
         assembleTransferSporeAction(
           sporeCell.cellOutput,
@@ -211,6 +279,7 @@ export async function transferSpore(params: {
  * @param params.id sporeId to be melted
  * @param params.tx the transaction skeleton, if not provided, a new one will be created
  * @param params.scriptInfoHash the script info hash used in cobuild
+ * @param params.withIntent set false to omit optional V3 Actions. Published V2 scripts retain their required Actions.
  * @returns
  *  - **tx**: a new transaction that contains melted Spore cell
  */
@@ -220,24 +289,33 @@ export async function meltSpore(params: {
   tx?: ccc.TransactionLike;
   scripts?: SporeScriptInfoLike[];
   scriptInfoHash?: ccc.HexLike;
+  withIntent?: boolean;
 }): Promise<{
   tx: ccc.Transaction;
 }> {
-  const { signer, id, scripts, scriptInfoHash } = params;
-
-  // prepare transaction
-  const tx = ccc.Transaction.from(params.tx ?? {});
+  const { signer, id, scripts, scriptInfoHash, withIntent } = params;
 
   // build spore cell
-  const { cell: sporeCell, scriptInfo: sporeScriptInfo } = await assertSpore(
+  const {
+    cell: sporeCell,
+    sporeData,
+    scriptInfo: sporeScriptInfo,
+  } = await assertSpore(signer.client, id, scripts);
+  const tx = await prepareMutantDependencies(
     signer.client,
-    id,
-    scripts,
+    params.tx,
+    sporeScriptInfo,
+    sporeData.contentType,
   );
-  await tx.addCellDepInfos(signer.client, sporeScriptInfo.cellDeps);
+  await addSporeCodeCellDeps(tx, signer.client, sporeScriptInfo);
   tx.addInput(sporeCell);
 
-  const actions = sporeScriptInfo.cobuild
+  const actions = shouldIncludeAction(
+    signer.client,
+    "Spore",
+    sporeScriptInfo,
+    withIntent,
+  )
     ? [assembleMeltSporeAction(sporeCell.cellOutput, scriptInfoHash)]
     : [];
 

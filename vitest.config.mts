@@ -11,6 +11,7 @@ const packages = [
   "packages/nip07",
   "packages/okx",
   "packages/playground",
+  "packages/spore",
   "packages/ssri",
   "packages/type-id",
   "packages/uni-sat",
