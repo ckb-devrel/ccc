@@ -132,6 +132,27 @@ describe("checkSporeIntent", () => {
     expect(tx.outputs[0].lock.eq(lockA)).toBe(true);
   });
 
+  it("preserves missing output data on Transaction instances but defaults plain builders", async () => {
+    const output = { capacity, lock: lockB, type: sporeType };
+    const tx = ccc.Transaction.from({ outputs: [output] });
+    const action = assembleCreateSporeAction(output, "0x");
+    injectCobuild(tx, [action]);
+    tx.outputsData = [];
+    const scripts = { Spore: [{ ...sporeType, cellDeps: [] }] };
+
+    await expect(checkSporeIntent({ client, scripts, tx })).rejects.toThrow(
+      "Output data not found at index 0",
+    );
+    expect(tx.outputsData).toEqual([]);
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts,
+        tx: { outputs: [output], witnesses: tx.witnesses },
+      }),
+    ).resolves.toEqual([action]);
+  });
+
   it("rejects a known Spore Action with an unmatched script hash", async () => {
     const output = {
       capacity,

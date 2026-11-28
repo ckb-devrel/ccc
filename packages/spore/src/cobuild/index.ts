@@ -314,7 +314,10 @@ export async function checkSporeIntent(params: {
   scriptInfoHashes?: ccc.HexLike[];
 }): Promise<ccc.DecodedType<typeof ActionVec>> {
   const { client } = params;
-  const tx = ccc.Transaction.from(params.tx).clone();
+  const source = ccc.Transaction.from(params.tx);
+  const tx = source.clone();
+  // Preserve missing entries on Transaction instances so validation sees them.
+  tx.outputsData = source.outputsData.slice();
   const actions = findCobuildMessage(tx)?.actions;
   if (actions === undefined || actions.length === 0) {
     return [];

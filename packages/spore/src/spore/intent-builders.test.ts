@@ -440,13 +440,10 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
         outputData: "0x99",
       }),
   );
-  const findAsset = f.client.findSingletonCellByType.bind(f.client);
-  const resolve = vi.fn(
-    async (type: ccc.ScriptLike) =>
-      codeCells.find((cell) => cell.cellOutput.type?.eq(type)) ??
-      findAsset(type),
-  );
-  f.client.findSingletonCellByType = resolve;
+  const resolve = vi.fn(async function* (type: ccc.ScriptLike) {
+    yield* codeCells.filter((cell) => cell.cellOutput.type?.eq(type));
+  });
+  f.client.findCellsByType = resolve;
   f.client.getCellLive = vi.fn(async (point: ccc.OutPointLike) =>
     codeCells.find((cell) => cell.outPoint.eq(point)),
   );
@@ -616,7 +613,7 @@ describe("Spore mint with a reviewed Cluster deployment", () => {
       }
       const before = f.tx.toHex();
       const { tx } = await f.mint();
-      expect(f.resolve).toHaveBeenCalledWith(f.profile.cluster.codeType, true);
+      expect(f.resolve).toHaveBeenCalledWith(f.profile.cluster.codeType, false);
       expect(tx.inputs.map((input) => input.previousOutput.toHex())).toEqual(
         f.tx.inputs.map((input) => input.previousOutput.toHex()),
       );
@@ -681,7 +678,7 @@ describe("profile-bound native Mutants in Spore builders", () => {
     );
     expect(f.resolve).toHaveBeenCalledExactlyOnceWith(
       f.profile.cluster.codeType,
-      true,
+      false,
     );
     expect(getCellDeps).not.toHaveBeenCalled();
   });

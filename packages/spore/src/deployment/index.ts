@@ -97,35 +97,42 @@ async function resolveReviewedCodeCell(
   ) {
     throw new Error("Inconsistent standard Type ID deployment binding");
   }
-  const indexed = await client.findSingletonCellByType(codeType, true);
-  if (!indexed || !indexed.cellOutput.type?.eq(codeType)) {
-    throw new Error("Type-bound code Cell not found or identity mismatch");
+  let foundSpentCandidate = false;
+  for await (const indexed of client.findCellsByType(codeType, false)) {
+    if (!indexed.cellOutput.type?.eq(codeType)) {
+      throw new Error("Type-bound code Cell identity mismatch");
+    }
+    // The search yields cached cells before indexed cells. A spent predecessor
+    // must not prevent reaching the live successor.
+    const cell = await client.getCellLive(indexed.outPoint, true, true);
+    if (!cell) {
+      foundSpentCandidate = true;
+      continue;
+    }
+    if (
+      !cell.outPoint.eq(indexed.outPoint) ||
+      !cell.cellOutput.type?.eq(codeType)
+    ) {
+      throw new Error("Live code Cell identity mismatch");
+    }
+    if (!cell.cellOutput.lock.eq(governanceLock)) {
+      throw new Error(
+        "Code Cell governance Lock differs from the reviewed policy",
+      );
+    }
+    if (
+      expectedDataHash !== undefined &&
+      ccc.hashCkb(cell.outputData) !== expectedDataHash
+    ) {
+      throw new Error("Code Cell data differs from the reviewed binary pin");
+    }
+    return cell;
   }
-  // An indexed result can come from the transaction cache.
-  const cell = await client.getCellLive(indexed.outPoint, true, true);
-  if (!cell) {
-    throw new Error(
-      "Indexed code Cell is no longer live. Refresh deployment dependencies",
-    );
-  }
-  if (
-    !cell.outPoint.eq(indexed.outPoint) ||
-    !cell.cellOutput.type?.eq(codeType)
-  ) {
-    throw new Error("Live code Cell identity mismatch");
-  }
-  if (!cell.cellOutput.lock.eq(governanceLock)) {
-    throw new Error(
-      "Code Cell governance Lock differs from the reviewed policy",
-    );
-  }
-  if (
-    expectedDataHash !== undefined &&
-    ccc.hashCkb(cell.outputData) !== expectedDataHash
-  ) {
-    throw new Error("Code Cell data differs from the reviewed binary pin");
-  }
-  return cell;
+  throw new Error(
+    foundSpentCandidate
+      ? "Indexed code Cell is no longer live. Refresh deployment dependencies"
+      : "Type-bound code Cell not found",
+  );
 }
 
 /** Bind exactly the reviewed live executable Cell when preparing a transaction. */

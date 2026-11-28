@@ -23,6 +23,11 @@ const description = {
 const clientFor = (cell?: ccc.Cell, isLive = true) =>
   ({
     findSingletonCellByType: vi.fn(async () => cell),
+    findCellsByType: vi.fn(async function* () {
+      if (cell) {
+        yield cell;
+      }
+    }),
     getCellLive: vi.fn(async () => (isLive ? cell : undefined)),
   }) as unknown as ccc.Client;
 
@@ -81,6 +86,52 @@ describe("type-bound Spore code deployments", () => {
     expect(
       deps[0].outPoint.eq(ccc.OutPoint.from(description.cellDep.outPoint)),
     ).toBe(false);
+  });
+  it("continues from a spent cached code Cell to the indexed Type ID successor", async () => {
+    const deployment = createSporeCodeDeployment(description);
+    const predecessor = ccc.Cell.from({
+      outPoint: description.cellDep.outPoint,
+      cellOutput: { lock: policy, type: deployment.codeType },
+      outputData: "0x01",
+    });
+    const successor = ccc.Cell.from({
+      outPoint: { txHash: hex("44"), index: 0 },
+      cellOutput: { lock: policy, type: deployment.codeType },
+      outputData: "0x02",
+    });
+    const getCellLive = vi.fn(async (point: ccc.OutPoint) =>
+      point.eq(successor.outPoint) ? successor : undefined,
+    );
+    const client = Object.assign(
+      Object.create(ccc.Client.prototype) as ccc.Client,
+      {
+        cache: {
+          async *findCells() {
+            yield predecessor;
+          },
+          isUnusable: async () => false,
+        },
+        async *findCellsOnChain() {
+          yield successor;
+        },
+        getCellLive,
+      },
+    );
+    await expect(resolveSporeCodeDeployment(client, deployment)).resolves.toBe(
+      successor,
+    );
+    expect(getCellLive).toHaveBeenNthCalledWith(
+      1,
+      predecessor.outPoint,
+      true,
+      true,
+    );
+    expect(getCellLive).toHaveBeenNthCalledWith(
+      2,
+      successor.outPoint,
+      true,
+      true,
+    );
   });
   it("requires review when the Lock, identity or pinned binary changes", async () => {
     const deployment = createSporeCodeDeployment({
