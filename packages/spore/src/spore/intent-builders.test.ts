@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 import { describe, expect, it, vi } from "vitest";
 import { createSporeCluster, transferSporeCluster } from "../cluster/index.js";
 import {
@@ -447,6 +447,9 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
       findAsset(type),
   );
   f.client.findSingletonCellByType = resolve;
+  f.client.getCellLive = vi.fn(async (point: ccc.OutPointLike) =>
+    codeCells.find((cell) => cell.outPoint.eq(point)),
+  );
   const scriptInfo = profile.spore.scriptInfo;
   const data = {
     content: "0x77",
@@ -465,6 +468,14 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
       outputData: elf,
     }),
   );
+  const historicDeps: ccc.Cell[] = [];
+  const getCell = f.client.getCell.bind(f.client);
+  f.client.getCell = vi.fn(
+    async (point: ccc.OutPointLike) =>
+      [...codeCells, ...rules, ...historicDeps].find((cell) =>
+        cell.outPoint.eq(point),
+      ) ?? getCell(point),
+  );
   const lookup = vi.fn(async function* (key: ccc.ClientIndexerSearchKeyLike) {
     expect(key.script.codeHash).toBe(profile.mutant.scriptInfo.codeHash);
     yield* rules;
@@ -481,7 +492,17 @@ function mutantFixture(contentType = withMutants("text/plain", ruleIds)) {
     }
     return meltSpore({ ...base, scripts, id });
   };
-  return { ...f, profile, rules, data, lookup, build, codeCells, resolve };
+  return {
+    ...f,
+    profile,
+    rules,
+    data,
+    lookup,
+    build,
+    codeCells,
+    resolve,
+    historicDeps,
+  };
 }
 
 function reviewedClusterMint(reuseCluster: boolean) {
@@ -501,13 +522,13 @@ function reviewedClusterMint(reuseCluster: boolean) {
     f.tx.addCellDeps({ outPoint: f.clusterCell.outPoint, depType: "code" });
     injectCobuild(f.tx, [action]);
   }
-  const mint = () =>
+  const mint = (clusterMode: "clusterCell" | "lockProxy" = "clusterCell") =>
     createSpore({
       signer: f.signer,
       tx: f.tx,
       scriptInfo: spore,
       clusterScripts: [clusterScript],
-      clusterMode: "clusterCell",
+      clusterMode,
       withIntent: false,
       data: { clusterId: id, contentType: "text/plain", content: "0x77" },
     });
@@ -515,6 +536,74 @@ function reviewedClusterMint(reuseCluster: boolean) {
 }
 
 describe("Spore mint with a reviewed Cluster deployment", () => {
+  it.each(["code", "depGroup"] as const)(
+    "rejects stale reviewed code in a %s after a successor is published",
+    async (depType) => {
+      const f = reviewedClusterMint(true);
+      const predecessor = f.codeCells[1].clone();
+      f.historicDeps.push(predecessor);
+      f.codeCells[1] = ccc.Cell.from({
+        ...predecessor,
+        outPoint: { txHash: hex("77"), index: 2 },
+      });
+      const group = ccc.Cell.from({
+        outPoint: { txHash: hex("78"), index: 0 },
+        cellOutput: { capacity: 100000000000n, lock },
+        outputData: mol.vector(ccc.OutPoint).encode([predecessor.outPoint]),
+      });
+      f.historicDeps.push(group);
+      const old = depType === "code" ? predecessor : group;
+      f.tx.addCellDeps({ outPoint: old.outPoint, depType });
+      const before = f.tx.toHex();
+      await expect(f.mint()).rejects.toThrow(/Stale reviewed code dependency/);
+      expect(f.tx.toHex()).toBe(before);
+
+      f.tx.cellDeps = f.tx.cellDeps.filter(
+        (dep) => !dep.outPoint.eq(old.outPoint),
+      );
+      const { tx } = await f.mint();
+      expect(
+        tx.cellDeps.some((dep) => dep.outPoint.eq(f.codeCells[1].outPoint)),
+      ).toBe(true);
+      expect(tx.cellDeps.some((dep) => dep.outPoint.eq(old.outPoint))).toBe(
+        false,
+      );
+    },
+  );
+
+  it("preserves a dep group already supplying the approved executable", async () => {
+    const f = reviewedClusterMint(true);
+    const live = f.codeCells[1].outPoint;
+    const group = ccc.Cell.from({
+      outPoint: { txHash: hex("78"), index: 0 },
+      cellOutput: { capacity: 100000000000n, lock },
+      outputData: mol.vector(ccc.OutPoint).encode([live]),
+    });
+    f.historicDeps.push(group);
+    f.tx.addCellDeps({ outPoint: group.outPoint, depType: "depGroup" });
+    const { tx } = await f.mint();
+    expect(tx.cellDeps.some((dep) => dep.outPoint.eq(group.outPoint))).toBe(
+      true,
+    );
+    expect(tx.cellDeps.some((dep) => dep.outPoint.eq(live))).toBe(false);
+  });
+
+  it("checks reviewed Cluster code if lock proxy reuses the Cluster input", async () => {
+    const f = reviewedClusterMint(true);
+    const approved = f.codeCells[1];
+    const before = f.tx.toHex();
+    f.codeCells[1] = ccc.Cell.from({ ...approved, outputData: "0x00" });
+    await expect(f.mint("lockProxy")).rejects.toThrow(/binary pin/);
+    expect(f.tx.toHex()).toBe(before);
+
+    f.codeCells[1] = approved;
+    const { tx } = await f.mint("lockProxy");
+    expect(tx.cellDeps.some((dep) => dep.outPoint.eq(approved.outPoint))).toBe(
+      true,
+    );
+    expect(f.tx.toHex()).toBe(before);
+  });
+
   it.each([false, true])(
     "checks a preassembled Cluster and includes its live code once (already present: %s)",
     async (hasCodeDep) => {

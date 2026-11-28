@@ -29,6 +29,14 @@ export async function prepareCluster(
     data.clusterId,
     scripts,
   );
+  const existingInput = tx.inputs.some((input) =>
+    input.previousOutput.eq(cluster.outPoint),
+  );
+  const clusterDep = { outPoint: cluster.outPoint, depType: "code" as const };
+  if (existingInput && scriptInfo.codePolicy) {
+    await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
+    tx.addCellDeps(clusterDep);
+  }
 
   switch (clusterMode) {
     case "lockProxy": {
@@ -62,25 +70,17 @@ export async function prepareCluster(
         tx.addOutput(proxyCell.cellOutput.clone(), proxyCell.outputData);
       }
 
-      tx.addCellDeps({
-        outPoint: cluster.outPoint,
-        depType: "code",
-      });
+      tx.addCellDeps(clusterDep);
       return;
     }
     case "clusterCell": {
-      const existingInput = tx.inputs.some((input) =>
-        input.previousOutput.eq(cluster.outPoint),
-      );
-      if (!existingInput || scriptInfo.codePolicy) {
-        await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
-        // The Spore contract reads the Cluster's data from a cell dependency.
-        tx.addCellDeps({ outPoint: cluster.outPoint, depType: "code" });
-      }
       if (existingInput) {
         return;
       }
 
+      await addSporeCodeCellDeps(tx, signer.client, scriptInfo);
+      // The Spore contract reads the Cluster's data from a cell dependency.
+      tx.addCellDeps(clusterDep);
       tx.addInput(cluster);
       tx.addOutput(cluster.cellOutput, cluster.outputData);
 

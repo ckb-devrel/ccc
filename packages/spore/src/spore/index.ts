@@ -137,7 +137,7 @@ export async function createSpore(params: {
   // Cluster code validation can fail independently of the Spore deployment.
   const copyForClusterPolicy =
     !!data.clusterId &&
-    clusterMode === "clusterCell" &&
+    (clusterMode === "clusterCell" || clusterMode === "lockProxy") &&
     (
       params.clusterScripts ??
       Object.values(getClusterScriptInfos(signer.client))

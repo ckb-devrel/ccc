@@ -1,4 +1,4 @@
-import { ccc } from "@ckb-ccc/core";
+import { ccc, mol } from "@ckb-ccc/core";
 import {
   SporeCodePolicy,
   SporeScriptInfo,
@@ -97,9 +97,22 @@ async function resolveReviewedCodeCell(
   ) {
     throw new Error("Inconsistent standard Type ID deployment binding");
   }
-  const cell = await client.findSingletonCellByType(codeType, true);
-  if (!cell || !cell.cellOutput.type?.eq(codeType)) {
+  const indexed = await client.findSingletonCellByType(codeType, true);
+  if (!indexed || !indexed.cellOutput.type?.eq(codeType)) {
     throw new Error("Type-bound code Cell not found or identity mismatch");
+  }
+  // An indexed result can come from the transaction cache.
+  const cell = await client.getCellLive(indexed.outPoint, true, true);
+  if (!cell) {
+    throw new Error(
+      "Indexed code Cell is no longer live. Refresh deployment dependencies",
+    );
+  }
+  if (
+    !cell.outPoint.eq(indexed.outPoint) ||
+    !cell.cellOutput.type?.eq(codeType)
+  ) {
+    throw new Error("Live code Cell identity mismatch");
   }
   if (!cell.cellOutput.lock.eq(governanceLock)) {
     throw new Error(
@@ -139,11 +152,63 @@ export async function addSporeCodeCellDeps(
     );
   }
   const cell = await resolveReviewedCodeCell(client, scriptInfo, codePolicy);
-  const extraDeps = dependencies.filter((dep) => dep !== executable[0]);
-  if (extraDeps.length > 0) {
-    await tx.addCellDepInfos(client, extraDeps);
+  const extraInfos = dependencies.filter((dep) => dep !== executable[0]);
+  const extraDeps = extraInfos.length
+    ? await client.getCellDeps(extraInfos)
+    : [];
+  const reference = executable[0].cellDep.outPoint;
+  const failStale = (point: ccc.OutPoint) => {
+    throw new Error(
+      `Stale reviewed code dependency ${point.txHash}:${point.index}. Rebuild the transaction dependencies`,
+    );
+  };
+  // Resolve existing deps historically so spent predecessors can still be
+  // recognized by their Type ID. A committed dep group cannot be rewritten.
+  const inspect = async (point: ccc.OutPoint) => {
+    const dep = await client.getCell(point);
+    if (!dep) {
+      throw new Error(
+        `Cannot inspect dependency ${point.txHash}:${point.index}`,
+      );
+    }
+    if (
+      !point.eq(cell.outPoint) &&
+      dep.cellOutput.type?.eq(codePolicy.codeType)
+    ) {
+      failStale(point);
+    }
+    return dep;
+  };
+
+  let includesExecutable = false;
+  for (const dep of [...tx.cellDeps, ...extraDeps]) {
+    const point = dep.outPoint;
+    if (dep.depType === "code" && point.eq(cell.outPoint)) {
+      includesExecutable = true;
+      continue;
+    }
+    if (point.eq(reference) && !point.eq(cell.outPoint)) {
+      failStale(point);
+    }
+    const resolved = await inspect(point);
+    if (dep.depType === "depGroup") {
+      for (const member of mol
+        .vector(ccc.OutPoint)
+        .decode(resolved.outputData)) {
+        if (member.eq(cell.outPoint)) {
+          includesExecutable = true;
+        } else if (member.eq(reference)) {
+          failStale(member);
+        } else {
+          await inspect(member);
+        }
+      }
+    }
   }
-  tx.addCellDeps({ outPoint: cell.outPoint, depType: "code" });
+  tx.addCellDeps(extraDeps);
+  if (!includesExecutable) {
+    tx.addCellDeps({ outPoint: cell.outPoint, depType: "code" });
+  }
 }
 
 export type SporeDeploymentProfileLike = {

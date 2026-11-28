@@ -20,9 +20,10 @@ const description = {
   },
   governanceLock: policy,
 };
-const clientFor = (cell?: ccc.Cell) =>
+const clientFor = (cell?: ccc.Cell, isLive = true) =>
   ({
     findSingletonCellByType: vi.fn(async () => cell),
+    getCellLive: vi.fn(async () => (isLive ? cell : undefined)),
   }) as unknown as ccc.Client;
 
 describe("type-bound Spore code deployments", () => {
@@ -116,6 +117,9 @@ describe("type-bound Spore code deployments", () => {
     await expect(
       resolveSporeCodeDeployment(clientFor(), deployment),
     ).rejects.toThrow(/not found/);
+    await expect(
+      resolveSporeCodeDeployment(clientFor(code, false), deployment),
+    ).rejects.toThrow(/no longer live/);
   });
   it("does not alias caller-owned policy scripts", () => {
     const supplied = { ...description, governanceLock: policy.clone() };

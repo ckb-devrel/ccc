@@ -108,6 +108,30 @@ describe("checkSporeIntent", () => {
     expect(checked).toEqual([action]);
   });
 
+  it("verifies the same transaction snapshot across asynchronous lookups", async () => {
+    const output = { capacity, lock: lockB, type: sporeType };
+    const tx = ccc.Transaction.from({
+      inputs: [{ previousOutput: inputCell.outPoint }],
+      outputs: [output],
+      outputsData: [content],
+    });
+    const action = assembleCreateSporeAction(output, content);
+    injectCobuild(tx, [action]);
+    client.getCell = vi.fn(async () => {
+      tx.outputs[0].lock = lockA;
+      tx.witnesses = [];
+      return inputCell;
+    });
+    await expect(
+      checkSporeIntent({
+        client,
+        scripts: { Spore: [{ ...sporeType, cellDeps: [] }] },
+        tx,
+      }),
+    ).resolves.toEqual([action]);
+    expect(tx.outputs[0].lock.eq(lockA)).toBe(true);
+  });
+
   it("rejects a known Spore Action with an unmatched script hash", async () => {
     const output = {
       capacity,
